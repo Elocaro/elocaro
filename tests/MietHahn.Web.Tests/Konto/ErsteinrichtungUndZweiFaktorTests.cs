@@ -45,7 +45,7 @@ public class ErsteinrichtungUndZweiFaktorTests(PostgresFixture postgres) : Konto
 
         var danach = await browser.LadenAsync("/");
         Assert.Equal(HttpStatusCode.OK, danach.Status);
-        Assert.Equal("/", danach.Pfad);
+        Assert.Equal("/verwaltung", danach.Pfad);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class ErsteinrichtungUndZweiFaktorTests(PostgresFixture postgres) : Konto
 
             if (versuch == 0)
             {
-                Assert.Equal("/", ergebnis.Pfad);
+                Assert.Equal("/verwaltung", ergebnis.Pfad);
             }
             else
             {

@@ -1,6 +1,7 @@
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Infrastructure;
 using MietHahn.Infrastructure.Persistenz;
+using MietHahn.Web.Autorisierung;
 using MietHahn.Web.Components;
 using MietHahn.Web.Konto;
 
@@ -32,6 +33,7 @@ app.UseAntiforgery();
 app.MapStaticAssets().AllowAnonymous();
 app.MapRazorComponents<App>();
 app.MapKontoEndpunkte();
+app.MapDateiEndpunkte();
 
 await app.Services.MigriereDatenbankAsync();
 await app.RunAsync();

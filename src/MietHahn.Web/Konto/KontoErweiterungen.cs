@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
 using MietHahn.Infrastructure.Identitaet;
+using MietHahn.Web.Autorisierung;
 
 namespace MietHahn.Web.Konto;
 
@@ -33,11 +34,14 @@ internal static class KontoErweiterungen
             o.SlidingExpiration = true;
         });
 
-        // Gesperrte Konten und geänderte Rollen/2FA werden spätestens nach 10 Minuten wirksam.
-        services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.FromMinutes(10));
+        // Security-Stamp bei jeder Anfrage prüfen (für die kleine Nutzerzahl unkritisch): Gesperrte Konten werden
+        // sofort abgemeldet, geänderte Rollen und Rechte gelten ab der nächsten Anfrage (Principal wird neu aufgebaut).
+        services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.Zero);
 
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddMietHahnRichtlinien();
+        services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, DateiZugriffHandler>();
 
         services.AddRateLimiter(o =>
         {

@@ -94,6 +94,23 @@ In `Down()` steht dann `migrationBuilder.EntferneUeberlappungsschutz(name, tabel
 - **Data-Protection-Schlüssel** liegen in PostgreSQL (`data_protection_keys`): Anmeldungen überstehen Neustarts und sind im DB-Backup enthalten.
 - Identity rechnet Token-Laufzeiten und Sperren mit der Systemuhr (ohne `TimeProvider`). Tests prüfen daher die Konfiguration statt Zeit vorzuspulen; eigene Anmeldelinks nutzen `TimeProvider`.
 
+## Autorisierung
+
+| Richtlinie | Wer | Einsatz |
+|---|---|---|
+| `Richtlinien.Verwaltung` | Admin, Verwalter | alle Seiten unter `Components/Pages/Verwaltung/` (per `_Imports.razor`) |
+| `Richtlinien.Service` | Hausmeister, Handwerker | `Components/Pages/Service/` |
+| `Richtlinien.Portal` | Mieter | `Components/Pages/Portal/` |
+| `Richtlinien.Fuer(Recht.X)` | Admin oder Verwalter mit Recht X | z. B. `Verwaltung/Benutzer` (Benutzerverwaltung), `Verwaltung/Betrieb` (System) |
+
+- **Rechte** (`Recht`: Stammdaten, Finanzen, Benutzerverwaltung, System) liegen als Claims `miethahn:recht` am Konto. Admins haben immer alle, Verwalter standardmäßig Stammdaten und Finanzen. Gepflegt wird unter `/verwaltung/benutzer/{id}`.
+- Unterordner-`_Imports.razor` **ergänzen** die Richtlinie des Elternordners (beide müssen erfüllt sein).
+- **Wirksamkeit:** Der Security-Stamp wird bei jeder Anfrage geprüft und der Principal neu aus der DB aufgebaut. Rollen- und Rechteänderungen gelten damit ab der nächsten Anfrage, Sperren meldet sofort ab. Wer den Stamp ändert (z. B. Authenticator-Schlüssel neu erzeugen, 2FA aktivieren, Passwort ändern), muss danach `SignInManager.RefreshSignInAsync` aufrufen.
+- **Startseite** `/` leitet je Rolle nach `/verwaltung`, `/service` oder `/portal`.
+- **Ressourcenbasiert:** Für einzelne Datensätze `IAuthorizationService.AuthorizeAsync(user, ressource, anforderung)` mit eigenem `AuthorizationHandler<TAnforderung, TRessource>`. Beispiel: `DateiZugriffHandler` für `/dateien/{id}`. Die Verwaltung darf alles; Fachmodule geben einzelne Dateien für andere Rollen über `IDateiFreigabe` frei (z. B. Dokumente eines Mieters).
+- **Letzter Admin:** kann weder gesperrt noch herabgestuft werden. Das eigene Konto kann man nicht sperren.
+- Änderungen an Konten (Anlage, Rolle, Rechte, Sperre) stehen im Audit-Log (`AuditSchreiber`, Typ `Benutzer`).
+
 ## Audit-Log
 
 - Jede Speicherung einer `Entitaet` schreibt in **derselben Transaktion** einen Eintrag in `audit_eintraege`: Zeitpunkt, Benutzer (`IAktuellerBenutzer`), Typ, Id, Aktion (`Angelegt`, `Geaendert`, `Geloescht`) und die geänderten Felder alt → neu als `jsonb`. Speichern ohne echte Änderung erzeugt keinen Eintrag.

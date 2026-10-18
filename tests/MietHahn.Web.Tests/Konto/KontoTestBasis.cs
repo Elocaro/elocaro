@@ -1,8 +1,10 @@
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Konten;
 using MietHahn.Domain.Kommunikation;
+using MietHahn.Infrastructure.Identitaet;
 
 namespace MietHahn.Web.Tests.Konto;
 
@@ -16,7 +18,52 @@ public abstract partial class KontoTestBasis(PostgresFixture postgres) : IAsyncL
 
     protected virtual IDictionary<string, string?>? Konfiguration => null;
 
-    public async ValueTask InitializeAsync() => App = await MietHahnWebFactory.MitDatenbankAsync(postgres, Konfiguration);
+    protected virtual void DiensteAnpassen(IServiceCollection dienste)
+    {
+    }
+
+    public async ValueTask InitializeAsync() => App = await MietHahnWebFactory.MitDatenbankAsync(postgres, Konfiguration, DiensteAnpassen);
+
+    /// <summary>
+    /// Legt ein Konto der Rolle direkt an (mit Passwort, bei 2FA-Pflicht mit aktivierter 2FA) und meldet es über
+    /// die Oberfläche an. Liefert Browser und Benutzer-Id.
+    /// </summary>
+    protected async Task<(TestBrowser Browser, Guid Id)> AngemeldetAlsAsync(string rolle, IReadOnlyCollection<Recht>? rechte = null, string? email = null)
+    {
+        email ??= $"{rolle.ToLowerInvariant()}-{Guid.NewGuid():N}@example.de";
+        const string passwort = "Test-Passwort-2026-lang";
+        var (id, schluessel) = await App.MitScopeAsync(async sp =>
+        {
+            var manager = sp.GetRequiredService<UserManager<Benutzer>>();
+            var benutzer = new Benutzer { UserName = email, Email = email, EmailConfirmed = true, Anzeigename = rolle + " Test" };
+            Assert.True((await manager.CreateAsync(benutzer, passwort)).Succeeded);
+            await manager.AddToRoleAsync(benutzer, rolle);
+            if (rolle == Rollen.Verwalter)
+            {
+                await manager.AddClaimsAsync(benutzer, (rechte ?? Rechte.VerwalterStandard).Select(r => new System.Security.Claims.Claim(Rechte.ClaimTyp, r.ToString())));
+            }
+
+            string? key = null;
+            if (Rollen.MitZweiFaktorPflicht.Contains(rolle))
+            {
+                await manager.ResetAuthenticatorKeyAsync(benutzer);
+                key = await manager.GetAuthenticatorKeyAsync(benutzer);
+                await manager.SetTwoFactorEnabledAsync(benutzer, true);
+            }
+
+            return (benutzer.Id, key);
+        });
+
+        var browser = App.Browser();
+        var seite = await AnmeldenAsync(browser, email, passwort);
+        if (schluessel is not null)
+        {
+            seite = await browser.AbsendenAsync(seite, "zwei-faktor", new Dictionary<string, string> { ["Eingabe.Code"] = Code(schluessel) });
+        }
+
+        Assert.DoesNotContain("/konto/", seite.Pfad, StringComparison.Ordinal);
+        return (browser, id);
+    }
 
     public async ValueTask DisposeAsync() => await App.DisposeAsync();
 

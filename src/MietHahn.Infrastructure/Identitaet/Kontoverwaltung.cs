@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using MietHahn.Application.Audit;
 using MietHahn.Application.Kommunikation;
 using MietHahn.Application.Konten;
+using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Persistenz;
 
 namespace MietHahn.Infrastructure.Identitaet;
@@ -13,7 +15,8 @@ internal sealed class Kontoverwaltung(
     RoleManager<Rolle> rollenManager,
     IMailVersand mail,
     TimeProvider uhr,
-    IOptions<AnwendungOptionen> anwendung) : IKontoverwaltung
+    IOptions<AnwendungOptionen> anwendung,
+    AuditSchreiber audit) : IKontoverwaltung
 {
     public static readonly TimeSpan AnmeldelinkGueltigkeit = TimeSpan.FromMinutes(15);
     public static readonly TimeSpan EinladungGueltigkeit = TimeSpan.FromDays(7);
@@ -38,6 +41,8 @@ internal sealed class Kontoverwaltung(
         }
 
         await benutzerManager.AddToRoleAsync(benutzer, Rollen.Admin);
+        await audit.ProtokollierenAsync(nameof(Benutzer), benutzer.Id, AuditAktion.Angelegt,
+            [new("Email", null, benutzer.Email), new("Rolle", null, Rollen.Admin)], cancellationToken);
         return KontoErgebnis.Ok(benutzer.Id);
     }
 
@@ -62,6 +67,10 @@ internal sealed class Kontoverwaltung(
         }
 
         await benutzerManager.AddToRoleAsync(benutzer, rolle);
+        if (rolle == Rollen.Verwalter)
+        {
+            await benutzerManager.AddClaimsAsync(benutzer, Rechte.VerwalterStandard.Select(r => new System.Security.Claims.Claim(Rechte.ClaimTyp, r.ToString())));
+        }
 
         if (Rollen.BrauchtPasswort(rolle))
         {
@@ -77,6 +86,8 @@ internal sealed class Kontoverwaltung(
                 new { Anzeigename = benutzer.Anzeigename, Rolle = Rollen.Anzeigename(rolle), Link = link.ToString(), GueltigTage = EinladungGueltigkeit.Days }), cancellationToken);
         }
 
+        await audit.ProtokollierenAsync(nameof(Benutzer), benutzer.Id, AuditAktion.Angelegt,
+            [new("Email", null, benutzer.Email), new("Rolle", null, rolle)], cancellationToken);
         return KontoErgebnis.Ok(benutzer.Id);
     }
 

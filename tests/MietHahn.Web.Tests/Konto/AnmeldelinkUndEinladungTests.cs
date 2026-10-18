@@ -26,7 +26,7 @@ public class AnmeldelinkUndEinladungTests(PostgresFixture postgres) : KontoTestB
         // Das bloße Öffnen (z. B. durch einen Mail-Scanner) verbraucht den Link nicht.
         var nochmalGeoeffnet = await browser.LadenAsync(link);
         var angemeldet = await browser.AbsendenAsync(nochmalGeoeffnet, "link-einloesen");
-        Assert.Equal("/", angemeldet.Pfad);
+        Assert.Equal("/portal", angemeldet.Pfad);
         Assert.Equal(HttpStatusCode.OK, angemeldet.Status);
 
         using var zweiterBrowser = App.Browser();

@@ -100,6 +100,7 @@ public static class DependencyInjection
         // Passwort-Reset-Links: 2 Stunden; Einladungen nutzen den eigenen Anbieter (7 Tage).
         services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromHours(2));
         services.AddScoped<IKontoverwaltung, Kontoverwaltung>();
+        services.AddScoped<IBenutzerverwaltung, Benutzerverwaltung>();
     }
 
     private static void AuditRegistrieren(IServiceCollection services, IConfiguration konfiguration)
@@ -108,6 +109,7 @@ public static class DependencyInjection
         services.AddScoped<IZugriffsprotokoll, Zugriffsprotokoll>();
         services.AddScoped<IAenderungsHistorie, AenderungsHistorie>();
         services.AddScoped<AuditBereinigung>();
+        services.AddScoped<AuditSchreiber>();
     }
 
     private static void MailRegistrieren(IServiceCollection services, IConfiguration konfiguration)

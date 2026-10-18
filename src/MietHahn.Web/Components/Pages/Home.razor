@@ -1,7 +1,13 @@
 @page "/"
+@using MietHahn.Web.Autorisierung
+@inject NavigationManager Navigation
 
+@* Leitet je nach Rolle in den passenden Bereich. *@
 <PageTitle>MietHahn</PageTitle>
 
-<h1>MietHahn</h1>
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
 
-<p>Verwaltung für private Vermieter.</p>
+    protected override void OnInitialized() => Navigation.NavigateTo(AutorisierungErweiterungen.Startseite(HttpContext.User));
+}

@@ -11,15 +11,18 @@ namespace MietHahn.Web.Tests;
 /// Startet die echte Web-App gegen eine eigene, frische Datenbank. Jobs sind aus (Mails bleiben in der Outbox
 /// und werden dort geprüft), die Uhr ist steuerbar.
 /// </summary>
-public sealed class MietHahnWebFactory(string verbindung, IDictionary<string, string?>? zusatz = null) : WebApplicationFactory<Program>
+public sealed class MietHahnWebFactory(string verbindung, IDictionary<string, string?>? zusatz = null, Action<IServiceCollection>? dienste = null)
+    : WebApplicationFactory<Program>
 {
     public FakeTimeProvider Uhr { get; } = new(DateTimeOffset.UtcNow);
 
     public string DateiPfad { get; } = Path.Combine(Path.GetTempPath(), "miethahn-webtests", Guid.NewGuid().ToString("N"));
 
-    public static async Task<MietHahnWebFactory> MitDatenbankAsync(PostgresFixture postgres, IDictionary<string, string?>? zusatz = null)
+    public static async Task<MietHahnWebFactory> MitDatenbankAsync(
+        PostgresFixture postgres, IDictionary<string, string?>? zusatz = null, Action<IServiceCollection>? dienste = null)
     {
-        var factory = new MietHahnWebFactory(await postgres.NeueDatenbankAsync(TestContext.Current.CancellationToken), zusatz);
+        ArgumentNullException.ThrowIfNull(postgres);
+        var factory = new MietHahnWebFactory(await postgres.NeueDatenbankAsync(TestContext.Current.CancellationToken), zusatz, dienste);
         _ = factory.Server; // Host starten (Migrationen laufen dabei)
         return factory;
     }
@@ -61,7 +64,11 @@ public sealed class MietHahnWebFactory(string verbindung, IDictionary<string, st
             builder.UseSetting(schluessel, wert);
         }
 
-        builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Uhr));
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<TimeProvider>(Uhr);
+            dienste?.Invoke(services);
+        });
     }
 
     public override async ValueTask DisposeAsync()
