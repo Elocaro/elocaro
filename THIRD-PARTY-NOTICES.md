@@ -12,5 +12,7 @@ MietHahn nutzt folgende Open-Source-Komponenten (als NuGet-Pakete bzw. Container
 | Scriban | BSD-2-Clause | Vorlagen |
 | SkiaSharp | MIT | Bildaufbereitung |
 | PostgreSQL (Container) | PostgreSQL License | Datenbank |
+| Gotenberg (Container) | MIT | HTML → PDF (Chromium, LibreOffice für PDF/A) |
 | Mailpit (Container, nur Entwicklung/Test) | MIT | Mail-Testserver |
+| PdfPig (nur Tests) | Apache-2.0 | PDF-Prüfung in Tests |
 | xUnit, Testcontainers, NetArchTest | Apache-2.0 / MIT | Tests |

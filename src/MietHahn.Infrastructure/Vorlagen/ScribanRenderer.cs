@@ -90,7 +90,7 @@ public sealed class ScribanRenderer
         global.Import("datum", new Func<object?, string>(Formatierung.Datum));
         global.Import("zahl", new Func<decimal?, int, string>((wert, stellen) => wert?.ToString("N" + stellen, Deutsch) ?? ""));
         global.Import("text_zu_html", new Func<string?, RohesHtml>(text =>
-            new RohesHtml(WebUtility.HtmlEncode(text ?? "").ReplaceLineEndings("<br>"))));
+            new RohesHtml(Html.Escape(text ?? "").ReplaceLineEndings("<br>"))));
     }
 
     /// <summary>Escaped jede Ausgabe eines Ausdrucks, außer <see cref="RohesHtml"/>.</summary>
@@ -101,7 +101,7 @@ public sealed class ScribanRenderer
             {
                 null => this,
                 RohesHtml roh => Write(roh.Html),
-                _ => Write(WebUtility.HtmlEncode(ObjectToString(textAsObject, false))),
+                _ => Write(Html.Escape(ObjectToString(textAsObject, false))),
             };
     }
 }
@@ -135,6 +135,37 @@ public sealed class VorlagenFehlerException : Exception
     public VorlagenFehlerException(string message, Exception innerException)
         : base(message, innerException)
     {
+    }
+}
+
+/// <summary>
+/// Escaped nur die in HTML-Text und -Attributen kritischen Zeichen. Umlaute und andere Unicode-Zeichen bleiben
+/// lesbar erhalten (Dokumente sind UTF-8).
+/// </summary>
+public static class Html
+{
+    public static string Escape(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return "";
+        }
+
+        var sb = new System.Text.StringBuilder(text.Length + 16);
+        foreach (var zeichen in text)
+        {
+            sb.Append(zeichen switch
+            {
+                '&' => "&amp;",
+                '<' => "&lt;",
+                '>' => "&gt;",
+                '"' => "&quot;",
+                '\'' => "&#39;",
+                _ => zeichen.ToString(),
+            });
+        }
+
+        return sb.ToString();
     }
 }
 

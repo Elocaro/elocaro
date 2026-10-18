@@ -2,15 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using MietHahn.Application.Audit;
 using MietHahn.Application.Betrieb;
 using MietHahn.Application.Dateien;
+using MietHahn.Application.Dokumente;
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Application.Kommunikation;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Dateien;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Mail;
+using MietHahn.Infrastructure.Pdf;
 using MietHahn.Infrastructure.Persistenz;
 using MietHahn.Infrastructure.Vorlagen;
 using Quartz;
@@ -33,6 +36,7 @@ public static class DependencyInjection
         AuditRegistrieren(services, konfiguration);
         MailRegistrieren(services, konfiguration);
         DateiablageRegistrieren(services, konfiguration);
+        PdfRegistrieren(services, konfiguration);
         JobsRegistrieren(services, konfiguration);
 
         return services;
@@ -77,6 +81,18 @@ public static class DependencyInjection
     {
         services.Configure<DateiablageOptionen>(konfiguration.GetSection(DateiablageOptionen.Abschnitt));
         services.AddScoped<IDateiablage, LokaleDateiablage>();
+    }
+
+    private static void PdfRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    {
+        services.Configure<PdfOptionen>(konfiguration.GetSection(PdfOptionen.Abschnitt));
+        services.AddHttpClient<GotenbergKonverter>((sp, http) =>
+        {
+            var optionen = sp.GetRequiredService<IOptions<PdfOptionen>>().Value;
+            http.BaseAddress = optionen.GotenbergUrl;
+            http.Timeout = TimeSpan.FromSeconds(optionen.TimeoutSekunden);
+        });
+        services.AddScoped<IPdfErzeugung, PdfErzeugung>();
     }
 
     private static void JobsRegistrieren(IServiceCollection services, IConfiguration konfiguration)

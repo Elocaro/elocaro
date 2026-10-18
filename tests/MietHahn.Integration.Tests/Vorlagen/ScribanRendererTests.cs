@@ -13,6 +13,14 @@ public class ScribanRendererTests
     }
 
     [Fact]
+    public void Umlaute_bleiben_lesbar_Anfuehrungszeichen_werden_escaped()
+    {
+        var ergebnis = ScribanRenderer.RendernText("<a title=\"{{ name }}\">{{ name }}</a>", new { Name = "Jörg \"Straße\" O'Neil" });
+
+        Assert.Equal("<a title=\"Jörg &quot;Straße&quot; O&#39;Neil\">Jörg &quot;Straße&quot; O&#39;Neil</a>", ergebnis.Html);
+    }
+
+    [Fact]
     public void RohesHtml_wird_nicht_escaped()
     {
         var ergebnis = ScribanRenderer.RendernText("<div>{{ inhalt }}</div>", null, new Dictionary<string, object?> { ["inhalt"] = new RohesHtml("<b>fett</b>") });

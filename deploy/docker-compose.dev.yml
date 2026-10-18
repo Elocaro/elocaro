@@ -25,5 +25,11 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  # HTML → PDF (Chromium); API http://localhost:3000
+  gotenberg:
+    image: gotenberg/gotenberg:8.38.1
+    ports:
+      - "3000:3000"
+
 volumes:
   postgres-daten:

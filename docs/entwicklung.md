@@ -15,6 +15,7 @@ docker compose -f deploy/docker-compose.dev.yml up -d
 |---|---|---|
 | PostgreSQL 18 | `localhost:5432` (miethahn/miethahn) | Datenbank |
 | Mailpit | SMTP `localhost:1025`, Web http://localhost:8025 | fängt alle ausgehenden Mails ab |
+| Gotenberg 8 | http://localhost:3000 | HTML → PDF (Chromium) |
 
 Die Verbindung für die Entwicklung steht in `src/MietHahn.Web/appsettings.Development.json`. In Produktion kommt sie **nur** aus der Umgebung: `ConnectionStrings__MietHahn=...`.
 
@@ -102,10 +103,25 @@ await mailVersand.EinreihenAsync(new MailAuftrag(["mieter@example.de"], "test", 
 
 ### Vorlagen (Scriban)
 
-`ScribanRenderer` wird von Mails und (ab #34) PDFs genutzt:
-- Jede Ausgabe wird **HTML-escaped**. Bewusst unescaped ist nur `RohesHtml`.
+`ScribanRenderer` wird von Mails und PDFs genutzt:
+- Jede Ausgabe wird **HTML-escaped** (`& < > " '`, Umlaute bleiben lesbar). Bewusst unescaped ist nur `RohesHtml`.
 - Modell-Eigenschaften stehen in snake_case bereit (`MieterName` → `mieter_name`). Unbekannte Variablen sind ein Fehler.
 - Hilfsfunktionen: `geld` (1.234,50 €), `datum` (TT.MM.JJJJ, Zeitpunkte in deutscher Zeit), `zahl wert stellen`, `text_zu_html` (Zeilenumbrüche).
+
+### PDF-Erzeugung (`IPdfErzeugung`)
+
+```csharp
+var pdf = await pdfErzeugung.ErzeugenAsync(new PdfAuftrag(
+    Vorlage: "test", Titel: "Betriebskostenabrechnung 2025", Modell: daten,
+    Empfaenger: new Briefanschrift(["Erika Mustermann", "Hauptstraße 5", "12345 Musterstadt"])));
+var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025.pdf"); // unveränderlich in der Dateiablage
+```
+
+- Inhaltsvorlagen liegen unter `Infrastructure/Pdf/Vorlagen/<name>.sbn` (oder kommen als `VorlagenText` aus der Vorlagenverwaltung) und werden in `_layout.sbn` eingebettet. Die Fußzeile ist `_fusszeile.sbn` (Absender, Bank, „Seite x von y“).
+- **Mit Empfänger** entsteht ein Brief nach **DIN 5008 Form B**: Briefkopf, Anschriftfeld 45 mm von oben und 20 mm von links (Rücksendezeile, Vermerkzone, 27,3 mm Empfängerzone, höchstens 6 Zeilen), Infoblock mit Datum, Falzmarken bei 105/210 mm und Lochmarke bei 148,5 mm. **Ohne Empfänger** entsteht ein schlichtes Dokument (z. B. Anlagen).
+- Absenderdaten kommen aus dem `Vermieterprofil`. Ohne Profil schlägt die Erzeugung mit einer klaren Meldung fehl.
+- Tabellen: `<thead>` wiederholt sich auf jeder Seite, `<tfoot>` (Summen) steht nur am Ende. Rechtsbündige Beträge mit `class="zahl"`.
+- Ausgabe als **PDF/A-2b** (`Pdf:PdfA`) mit Titel und Autor in den Metadaten. Gotenberg ist nur intern erreichbar (`Pdf:GotenbergUrl`).
 
 ### Dateiablage (`IDateiablage`)
 
