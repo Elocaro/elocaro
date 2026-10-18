@@ -93,6 +93,23 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         return seite;
     }
 
+    /// <summary>Speichert bei einem Fehlschlag einen Screenshot (Pfad in der Fehlermeldung) zur Diagnose.</summary>
+    protected static async Task MitScreenshotBeiFehlerAsync(IPage seite, Func<Task> schritte)
+    {
+        ArgumentNullException.ThrowIfNull(seite);
+        ArgumentNullException.ThrowIfNull(schritte);
+        try
+        {
+            await schritte();
+        }
+        catch (Exception ex) when (ex is TimeoutException or PlaywrightException)
+        {
+            var pfad = Path.Combine(Path.GetTempPath(), $"miethahn-browsertest-{Guid.NewGuid():N}.png");
+            await seite.ScreenshotAsync(new() { Path = pfad, FullPage = true });
+            throw new InvalidOperationException($"Browser-Schritt fehlgeschlagen auf {seite.Url}. Screenshot: {pfad}", ex);
+        }
+    }
+
     /// <summary>Breite des Dokuments ≤ Breite des Fensters, also kein horizontales Scrollen.</summary>
     protected static async Task KeinHorizontalesScrollenAsync(IPage seite)
     {

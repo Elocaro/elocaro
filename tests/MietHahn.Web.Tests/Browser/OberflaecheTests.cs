@@ -59,8 +59,7 @@ public class OberflaecheTests(PostgresFixture postgres) : BrowserTestBasis(postg
         await seite.SelectOptionAsync("#rolle", "Mieter");
         await seite.ClickAsync("text=Einladung senden");
 
-        await seite.WaitForSelectorAsync(".meldung-ok");
-        Assert.Contains("erika@example.de", await seite.TextContentAsync(".meldung-ok"), StringComparison.Ordinal);
+        await seite.WaitForSelectorAsync(".meldung-ok:has-text('erika@example.de')");
         Assert.Contains("Erika Mustermann", await seite.TextContentAsync("table.tabelle"), StringComparison.Ordinal);
     }
 
@@ -81,17 +80,22 @@ public class OberflaecheTests(PostgresFixture postgres) : BrowserTestBasis(postg
     public async Task Sperren_verlangt_eine_Bestaetigung()
     {
         var seite = await AlsAdminAngemeldetAsync();
-        await seite.GotoAsync(BasisUrl + "/verwaltung/benutzer");
-        await seite.FillAsync("#name", "Mieter Test");
-        await seite.FillAsync("#email", "m@example.de");
-        await seite.ClickAsync("text=Einladung senden");
-        await seite.ClickAsync("text=Mieter Test");
+        await MitScreenshotBeiFehlerAsync(seite, async () =>
+        {
+            await seite.GotoAsync(BasisUrl + "/verwaltung/benutzer");
+            await seite.FillAsync("#name", "Mieter Test");
+            await seite.FillAsync("#email", "m@example.de");
+            await seite.ClickAsync("text=Einladung senden");
+            await seite.WaitForSelectorAsync(".meldung-ok:has-text('m@example.de')");
 
-        Assert.False(await seite.IsVisibleAsync("text=Ja, Konto sperren"));
-        await seite.ClickAsync("summary:has-text('Konto sperren')");
-        await seite.ClickAsync("text=Ja, Konto sperren");
+            await seite.ClickAsync("table.tabelle a:text-is('Mieter Test')");
+            await seite.WaitForSelectorAsync("h1:text-is('Mieter Test')");
 
-        await seite.WaitForSelectorAsync(".meldung-ok");
-        Assert.Contains("Das Konto wurde gesperrt.", await seite.TextContentAsync(".meldung-ok"), StringComparison.Ordinal);
+            Assert.False(await seite.IsVisibleAsync("text=Ja, Konto sperren"));
+            await seite.ClickAsync("summary:has-text('Konto sperren')");
+            await seite.ClickAsync("button:has-text('Ja, Konto sperren')");
+
+            await seite.WaitForSelectorAsync(".meldung-ok:has-text('Das Konto wurde gesperrt.')");
+        });
     }
 }
