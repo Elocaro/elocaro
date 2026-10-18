@@ -1,5 +1,6 @@
 using MietHahn.Domain.Objekte;
 using MietHahn.Domain.Personen;
+using MietHahn.Domain.Vertraege;
 
 namespace MietHahn.Web.Anzeige;
 
@@ -62,5 +63,49 @@ public static class Bezeichnungen
         Kontaktart.Dienstleister => "Dienstleister",
         Kontaktart.Sonstige => "Sonstiger Kontakt",
         _ => "privat (Mieter, Bürge …)",
+    };
+
+    public static string Von(Bestandteilart wert) => wert switch
+    {
+        Bestandteilart.Kaltmiete => "Kaltmiete",
+        Bestandteilart.BetriebskostenVorauszahlung => "Betriebskosten-Vorauszahlung",
+        Bestandteilart.HeizkostenVorauszahlung => "Heizkosten-Vorauszahlung",
+        Bestandteilart.Betriebskostenpauschale => "Betriebskostenpauschale",
+        Bestandteilart.Stellplatz => "Stellplatz",
+        Bestandteilart.Moeblierungszuschlag => "Möblierungszuschlag",
+        _ => "Sonstiges",
+    };
+
+    public static string Von(Abrechnungsart wert) => wert switch
+    {
+        Abrechnungsart.Pauschale => "Pauschale (keine Abrechnung)",
+        Abrechnungsart.Inklusiv => "Inklusivmiete",
+        _ => "Vorauszahlung mit Abrechnung",
+    };
+
+    public static string Von(Zahlungsart wert) => wert == Zahlungsart.Lastschrift ? "Lastschrift" : "Überweisung";
+
+    public static string Von(Kuendigender wert) => wert switch
+    {
+        Kuendigender.Vermieter => "Vermieter",
+        Kuendigender.Einvernehmlich => "einvernehmlich",
+        _ => "Mieter",
+    };
+
+    public static string Von(Parteirolle wert) => wert == Parteirolle.Buerge ? "Bürge" : "Mieter";
+
+    public static string Von(Vertragsstatus wert) => wert switch
+    {
+        Vertragsstatus.Kuenftig => "beginnt künftig",
+        Vertragsstatus.Gekuendigt => "gekündigt/befristet",
+        Vertragsstatus.Beendet => "beendet",
+        _ => "läuft",
+    };
+
+    public static string StatusKlasse(Vertragsstatus wert) => wert switch
+    {
+        Vertragsstatus.Aktiv => "status-ok",
+        Vertragsstatus.Gekuendigt or Vertragsstatus.Kuenftig => "status-wartend",
+        _ => "",
     };
 }

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Objekte;
 using MietHahn.Application.Personen;
+using MietHahn.Application.Vertraege;
 
 namespace MietHahn.Web.Tests.Browser;
 
@@ -59,6 +60,36 @@ public class StammdatenBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         });
 
         foreach (var pfad in new[] { "/verwaltung/personen", "/verwaltung/personen/neu", $"/verwaltung/personen/{personId}", $"/verwaltung/personen/{personId}/bearbeiten", "/verwaltung/datenschutz" })
+        {
+            await seite.GotoAsync(BasisUrl + pfad);
+            await KeinHorizontalesScrollenAsync(seite);
+        }
+    }
+
+    [Fact]
+    public async Task Vertragsseiten_passen_auf_360_Pixel()
+    {
+        var seite = await AlsAdminAngemeldetAsync();
+        var (_, _, zimmer) = await BeispielhausAsync();
+        var vertragId = await App.MitScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            var mieter = (await sp.GetRequiredService<IPersonenVerwaltung>().AnlegenAsync(new PersonDaten { Vorname = "Maximiliane", Nachname = "Mustermann-Schnarrenberger" }, null, ct)).Id!.Value;
+            var vertraege = sp.GetRequiredService<IVertragsVerwaltung>();
+            var id = (await vertraege.AnlegenAsync(new VertragAnlage
+            {
+                MietobjektId = zimmer,
+                Beginn = new DateOnly(2026, 1, 1),
+                MieterIds = [mieter],
+                Abrechnungsart = MietHahn.Domain.Vertraege.Abrechnungsart.Pauschale,
+                Kaltmiete = 380,
+                Betriebskostenpauschale = 120,
+            }, ct)).Id!.Value;
+            await vertraege.BestandteilSetzenAsync(id, new BestandteilEingabe { Art = MietHahn.Domain.Vertraege.Bestandteilart.Kaltmiete, Ab = new DateOnly(2026, 4, 1), Betrag = 400 }, ct);
+            return id;
+        });
+
+        foreach (var pfad in new[] { "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{vertragId}", $"/verwaltung/vertraege/{vertragId}/auszug", $"/verwaltung/zimmer/{zimmer}" })
         {
             await seite.GotoAsync(BasisUrl + pfad);
             await KeinHorizontalesScrollenAsync(seite);

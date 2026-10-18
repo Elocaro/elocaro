@@ -1,0 +1,38 @@
+@inherits InputBase<Guid?>
+
+@* Auswahl einer Person (Name und Ort zur Unterscheidung gleichnamiger Personen). *@
+<select id="@Id" name="@NameAttributeValue" class="@CssClass" @onchange="e => CurrentValueAsString = e.Value?.ToString()">
+    <option value="" selected="@(CurrentValue is null)">– keine –</option>
+    @foreach (var person in Personen)
+    {
+        <option value="@person.Id" selected="@(CurrentValue == person.Id)">@person.Anzeigename@(person.Ort is null ? "" : $" ({person.Ort})")</option>
+    }
+</select>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PersonAuswahl> Personen { get; set; } = [];
+
+    protected override bool TryParseValueFromString(string? value, out Guid? result, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out string? validationErrorMessage)
+    {
+        validationErrorMessage = null;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (Guid.TryParse(value, out var id))
+        {
+            result = id;
+            return true;
+        }
+
+        result = null;
+        validationErrorMessage = "Bitte eine Person wählen.";
+        return false;
+    }
+}

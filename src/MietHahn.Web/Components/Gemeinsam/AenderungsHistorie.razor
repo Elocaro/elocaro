@@ -1,5 +1,5 @@
 @using MietHahn.Application.Audit
-@inject IAenderungsHistorie Historie
+@inherits DatenKomponente
 
 @* Zeigt die Änderungshistorie eines Datensatzes aus dem Audit-Log (zusammengeklappt). *@
 <details class="historie">
@@ -51,7 +51,8 @@
     [Parameter, EditorRequired]
     public Guid EntitaetId { get; set; }
 
-    protected override async Task OnParametersSetAsync() => eintraege = await Historie.LadenAsync(EntitaetTyp, EntitaetId);
+    protected override async Task OnParametersSetAsync() =>
+        eintraege = await LadenAsync<IAenderungsHistorie, IReadOnlyList<AuditEintragAnsicht>>(h => h.LadenAsync(EntitaetTyp, EntitaetId));
 
     private static string AktionText(AuditAktion aktion) => aktion switch
     {

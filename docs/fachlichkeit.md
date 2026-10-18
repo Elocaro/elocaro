@@ -47,6 +47,9 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
   - WG-Zimmer: Zimmerfläche und Anteil an den Gemeinschaftsflächen der WG (Küche, Bad, Flur); Umlagefläche = Summe.
   - Plausibilität (Hinweis, kein Fehler): Σ Wohnflächen + Gemeinschaftsfläche ≤ Gesamtfläche; Σ Zimmer-Umlageflächen ≤ Wohnfläche der WG.
 - Vermietbar ist eine Einheit ohne Zimmer oder ein einzelnes WG-Zimmer. Hat eine Einheit Zimmer, wird sie nur noch zimmerweise vermietet.
+- **Mietvertrag:** 1..n Mieter (gesamtschuldnerisch) und optional Bürgen; Beginn, Befristung (§ 575 BGB) oder Ende nach Kündigung; Fälligkeit am n-ten Werktag (Standard 3., § 556b), Zahlungsart, Kaution (Betrag + Notiz).
+- **Kündigung (§ 573c BGB):** Zugang bis zum 3. Werktag zählt den Monat mit; Mieter 3 Monate (vertraglich änderbar), Vermieter 3/6/9 Monate nach 0/5/8 Jahren. Werktage: Mo–Fr ohne bundesweite Feiertage (Samstag zählt nicht).
+- **Mieterwechsel:** Auszug (letzter Tag, neue Anschrift der Mieter ab dem Folgetag) → Zählerstände → neuer Vertrag ab dem Folgetag. Zeiten ohne Vertrag sind Leerstand.
 - Alle Werte mit **Gültigkeitszeitraum** (Fläche, Miete, Personen, Schlüssel), damit Abrechnungen historisch korrekt sind.
 - Geld als `decimal`, Rundung kaufmännisch auf Cent erst am Ende einer Position.
 

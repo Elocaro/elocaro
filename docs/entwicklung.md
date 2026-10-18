@@ -108,6 +108,8 @@ Statisches SSR mit Blazor (ADR 0001) und eigenem Design-System (ADR 0003, `wwwro
 | `StatusMeldung`, `FehlerListe`, `Leerzustand` | Rückmeldungen (auch über Weiterleitungen hinweg per `Weiterleitung.ZuMitMeldung`) |
 | `AenderungsHistorie` | Audit-Historie eines Datensatzes |
 
+**Unterkomponenten, die selbst Daten laden** (`AenderungsHistorie`, `VertragsHistorie`), erben von `DatenKomponente` und laden über `LadenAsync<TDienst, T>(…)` in einem eigenen DI-Scope. Beim statischen Rendern laufen ihre Ladevorgänge parallel, ein gemeinsamer DbContext würde „A second operation was started on this context“ werfen. Seiten selbst nutzen die injizierten Dienste direkt.
+
 **Mehrere Zeilenaktionen** (z. B. „Entfernen“ je Tabellenzeile): ein Formular um die Tabelle, je Zeile `<button type="submit" name="EntfernenId" value="@id">`. Formularnamen (`@formname`) müssen auf einer Seite eindeutig sein; Formulare in einer Schleife sind ein Fehler. Enums lassen sich nicht per `[SupplyParameterFromQuery]` binden: als `string` lesen und parsen.
 
 Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Dezimalzahlen: `InputBetrag` (Euro) und `InputFlaeche` (m²) rendern `<input type="number" step="0.01">`. Blazor bindet Formularwerte bei statischem SSR **kulturinvariant**; ein Textfeld mit „30,5“ käme nicht als Zahl an. Ein Zahlenfeld zeigt die Zahl in der Browsersprache und sendet immer mit Punkt.
@@ -204,6 +206,15 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusDatei`, Format siehe `deploy/backup/miethahn-backup.sh`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warnung` (täglich 8:05, Mail an aktive Admins).
 - `IDatenexport` erzeugt den Vollexport generisch aus dem relationalen EF-Modell: neue Tabellen sind automatisch enthalten. Geheimnisse mit `[OhneExport]` (Klasse oder Eigenschaft) ausnehmen und die Liste in `DatenexportTests.Jede_Tabelle_ist_exportiert_oder_bewusst_ausgenommen` ergänzen. `[Vertraulich]` (z. B. IBAN) bleibt im Export, denn es sind fachliche Daten.
 - Der ZIP-Export wird zuerst in eine temporäre Datei geschrieben: Die Eintrags-Streams von `ZipArchive` schreiben beim Schließen synchron, und Kestrel erlaubt kein synchrones Schreiben.
+
+### Mietverträge
+
+- `Mietvertrag` über ein Mietobjekt (`MietobjektId` = Einheit ohne Zimmer oder WG-Zimmer; `EinheitId` immer gesetzt, `ZimmerId` bei Zimmern). Der DB-Überlappungsschutz auf (`mietobjekt_id`, `laufzeit`) verhindert zwei Verträge zum selben Tag.
+- Zeitabhängig (Zeitreihen mit Überlappungsschutz): `Mietbestandteil` je `Bestandteilart` (Kaltmiete, Vorauszahlungen, Pauschale, Zuschläge) und `Personenstand`. Eine Mieterhöhung ist ein neuer Bestandteil ab Stichtag.
+- `Laufzeit.Bis` ist das tatsächliche Ende (Befristung oder Kündigung). `Kuendigen` beendet auch alle Bestandteile; `KuendigungAufheben` öffnet sie wieder.
+- Kündigungstermine nach § 573c BGB (`KuendigungsterminFuerMieter`, `KuendigungsfristVermieterMonate`), Fälligkeit am n-ten Werktag: `Domain.Gemeinsam.Werktage` (Mo–Fr ohne bundesweite Feiertage, Ostern nach Gauß).
+- `Abrechnungsart`: nur `Vorauszahlung` erhält eine Nebenkostenabrechnung (`ErhaeltNebenkostenabrechnung`); Heizkosten zusätzlich bei `HeizkostenVerbrauchsabhaengig`.
+- Das Vertragsmodul implementiert `IBelegungsauskunft` (Objektübersicht, Leerstand), `IPersonenbezug` (Mieter/Bürge) und `IPersonendatenQuelle` (DSGVO-Abschnitt `mietvertraege`).
 
 ### Personen & Datenschutz
 

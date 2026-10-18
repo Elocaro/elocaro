@@ -376,12 +376,3 @@ internal sealed class ObjektVerwaltung(MietHahnDbContext db, IBelegungsauskunft 
 
     private static string? Leer(string? wert) => string.IsNullOrWhiteSpace(wert) ? null : wert.Trim();
 }
-
-/// <summary>Ohne Vertragsmodul: alles steht leer.</summary>
-internal sealed class KeineBelegung : IBelegungsauskunft
-{
-    public Task<IReadOnlyDictionary<Guid, Belegung>> AmAsync(IReadOnlyCollection<Guid> mietobjektIds, DateOnly tag, CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyDictionary<Guid, Belegung>>(new Dictionary<Guid, Belegung>());
-
-    public Task<bool> HatVertraegeAsync(Guid mietobjektId, CancellationToken cancellationToken = default) => Task.FromResult(false);
-}

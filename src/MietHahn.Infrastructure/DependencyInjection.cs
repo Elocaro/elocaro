@@ -16,6 +16,7 @@ using MietHahn.Application.Kommunikation;
 using MietHahn.Application.Konten;
 using MietHahn.Application.Objekte;
 using MietHahn.Application.Personen;
+using MietHahn.Application.Vertraege;
 using MietHahn.Application.Verwaltung;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Betrieb;
@@ -28,6 +29,7 @@ using MietHahn.Infrastructure.Objekte;
 using MietHahn.Infrastructure.Pdf;
 using MietHahn.Infrastructure.Persistenz;
 using MietHahn.Infrastructure.Personen;
+using MietHahn.Infrastructure.Vertraege;
 using MietHahn.Infrastructure.Verwaltung;
 using MietHahn.Infrastructure.Vorlagen;
 using Quartz;
@@ -169,8 +171,11 @@ public static class DependencyInjection
     {
         services.AddScoped<IObjektVerwaltung, ObjektVerwaltung>();
         services.AddScoped<IObjektZuordnungen, ObjektZuordnungen>();
-        services.TryAddScoped<IBelegungsauskunft, KeineBelegung>();
+        services.AddScoped<IBelegungsauskunft, VertragsBelegung>();
         services.AddScoped<IPersonenVerwaltung, PersonenVerwaltung>();
+        services.AddScoped<IVertragsVerwaltung, VertragsVerwaltung>();
+        services.AddScoped<IPersonenbezug, VertragsPersonenbezug>();
+        services.AddScoped<IPersonendatenQuelle, VertragsPersonendaten>();
     }
 
     private static void DatenschutzRegistrieren(IServiceCollection services, IConfiguration konfiguration)

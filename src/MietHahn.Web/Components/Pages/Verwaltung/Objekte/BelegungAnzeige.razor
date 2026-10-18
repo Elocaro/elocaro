@@ -4,7 +4,7 @@
 }
 else
 {
-    <span>@Belegung.Mieter</span>
+    <a href="/verwaltung/vertraege/@Belegung.VertragId">@Belegung.Mieter</a>
     <span class="klein">seit @Format.Datum(Belegung.Beginn)@(Belegung.Ende is { } ende ? $", bis {Format.Datum(ende)}" : "")</span>
 }
 
