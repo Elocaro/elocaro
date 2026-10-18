@@ -1,0 +1,71 @@
+@* Stammdaten eines Zählers; steht innerhalb eines EditForm mit Model = Daten (Feldnamen Daten.*). *@
+<div class="formular-raster">
+    <FormularFeld Id="zaehler-typ" Beschriftung="Art" Fuer="() => Daten.Typ" Hinweis="@(TypGesperrt ? "Nicht änderbar; bei einem anderen Zähler einen neuen anlegen." : null)">
+        @if (TypGesperrt)
+        {
+            @* Gesperrte Felder würden nicht mitgesendet: Wert als verstecktes Feld, Anzeige schreibgeschützt. *@
+            <input type="hidden" name="Daten.Typ" value="@Daten.Typ" />
+            <input id="zaehler-typ" type="text" value="@Bezeichnungen.Von(Daten.Typ)" readonly />
+        }
+        else
+        {
+            <InputSelect id="zaehler-typ" @bind-Value="Daten.Typ">
+                @foreach (var wert in Enum.GetValues<Zaehlertyp>())
+                {
+                    <option value="@wert">@Bezeichnungen.Von(wert)</option>
+                }
+            </InputSelect>
+        }
+    </FormularFeld>
+    <FormularFeld Id="zaehler-bezeichnung" Beschriftung="Bezeichnung" Fuer="() => Daten.Bezeichnung" Pflicht="true" Hinweis="z. B. „Kaltwasser Bad“">
+        <InputText id="zaehler-bezeichnung" @bind-Value="Daten.Bezeichnung" />
+    </FormularFeld>
+    <FormularFeld Id="zaehler-nummer" Beschriftung="Zählernummer" Fuer="() => Daten.Nummer" Pflicht="true">
+        <InputText id="zaehler-nummer" @bind-Value="Daten.Nummer" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="zaehler-zuordnung" Beschriftung="Zuordnung" Fuer="() => Daten.ZuordnungId">
+        <InputSelect id="zaehler-zuordnung" @bind-Value="Daten.ZuordnungId">
+            <option value="">Haus (Haupt-/Allgemeinzähler)</option>
+            @foreach (var einheit in Einheiten)
+            {
+                <option value="@einheit.Id">@einheit.Bezeichnung</option>
+                @foreach (var zimmer in einheit.Mietobjekte.Where(m => m.IstZimmer))
+                {
+                    <option value="@zimmer.Id">@einheit.Bezeichnung, @zimmer.Bezeichnung</option>
+                }
+            }
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="zaehler-haupt" Beschriftung="Hauptzähler" Fuer="() => Daten.HauptzaehlerId" Hinweis="Für die Differenz Haupt- zu Unterzählern">
+        <InputSelect id="zaehler-haupt" @bind-Value="Daten.HauptzaehlerId">
+            <option value="">– keiner –</option>
+            @foreach (var z in Hauptzaehler)
+            {
+                <option value="@z.Id">@z.Bezeichnung (@z.Nummer)</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="zaehler-lage" Beschriftung="Lage" Fuer="() => Daten.Lage" Hinweis="z. B. „Keller, Raum 2“">
+        <InputText id="zaehler-lage" @bind-Value="Daten.Lage" />
+    </FormularFeld>
+    <FormularFeld Id="zaehler-eichfrist" Beschriftung="Eichfrist bis" Fuer="() => Daten.EichfristBis" Hinweis="Leer = gesetzliche Frist ab Einbau">
+        <InputDate id="zaehler-eichfrist" @bind-Value="Daten.EichfristBis" />
+    </FormularFeld>
+    <FormularFeld Id="zaehler-reihenfolge" Beschriftung="Reihenfolge der Ablesung" Fuer="() => Daten.Reihenfolge">
+        <InputNumber id="zaehler-reihenfolge" @bind-Value="Daten.Reihenfolge" min="0" max="999" />
+    </FormularFeld>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ZaehlerDaten Daten { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<EinheitZeile> Einheiten { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<ZaehlerZeile> Hauptzaehler { get; set; } = [];
+
+    [Parameter]
+    public bool TypGesperrt { get; set; }
+}

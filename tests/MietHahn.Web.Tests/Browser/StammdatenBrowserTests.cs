@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Objekte;
 using MietHahn.Application.Personen;
 using MietHahn.Application.Vertraege;
+using MietHahn.Application.Zaehlerwesen;
 
 namespace MietHahn.Web.Tests.Browser;
 
@@ -90,6 +91,54 @@ public class StammdatenBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         });
 
         foreach (var pfad in new[] { "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{vertragId}", $"/verwaltung/vertraege/{vertragId}/auszug", $"/verwaltung/zimmer/{zimmer}" })
+        {
+            await seite.GotoAsync(BasisUrl + pfad);
+            await KeinHorizontalesScrollenAsync(seite);
+        }
+    }
+
+    [Fact]
+    public async Task Ablese_Runde_auf_dem_Handy_fuer_das_ganze_Haus()
+    {
+        var seite = await AlsAdminAngemeldetAsync();
+        var (objekt, _, _) = await BeispielhausAsync();
+        var zaehlerIds = await App.MitScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            var zaehler = sp.GetRequiredService<IZaehlerVerwaltung>();
+            var ids = new List<Guid>();
+            // Hauptwasser, Allgemeinstrom, Gas, je Wohnung Wasser + Wärme (WG: 1×) = 3 + 4 + 1 = 8 Zähler
+            foreach (var (bezeichnung, typ) in new[] { ("Hauptwasserzähler", MietHahn.Domain.Zaehlerwesen.Zaehlertyp.Kaltwasser), ("Allgemeinstrom", MietHahn.Domain.Zaehlerwesen.Zaehlertyp.Strom), ("Gas Heizung", MietHahn.Domain.Zaehlerwesen.Zaehlertyp.Gas), ("Wasser Wohnung 1", MietHahn.Domain.Zaehlerwesen.Zaehlertyp.Kaltwasser), ("Wärme Wohnung 1", MietHahn.Domain.Zaehlerwesen.Zaehlertyp.Waerme), ("Wasser Wohnung 2", MietHahn.Domain.Zaehlerwesen.Zaehlertyp.Kaltwasser), ("Wärme Wohnung 2", MietHahn.Domain.Zaehlerwesen.Zaehlertyp.Waerme), ("Wasser WG", MietHahn.Domain.Zaehlerwesen.Zaehlertyp.Kaltwasser) })
+            {
+                ids.Add((await zaehler.AnlegenAsync(objekt, new ZaehlerAnlage
+                {
+                    Daten = new ZaehlerDaten { Typ = typ, Bezeichnung = bezeichnung, Nummer = $"Nr-{ids.Count + 1}", Lage = "Keller, Hausanschlussraum links" },
+                    EingebautAm = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-30),
+                    Anfangsstand = 100,
+                }, ct)).Id!.Value);
+            }
+
+            return ids;
+        });
+
+        var dauer = System.Diagnostics.Stopwatch.StartNew();
+        await MitScreenshotBeiFehlerAsync(seite, async () =>
+        {
+            await seite.GotoAsync(BasisUrl + $"/verwaltung/objekte/{objekt}/ablesung");
+            for (var i = 0; i < zaehlerIds.Count; i++)
+            {
+                await seite.WaitForSelectorAsync($"text=Zähler {i + 1} von {zaehlerIds.Count}");
+                await KeinHorizontalesScrollenAsync(seite);
+                await seite.FillAsync("#ablesung-wert", (110 + i).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                await seite.ClickAsync("button:has-text('Speichern & weiter')");
+            }
+
+            await seite.WaitForSelectorAsync("text=Runde abgeschlossen: 8 von 8 Zählern erfasst.");
+        });
+        dauer.Stop();
+
+        Assert.True(dauer.Elapsed < TimeSpan.FromMinutes(1), $"Runde dauerte {dauer.Elapsed}");
+        foreach (var pfad in new[] { $"/verwaltung/objekte/{objekt}/zaehler", $"/verwaltung/zaehler/{zaehlerIds[0]}" })
         {
             await seite.GotoAsync(BasisUrl + pfad);
             await KeinHorizontalesScrollenAsync(seite);

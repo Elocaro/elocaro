@@ -17,7 +17,7 @@
     <p class="meldung meldung-ok" role="status">Das Mietverhältnis endet am @Format.Datum(vertrag.Laufzeit.Bis).</p>
     <ol class="schritte">
         <li class="erledigt">Auszug erfasst</li>
-        <li>Zählerstände bei Auszug ablesen (Zwischenablesung für die Abrechnung)</li>
+        <li><a href="/verwaltung/objekte/@vertrag.ObjektId/ablesung?einheit=@vertrag.EinheitId&datum=@(vertrag.Laufzeit.Bis?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))&art=Zwischenablesung">Zählerstände zum Auszug ablesen</a> (Zwischenablesung für die Abrechnung)</li>
         <li><a class="knopf knopf-primaer" href="/verwaltung/vertraege/neu?mietobjekt=@vertrag.MietobjektId&beginn=@(vertrag.Laufzeit.Bis?.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))">Neuen Vertrag anlegen</a></li>
     </ol>
     <p class="klein">Bis zum nächsten Vertrag steht das Mietobjekt leer; Leerstandszeiten erscheinen automatisch in der Vertragshistorie und gehen in die Abrechnung zulasten des Vermieters.</p>

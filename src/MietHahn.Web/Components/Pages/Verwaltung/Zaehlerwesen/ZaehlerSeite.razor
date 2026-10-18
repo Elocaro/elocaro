@@ -1,0 +1,328 @@
+@page "/verwaltung/zaehler/{Id:guid}"
+@inject IZaehlerVerwaltung Verwaltung
+@inject IObjektVerwaltung Objekte
+@inject IDateiablage Ablage
+@inject Weiterleitung Weiterleitung
+@inject TimeProvider Uhr
+
+@if (zaehler is null)
+{
+    <Seitenkopf Titel="Zähler nicht gefunden" Zurueck="/verwaltung/objekte" ZurueckText="Alle Objekte" />
+    return;
+}
+
+<Seitenkopf Titel="@zaehler.Zaehler.Bezeichnung" Untertitel="@($"{Bezeichnungen.Von(zaehler.Zaehler.Typ)} · Nr. {zaehler.Zaehler.Nummer} · {zaehler.Zaehler.Zuordnung}")"
+            Zurueck="@($"/verwaltung/objekte/{zaehler.ObjektId}/zaehler")" ZurueckText="@($"Zähler {zaehler.ObjektBezeichnung}")" />
+
+<StatusMeldung />
+<FehlerListe Fehler="fehler" />
+
+<dl class="angaben">
+    <dt>Eingebaut</dt><dd>@Format.Datum(zaehler.Zaehler.EingebautAm)@(zaehler.Zaehler.AusgebautAm is { } aus ? $", ausgebaut am {Format.Datum(aus)}" : "")</dd>
+    @if (zaehler.Zaehler.EichfristBis is { } frist)
+    {
+        <dt>Eichfrist</dt><dd>@Format.Datum(frist)</dd>
+    }
+    @if (zaehler.Zaehler.Lage is not null)
+    {
+        <dt>Lage</dt><dd>@zaehler.Zaehler.Lage</dd>
+    }
+    @if (zaehler.Messstelle.Count > 1)
+    {
+        <dt>Messstelle</dt>
+        <dd>
+            @foreach (var m in zaehler.Messstelle)
+            {
+                <a href="/verwaltung/zaehler/@m.Id">@m.Nummer</a>
+                <span class="klein">(@Format.Datum(m.EingebautAm) – @(m.AusgebautAm is null ? "heute" : Format.Datum(m.AusgebautAm)))</span>
+                @if (m != zaehler.Messstelle[^1])
+                {
+                    <span> → </span>
+                }
+            }
+        </dd>
+    }
+</dl>
+
+@if (zaehler.Zaehler.AusgebautAm is null)
+{
+    <section>
+        <h2>Stand erfassen</h2>
+        @if (warnungen is { Count: > 0 })
+        {
+            <div class="meldung meldung-hinweis" role="alert">
+                <strong>Bitte prüfen:</strong>
+                <ul>
+                    @foreach (var w in warnungen)
+                    {
+                        <li>@w</li>
+                    }
+                </ul>
+            </div>
+        }
+        <EditForm Model="Stand" FormName="stand" OnValidSubmit="StandErfassenAsync" enctype="multipart/form-data">
+            <DataAnnotationsValidator />
+            <div class="formular-raster">
+                <FormularFeld Id="stand-datum" Beschriftung="Datum" Fuer="() => Stand!.Datum" Pflicht="true">
+                    <InputDate id="stand-datum" @bind-Value="Stand!.Datum" />
+                </FormularFeld>
+                <FormularFeld Id="stand-wert" Beschriftung="@($"Zählerstand ({Bezeichnungen.Von(zaehler.Zaehler.Messeinheit)})")" Fuer="() => Stand!.Wert" Pflicht="true">
+                    <InputFlaeche id="stand-wert" @bind-Value="Stand!.Wert" step="0.001" />
+                </FormularFeld>
+                <FormularFeld Id="stand-art" Beschriftung="Art" Fuer="() => Stand!.Art">
+                    <InputSelect id="stand-art" @bind-Value="Stand!.Art">
+                        <option value="@Standart.Ablesung">Ablesung</option>
+                        <option value="@Standart.Zwischenablesung">Zwischenablesung (z. B. Mieterwechsel)</option>
+                        <option value="@Standart.Schaetzung">Schätzung</option>
+                    </InputSelect>
+                </FormularFeld>
+                <div class="feld">
+                    <label for="stand-foto">Foto</label>
+                    <input type="file" id="stand-foto" name="Foto" accept="image/*" capture="environment" />
+                </div>
+                <FormularFeld Id="stand-notiz" Beschriftung="Notiz" Fuer="() => Stand!.Notiz">
+                    <InputText id="stand-notiz" @bind-Value="Stand!.Notiz" />
+                </FormularFeld>
+            </div>
+            @if (warnungen is { Count: > 0 })
+            {
+                <input type="hidden" name="Stand.Bestaetigt" value="true" />
+                <input type="hidden" name="FotoId" value="@FotoId" />
+                <button type="submit" class="knopf knopf-primaer">Trotzdem speichern</button>
+            }
+            else
+            {
+                <button type="submit" class="knopf knopf-primaer">Stand speichern</button>
+            }
+        </EditForm>
+    </section>
+}
+
+<section>
+    <h2>Verbrauch</h2>
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead><tr><th>Jahr</th><th class="zahl">Verbrauch</th><th>Hinweis</th></tr></thead>
+            <tbody>
+                @foreach (var jahr in zaehler.Jahresverbraeuche)
+                {
+                    <tr>
+                        <td>@jahr.Jahr</td>
+                        <td class="zahl">@Format.Menge(jahr.Verbrauch.Menge, Bezeichnungen.Von(zaehler.Zaehler.Messeinheit))</td>
+                        <td class="klein">@(jahr.Verbrauch.Fehlt ?? (jahr.Verbrauch.EnthaeltInterpolation ? "enthält interpolierte Stände" : ""))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@if (zaehler.Unterzaehler.Count > 0)
+{
+    <section>
+        <h2>Unterzähler</h2>
+        <ul>
+            @foreach (var u in zaehler.Unterzaehler)
+            {
+                <li><a href="/verwaltung/zaehler/@u.Id">@u.Bezeichnung</a> <span class="klein">@u.Nummer · @u.Zuordnung</span></li>
+            }
+        </ul>
+        @if (zaehler.Bilanz is { } bilanz)
+        {
+            <dl class="angaben">
+                <dt>@bilanz.Jahr: Hauptzähler</dt><dd>@Format.Menge(bilanz.Hauptzaehler, Bezeichnungen.Von(zaehler.Zaehler.Messeinheit))</dd>
+                <dt>Summe Unterzähler</dt><dd>@Format.Menge(bilanz.SummeUnterzaehler, Bezeichnungen.Von(zaehler.Zaehler.Messeinheit))</dd>
+                <dt>Differenz</dt><dd><strong>@Format.Menge(bilanz.Differenz, Bezeichnungen.Von(zaehler.Zaehler.Messeinheit))</strong> <span class="klein">(Allgemeinverbrauch, Schwund, Messtoleranz)</span></dd>
+            </dl>
+            @foreach (var hinweis in bilanz.Hinweise)
+            {
+                <p class="klein">@hinweis</p>
+            }
+        }
+    </section>
+}
+
+<section>
+    <h2>Stände</h2>
+    <form method="post" @formname="stand-entfernen" @onsubmit="StandEntfernenAsync">
+        <AntiforgeryToken />
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Datum</th><th class="zahl">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var stand in zaehler.Staende)
+                    {
+                        <tr>
+                            <td>@Format.Datum(stand.Datum)</td>
+                            <td class="zahl">@Format.Menge(stand.Wert)</td>
+                            <td>
+                                @Bezeichnungen.Von(stand.Art)
+                                @if (stand.FotoDateiId is { } foto)
+                                {
+                                    <a href="/dateien/@foto" target="_blank" rel="noopener">Foto</a>
+                                }
+                                @if (stand.Notiz is not null)
+                                {
+                                    <span class="klein">@stand.Notiz</span>
+                                }
+                            </td>
+                            <td class="klein">@stand.Ableser</td>
+                            <td>
+                                @if (stand.Art is not (Standart.Einbau or Standart.Ausbau))
+                                {
+                                    <button type="submit" name="EntfernenStandId" value="@stand.Id" class="knopf knopf-gefahr" aria-label="Stand vom @Format.Datum(stand.Datum) entfernen">Entfernen</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </form>
+</section>
+
+@if (zaehler.Zaehler.AusgebautAm is null)
+{
+    <section>
+        <details class="aufklapper">
+            <summary>Zähler tauschen</summary>
+            <EditForm Model="Tausch" FormName="tausch" OnValidSubmit="TauschenAsync" class="formular-raster">
+                <DataAnnotationsValidator />
+                <FormularFeld Id="tausch-datum" Beschriftung="Tauschdatum" Fuer="() => Tausch!.Datum" Pflicht="true">
+                    <InputDate id="tausch-datum" @bind-Value="Tausch!.Datum" />
+                </FormularFeld>
+                <FormularFeld Id="tausch-endstand" Beschriftung="Endstand alter Zähler" Fuer="() => Tausch!.Endstand" Pflicht="true">
+                    <InputFlaeche id="tausch-endstand" @bind-Value="Tausch!.Endstand" step="0.001" />
+                </FormularFeld>
+                <FormularFeld Id="tausch-nummer" Beschriftung="Nummer neuer Zähler" Fuer="() => Tausch!.NeueNummer" Pflicht="true">
+                    <InputText id="tausch-nummer" @bind-Value="Tausch!.NeueNummer" autocomplete="off" />
+                </FormularFeld>
+                <FormularFeld Id="tausch-anfang" Beschriftung="Anfangsstand neuer Zähler" Fuer="() => Tausch!.Anfangsstand" Pflicht="true">
+                    <InputFlaeche id="tausch-anfang" @bind-Value="Tausch!.Anfangsstand" step="0.001" />
+                </FormularFeld>
+                <FormularFeld Id="tausch-eichfrist" Beschriftung="Eichfrist neuer Zähler" Fuer="() => Tausch!.EichfristBis" Hinweis="Leer = gesetzliche Frist">
+                    <InputDate id="tausch-eichfrist" @bind-Value="Tausch!.EichfristBis" />
+                </FormularFeld>
+                <div class="feld feld-aktion"><button type="submit" class="knopf">Tausch erfassen</button></div>
+            </EditForm>
+            <p class="klein">Der Verbrauch wird über alten und neuen Zähler durchgängig berechnet.</p>
+        </details>
+    </section>
+
+    <section>
+        <details class="aufklapper">
+            <summary>Angaben ändern</summary>
+            <EditForm Model="Daten" FormName="daten" OnValidSubmit="DatenSpeichernAsync">
+                <DataAnnotationsValidator />
+                <ZaehlerFelder Daten="Daten!" Einheiten="einheiten" Hauptzaehler="hauptzaehler" TypGesperrt="true" />
+                <button type="submit" class="knopf knopf-primaer">Speichern</button>
+            </EditForm>
+        </details>
+    </section>
+}
+
+<AenderungsHistorie EntitaetTyp="Zaehler" EntitaetId="Id" />
+
+@code {
+    private ZaehlerDetails? zaehler;
+    private IReadOnlyList<EinheitZeile> einheiten = [];
+    private IReadOnlyList<ZaehlerZeile> hauptzaehler = [];
+    private IReadOnlyList<string>? fehler;
+    private IReadOnlyList<string>? warnungen;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "stand")]
+    private StandEingabe? Stand { get; set; }
+
+    [SupplyParameterFromForm(FormName = "stand")]
+    private IFormFile? Foto { get; set; }
+
+    /// <summary>Beim Bestätigen nach Warnungen: das bereits gespeicherte Foto nicht erneut hochladen.</summary>
+    [SupplyParameterFromForm(FormName = "stand")]
+    private Guid? FotoId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "stand-entfernen")]
+    private Guid? EntfernenStandId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "tausch")]
+    private TauschEingabe? Tausch { get; set; }
+
+    [SupplyParameterFromForm(FormName = "daten")]
+    private ZaehlerDaten? Daten { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var formular = Daten;
+        Stand ??= new() { Datum = MietHahn.Domain.Gemeinsam.Zeitzone.Heute(Uhr.GetUtcNow()) };
+        Tausch ??= new();
+        Daten ??= new();
+        zaehler = await Verwaltung.LadenAsync(Id);
+        if (zaehler is not null)
+        {
+            Daten = formular ?? zaehler.Daten;
+            einheiten = (await Objekte.LadenAsync(zaehler.ObjektId))?.Einheiten ?? [];
+            hauptzaehler = (await Verwaltung.ListeAsync(zaehler.ObjektId)).Where(z => z.Id != Id).ToList();
+        }
+    }
+
+    private async Task StandErfassenAsync()
+    {
+        if (Foto is { Length: > 0 } && FotoId is null)
+        {
+            try
+            {
+                await using var inhalt = Foto.OpenReadStream();
+                FotoId = (await Ablage.SpeichernAsync(inhalt, Foto.FileName)).Id;
+            }
+            catch (DateiAbgelehntException ex)
+            {
+                fehler = [ex.Message];
+                return;
+            }
+        }
+
+        var ergebnis = await Verwaltung.StandErfassenAsync(Id, Stand!, FotoId);
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung($"/verwaltung/zaehler/{Id}", "Der Zählerstand wurde gespeichert.", HttpContext);
+        }
+        else if (ergebnis.BrauchtBestaetigung)
+        {
+            warnungen = ergebnis.Warnungen;
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+
+    private Task StandEntfernenAsync() =>
+        EntfernenStandId is { } stand ? AusfuehrenAsync(Verwaltung.StandEntfernenAsync(Id, stand), $"/verwaltung/zaehler/{Id}", "Der Stand wurde entfernt.") : Task.CompletedTask;
+
+    private async Task TauschenAsync()
+    {
+        var ergebnis = await Verwaltung.TauschenAsync(Id, Tausch!);
+        await AusfuehrenAsync(Task.FromResult(ergebnis), $"/verwaltung/zaehler/{ergebnis.Id}", "Der Zähler wurde getauscht. Das ist der neue Zähler.");
+    }
+
+    private Task DatenSpeichernAsync() => AusfuehrenAsync(Verwaltung.AendernAsync(Id, Daten!), $"/verwaltung/zaehler/{Id}", "Die Angaben wurden gespeichert.");
+
+    private async Task AusfuehrenAsync(Task<Ergebnis> befehl, string ziel, string erfolg)
+    {
+        var ergebnis = await befehl;
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung(ziel, erfolg, HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+            zaehler = await Verwaltung.LadenAsync(Id);
+        }
+    }
+}

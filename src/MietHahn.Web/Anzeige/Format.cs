@@ -19,6 +19,10 @@ public static class Format
 
     public static string Zahl(decimal? wert) => wert?.ToString("#,##0.##", Deutsch) ?? "–";
 
+    /// <summary>Zählerstände/Mengen mit bis zu drei Nachkommastellen.</summary>
+    public static string Menge(decimal? wert, string? einheit = null) =>
+        wert is null ? "–" : wert.Value.ToString("#,##0.###", Deutsch) + (einheit is null ? "" : " " + einheit);
+
     public static string Zeitraum(Domain.Gemeinsam.Zeitraum zeitraum) =>
         zeitraum.Bis is { } bis ? $"{Datum(zeitraum.Von)} – {Datum(bis)}" : $"seit {Datum(zeitraum.Von)}";
 }

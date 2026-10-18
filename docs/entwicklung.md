@@ -218,6 +218,15 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - **VPI** (`VpiWert`, `/verwaltung/vpi`): manuelle Pflege oder CSV-Import (GENESIS 61111-0002: „2026;Januar;121,2“, auch „2026-01;121,2“ oder „01.2026;121,2“; Platzhalter „...“ werden übersprungen). Ein Abruf über die GENESIS-API braucht Zugangsdaten und ist noch nicht angebunden.
 - Das Vertragsmodul implementiert `IBelegungsauskunft` (Objektübersicht, Leerstand), `IPersonenbezug` (Mieter/Bürge) und `IPersonendatenQuelle` (DSGVO-Abschnitt `mietvertraege`).
 
+### Zähler
+
+- `Zaehler` (Namespace `Zaehlerwesen`, damit er nicht mit der Klasse kollidiert) mit Typ, Messeinheit, Zuordnung (Haus, Einheit oder Zimmer), optionalem Hauptzähler und Eichfrist (Standard nach MessEV: Kaltwasser 6, Warmwasser/Wärme 5, Gas/Strom 8 Jahre bis Jahresende). Einbau legt den Anfangsstand an.
+- **Zählertausch** (`Tauschen`): Endstand am alten Zähler, neuer Zähler mit `VorgaengerId` und Anfangsstand. Alle Zähler einer Kette bilden eine Messstelle; Unterzähler wandern zum neuen Hauptzähler.
+- **Verbrauch** (`Verbrauchsrechner`, rein funktional): Ablesungen gelten als Stand am Ende des Tages; Zwischenwerte werden linear interpoliert und gekennzeichnet; über die letzte Ablesung hinaus wird nicht hochgerechnet (`Verbrauch.Fehlt`). Grundlage für die Abrechnungen in M3.
+- **Plausibilität** (`Zaehler.Pruefen`): Rückwärtslauf und Abweichung des Tagesverbrauchs > 50 % vom bisherigen Durchschnitt. Ohne `Bestaetigt` speichert `StandErfassenAsync` nicht, sondern liefert die Warnungen.
+- **Ablese-Runde** `/verwaltung/objekte/{id}/ablesung?einheit=&datum=&art=`: ein Zähler je Schritt, Kamera-Upload (`capture="environment"`), Überspringen, Zusammenfassung. Der Mieterwechsel verlinkt die Zwischenablesung der Einheit.
+- Dashboard: Eichfrist abgelaufen (dringend) bzw. in 90 Tagen (bald).
+
 ### Personen & Datenschutz
 
 - `Person` (Mieter, Bürgen, Kontakte) mit Anschriften als Zeitreihe (Voranschrift → aktuelle → neue Anschrift nach Auszug) und beliebig vielen `Bankverbindung`en (IBAN mit Prüfsumme, `Domain.Gemeinsam.Iban`). Mieter und Bürgen ergeben sich aus Verträgen, nicht aus einem Feld.

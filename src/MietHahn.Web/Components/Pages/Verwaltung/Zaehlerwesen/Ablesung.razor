@@ -1,0 +1,201 @@
+@page "/verwaltung/objekte/{ObjektId:guid}/ablesung"
+@using System.Globalization
+@inject IZaehlerVerwaltung Verwaltung
+@inject IObjektVerwaltung Objekte
+@inject IDateiablage Ablage
+@inject Weiterleitung Weiterleitung
+@inject TimeProvider Uhr
+
+@if (objekt is null)
+{
+    <Seitenkopf Titel="Objekt nicht gefunden" Zurueck="/verwaltung/objekte" ZurueckText="Alle Objekte" />
+    return;
+}
+
+<Seitenkopf Titel="Ablese-Runde" Untertitel="@($"{objekt.Daten.Bezeichnung} · {Format.Datum(Stichtag)}{(ArtWert == Standart.Zwischenablesung ? " · Zwischenablesung" : "")}")"
+            Zurueck="@($"/verwaltung/objekte/{ObjektId}/zaehler")" ZurueckText="Alle Zähler" />
+
+<StatusMeldung />
+<FehlerListe Fehler="fehler" />
+
+@if (runde.Count == 0)
+{
+    <Leerzustand Text="Keine aktiven Zähler für diese Runde." />
+    return;
+}
+
+@if (Schritt >= runde.Count)
+{
+    <p class="meldung meldung-ok" role="status">Runde abgeschlossen: @runde.Count(z => z.LetzterStand?.Datum == Stichtag) von @runde.Count Zählern erfasst.</p>
+    <ul class="aufgaben">
+        @foreach (var z in runde)
+        {
+            <li class="aufgabe @(z.LetzterStand?.Datum == Stichtag ? "" : "aufgabe-bald")">
+                <a href="/verwaltung/zaehler/@z.Id">@z.Bezeichnung</a> <span class="klein">@z.Zuordnung · @z.Nummer</span>
+                <p class="klein">@(z.LetzterStand?.Datum == Stichtag ? $"{Format.Menge(z.LetzterStand.Wert, Bezeichnungen.Von(z.Messeinheit))}" : "nicht erfasst")</p>
+            </li>
+        }
+    </ul>
+    <p><a class="knopf" href="@Link(0)">Runde erneut durchgehen</a></p>
+    return;
+}
+
+@{
+    var zaehler = runde[Schritt];
+    var erfasst = zaehler.LetzterStand?.Datum == Stichtag;
+}
+
+<p class="klein" aria-live="polite">Zähler @(Schritt + 1) von @runde.Count</p>
+<progress class="fortschritt" max="@runde.Count" value="@Schritt">@(Schritt + 1) von @runde.Count</progress>
+
+<div class="ablese-karte">
+    <h2>@zaehler.Bezeichnung</h2>
+    <p>@Bezeichnungen.Von(zaehler.Typ) · <strong>Nr. @zaehler.Nummer</strong></p>
+    <p class="klein">@zaehler.Zuordnung@(zaehler.Lage is null ? "" : " · " + zaehler.Lage)</p>
+    @if (zaehler.LetzterStand is { } letzter)
+    {
+        <p class="klein">Letzter Stand: @Format.Menge(letzter.Wert, Bezeichnungen.Von(zaehler.Messeinheit)) am @Format.Datum(letzter.Datum)</p>
+    }
+</div>
+
+@if (erfasst)
+{
+    <p class="meldung meldung-ok">Für diesen Tag bereits erfasst.</p>
+    <a class="knopf knopf-primaer" href="@Link(Schritt + 1)">Weiter</a>
+    return;
+}
+
+@if (warnungen is { Count: > 0 })
+{
+    <div class="meldung meldung-hinweis" role="alert">
+        <ul>
+            @foreach (var w in warnungen)
+            {
+                <li>@w</li>
+            }
+        </ul>
+    </div>
+}
+
+<EditForm Model="Stand" FormName="ablesung" OnValidSubmit="SpeichernAsync" enctype="multipart/form-data">
+    <DataAnnotationsValidator />
+    <FormularFeld Id="ablesung-wert" Beschriftung="@($"Zählerstand ({Bezeichnungen.Von(zaehler.Messeinheit)})")" Fuer="() => Stand!.Wert" Pflicht="true">
+        <InputFlaeche id="ablesung-wert" class="eingabe-gross" @bind-Value="Stand!.Wert" step="0.001" autofocus />
+    </FormularFeld>
+    <div class="feld">
+        <label for="ablesung-foto">Foto vom Zähler</label>
+        <input type="file" id="ablesung-foto" name="Foto" accept="image/*" capture="environment" />
+    </div>
+    <input type="hidden" name="Stand.Datum" value="@Stichtag.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
+    <input type="hidden" name="Stand.Art" value="@ArtWert" />
+    @if (warnungen is { Count: > 0 })
+    {
+        <input type="hidden" name="Stand.Bestaetigt" value="true" />
+        <input type="hidden" name="FotoId" value="@FotoId" />
+    }
+    <div class="formular-zeile">
+        <button type="submit" class="knopf knopf-primaer">@(warnungen is { Count: > 0 } ? "Trotzdem speichern & weiter" : "Speichern & weiter")</button>
+        <a class="knopf" href="@Link(Schritt + 1)">Überspringen</a>
+    </div>
+</EditForm>
+
+@code {
+    private ObjektDetails? objekt;
+    private IReadOnlyList<ZaehlerZeile> runde = [];
+    private IReadOnlyList<string>? fehler;
+    private IReadOnlyList<string>? warnungen;
+
+    [Parameter]
+    public Guid ObjektId { get; set; }
+
+    [SupplyParameterFromQuery]
+    private int Schritt { get; set; }
+
+    [SupplyParameterFromQuery]
+    private Guid? Einheit { get; set; }
+
+    [SupplyParameterFromQuery]
+    private DateOnly? Datum { get; set; }
+
+    [SupplyParameterFromQuery(Name = "art")]
+    private string? Art { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "ablesung")]
+    private StandEingabe? Stand { get; set; }
+
+    [SupplyParameterFromForm(FormName = "ablesung")]
+    private IFormFile? Foto { get; set; }
+
+    [SupplyParameterFromForm(FormName = "ablesung")]
+    private Guid? FotoId { get; set; }
+
+    private DateOnly Stichtag => Datum ?? MietHahn.Domain.Gemeinsam.Zeitzone.Heute(Uhr.GetUtcNow());
+
+    private Standart ArtWert => Enum.TryParse<Standart>(Art, out var art) && art is Standart.Zwischenablesung or Standart.Schaetzung ? art : Standart.Ablesung;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Stand ??= new();
+        objekt = await Objekte.LadenAsync(ObjektId);
+        if (objekt is not null)
+        {
+            runde = await Verwaltung.RundeAsync(ObjektId, Einheit);
+            Schritt = Math.Clamp(Schritt, 0, runde.Count);
+        }
+    }
+
+    private async Task SpeichernAsync()
+    {
+        if (Foto is { Length: > 0 } && FotoId is null)
+        {
+            try
+            {
+                await using var inhalt = Foto.OpenReadStream();
+                FotoId = (await Ablage.SpeichernAsync(inhalt, Foto.FileName)).Id;
+            }
+            catch (DateiAbgelehntException ex)
+            {
+                fehler = [ex.Message];
+                return;
+            }
+        }
+
+        var ergebnis = await Verwaltung.StandErfassenAsync(runde[Schritt].Id, Stand!, FotoId);
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung(Link(Schritt + 1), $"{runde[Schritt].Bezeichnung}: gespeichert.", HttpContext);
+        }
+        else if (ergebnis.BrauchtBestaetigung)
+        {
+            warnungen = ergebnis.Warnungen;
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+
+    private string Link(int schritt)
+    {
+        var teile = new List<string> { $"schritt={schritt}" };
+        if (Einheit is { } einheit)
+        {
+            teile.Add($"einheit={einheit}");
+        }
+
+        if (Datum is { } datum)
+        {
+            teile.Add($"datum={datum:yyyy-MM-dd}");
+        }
+
+        if (ArtWert != Standart.Ablesung)
+        {
+            teile.Add($"art={ArtWert}");
+        }
+
+        return $"/verwaltung/objekte/{ObjektId}/ablesung?{string.Join('&', teile)}";
+    }
+}

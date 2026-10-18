@@ -1,6 +1,7 @@
 using MietHahn.Domain.Objekte;
 using MietHahn.Domain.Personen;
 using MietHahn.Domain.Vertraege;
+using MietHahn.Domain.Zaehlerwesen;
 
 namespace MietHahn.Web.Anzeige;
 
@@ -114,5 +115,32 @@ public static class Bezeichnungen
         Mietmodell.Staffel => "Staffelmiete",
         Mietmodell.Index => "Indexmiete",
         _ => "Standardmiete",
+    };
+
+    public static string Von(Zaehlertyp wert) => wert switch
+    {
+        Zaehlertyp.Warmwasser => "Warmwasser",
+        Zaehlertyp.Waerme => "Wärme",
+        Zaehlertyp.Strom => "Strom",
+        Zaehlertyp.Gas => "Gas",
+        Zaehlertyp.Oeltank => "Öltank",
+        _ => "Kaltwasser",
+    };
+
+    public static string Von(Messeinheit wert) => wert switch
+    {
+        Messeinheit.Kilowattstunden => "kWh",
+        Messeinheit.Megawattstunden => "MWh",
+        Messeinheit.Liter => "l",
+        _ => "m³",
+    };
+
+    public static string Von(Standart wert) => wert switch
+    {
+        Standart.Schaetzung => "Schätzung",
+        Standart.Zwischenablesung => "Zwischenablesung",
+        Standart.Einbau => "Einbau",
+        Standart.Ausbau => "Ausbau",
+        _ => "Ablesung",
     };
 }

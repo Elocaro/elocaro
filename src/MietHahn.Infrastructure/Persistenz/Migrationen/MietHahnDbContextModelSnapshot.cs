@@ -1734,6 +1734,216 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.ToTable("vermieterprofile", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Zaehlerwesen.Zaehler", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly?>("AusgebautAm")
+                        .HasColumnType("date")
+                        .HasColumnName("ausgebaut_am");
+
+                    b.Property<string>("Bezeichnung")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("bezeichnung")
+                        .UseCollation("german");
+
+                    b.Property<DateOnly?>("EichfristBis")
+                        .HasColumnType("date")
+                        .HasColumnName("eichfrist_bis");
+
+                    b.Property<DateOnly>("EingebautAm")
+                        .HasColumnType("date")
+                        .HasColumnName("eingebaut_am");
+
+                    b.Property<Guid?>("EinheitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("einheit_id");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<Guid?>("HauptzaehlerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("hauptzaehler_id");
+
+                    b.Property<string>("Lage")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("lage");
+
+                    b.Property<string>("Messeinheit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("messeinheit");
+
+                    b.Property<string>("Notizen")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notizen");
+
+                    b.Property<string>("Nummer")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("nummer");
+
+                    b.Property<Guid>("ObjektId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("objekt_id");
+
+                    b.Property<int>("Reihenfolge")
+                        .HasColumnType("integer")
+                        .HasColumnName("reihenfolge");
+
+                    b.Property<string>("Typ")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("typ");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<Guid?>("VorgaengerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vorgaenger_id");
+
+                    b.Property<Guid?>("ZimmerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("zimmer_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_zaehler");
+
+                    b.HasIndex("EinheitId")
+                        .HasDatabaseName("ix_zaehler_einheit_id");
+
+                    b.HasIndex("HauptzaehlerId")
+                        .HasDatabaseName("ix_zaehler_hauptzaehler_id");
+
+                    b.HasIndex("Nummer")
+                        .HasDatabaseName("ix_zaehler_nummer");
+
+                    b.HasIndex("ObjektId")
+                        .HasDatabaseName("ix_zaehler_objekt_id");
+
+                    b.HasIndex("VorgaengerId")
+                        .HasDatabaseName("ix_zaehler_vorgaenger_id");
+
+                    b.HasIndex("ZimmerId")
+                        .HasDatabaseName("ix_zaehler_zimmer_id");
+
+                    b.ToTable("zaehler", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Zaehlerwesen.Zaehlerstand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Ableser")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ableser");
+
+                    b.Property<string>("Art")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("art");
+
+                    b.Property<DateOnly>("Datum")
+                        .HasColumnType("date")
+                        .HasColumnName("datum");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<Guid?>("FotoDateiId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("foto_datei_id");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<string>("Notiz")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notiz");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<decimal>("Wert")
+                        .HasPrecision(14, 3)
+                        .HasColumnType("numeric(14,3)")
+                        .HasColumnName("wert");
+
+                    b.Property<Guid>("ZaehlerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("zaehler_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_zaehlerstaende");
+
+                    b.HasIndex("FotoDateiId")
+                        .HasDatabaseName("ix_zaehlerstaende_foto_datei_id");
+
+                    b.HasIndex("ZaehlerId", "Datum")
+                        .IsUnique()
+                        .HasDatabaseName("ix_zaehlerstaende_zaehler_id_datum")
+                        .HasFilter("NOT geloescht");
+
+                    b.ToTable("zaehlerstaende", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Infrastructure.Audit.AuditEintrag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2276,6 +2486,56 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                         .HasConstraintName("fk_vertragsparteien_personen_person_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Zaehlerwesen.Zaehler", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Objekte.Einheit", null)
+                        .WithMany()
+                        .HasForeignKey("EinheitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_zaehler_einheiten_einheit_id");
+
+                    b.HasOne("MietHahn.Domain.Zaehlerwesen.Zaehler", null)
+                        .WithMany()
+                        .HasForeignKey("HauptzaehlerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_zaehler_zaehler_hauptzaehler_id");
+
+                    b.HasOne("MietHahn.Domain.Objekte.Objekt", null)
+                        .WithMany()
+                        .HasForeignKey("ObjektId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_zaehler_objekte_objekt_id");
+
+                    b.HasOne("MietHahn.Domain.Zaehlerwesen.Zaehler", null)
+                        .WithMany()
+                        .HasForeignKey("VorgaengerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_zaehler_zaehler_vorgaenger_id");
+
+                    b.HasOne("MietHahn.Domain.Objekte.Zimmer", null)
+                        .WithMany()
+                        .HasForeignKey("ZimmerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_zaehler_zimmer_zimmer_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Zaehlerwesen.Zaehlerstand", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Dateien.Datei", null)
+                        .WithMany()
+                        .HasForeignKey("FotoDateiId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_zaehlerstaende_dateien_foto_datei_id");
+
+                    b.HasOne("MietHahn.Domain.Zaehlerwesen.Zaehler", null)
+                        .WithMany("Staende")
+                        .HasForeignKey("ZaehlerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_zaehlerstaende_zaehler_zaehler_id");
+                });
+
             modelBuilder.Entity("MietHahn.Infrastructure.Identitaet.Anmeldelink", b =>
                 {
                     b.HasOne("MietHahn.Infrastructure.Identitaet.Benutzer", null)
@@ -2321,6 +2581,11 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.Navigation("Personen");
 
                     b.Navigation("Staffeln");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Zaehlerwesen.Zaehler", b =>
+                {
+                    b.Navigation("Staende");
                 });
 #pragma warning restore 612, 618
         }
