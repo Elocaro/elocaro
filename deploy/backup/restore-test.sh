@@ -18,7 +18,14 @@ export BACKUP_LOKAL_PFAD="$ARBEIT/repo" BACKUP_SSH_PFAD="$ARBEIT/ssh"
 
 dc() { docker compose -p miethahn-restoretest -f docker-compose.yml "$@"; }
 log() { printf '\n==> %s\n' "$*"; }
-aufraeumen() { dc down -v --remove-orphans > /dev/null 2>&1 || true; rm -rf "$ARBEIT"; }
+aufraeumen() {
+    rc=$?
+    dc down -v --remove-orphans > /dev/null 2>&1 || true
+    # Das Repository gehört root (aus dem Container); ohne root-Rechte (CI-Runner) im Container löschen.
+    docker run --rm --entrypoint sh -v "$ARBEIT:/aufraeumen" "$MIETHAHN_BACKUP_IMAGE" -c 'rm -rf /aufraeumen/repo /aufraeumen/ssh' > /dev/null 2>&1 || true
+    rm -rf "$ARBEIT" || true
+    exit "$rc"
+}
 trap aufraeumen EXIT
 
 warte_auf_app() {
