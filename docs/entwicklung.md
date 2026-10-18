@@ -98,7 +98,7 @@ Statisches SSR mit Blazor (ADR 0001) und eigenem Design-System (ADR 0003, `wwwro
 | `StatusMeldung`, `FehlerListe`, `Leerzustand` | Rückmeldungen (auch über Weiterleitungen hinweg per `Weiterleitung.ZuMitMeldung`) |
 | `AenderungsHistorie` | Audit-Historie eines Datensatzes |
 
-Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Tabellen stehen immer in `<div class="tabellen-rahmen">`, damit sie mobil horizontal scrollen statt der Seite.
+Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Optionale E-Mail-Felder mit `[OptionaleEmail]` statt `[EmailAddress]` validieren, denn leere Formularfelder kommen als `""` an. Formularmodelle in `OnInitialized(Async)` **vor** dem ersten `await` setzen (`Modell ??= new()`), weil Blazor dort schon einmal rendert. Tabellen stehen immer in `<div class="tabellen-rahmen">`, damit sie mobil horizontal scrollen statt der Seite.
 
 **Dashboard „Was ist zu tun?“:** Fachmodule registrieren eine `IAufgabenQuelle` und liefern `Aufgabe`n (Bereich, Titel, Link, Dringlichkeit, Fälligkeit). Die Startseite der Verwaltung sammelt sie mit Streaming Rendering ein.
 

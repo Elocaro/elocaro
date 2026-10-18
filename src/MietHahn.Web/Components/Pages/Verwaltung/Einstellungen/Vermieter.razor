@@ -1,0 +1,85 @@
+@page "/verwaltung/einstellungen/vermieter"
+@using MietHahn.Application.Verwaltung
+@inject IVermieterprofilVerwaltung Profil
+@inject Weiterleitung Weiterleitung
+
+<Seitenkopf Titel="Vermieter" Untertitel="Absenderangaben für Briefkopf, Fußzeile und Zahlungshinweise in Dokumenten." />
+
+<StatusMeldung />
+@if (neu)
+{
+    <p class="meldung meldung-hinweis" role="status">Noch kein Vermieterprofil hinterlegt – ohne diese Angaben können keine Dokumente erzeugt werden.</p>
+}
+
+<EditForm Model="Daten" FormName="vermieter" OnValidSubmit="SpeichernAsync">
+    <DataAnnotationsValidator />
+    <div class="formular-raster">
+        <FormularFeld Id="name" Beschriftung="Name" Fuer="() => Daten!.Name" Pflicht="true">
+            <InputText id="name" @bind-Value="Daten!.Name" autocomplete="name" />
+        </FormularFeld>
+        <FormularFeld Id="zusatz" Beschriftung="Zusatz" Fuer="() => Daten!.Zusatz" Hinweis="z. B. „Hausverwaltung Hauptstraße 5“">
+            <InputText id="zusatz" @bind-Value="Daten!.Zusatz" />
+        </FormularFeld>
+        <FormularFeld Id="strasse" Beschriftung="Straße und Hausnummer" Fuer="() => Daten!.Strasse" Pflicht="true">
+            <InputText id="strasse" @bind-Value="Daten!.Strasse" autocomplete="street-address" />
+        </FormularFeld>
+        <FormularFeld Id="plz" Beschriftung="PLZ" Fuer="() => Daten!.Plz" Pflicht="true">
+            <InputText id="plz" @bind-Value="Daten!.Plz" inputmode="numeric" autocomplete="postal-code" />
+        </FormularFeld>
+        <FormularFeld Id="ort" Beschriftung="Ort" Fuer="() => Daten!.Ort" Pflicht="true">
+            <InputText id="ort" @bind-Value="Daten!.Ort" autocomplete="address-level2" />
+        </FormularFeld>
+        <FormularFeld Id="telefon" Beschriftung="Telefon" Fuer="() => Daten!.Telefon">
+            <InputText id="telefon" type="tel" @bind-Value="Daten!.Telefon" autocomplete="tel" />
+        </FormularFeld>
+        <FormularFeld Id="email" Beschriftung="E-Mail" Fuer="() => Daten!.Email">
+            <InputText id="email" type="email" @bind-Value="Daten!.Email" autocomplete="email" />
+        </FormularFeld>
+    </div>
+
+    <h2>Bankverbindung &amp; Steuer</h2>
+    <div class="formular-raster">
+        <FormularFeld Id="iban" Beschriftung="IBAN" Fuer="() => Daten!.Iban" Hinweis="Erscheint in der Fußzeile und in Zahlungsaufforderungen.">
+            <InputText id="iban" @bind-Value="Daten!.Iban" autocomplete="off" />
+        </FormularFeld>
+        <FormularFeld Id="bic" Beschriftung="BIC" Fuer="() => Daten!.Bic">
+            <InputText id="bic" @bind-Value="Daten!.Bic" autocomplete="off" />
+        </FormularFeld>
+        <FormularFeld Id="bank" Beschriftung="Bank" Fuer="() => Daten!.Bank">
+            <InputText id="bank" @bind-Value="Daten!.Bank" />
+        </FormularFeld>
+        <FormularFeld Id="steuernummer" Beschriftung="Steuernummer" Fuer="() => Daten!.Steuernummer">
+            <InputText id="steuernummer" @bind-Value="Daten!.Steuernummer" />
+        </FormularFeld>
+    </div>
+
+    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+</EditForm>
+
+@code {
+    private bool neu;
+
+    [SupplyParameterFromForm(FormName = "vermieter")]
+    private VermieterprofilDaten? Daten { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Daten is null)
+        {
+            // Modell synchron setzen: Blazor rendert vor dem ersten await bereits einmal.
+            Daten = new();
+            var geladen = await Profil.LadenAsync();
+            neu = geladen is null;
+            Daten = geladen ?? Daten;
+        }
+    }
+
+    private async Task SpeichernAsync()
+    {
+        await Profil.SpeichernAsync(Daten!);
+        Weiterleitung.ZuMitMeldung("/verwaltung/einstellungen/vermieter", "Die Vermieterangaben wurden gespeichert.", HttpContext);
+    }
+}

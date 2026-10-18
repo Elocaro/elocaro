@@ -483,3 +483,6 @@ $RECYCLE.BIN/
 
 # Lokale Laufzeitdaten (Dateiablage in der Entwicklung)
 daten/
+
+# Produktionsgeheimnisse
+deploy/.env

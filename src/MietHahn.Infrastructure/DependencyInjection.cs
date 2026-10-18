@@ -13,13 +13,16 @@ using MietHahn.Application.Dokumente;
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Application.Kommunikation;
 using MietHahn.Application.Konten;
+using MietHahn.Application.Verwaltung;
 using MietHahn.Infrastructure.Audit;
+using MietHahn.Infrastructure.Betrieb;
 using MietHahn.Infrastructure.Dateien;
 using MietHahn.Infrastructure.Identitaet;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Mail;
 using MietHahn.Infrastructure.Pdf;
 using MietHahn.Infrastructure.Persistenz;
+using MietHahn.Infrastructure.Verwaltung;
 using MietHahn.Infrastructure.Vorlagen;
 using Quartz;
 
@@ -46,6 +49,7 @@ public static class DependencyInjection
         DateiablageRegistrieren(services, konfiguration);
         PdfRegistrieren(services, konfiguration);
         JobsRegistrieren(services, konfiguration);
+        HealthChecksRegistrieren(services);
 
         return services;
     }
@@ -140,7 +144,14 @@ public static class DependencyInjection
             http.Timeout = TimeSpan.FromSeconds(optionen.TimeoutSekunden);
         });
         services.AddScoped<IPdfErzeugung, PdfErzeugung>();
+        services.AddScoped<IVermieterprofilVerwaltung, VermieterprofilVerwaltung>();
     }
+
+    private static void HealthChecksRegistrieren(IServiceCollection services) =>
+        services.AddHealthChecks()
+            .AddDbContextCheck<MietHahnDbContext>("datenbank", tags: [HealthTags.Bereit])
+            .AddCheck<GotenbergHealthCheck>("gotenberg", tags: [HealthTags.Bereit])
+            .AddCheck<DateiablageHealthCheck>("dateiablage", tags: [HealthTags.Bereit]);
 
     private static void JobsRegistrieren(IServiceCollection services, IConfiguration konfiguration)
     {

@@ -1,0 +1,22 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$MIETHAHN_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Uploads bis 30 MB (Belege, Fotos); die App begrenzt zusätzlich selbst.
+	request_body {
+		max_size 30MB
+	}
+
+	reverse_proxy app:8080 {
+		health_uri /health/live
+		health_interval 30s
+	}
+}
