@@ -11,6 +11,7 @@ Self-hosted Verwaltung für private Vermieter: Objekte, Mieter, Mieteingänge, N
 - [Architektur](docs/architektur.md): Technologie, Struktur, Meilensteine
 - [Entwicklung](docs/entwicklung.md): lokale Umgebung, Migrationen, Konventionen, Tests
 - [Betrieb](docs/betrieb.md): Installation auf einem VPS, Update, Sicherheit
+- [Mitarbeiten](CONTRIBUTING.md): Ablauf, CI, Releases
 - [Banking & FinTS-Registrierung](docs/banking-fints.md)
 - [Architekturentscheidungen (ADR)](docs/adr/)
 

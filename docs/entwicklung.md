@@ -205,3 +205,19 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 | `MietHahn.Architecture.Tests` | Schichtregeln (NetArchTest) |
 
 Konventionen: Testnamen auf Deutsch mit Unterstrichen (`Loeschen_ist_logisch_…`), Zeit über `FakeTimeProvider`, kein `DateTime.Now` im Produktivcode (immer `TimeProvider`).
+
+Testergebnisse als TRX und Abdeckung als Cobertura (wie in der CI):
+
+```bash
+dotnet test -- --report-trx --results-directory testergebnisse --coverage --coverage-output-format cobertura
+```
+
+## CI/CD (GitHub Actions)
+
+| Workflow | Auslöser | Inhalt |
+|---|---|---|
+| `.github/workflows/ci.yml` | Push auf `main`/`ccr-*`, Pull Requests, manuell | Restore, `dotnet format --verify-no-changes`, Release-Build (Warnungen sind Fehler), Playwright-Chromium installieren, alle Tests inkl. Testcontainers und Browser-Tests. TRX und Cobertura als Artefakt `testergebnisse` (14 Tage). Zweiter Job baut das Docker-Image ohne Push (Layer-Cache über `type=gha`) |
+| `.github/workflows/release.yml` | Tag `v*.*.*` | Multi-Arch-Image (`linux/amd64`, `linux/arm64`) nach `ghcr.io/ther00st3r/miethahn` mit Tags `1.2.3`, `1.2`, `sha-…` und `latest` |
+| `.github/dependabot.yml` | wöchentlich | NuGet (gruppiert: .NET-Plattform, Testpakete; Quartz-Major-Updates ausgeschlossen, siehe Architektur), Docker-Basisimages, Compose-Images, Actions |
+
+Vor dem Push lokal dasselbe prüfen: `dotnet format --verify-no-changes && dotnet build -c Release && dotnet test`. Workflows lassen sich mit [actionlint](https://github.com/rhysd/actionlint) prüfen. Release-Ablauf und Branch-Schutz stehen in [CONTRIBUTING.md](../CONTRIBUTING.md).
