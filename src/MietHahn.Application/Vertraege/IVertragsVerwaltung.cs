@@ -38,6 +38,15 @@ public interface IVertragsVerwaltung
 
     /// <summary>Mieterwechsel: beendet den Vertrag und schreibt die neuen Anschriften der Mieter fort.</summary>
     Task<Ergebnis> AuszugAsync(Guid id, AuszugEingabe eingabe, CancellationToken cancellationToken = default);
+
+    Task<Ergebnis> MietmodellSetzenAsync(Guid id, MietmodellEingabe eingabe, CancellationToken cancellationToken = default);
+
+    Task<Ergebnis> StaffelHinzufuegenAsync(Guid id, StaffelEingabe eingabe, CancellationToken cancellationToken = default);
+
+    Task<Ergebnis> StaffelEntfernenAsync(Guid id, Guid staffelId, CancellationToken cancellationToken = default);
+
+    /// <summary>Übernimmt die Indexanpassung: neue Kaltmiete ab dem übernächsten Monat nach Zugang der Erklärung.</summary>
+    Task<Ergebnis> IndexAnpassenAsync(Guid id, IndexAnpassungEingabe eingabe, CancellationToken cancellationToken = default);
 }
 
 public sealed record VertragUebersicht(
@@ -83,7 +92,25 @@ public sealed record VertragDetails(
     decimal Monatsmiete,
     DateOnly Stichtag,
     DateOnly? NaechsteFaelligkeit,
-    int KuendigungsfristVermieterMonate);
+    int KuendigungsfristVermieterMonate,
+    MietmodellAnsicht Mietmodell);
+
+/// <param name="LetzteErhoehung">Beginn der aktuellen Kaltmiete, falls nach Mietbeginn geändert.</param>
+/// <param name="KaltmieteVorDreiJahren">Für die Kappungsgrenze (§ 558 Abs. 3 BGB).</param>
+public sealed record MietmodellAnsicht(
+    Mietmodell Modell,
+    DateOnly? LetzteErhoehung,
+    decimal? KaltmieteVorDreiJahren,
+    decimal? Kaltmiete,
+    DateOnly? IndexBasisMonat,
+    decimal? IndexBasisWert,
+    IReadOnlyList<StaffelAnsicht> Staffeln,
+    IndexVorschlag? Index);
+
+public sealed record StaffelAnsicht(Guid Id, DateOnly Ab, decimal Kaltmiete, DateTimeOffset? AngewendetAm);
+
+/// <summary>Berechnete Indexanpassung mit dem neuesten VPI-Wert.</summary>
+public sealed record IndexVorschlag(DateOnly VpiMonat, decimal VpiWert, decimal VeraenderungProzent, decimal NeueKaltmiete, DateOnly FruehestensWirksam, bool JetztMoeglich);
 
 /// <summary>Ein Vertrag oder eine Leerstandszeit in der Historie eines Mietobjekts.</summary>
 public sealed record VertragsHistorieEintrag(Guid? VertragId, Zeitraum Zeitraum, string? Mieter, decimal? Kaltmiete)

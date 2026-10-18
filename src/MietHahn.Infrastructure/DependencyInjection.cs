@@ -176,6 +176,9 @@ public static class DependencyInjection
         services.AddScoped<IVertragsVerwaltung, VertragsVerwaltung>();
         services.AddScoped<IPersonenbezug, VertragsPersonenbezug>();
         services.AddScoped<IPersonendatenQuelle, VertragsPersonendaten>();
+        services.AddScoped<IVpiVerwaltung, VpiVerwaltung>();
+        services.AddScoped<StaffelAnwendung>();
+        services.AddScoped<IAufgabenQuelle, MietmodellAufgaben>();
     }
 
     private static void DatenschutzRegistrieren(IServiceCollection services, IConfiguration konfiguration)
@@ -219,6 +222,7 @@ public static class DependencyInjection
             q.PlaneIntervall<MailOutboxJob>(MailOutboxJob.Schluessel, "Versendet fällige E-Mails aus der Outbox", TimeSpan.FromSeconds(30));
             q.PlaneTaeglich<JobProtokollBereinigungJob>(JobProtokollBereinigungJob.Schluessel, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);
             q.PlaneTaeglich<AuditBereinigungJob>(AuditBereinigungJob.Schluessel, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
+            q.PlaneTaeglich<StaffelJob>(StaffelJob.Schluessel, "Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins", 0, 30);
             q.PlaneTaeglich<BackupWarnungJob>(BackupWarnungJob.Schluessel, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);

@@ -108,4 +108,11 @@ public static class Bezeichnungen
         Vertragsstatus.Gekuendigt or Vertragsstatus.Kuenftig => "status-wartend",
         _ => "",
     };
+
+    public static string Von(Mietmodell wert) => wert switch
+    {
+        Mietmodell.Staffel => "Staffelmiete",
+        Mietmodell.Index => "Indexmiete",
+        _ => "Standardmiete",
+    };
 }

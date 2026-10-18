@@ -82,7 +82,8 @@ internal sealed class VertragsVerwaltung(MietHahnDbContext db, TimeProvider uhr)
             vertrag.MonatsmieteAm(stichtag),
             stichtag,
             NaechsteFaelligkeit(vertrag, heute),
-            vertrag.KuendigungsfristVermieterMonate(heute));
+            vertrag.KuendigungsfristVermieterMonate(heute),
+            await MietmodellAsync(vertrag, stichtag, heute, cancellationToken));
     }
 
     public async Task<IReadOnlyList<MietobjektAuswahl>> MietobjekteAsync(CancellationToken cancellationToken = default)
@@ -279,6 +280,73 @@ internal sealed class VertragsVerwaltung(MietHahnDbContext db, TimeProvider uhr)
         }, Ueberlappung);
     }
 
+    public Task<Ergebnis> MietmodellSetzenAsync(Guid id, MietmodellEingabe eingabe, CancellationToken cancellationToken = default) =>
+        MitVertragAsync(id, vertrag =>
+        {
+            ArgumentNullException.ThrowIfNull(eingabe);
+            vertrag.MietmodellSetzen(eingabe.Modell, eingabe.IndexBasisMonat, eingabe.IndexBasisWert);
+        }, cancellationToken);
+
+    public Task<Ergebnis> StaffelHinzufuegenAsync(Guid id, StaffelEingabe eingabe, CancellationToken cancellationToken = default) =>
+        MitVertragAsync(id, vertrag =>
+        {
+            ArgumentNullException.ThrowIfNull(eingabe);
+            vertrag.StaffelHinzufuegen(
+                eingabe.Ab ?? throw new RegelverletzungException("Bitte den Termin der Staffel angeben."),
+                eingabe.Kaltmiete ?? throw new RegelverletzungException("Bitte die neue Kaltmiete angeben."));
+        }, cancellationToken);
+
+    public Task<Ergebnis> StaffelEntfernenAsync(Guid id, Guid staffelId, CancellationToken cancellationToken = default) =>
+        MitVertragAsync(id, vertrag => vertrag.StaffelEntfernen(staffelId), cancellationToken);
+
+    public async Task<Ergebnis> IndexAnpassenAsync(Guid id, IndexAnpassungEingabe eingabe, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(eingabe);
+        var neuester = await db.Set<VpiWert>().AsNoTracking().OrderByDescending(v => v.Monat).FirstOrDefaultAsync(cancellationToken);
+        return await MitVertragAsync(id, vertrag =>
+        {
+            var erklaerung = eingabe.ErklaerungAm ?? throw new RegelverletzungException("Bitte angeben, wann die Erklärung zugeht.");
+            if (neuester is null || vertrag.IndexBasisMonat is null || neuester.Monat <= vertrag.IndexBasisMonat)
+            {
+                throw new RegelverletzungException("Es gibt keinen VPI-Wert, der neuer ist als der Ausgangsindex. Bitte zuerst den VPI pflegen.");
+            }
+
+            vertrag.IndexAnpassen(Indexmiete.WirksamAb(erklaerung), neuester.Monat, neuester.Wert);
+        }, cancellationToken);
+    }
+
+    private async Task<MietmodellAnsicht> MietmodellAsync(Mietvertrag vertrag, DateOnly stichtag, DateOnly heute, CancellationToken cancellationToken)
+    {
+        var kaltmiete = vertrag.BetragAm(Bestandteilart.Kaltmiete, stichtag);
+        var vorDreiJahren = stichtag.AddYears(-3);
+        IndexVorschlag? vorschlag = null;
+        if (vertrag.Mietmodell == Mietmodell.Index && vertrag.IndexBasisWert is { } basis && vertrag.IndexBasisMonat is { } basisMonat && kaltmiete is { } miete)
+        {
+            var neuester = await db.Set<VpiWert>().AsNoTracking().Where(v => v.Monat > basisMonat).OrderByDescending(v => v.Monat).FirstOrDefaultAsync(cancellationToken);
+            if (neuester is not null)
+            {
+                var fruehestens = Indexmiete.FruehestesWirksamwerden(vertrag.LetzteKaltmieteAenderung() ?? vertrag.Beginn);
+                vorschlag = new IndexVorschlag(
+                    neuester.Monat,
+                    neuester.Wert,
+                    Indexmiete.VeraenderungProzent(basis, neuester.Wert),
+                    Indexmiete.NeueMiete(miete, basis, neuester.Wert),
+                    fruehestens,
+                    Indexmiete.WirksamAb(heute) >= fruehestens);
+            }
+        }
+
+        return new MietmodellAnsicht(
+            vertrag.Mietmodell,
+            vertrag.LetzteKaltmieteAenderung(stichtag),
+            vorDreiJahren >= vertrag.Beginn ? vertrag.BetragAm(Bestandteilart.Kaltmiete, vorDreiJahren) : null,
+            kaltmiete,
+            vertrag.IndexBasisMonat,
+            vertrag.IndexBasisWert,
+            vertrag.Staffeln.OrderBy(s => s.Ab).Select(s => new StaffelAnsicht(s.Id, s.Ab, s.Kaltmiete, s.AngewendetAm)).ToList(),
+            vorschlag);
+    }
+
     private static void PruefeAbrechnungsart(Mietvertrag vertrag, DateOnly tag)
     {
         if (vertrag.Abrechnungsart == Abrechnungsart.Pauschale && vertrag.BetragAm(Bestandteilart.Betriebskostenpauschale, tag) is null)
@@ -311,7 +379,7 @@ internal sealed class VertragsVerwaltung(MietHahnDbContext db, TimeProvider uhr)
     }
 
     private IQueryable<Mietvertrag> MitDetails() =>
-        db.Set<Mietvertrag>().Include(v => v.Parteien).Include(v => v.Bestandteile).Include(v => v.Personen).AsSplitQuery();
+        db.Set<Mietvertrag>().Include(v => v.Parteien).Include(v => v.Bestandteile).Include(v => v.Personen).Include(v => v.Staffeln).AsSplitQuery();
 
     private Task<Ergebnis> MitVertragAsync(Guid id, Action<Mietvertrag> aktion, CancellationToken cancellationToken) =>
         Befehl.AusfuehrenAsync(async () =>

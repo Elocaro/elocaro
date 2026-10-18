@@ -133,6 +133,10 @@
     }
 </section>
 
+<MietmodellBereich Modell="vertrag.Mietmodell" Eingabe="Modell!" Staffel="Staffel!" Anpassung="Anpassung!"
+                   OnModellSetzen="MietmodellSetzenAsync" OnStaffelHinzufuegen="StaffelHinzufuegenAsync"
+                   OnStaffelEntfernen="StaffelEntfernenAsync" OnIndexAnpassen="IndexAnpassenAsync" />
+
 <section>
     <h2>Vertragsparteien</h2>
     <form method="post" @formname="partei-entfernen" @onsubmit="ParteiEntfernenAsync">
@@ -317,21 +321,39 @@
     [SupplyParameterFromForm(FormName = "daten")]
     private VertragDaten? Daten { get; set; }
 
+    // Felder aus MietmodellBereich: Feldnamen Eingabe.*, Staffel.*, Anpassung.*
+    [SupplyParameterFromForm(FormName = "mietmodell", Name = "Eingabe")]
+    private MietmodellFormular? Modell { get; set; }
+
+    [SupplyParameterFromForm(FormName = "staffel", Name = "Staffel")]
+    private StaffelEingabe? Staffel { get; set; }
+
+    [SupplyParameterFromForm(FormName = "staffel-entfernen")]
+    private Guid? EntfernenStaffelId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "index-anpassung", Name = "Anpassung")]
+    private IndexAnpassungEingabe? Anpassung { get; set; }
+
     private string MieterText => string.Join(", ", vertrag!.Parteien.Where(p => p.Rolle == Parteirolle.Mieter).Select(p => p.Name));
 
     protected override async Task OnInitializedAsync()
     {
         var formular = Daten;
+        var modellFormular = Modell;
+        Staffel ??= new();
+        Anpassung ??= new();
         Bestandteil ??= new();
         Beenden ??= new();
         PersonenAnzahl ??= new();
         NeuePartei ??= new();
         Kuendigung ??= new();
         Daten ??= new();
+        Modell ??= new();
         vertrag = await Verwaltung.LadenAsync(Id);
         if (vertrag is not null)
         {
             Daten = formular ?? vertrag.Daten;
+            Modell = modellFormular ?? MietmodellFormular.Aus(vertrag.Mietmodell);
             personen = await Personen.AuswahlAsync();
         }
     }
@@ -350,6 +372,15 @@
     private Task KuendigenAsync() => AusfuehrenAsync(Verwaltung.KuendigenAsync(Id, Kuendigung!), "Die Kündigung wurde erfasst.");
 
     private Task KuendigungAufhebenAsync() => AusfuehrenAsync(Verwaltung.KuendigungAufhebenAsync(Id), "Die Kündigung wurde aufgehoben.");
+
+    private Task MietmodellSetzenAsync() => AusfuehrenAsync(Verwaltung.MietmodellSetzenAsync(Id, Modell!.NachEingabe()), "Das Mietmodell wurde gespeichert.");
+
+    private Task StaffelHinzufuegenAsync() => AusfuehrenAsync(Verwaltung.StaffelHinzufuegenAsync(Id, Staffel!), "Die Staffel wurde gespeichert.");
+
+    private Task StaffelEntfernenAsync() =>
+        EntfernenStaffelId is { } staffel ? AusfuehrenAsync(Verwaltung.StaffelEntfernenAsync(Id, staffel), "Die Staffel wurde entfernt.") : Task.CompletedTask;
+
+    private Task IndexAnpassenAsync() => AusfuehrenAsync(Verwaltung.IndexAnpassenAsync(Id, Anpassung!), "Die Indexanpassung wurde übernommen.");
 
     private Task DatenSpeichernAsync() => AusfuehrenAsync(Verwaltung.AendernAsync(Id, Daten!), "Die Angaben wurden gespeichert.");
 

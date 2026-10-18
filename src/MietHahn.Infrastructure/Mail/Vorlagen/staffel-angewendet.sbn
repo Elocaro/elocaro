@@ -1,0 +1,8 @@
+{{ capture betreff }}MietHahn: Staffelmiete übernommen{{ end }}
+<p>Hallo,</p>
+<p>folgende Staffeln gelten ab heute und wurden als neue Kaltmiete übernommen:</p>
+<ul>
+{{ for staffel in staffeln }}  <li>{{ staffel }}</li>
+{{ end }}</ul>
+<p>Die Sollstellungen berücksichtigen die neue Miete automatisch.</p>
+<p><a href="{{ link }}">Verträge in MietHahn öffnen</a></p>

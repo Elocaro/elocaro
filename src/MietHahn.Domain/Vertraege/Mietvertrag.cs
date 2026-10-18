@@ -112,6 +112,16 @@ public sealed class Mietvertrag : Entitaet
 
     public string? Notizen { get; set; }
 
+    public Mietmodell Mietmodell { get; private set; }
+
+    /// <summary>Indexmiete: Monat des Ausgangsindex (erster Tag des Monats).</summary>
+    public DateOnly? IndexBasisMonat { get; private set; }
+
+    /// <summary>Indexmiete: Indexstand des Ausgangsmonats (VPI, Basis 2020 = 100).</summary>
+    public decimal? IndexBasisWert { get; private set; }
+
+    public List<Mietstaffel> Staffeln { get; private set; } = [];
+
     public List<Vertragspartei> Parteien { get; private set; } = [];
 
     public List<Mietbestandteil> Bestandteile { get; private set; } = [];
@@ -262,6 +272,116 @@ public sealed class Mietvertrag : Entitaet
         var jahre = eingang.Year - Beginn.Year - (eingang < Beginn.AddYears(eingang.Year - Beginn.Year) ? 1 : 0);
         return jahre >= 8 ? 9 : jahre >= 5 ? 6 : 3;
     }
+
+    /// <summary>Wechselt das Mietmodell. Beim Wechsel weg von der Staffelmiete müssen offene Staffeln entfernt sein.</summary>
+    public void MietmodellSetzen(Mietmodell modell, DateOnly? indexBasisMonat = null, decimal? indexBasisWert = null)
+    {
+        if (modell != Mietmodell.Staffel && Staffeln.Any(s => s.AngewendetAm is null))
+        {
+            throw new RegelverletzungException("Es gibt noch offene Staffeln. Bitte zuerst entfernen.");
+        }
+
+        if (modell == Mietmodell.Index && (indexBasisMonat is null || indexBasisWert is not > 0))
+        {
+            throw new RegelverletzungException("Für die Indexmiete bitte Monat und Wert des Ausgangsindex angeben.");
+        }
+
+        Mietmodell = modell;
+        IndexBasisMonat = modell == Mietmodell.Index ? new DateOnly(indexBasisMonat!.Value.Year, indexBasisMonat.Value.Month, 1) : null;
+        IndexBasisWert = modell == Mietmodell.Index ? decimal.Round(indexBasisWert!.Value, 1) : null;
+    }
+
+    /// <summary>
+    /// Fügt eine Staffel hinzu (§ 557a BGB): Die Miete muss jeweils mindestens ein Jahr unverändert bleiben, der Betrag
+    /// ist als Geldbetrag ausgewiesen.
+    /// </summary>
+    public Mietstaffel StaffelHinzufuegen(DateOnly ab, decimal kaltmiete)
+    {
+        if (Mietmodell != Mietmodell.Staffel)
+        {
+            throw new RegelverletzungException("Staffeln gibt es nur bei einer Staffelmiete.");
+        }
+
+        PruefeImVertrag(ab);
+        if (kaltmiete <= 0)
+        {
+            throw new RegelverletzungException("Bitte die neue Kaltmiete angeben.");
+        }
+
+        var termine = Staffeln.Select(s => s.Ab).Append(Beginn).Order().ToList();
+        if (termine.Any(t => t != ab && Math.Abs(MonateZwischen(t, ab)) < 12))
+        {
+            throw new RegelverletzungException("Zwischen zwei Staffeln (und ab Mietbeginn) muss die Miete mindestens ein Jahr unverändert bleiben.");
+        }
+
+        if (Staffeln.Any(s => s.Ab == ab))
+        {
+            throw new RegelverletzungException("Zu diesem Termin gibt es bereits eine Staffel.");
+        }
+
+        var staffel = new Mietstaffel(Id, ab, decimal.Round(kaltmiete, 2));
+        Staffeln.Add(staffel);
+        return staffel;
+    }
+
+    public void StaffelEntfernen(Guid staffelId)
+    {
+        var staffel = Staffeln.SingleOrDefault(s => s.Id == staffelId) ?? throw new RegelverletzungException("Die Staffel wurde nicht gefunden.");
+        if (staffel.AngewendetAm is not null)
+        {
+            throw new RegelverletzungException("Bereits übernommene Staffeln bleiben erhalten; die Miete bitte über die Bestandteile korrigieren.");
+        }
+
+        Staffeln.Remove(staffel);
+    }
+
+    /// <summary>Übernimmt fällige Staffeln als Kaltmiete (täglicher Job). Liefert die übernommenen Staffeln.</summary>
+    public IReadOnlyList<Mietstaffel> FaelligeStaffelnAnwenden(DateOnly heute, DateTimeOffset zeitpunkt)
+    {
+        var angewendet = new List<Mietstaffel>();
+        foreach (var staffel in Staffeln.Where(s => s.AngewendetAm is null && s.Ab <= heute && Laufzeit.Enthaelt(s.Ab)).OrderBy(s => s.Ab))
+        {
+            BestandteilSetzen(Bestandteilart.Kaltmiete, staffel.Ab, staffel.Kaltmiete);
+            staffel.Angewendet(zeitpunkt);
+            angewendet.Add(staffel);
+        }
+
+        return angewendet;
+    }
+
+    /// <summary>Übernimmt eine Indexanpassung: neue Kaltmiete ab Wirksamkeit und neuer Ausgangsindex.</summary>
+    public decimal IndexAnpassen(DateOnly wirksamAb, DateOnly vpiMonat, decimal vpiWert)
+    {
+        if (Mietmodell != Mietmodell.Index || IndexBasisWert is not { } basis)
+        {
+            throw new RegelverletzungException("Der Vertrag ist keine Indexmiete.");
+        }
+
+        var letzteAenderung = LetzteKaltmieteAenderung() ?? Beginn;
+        if (wirksamAb < Indexmiete.FruehestesWirksamwerden(letzteAenderung))
+        {
+            throw new RegelverletzungException(
+                $"Die Miete muss mindestens ein Jahr unverändert bleiben: frühestens ab {Indexmiete.FruehestesWirksamwerden(letzteAenderung):dd.MM.yyyy}.");
+        }
+
+        var bisher = BetragAm(Bestandteilart.Kaltmiete, wirksamAb) ?? throw new RegelverletzungException("Zum Stichtag ist keine Kaltmiete hinterlegt.");
+        var neu = Indexmiete.NeueMiete(bisher, basis, vpiWert);
+        BestandteilSetzen(Bestandteilart.Kaltmiete, wirksamAb, neu);
+        IndexBasisMonat = new DateOnly(vpiMonat.Year, vpiMonat.Month, 1);
+        IndexBasisWert = decimal.Round(vpiWert, 1);
+        return neu;
+    }
+
+    /// <summary>Beginn der aktuell gültigen Kaltmiete, falls sie nach Mietbeginn geändert wurde.</summary>
+    public DateOnly? LetzteKaltmieteAenderung(DateOnly? stichtag = null)
+    {
+        var tag = stichtag ?? DateOnly.MaxValue;
+        return Bestandteile.Where(b => b.Art == Bestandteilart.Kaltmiete && b.Gueltigkeit.Von > Beginn && b.Gueltigkeit.Von <= tag)
+            .Select(b => (DateOnly?)b.Gueltigkeit.Von).Max();
+    }
+
+    private static int MonateZwischen(DateOnly von, DateOnly bis) =>
+        ((bis.Year - von.Year) * 12) + bis.Month - von.Month - (bis.Day < von.Day ? 1 : 0);
 
     private void EndeSetzen(DateOnly ende)
     {

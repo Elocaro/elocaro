@@ -1242,6 +1242,68 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.ToTable("mietbestandteile", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Vertraege.Mietstaffel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly>("Ab")
+                        .HasColumnType("date")
+                        .HasColumnName("ab");
+
+                    b.Property<DateTimeOffset?>("AngewendetAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("angewendet_am");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<decimal>("Kaltmiete")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("kaltmiete");
+
+                    b.Property<Guid>("MietvertragId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mietvertrag_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mietstaffeln");
+
+                    b.HasIndex("MietvertragId", "Ab")
+                        .IsUnique()
+                        .HasDatabaseName("ix_mietstaffeln_mietvertrag_id_ab")
+                        .HasFilter("NOT geloescht");
+
+                    b.ToTable("mietstaffeln", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Vertraege.Mietvertrag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1292,6 +1354,15 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                         .HasColumnType("boolean")
                         .HasColumnName("heizkosten_verbrauchsabhaengig");
 
+                    b.Property<DateOnly?>("IndexBasisMonat")
+                        .HasColumnType("date")
+                        .HasColumnName("index_basis_monat");
+
+                    b.Property<decimal?>("IndexBasisWert")
+                        .HasPrecision(6, 1)
+                        .HasColumnType("numeric(6,1)")
+                        .HasColumnName("index_basis_wert");
+
                     b.Property<decimal?>("Kaution")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -1314,6 +1385,12 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.Property<int>("KuendigungsfristMonate")
                         .HasColumnType("integer")
                         .HasColumnName("kuendigungsfrist_monate");
+
+                    b.Property<string>("Mietmodell")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("mietmodell");
 
                     b.Property<Guid>("MietobjektId")
                         .HasColumnType("uuid")
@@ -1496,6 +1573,66 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                         .HasFilter("NOT geloescht");
 
                     b.ToTable("vertragsparteien", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Vertraege.VpiWert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<DateOnly>("Monat")
+                        .HasColumnType("date")
+                        .HasColumnName("monat");
+
+                    b.Property<string>("Quelle")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("quelle");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<decimal>("Wert")
+                        .HasPrecision(6, 1)
+                        .HasColumnType("numeric(6,1)")
+                        .HasColumnName("wert");
+
+                    b.HasKey("Id")
+                        .HasName("pk_vpi_werte");
+
+                    b.HasIndex("Monat")
+                        .IsUnique()
+                        .HasDatabaseName("ix_vpi_werte_monat")
+                        .HasFilter("NOT geloescht");
+
+                    b.ToTable("vpi_werte", (string)null);
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Verwaltung.Vermieterprofil", b =>
@@ -2086,6 +2223,16 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                         .HasConstraintName("fk_mietbestandteile_mietvertrag_mietvertrag_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Vertraege.Mietstaffel", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Vertraege.Mietvertrag", null)
+                        .WithMany("Staffeln")
+                        .HasForeignKey("MietvertragId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_mietstaffeln_mietvertrag_mietvertrag_id");
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Vertraege.Mietvertrag", b =>
                 {
                     b.HasOne("MietHahn.Domain.Objekte.Einheit", null)
@@ -2172,6 +2319,8 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.Navigation("Parteien");
 
                     b.Navigation("Personen");
+
+                    b.Navigation("Staffeln");
                 });
 #pragma warning restore 612, 618
         }

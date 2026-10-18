@@ -118,3 +118,31 @@ public sealed class AuszugEingabe
     [StringLength(100)]
     public string? NeuerOrt { get; set; }
 }
+
+public sealed class MietmodellEingabe
+{
+    public Mietmodell Modell { get; set; }
+
+    /// <summary>Indexmiete: Monat des Ausgangsindex.</summary>
+    public DateOnly? IndexBasisMonat { get; set; }
+
+    [Range(typeof(decimal), "1", "1000", ErrorMessage = "Bitte einen Indexwert wie 121,7 angeben.", ParseLimitsInInvariantCulture = true)]
+    public decimal? IndexBasisWert { get; set; }
+}
+
+public sealed class StaffelEingabe
+{
+    [Required(ErrorMessage = "Bitte den Termin der Staffel angeben.")]
+    public DateOnly? Ab { get; set; }
+
+    [Required(ErrorMessage = "Bitte die neue Kaltmiete angeben.")]
+    [Range(typeof(decimal), "0.01", "100000", ErrorMessage = "Bitte die neue Kaltmiete angeben.", ParseLimitsInInvariantCulture = true)]
+    public decimal? Kaltmiete { get; set; }
+}
+
+public sealed class IndexAnpassungEingabe
+{
+    /// <summary>Zugang der Anpassungserklärung beim Mieter; die neue Miete gilt ab dem übernächsten Monat.</summary>
+    [Required(ErrorMessage = "Bitte angeben, wann die Erklärung zugeht.")]
+    public DateOnly? ErklaerungAm { get; set; }
+}

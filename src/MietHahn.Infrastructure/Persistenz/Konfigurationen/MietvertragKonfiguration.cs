@@ -16,6 +16,8 @@ internal sealed class MietvertragKonfiguration : IEntityTypeConfiguration<Mietve
         builder.Property(v => v.Zahlungsart).HasConversion<string>().HasMaxLength(20);
         builder.Property(v => v.KautionNotiz).HasMaxLength(1000);
         builder.Property(v => v.Notizen).HasMaxLength(4000);
+        builder.Property(v => v.Mietmodell).HasConversion<string>().HasMaxLength(20);
+        builder.Property(v => v.IndexBasisWert).HasPrecision(6, 1);
         builder.Ignore(v => v.Beginn);
         builder.Ignore(v => v.Ende);
         builder.Ignore(v => v.Mieter);
@@ -29,6 +31,27 @@ internal sealed class MietvertragKonfiguration : IEntityTypeConfiguration<Mietve
         builder.HasMany(v => v.Parteien).WithOne().HasForeignKey(p => p.MietvertragId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(v => v.Bestandteile).WithOne().HasForeignKey(b => b.MietvertragId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(v => v.Personen).WithOne().HasForeignKey(p => p.MietvertragId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(v => v.Staffeln).WithOne().HasForeignKey(s => s.MietvertragId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class MietstaffelKonfiguration : IEntityTypeConfiguration<Mietstaffel>
+{
+    public void Configure(EntityTypeBuilder<Mietstaffel> builder)
+    {
+        builder.ToTable("mietstaffeln");
+        builder.HasIndex(s => new { s.MietvertragId, s.Ab }).IsUnique().HasFilter("NOT geloescht");
+    }
+}
+
+internal sealed class VpiWertKonfiguration : IEntityTypeConfiguration<VpiWert>
+{
+    public void Configure(EntityTypeBuilder<VpiWert> builder)
+    {
+        builder.ToTable("vpi_werte");
+        builder.Property(v => v.Wert).HasPrecision(6, 1);
+        builder.Property(v => v.Quelle).HasMaxLength(50);
+        builder.HasIndex(v => v.Monat).IsUnique().HasFilter("NOT geloescht");
     }
 }
 

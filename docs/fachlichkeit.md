@@ -56,7 +56,7 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
 ## Mietmodelle
 
 - **Standardmiete:** Erhöhung auf die ortsübliche Vergleichsmiete (§558 BGB). Prüft 15 Monate Wartezeit und 1 Jahr seit der letzten Erhöhung, Kappungsgrenze 20 % bzw. 15 % (konfigurierbar je Gemeinde) in 3 Jahren. Begründung: Mietspiegel oder 3 Vergleichswohnungen. Zustimmung des Mieters nötig, mit Fristen.
-- **Indexmiete (§557b):** Anpassung nach VPI (Destatis, Basis 2020=100), frühestens 12 Monate nach der letzten Anpassung, Erklärung in Textform. Wirksam ab dem übernächsten Monat.
+- **Indexmiete (§557b):** Anpassung nach VPI (Destatis, Basis 2020=100), frühestens 12 Monate nach der letzten Anpassung, Erklärung in Textform. Wirksam ab dem übernächsten Monat. Neue Miete = Miete × VPI neu ÷ VPI alt, auf Cent gerundet; die Prozentänderung wird mit einer Nachkommastelle angezeigt.
 - **Staffelmiete (§557a):** Staffeln mit Datum und Betrag, werden automatisch zu Sollstellungen.
 - **Pauschale (WG-Zimmer):** Betriebskostenpauschale. Erhöhung nur, wenn sie vertraglich vorbehalten ist (§560 Abs. 1), und nur bei gestiegenen Kosten. MietHahn stellt intern dennoch **Ist-Kosten der WG-Wohnung den Pauschaleinnahmen gegenüber**.
 

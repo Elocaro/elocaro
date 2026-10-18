@@ -58,13 +58,7 @@ internal sealed class BackupWarnung(
             return 0;
         }
 
-        var empfaenger = await (
-                from benutzer in db.Set<Benutzer>()
-                join zuordnung in db.Set<Microsoft.AspNetCore.Identity.IdentityUserRole<Guid>>() on benutzer.Id equals zuordnung.UserId
-                join rolle in db.Set<Rolle>() on zuordnung.RoleId equals rolle.Id
-                where rolle.Name == Rollen.Admin && !benutzer.Gesperrt && benutzer.Email != null
-                select benutzer.Email!)
-            .ToListAsync(cancellationToken);
+        var empfaenger = await AdminEmpfaenger.LadenAsync(db, cancellationToken);
         if (empfaenger.Count == 0)
         {
             return 0;

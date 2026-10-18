@@ -7,7 +7,8 @@
         <li class="navigation-gruppe">Stammdaten</li>
         <li><NavLink href="/verwaltung/objekte">Objekte</NavLink></li>
         <li><NavLink href="/verwaltung/personen">Personen</NavLink></li>
-        <li><NavLink href="/verwaltung/vertraege">Verträge</NavLink></li>
+        <li><NavLink href="/verwaltung/vertraege" Match="NavLinkMatch.All">Verträge</NavLink></li>
+        <li><NavLink href="/verwaltung/vpi">Verbraucherpreisindex</NavLink></li>
         <li><NavLink href="/verwaltung/datenschutz">Datenschutz</NavLink></li>
     </AuthorizeView>
     <AuthorizeView Policy="@Richtlinien.Benutzerverwaltung">

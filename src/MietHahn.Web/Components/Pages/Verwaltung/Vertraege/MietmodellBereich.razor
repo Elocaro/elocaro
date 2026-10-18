@@ -1,0 +1,150 @@
+@* Mietmodell eines Vertrags: Standard (Mietentwicklung), Staffeln oder Indexmiete. Formulare verarbeitet die Seite. *@
+<section>
+    <h2>Mietmodell: @Bezeichnungen.Von(Modell.Modell)</h2>
+
+    @switch (Modell.Modell)
+    {
+        case Mietmodell.Standard:
+            <dl class="angaben">
+                <dt>Letzte Erhöhung</dt><dd>@(Modell.LetzteErhoehung is { } letzte ? Format.Datum(letzte) : "seit Mietbeginn unverändert")</dd>
+                @if (Modell.KaltmieteVorDreiJahren is { } vorher && Modell.Kaltmiete is { } jetzt)
+                {
+                    <dt>Vor 3 Jahren</dt><dd>@Format.Geld(vorher) (Steigerung @Format.Zahl(Math.Round((jetzt / vorher - 1) * 100, 1)) %, Kappungsgrenze beachten)</dd>
+                }
+            </dl>
+            <p class="klein">Erhöhung auf die ortsübliche Vergleichsmiete (§ 558 BGB): frühestens 15 Monate nach Einzug bzw. letzter Erhöhung wirksam, höchstens 20 % (in angespannten Märkten 15 %) in 3 Jahren.</p>
+            break;
+
+        case Mietmodell.Staffel:
+            @if (Modell.Staffeln.Count == 0)
+            {
+                <p class="klein">Noch keine Staffeln erfasst.</p>
+            }
+            else
+            {
+                <form method="post" @formname="staffel-entfernen" @onsubmit="OnStaffelEntfernen">
+                    <AntiforgeryToken />
+                    <div class="tabellen-rahmen">
+                        <table class="tabelle">
+                            <thead><tr><th>Ab</th><th class="zahl">Kaltmiete</th><th>Status</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var staffel in Modell.Staffeln)
+                                {
+                                    <tr>
+                                        <td>@Format.Datum(staffel.Ab)</td>
+                                        <td class="zahl">@Format.Geld(staffel.Kaltmiete)</td>
+                                        <td>
+                                            @if (staffel.AngewendetAm is not null)
+                                            {
+                                                <span class="status status-ok">übernommen</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="status status-wartend">geplant</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (staffel.AngewendetAm is null)
+                                            {
+                                                <button type="submit" name="EntfernenStaffelId" value="@staffel.Id" class="knopf knopf-gefahr" aria-label="Staffel @Format.Datum(staffel.Ab) entfernen">Entfernen</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            }
+            <details class="aufklapper" open="@(Modell.Staffeln.Count == 0)">
+                <summary>Staffel hinzufügen</summary>
+                <EditForm Model="Staffel" FormName="staffel" OnValidSubmit="OnStaffelHinzufuegen" class="formular-zeile">
+                    <DataAnnotationsValidator />
+                    <FormularFeld Id="staffel-ab" Beschriftung="Ab" Fuer="() => Staffel.Ab" Pflicht="true">
+                        <InputDate id="staffel-ab" @bind-Value="Staffel.Ab" />
+                    </FormularFeld>
+                    <FormularFeld Id="staffel-miete" Beschriftung="Neue Kaltmiete (€)" Fuer="() => Staffel.Kaltmiete" Pflicht="true">
+                        <InputBetrag id="staffel-miete" @bind-Value="Staffel.Kaltmiete" />
+                    </FormularFeld>
+                    <div class="feld feld-aktion"><button type="submit" class="knopf">Staffel speichern</button></div>
+                </EditForm>
+                <p class="klein">§ 557a BGB: Die Miete muss jeweils mindestens ein Jahr unverändert bleiben. Am Stichtag übernimmt MietHahn die Staffel automatisch als Kaltmiete.</p>
+            </details>
+            break;
+
+        case Mietmodell.Index:
+            <dl class="angaben">
+                <dt>Ausgangsindex</dt><dd>@Format.Zahl(Modell.IndexBasisWert) (@Monat(Modell.IndexBasisMonat))</dd>
+                <dt>Letzte Änderung</dt><dd>@(Modell.LetzteErhoehung is { } letzteAenderung ? Format.Datum(letzteAenderung) : "seit Mietbeginn unverändert")</dd>
+            </dl>
+            @if (Modell.Index is { } vorschlag)
+            {
+                <div class="meldung @(vorschlag.JetztMoeglich ? "meldung-hinweis" : "")">
+                    <p>VPI @Monat(vorschlag.VpiMonat): @Format.Zahl(vorschlag.VpiWert) (@(vorschlag.VeraenderungProzent >= 0 ? "+" : "")@Format.Zahl(vorschlag.VeraenderungProzent) %) → neue Kaltmiete <strong>@Format.Geld(vorschlag.NeueKaltmiete)</strong> statt @Format.Geld(Modell.Kaltmiete).</p>
+                    <p class="klein">Frühestens wirksam ab @Format.Datum(vorschlag.FruehestensWirksam) (ein Jahr nach der letzten Änderung).</p>
+                </div>
+                <EditForm Model="Anpassung" FormName="index-anpassung" OnValidSubmit="OnIndexAnpassen" class="formular-zeile">
+                    <DataAnnotationsValidator />
+                    <FormularFeld Id="erklaerung" Beschriftung="Erklärung geht zu am" Fuer="() => Anpassung.ErklaerungAm" Pflicht="true" Hinweis="Die neue Miete gilt ab dem übernächsten Monat (§ 557b Abs. 3 BGB).">
+                        <InputDate id="erklaerung" @bind-Value="Anpassung.ErklaerungAm" />
+                    </FormularFeld>
+                    <div class="feld feld-aktion"><button type="submit" class="knopf">Anpassung übernehmen</button></div>
+                </EditForm>
+            }
+            else
+            {
+                <p class="klein">Kein VPI-Wert neuer als der Ausgangsindex. <a href="/verwaltung/vpi">Verbraucherpreisindex pflegen</a></p>
+            }
+            break;
+    }
+
+    <details class="aufklapper">
+        <summary>Mietmodell ändern</summary>
+        <EditForm Model="Eingabe" FormName="mietmodell" OnValidSubmit="OnModellSetzen" class="formular-raster">
+            <DataAnnotationsValidator />
+            <FormularFeld Id="modell" Beschriftung="Mietmodell" Fuer="() => Eingabe.Modell">
+                <InputSelect id="modell" @bind-Value="Eingabe.Modell">
+                    @foreach (var wert in Enum.GetValues<Mietmodell>())
+                    {
+                        <option value="@wert">@Bezeichnungen.Von(wert)</option>
+                    }
+                </InputSelect>
+            </FormularFeld>
+            <FormularFeld Id="index-monat" Beschriftung="Indexmiete: Ausgangsmonat" Fuer="() => Eingabe.BasisMonat" Hinweis="Monat des Ausgangsindex, z. B. Mietbeginn">
+                <InputText id="index-monat" type="month" @bind-Value="Eingabe.BasisMonat" />
+            </FormularFeld>
+            <FormularFeld Id="index-wert" Beschriftung="Indexmiete: Ausgangswert" Fuer="() => Eingabe.BasisWert" Hinweis="VPI (2020 = 100), z. B. 117,4">
+                <InputFlaeche id="index-wert" @bind-Value="Eingabe.BasisWert" step="0.1" />
+            </FormularFeld>
+            <div class="feld feld-aktion"><button type="submit" class="knopf">Mietmodell speichern</button></div>
+        </EditForm>
+    </details>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public MietmodellAnsicht Modell { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public MietmodellFormular Eingabe { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public StaffelEingabe Staffel { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IndexAnpassungEingabe Anpassung { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnModellSetzen { get; set; }
+
+    [Parameter]
+    public EventCallback OnStaffelHinzufuegen { get; set; }
+
+    [Parameter]
+    public EventCallback OnStaffelEntfernen { get; set; }
+
+    [Parameter]
+    public EventCallback OnIndexAnpassen { get; set; }
+
+    private static string Monat(DateOnly? monat) => monat?.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) ?? "–";
+}
