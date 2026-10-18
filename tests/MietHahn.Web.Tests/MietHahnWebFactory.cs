@@ -12,5 +12,6 @@ public sealed class MietHahnWebFactory : WebApplicationFactory<Program>
 
         builder.UseSetting("ConnectionStrings:MietHahn", "Host=nicht-verwendet;Database=nicht-verwendet");
         builder.UseSetting("Datenbank:AutomatischMigrieren", "false");
+        builder.UseSetting("Jobs:Aktiv", "false");
     }
 }

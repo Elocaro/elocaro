@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Lokale Laufzeitdaten (Dateiablage in der Entwicklung)
+daten/

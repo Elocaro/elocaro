@@ -1,0 +1,49 @@
+@page "/verwaltung/system/jobs"
+@using MietHahn.Application.Betrieb
+@inject IJobUebersicht JobUebersicht
+
+<PageTitle>Hintergrundjobs – MietHahn</PageTitle>
+
+<h1>Hintergrundjobs</h1>
+
+@if (jobs is null)
+{
+    <p>Wird geladen …</p>
+}
+else if (jobs.Count == 0)
+{
+    <p>Der Scheduler ist deaktiviert oder es sind keine Jobs geplant.</p>
+}
+else
+{
+    <table class="tabelle">
+        <thead>
+            <tr><th>Job</th><th>Beschreibung</th><th>Nächste Ausführung</th><th>Letzter Lauf</th><th>Ergebnis</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var job in jobs)
+            {
+                <tr>
+                    <td><code>@job.Name</code></td>
+                    <td>@job.Beschreibung</td>
+                    <td>@Format.Zeitpunkt(job.NaechsteAusfuehrung)</td>
+                    <td>@Format.Zeitpunkt(job.LetzterLaufAm)</td>
+                    <td>
+                        @switch (job.LetzterLaufErfolgreich)
+                        {
+                            case true: <span class="status status-ok">erfolgreich</span> break;
+                            case false: <span class="status status-fehler" title="@job.LetzterFehler">fehlgeschlagen</span> break;
+                            default: <span class="status">–</span> break;
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<JobStatus>? jobs;
+
+    protected override async Task OnInitializedAsync() => jobs = await JobUebersicht.LadenAsync();
+}

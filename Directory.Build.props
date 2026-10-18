@@ -16,8 +16,9 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
-    <!-- Testmethoden heißen deutsch mit Unterstrichen, Async-Suffix ist in Tests unnötig -->
-    <NoWarn>$(NoWarn);CA1707;CA2007</NoWarn>
+    <!-- Tests: deutsche Namen mit Unterstrichen (CA1707), kein ConfigureAwait (CA2007),
+         IAsyncLifetime ohne Finalizer-Muster (CA1816) -->
+    <NoWarn>$(NoWarn);CA1707;CA2007;CA1816</NoWarn>
   </PropertyGroup>
 
   <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">

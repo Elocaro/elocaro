@@ -49,9 +49,20 @@ public class MigrationTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Fehlende_Verbindungszeichenfolge_wird_klar_gemeldet()
+    public void Fehlende_Verbindungszeichenfolge_wird_beim_Start_gemeldet()
     {
         var konfiguration = new ConfigurationBuilder().Build();
+
+        var fehler = Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddMietHahnInfrastruktur(konfiguration));
+        Assert.Contains("ConnectionStrings:MietHahn", fehler.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Fehlende_Verbindungszeichenfolge_ohne_Jobs_wird_beim_ersten_Zugriff_gemeldet()
+    {
+        var konfiguration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Jobs:Aktiv"] = "false" })
+            .Build();
         await using var services = new ServiceCollection()
             .AddLogging()
             .AddMietHahnInfrastruktur(konfiguration)
@@ -70,6 +81,7 @@ public class MigrationTests(PostgresFixture postgres)
             {
                 ["ConnectionStrings:MietHahn"] = verbindung,
                 ["Datenbank:AutomatischMigrieren"] = automatischMigrieren.ToString(),
+                ["Jobs:Aktiv"] = "false",
             })
             .Build();
 

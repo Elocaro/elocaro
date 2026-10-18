@@ -10,10 +10,11 @@
 | Architekturstil | **Modularer Monolith**, ein Deployable | Kleine Nutzerzahl, einfacher Betrieb |
 | Auth | ASP.NET Core Identity + TOTP-2FA, Magic Link für Mieter/Handwerker | Vorgabe |
 | PDF | **Scriban**-HTML-Vorlagen → **Gotenberg** (Docker, Chromium) | Vorlagen ohne Code editierbar, ein Mechanismus für alle Dokumente |
-| Jobs | **Quartz.NET** (persistenter Store in PostgreSQL) | Fristen, Sollstellungen, FinTS-Abruf, Mails |
+| Jobs | **Quartz.NET 3.x** (persistenter Store in PostgreSQL, Laufprotokoll) | Fristen, Sollstellungen, FinTS-Abruf, Mails. 4.x ist zu neu (Sept. 2026) |
 | Banking | Parser für CSV/CAMT.053/MT940; FinTS via **libfintx** (LGPL-3.0, als NuGet unverändert eingebunden) | Vorgabe: Import und Direktabruf |
 | OCR/KI | Interface `IBelegExtraktor` mit Providern **Claude API**, **Ollama** (lokal), **Keiner** | Konfigurierbar, Datenhoheit wählbar |
-| Mail | **MailKit** (SMTP) | Standard |
+| Mail | **MailKit** (SMTP) mit Outbox-Tabelle und Wiederholungen | Standard, Versandnachweis |
+| Bilder | **SkiaSharp** (EXIF-Drehung, Verkleinern, Metadaten entfernen) | MIT-Lizenz |
 | Dateien | Lokales Volume, Content-Addressed (SHA-256) | Einfach, backupbar |
 | Hosting | **Docker Compose** auf VPS: `app`, `postgres`, `gotenberg`, `caddy` (HTTPS/Let's Encrypt) | Vorgabe |
 

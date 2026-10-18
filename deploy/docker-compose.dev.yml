@@ -1,0 +1,29 @@
+# Lokale Entwicklungsdienste. Die App selbst läuft per `dotnet run` auf dem Host.
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+name: miethahn-dev
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: miethahn
+      POSTGRES_PASSWORD: miethahn
+      POSTGRES_DB: miethahn
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-daten:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miethahn"]
+      interval: 5s
+      retries: 10
+
+  # Fängt alle Mails ab: Weboberfläche http://localhost:8025, SMTP localhost:1025
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  postgres-daten:

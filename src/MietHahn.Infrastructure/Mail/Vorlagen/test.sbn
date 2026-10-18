@@ -1,0 +1,4 @@
+{{ capture betreff }}Testnachricht von MietHahn{{ end }}
+<p>Hallo,</p>
+<p>dies ist eine Testnachricht. Wenn Sie sie lesen können, funktioniert der Mailversand.</p>
+<p>Gesendet am {{ datum gesendet_am }} von {{ ausgeloest_von }}.</p>
