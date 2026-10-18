@@ -1,6 +1,58 @@
 @page "/verwaltung"
+@attribute [StreamRendering]
+@using MietHahn.Application.Aufgaben
+@inject IEnumerable<IAufgabenQuelle> Quellen
 
-<PageTitle>Verwaltung – MietHahn</PageTitle>
+<Seitenkopf Titel="Was ist zu tun?" />
 
-<h1>Was ist zu tun?</h1>
-<p>Hier erscheinen offene Posten, anstehende Fristen, offene Tickets und nicht zugeordnete Umsätze.</p>
+@if (aufgaben is null)
+{
+    <p class="laedt" role="status">Aufgaben werden geladen …</p>
+}
+else if (aufgaben.Count == 0)
+{
+    <Leerzustand Text="Alles erledigt – es gibt gerade nichts zu tun." />
+}
+else
+{
+    @foreach (var bereich in aufgaben.GroupBy(a => a.Bereich))
+    {
+        <section class="aufgaben-bereich">
+            <h2>@bereich.Key</h2>
+            <ul class="aufgaben">
+                @foreach (var aufgabe in bereich.OrderByDescending(a => a.Dringlichkeit).ThenBy(a => a.Faellig))
+                {
+                    <li class="aufgabe aufgabe-@aufgabe.Dringlichkeit.ToString().ToLowerInvariant()">
+                        <a href="@aufgabe.Link">@aufgabe.Titel</a>
+                        @if (aufgabe.Faellig is { } faellig)
+                        {
+                            <span class="klein">fällig am @Format.Datum(faellig)</span>
+                        }
+                        @if (aufgabe.Details is not null)
+                        {
+                            <p class="klein">@aufgabe.Details</p>
+                        }
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+}
+
+@code {
+    private IReadOnlyList<Aufgabe>? aufgaben;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var alle = new List<Aufgabe>();
+        foreach (var quelle in Quellen)
+        {
+            alle.AddRange(await quelle.AufgabenAsync(HttpContext.User));
+        }
+
+        aufgaben = alle;
+    }
+}

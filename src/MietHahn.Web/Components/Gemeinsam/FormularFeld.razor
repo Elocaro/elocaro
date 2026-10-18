@@ -1,0 +1,36 @@
+@typeparam TWert
+@using System.Linq.Expressions
+
+@* Einheitliches Formularfeld: Beschriftung, Eingabe (ChildContent), Hinweis und Validierungsmeldung. *@
+<div class="feld @Klasse">
+    <label for="@Id">@Beschriftung@(Pflicht ? " *" : "")</label>
+    @ChildContent
+    @if (Hinweis is not null)
+    {
+        <span class="feld-hinweis" id="@(Id)-hinweis">@Hinweis</span>
+    }
+    <ValidationMessage For="Fuer" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Beschriftung { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public Expression<Func<TWert>> Fuer { get; set; } = default!;
+
+    [Parameter]
+    public string? Hinweis { get; set; }
+
+    [Parameter]
+    public bool Pflicht { get; set; }
+
+    [Parameter]
+    public string? Klasse { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+}

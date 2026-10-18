@@ -80,6 +80,30 @@ migrationBuilder.ErstelleUeberlappungsschutz(
 
 In `Down()` steht dann `migrationBuilder.EntferneUeberlappungsschutz(name, tabelle)`. Beide Grenzen sind inklusive. Logisch gelöschte Zeilen zählen nicht. Bei einem Verstoß wirft PostgreSQL `23P01` (`PostgresErrorCodes.ExclusionViolation`), EF meldet das als `DbUpdateException`.
 
+## Oberfläche
+
+Statisches SSR mit Blazor (ADR 0001) und eigenem Design-System (ADR 0003, `wwwroot/app.css`, hell/dunkel).
+
+**Layouts** (per `_Imports.razor` im Bereichsordner): `VerwaltungLayout` (Seitenleiste ab 900 px, darunter Menü als `<details>` ohne JavaScript), `ServiceLayout`, `PortalLayout`, `KontoLayout` (Anmeldeseiten) und `MainLayout` (Fehlerseiten). Neue Navigationspunkte der Verwaltung kommen in `VerwaltungNavigation.razor`, bei Bedarf in `<AuthorizeView Policy="…">`.
+
+**Bausteine** (`Components/Gemeinsam`):
+
+| Komponente | Zweck |
+|---|---|
+| `Seitenkopf` | `<h1>`, Seitentitel („X – MietHahn“), Zurück-Link, Aktionen |
+| `FormularFeld` | Beschriftung + Eingabe + Hinweis + Validierungsmeldung |
+| `InputBetrag` | Geldbeträge de-DE („1.234,56“, „1234.56“, „-12 €“), rundet auf Cent, Zahlentastatur |
+| `SortierKopf`, `Seitenwahl` + `Tabellenabfrage` | Sortieren/Blättern über Query-Parameter (`?sortierung=…&absteigend=true&seite=2`), unbekannte Spalten fallen auf den Standard zurück |
+| `GefahrenAktion` | Riskante Aktion mit Rückfrage ohne JavaScript (`<details>`) |
+| `StatusMeldung`, `FehlerListe`, `Leerzustand` | Rückmeldungen (auch über Weiterleitungen hinweg per `Weiterleitung.ZuMitMeldung`) |
+| `AenderungsHistorie` | Audit-Historie eines Datensatzes |
+
+Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Tabellen stehen immer in `<div class="tabellen-rahmen">`, damit sie mobil horizontal scrollen statt der Seite.
+
+**Dashboard „Was ist zu tun?“:** Fachmodule registrieren eine `IAufgabenQuelle` und liefern `Aufgabe`n (Bereich, Titel, Link, Dringlichkeit, Fälligkeit). Die Startseite der Verwaltung sammelt sie mit Streaming Rendering ein.
+
+**Barrierearmut:** Sprunglink „Zum Inhalt springen“, `aria-sort` an Sortierköpfen, `role="alert"/"status"` für Meldungen, sichtbarer Fokus, Touch-Ziele ≥ 44 px.
+
 ## Anmeldung & Konten
 
 - **Sicherer Standard:** Jede Seite verlangt eine Anmeldung (Fallback-Policy). Öffentliche Seiten markiert man explizit mit `@attribute [AllowAnonymous]`; das tun z. B. alle Seiten unter `Components/Konto/Anmeldung/` per `_Imports.razor`.
@@ -176,6 +200,7 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 | `MietHahn.Domain.Tests` | Reine Unit-Tests der Fachlogik (Rechenkerne), ohne I/O |
 | `MietHahn.Integration.Tests` | Gegen echtes PostgreSQL (Testcontainers, `postgres:18-alpine`). `PostgresFixture` startet einen Container je Testlauf, **jeder Test bekommt eine eigene Datenbank**. `InfrastrukturUmgebung` liefert die komplett registrierte Infrastruktur (migrierte DB, temporäre Dateiablage, `FakeTimeProvider`). Mailtests laufen gegen einen echten SMTP-Server (`MailpitFixture`) |
 | `MietHahn.Web.Tests` | Komponenten mit bUnit (`BunitContext`). Ende-zu-Ende über HTTP mit `MietHahnWebFactory` (echte App, eigene DB je Test) und `TestBrowser`: lädt Seiten, folgt Weiterleitungen und schickt Blazor-Formulare inklusive Antiforgery-Token ab (Formular über den `FormName`). TOTP-Codes liefert `TestHilfen.Totp` |
+| `MietHahn.Web.Tests/Browser` | Echte Browser-Tests mit Playwright (Chromium) gegen die per Kestrel gestartete App: 360-px-Breite ohne horizontales Scrollen, Navigation, Formulare mit `blazor.web.js`. Ohne installierten Browser werden sie übersprungen (Trait `Kategorie=Browser`). Browser installieren: `pwsh tests/MietHahn.Web.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` |
 | `MietHahn.TestHilfen` | Gemeinsame Fixtures (PostgreSQL, Mailpit, Gotenberg) und Hilfen; selbst kein Testprojekt |
 | `MietHahn.Architecture.Tests` | Schichtregeln (NetArchTest) |
 

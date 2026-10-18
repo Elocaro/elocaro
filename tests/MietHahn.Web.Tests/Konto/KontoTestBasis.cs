@@ -110,6 +110,11 @@ public abstract partial class KontoTestBasis(PostgresFixture postgres) : IAsyncL
         using var inhalt = new FormUrlEncodedContent([new("__RequestVerificationToken", token)]);
         using var antwort = await browser.Http.PostAsync(new Uri("/konto/abmelden", UriKind.Relative), inhalt, TestContext.Current.CancellationToken);
         Assert.Equal(System.Net.HttpStatusCode.Redirect, antwort.StatusCode);
+
+        // Die Zielseite muss fehlerfrei laden und die Abmeldung bestätigen.
+        var ziel = await browser.LadenAsync(antwort.Headers.Location!.ToString());
+        Assert.Equal(System.Net.HttpStatusCode.OK, ziel.Status);
+        Assert.Contains("Sie wurden abgemeldet.", ziel.Text, StringComparison.Ordinal);
     }
 
     /// <summary>Zuletzt an die Adresse eingereihte Mail (Jobs sind aus, daher aus der Outbox).</summary>

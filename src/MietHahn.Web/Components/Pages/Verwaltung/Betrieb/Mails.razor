@@ -8,23 +8,21 @@
 @inject IAktuellerBenutzer Benutzer
 @inject TimeProvider Uhr
 
-<PageTitle>E-Mail-Versand – MietHahn</PageTitle>
-
-<h1>E-Mail-Versand</h1>
+<Seitenkopf Titel="E-Mail-Versand" Untertitel="Ausgehende Nachrichten und ihr Zustellstatus." />
 
 @if (meldung is not null)
 {
-    <p class="meldung" role="status">@meldung</p>
+    <p class="meldung meldung-ok" role="status">@meldung</p>
 }
 
 <section>
     <h2>Testnachricht senden</h2>
-    <EditForm Model="Test" FormName="testmail" OnValidSubmit="TestSendenAsync" Enhance>
+    <EditForm Model="Test" FormName="testmail" OnValidSubmit="TestSendenAsync" class="formular-zeile">
         <DataAnnotationsValidator />
-        <label for="empfaenger">Empfänger</label>
-        <InputText id="empfaenger" @bind-Value="Test!.Empfaenger" type="email" autocomplete="email" />
-        <ValidationMessage For="() => Test!.Empfaenger" />
-        <button type="submit">Testnachricht einreihen</button>
+        <FormularFeld Id="empfaenger" Beschriftung="Empfänger" Fuer="() => Test!.Empfaenger">
+            <InputText id="empfaenger" @bind-Value="Test!.Empfaenger" type="email" autocomplete="email" />
+        </FormularFeld>
+        <button type="submit" class="knopf">Testnachricht einreihen</button>
     </EditForm>
 </section>
 
@@ -32,10 +30,11 @@
     <h2>Letzte Nachrichten</h2>
     @if (mails is { Count: 0 })
     {
-        <p>Noch keine Nachrichten.</p>
+        <Leerzustand Text="Noch keine Nachrichten." />
     }
     else if (mails is not null)
     {
+        <div class="tabellen-rahmen">
         <table class="tabelle">
             <thead>
                 <tr><th>Erstellt</th><th>An</th><th>Betreff</th><th>Status</th><th>Versuche</th><th>Gesendet / nächster Versuch</th><th></th></tr>
@@ -56,7 +55,7 @@
                                 <form method="post" @formname="erneut" @onsubmit="ErneutVersuchenAsync" data-enhance>
                                     <AntiforgeryToken />
                                     <input type="hidden" name="ErneutId" value="@mail.Id" />
-                                    <button type="submit">Erneut senden</button>
+                                    <button type="submit" class="knopf">Erneut senden</button>
                                 </form>
                             }
                         </td>
@@ -64,6 +63,7 @@
                 }
             </tbody>
         </table>
+        </div>
     }
 </section>
 

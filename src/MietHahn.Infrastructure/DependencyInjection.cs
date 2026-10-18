@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using MietHahn.Application.Audit;
+using MietHahn.Application.Aufgaben;
 using MietHahn.Application.Betrieb;
 using MietHahn.Application.Dateien;
 using MietHahn.Application.Dokumente;
@@ -120,6 +121,7 @@ public static class DependencyInjection
         services.TryAddScoped<ISmtpVersender, MailKitSmtpVersender>();
         services.AddScoped<MailOutbox>();
         services.AddScoped<IMailVerwaltung, MailVerwaltung>();
+        services.AddScoped<IAufgabenQuelle, MailAufgaben>();
     }
 
     private static void DateiablageRegistrieren(IServiceCollection services, IConfiguration konfiguration)

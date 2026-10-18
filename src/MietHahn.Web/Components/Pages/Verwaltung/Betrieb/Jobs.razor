@@ -2,20 +2,19 @@
 @using MietHahn.Application.Betrieb
 @inject IJobUebersicht JobUebersicht
 
-<PageTitle>Hintergrundjobs – MietHahn</PageTitle>
-
-<h1>Hintergrundjobs</h1>
+<Seitenkopf Titel="Hintergrundjobs" Untertitel="Geplante Aufgaben, die MietHahn regelmäßig selbst erledigt." />
 
 @if (jobs is null)
 {
-    <p>Wird geladen …</p>
+    <p class="laedt" role="status">Wird geladen …</p>
 }
 else if (jobs.Count == 0)
 {
-    <p>Der Scheduler ist deaktiviert oder es sind keine Jobs geplant.</p>
+    <Leerzustand Text="Der Scheduler ist deaktiviert oder es sind keine Jobs geplant." />
 }
 else
 {
+    <div class="tabellen-rahmen">
     <table class="tabelle">
         <thead>
             <tr><th>Job</th><th>Beschreibung</th><th>Nächste Ausführung</th><th>Letzter Lauf</th><th>Ergebnis</th></tr>
@@ -40,6 +39,7 @@ else
             }
         </tbody>
     </table>
+    </div>
 }
 
 @code {

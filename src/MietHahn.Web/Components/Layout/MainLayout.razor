@@ -1,3 +1,13 @@
 @inherits LayoutComponentBase
 
-@Body
+@* Rahmen für Seiten ohne eigenen Bereich (Startweiterleitung, Fehlerseiten). *@
+<a class="sprunglink" href="#inhalt">Zum Inhalt springen</a>
+<div class="app app-einfach">
+    <header class="kopfleiste">
+        <a class="marke" href="/">🐓 MietHahn</a>
+        <BenutzerMenue />
+    </header>
+    <main id="inhalt" class="inhalt">
+        @Body
+    </main>
+</div>

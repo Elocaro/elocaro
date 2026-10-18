@@ -5,17 +5,13 @@
 @inject UserManager<Benutzer> BenutzerManager
 @inject Weiterleitung Weiterleitung
 
-<PageTitle>@(benutzer?.Anzeigename ?? "Benutzer") – MietHahn</PageTitle>
-
 @if (benutzer is null)
 {
-    <h1>Konto nicht gefunden</h1>
-    <p><a href="/verwaltung/benutzer">Zur Übersicht</a></p>
+    <Seitenkopf Titel="Konto nicht gefunden" Zurueck="/verwaltung/benutzer" ZurueckText="Alle Benutzer" />
     return;
 }
 
-<p><a href="/verwaltung/benutzer">← Alle Benutzer</a></p>
-<h1>@benutzer.Anzeigename</h1>
+<Seitenkopf Titel="@benutzer.Anzeigename" Untertitel="@Rollen.Anzeigename(benutzer.Rolle)" Zurueck="/verwaltung/benutzer" ZurueckText="Alle Benutzer" />
 
 <StatusMeldung />
 <FehlerListe Fehler="fehler" />
@@ -63,18 +59,19 @@
 {
     <section>
         <h2>Zugang</h2>
-        <form method="post" @formname="sperren" @onsubmit="SperrenUmschaltenAsync">
-            <AntiforgeryToken />
-            @if (benutzer.Gesperrt)
-            {
+        @if (benutzer.Gesperrt)
+        {
+            <form method="post" @formname="sperren" @onsubmit="SperrenUmschaltenAsync">
+                <AntiforgeryToken />
                 <button type="submit" class="knopf">Konto entsperren</button>
-            }
-            else
-            {
-                <p class="klein">Ein gesperrtes Konto wird sofort abgemeldet und kann sich nicht mehr anmelden.</p>
-                <button type="submit" class="knopf">Konto sperren</button>
-            }
-        </form>
+            </form>
+        }
+        else
+        {
+            <GefahrenAktion Text="Konto sperren" FormName="sperren" Bestaetigt="SperrenUmschaltenAsync"
+                            Rueckfrage="Das Konto wird sofort abgemeldet und kann sich nicht mehr anmelden. Fortfahren?"
+                            BestaetigenText="Ja, Konto sperren" />
+        }
     </section>
 }
 

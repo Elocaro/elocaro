@@ -3,9 +3,7 @@
 @inject IBenutzerverwaltung Verwaltung
 @inject IKontoverwaltung Konten
 
-<PageTitle>Benutzer – MietHahn</PageTitle>
-
-<h1>Benutzer</h1>
+<Seitenkopf Titel="Benutzer" Untertitel="Wer Zugang zu MietHahn hat – Verwaltung, Hausmeister, Handwerker und Mieter." />
 
 <StatusMeldung />
 <StatusMeldung Meldung="@meldung" />
@@ -15,25 +13,20 @@
     <h2>Person einladen</h2>
     <EditForm Model="Einladung" FormName="einladen" OnValidSubmit="EinladenAsync" class="formular-raster">
         <DataAnnotationsValidator />
-        <div class="feld">
-            <label for="name">Name</label>
-            <InputText id="name" @bind-Value="Einladung!.Anzeigename" />
-            <ValidationMessage For="() => Einladung!.Anzeigename" />
-        </div>
-        <div class="feld">
-            <label for="email">E-Mail-Adresse</label>
-            <InputText id="email" type="email" @bind-Value="Einladung!.Email" />
-            <ValidationMessage For="() => Einladung!.Email" />
-        </div>
-        <div class="feld">
-            <label for="rolle">Rolle</label>
+        <FormularFeld Id="name" Beschriftung="Name" Fuer="() => Einladung!.Anzeigename" Pflicht="true">
+            <InputText id="name" @bind-Value="Einladung!.Anzeigename" autocomplete="off" />
+        </FormularFeld>
+        <FormularFeld Id="email" Beschriftung="E-Mail-Adresse" Fuer="() => Einladung!.Email" Pflicht="true">
+            <InputText id="email" type="email" @bind-Value="Einladung!.Email" autocomplete="off" />
+        </FormularFeld>
+        <FormularFeld Id="rolle" Beschriftung="Rolle" Fuer="() => Einladung!.Rolle">
             <InputSelect id="rolle" @bind-Value="Einladung!.Rolle">
                 @foreach (var rolle in Rollen.Alle)
                 {
                     <option value="@rolle">@Rollen.Anzeigename(rolle)</option>
                 }
             </InputSelect>
-        </div>
+        </FormularFeld>
         <div class="feld feld-aktion">
             <button type="submit" class="knopf knopf-primaer">Einladung senden</button>
         </div>

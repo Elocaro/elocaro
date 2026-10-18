@@ -78,7 +78,7 @@ internal static class KontoErweiterungen
         {
             await antiforgery.ValidateRequestAsync(kontext);
             await anmeldung.SignOutAsync();
-            return TypedResults.LocalRedirect("~/konto/anmelden?abgemeldet=1");
+            return TypedResults.LocalRedirect("~/konto/anmelden?abgemeldet=true");
         });
         return endpunkte;
     }

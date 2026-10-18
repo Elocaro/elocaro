@@ -1,0 +1,15 @@
+@inherits LayoutComponentBase
+
+<a class="sprunglink" href="#inhalt">Zum Inhalt springen</a>
+<div class="app app-einfach">
+    <header class="kopfleiste">
+        <a class="marke" href="/portal">🐓 MietHahn</a>
+        <BenutzerMenue />
+    </header>
+    <nav class="bereichsnavigation" aria-label="Hauptnavigation">
+        <NavLink href="/portal" Match="NavLinkMatch.All">Übersicht</NavLink>
+    </nav>
+    <main id="inhalt" class="inhalt">
+        @Body
+    </main>
+</div>

@@ -1,0 +1,30 @@
+@inject NavigationManager Navigation
+
+@* Blättern über Query-Parameter. Wird nur angezeigt, wenn es mehr als eine Seite gibt. *@
+@if (Seiten > 1)
+{
+    <nav class="seitenwahl" aria-label="Seiten">
+        @if (Seite > 1)
+        {
+            <a href="@Link(Seite - 1)" rel="prev">‹ Zurück</a>
+        }
+        <span>Seite @Seite von @Seiten (@Gesamt Einträge)</span>
+        @if (Seite < Seiten)
+        {
+            <a href="@Link(Seite + 1)" rel="next">Weiter ›</a>
+        }
+    </nav>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public int Seite { get; set; }
+
+    [Parameter, EditorRequired]
+    public int Seiten { get; set; }
+
+    [Parameter]
+    public int Gesamt { get; set; }
+
+    private string Link(int seite) => Navigation.GetUriWithQueryParameter("seite", seite == 1 ? null : seite);
+}

@@ -53,6 +53,7 @@ public sealed class MietHahnWebFactory(string verbindung, IDictionary<string, st
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.UseEnvironment("Testing");
+        builder.UseStaticWebAssets(); // blazor.web.js und app.css wie in der Entwicklung ausliefern
         builder.UseSetting("ConnectionStrings:MietHahn", verbindung);
         builder.UseSetting("Datenbank:AutomatischMigrieren", "true");
         builder.UseSetting("Jobs:Aktiv", "false");

@@ -127,6 +127,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .tabelle th, .tabelle td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--farbe-rand); vertical-align: top; }
 .tabelle th { font-size: 0.85rem; color: var(--farbe-text-leise); font-weight: 600; }
 .tabelle td.zahl, .tabelle th.zahl { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabelle td a { white-space: nowrap; }
 .tabellen-rahmen { overflow-x: auto; border: 1px solid var(--farbe-rand); border-radius: var(--radius); }
 
 .status { display: inline-block; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: var(--farbe-flaeche-2); }
@@ -135,9 +136,13 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .status-wartend { background: var(--farbe-hinweis-flaeche); color: var(--farbe-hinweis); }
 
 /* Angaben (Definitionslisten) */
-.angaben { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; margin: 0 0 var(--abstand); }
+.angaben { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.35rem 1rem; margin: 0 0 var(--abstand); }
 .angaben dt { color: var(--farbe-text-leise); }
-.angaben dd { margin: 0; }
+.angaben dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+    .angaben { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .angaben dt { font-size: 0.85rem; margin-top: 0.5rem; }
+}
 
 /* Konto-Seiten (Anmeldung usw.) */
 .konto-seite { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
@@ -163,3 +168,108 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 
 .blazor-error-boundary { background: var(--farbe-fehler); padding: 1rem; color: #fff; }
 .blazor-error-boundary::after { content: "Es ist ein Fehler aufgetreten."; }
+
+/* ---------- Anwendungsrahmen ---------- */
+.sprunglink { position: absolute; left: -9999px; top: 0; z-index: 100; padding: 0.5rem 1rem; background: var(--farbe-flaeche); }
+.sprunglink:focus { left: 0.5rem; top: 0.5rem; }
+
+.kopfleiste {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 0.75rem;
+    min-height: 3.5rem; padding: 0 1rem;
+    background: var(--farbe-flaeche); border-bottom: 1px solid var(--farbe-rand);
+}
+.marke { font-weight: 700; color: var(--farbe-primaer); text-decoration: none; margin-right: auto; white-space: nowrap; }
+.marke .bereich { font-weight: 500; color: var(--farbe-text-leise); margin-left: 0.25rem; }
+
+.inhalt { padding: 1.25rem 1rem 3rem; max-width: 72rem; width: 100%; min-width: 0; }
+
+/* Navigation */
+.navigation { list-style: none; margin: 0; padding: 0.5rem; }
+.navigation a { display: block; padding: 0.6rem 0.75rem; border-radius: var(--radius); color: var(--farbe-text); text-decoration: none; }
+.navigation a:hover { background: var(--farbe-flaeche-2); }
+.navigation a.active { background: color-mix(in srgb, var(--farbe-primaer) 12%, transparent); color: var(--farbe-primaer); font-weight: 600; }
+.navigation-gruppe { padding: 1rem 0.75rem 0.25rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--farbe-text-leise); }
+
+.bereichsnavigation { display: flex; gap: 0.25rem; padding: 0.25rem 1rem; overflow-x: auto; background: var(--farbe-flaeche); border-bottom: 1px solid var(--farbe-rand); }
+.bereichsnavigation a { padding: 0.5rem 0.75rem; border-radius: var(--radius); color: var(--farbe-text); text-decoration: none; white-space: nowrap; }
+.bereichsnavigation a.active { color: var(--farbe-primaer); font-weight: 600; }
+
+/* Mobil: Menü als <details> (ohne JavaScript) */
+.navigation-mobil > summary { list-style: none; cursor: pointer; font-size: 1.4rem; padding: 0.25rem 0.5rem; border-radius: var(--radius); }
+.navigation-mobil > summary::-webkit-details-marker { display: none; }
+.navigation-mobil[open] > .navigation {
+    position: absolute; left: 0; right: 0; top: 3.5rem;
+    background: var(--farbe-flaeche); border-bottom: 1px solid var(--farbe-rand); box-shadow: var(--schatten);
+}
+.seitenleiste { display: none; }
+
+@media (min-width: 900px) {
+    .app-verwaltung { display: grid; grid-template-columns: 15rem 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
+    .app-verwaltung .kopfleiste { grid-column: 1 / -1; }
+    .app-verwaltung .navigation-mobil { display: none; }
+    .seitenleiste { display: block; background: var(--farbe-flaeche); border-right: 1px solid var(--farbe-rand); }
+    .seitenleiste .navigation { position: sticky; top: 3.5rem; }
+    .inhalt { padding: 1.75rem 2rem 3rem; }
+}
+
+/* Benutzermenü */
+.benutzermenue { position: relative; }
+.benutzermenue > summary { list-style: none; cursor: pointer; padding: 0.4rem 0.6rem; border-radius: var(--radius); max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.benutzermenue > summary::-webkit-details-marker { display: none; }
+.benutzermenue > summary::after { content: " ▾"; color: var(--farbe-text-leise); }
+.benutzermenue-inhalt {
+    position: absolute; right: 0; top: calc(100% + 0.25rem); min-width: 12rem; z-index: 30;
+    display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem;
+    background: var(--farbe-flaeche); border: 1px solid var(--farbe-rand); border-radius: var(--radius); box-shadow: var(--schatten);
+}
+.benutzermenue-inhalt a, .knopf-link { padding: 0.5rem 0.6rem; color: var(--farbe-text); text-decoration: none; text-align: left; border-radius: 6px; }
+.knopf-link { width: 100%; min-height: auto; justify-content: flex-start; background: none; border: none; font-weight: normal; }
+.benutzermenue-inhalt a:hover, .knopf-link:hover { background: var(--farbe-flaeche-2); }
+
+/* Seitenkopf */
+.seitenkopf { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.25rem; }
+.seitenkopf h1 { margin: 0; }
+.seitenkopf .klein { margin: 0.25rem 0 0; }
+.seitenkopf-aktionen { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.zurueck { display: inline-block; margin-bottom: 0.35rem; font-size: 0.9rem; text-decoration: none; }
+
+section { margin-bottom: 2rem; }
+
+/* Formular-Layouts */
+.formular-raster { display: grid; gap: 0 1rem; grid-template-columns: 1fr; align-items: end; }
+@media (min-width: 700px) { .formular-raster { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); } }
+.formular-zeile { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; }
+.formular-zeile .feld { flex: 1 1 14rem; margin-bottom: 0; }
+.feld-aktion { justify-content: flex-end; }
+.feld-hinweis { font-size: 0.85rem; color: var(--farbe-text-leise); }
+
+/* Tabellen-Extras */
+.sortierlink { color: inherit; text-decoration: none; }
+.sortierlink:hover { text-decoration: underline; }
+.seitenwahl { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.9rem; }
+
+/* Gefahrenaktionen */
+.knopf-gefahr { color: var(--farbe-fehler); border-color: color-mix(in srgb, var(--farbe-fehler) 40%, var(--farbe-rand)); background: var(--farbe-flaeche); }
+.gefahrenaktion > summary { list-style: none; width: max-content; }
+.gefahrenaktion > summary::-webkit-details-marker { display: none; }
+.gefahrenaktion-inhalt { margin-top: 0.5rem; padding: 0.75rem 1rem; border: 1px solid var(--farbe-fehler); border-radius: var(--radius); background: var(--farbe-fehler-flaeche); }
+.gefahrenaktion-inhalt .knopf-gefahr { background: var(--farbe-fehler); color: #fff; }
+
+/* Dashboard */
+.aufgaben { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.aufgabe { padding: 0.75rem 1rem; background: var(--farbe-flaeche); border: 1px solid var(--farbe-rand); border-left: 4px solid var(--farbe-rand); border-radius: var(--radius); }
+.aufgabe a { font-weight: 600; text-decoration: none; }
+.aufgabe p { margin: 0.25rem 0 0; }
+.aufgabe-dringend { border-left-color: var(--farbe-fehler); }
+.aufgabe-bald { border-left-color: var(--farbe-hinweis); }
+.aufgabe-info { border-left-color: var(--farbe-fokus); }
+.leerzustand { padding: 2rem 1rem; text-align: center; color: var(--farbe-text-leise); background: var(--farbe-flaeche); border: 1px dashed var(--farbe-rand); border-radius: var(--radius); }
+.laedt { color: var(--farbe-text-leise); }
+
+/* Druck: Navigation ausblenden */
+@media print {
+    .kopfleiste, .seitenleiste, .bereichsnavigation, .sprunglink { display: none !important; }
+    .inhalt { padding: 0; }
+    body { background: #fff; }
+}

@@ -1,0 +1,33 @@
+@inject NavigationManager Navigation
+
+@* Spaltenkopf mit Sortier-Link (Query-Parameter, funktioniert ohne JavaScript). *@
+<th scope="col" class="@Klasse" aria-sort="@AriaSort">
+    <a href="@Link" class="sortierlink">@Text<span aria-hidden="true">@Pfeil</span></a>
+</th>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Spalte { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public Tabellenabfrage Abfrage { get; set; } = default!;
+
+    [Parameter]
+    public string? Klasse { get; set; }
+
+    private bool Aktiv => Abfrage.Sortierung == Spalte;
+
+    private string AriaSort => !Aktiv ? "none" : Abfrage.Absteigend ? "descending" : "ascending";
+
+    private string Pfeil => !Aktiv ? "" : Abfrage.Absteigend ? " ▼" : " ▲";
+
+    private string Link => Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        ["sortierung"] = Spalte,
+        ["absteigend"] = Aktiv && !Abfrage.Absteigend ? "true" : null,
+        ["seite"] = null,
+    });
+}

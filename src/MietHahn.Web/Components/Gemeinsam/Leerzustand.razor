@@ -1,0 +1,13 @@
+@* Hinweis, wenn eine Liste leer ist, optional mit nächster Aktion. *@
+<div class="leerzustand">
+    <p>@Text</p>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

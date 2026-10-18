@@ -1,0 +1,14 @@
+@using MietHahn.Application.Konten
+
+@* Hauptnavigation der Verwaltung; Einträge erscheinen nur mit passendem Recht. *@
+<ul class="navigation">
+    <li><NavLink href="/verwaltung" Match="NavLinkMatch.All">Was ist zu tun?</NavLink></li>
+    <AuthorizeView Policy="@Richtlinien.Benutzerverwaltung">
+        <li><NavLink href="/verwaltung/benutzer">Benutzer</NavLink></li>
+    </AuthorizeView>
+    <AuthorizeView Policy="@Richtlinien.System">
+        <li class="navigation-gruppe">System</li>
+        <li><NavLink href="/verwaltung/system/mails">E-Mail-Versand</NavLink></li>
+        <li><NavLink href="/verwaltung/system/jobs">Hintergrundjobs</NavLink></li>
+    </AuthorizeView>
+</ul>
