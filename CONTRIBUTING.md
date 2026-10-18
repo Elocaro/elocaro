@@ -17,7 +17,7 @@ Konventionen, Testaufbau und Migrationen: [docs/entwicklung.md](docs/entwicklung
 In *Settings → Branches → Branch protection rules* (bzw. *Rulesets*):
 
 - Pull Request vor dem Merge erforderlich
-- Statuschecks erforderlich: **Build & Test**, **Docker-Image bauen**
+- Statuschecks erforderlich: **Build & Test**, **Docker & Restore-Test**
 - Branch muss vor dem Merge aktuell sein
 - Force-Pushes und Löschen verhindern
 

@@ -65,7 +65,7 @@ public abstract partial class KontoTestBasis(PostgresFixture postgres) : IAsyncL
         return (browser, id);
     }
 
-    public async ValueTask DisposeAsync() => await App.DisposeAsync();
+    public virtual async ValueTask DisposeAsync() => await App.DisposeAsync();
 
     protected static Task<Seite> EinrichtenAsync(TestBrowser browser) => EinrichtenAsync(browser, AdminEmail, AdminPasswort);
 

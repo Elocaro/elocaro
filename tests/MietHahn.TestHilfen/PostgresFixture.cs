@@ -11,7 +11,8 @@ public sealed class PostgresFixture : IAsyncLifetime
 {
     public const string Image = "postgres:18-alpine";
 
-    private readonly PostgreSqlContainer container = new PostgreSqlBuilder(Image).Build();
+    // Viele parallele Tests mit je eigener Datenbank und eigenem Verbindungspool: mehr Verbindungen als der Standard (100).
+    private readonly PostgreSqlContainer container = new PostgreSqlBuilder(Image).WithCommand("-c", "max_connections=300").Build();
 
     public async ValueTask InitializeAsync() => await container.StartAsync();
 
@@ -29,6 +30,12 @@ public sealed class PostgresFixture : IAsyncLifetime
             await befehl.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        return new NpgsqlConnectionStringBuilder(container.GetConnectionString()) { Database = name }.ConnectionString;
+        // Ungenutzte Verbindungen schnell schließen, damit beendete Tests keine Verbindungen blockieren.
+        return new NpgsqlConnectionStringBuilder(container.GetConnectionString())
+        {
+            Database = name,
+            ConnectionIdleLifetime = 2,
+            ConnectionPruningInterval = 1,
+        }.ConnectionString;
     }
 }

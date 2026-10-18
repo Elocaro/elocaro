@@ -486,3 +486,5 @@ daten/
 
 # Produktionsgeheimnisse
 deploy/.env
+deploy/backup-repo/
+deploy/backup-ssh/

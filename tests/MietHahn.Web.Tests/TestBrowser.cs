@@ -70,6 +70,10 @@ public sealed record Seite(HttpStatusCode Status, Uri Url, Uri? Weiterleitung, s
 
     public string Text => Dokument.Body?.TextContent ?? "";
 
+    /// <summary>Text inklusive der per Stream-Rendering nachgelieferten Teile (<c>&lt;blazor-ssr&gt;&lt;template&gt;</c>).</summary>
+    public string TextMitStreaming =>
+        Text + string.Concat(Dokument.QuerySelectorAll("blazor-ssr template").OfType<IHtmlTemplateElement>().Select(t => t.Content.TextContent));
+
     public IHtmlFormElement Formular(string formName) =>
         Dokument.Forms.FirstOrDefault(f => f.Elements.OfType<IHtmlInputElement>().Any(i => i.Name == "_handler" && i.Value == formName))
         ?? throw new InvalidOperationException($"Formular '{formName}' nicht gefunden auf {Url}. Vorhanden: {string.Join(", ", Dokument.Forms.SelectMany(f => f.Elements.OfType<IHtmlInputElement>()).Where(i => i.Name == "_handler").Select(i => i.Value))}");

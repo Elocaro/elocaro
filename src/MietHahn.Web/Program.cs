@@ -47,6 +47,7 @@ app.MapRazorComponents<App>();
 app.MapKontoEndpunkte();
 app.MapDateiEndpunkte();
 app.MapHealthEndpunkte();
+app.MapExportEndpunkt();
 
 await app.Services.MigriereDatenbankAsync();
 await app.RunAsync();

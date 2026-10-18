@@ -53,7 +53,9 @@ internal sealed class LokaleDateiablage(MietHahnDbContext db, IOptions<Dateiabla
         return new GeoeffneteDatei(datei, new FileStream(pfad, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true));
     }
 
-    internal string Speicherpfad(string sha256) => Path.Combine(Path.GetFullPath(optionen.Value.Pfad), sha256[..2], sha256);
+    internal string Speicherpfad(string sha256) => Speicherpfad(optionen.Value, sha256);
+
+    internal static string Speicherpfad(DateiablageOptionen optionen, string sha256) => Path.Combine(Path.GetFullPath(optionen.Pfad), sha256[..2], sha256);
 
     private async Task AblegenAsync(string sha, byte[] bytes, CancellationToken cancellationToken)
     {

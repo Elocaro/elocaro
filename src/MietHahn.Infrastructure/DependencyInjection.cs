@@ -48,6 +48,7 @@ public static class DependencyInjection
         MailRegistrieren(services, konfiguration);
         DateiablageRegistrieren(services, konfiguration);
         PdfRegistrieren(services, konfiguration);
+        BetriebRegistrieren(services, konfiguration);
         JobsRegistrieren(services, konfiguration);
         HealthChecksRegistrieren(services);
 
@@ -147,11 +148,21 @@ public static class DependencyInjection
         services.AddScoped<IVermieterprofilVerwaltung, VermieterprofilVerwaltung>();
     }
 
+    private static void BetriebRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    {
+        services.Configure<BackupOptionen>(konfiguration.GetSection(BackupOptionen.Abschnitt));
+        services.AddScoped<IBackupStatus, BackupStatus>();
+        services.AddScoped<IAufgabenQuelle, BackupAufgaben>();
+        services.AddScoped<BackupWarnung>();
+        services.AddScoped<IDatenexport, Datenexport>();
+    }
+
     private static void HealthChecksRegistrieren(IServiceCollection services) =>
         services.AddHealthChecks()
             .AddDbContextCheck<MietHahnDbContext>("datenbank", tags: [HealthTags.Bereit])
             .AddCheck<GotenbergHealthCheck>("gotenberg", tags: [HealthTags.Bereit])
-            .AddCheck<DateiablageHealthCheck>("dateiablage", tags: [HealthTags.Bereit]);
+            .AddCheck<DateiablageHealthCheck>("dateiablage", tags: [HealthTags.Bereit])
+            .AddCheck<BackupHealthCheck>("backup", tags: [HealthTags.Bereit]);
 
     private static void JobsRegistrieren(IServiceCollection services, IConfiguration konfiguration)
     {
@@ -181,6 +192,7 @@ public static class DependencyInjection
             q.PlaneIntervall<MailOutboxJob>(MailOutboxJob.Schluessel, "Versendet fällige E-Mails aus der Outbox", TimeSpan.FromSeconds(30));
             q.PlaneTaeglich<JobProtokollBereinigungJob>(JobProtokollBereinigungJob.Schluessel, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);
             q.PlaneTaeglich<AuditBereinigungJob>(AuditBereinigungJob.Schluessel, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
+            q.PlaneTaeglich<BackupWarnungJob>(BackupWarnungJob.Schluessel, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
         services.AddScoped<IJobUebersicht, QuartzJobUebersicht>();

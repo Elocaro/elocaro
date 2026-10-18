@@ -7,7 +7,7 @@ public class OberflaecheTests(PostgresFixture postgres) : BrowserTestBasis(postg
     {
         var seite = await AlsAdminAngemeldetAsync();
 
-        foreach (var pfad in new[] { "/verwaltung", "/verwaltung/benutzer", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/konto/sicherheit" })
+        foreach (var pfad in new[] { "/verwaltung", "/verwaltung/benutzer", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/verwaltung/system/datensicherung", "/konto/sicherheit" })
         {
             await seite.GotoAsync(BasisUrl + pfad);
             await KeinHorizontalesScrollenAsync(seite);

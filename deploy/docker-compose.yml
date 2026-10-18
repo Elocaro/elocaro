@@ -27,8 +27,10 @@ services:
       Mail__Smtp__Sicherheit: ${SMTP_SICHERHEIT:-StartTls}
       Mail__Smtp__Benutzer: ${SMTP_BENUTZER:-}
       Mail__Smtp__Passwort: ${SMTP_PASSWORT:-}
+      Backup__StatusDatei: /backup-status/backup.json
     volumes:
       - dateien:/daten
+      - backup-status:/backup-status:ro
     # intern: Datenbank/Gotenberg; extern: ausgehend für SMTP (später FinTS, KI-API) und für Caddy
     networks: [intern, extern]
 
@@ -53,6 +55,37 @@ services:
     restart: unless-stopped
     command: ["gotenberg", "--api-timeout=60s", "--chromium-auto-start=true"]
     networks: [intern]
+
+  # Nächtliche Sicherung (pg_dump + Dateiablage) mit restic; siehe docs/betrieb.md
+  backup:
+    image: ${MIETHAHN_BACKUP_IMAGE:-ghcr.io/ther00st3r/miethahn-backup:latest}
+    build:
+      context: ./backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORT}
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-/repo}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORT}
+      BACKUP_ZEIT: ${BACKUP_ZEIT:-02:30}
+      BACKUP_BEHALTEN_TAGE: ${BACKUP_BEHALTEN_TAGE:-7}
+      BACKUP_BEHALTEN_WOCHEN: ${BACKUP_BEHALTEN_WOCHEN:-4}
+      BACKUP_BEHALTEN_MONATE: ${BACKUP_BEHALTEN_MONATE:-12}
+      # S3-kompatible Ziele (z. B. RESTIC_REPOSITORY=s3:https://s3.eu-central-1.amazonaws.com/bucket/miethahn)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
+    volumes:
+      - dateien:/daten
+      - backup-status:/status
+      - backup-cache:/cache
+      # Lokales Repository (Standard) bzw. SSH-Schlüssel für SFTP-Ziele
+      - ${BACKUP_LOKAL_PFAD:-./backup-repo}:/repo
+      - ${BACKUP_SSH_PFAD:-./backup-ssh}:/root/.ssh:ro
+    # intern: Datenbank; extern: Upload zum Backup-Ziel
+    networks: [intern, extern]
 
   # TLS (Let's Encrypt) und Reverse-Proxy
   caddy:
@@ -80,5 +113,7 @@ networks:
 volumes:
   postgres:
   dateien:
+  backup-status:
+  backup-cache:
   caddy-daten:
   caddy-konfig:

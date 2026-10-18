@@ -1,0 +1,9 @@
+{{ capture betreff }}MietHahn: Datensicherung prüfen{{ end }}
+<p>Hallo,</p>
+<p><strong>{{ beschreibung }}</strong></p>
+{{ if meldung }}<p>Meldung des Backup-Containers: {{ meldung }}</p>{{ end }}
+<p>Ohne funktionierende Sicherung droht bei einem Serverausfall Datenverlust. Bitte prüfen Sie die Logs
+(<code>docker compose … logs backup</code>) und stoßen Sie danach eine Sicherung an
+(<code>docker compose … run --rm backup sichern</code>). Die Anleitung steht in <code>docs/betrieb.md</code>.</p>
+<p><a href="{{ link }}">Datensicherung in MietHahn öffnen</a></p>
+<p>Diese Nachricht kommt täglich, bis die Sicherung wieder erfolgreich war.</p>

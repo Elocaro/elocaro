@@ -185,6 +185,12 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - Ablage inhaltsadressiert: `{Pfad}/{sha[0..2]}/{sha256}`. Gleiche Inhalte liegen nur einmal vor. Metadaten in `dateien`. Der Dateiname wird bereinigt (keine Pfadanteile), die Endung folgt dem erkannten Typ.
 - Abruf nur über `OeffnenAsync(id)`. Der autorisierte Download-Endpoint kommt mit dem Rollenmodell (#7).
 
+### Datensicherung & Vollexport
+
+- `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusDatei`, Format siehe `deploy/backup/miethahn-backup.sh`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warnung` (täglich 8:05, Mail an aktive Admins).
+- `IDatenexport` erzeugt den Vollexport generisch aus dem relationalen EF-Modell: neue Tabellen sind automatisch enthalten. Geheimnisse mit `[OhneExport]` (Klasse oder Eigenschaft) ausnehmen und die Liste in `DatenexportTests.Jede_Tabelle_ist_exportiert_oder_bewusst_ausgenommen` ergänzen. `[Vertraulich]` (z. B. IBAN) bleibt im Export, denn es sind fachliche Daten.
+- Der ZIP-Export wird zuerst in eine temporäre Datei geschrieben: Die Eintrags-Streams von `ZipArchive` schreiben beim Schließen synchron, und Kestrel erlaubt kein synchrones Schreiben.
+
 ### Hintergrundjobs (Quartz.NET 3)
 
 - Persistenter Store in PostgreSQL (Tabellen `qrtz_*`, angelegt per Migration aus dem offiziellen Skript `Persistenz/Sql/quartz_3_22_6_postgres.sql`). Geplante Jobs überstehen Neustarts.
@@ -204,6 +210,8 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 | `MietHahn.TestHilfen` | Gemeinsame Fixtures (PostgreSQL, Mailpit, Gotenberg) und Hilfen; selbst kein Testprojekt |
 | `MietHahn.Architecture.Tests` | Schichtregeln (NetArchTest) |
 
+Testdatenbanken: Der PostgreSQL-Container läuft mit `max_connections=300`, die Verbindungszeichenfolgen schließen ungenutzte Pool-Verbindungen nach 2 s (sonst „too many clients“ bei vielen parallelen Tests mit je eigener Datenbank).
+
 Konventionen: Testnamen auf Deutsch mit Unterstrichen (`Loeschen_ist_logisch_…`), Zeit über `FakeTimeProvider`, kein `DateTime.Now` im Produktivcode (immer `TimeProvider`).
 
 Testergebnisse als TRX und Abdeckung als Cobertura (wie in der CI):
@@ -216,8 +224,8 @@ dotnet test -- --report-trx --results-directory testergebnisse --coverage --cove
 
 | Workflow | Auslöser | Inhalt |
 |---|---|---|
-| `.github/workflows/ci.yml` | Push auf `main`/`ccr-*`, Pull Requests, manuell | Restore, `dotnet format --verify-no-changes`, Release-Build (Warnungen sind Fehler), Playwright-Chromium installieren, alle Tests inkl. Testcontainers und Browser-Tests. TRX und Cobertura als Artefakt `testergebnisse` (14 Tage). Zweiter Job baut das Docker-Image ohne Push (Layer-Cache über `type=gha`) |
-| `.github/workflows/release.yml` | Tag `v*.*.*` | Multi-Arch-Image (`linux/amd64`, `linux/arm64`) nach `ghcr.io/ther00st3r/miethahn` mit Tags `1.2.3`, `1.2`, `sha-…` und `latest` |
+| `.github/workflows/ci.yml` | Push auf `main`/`ccr-*`, Pull Requests, manuell | Restore, `dotnet format --verify-no-changes`, Release-Build (Warnungen sind Fehler), Playwright-Chromium installieren, alle Tests inkl. Testcontainers und Browser-Tests. TRX und Cobertura als Artefakt `testergebnisse` (14 Tage). Zweiter Job baut App- und Backup-Image (Layer-Cache über `type=gha`) und führt `deploy/backup/restore-test.sh` aus |
+| `.github/workflows/release.yml` | Tag `v*.*.*` | Multi-Arch-Images (`linux/amd64`, `linux/arm64`) `ghcr.io/ther00st3r/miethahn` und `…/miethahn-backup` mit Tags `1.2.3`, `1.2`, `sha-…` und `latest` |
 | `.github/dependabot.yml` | wöchentlich | NuGet (gruppiert: .NET-Plattform, Testpakete; Quartz-Major-Updates ausgeschlossen, siehe Architektur), Docker-Basisimages, Compose-Images, Actions |
 
 Vor dem Push lokal dasselbe prüfen: `dotnet format --verify-no-changes && dotnet build -c Release && dotnet test`. Workflows lassen sich mit [actionlint](https://github.com/rhysd/actionlint) prüfen. Release-Ablauf und Branch-Schutz stehen in [CONTRIBUTING.md](../CONTRIBUTING.md).

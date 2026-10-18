@@ -16,7 +16,7 @@
 | Mail | **MailKit** (SMTP) mit Outbox-Tabelle und Wiederholungen | Standard, Versandnachweis |
 | Bilder | **SkiaSharp** (EXIF-Drehung, Verkleinern, Metadaten entfernen) | MIT-Lizenz |
 | Dateien | Lokales Volume, Content-Addressed (SHA-256) | Einfach, backupbar |
-| Hosting | **Docker Compose** auf VPS: `app`, `postgres`, `gotenberg`, `caddy` (HTTPS/Let's Encrypt) | Vorgabe |
+| Hosting | **Docker Compose** auf VPS: `app`, `postgres`, `gotenberg`, `backup` (restic), `caddy` (HTTPS/Let's Encrypt) | Vorgabe |
 
 ## Lösungsstruktur
 
@@ -41,7 +41,7 @@ deploy/
 - **Mandantenfähigkeit:** nicht nötig (eine Installation pro Vermieter). Alle Daten hängen aber an `ObjektId`, damit später Eigentümer je Objekt möglich sind.
 - **Historisierung:** Gültigkeitszeiträume statt Überschreiben, Audit-Log (wer, wann, was) für alle Änderungen.
 - **Sicherheit:** HTTPS über Caddy, Antiforgery (SSR-Forms), Rate-Limiting für Login/Magic Link, Secrets über Umgebungsvariablen bzw. Docker Secrets, FinTS-PIN wird nie gespeichert, Upload-Validierung (Typ/Größe).
-- **Backups:** nächtlich `pg_dump` + Datei-Volume, verschlüsselt (restic), Restore-Test dokumentiert.
+- **Backups:** nächtlich `pg_dump` + Datei-Volume, verschlüsselt (restic) im eigenen Container, Statusdatei → Dashboard/Warnmail, Restore-Test in der CI (`deploy/backup/`). Vollexport aller Daten als ZIP (JSON/CSV + Dateien) aus dem EF-Modell.
 - **Lokalisierung:** nur Deutsch, Formate de-DE, Zeitzone Europe/Berlin.
 - **Barrierearmut & Mobile:** responsive Layout, Erfassungsmasken (Zähler, Tickets) für Smartphones.
 - **CI:** GitHub Actions: Build, Tests (inkl. Testcontainers), Format/Analyzer, Docker-Image nach GHCR.

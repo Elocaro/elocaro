@@ -67,6 +67,8 @@ h1:focus { outline: none; }
 a { color: var(--farbe-primaer); }
 a:hover { color: var(--farbe-primaer-hover); }
 code { font-family: var(--schrift-mono); font-size: 0.92em; }
+pre { margin: 0 0 var(--abstand); padding: 0.75rem; background: var(--farbe-flaeche-2); border-radius: var(--radius); overflow-x: auto; max-width: 100%; }
+pre code { font-size: 0.85rem; }
 :focus-visible { outline: 3px solid var(--farbe-fokus); outline-offset: 2px; }
 
 .klein { font-size: 0.875rem; color: var(--farbe-text-leise); }

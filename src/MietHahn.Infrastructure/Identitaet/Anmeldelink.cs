@@ -9,6 +9,7 @@ namespace MietHahn.Infrastructure.Identitaet;
 /// steht ausschließlich im versendeten Link.
 /// </summary>
 [OhneAudit]
+[OhneExport]
 public sealed class Anmeldelink : Entitaet
 {
     private Anmeldelink()
