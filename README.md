@@ -2,13 +2,14 @@
 
 Self-hosted Verwaltung für private Vermieter: Objekte, Mieter, Mieteingänge, Nebenkosten- und Heizkostenabrechnung, Steuer (Anlage V/DATEV), Dokumente und Mieterportal.
 
-**Stack:** .NET 10 · Blazor Static SSR · MariaDB · Docker Compose
+**Stack:** .NET 10 · Blazor Static SSR · PostgreSQL · Docker Compose
 
 ## Dokumentation
 
 - [Marktanalyse](docs/marktanalyse.md): was bestehende Software gut und schlecht macht
 - [Fachlichkeit & Anforderungen](docs/fachlichkeit.md): Ergebnis des Anforderungsinterviews
 - [Architektur](docs/architektur.md): Technologie, Struktur, Meilensteine
+- [Banking & FinTS-Registrierung](docs/banking-fints.md)
 - [Architekturentscheidungen (ADR)](docs/adr/)
 
 ## Umsetzungsplan
