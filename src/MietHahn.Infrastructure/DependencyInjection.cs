@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using MietHahn.Application.Audit;
 using MietHahn.Application.Betrieb;
 using MietHahn.Application.Dateien;
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Application.Kommunikation;
+using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Dateien;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Mail;
@@ -28,6 +30,7 @@ public static class DependencyInjection
         services.TryAddScoped<IAktuellerBenutzer, SystemBenutzer>();
 
         PersistenzRegistrieren(services, konfiguration);
+        AuditRegistrieren(services, konfiguration);
         MailRegistrieren(services, konfiguration);
         DateiablageRegistrieren(services, konfiguration);
         JobsRegistrieren(services, konfiguration);
@@ -50,6 +53,14 @@ public static class DependencyInjection
             KonfiguriereNpgsql(optionen, Verbindung(konfiguration));
             optionen.AddInterceptors(sp.GetRequiredService<EntitaetSpeichernInterceptor>());
         });
+    }
+
+    private static void AuditRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    {
+        services.Configure<AuditOptionen>(konfiguration.GetSection(AuditOptionen.Abschnitt));
+        services.AddScoped<IZugriffsprotokoll, Zugriffsprotokoll>();
+        services.AddScoped<IAenderungsHistorie, AenderungsHistorie>();
+        services.AddScoped<AuditBereinigung>();
     }
 
     private static void MailRegistrieren(IServiceCollection services, IConfiguration konfiguration)
@@ -95,6 +106,7 @@ public static class DependencyInjection
 
             q.PlaneIntervall<MailOutboxJob>(MailOutboxJob.Schluessel, "Versendet fällige E-Mails aus der Outbox", TimeSpan.FromSeconds(30));
             q.PlaneTaeglich<JobProtokollBereinigungJob>(JobProtokollBereinigungJob.Schluessel, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);
+            q.PlaneTaeglich<AuditBereinigungJob>(AuditBereinigungJob.Schluessel, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
         services.AddScoped<IJobUebersicht, QuartzJobUebersicht>();

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MietHahn.Domain.Gemeinsam;
 using MietHahn.Infrastructure.Persistenz.MigrationsHilfen;
 using MietHahn.Integration.Tests.Infrastruktur;
 using Npgsql;
@@ -16,7 +17,7 @@ public class UeberlappungsschutzTests(PostgresFixture postgres) : PersistenzTest
     {
         await base.InitializeAsync();
         await using var db = NeuerContext();
-        var sql = UeberlappungsschutzExtensions.ErstellenSql("ex_test_eintraege_gruppe_zeitraum", "test_eintraege", "von", "bis", "gruppe_id");
+        var sql = UeberlappungsschutzExtensions.ErstellenSql("ex_test_eintraege_gruppe_zeitraum", "test_eintraege", "gueltigkeit_von", "gueltigkeit_bis", "gruppe_id");
         await db.Database.ExecuteSqlRawAsync(sql, Ct);
     }
 
@@ -83,7 +84,7 @@ public class UeberlappungsschutzTests(PostgresFixture postgres) : PersistenzTest
     }
 
     private static TestEintrag Eintrag(Guid gruppe, DateOnly von, DateOnly? bis) =>
-        new() { Name = "Vertrag", GruppeId = gruppe, Von = von, Bis = bis };
+        new() { Name = "Vertrag", GruppeId = gruppe, Gueltigkeit = new Zeitraum(von, bis) };
 
     private async Task SpeichereAsync(params TestEintrag[] eintraege)
     {

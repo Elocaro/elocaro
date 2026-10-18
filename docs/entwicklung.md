@@ -58,6 +58,12 @@ dotnet ef migrations add <Name> -p src/MietHahn.Infrastructure -s src/MietHahn.I
 | Sortierung | Namensspalten mit `.UseCollation(MietHahnDbContext.DeutscheKollation)` (ICU `de-DE`) |
 | Konfiguration | Je Entität eine `IEntityTypeConfiguration<T>` in `Infrastructure/Persistenz/Konfigurationen/`, sie wird automatisch gefunden |
 
+### Zeiträume (`Zeitraum`)
+
+`Domain.Gemeinsam.Zeitraum` ist das Value Object für alle Gültigkeiten: inklusive Grenzen, `Bis = null` heißt unbefristet. Es bietet `Enthaelt`, `UeberschneidetSich`, `Schnitt`, `Tage`, `TageIn(abrechnungsjahr)` (taggenaue Anteile bei Mieterwechsel), `Kalenderjahr`, `Monat` und `SindUeberlappungsfrei`.
+
+In EF wird jede `Zeitraum`-Property automatisch als Complex Type abgebildet: `Gueltigkeit` → Spalten `gueltigkeit_von`, `gueltigkeit_bis`.
+
 ### Überlappungsfreie Zeiträume
 
 Für zeitabhängige Daten (Verträge, Mietbestandteile, Flächen …) erzwingt die DB, dass sich Zeiträume innerhalb einer Gruppe nicht überschneiden. Dazu in der Migration nach dem Anlegen der Tabelle:
@@ -72,6 +78,14 @@ migrationBuilder.ErstelleUeberlappungsschutz(
 ```
 
 In `Down()` steht dann `migrationBuilder.EntferneUeberlappungsschutz(name, tabelle)`. Beide Grenzen sind inklusive. Logisch gelöschte Zeilen zählen nicht. Bei einem Verstoß wirft PostgreSQL `23P01` (`PostgresErrorCodes.ExclusionViolation`), EF meldet das als `DbUpdateException`.
+
+## Audit-Log
+
+- Jede Speicherung einer `Entitaet` schreibt in **derselben Transaktion** einen Eintrag in `audit_eintraege`: Zeitpunkt, Benutzer (`IAktuellerBenutzer`), Typ, Id, Aktion (`Angelegt`, `Geaendert`, `Geloescht`) und die geänderten Felder alt → neu als `jsonb`. Speichern ohne echte Änderung erzeugt keinen Eintrag.
+- Technische Felder (Id, Audit-Felder, Version) werden ausgelassen. Properties mit `[Vertraulich]` (IBAN, Zugangsdaten) erscheinen nur als `***`. Klassen mit `[OhneAudit]` (Outbox, Job-Protokoll) werden nicht protokolliert.
+- **Lesende Zugriffe** auf personenbezogene Daten protokolliert man explizit: `IZugriffsprotokoll.ProtokollierenAsync("Person", id, "Mieterakte geöffnet")`. Abschaltbar mit `Audit:ZugriffeProtokollieren=false`.
+- Anzeige: `<AenderungsHistorie EntitaetTyp="@nameof(Mietvertrag)" EntitaetId="@id" />`, Daten über `IAenderungsHistorie`.
+- Aufbewahrung: Änderungen `Audit:AufbewahrungJahre` (10, angelehnt an steuerliche Fristen), Zugriffe `Audit:ZugriffeAufbewahrungMonate` (12). Bereinigt wird täglich durch den Job `audit-bereinigung`.
 
 ## Infrastrukturdienste
 
@@ -114,7 +128,7 @@ await mailVersand.EinreihenAsync(new MailAuftrag(["mieter@example.de"], "test", 
 |---|---|
 | `MietHahn.Domain.Tests` | Reine Unit-Tests der Fachlogik (Rechenkerne), ohne I/O |
 | `MietHahn.Integration.Tests` | Gegen echtes PostgreSQL (Testcontainers, `postgres:18-alpine`). `PostgresFixture` startet einen Container je Testlauf, **jeder Test bekommt eine eigene Datenbank**. `InfrastrukturUmgebung` liefert die komplett registrierte Infrastruktur (migrierte DB, temporäre Dateiablage, `FakeTimeProvider`). Mailtests laufen gegen einen echten SMTP-Server (`MailpitFixture`) |
-| `MietHahn.Web.Tests` | `WebApplicationFactory` (`MietHahnWebFactory`), später bUnit/Playwright |
+| `MietHahn.Web.Tests` | Komponenten mit bUnit (`BunitContext`), Seiten mit `WebApplicationFactory` (`MietHahnWebFactory`) |
 | `MietHahn.Architecture.Tests` | Schichtregeln (NetArchTest) |
 
 Konventionen: Testnamen auf Deutsch mit Unterstrichen (`Loeschen_ist_logisch_…`), Zeit über `FakeTimeProvider`, kein `DateTime.Now` im Produktivcode (immer `TimeProvider`).

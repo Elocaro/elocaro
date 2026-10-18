@@ -13,9 +13,12 @@ public sealed class TestEintrag : Entitaet
 
     public Guid GruppeId { get; set; }
 
-    public DateOnly Von { get; set; }
+    public Zeitraum Gueltigkeit { get; set; } = new(new DateOnly(2026, 1, 1));
 
-    public DateOnly? Bis { get; set; }
+    [Vertraulich]
+    public string? Iban { get; set; }
+
+    public List<string> Schlagworte { get; set; } = [];
 }
 
 /// <summary>Erweitert das Produktivmodell um <see cref="TestEintrag"/>; Schema per EnsureCreated.</summary>

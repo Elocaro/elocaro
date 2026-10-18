@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MietHahn.Domain.Gemeinsam;
 using MietHahn.Infrastructure.Persistenz.Konventionen;
 
 namespace MietHahn.Infrastructure.Persistenz;
@@ -29,5 +30,8 @@ public class MietHahnDbContext(DbContextOptions<MietHahnDbContext> options) : Db
 
         // Geldbeträge: kaufmännisch auf Cent, Mengen/Faktoren mit eigener Präzision je Property überschreiben.
         configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
+
+        // Zeiträume werden als Spaltenpaar <name>_von / <name>_bis abgebildet.
+        configurationBuilder.ComplexProperties<Zeitraum>();
     }
 }

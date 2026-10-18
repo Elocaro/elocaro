@@ -2,11 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Domain.Gemeinsam;
+using MietHahn.Infrastructure.Audit;
 
 namespace MietHahn.Infrastructure.Persistenz;
 
 /// <summary>
-/// Setzt beim Speichern die Audit-Felder und wandelt physisches Löschen in logisches Löschen um.
+/// Setzt beim Speichern die Audit-Felder, wandelt physisches Löschen in logisches Löschen um und schreibt
+/// die Änderungen in derselben Transaktion ins Audit-Log (<see cref="AuditEintrag"/>).
 /// </summary>
 internal sealed class EntitaetSpeichernInterceptor(TimeProvider uhr, IAktuellerBenutzer benutzer) : SaveChangesInterceptor
 {
@@ -32,6 +34,7 @@ internal sealed class EntitaetSpeichernInterceptor(TimeProvider uhr, IAktuellerB
             return;
         }
 
+        context.ChangeTracker.DetectChanges();
         var jetzt = uhr.GetUtcNow();
         var wer = benutzer.Kennung;
 
@@ -62,5 +65,7 @@ internal sealed class EntitaetSpeichernInterceptor(TimeProvider uhr, IAktuellerB
                     break;
             }
         }
+
+        context.AddRange(AuditErfassung.Erfassen(context, jetzt, wer));
     }
 }

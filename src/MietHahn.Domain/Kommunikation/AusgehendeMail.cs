@@ -13,6 +13,7 @@ public enum MailStatus
 /// Eine E-Mail in der Outbox. Wird beim Einreihen fertig gerendert gespeichert (Nachweis, was verschickt wurde)
 /// und von einem Hintergrundjob mit Wiederholungen zugestellt.
 /// </summary>
+[OhneAudit]
 public sealed class AusgehendeMail : Entitaet
 {
     /// <summary>Nach so vielen Fehlversuchen wird nicht mehr automatisch wiederholt.</summary>

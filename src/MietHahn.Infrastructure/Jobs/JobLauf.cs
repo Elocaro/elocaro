@@ -3,6 +3,7 @@ using MietHahn.Domain.Gemeinsam;
 namespace MietHahn.Infrastructure.Jobs;
 
 /// <summary>Protokolleintrag einer Jobausführung (für die Admin-Übersicht).</summary>
+[OhneAudit]
 public sealed class JobLauf : Entitaet
 {
     private JobLauf()

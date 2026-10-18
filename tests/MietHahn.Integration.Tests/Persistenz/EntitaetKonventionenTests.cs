@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MietHahn.Domain.Gemeinsam;
 using MietHahn.Integration.Tests.Infrastruktur;
 
 namespace MietHahn.Integration.Tests.Persistenz;
@@ -10,7 +11,7 @@ public class EntitaetKonventionenTests(PostgresFixture postgres) : PersistenzTes
     [Fact]
     public async Task Entitaet_wird_gespeichert_und_mit_Audit_Feldern_gelesen()
     {
-        var eintrag = new TestEintrag { Name = "Erdgeschoss links", Betrag = 812.50m, Von = new DateOnly(2026, 1, 1) };
+        var eintrag = new TestEintrag { Name = "Erdgeschoss links", Betrag = 812.50m, Gueltigkeit = new(new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31)) };
         await using (var db = NeuerContext())
         {
             db.Eintraege.Add(eintrag);
@@ -23,6 +24,7 @@ public class EntitaetKonventionenTests(PostgresFixture postgres) : PersistenzTes
 
             Assert.Equal("Erdgeschoss links", gelesen.Name);
             Assert.Equal(812.50m, gelesen.Betrag);
+            Assert.Equal(new Zeitraum(new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31)), gelesen.Gueltigkeit);
             Assert.Equal(Startzeit, gelesen.ErstelltAm);
             Assert.Equal("test", gelesen.ErstelltVon);
             Assert.Null(gelesen.GeaendertAm);

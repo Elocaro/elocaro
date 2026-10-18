@@ -197,6 +197,60 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.ToTable("ausgehende_mails", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Infrastructure.Audit.AuditEintrag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AenderungenJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("aenderungen");
+
+                    b.Property<string>("Aktion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("aktion");
+
+                    b.Property<string>("Benutzer")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("benutzer");
+
+                    b.Property<Guid>("EntitaetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entitaet_id");
+
+                    b.Property<string>("EntitaetTyp")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entitaet_typ");
+
+                    b.Property<DateTimeOffset>("Zeitpunkt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("zeitpunkt");
+
+                    b.Property<string>("Zweck")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("zweck");
+
+                    b.HasKey("Id")
+                        .HasName("pk_audit_eintraege");
+
+                    b.HasIndex("Zeitpunkt")
+                        .HasDatabaseName("ix_audit_eintraege_zeitpunkt");
+
+                    b.HasIndex("EntitaetTyp", "EntitaetId", "Zeitpunkt")
+                        .HasDatabaseName("ix_audit_eintraege_entitaet_typ_entitaet_id_zeitpunkt");
+
+                    b.ToTable("audit_eintraege", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Infrastructure.Jobs.JobLauf", b =>
                 {
                     b.Property<Guid>("Id")
