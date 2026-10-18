@@ -1,0 +1,158 @@
+@page "/verwaltung/einheiten/{Id:guid}"
+@inject IObjektVerwaltung Verwaltung
+@inject Weiterleitung Weiterleitung
+
+@if (einheit is null)
+{
+    <Seitenkopf Titel="Einheit nicht gefunden" Zurueck="/verwaltung/objekte" ZurueckText="Alle Objekte" />
+    return;
+}
+
+<Seitenkopf Titel="@einheit.Daten.Bezeichnung" Untertitel="@Untertitel" Zurueck="@($"/verwaltung/objekte/{einheit.ObjektId}")" ZurueckText="@einheit.ObjektBezeichnung" />
+
+<StatusMeldung />
+<FehlerListe Fehler="fehler" />
+@foreach (var hinweis in einheit.Pruefhinweise)
+{
+    <p class="meldung meldung-hinweis" role="status">@hinweis</p>
+}
+
+@if (!einheit.IstWg)
+{
+    <section>
+        <h2>Belegung</h2>
+        <p><BelegungAnzeige Belegung="einheit.Belegung" /></p>
+    </section>
+}
+
+<section>
+    <h2>Zimmer (WG)</h2>
+    @if (einheit.IstWg)
+    {
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Zimmer</th><th>Möblierung</th><th class="zahl">Fläche</th><th class="zahl">Anteil Gemeinschaft</th><th>Belegung</th></tr></thead>
+                <tbody>
+                    @foreach (var zimmer in einheit.Zimmer)
+                    {
+                        <tr>
+                            <td><a href="/verwaltung/zimmer/@zimmer.Id">@zimmer.Bezeichnung</a></td>
+                            <td>@Bezeichnungen.Von(zimmer.Moeblierung)</td>
+                            <td class="zahl">@Format.Flaeche(zimmer.Flaeche?.Flaeche)</td>
+                            <td class="zahl">@Format.Flaeche(zimmer.Flaeche?.Zusatz)</td>
+                            <td><BelegungAnzeige Belegung="zimmer.Belegung" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p class="klein">Wird die Wohnung als WG zimmerweise vermietet, hier die Zimmer anlegen. Danach sind nur noch die Zimmer einzeln vermietbar.</p>
+    }
+    <details class="aufklapper">
+        <summary>Zimmer hinzufügen</summary>
+        <EditForm Model="NeuesZimmer" FormName="zimmer" OnValidSubmit="ZimmerAnlegenAsync">
+            <DataAnnotationsValidator />
+            <ZimmerFelder Daten="NeuesZimmer!" MitNotizen="false" />
+            <button type="submit" class="knopf">Zimmer hinzufügen</button>
+        </EditForm>
+    </details>
+</section>
+
+<FlaechenBereich Eingabe="Flaeche!" OnSpeichern="FlaecheSpeichernAsync" Aktuell="einheit.Flaeche" Historie="einheit.Flaechenhistorie"
+                 FlaecheText="Wohnfläche" ZusatzText="Heizfläche" ZusatzHinweis="Leer lassen, wenn gleich der Wohnfläche." />
+
+<section>
+    <h2>Angaben &amp; Ausstattung</h2>
+    <EditForm Model="Daten" FormName="einheit" OnValidSubmit="SpeichernAsync">
+        <DataAnnotationsValidator />
+        <EinheitFelder Daten="Daten!" />
+        <button type="submit" class="knopf knopf-primaer">Speichern</button>
+    </EditForm>
+</section>
+
+@if (!einheit.IstWg)
+{
+    <section>
+        <GefahrenAktion Text="Einheit löschen" FormName="loeschen" Bestaetigt="LoeschenAsync"
+                        Rueckfrage="Die Einheit wird gelöscht. Fortfahren?" BestaetigenText="Ja, löschen" />
+    </section>
+}
+
+<AenderungsHistorie EntitaetTyp="@nameof(MietHahn.Domain.Objekte.Einheit)" EntitaetId="Id" />
+
+@code {
+    private EinheitDetails? einheit;
+    private IReadOnlyList<string>? fehler;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "einheit")]
+    private EinheitDaten? Daten { get; set; }
+
+    [SupplyParameterFromForm(FormName = "zimmer", Name = "Daten")] // Feldnamen kommen aus ZimmerFelder
+    private ZimmerDaten? NeuesZimmer { get; set; }
+
+    [SupplyParameterFromForm(FormName = "flaeche", Name = "Eingabe")] // Feldnamen kommen aus FlaechenBereich
+    private FlaechenEingabe? Flaeche { get; set; }
+
+    private string Untertitel => $"{Bezeichnungen.Von(einheit!.Daten.Typ)}{(einheit.Daten.Lage is { } lage ? ", " + lage : "")} · {einheit.ObjektBezeichnung}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var formular = Daten;
+        Daten ??= new();
+        NeuesZimmer ??= new();
+        Flaeche ??= new();
+        einheit = await Verwaltung.EinheitLadenAsync(Id);
+        if (einheit is not null)
+        {
+            Daten = formular ?? einheit.Daten;
+            if (Flaeche.Ab is null)
+            {
+                Flaeche.Flaeche ??= einheit.Flaeche?.Flaeche;
+                Flaeche.Zusatz ??= einheit.Flaeche?.Zusatz;
+            }
+        }
+    }
+
+    private Task SpeichernAsync() => AusfuehrenAsync(Verwaltung.EinheitAendernAsync(Id, Daten!), "Die Angaben wurden gespeichert.");
+
+    private Task ZimmerAnlegenAsync() => AusfuehrenAsync(Verwaltung.ZimmerAnlegenAsync(Id, NeuesZimmer!), "Das Zimmer wurde hinzugefügt.");
+
+    private Task FlaecheSpeichernAsync() => AusfuehrenAsync(Verwaltung.EinheitFlaecheSetzenAsync(Id, Flaeche!), "Die Fläche wurde gespeichert.");
+
+    private async Task LoeschenAsync()
+    {
+        var objektId = einheit!.ObjektId;
+        var ergebnis = await Verwaltung.EinheitLoeschenAsync(Id);
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung($"/verwaltung/objekte/{objektId}", "Die Einheit wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+
+    private async Task AusfuehrenAsync(Task<Ergebnis> befehl, string erfolg)
+    {
+        var ergebnis = await befehl;
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung($"/verwaltung/einheiten/{Id}", erfolg, HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+            einheit = await Verwaltung.EinheitLadenAsync(Id);
+        }
+    }
+}

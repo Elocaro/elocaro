@@ -42,6 +42,7 @@ internal static class KontoErweiterungen
             .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
             .AddMietHahnRichtlinien();
         services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, DateiZugriffHandler>();
+        services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ObjektZugriffHandler>();
 
         services.AddRateLimiter(o =>
         {

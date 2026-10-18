@@ -1,0 +1,60 @@
+@page "/service/objekte/{Id:guid}"
+@using MietHahn.Application.Objekte
+@using MietHahn.Web.Autorisierung
+@inject IObjektVerwaltung Verwaltung
+@inject IAuthorizationService Autorisierung
+
+@if (objekt is null)
+{
+    <Seitenkopf Titel="Objekt nicht gefunden" Zurueck="/service/objekte" ZurueckText="Meine Objekte" />
+    return;
+}
+
+@* Hausmeister sehen das Haus und seine Einheiten, aber keine Mieterdaten. *@
+<Seitenkopf Titel="@objekt.Daten.Bezeichnung" Untertitel="@objekt.Anschrift" Zurueck="/service/objekte" ZurueckText="Meine Objekte" />
+
+<dl class="angaben">
+    <dt>Heizung</dt><dd>@Bezeichnungen.Von(objekt.Daten.Heizungsart), @Bezeichnungen.Von(objekt.Daten.Energietraeger)</dd>
+    @if (objekt.Daten.Notizen is not null)
+    {
+        <dt>Notizen</dt><dd>@objekt.Daten.Notizen</dd>
+    }
+</dl>
+
+<section>
+    <h2>Einheiten</h2>
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead><tr><th>Einheit</th><th>Lage</th><th>Art</th></tr></thead>
+            <tbody>
+                @foreach (var einheit in objekt.Einheiten)
+                {
+                    <tr>
+                        <td>@einheit.Bezeichnung@(einheit.IstWg ? $" (WG, {einheit.Mietobjekte.Count} Zimmer)" : "")</td>
+                        <td>@einheit.Lage</td>
+                        <td>@Bezeichnungen.Von(einheit.Typ)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@code {
+    private ObjektDetails? objekt;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ressourcenbasiert: nicht zugeordnete Objekte verhalten sich wie unbekannte (keine Auskunft über ihre Existenz).
+        if ((await Autorisierung.AuthorizeAsync(HttpContext.User, new ObjektRessource(Id), ObjektLesen.Anforderung)).Succeeded)
+        {
+            objekt = await Verwaltung.LadenAsync(Id);
+        }
+    }
+}

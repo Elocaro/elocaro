@@ -6,6 +6,9 @@ namespace MietHahn.Infrastructure.Persistenz.MigrationsHilfen;
 /// Migrations-Hilfe für überlappungsfreie Gültigkeitszeiträume (z. B. höchstens ein aktiver Vertrag je Mietobjekt).
 /// Erzeugt einen PostgreSQL-Exclusion-Constraint über <c>daterange(von, bis, '[]')</c>, beide Grenzen inklusive,
 /// <c>bis = NULL</c> bedeutet „unbefristet“. Logisch gelöschte Zeilen werden ignoriert.
+/// Geprüft wird erst beim Commit (<c>DEFERRABLE INITIALLY DEFERRED</c>): Beim Fortschreiben einer Zeitreihe
+/// (alten Stand beenden, neuen einfügen) ist die Reihenfolge der Befehle innerhalb von SaveChanges nicht festgelegt.
+/// Fehler erkennt <see cref="Datenbankfehler.IstUeberlappung"/>.
 /// Voraussetzung: Extension <c>btree_gist</c> (im Modell aktiviert).
 /// </summary>
 public static class UeberlappungsschutzExtensions
@@ -35,7 +38,7 @@ public static class UeberlappungsschutzExtensions
         var gruppen = string.Concat(gruppenSpalten.Select(s => $"{Bezeichner(s)} WITH =, "));
         return $"ALTER TABLE {Bezeichner(tabelle)} ADD CONSTRAINT {Bezeichner(name)} EXCLUDE USING gist " +
             $"({gruppen}daterange({Bezeichner(vonSpalte)}, {Bezeichner(bisSpalte)}, '[]') WITH &&) " +
-            "WHERE (NOT geloescht);";
+            "WHERE (NOT geloescht) DEFERRABLE INITIALLY DEFERRED;";
     }
 
     public static string EntfernenSql(string name, string tabelle) =>

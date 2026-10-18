@@ -1,0 +1,39 @@
+@page "/service/objekte"
+@using System.Security.Claims
+@using MietHahn.Application.Objekte
+@inject IObjektVerwaltung Verwaltung
+@inject IObjektZuordnungen Zuordnungen
+
+<Seitenkopf Titel="Meine Objekte" Untertitel="Häuser, die Sie betreuen." />
+
+@if (objekte is { Count: 0 })
+{
+    <Leerzustand Text="Ihnen sind noch keine Objekte zugeordnet." />
+}
+else if (objekte is not null)
+{
+    <ul class="aufgaben">
+        @foreach (var objekt in objekte)
+        {
+            <li class="aufgabe">
+                <a href="/service/objekte/@objekt.Id">@objekt.Bezeichnung</a>
+                <p class="klein">@objekt.Anschrift · @objekt.Einheiten Einheiten</p>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<ObjektUebersicht>? objekte;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ids = Guid.TryParse(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier), out var benutzerId)
+            ? await Zuordnungen.ObjekteVonAsync(benutzerId)
+            : [];
+        objekte = ids.Count == 0 ? [] : await Verwaltung.ListeAsync(ids);
+    }
+}

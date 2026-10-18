@@ -1,0 +1,28 @@
+@* Eingabefelder eines WG-Zimmers; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormularFeld Id="zimmer-bezeichnung" Beschriftung="Bezeichnung" Fuer="() => Daten.Bezeichnung" Pflicht="true" Hinweis="z. B. „Zimmer 1“">
+        <InputText id="zimmer-bezeichnung" @bind-Value="Daten.Bezeichnung" />
+    </FormularFeld>
+    <FormularFeld Id="zimmer-moeblierung" Beschriftung="Möblierung" Fuer="() => Daten.Moeblierung">
+        <InputSelect id="zimmer-moeblierung" @bind-Value="Daten.Moeblierung">
+            @foreach (var wert in Enum.GetValues<Moeblierung>())
+            {
+                <option value="@wert">@Bezeichnungen.Von(wert)</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+</div>
+@if (MitNotizen)
+{
+    <FormularFeld Id="zimmer-notizen" Beschriftung="Notizen" Fuer="() => Daten.Notizen">
+        <InputTextArea id="zimmer-notizen" @bind-Value="Daten.Notizen" rows="2" />
+    </FormularFeld>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ZimmerDaten Daten { get; set; } = default!;
+
+    [Parameter]
+    public bool MitNotizen { get; set; } = true;
+}

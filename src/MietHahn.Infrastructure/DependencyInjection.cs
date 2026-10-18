@@ -13,6 +13,7 @@ using MietHahn.Application.Dokumente;
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Application.Kommunikation;
 using MietHahn.Application.Konten;
+using MietHahn.Application.Objekte;
 using MietHahn.Application.Verwaltung;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Betrieb;
@@ -20,6 +21,7 @@ using MietHahn.Infrastructure.Dateien;
 using MietHahn.Infrastructure.Identitaet;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Mail;
+using MietHahn.Infrastructure.Objekte;
 using MietHahn.Infrastructure.Pdf;
 using MietHahn.Infrastructure.Persistenz;
 using MietHahn.Infrastructure.Verwaltung;
@@ -49,6 +51,7 @@ public static class DependencyInjection
         DateiablageRegistrieren(services, konfiguration);
         PdfRegistrieren(services, konfiguration);
         BetriebRegistrieren(services, konfiguration);
+        StammdatenRegistrieren(services);
         JobsRegistrieren(services, konfiguration);
         HealthChecksRegistrieren(services);
 
@@ -155,6 +158,13 @@ public static class DependencyInjection
         services.AddScoped<IAufgabenQuelle, BackupAufgaben>();
         services.AddScoped<BackupWarnung>();
         services.AddScoped<IDatenexport, Datenexport>();
+    }
+
+    private static void StammdatenRegistrieren(IServiceCollection services)
+    {
+        services.AddScoped<IObjektVerwaltung, ObjektVerwaltung>();
+        services.AddScoped<IObjektZuordnungen, ObjektZuordnungen>();
+        services.TryAddScoped<IBelegungsauskunft, KeineBelegung>();
     }
 
     private static void HealthChecksRegistrieren(IServiceCollection services) =>

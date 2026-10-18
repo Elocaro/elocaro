@@ -251,6 +251,17 @@ section { margin-bottom: 2rem; }
 .sortierlink:hover { text-decoration: underline; }
 .seitenwahl { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.9rem; }
 
+/* Aufklappbare Formulare („Einheit hinzufügen“) ohne JavaScript */
+.aufklapper { margin: 0.75rem 0 var(--abstand); }
+.aufklapper > summary { cursor: pointer; font-weight: 600; color: var(--farbe-primaer); min-height: 2.75rem; display: flex; align-items: center; }
+.aufklapper[open] > summary { margin-bottom: 0.5rem; }
+
+/* Objekte */
+.objekt-kopf { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: flex-start; margin-bottom: var(--abstand); }
+.objekt-kopf .angaben { flex: 1 1 18rem; }
+.objektbild { display: block; max-width: min(100%, 20rem); height: auto; border-radius: var(--radius); border: 1px solid var(--farbe-rand); }
+h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
+
 /* Gefahrenaktionen */
 .knopf-gefahr { color: var(--farbe-fehler); border-color: color-mix(in srgb, var(--farbe-fehler) 40%, var(--farbe-rand)); background: var(--farbe-flaeche); }
 .gefahrenaktion > summary { list-style: none; width: max-content; }

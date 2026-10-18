@@ -1,0 +1,186 @@
+@page "/verwaltung/objekte/{Id:guid}"
+@inject IObjektVerwaltung Verwaltung
+@inject Weiterleitung Weiterleitung
+
+@if (objekt is null)
+{
+    <Seitenkopf Titel="Objekt nicht gefunden" Zurueck="/verwaltung/objekte" ZurueckText="Alle Objekte" />
+    return;
+}
+
+<Seitenkopf Titel="@objekt.Daten.Bezeichnung" Untertitel="@objekt.Anschrift" Zurueck="/verwaltung/objekte" ZurueckText="Alle Objekte">
+    <Aktionen>
+        <a class="knopf" href="/verwaltung/objekte/@Id/bearbeiten">Bearbeiten</a>
+    </Aktionen>
+</Seitenkopf>
+
+<StatusMeldung />
+<FehlerListe Fehler="fehler" />
+@if (objekt.Pruefhinweise.Count > 0)
+{
+    <div class="meldung meldung-hinweis" role="status">
+        <strong>Bitte prüfen:</strong>
+        <ul>
+            @foreach (var hinweis in objekt.Pruefhinweise)
+            {
+                <li>@hinweis</li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="objekt-kopf">
+    @if (objekt.BildDateiId is { } bild)
+    {
+        <img class="objektbild" src="/dateien/@bild" alt="Foto von @objekt.Daten.Bezeichnung" />
+    }
+    <dl class="angaben">
+        <dt>Baujahr</dt><dd>@(objekt.Daten.Baujahr?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</dd>
+        <dt>Heizung</dt><dd>@Bezeichnungen.Von(objekt.Daten.Heizungsart), @Bezeichnungen.Von(objekt.Daten.Energietraeger)</dd>
+        @if (objekt.Daten.Gemarkung is not null || objekt.Daten.Flurstueck is not null)
+        {
+            <dt>Grundbuch</dt><dd>@objekt.Daten.Gemarkung @objekt.Daten.Flurstueck</dd>
+        }
+        @if (objekt.Daten.GrundsteuerAktenzeichen is not null)
+        {
+            <dt>Grundsteuer</dt><dd>@objekt.Daten.GrundsteuerAktenzeichen</dd>
+        }
+        @if (objekt.Daten.Notizen is not null)
+        {
+            <dt>Notizen</dt><dd>@objekt.Daten.Notizen</dd>
+        }
+    </dl>
+</div>
+
+<section>
+    <h2>Einheiten &amp; Belegung</h2>
+    @if (objekt.Einheiten.Count == 0)
+    {
+        <Leerzustand Text="Noch keine Einheiten. Füge unten die erste Wohnung hinzu." />
+    }
+    else
+    {
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Einheit</th><th>Lage</th><th class="zahl">Wohnfläche</th><th>Mietobjekt</th><th>Belegung</th></tr></thead>
+                <tbody>
+                    @foreach (var einheit in objekt.Einheiten)
+                    {
+                        @for (var i = 0; i < einheit.Mietobjekte.Count; i++)
+                        {
+                            var mietobjekt = einheit.Mietobjekte[i];
+                            <tr>
+                                @if (i == 0)
+                                {
+                                    <td rowspan="@einheit.Mietobjekte.Count">
+                                        <a href="/verwaltung/einheiten/@einheit.Id">@einheit.Bezeichnung</a>
+                                        @if (einheit.IstWg)
+                                        {
+                                            <span class="status">WG</span>
+                                        }
+                                    </td>
+                                    <td rowspan="@einheit.Mietobjekte.Count">@einheit.Lage</td>
+                                    <td rowspan="@einheit.Mietobjekte.Count" class="zahl">@Format.Flaeche(einheit.Wohnflaeche)</td>
+                                }
+                                <td>
+                                    @if (mietobjekt.IstZimmer)
+                                    {
+                                        <a href="/verwaltung/zimmer/@mietobjekt.Id">@mietobjekt.Bezeichnung</a>
+                                        <span class="klein">@Format.Flaeche(mietobjekt.Flaeche)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>ganze Einheit</span>
+                                    }
+                                </td>
+                                <td><BelegungAnzeige Belegung="mietobjekt.Belegung" /></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <details class="aufklapper" open="@(objekt.Einheiten.Count == 0)">
+        <summary>Einheit hinzufügen</summary>
+        <EditForm Model="NeueEinheit" FormName="einheit" OnValidSubmit="EinheitAnlegenAsync">
+            <DataAnnotationsValidator />
+            <EinheitFelder Daten="NeueEinheit!" MitAusstattung="false" />
+            <button type="submit" class="knopf">Einheit hinzufügen</button>
+        </EditForm>
+    </details>
+</section>
+
+<FlaechenBereich Eingabe="Flaeche!" OnSpeichern="FlaecheSpeichernAsync" Aktuell="objekt.Flaeche" Historie="objekt.Flaechenhistorie"
+                 FlaecheText="Gesamtfläche" ZusatzText="Gemeinschaftsfläche" ZusatzHinweis="Treppenhaus, Keller, Waschküche …" />
+
+@if (objekt.Einheiten.Count == 0)
+{
+    <section>
+        <GefahrenAktion Text="Objekt löschen" FormName="loeschen" Bestaetigt="LoeschenAsync"
+                        Rueckfrage="Das Objekt wird gelöscht. Fortfahren?" BestaetigenText="Ja, löschen" />
+    </section>
+}
+
+<AenderungsHistorie EntitaetTyp="@nameof(Objekt)" EntitaetId="Id" />
+
+@code {
+    private ObjektDetails? objekt;
+    private IReadOnlyList<string>? fehler;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "einheit", Name = "Daten")] // Feldnamen kommen aus EinheitFelder
+    private EinheitDaten? NeueEinheit { get; set; }
+
+    [SupplyParameterFromForm(FormName = "flaeche", Name = "Eingabe")] // Feldnamen kommen aus FlaechenBereich
+    private FlaechenEingabe? Flaeche { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        NeueEinheit ??= new();
+        Flaeche ??= new();
+        objekt = await Verwaltung.LadenAsync(Id);
+        if (objekt is not null && Flaeche.Ab is null)
+        {
+            Flaeche.Flaeche ??= objekt.Flaeche?.Flaeche;
+            Flaeche.Zusatz ??= objekt.Flaeche?.Zusatz;
+        }
+    }
+
+    private Task EinheitAnlegenAsync() => AusfuehrenAsync(Verwaltung.EinheitAnlegenAsync(Id, NeueEinheit!), "Die Einheit wurde hinzugefügt.");
+
+    private Task FlaecheSpeichernAsync() => AusfuehrenAsync(Verwaltung.FlaecheSetzenAsync(Id, Flaeche!), "Die Fläche wurde gespeichert.");
+
+    private async Task LoeschenAsync()
+    {
+        var ergebnis = await Verwaltung.LoeschenAsync(Id);
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung("/verwaltung/objekte", "Das Objekt wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+
+    private async Task AusfuehrenAsync(Task<Ergebnis> befehl, string erfolg)
+    {
+        var ergebnis = await befehl;
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung($"/verwaltung/objekte/{Id}", erfolg, HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+            objekt = await Verwaltung.LadenAsync(Id);
+        }
+    }
+}

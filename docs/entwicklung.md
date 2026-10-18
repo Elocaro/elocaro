@@ -78,7 +78,17 @@ migrationBuilder.ErstelleUeberlappungsschutz(
     "mietobjekt_id");             // Gruppierung (Gleichheit)
 ```
 
-In `Down()` steht dann `migrationBuilder.EntferneUeberlappungsschutz(name, tabelle)`. Beide Grenzen sind inklusive. Logisch gelöschte Zeilen zählen nicht. Bei einem Verstoß wirft PostgreSQL `23P01` (`PostgresErrorCodes.ExclusionViolation`), EF meldet das als `DbUpdateException`.
+In `Down()` steht dann `migrationBuilder.EntferneUeberlappungsschutz(name, tabelle)`. Beide Grenzen sind inklusive. Logisch gelöschte Zeilen zählen nicht. Geprüft wird erst beim Commit (`DEFERRABLE INITIALLY DEFERRED`), weil beim Fortschreiben einer Zeitreihe (alten Stand beenden, neuen einfügen) die Befehlsreihenfolge in `SaveChanges` nicht festgelegt ist. Ein Verstoß (`23P01`) kommt daher als `DbUpdateException` oder direkt als `PostgresException`: erkennen mit `Datenbankfehler.IstUeberlappung(ex)`.
+
+### Zeitabhängige Werte (`Zeitreihe`)
+
+Flächen, Mietbestandteile, Personenanzahl usw. werden nie überschrieben. Ein Stand implementiert `IZeitabhaengig` (`Gueltigkeit`, `GueltigkeitBeenden`) und wird mit `Zeitreihe.Fortschreiben(staende, ab, g => new Stand(…, g, …))` gepflegt: Der jüngste Stand endet am Vortag, beginnt er am selben Tag, wird er korrigiert. Ein Stichtag vor dem jüngsten Stand wirft `RegelverletzungException`. Gelesen wird mit `Zeitreihe.Am(staende, tag)`.
+
+Kinder eines Aggregats (z. B. `Einheit.Flaechen`, `Objekt.Einheiten`) sind mit `DeleteBehavior.Cascade` konfiguriert: Entfernen aus der Liste markiert sie als gelöscht, der Interceptor macht daraus ein logisches Löschen.
+
+### Fachliche Fehler
+
+Domänenregeln werfen `RegelverletzungException` mit einer für Benutzer formulierten Meldung. Anwendungsdienste fangen sie (ebenso Überlappungen und `DbUpdateConcurrencyException`) und liefern `Ergebnis` (`Erfolgreich`, `Fehler`, `Id`), das die Seite über `<FehlerListe>` anzeigt.
 
 ## Oberfläche
 
@@ -98,7 +108,9 @@ Statisches SSR mit Blazor (ADR 0001) und eigenem Design-System (ADR 0003, `wwwro
 | `StatusMeldung`, `FehlerListe`, `Leerzustand` | Rückmeldungen (auch über Weiterleitungen hinweg per `Weiterleitung.ZuMitMeldung`) |
 | `AenderungsHistorie` | Audit-Historie eines Datensatzes |
 
-Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Optionale E-Mail-Felder mit `[OptionaleEmail]` statt `[EmailAddress]` validieren, denn leere Formularfelder kommen als `""` an. Formularmodelle in `OnInitialized(Async)` **vor** dem ersten `await` setzen (`Modell ??= new()`), weil Blazor dort schon einmal rendert. Tabellen stehen immer in `<div class="tabellen-rahmen">`, damit sie mobil horizontal scrollen statt der Seite.
+Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Dezimalzahlen: `InputBetrag` (Euro) und `InputFlaeche` (m²) rendern `<input type="number" step="0.01">`. Blazor bindet Formularwerte bei statischem SSR **kulturinvariant**; ein Textfeld mit „30,5“ käme nicht als Zahl an. Ein Zahlenfeld zeigt die Zahl in der Browsersprache und sendet immer mit Punkt.
+
+**Formularfelder in Unterkomponenten** (z. B. `ObjektFelder`, `FlaechenBereich`): Der Feldname entsteht aus dem Ausdruck in der Komponente (`() => Daten.Bezeichnung` → `Daten.Bezeichnung`). Heißt die Eigenschaft auf der Seite anders, den Präfix angeben: `[SupplyParameterFromForm(FormName = "einheit", Name = "Daten")] EinheitDaten? NeueEinheit`. Der `TestBrowser` lehnt Felder ab, die im Formular nicht existieren, und deckt solche Fehler damit auf. Optionale E-Mail-Felder mit `[OptionaleEmail]` statt `[EmailAddress]` validieren, denn leere Formularfelder kommen als `""` an. Formularmodelle in `OnInitialized(Async)` **vor** dem ersten `await` setzen (`Modell ??= new()`), weil Blazor dort schon einmal rendert. Tabellen stehen immer in `<div class="tabellen-rahmen">`, damit sie mobil horizontal scrollen statt der Seite.
 
 **Dashboard „Was ist zu tun?“:** Fachmodule registrieren eine `IAufgabenQuelle` und liefern `Aufgabe`n (Bereich, Titel, Link, Dringlichkeit, Fälligkeit). Die Startseite der Verwaltung sammelt sie mit Streaming Rendering ein.
 
@@ -131,7 +143,7 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Optionale E-Ma
 - Unterordner-`_Imports.razor` **ergänzen** die Richtlinie des Elternordners (beide müssen erfüllt sein).
 - **Wirksamkeit:** Der Security-Stamp wird bei jeder Anfrage geprüft und der Principal neu aus der DB aufgebaut. Rollen- und Rechteänderungen gelten damit ab der nächsten Anfrage, Sperren meldet sofort ab. Wer den Stamp ändert (z. B. Authenticator-Schlüssel neu erzeugen, 2FA aktivieren, Passwort ändern), muss danach `SignInManager.RefreshSignInAsync` aufrufen.
 - **Startseite** `/` leitet je Rolle nach `/verwaltung`, `/service` oder `/portal`.
-- **Ressourcenbasiert:** Für einzelne Datensätze `IAuthorizationService.AuthorizeAsync(user, ressource, anforderung)` mit eigenem `AuthorizationHandler<TAnforderung, TRessource>`. Beispiel: `DateiZugriffHandler` für `/dateien/{id}`. Die Verwaltung darf alles; Fachmodule geben einzelne Dateien für andere Rollen über `IDateiFreigabe` frei (z. B. Dokumente eines Mieters).
+- **Ressourcenbasiert:** Für einzelne Datensätze `IAuthorizationService.AuthorizeAsync(user, ressource, anforderung)` mit eigenem `AuthorizationHandler<TAnforderung, TRessource>`. Beispiele: `DateiZugriffHandler` für `/dateien/{id}`; `ObjektZugriffHandler` (`ObjektRessource`, `ObjektLesen`): Recht Stammdaten sieht alle Objekte, Hausmeister nur die ihnen zugeordneten (`IObjektZuordnungen`, gepflegt unter `/verwaltung/benutzer/{id}`). Nicht erlaubte Objekte verhalten sich im Servicebereich wie unbekannte. Die Verwaltung darf alles; Fachmodule geben einzelne Dateien für andere Rollen über `IDateiFreigabe` frei (z. B. Dokumente eines Mieters).
 - **Letzter Admin:** kann weder gesperrt noch herabgestuft werden. Das eigene Konto kann man nicht sperren.
 - Änderungen an Konten (Anlage, Rolle, Rechte, Sperre) stehen im Audit-Log (`AuditSchreiber`, Typ `Benutzer`).
 

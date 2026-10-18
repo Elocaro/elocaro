@@ -3,6 +3,10 @@
 @* Hauptnavigation der Verwaltung; Einträge erscheinen nur mit passendem Recht. *@
 <ul class="navigation">
     <li><NavLink href="/verwaltung" Match="NavLinkMatch.All">Was ist zu tun?</NavLink></li>
+    <AuthorizeView Policy="@Richtlinien.Stammdaten">
+        <li class="navigation-gruppe">Stammdaten</li>
+        <li><NavLink href="/verwaltung/objekte">Objekte</NavLink></li>
+    </AuthorizeView>
     <AuthorizeView Policy="@Richtlinien.Benutzerverwaltung">
         <li><NavLink href="/verwaltung/benutzer">Benutzer</NavLink></li>
     </AuthorizeView>

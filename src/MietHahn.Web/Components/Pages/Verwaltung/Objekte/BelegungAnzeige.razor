@@ -1,0 +1,14 @@
+@if (Belegung is null)
+{
+    <span class="status status-wartend">Leerstand</span>
+}
+else
+{
+    <span>@Belegung.Mieter</span>
+    <span class="klein">seit @Format.Datum(Belegung.Beginn)@(Belegung.Ende is { } ende ? $", bis {Format.Datum(ende)}" : "")</span>
+}
+
+@code {
+    [Parameter]
+    public Belegung? Belegung { get; set; }
+}

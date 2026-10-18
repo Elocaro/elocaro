@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Domain.Gemeinsam;
+using MietHahn.Infrastructure.Persistenz;
 using MietHahn.Infrastructure.Persistenz.MigrationsHilfen;
 using MietHahn.Integration.Tests.Infrastruktur;
 using Npgsql;
@@ -28,7 +29,7 @@ public class UeberlappungsschutzTests(PostgresFixture postgres) : PersistenzTest
 
         Assert.Equal(
             "ALTER TABLE \"mietvertraege\" ADD CONSTRAINT \"ex\" EXCLUDE USING gist " +
-            "(\"mietobjekt_id\" WITH =, daterange(\"beginn\", \"ende\", '[]') WITH &&) WHERE (NOT geloescht);",
+            "(\"mietobjekt_id\" WITH =, daterange(\"beginn\", \"ende\", '[]') WITH &&) WHERE (NOT geloescht) DEFERRABLE INITIALLY DEFERRED;",
             sql);
     }
 
@@ -45,10 +46,10 @@ public class UeberlappungsschutzTests(PostgresFixture postgres) : PersistenzTest
     {
         await SpeichereAsync(Eintrag(Wohnung1, new(2025, 1, 1), new(2025, 12, 31)));
 
-        var fehler = await Assert.ThrowsAsync<DbUpdateException>(
+        var fehler = await Assert.ThrowsAnyAsync<Exception>(
             () => SpeichereAsync(Eintrag(Wohnung1, new(2025, 12, 31), null)));
 
-        Assert.Equal(PostgresErrorCodes.ExclusionViolation, Assert.IsType<PostgresException>(fehler.InnerException).SqlState);
+        Assert.True(Datenbankfehler.IstUeberlappung(fehler), fehler.ToString());
     }
 
     [Fact]
@@ -56,8 +57,10 @@ public class UeberlappungsschutzTests(PostgresFixture postgres) : PersistenzTest
     {
         await SpeichereAsync(Eintrag(Wohnung1, new(2025, 1, 1), null));
 
-        await Assert.ThrowsAsync<DbUpdateException>(
+        var fehler = await Assert.ThrowsAnyAsync<Exception>(
             () => SpeichereAsync(Eintrag(Wohnung1, new(2030, 1, 1), new(2030, 6, 30))));
+
+        Assert.True(Datenbankfehler.IstUeberlappung(fehler));
     }
 
     [Fact]
@@ -81,6 +84,29 @@ public class UeberlappungsschutzTests(PostgresFixture postgres) : PersistenzTest
         }
 
         await SpeichereAsync(Eintrag(Wohnung1, new(2025, 6, 1), null));
+    }
+
+    [Fact]
+    public async Task Fortschreiben_in_einem_Speichervorgang_ist_erlaubt()
+    {
+        var alt = Eintrag(Wohnung1, new(2025, 1, 1), null);
+        await SpeichereAsync(alt);
+
+        // Neuer Stand und Beenden des alten in einem SaveChanges: die Prüfung erfolgt erst beim Commit.
+        await using var db = NeuerContext();
+        var geladen = await db.Eintraege.SingleAsync(e => e.Id == alt.Id, Ct);
+        db.Eintraege.Add(Eintrag(Wohnung1, new(2026, 1, 1), null));
+        geladen.Gueltigkeit = new Zeitraum(new(2025, 1, 1), new(2025, 12, 31));
+        await db.SaveChangesAsync(Ct);
+
+        Assert.Equal(2, await db.Eintraege.CountAsync(Ct));
+    }
+
+    [Fact]
+    public void Andere_Datenbankfehler_sind_keine_Ueberlappung()
+    {
+        Assert.False(Datenbankfehler.IstUeberlappung(new InvalidOperationException()));
+        Assert.False(Datenbankfehler.IstUeberlappung(new DbUpdateException("x", new InvalidOperationException())));
     }
 
     private static TestEintrag Eintrag(Guid gruppe, DateOnly von, DateOnly? bis) =>

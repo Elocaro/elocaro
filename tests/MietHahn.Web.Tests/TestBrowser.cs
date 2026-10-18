@@ -35,8 +35,30 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
             werte.Add(new(element.Name, element.Value));
         }
 
+        // Wie ein Browser: ausgewählte Option bzw. Inhalt von Auswahllisten und Textfeldern mitsenden.
+        foreach (var auswahl in formular.Elements.OfType<IHtmlSelectElement>().Where(e => !string.IsNullOrEmpty(e.Name)))
+        {
+            var option = auswahl.Options.FirstOrDefault(o => o.IsSelected) ?? (auswahl.Options.Length > 0 ? auswahl.Options[0] : null);
+            if (option is not null)
+            {
+                werte.Add(new(auswahl.Name!, option.Value));
+            }
+        }
+
+        foreach (var text in formular.Elements.OfType<IHtmlTextAreaElement>().Where(e => !string.IsNullOrEmpty(e.Name)))
+        {
+            werte.Add(new(text.Name!, text.Value));
+        }
+
+        // Nur Felder setzen, die das Formular wirklich hat: sonst bestünde ein Test, obwohl der Browser andere Namen sendet.
+        var vorhanden = formular.Elements.OfType<IHtmlElement>().Select(e => e.GetAttribute("name")).Where(n => n is not null).ToHashSet();
         foreach (var (name, wert) in felder ?? new Dictionary<string, string>())
         {
+            if (!vorhanden.Contains(name))
+            {
+                throw new InvalidOperationException($"Formular '{formName}' hat kein Feld '{name}'. Vorhanden: {string.Join(", ", vorhanden)}");
+            }
+
             werte.RemoveAll(w => w.Key == name);
             werte.Add(new(name, wert));
         }
@@ -45,6 +67,25 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
         using var inhalt = new FormUrlEncodedContent(werte);
         using var antwort = await http.PostAsync(ziel, inhalt, TestContext.Current.CancellationToken);
         return await AuswertenAsync(antwort, weiterleitungenFolgen);
+    }
+
+    /// <summary>Schickt ein Formular als multipart/form-data mit einer Datei ab (z. B. Foto-Upload).</summary>
+    public async Task<Seite> AbsendenMitDateiAsync(Seite seite, string formName, string dateiFeld, byte[] inhalt, string dateiname, string mimeTyp = "image/jpeg")
+    {
+        ArgumentNullException.ThrowIfNull(seite);
+        var formular = seite.Formular(formName);
+        using var daten = new MultipartFormDataContent();
+        foreach (var element in formular.Elements.OfType<IHtmlInputElement>().Where(e => !string.IsNullOrEmpty(e.Name) && e.Type != "file"))
+        {
+            daten.Add(new StringContent(element.Value), element.Name!);
+        }
+
+        var datei = new ByteArrayContent(inhalt);
+        datei.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeTyp);
+        daten.Add(datei, dateiFeld, dateiname);
+        var ziel = string.IsNullOrEmpty(formular.GetAttribute("action")) ? seite.Url : new Uri(seite.Url, formular.GetAttribute("action"));
+        using var antwort = await http.PostAsync(ziel, daten, TestContext.Current.CancellationToken);
+        return await AuswertenAsync(antwort, weiterleitungenFolgen: true);
     }
 
     public void Dispose() => http.Dispose();

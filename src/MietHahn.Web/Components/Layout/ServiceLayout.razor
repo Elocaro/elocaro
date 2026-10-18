@@ -8,6 +8,9 @@
     </header>
     <nav class="bereichsnavigation" aria-label="Hauptnavigation">
         <NavLink href="/service" Match="NavLinkMatch.All">Aufträge</NavLink>
+        <AuthorizeView Roles="@MietHahn.Application.Konten.Rollen.Hausmeister">
+            <NavLink href="/service/objekte">Objekte</NavLink>
+        </AuthorizeView>
     </nav>
     <main id="inhalt" class="inhalt">
         @Body

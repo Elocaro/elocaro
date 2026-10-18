@@ -1,0 +1,79 @@
+@* Aktuelle Fläche, Formular „neuer Stand ab …“ und Historie. Das Formular wird von der Seite verarbeitet (FormName „flaeche“). *@
+<section>
+    <h2>Flächen</h2>
+    @if (Aktuell is null)
+    {
+        <p class="meldung meldung-hinweis">Noch keine Fläche hinterlegt.</p>
+    }
+    else
+    {
+        <dl class="angaben">
+            <dt>@FlaecheText</dt><dd>@Format.Flaeche(Aktuell.Flaeche)</dd>
+            <dt>@ZusatzText</dt><dd>@Format.Flaeche(Aktuell.Zusatz)</dd>
+            <dt>Gültig</dt><dd>@Format.Zeitraum(Aktuell.Gueltigkeit)</dd>
+        </dl>
+    }
+
+    <details class="aufklapper" open="@(Aktuell is null)">
+        <summary>@(Aktuell is null ? "Fläche erfassen" : "Fläche ändern (neuer Stand ab Stichtag)")</summary>
+        <EditForm Model="Eingabe" FormName="flaeche" OnValidSubmit="OnSpeichern" class="formular-zeile">
+            <DataAnnotationsValidator />
+            <FormularFeld Id="flaeche-ab" Beschriftung="Gültig ab" Fuer="() => Eingabe.Ab" Pflicht="true">
+                <InputDate id="flaeche-ab" @bind-Value="Eingabe.Ab" />
+            </FormularFeld>
+            <FormularFeld Id="flaeche-wert" Beschriftung="@(FlaecheText + " (m²)")" Fuer="() => Eingabe.Flaeche" Pflicht="true">
+                <InputFlaeche id="flaeche-wert" @bind-Value="Eingabe.Flaeche" />
+            </FormularFeld>
+            <FormularFeld Id="flaeche-zusatz" Beschriftung="@(ZusatzText + " (m²)")" Fuer="() => Eingabe.Zusatz" Hinweis="@ZusatzHinweis">
+                <InputFlaeche id="flaeche-zusatz" @bind-Value="Eingabe.Zusatz" />
+            </FormularFeld>
+            <div class="feld feld-aktion">
+                <button type="submit" class="knopf">Fläche speichern</button>
+            </div>
+        </EditForm>
+        <p class="klein">Der bisherige Stand endet am Tag vor dem Stichtag und bleibt für frühere Abrechnungen erhalten.</p>
+    </details>
+
+    @if (Historie.Count > 1)
+    {
+        <h3>Verlauf</h3>
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Zeitraum</th><th class="zahl">@FlaecheText</th><th class="zahl">@ZusatzText</th></tr></thead>
+                <tbody>
+                    @foreach (var stand in Historie)
+                    {
+                        <tr>
+                            <td>@Format.Zeitraum(stand.Gueltigkeit)</td>
+                            <td class="zahl">@Format.Flaeche(stand.Flaeche)</td>
+                            <td class="zahl">@Format.Flaeche(stand.Zusatz)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public FlaechenEingabe Eingabe { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSpeichern { get; set; }
+
+    [Parameter]
+    public FlaechenStand? Aktuell { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<FlaechenStand> Historie { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string FlaecheText { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string ZusatzText { get; set; } = "";
+
+    [Parameter]
+    public string? ZusatzHinweis { get; set; }
+}

@@ -14,4 +14,11 @@ public static class Format
     public static string Datum(DateOnly? wert) => wert?.ToString("dd.MM.yyyy", Deutsch) ?? "–";
 
     public static string Geld(decimal? wert) => wert?.ToString("#,##0.00 €", Deutsch) ?? "–";
+
+    public static string Flaeche(decimal? wert) => wert is null ? "–" : wert.Value.ToString("#,##0.##", Deutsch) + " m²";
+
+    public static string Zahl(decimal? wert) => wert?.ToString("#,##0.##", Deutsch) ?? "–";
+
+    public static string Zeitraum(Domain.Gemeinsam.Zeitraum zeitraum) =>
+        zeitraum.Bis is { } bis ? $"{Datum(zeitraum.Von)} – {Datum(bis)}" : $"seit {Datum(zeitraum.Von)}";
 }

@@ -1,7 +1,10 @@
 @page "/verwaltung/benutzer/{Id:guid}"
 @using Microsoft.AspNetCore.Identity
 @using MietHahn.Infrastructure.Identitaet
+@using MietHahn.Application.Objekte
 @inject IBenutzerverwaltung Verwaltung
+@inject IObjektVerwaltung Objekte
+@inject IObjektZuordnungen Zuordnungen
 @inject UserManager<Benutzer> BenutzerManager
 @inject Weiterleitung Weiterleitung
 
@@ -55,6 +58,31 @@
     </section>
 }
 
+@if (benutzer.Rolle == Rollen.Hausmeister)
+{
+    <section>
+        <h2>Betreute Objekte</h2>
+        @if (alleObjekte.Count == 0)
+        {
+            <p class="klein">Es gibt noch keine Objekte.</p>
+        }
+        else
+        {
+            <EditForm Model="ObjekteEingabe" FormName="objekte" OnSubmit="ObjekteSetzenAsync">
+                @foreach (var objekt in alleObjekte)
+                {
+                    <div class="feld feld-checkbox">
+                        <input type="checkbox" id="objekt-@objekt.Id" name="ObjekteEingabe.Auswahl" value="@objekt.Id" checked="@zugeordnet.Contains(objekt.Id)" />
+                        <label for="objekt-@objekt.Id">@objekt.Bezeichnung <span class="klein">@objekt.Anschrift</span></label>
+                    </div>
+                }
+                <button type="submit" class="knopf">Objekte speichern</button>
+            </EditForm>
+            <p class="klein">Hausmeister sehen nur diese Objekte (ohne Mieterdaten).</p>
+        }
+    </section>
+}
+
 @if (!istEigenesKonto)
 {
     <section>
@@ -94,11 +122,24 @@
     [SupplyParameterFromForm(FormName = "rechte")]
     private RechteModell? RechteEingabe { get; set; }
 
+    [SupplyParameterFromForm(FormName = "objekte")]
+    private ObjekteModell? ObjekteEingabe { get; set; }
+
+    private IReadOnlyList<ObjektUebersicht> alleObjekte = [];
+    private IReadOnlyList<Guid> zugeordnet = [];
+
     protected override async Task OnInitializedAsync()
     {
         benutzer = await Verwaltung.LadenAsync(Id);
         RolleEingabe ??= new() { Rolle = benutzer?.Rolle ?? Rollen.Mieter };
         RechteEingabe ??= new();
+        ObjekteEingabe ??= new();
+        if (benutzer?.Rolle == Rollen.Hausmeister)
+        {
+            alleObjekte = await Objekte.ListeAsync();
+            zugeordnet = await Zuordnungen.ObjekteVonAsync(Id);
+        }
+
         istEigenesKonto = BenutzerManager.GetUserId(HttpContext.User) == Id.ToString();
     }
 
@@ -107,6 +148,19 @@
 
     private async Task RechteSetzenAsync() =>
         await AusfuehrenAsync(Verwaltung.RechteSetzenAsync(Id, RechteEingabe!.Auswahl), "Die Rechte wurden gespeichert.");
+
+    private async Task ObjekteSetzenAsync()
+    {
+        var ergebnis = await Zuordnungen.SetzenAsync(Id, ObjekteEingabe!.Auswahl);
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung($"/verwaltung/benutzer/{Id}", "Die betreuten Objekte wurden gespeichert.", HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
 
     private async Task SperrenUmschaltenAsync() =>
         await AusfuehrenAsync(
@@ -135,5 +189,10 @@
     private sealed class RechteModell
     {
         public List<Recht> Auswahl { get; set; } = [];
+    }
+
+    private sealed class ObjekteModell
+    {
+        public List<Guid> Auswahl { get; set; } = [];
     }
 }
