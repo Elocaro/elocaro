@@ -1,0 +1,61 @@
+@page "/konto/sicherheit/passwort"
+@inject UserManager<Benutzer> BenutzerManager
+@inject SignInManager<Benutzer> Anmeldung
+@inject Weiterleitung Weiterleitung
+
+<PageTitle>Passwort ändern – MietHahn</PageTitle>
+
+<h1>Passwort ändern</h1>
+
+<FehlerListe Fehler="fehler" />
+
+<EditForm Model="Eingabe" FormName="passwort-aendern" OnValidSubmit="AendernAsync">
+    <DataAnnotationsValidator />
+    <div class="feld">
+        <label for="aktuell">Aktuelles Passwort</label>
+        <InputText id="aktuell" type="password" @bind-Value="Eingabe!.AktuellesPasswort" autocomplete="current-password" />
+        <ValidationMessage For="() => Eingabe!.AktuellesPasswort" />
+    </div>
+    <PasswortFelder Eingabe="Eingabe!" />
+    <button type="submit" class="knopf knopf-primaer">Passwort ändern</button>
+</EditForm>
+
+<div class="konto-links"><a href="/konto/sicherheit">Zurück</a></div>
+
+@code {
+    private IReadOnlyList<string>? fehler;
+
+    [SupplyParameterFromForm(FormName = "passwort-aendern")]
+    private AendernEingabe? Eingabe { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized() => Eingabe ??= new();
+
+    private async Task AendernAsync()
+    {
+        var benutzer = await BenutzerManager.GetUserAsync(HttpContext.User);
+        if (benutzer is null)
+        {
+            Weiterleitung.Zu("/konto/anmelden");
+            return;
+        }
+
+        var ergebnis = await BenutzerManager.ChangePasswordAsync(benutzer, Eingabe!.AktuellesPasswort, Eingabe.Passwort);
+        if (!ergebnis.Succeeded)
+        {
+            fehler = [.. ergebnis.Errors.Select(e => e.Description)];
+            return;
+        }
+
+        await Anmeldung.RefreshSignInAsync(benutzer);
+        Weiterleitung.ZuMitMeldung("/konto/sicherheit", "Ihr Passwort wurde geändert.", HttpContext);
+    }
+
+    private sealed class AendernEingabe : NeuesPasswortEingabe
+    {
+        [Required(ErrorMessage = "Bitte das aktuelle Passwort angeben.")]
+        public string AktuellesPasswort { get; set; } = "";
+    }
+}

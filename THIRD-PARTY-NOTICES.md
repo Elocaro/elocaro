@@ -11,6 +11,8 @@ MietHahn nutzt folgende Open-Source-Komponenten (als NuGet-Pakete bzw. Container
 | MailKit / MimeKit | MIT | SMTP-Versand |
 | Scriban | BSD-2-Clause | Vorlagen |
 | SkiaSharp | MIT | Bildaufbereitung |
+| QRCoder | MIT | QR-Code für die Zwei-Faktor-Einrichtung |
+| bUnit, AngleSharp (nur Tests) | MIT | Komponenten- und HTML-Tests |
 | PostgreSQL (Container) | PostgreSQL License | Datenbank |
 | Gotenberg (Container) | MIT | HTML → PDF (Chromium, LibreOffice für PDF/A) |
 | Mailpit (Container, nur Entwicklung/Test) | MIT | Mail-Testserver |

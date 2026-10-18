@@ -1,0 +1,85 @@
+@page "/konto/einrichtung"
+@inject IKontoverwaltung Konten
+@inject UserManager<Benutzer> BenutzerManager
+@inject SignInManager<Benutzer> Anmeldung
+@inject Weiterleitung Weiterleitung
+
+<PageTitle>Ersteinrichtung – MietHahn</PageTitle>
+
+<h1>Ersteinrichtung</h1>
+<p>Willkommen! Legen Sie das Administrator-Konto an. Anschließend richten Sie die Zwei-Faktor-Anmeldung ein.</p>
+
+<FehlerListe Fehler="fehler" />
+
+<EditForm Model="Eingabe" FormName="einrichtung" OnValidSubmit="AnlegenAsync">
+    <DataAnnotationsValidator />
+    <div class="feld">
+        <label for="anzeigename">Ihr Name</label>
+        <InputText id="anzeigename" @bind-Value="Eingabe!.Anzeigename" autocomplete="name" />
+        <ValidationMessage For="() => Eingabe!.Anzeigename" />
+    </div>
+    <div class="feld">
+        <label for="email">E-Mail-Adresse</label>
+        <InputText id="email" type="email" @bind-Value="Eingabe!.Email" autocomplete="username" />
+        <ValidationMessage For="() => Eingabe!.Email" />
+    </div>
+    <div class="feld">
+        <label for="passwort">Passwort (mindestens 12 Zeichen)</label>
+        <InputText id="passwort" type="password" @bind-Value="Eingabe!.Passwort" autocomplete="new-password" />
+        <ValidationMessage For="() => Eingabe!.Passwort" />
+    </div>
+    <div class="feld">
+        <label for="passwort2">Passwort wiederholen</label>
+        <InputText id="passwort2" type="password" @bind-Value="Eingabe!.PasswortWiederholung" autocomplete="new-password" />
+        <ValidationMessage For="() => Eingabe!.PasswortWiederholung" />
+    </div>
+    <button type="submit" class="knopf knopf-primaer">Administrator anlegen</button>
+</EditForm>
+
+@code {
+    private IReadOnlyList<string>? fehler;
+
+    [SupplyParameterFromForm(FormName = "einrichtung")]
+    private EinrichtungEingabe? Eingabe { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Eingabe ??= new();
+        if (!await Konten.ErsteinrichtungMoeglichAsync())
+        {
+            Weiterleitung.Zu("/konto/anmelden");
+        }
+    }
+
+    private async Task AnlegenAsync()
+    {
+        var ergebnis = await Konten.ErstenAdminAnlegenAsync(Eingabe!.Email, Eingabe.Anzeigename, Eingabe.Passwort);
+        if (!ergebnis.Erfolgreich)
+        {
+            fehler = ergebnis.Fehler;
+            return;
+        }
+
+        var benutzer = await BenutzerManager.FindByIdAsync(ergebnis.BenutzerId!.Value.ToString());
+        await Anmeldung.SignInAsync(benutzer!, isPersistent: false);
+        Weiterleitung.Zu(KontoErweiterungen.ZweiFaktorEinrichtenPfad);
+    }
+
+    private sealed class EinrichtungEingabe
+    {
+        [Required(ErrorMessage = "Bitte Ihren Namen angeben.")]
+        [StringLength(200)]
+        public string Anzeigename { get; set; } = "";
+
+        [Required(ErrorMessage = "Bitte eine E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Bitte ein Passwort angeben.")]
+        [StringLength(200, MinimumLength = 12, ErrorMessage = "Das Passwort muss mindestens 12 Zeichen lang sein.")]
+        public string Passwort { get; set; } = "";
+
+        [Compare(nameof(Passwort), ErrorMessage = "Die Passwörter stimmen nicht überein.")]
+        public string PasswortWiederholung { get; set; } = "";
+    }
+}

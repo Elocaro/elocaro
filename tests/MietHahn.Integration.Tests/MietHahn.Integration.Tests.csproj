@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MietHahn.Infrastructure\MietHahn.Infrastructure.csproj" />
+    <ProjectReference Include="..\MietHahn.TestHilfen\MietHahn.TestHilfen.csproj" />
   </ItemGroup>
 
 </Project>

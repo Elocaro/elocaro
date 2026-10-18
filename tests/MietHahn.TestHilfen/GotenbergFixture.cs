@@ -1,7 +1,7 @@
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 
-namespace MietHahn.Integration.Tests.Infrastruktur;
+namespace MietHahn.TestHilfen;
 
 /// <summary>Gotenberg (Chromium) für echte PDF-Erzeugung in Tests.</summary>
 public sealed class GotenbergFixture : IAsyncLifetime

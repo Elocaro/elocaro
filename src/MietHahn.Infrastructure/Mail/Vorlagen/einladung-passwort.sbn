@@ -1,0 +1,6 @@
+{{ capture betreff }}Einladung zu MietHahn{{ end }}
+<p>Hallo {{ anzeigename }},</p>
+<p>Sie wurden als <strong>{{ rolle }}</strong> zu MietHahn eingeladen. Bitte legen Sie über den folgenden Link Ihr Passwort fest:</p>
+<p><a href="{{ link }}">Passwort festlegen</a></p>
+<p>Der Link ist {{ gueltig_tage }} Tage gültig. Danach richten Sie die Zwei-Faktor-Anmeldung mit einer Authenticator-App ein.</p>
+<p>Falls Sie diese Einladung nicht erwartet haben, können Sie diese Nachricht ignorieren.</p>

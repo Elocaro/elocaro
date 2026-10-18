@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Gemeinsame Testinfrastruktur (Container-Fixtures, Hilfen); selbst kein Testprojekt. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1707;CA2007;CA1816</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit.v3.extensibility.core" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MietHahn.Infrastructure\MietHahn.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -80,6 +80,20 @@ migrationBuilder.ErstelleUeberlappungsschutz(
 
 In `Down()` steht dann `migrationBuilder.EntferneUeberlappungsschutz(name, tabelle)`. Beide Grenzen sind inklusive. Logisch gelöschte Zeilen zählen nicht. Bei einem Verstoß wirft PostgreSQL `23P01` (`PostgresErrorCodes.ExclusionViolation`), EF meldet das als `DbUpdateException`.
 
+## Anmeldung & Konten
+
+- **Sicherer Standard:** Jede Seite verlangt eine Anmeldung (Fallback-Policy). Öffentliche Seiten markiert man explizit mit `@attribute [AllowAnonymous]`; das tun z. B. alle Seiten unter `Components/Konto/Anmeldung/` per `_Imports.razor`.
+- **Erster Start:** `/konto/einrichtung` legt den ersten Administrator an (nur solange kein Konto existiert). Danach ist die Zwei-Faktor-Einrichtung Pflicht.
+- **Zwei-Faktor-Pflicht** für `Admin` und `Verwalter`: Solange 2FA fehlt, leitet `UseZweiFaktorPflicht()` jede Seite außerhalb von `/konto` auf `/konto/sicherheit/zwei-faktor` um. Grundlage ist der Claim `miethahn:2fa`, der nach dem Aktivieren per `RefreshSignInAsync` erneuert wird. Der QR-Code wird serverseitig als SVG erzeugt (QRCoder), es gibt 10 Wiederherstellungscodes.
+- **Magic Link** (`IKontoverwaltung.AnmeldelinkAnfordernAsync`): Token mit 32 Byte Zufall, in der DB nur als SHA-256-Hash, 15 Minuten gültig, einmalig verwendbar. Eingelöst wird erst per POST-Klick auf der Seite, damit Mail-Scanner den Link nicht verbrauchen. Für Admin und Verwalter gesperrt (würde 2FA umgehen).
+- **Einladungen** (`IKontoverwaltung.EinladenAsync`): Admin, Verwalter und Hausmeister erhalten einen Link zum Festlegen des Passworts, Mieter und Handwerker einen Anmeldelink. Beides ist 7 Tage gültig.
+- **Passwörter:** mindestens 12 Zeichen, keine Zeichenklassen-Pflicht (NIST). Reset-Link 2 Stunden gültig. Nach 5 Fehlversuchen 15 Minuten Sperre. Konten mit `Gesperrt = true` können sich nicht anmelden (wirksam spätestens nach 10 Minuten durch die Security-Stamp-Prüfung).
+- **Keine Kontenauskunft:** Anmeldung, Magic Link und Passwort-Reset antworten für bekannte und unbekannte Adressen gleich.
+- **Rate-Limiting:** POST auf `/konto/*` höchstens `Anmeldung:AnfragenProMinute` (10) je IP.
+- **Links in Mails** basieren auf `Anwendung:BasisUrl` (konfiguriert, nicht aus dem Host-Header).
+- **Data-Protection-Schlüssel** liegen in PostgreSQL (`data_protection_keys`): Anmeldungen überstehen Neustarts und sind im DB-Backup enthalten.
+- Identity rechnet Token-Laufzeiten und Sperren mit der Systemuhr (ohne `TimeProvider`). Tests prüfen daher die Konfiguration statt Zeit vorzuspulen; eigene Anmeldelinks nutzen `TimeProvider`.
+
 ## Audit-Log
 
 - Jede Speicherung einer `Entitaet` schreibt in **derselben Transaktion** einen Eintrag in `audit_eintraege`: Zeitpunkt, Benutzer (`IAktuellerBenutzer`), Typ, Id, Aktion (`Angelegt`, `Geaendert`, `Geloescht`) und die geänderten Felder alt → neu als `jsonb`. Speichern ohne echte Änderung erzeugt keinen Eintrag.
@@ -144,7 +158,8 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 |---|---|
 | `MietHahn.Domain.Tests` | Reine Unit-Tests der Fachlogik (Rechenkerne), ohne I/O |
 | `MietHahn.Integration.Tests` | Gegen echtes PostgreSQL (Testcontainers, `postgres:18-alpine`). `PostgresFixture` startet einen Container je Testlauf, **jeder Test bekommt eine eigene Datenbank**. `InfrastrukturUmgebung` liefert die komplett registrierte Infrastruktur (migrierte DB, temporäre Dateiablage, `FakeTimeProvider`). Mailtests laufen gegen einen echten SMTP-Server (`MailpitFixture`) |
-| `MietHahn.Web.Tests` | Komponenten mit bUnit (`BunitContext`), Seiten mit `WebApplicationFactory` (`MietHahnWebFactory`) |
+| `MietHahn.Web.Tests` | Komponenten mit bUnit (`BunitContext`). Ende-zu-Ende über HTTP mit `MietHahnWebFactory` (echte App, eigene DB je Test) und `TestBrowser`: lädt Seiten, folgt Weiterleitungen und schickt Blazor-Formulare inklusive Antiforgery-Token ab (Formular über den `FormName`). TOTP-Codes liefert `TestHilfen.Totp` |
+| `MietHahn.TestHilfen` | Gemeinsame Fixtures (PostgreSQL, Mailpit, Gotenberg) und Hilfen; selbst kein Testprojekt |
 | `MietHahn.Architecture.Tests` | Schichtregeln (NetArchTest) |
 
 Konventionen: Testnamen auf Deutsch mit Unterstrichen (`Loeschen_ist_logisch_…`), Zeit über `FakeTimeProvider`, kein `DateTime.Now` im Produktivcode (immer `TimeProvider`).

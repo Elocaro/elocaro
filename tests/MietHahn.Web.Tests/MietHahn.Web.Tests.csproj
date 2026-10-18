@@ -3,9 +3,12 @@
   <ItemGroup>
     <PackageReference Include="bunit" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MietHahn.Web\MietHahn.Web.csproj" />
+    <ProjectReference Include="..\MietHahn.TestHilfen\MietHahn.TestHilfen.csproj" />
   </ItemGroup>
+
 </Project>

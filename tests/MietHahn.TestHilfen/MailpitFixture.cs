@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 
-namespace MietHahn.Integration.Tests.Infrastruktur;
+namespace MietHahn.TestHilfen;
 
 /// <summary>Mailpit als echter SMTP-Server mit HTTP-API zum Prüfen zugestellter Mails.</summary>
 public sealed class MailpitFixture : IAsyncLifetime

@@ -9,6 +9,7 @@
     <Project Path="tests/MietHahn.Architecture.Tests/MietHahn.Architecture.Tests.csproj" />
     <Project Path="tests/MietHahn.Domain.Tests/MietHahn.Domain.Tests.csproj" />
     <Project Path="tests/MietHahn.Integration.Tests/MietHahn.Integration.Tests.csproj" />
+    <Project Path="tests/MietHahn.TestHilfen/MietHahn.TestHilfen.csproj" />
     <Project Path="tests/MietHahn.Web.Tests/MietHahn.Web.Tests.csproj" />
   </Folder>
 </Solution>

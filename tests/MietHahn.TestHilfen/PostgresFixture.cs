@@ -1,10 +1,7 @@
-using MietHahn.Integration.Tests.Infrastruktur;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
-[assembly: AssemblyFixture(typeof(PostgresFixture))]
-
-namespace MietHahn.Integration.Tests.Infrastruktur;
+namespace MietHahn.TestHilfen;
 
 /// <summary>
 /// Ein PostgreSQL-Container für den gesamten Testlauf. Jeder Test legt sich mit

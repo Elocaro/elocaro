@@ -1,0 +1,100 @@
+@page "/konto/anmelden"
+@inject IKontoverwaltung Konten
+@inject SignInManager<Benutzer> Anmeldung
+@inject Weiterleitung Weiterleitung
+
+<PageTitle>Anmelden – MietHahn</PageTitle>
+
+<h1>Anmelden</h1>
+
+<StatusMeldung Meldung="@(Abgemeldet ? "Sie wurden abgemeldet." : null)" />
+<StatusMeldung Meldung="@fehler" IstFehler="true" />
+
+<EditForm Model="Eingabe" FormName="anmelden" OnValidSubmit="AnmeldenAsync">
+    <DataAnnotationsValidator />
+    <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+    <div class="feld">
+        <label for="email">E-Mail-Adresse</label>
+        <InputText id="email" type="email" @bind-Value="Eingabe!.Email" autocomplete="username" />
+        <ValidationMessage For="() => Eingabe!.Email" />
+    </div>
+    <div class="feld">
+        <label for="passwort">Passwort</label>
+        <InputText id="passwort" type="password" @bind-Value="Eingabe!.Passwort" autocomplete="current-password" />
+        <ValidationMessage For="() => Eingabe!.Passwort" />
+    </div>
+    <div class="feld feld-checkbox">
+        <InputCheckbox id="bleiben" @bind-Value="Eingabe!.AngemeldetBleiben" />
+        <label for="bleiben">Angemeldet bleiben</label>
+    </div>
+    <button type="submit" class="knopf knopf-primaer">Anmelden</button>
+</EditForm>
+
+<div class="konto-links">
+    <a href="/konto/link">Ohne Passwort anmelden (Link per E-Mail)</a>
+    <a href="/konto/passwort-vergessen">Passwort vergessen?</a>
+</div>
+
+@code {
+    private string? fehler;
+
+    [SupplyParameterFromForm(FormName = "anmelden")]
+    private AnmeldeEingabe? Eingabe { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "abgemeldet")]
+    private bool Abgemeldet { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Eingabe ??= new();
+        if (HttpMethods.IsGet(HttpContext.Request.Method) && await Konten.ErsteinrichtungMoeglichAsync())
+        {
+            Weiterleitung.Zu("/konto/einrichtung");
+        }
+    }
+
+    private async Task AnmeldenAsync()
+    {
+        var ergebnis = await Anmeldung.PasswordSignInAsync(Eingabe!.Email.Trim(), Eingabe.Passwort, Eingabe.AngemeldetBleiben, lockoutOnFailure: true);
+
+        if (ergebnis.Succeeded)
+        {
+            Weiterleitung.Zu(ReturnUrl);
+        }
+        else if (ergebnis.RequiresTwoFactor)
+        {
+            Weiterleitung.Zu("/konto/anmelden/zwei-faktor", new Dictionary<string, object?>
+            {
+                ["ReturnUrl"] = ReturnUrl,
+                ["AngemeldetBleiben"] = Eingabe.AngemeldetBleiben,
+            });
+        }
+        else if (ergebnis.IsLockedOut)
+        {
+            Weiterleitung.Zu("/konto/gesperrt");
+        }
+        else
+        {
+            // Bewusst keine Unterscheidung (unbekannte Adresse, falsches Passwort, gesperrtes Konto).
+            fehler = "E-Mail-Adresse oder Passwort ist falsch.";
+        }
+    }
+
+    private sealed class AnmeldeEingabe
+    {
+        [Required(ErrorMessage = "Bitte die E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Bitte das Passwort angeben.")]
+        public string Passwort { get; set; } = "";
+
+        public bool AngemeldetBleiben { get; set; }
+    }
+}

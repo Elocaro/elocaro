@@ -1,0 +1,55 @@
+@page "/konto/passwort-zuruecksetzen"
+@inject UserManager<Benutzer> BenutzerManager
+@inject Weiterleitung Weiterleitung
+
+<PageTitle>Neues Passwort – MietHahn</PageTitle>
+
+<h1>Neues Passwort festlegen</h1>
+
+<FehlerListe Fehler="fehler" />
+
+<EditForm Model="Eingabe" FormName="passwort-zuruecksetzen" OnValidSubmit="SetzenAsync">
+    <DataAnnotationsValidator />
+    <input type="hidden" name="Benutzer" value="@BenutzerId" />
+    <input type="hidden" name="Code" value="@Code" />
+    <PasswortFelder Eingabe="Eingabe!" />
+    <button type="submit" class="knopf knopf-primaer">Passwort speichern</button>
+</EditForm>
+
+@code {
+    private IReadOnlyList<string>? fehler;
+
+    [SupplyParameterFromForm(FormName = "passwort-zuruecksetzen")]
+    private NeuesPasswortEingabe? Eingabe { get; set; }
+
+    [SupplyParameterFromQuery(Name = "benutzer")]
+    private string? BenutzerId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "code")]
+    private string? Code { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized() => Eingabe ??= new();
+
+    private async Task SetzenAsync()
+    {
+        var benutzer = BenutzerId is null ? null : await BenutzerManager.FindByIdAsync(BenutzerId);
+        if (benutzer is null || string.IsNullOrEmpty(Code))
+        {
+            fehler = ["Der Link ist ungültig oder abgelaufen."];
+            return;
+        }
+
+        var ergebnis = await BenutzerManager.ResetPasswordAsync(benutzer, Code, Eingabe!.Passwort);
+        if (!ergebnis.Succeeded)
+        {
+            fehler = [.. ergebnis.Errors.Select(e => e.Description)];
+            return;
+        }
+
+        await BenutzerManager.ResetAccessFailedCountAsync(benutzer);
+        Weiterleitung.ZuMitMeldung("/konto/anmelden", "Ihr Passwort wurde geändert. Bitte melden Sie sich an.", HttpContext);
+    }
+}

@@ -1,0 +1,5 @@
+{{ capture betreff }}Ihr Zugang zu MietHahn{{ end }}
+<p>Hallo {{ anzeigename }},</p>
+<p>für Sie wurde ein Zugang als <strong>{{ rolle }}</strong> eingerichtet. Über den folgenden Link melden Sie sich an – ein Passwort ist nicht nötig:</p>
+<p><a href="{{ link }}">Jetzt anmelden</a></p>
+<p>Der Link ist {{ gueltig_tage }} Tage gültig und kann nur einmal verwendet werden. Später können Sie jederzeit auf der Anmeldeseite einen neuen Link anfordern.</p>

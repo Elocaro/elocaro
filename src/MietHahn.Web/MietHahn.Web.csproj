@@ -5,8 +5,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MietHahn.Application\MietHahn.Application.csproj" />
     <ProjectReference Include="..\MietHahn.Infrastructure\MietHahn.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MietHahn.Web.Tests" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,89 @@
+using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using MietHahn.Application.Konten;
+using MietHahn.Domain.Kommunikation;
+
+namespace MietHahn.Web.Tests.Konto;
+
+/// <summary>Je Test eine frische App mit eigener Datenbank und Hilfen für typische Anmeldeschritte.</summary>
+public abstract partial class KontoTestBasis(PostgresFixture postgres) : IAsyncLifetime
+{
+    protected const string AdminEmail = "vermieter@example.de";
+    protected const string AdminPasswort = "Sehr-sicheres-Passwort-2026";
+
+    protected MietHahnWebFactory App { get; private set; } = null!;
+
+    protected virtual IDictionary<string, string?>? Konfiguration => null;
+
+    public async ValueTask InitializeAsync() => App = await MietHahnWebFactory.MitDatenbankAsync(postgres, Konfiguration);
+
+    public async ValueTask DisposeAsync() => await App.DisposeAsync();
+
+    protected static Task<Seite> EinrichtenAsync(TestBrowser browser) => EinrichtenAsync(browser, AdminEmail, AdminPasswort);
+
+    protected static async Task<Seite> EinrichtenAsync(TestBrowser browser, string email, string passwort)
+    {
+        var seite = await browser.LadenAsync("/konto/einrichtung");
+        return await browser.AbsendenAsync(seite, "einrichtung", new Dictionary<string, string>
+        {
+            ["Eingabe.Anzeigename"] = "Andy Hahn",
+            ["Eingabe.Email"] = email,
+            ["Eingabe.Passwort"] = passwort,
+            ["Eingabe.PasswortWiederholung"] = passwort,
+        });
+    }
+
+    /// <summary>Liest den Schlüssel von der Einrichtungsseite, aktiviert 2FA und liefert Schlüssel und Wiederherstellungscodes.</summary>
+    protected async Task<(string Schluessel, IReadOnlyList<string> Codes, Seite Seite)> ZweiFaktorAktivierenAsync(TestBrowser browser)
+    {
+        var seite = await browser.LadenAsync("/konto/sicherheit/zwei-faktor");
+        var schluessel = seite.Dokument.QuerySelector("code.schluessel")!.TextContent.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
+        var ergebnis = await browser.AbsendenAsync(seite, "zwei-faktor-einrichten", new Dictionary<string, string> { ["Eingabe.Code"] = Code(schluessel) });
+        var codes = ergebnis.Dokument.QuerySelectorAll("ul.codes code").Select(c => c.TextContent).ToList();
+        return (schluessel, codes, ergebnis);
+    }
+
+    protected string Code(string schluessel) => Totp.Code(schluessel, App.Uhr.GetUtcNow());
+
+    protected static async Task<Seite> AnmeldenAsync(TestBrowser browser, string email, string passwort, string? returnUrl = null)
+    {
+        var seite = await browser.LadenAsync("/konto/anmelden" + (returnUrl is null ? "" : "?ReturnUrl=" + Uri.EscapeDataString(returnUrl)));
+        return await browser.AbsendenAsync(seite, "anmelden", new Dictionary<string, string>
+        {
+            ["Eingabe.Email"] = email,
+            ["Eingabe.Passwort"] = passwort,
+        });
+    }
+
+    protected static async Task AbmeldenAsync(TestBrowser browser)
+    {
+        var seite = await browser.LadenAsync("/konto/sicherheit");
+        var token = seite.Dokument.QuerySelector("form[action='/konto/abmelden'] input[name='__RequestVerificationToken']")!.GetAttribute("value")!;
+        using var inhalt = new FormUrlEncodedContent([new("__RequestVerificationToken", token)]);
+        using var antwort = await browser.Http.PostAsync(new Uri("/konto/abmelden", UriKind.Relative), inhalt, TestContext.Current.CancellationToken);
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, antwort.StatusCode);
+    }
+
+    /// <summary>Zuletzt an die Adresse eingereihte Mail (Jobs sind aus, daher aus der Outbox).</summary>
+    protected async Task<AusgehendeMail?> LetzteMailAnAsync(string email)
+    {
+        AusgehendeMail? mail = null;
+        await App.MitDbAsync(async db => mail = (await db.Set<AusgehendeMail>().AsNoTracking().ToListAsync(TestContext.Current.CancellationToken))
+            .Where(m => m.An.Contains(email)).OrderBy(m => m.ErstelltAm).ThenBy(m => m.Id).LastOrDefault());
+        return mail;
+    }
+
+    protected static string LinkAus(AusgehendeMail mail)
+    {
+        var treffer = LinkMuster().Match(mail.Html);
+        Assert.True(treffer.Success, "Kein Link in der Mail gefunden.");
+        return System.Net.WebUtility.HtmlDecode(treffer.Groups[1].Value);
+    }
+
+    protected Task<KontoErgebnis> EinladenAsync(string email, string rolle) =>
+        App.MitScopeAsync(sp => sp.GetRequiredService<IKontoverwaltung>().EinladenAsync(email, "Testperson", rolle, TestContext.Current.CancellationToken));
+
+    [GeneratedRegex("href=\"(https://localhost/konto/[^\"]+)\"")]
+    private static partial Regex LinkMuster();
+}

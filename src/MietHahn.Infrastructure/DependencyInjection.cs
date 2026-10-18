@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,8 +11,10 @@ using MietHahn.Application.Dateien;
 using MietHahn.Application.Dokumente;
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Application.Kommunikation;
+using MietHahn.Application.Konten;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Dateien;
+using MietHahn.Infrastructure.Identitaet;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Mail;
 using MietHahn.Infrastructure.Pdf;
@@ -32,7 +36,10 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddScoped<IAktuellerBenutzer, SystemBenutzer>();
 
+        services.Configure<AnwendungOptionen>(konfiguration.GetSection(AnwendungOptionen.Abschnitt));
+
         PersistenzRegistrieren(services, konfiguration);
+        IdentitaetRegistrieren(services);
         AuditRegistrieren(services, konfiguration);
         MailRegistrieren(services, konfiguration);
         DateiablageRegistrieren(services, konfiguration);
@@ -57,6 +64,42 @@ public static class DependencyInjection
             KonfiguriereNpgsql(optionen, Verbindung(konfiguration));
             optionen.AddInterceptors(sp.GetRequiredService<EntitaetSpeichernInterceptor>());
         });
+    }
+
+    private static void IdentitaetRegistrieren(IServiceCollection services)
+    {
+        services.AddHttpContextAccessor();
+        services.AddDataProtection()
+            .SetApplicationName("MietHahn")
+            .PersistKeysToDbContext<MietHahnDbContext>();
+
+        services.AddIdentityCore<Benutzer>(o =>
+            {
+                o.User.RequireUniqueEmail = true;
+                o.SignIn.RequireConfirmedAccount = false;
+
+                // Länge statt Zeichenklassen (NIST SP 800-63B).
+                o.Password.RequiredLength = 12;
+                o.Password.RequireDigit = false;
+                o.Password.RequireLowercase = false;
+                o.Password.RequireUppercase = false;
+                o.Password.RequireNonAlphanumeric = false;
+
+                o.Lockout.AllowedForNewUsers = true;
+                o.Lockout.MaxFailedAccessAttempts = 5;
+                o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+            })
+            .AddRoles<Rolle>()
+            .AddEntityFrameworkStores<MietHahnDbContext>()
+            .AddSignInManager<MietHahnSignInManager>()
+            .AddDefaultTokenProviders()
+            .AddTokenProvider<EinladungsTokenProvider>(TokenAnbieter.Einladung)
+            .AddClaimsPrincipalFactory<MietHahnClaimsFactory>()
+            .AddErrorDescriber<DeutscheIdentityFehler>();
+
+        // Passwort-Reset-Links: 2 Stunden; Einladungen nutzen den eigenen Anbieter (7 Tage).
+        services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromHours(2));
+        services.AddScoped<IKontoverwaltung, Kontoverwaltung>();
     }
 
     private static void AuditRegistrieren(IServiceCollection services, IConfiguration konfiguration)

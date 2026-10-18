@@ -26,14 +26,14 @@ internal sealed class TestDbContext(DbContextOptions<MietHahnDbContext> options)
 {
     public DbSet<TestEintrag> Eintraege => Set<TestEintrag>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        modelBuilder.Entity<TestEintrag>(e =>
+        builder.Entity<TestEintrag>(e =>
         {
             e.ToTable("test_eintraege");
             e.Property(x => x.Name).HasMaxLength(100).UseCollation(DeutscheKollation);
         });
 
-        base.OnModelCreating(modelBuilder);
+        base.OnModelCreating(builder);
     }
 }
