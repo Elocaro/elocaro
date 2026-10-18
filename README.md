@@ -9,6 +9,7 @@ Self-hosted Verwaltung für private Vermieter: Objekte, Mieter, Mieteingänge, N
 - [Marktanalyse](docs/marktanalyse.md): was bestehende Software gut und schlecht macht
 - [Fachlichkeit & Anforderungen](docs/fachlichkeit.md): Ergebnis des Anforderungsinterviews
 - [Architektur](docs/architektur.md): Technologie, Struktur, Meilensteine
+- [Entwicklung](docs/entwicklung.md): lokale Umgebung, Migrationen, Konventionen, Tests
 - [Banking & FinTS-Registrierung](docs/banking-fints.md)
 - [Architekturentscheidungen (ADR)](docs/adr/)
 
@@ -29,13 +30,9 @@ Der Plan liegt in den GitHub-Issues: ein Epic je Meilenstein, darunter Sub-Issue
 
 ## Entwicklung
 
-Voraussetzung: .NET SDK 10.0.1xx (siehe `global.json`).
-
 ```bash
-dotnet build          # Warnungen gelten als Fehler
-dotnet test           # Microsoft.Testing.Platform + xUnit v3
-dotnet format --verify-no-changes
+dotnet build && dotnet test   # Integrationstests brauchen Docker
 dotnet run --project src/MietHahn.Web
 ```
 
-Paketversionen werden zentral in `Directory.Packages.props` gepflegt, gemeinsame Build-Einstellungen in `Directory.Build.props`.
+Details zu lokaler Datenbank, Migrationen und Konventionen stehen in [docs/entwicklung.md](docs/entwicklung.md).

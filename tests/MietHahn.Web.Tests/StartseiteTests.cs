@@ -1,9 +1,8 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace MietHahn.Web.Tests;
 
-public class StartseiteTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public class StartseiteTests(MietHahnWebFactory factory) : IClassFixture<MietHahnWebFactory>
 {
     [Fact]
     public async Task Startseite_wird_ausgeliefert()
