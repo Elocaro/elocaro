@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MietHahn.Application/MietHahn.Application.csproj" />
+    <Project Path="src/MietHahn.Domain/MietHahn.Domain.csproj" />
+    <Project Path="src/MietHahn.Infrastructure/MietHahn.Infrastructure.csproj" />
+    <Project Path="src/MietHahn.Web/MietHahn.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MietHahn.Architecture.Tests/MietHahn.Architecture.Tests.csproj" />
+    <Project Path="tests/MietHahn.Domain.Tests/MietHahn.Domain.Tests.csproj" />
+    <Project Path="tests/MietHahn.Integration.Tests/MietHahn.Integration.Tests.csproj" />
+    <Project Path="tests/MietHahn.Web.Tests/MietHahn.Web.Tests.csproj" />
+  </Folder>
+</Solution>

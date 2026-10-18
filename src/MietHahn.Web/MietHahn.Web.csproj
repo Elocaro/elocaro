@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MietHahn.Application\MietHahn.Application.csproj" />
+    <ProjectReference Include="..\MietHahn.Infrastructure\MietHahn.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

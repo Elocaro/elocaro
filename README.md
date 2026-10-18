@@ -26,3 +26,16 @@ Der Plan liegt in den GitHub-Issues: ein Epic je Meilenstein, darunter Sub-Issue
 | M5 Dokumente & Fristen (Vorlagen, Mieterhöhung, Protokolle) | #41 |
 | M6 Mieterportal & Service (Tickets, Aushänge) | #47 |
 | M7 Später (ERiC, Eigentümer je Objekt, Funkzähler) | #52 |
+
+## Entwicklung
+
+Voraussetzung: .NET SDK 10.0.1xx (siehe `global.json`).
+
+```bash
+dotnet build          # Warnungen gelten als Fehler
+dotnet test           # Microsoft.Testing.Platform + xUnit v3
+dotnet format --verify-no-changes
+dotnet run --project src/MietHahn.Web
+```
+
+Paketversionen werden zentral in `Directory.Packages.props` gepflegt, gemeinsame Build-Einstellungen in `Directory.Build.props`.

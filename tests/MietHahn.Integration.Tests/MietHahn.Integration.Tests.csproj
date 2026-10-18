@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Noch keine Tests vorhanden (folgen mit #3). Exit-Code 8 = "Zero tests ran" tolerieren; entfernen, sobald der erste Test existiert. -->
+    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MietHahn.Infrastructure\MietHahn.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
