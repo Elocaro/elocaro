@@ -108,6 +108,8 @@ Statisches SSR mit Blazor (ADR 0001) und eigenem Design-System (ADR 0003, `wwwro
 | `StatusMeldung`, `FehlerListe`, `Leerzustand` | Rückmeldungen (auch über Weiterleitungen hinweg per `Weiterleitung.ZuMitMeldung`) |
 | `AenderungsHistorie` | Audit-Historie eines Datensatzes |
 
+**Mehrere Zeilenaktionen** (z. B. „Entfernen“ je Tabellenzeile): ein Formular um die Tabelle, je Zeile `<button type="submit" name="EntfernenId" value="@id">`. Formularnamen (`@formname`) müssen auf einer Seite eindeutig sein; Formulare in einer Schleife sind ein Fehler. Enums lassen sich nicht per `[SupplyParameterFromQuery]` binden: als `string` lesen und parsen.
+
 Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Dezimalzahlen: `InputBetrag` (Euro) und `InputFlaeche` (m²) rendern `<input type="number" step="0.01">`. Blazor bindet Formularwerte bei statischem SSR **kulturinvariant**; ein Textfeld mit „30,5“ käme nicht als Zahl an. Ein Zahlenfeld zeigt die Zahl in der Browsersprache und sendet immer mit Punkt.
 
 **Formularfelder in Unterkomponenten** (z. B. `ObjektFelder`, `FlaechenBereich`): Der Feldname entsteht aus dem Ausdruck in der Komponente (`() => Daten.Bezeichnung` → `Daten.Bezeichnung`). Heißt die Eigenschaft auf der Seite anders, den Präfix angeben: `[SupplyParameterFromForm(FormName = "einheit", Name = "Daten")] EinheitDaten? NeueEinheit`. Der `TestBrowser` lehnt Felder ab, die im Formular nicht existieren, und deckt solche Fehler damit auf. Optionale E-Mail-Felder mit `[OptionaleEmail]` statt `[EmailAddress]` validieren, denn leere Formularfelder kommen als `""` an. Formularmodelle in `OnInitialized(Async)` **vor** dem ersten `await` setzen (`Modell ??= new()`), weil Blazor dort schon einmal rendert. Tabellen stehen immer in `<div class="tabellen-rahmen">`, damit sie mobil horizontal scrollen statt der Seite.
@@ -202,6 +204,14 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusDatei`, Format siehe `deploy/backup/miethahn-backup.sh`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warnung` (täglich 8:05, Mail an aktive Admins).
 - `IDatenexport` erzeugt den Vollexport generisch aus dem relationalen EF-Modell: neue Tabellen sind automatisch enthalten. Geheimnisse mit `[OhneExport]` (Klasse oder Eigenschaft) ausnehmen und die Liste in `DatenexportTests.Jede_Tabelle_ist_exportiert_oder_bewusst_ausgenommen` ergänzen. `[Vertraulich]` (z. B. IBAN) bleibt im Export, denn es sind fachliche Daten.
 - Der ZIP-Export wird zuerst in eine temporäre Datei geschrieben: Die Eintrags-Streams von `ZipArchive` schreiben beim Schließen synchron, und Kestrel erlaubt kein synchrones Schreiben.
+
+### Personen & Datenschutz
+
+- `Person` (Mieter, Bürgen, Kontakte) mit Anschriften als Zeitreihe (Voranschrift → aktuelle → neue Anschrift nach Auszug) und beliebig vielen `Bankverbindung`en (IBAN mit Prüfsumme, `Domain.Gemeinsam.Iban`). Mieter und Bürgen ergeben sich aus Verträgen, nicht aus einem Feld.
+- **Erweiterungspunkte** für Fachmodule: `IPersonenbezug` (Rolle, Beschreibung, aktiv, Ende) steuert Rollenanzeige, Löschsperre und Aufbewahrungsfrist; `IPersonendatenQuelle` liefert einen Abschnitt für die DSGVO-Auskunft. Ein neues Modul, das Personendaten speichert, muss beide registrieren.
+- **Auskunft** (`IDatenschutz.AuskunftAsync`, `/verwaltung/personen/{id}/auskunft`): JSON mit den serialisierten Entitäten (neue Felder sind automatisch enthalten), logisch gelöschten Einträgen, Konto, Bezügen, Änderungsprotokoll im Klartext und den Abschnitten der Module. Der Abruf steht im Audit-Log.
+- **Anonymisieren**: entfernt Name, Kontaktdaten, Anschriften, IBANs (physisch, nicht nur logisch) und die Werte im Änderungsprotokoll. Der Datensatz bleibt für Buchungen erhalten. Vorschläge nach `Datenschutz:AufbewahrungJahre` (10) ab Ende des letzten Bezugs bzw. `Datenschutz:OhneBezugMonate` (12) ohne Bezug; Geschäftskontakte werden nicht vorgeschlagen.
+- **Zugriffsprotokoll**: Öffnen einer Personenakte wird protokolliert, derselbe Zugriff (Benutzer, Datensatz, Zweck) höchstens einmal je 30 Minuten.
 
 ### Hintergrundjobs (Quartz.NET 3)
 

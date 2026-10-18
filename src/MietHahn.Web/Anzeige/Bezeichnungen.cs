@@ -1,4 +1,5 @@
 using MietHahn.Domain.Objekte;
+using MietHahn.Domain.Personen;
 
 namespace MietHahn.Web.Anzeige;
 
@@ -41,5 +42,25 @@ public static class Bezeichnungen
         Moeblierung.Teilmoebliert => "teilmöbliert",
         Moeblierung.Moebliert => "möbliert",
         _ => "unmöbliert",
+    };
+
+    public static string Von(Anrede wert) => wert switch
+    {
+        Anrede.Frau => "Frau",
+        Anrede.Herr => "Herr",
+        Anrede.Divers => "divers",
+        _ => "–",
+    };
+
+    public static string Von(Kontaktart wert) => wert switch
+    {
+        Kontaktart.Hausmeister => "Hausmeister",
+        Kontaktart.Handwerker => "Handwerker",
+        Kontaktart.Versorger => "Versorger",
+        Kontaktart.Versicherung => "Versicherung",
+        Kontaktart.Behoerde => "Behörde",
+        Kontaktart.Dienstleister => "Dienstleister",
+        Kontaktart.Sonstige => "Sonstiger Kontakt",
+        _ => "privat (Mieter, Bürge …)",
     };
 }

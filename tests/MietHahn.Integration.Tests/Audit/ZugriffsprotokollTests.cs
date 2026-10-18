@@ -30,6 +30,31 @@ public class ZugriffsprotokollTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task Wiederholter_Zugriff_wird_nur_einmal_je_Zeitfenster_protokolliert()
+    {
+        await using var umgebung = await InfrastrukturUmgebung.ErstellenAsync(postgres);
+        var mieterId = Guid.CreateVersion7();
+
+        async Task OeffnenAsync(string zweck = "Mieterakte geöffnet")
+        {
+            await using var scope = umgebung.Services.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<IZugriffsprotokoll>().ProtokollierenAsync("Person", mieterId, zweck, Ct);
+        }
+
+        await OeffnenAsync();
+        await OeffnenAsync();
+        umgebung.Uhr.Advance(Zugriffsprotokoll.Zeitfenster - TimeSpan.FromMinutes(1));
+        await OeffnenAsync();
+        await OeffnenAsync("DSGVO-Auskunft"); // anderer Zweck zählt eigens
+        umgebung.Uhr.Advance(TimeSpan.FromMinutes(2));
+        await OeffnenAsync();
+
+        await using var lesen = umgebung.Services.CreateAsyncScope();
+        var eintraege = await lesen.ServiceProvider.GetRequiredService<IAenderungsHistorie>().LadenAsync("Person", mieterId, Ct);
+        Assert.Equal(3, eintraege.Count);
+    }
+
+    [Fact]
     public async Task Zugriffsprotokoll_ist_abschaltbar()
     {
         await using var umgebung = await InfrastrukturUmgebung.ErstellenAsync(postgres, new Dictionary<string, string?> { ["Audit:ZugriffeProtokollieren"] = "false" });

@@ -1,0 +1,32 @@
+@* Anschrift ab Stichtag; steht innerhalb eines EditForm mit Model = Anschrift. *@
+<div class="formular-raster">
+    @if (MitStichtag)
+    {
+        <FormularFeld Id="anschrift-ab" Beschriftung="Gültig ab" Fuer="() => Anschrift.Ab" Pflicht="true" Hinweis="Umzugsdatum">
+            <InputDate id="anschrift-ab" @bind-Value="Anschrift.Ab" />
+        </FormularFeld>
+    }
+    <FormularFeld Id="anschrift-strasse" Beschriftung="Straße und Hausnummer" Fuer="() => Anschrift.Strasse" Pflicht="@MitStichtag">
+        <InputText id="anschrift-strasse" @bind-Value="Anschrift.Strasse" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="anschrift-plz" Beschriftung="PLZ" Fuer="() => Anschrift.Plz" Pflicht="@MitStichtag">
+        <InputText id="anschrift-plz" @bind-Value="Anschrift.Plz" inputmode="numeric" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="anschrift-ort" Beschriftung="Ort" Fuer="() => Anschrift.Ort" Pflicht="@MitStichtag">
+        <InputText id="anschrift-ort" @bind-Value="Anschrift.Ort" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="anschrift-zusatz" Beschriftung="Zusatz" Fuer="() => Anschrift.Zusatz" Hinweis="z. B. „c/o Müller“">
+        <InputText id="anschrift-zusatz" @bind-Value="Anschrift.Zusatz" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="anschrift-land" Beschriftung="Land" Fuer="() => Anschrift.Land" Hinweis="Leer = Deutschland">
+        <InputText id="anschrift-land" @bind-Value="Anschrift.Land" autocomplete="off" />
+    </FormularFeld>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public AnschriftEingabe Anschrift { get; set; } = default!;
+
+    [Parameter]
+    public bool MitStichtag { get; set; } = true;
+}

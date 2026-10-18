@@ -9,21 +9,25 @@ using MietHahn.Application.Audit;
 using MietHahn.Application.Aufgaben;
 using MietHahn.Application.Betrieb;
 using MietHahn.Application.Dateien;
+using MietHahn.Application.Datenschutz;
 using MietHahn.Application.Dokumente;
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Application.Kommunikation;
 using MietHahn.Application.Konten;
 using MietHahn.Application.Objekte;
+using MietHahn.Application.Personen;
 using MietHahn.Application.Verwaltung;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Betrieb;
 using MietHahn.Infrastructure.Dateien;
+using MietHahn.Infrastructure.Datenschutz;
 using MietHahn.Infrastructure.Identitaet;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Mail;
 using MietHahn.Infrastructure.Objekte;
 using MietHahn.Infrastructure.Pdf;
 using MietHahn.Infrastructure.Persistenz;
+using MietHahn.Infrastructure.Personen;
 using MietHahn.Infrastructure.Verwaltung;
 using MietHahn.Infrastructure.Vorlagen;
 using Quartz;
@@ -52,6 +56,7 @@ public static class DependencyInjection
         PdfRegistrieren(services, konfiguration);
         BetriebRegistrieren(services, konfiguration);
         StammdatenRegistrieren(services);
+        DatenschutzRegistrieren(services, konfiguration);
         JobsRegistrieren(services, konfiguration);
         HealthChecksRegistrieren(services);
 
@@ -165,6 +170,13 @@ public static class DependencyInjection
         services.AddScoped<IObjektVerwaltung, ObjektVerwaltung>();
         services.AddScoped<IObjektZuordnungen, ObjektZuordnungen>();
         services.TryAddScoped<IBelegungsauskunft, KeineBelegung>();
+        services.AddScoped<IPersonenVerwaltung, PersonenVerwaltung>();
+    }
+
+    private static void DatenschutzRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    {
+        services.Configure<DatenschutzOptionen>(konfiguration.GetSection(DatenschutzOptionen.Abschnitt));
+        services.AddScoped<IDatenschutz, Datenschutz.Datenschutz>();
     }
 
     private static void HealthChecksRegistrieren(IServiceCollection services) =>

@@ -1,0 +1,72 @@
+@page "/verwaltung/datenschutz"
+@using MietHahn.Application.Datenschutz
+@inject IDatenschutz Datenschutz
+@inject Weiterleitung Weiterleitung
+
+<Seitenkopf Titel="Datenschutz" Untertitel="Personen, deren Daten nach Ablauf der Aufbewahrungsfrist nicht mehr benötigt werden." />
+
+<StatusMeldung />
+<FehlerListe Fehler="fehler" />
+
+<p class="klein">
+    MietHahn schlägt nur vor, gelöscht wird nichts automatisch. Vor dem Anonymisieren prüfen, ob noch Fristen laufen
+    (z. B. offene Forderungen, Rechtsstreit). Eine Auskunft nach Art. 15 DSGVO gibt es in jeder Personenakte.
+</p>
+
+@if (vorschlaege is { Count: 0 })
+{
+    <Leerzustand Text="Derzeit gibt es keine Personen, deren Aufbewahrungsfrist abgelaufen ist." />
+}
+else if (vorschlaege is not null)
+{
+    <form method="post" @formname="anonymisieren" @onsubmit="AnonymisierenAsync">
+        <AntiforgeryToken />
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Person</th><th>Grund</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var vorschlag in vorschlaege)
+                    {
+                        <tr>
+                            <td><a href="/verwaltung/personen/@vorschlag.PersonId">@vorschlag.Anzeigename</a></td>
+                            <td>@vorschlag.Grund</td>
+                            <td><button type="submit" name="PersonId" value="@vorschlag.PersonId" class="knopf knopf-gefahr" aria-label="@vorschlag.Anzeigename anonymisieren">Anonymisieren</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<Anonymisierungsvorschlag>? vorschlaege;
+    private IReadOnlyList<string>? fehler;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "anonymisieren")]
+    private Guid? PersonId { get; set; }
+
+    protected override async Task OnInitializedAsync() => vorschlaege = await Datenschutz.VorschlaegeAsync();
+
+    private async Task AnonymisierenAsync()
+    {
+        if (PersonId is not { } id)
+        {
+            return;
+        }
+
+        var ergebnis = await Datenschutz.AnonymisierenAsync(id);
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung("/verwaltung/datenschutz", "Die Person wurde anonymisiert.", HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+            vorschlaege = await Datenschutz.VorschlaegeAsync();
+        }
+    }
+}

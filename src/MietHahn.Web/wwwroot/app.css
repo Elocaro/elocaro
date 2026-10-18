@@ -256,6 +256,9 @@ section { margin-bottom: 2rem; }
 .aufklapper > summary { cursor: pointer; font-weight: 600; color: var(--farbe-primaer); min-height: 2.75rem; display: flex; align-items: center; }
 .aufklapper[open] > summary { margin-bottom: 0.5rem; }
 
+/* Suche */
+.suchleiste { margin-bottom: var(--abstand); }
+
 /* Objekte */
 .objekt-kopf { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: flex-start; margin-bottom: var(--abstand); }
 .objekt-kopf .angaben { flex: 1 1 18rem; }

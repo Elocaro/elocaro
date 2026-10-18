@@ -1,0 +1,54 @@
+@* Eingabefelder einer Person; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormularFeld Id="anrede" Beschriftung="Anrede" Fuer="() => Daten.Anrede">
+        <InputSelect id="anrede" @bind-Value="Daten.Anrede">
+            @foreach (var wert in Enum.GetValues<Anrede>())
+            {
+                <option value="@wert">@Bezeichnungen.Von(wert)</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="titel" Beschriftung="Titel" Fuer="() => Daten.Titel">
+        <InputText id="titel" @bind-Value="Daten.Titel" autocomplete="honorific-prefix" />
+    </FormularFeld>
+    <FormularFeld Id="vorname" Beschriftung="Vorname" Fuer="() => Daten.Vorname">
+        <InputText id="vorname" @bind-Value="Daten.Vorname" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="nachname" Beschriftung="Nachname bzw. Name" Fuer="() => Daten.Nachname" Pflicht="true">
+        <InputText id="nachname" @bind-Value="Daten.Nachname" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="firma" Beschriftung="Firma" Fuer="() => Daten.Firma">
+        <InputText id="firma" @bind-Value="Daten.Firma" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="kontaktart" Beschriftung="Kontaktart" Fuer="() => Daten.Kontaktart" Hinweis="Für Mieter und Bürgen „privat“ lassen.">
+        <InputSelect id="kontaktart" @bind-Value="Daten.Kontaktart">
+            @foreach (var wert in Enum.GetValues<Kontaktart>())
+            {
+                <option value="@wert">@Bezeichnungen.Von(wert)</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="taetigkeit" Beschriftung="Gewerk / Sparte" Fuer="() => Daten.Taetigkeit" Hinweis="z. B. „Sanitär“ oder „Wasser“">
+        <InputText id="taetigkeit" @bind-Value="Daten.Taetigkeit" />
+    </FormularFeld>
+    <FormularFeld Id="email" Beschriftung="E-Mail" Fuer="() => Daten.Email">
+        <InputText id="email" type="email" @bind-Value="Daten.Email" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="telefon" Beschriftung="Telefon" Fuer="() => Daten.Telefon">
+        <InputText id="telefon" type="tel" @bind-Value="Daten.Telefon" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="mobil" Beschriftung="Mobil" Fuer="() => Daten.Mobil">
+        <InputText id="mobil" type="tel" @bind-Value="Daten.Mobil" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="geburtsdatum" Beschriftung="Geburtsdatum" Fuer="() => Daten.Geburtsdatum" Hinweis="Nur wenn nötig (Datensparsamkeit).">
+        <InputDate id="geburtsdatum" @bind-Value="Daten.Geburtsdatum" />
+    </FormularFeld>
+</div>
+<FormularFeld Id="notizen" Beschriftung="Notizen" Fuer="() => Daten.Notizen">
+    <InputTextArea id="notizen" @bind-Value="Daten.Notizen" rows="3" />
+</FormularFeld>
+
+@code {
+    [Parameter, EditorRequired]
+    public PersonDaten Daten { get; set; } = default!;
+}

@@ -4,6 +4,7 @@ using MietHahn.Application.Objekte;
 using MietHahn.Domain.Dateien;
 using MietHahn.Domain.Gemeinsam;
 using MietHahn.Domain.Objekte;
+using MietHahn.Infrastructure.Gemeinsam;
 using MietHahn.Infrastructure.Persistenz;
 
 namespace MietHahn.Infrastructure.Objekte;
@@ -291,31 +292,9 @@ internal sealed class ObjektVerwaltung(MietHahnDbContext db, IBelegungsauskunft 
             return id;
         });
 
-    private static async Task<Ergebnis> AusfuehrenAsync(Func<Task<Guid>> befehl)
-    {
-        try
-        {
-            return Ergebnis.Ok(await befehl());
-        }
-        catch (NichtGefundenException)
-        {
-            return NichtGefunden;
-        }
-        catch (RegelverletzungException fehler)
-        {
-            return Ergebnis.Fehlgeschlagen(fehler.Message);
-        }
-        catch (Exception fehler) when (Datenbankfehler.IstUeberlappung(fehler))
-        {
-            return Ergebnis.Fehlgeschlagen("Für diesen Zeitraum gibt es bereits einen Stand.");
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return Ergebnis.Fehlgeschlagen("Der Datensatz wurde zwischenzeitlich geändert. Bitte die Seite neu laden.");
-        }
-    }
+    private static Task<Ergebnis> AusfuehrenAsync(Func<Task<Guid>> befehl) => Befehl.AusfuehrenAsync(befehl);
 
-    private static Ergebnis NichtGefunden => Ergebnis.Fehlgeschlagen("Der Datensatz wurde nicht gefunden.");
+    private static Ergebnis NichtGefunden => Befehl.NichtGefunden;
 
     private static DateOnly Ab(FlaechenEingabe eingabe) =>
         eingabe.Ab ?? throw new RegelverletzungException("Bitte angeben, ab wann die Fläche gilt.");
@@ -396,8 +375,6 @@ internal sealed class ObjektVerwaltung(MietHahnDbContext db, IBelegungsauskunft 
     }
 
     private static string? Leer(string? wert) => string.IsNullOrWhiteSpace(wert) ? null : wert.Trim();
-
-    private sealed class NichtGefundenException : Exception;
 }
 
 /// <summary>Ohne Vertragsmodul: alles steht leer.</summary>

@@ -1,9 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Objekte;
+using MietHahn.Application.Personen;
 
 namespace MietHahn.Web.Tests.Browser;
 
-public class ObjekteBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
+public class StammdatenBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
 {
     [Fact]
     public async Task Objektseiten_passen_auf_360_Pixel()
@@ -39,6 +40,29 @@ public class ObjekteBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
 
         var einheit = await App.MitScopeAsync(sp => sp.GetRequiredService<IObjektVerwaltung>().EinheitLadenAsync(wgId, TestContext.Current.CancellationToken));
         Assert.Equal(112.5m, einheit!.Flaechenhistorie[0].Flaeche);
+    }
+
+    [Fact]
+    public async Task Personenseiten_passen_auf_360_Pixel()
+    {
+        var seite = await AlsAdminAngemeldetAsync();
+        var personId = await App.MitScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            var v = sp.GetRequiredService<IPersonenVerwaltung>();
+            var id = (await v.AnlegenAsync(
+                new PersonDaten { Vorname = "Maximiliane", Nachname = "Mustermann-Schnarrenberger", Email = "maximiliane.mustermann-schnarrenberger@example.de", Telefon = "0221 12345678" },
+                new AnschriftEingabe { Ab = new DateOnly(2026, 1, 1), Strasse = "Sehr lange Straßenbezeichnung 123a", Plz = "50667", Ort = "Köln", Zusatz = "c/o Familie Mustermann" },
+                ct)).Id!.Value;
+            await v.BankverbindungHinzufuegenAsync(id, new BankverbindungEingabe { Iban = "DE89370400440532013000", Kontoinhaber = "Maximiliane Mustermann-Schnarrenberger" }, ct);
+            return id;
+        });
+
+        foreach (var pfad in new[] { "/verwaltung/personen", "/verwaltung/personen/neu", $"/verwaltung/personen/{personId}", $"/verwaltung/personen/{personId}/bearbeiten", "/verwaltung/datenschutz" })
+        {
+            await seite.GotoAsync(BasisUrl + pfad);
+            await KeinHorizontalesScrollenAsync(seite);
+        }
     }
 
     private async Task<(Guid Objekt, Guid Wg, Guid Zimmer)> BeispielhausAsync() =>

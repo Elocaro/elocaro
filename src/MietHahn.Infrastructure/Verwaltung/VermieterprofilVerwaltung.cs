@@ -52,11 +52,7 @@ internal sealed class VermieterprofilVerwaltung(MietHahnDbContext db) : IVermiet
     }
 
     /// <summary>„de021203…“ → „DE02 1203 0000 …“ (Vierergruppen, wie auf Dokumenten üblich).</summary>
-    internal static string? IbanFormatieren(string? iban)
-    {
-        var kompakt = Leer(iban)?.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
-        return kompakt is null ? null : string.Join(' ', kompakt.Chunk(4).Select(c => new string(c)));
-    }
+    internal static string? IbanFormatieren(string? iban) => Leer(iban) is { } wert ? Domain.Gemeinsam.Iban.Formatieren(wert) : null;
 
     private Task<Vermieterprofil?> ProfilAsync(CancellationToken cancellationToken) =>
         db.Set<Vermieterprofil>().OrderBy(v => v.ErstelltAm).FirstOrDefaultAsync(cancellationToken);

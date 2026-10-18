@@ -1,0 +1,59 @@
+@page "/verwaltung/personen/neu"
+@inject IPersonenVerwaltung Verwaltung
+@inject Weiterleitung Weiterleitung
+@inject TimeProvider Uhr
+
+<Seitenkopf Titel="Person anlegen" Zurueck="/verwaltung/personen" ZurueckText="Alle Personen" />
+
+<FehlerListe Fehler="fehler" />
+
+<EditForm Model="Daten" FormName="person" OnValidSubmit="AnlegenAsync">
+    <DataAnnotationsValidator />
+    <PersonFelder Daten="Daten!" />
+    <h2>Anschrift</h2>
+    <p class="klein">Optional. Für Mieter die bisherige Anschrift (Voranschrift); beim Einzug wird sie fortgeschrieben.</p>
+    <AnschriftFelder Anschrift="Anschrift!" MitStichtag="false" />
+    <button type="submit" class="knopf knopf-primaer">Person anlegen</button>
+</EditForm>
+
+@code {
+    private IReadOnlyList<string>? fehler;
+
+    // Ein Formular, zwei Modelle: Feldnamen Daten.* (PersonFelder) und Anschrift.* (AnschriftFelder).
+    [SupplyParameterFromForm(FormName = "person")]
+    private PersonDaten? Daten { get; set; }
+
+    [SupplyParameterFromForm(FormName = "person")]
+    private AnschriftEingabe? Anschrift { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Daten ??= new();
+        Anschrift ??= new();
+    }
+
+    private async Task AnlegenAsync()
+    {
+        var anschrift = Anschrift!;
+        var mitAnschrift = !string.IsNullOrWhiteSpace(anschrift.Strasse);
+        if (mitAnschrift && (string.IsNullOrWhiteSpace(anschrift.Plz) || string.IsNullOrWhiteSpace(anschrift.Ort)))
+        {
+            fehler = ["Bitte zur Straße auch PLZ und Ort angeben."];
+            return;
+        }
+
+        anschrift.Ab ??= MietHahn.Domain.Gemeinsam.Zeitzone.Heute(Uhr.GetUtcNow());
+        var ergebnis = await Verwaltung.AnlegenAsync(Daten!, mitAnschrift ? anschrift : null);
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung($"/verwaltung/personen/{ergebnis.Id}", "Die Person wurde angelegt.", HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+}

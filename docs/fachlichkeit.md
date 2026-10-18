@@ -108,4 +108,6 @@ NK-/Heizkostenabrechnung, Mietvertrag, Zimmervertrag (WG), Mieterhöhung (Vergle
 
 ## Datenschutz (DSGVO)
 
+Umsetzung in MietHahn: Auskunft je Person als JSON-Download (Personenakte → „DSGVO-Auskunft“), Zugriffsprotokoll beim Öffnen von Personenakten, Vorschlagsliste unter *Stammdaten → Datenschutz* (10 Jahre nach Ende des letzten Vertrags, Personen ohne Vertrag nach 12 Monaten), Anonymisierung entfernt die Daten endgültig, auch aus dem Änderungsprotokoll. Gelöscht wird nie automatisch.
+
 Verarbeitungsverzeichnis-Vorlage, Datenexport je Person (Auskunft Art. 15), Löschkonzept (Fristen nach Vertragsende, Aufbewahrungspflichten beachten), Audit-Log für Zugriffe und Änderungen, verschlüsselte Backups.

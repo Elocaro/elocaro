@@ -34,6 +34,9 @@
     }
     else if (mails is not null)
     {
+        @* Ein Formular für alle Zeilen: der geklickte Knopf sendet seine Id (Formularnamen müssen eindeutig sein). *@
+        <form method="post" @formname="erneut" @onsubmit="ErneutVersuchenAsync" data-enhance>
+        <AntiforgeryToken />
         <div class="tabellen-rahmen">
         <table class="tabelle">
             <thead>
@@ -52,11 +55,7 @@
                         <td>
                             @if (mail.Status != MailStatus.Gesendet)
                             {
-                                <form method="post" @formname="erneut" @onsubmit="ErneutVersuchenAsync" data-enhance>
-                                    <AntiforgeryToken />
-                                    <input type="hidden" name="ErneutId" value="@mail.Id" />
-                                    <button type="submit" class="knopf">Erneut senden</button>
-                                </form>
+                                <button type="submit" name="ErneutId" value="@mail.Id" class="knopf">Erneut senden</button>
                             }
                         </td>
                     </tr>
@@ -64,6 +63,7 @@
             </tbody>
         </table>
         </div>
+        </form>
     }
 </section>
 

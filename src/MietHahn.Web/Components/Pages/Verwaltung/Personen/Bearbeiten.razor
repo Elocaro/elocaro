@@ -1,0 +1,57 @@
+@page "/verwaltung/personen/{Id:guid}/bearbeiten"
+@inject IPersonenVerwaltung Verwaltung
+@inject Weiterleitung Weiterleitung
+
+@if (person is null)
+{
+    <Seitenkopf Titel="Person nicht gefunden" Zurueck="/verwaltung/personen" ZurueckText="Alle Personen" />
+    return;
+}
+
+<Seitenkopf Titel="@($"{person.Anzeigename} bearbeiten")" Zurueck="@($"/verwaltung/personen/{Id}")" ZurueckText="Zur Person" />
+
+<FehlerListe Fehler="fehler" />
+
+<EditForm Model="Daten" FormName="person" OnValidSubmit="SpeichernAsync">
+    <DataAnnotationsValidator />
+    <PersonFelder Daten="Daten!" />
+    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+</EditForm>
+
+@code {
+    private PersonDetails? person;
+    private IReadOnlyList<string>? fehler;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "person")]
+    private PersonDaten? Daten { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var formular = Daten;
+        Daten ??= new();
+        person = await Verwaltung.LadenAsync(Id);
+        if (person is not null)
+        {
+            Daten = formular ?? person.Daten;
+        }
+    }
+
+    private async Task SpeichernAsync()
+    {
+        var ergebnis = await Verwaltung.AendernAsync(Id, Daten!);
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung($"/verwaltung/personen/{Id}", "Die Angaben wurden gespeichert.", HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+}

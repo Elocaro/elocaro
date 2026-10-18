@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MietHahn.Application.Audit;
 using MietHahn.Application.Gemeinsam;
@@ -11,6 +12,9 @@ internal sealed class Zugriffsprotokoll(
     TimeProvider uhr,
     IOptions<AuditOptionen> optionen) : IZugriffsprotokoll
 {
+    /// <summary>Innerhalb dieses Zeitraums wird derselbe Zugriff (Benutzer, Datensatz, Zweck) nur einmal protokolliert.</summary>
+    public static readonly TimeSpan Zeitfenster = TimeSpan.FromMinutes(30);
+
     public async Task ProtokollierenAsync(string entitaetTyp, Guid entitaetId, string zweck, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entitaetTyp);
@@ -20,7 +24,18 @@ internal sealed class Zugriffsprotokoll(
             return;
         }
 
-        db.Add(new AuditEintrag(uhr.GetUtcNow(), benutzer.Kennung, entitaetTyp, entitaetId, AuditAktion.Gelesen, "[]", zweck));
+        // Wiederholtes Öffnen (z. B. nach jedem Speichern) nicht jedes Mal protokollieren: ein Eintrag je Zeitfenster genügt als Nachweis.
+        var jetzt = uhr.GetUtcNow();
+        var seit = jetzt - Zeitfenster;
+        var kennung = benutzer.Kennung;
+        if (await db.Set<AuditEintrag>().AnyAsync(
+                a => a.EntitaetId == entitaetId && a.Aktion == AuditAktion.Gelesen && a.Benutzer == kennung && a.Zweck == zweck && a.Zeitpunkt >= seit,
+                cancellationToken))
+        {
+            return;
+        }
+
+        db.Add(new AuditEintrag(jetzt, kennung, entitaetTyp, entitaetId, AuditAktion.Gelesen, "[]", zweck));
         await db.SaveChangesAsync(cancellationToken);
     }
 }

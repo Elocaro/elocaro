@@ -5,6 +5,7 @@ using MietHahn.Web.Autorisierung;
 using MietHahn.Web.Betrieb;
 using MietHahn.Web.Components;
 using MietHahn.Web.Konto;
+using MietHahn.Web.Personen;
 
 if (args.FirstOrDefault() == "healthcheck")
 {
@@ -48,6 +49,7 @@ app.MapKontoEndpunkte();
 app.MapDateiEndpunkte();
 app.MapHealthEndpunkte();
 app.MapExportEndpunkt();
+app.MapAuskunftEndpunkt();
 
 await app.Services.MigriereDatenbankAsync();
 await app.RunAsync();

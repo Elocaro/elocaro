@@ -890,6 +890,282 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.ToTable("zimmer_flaechen", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Personen.Bankverbindung", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Bic")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)")
+                        .HasColumnName("bic");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<string>("Iban")
+                        .IsRequired()
+                        .HasMaxLength(42)
+                        .HasColumnType("character varying(42)")
+                        .HasColumnName("iban");
+
+                    b.Property<string>("Kontoinhaber")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("kontoinhaber");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_bankverbindungen");
+
+                    b.HasIndex("Iban")
+                        .HasDatabaseName("ix_bankverbindungen_iban");
+
+                    b.HasIndex("PersonId")
+                        .HasDatabaseName("ix_bankverbindungen_person_id");
+
+                    b.ToTable("bankverbindungen", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Personen.Person", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AnonymisiertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("anonymisiert_am");
+
+                    b.Property<string>("Anrede")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("anrede");
+
+                    b.Property<Guid?>("BenutzerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("benutzer_id");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<string>("Firma")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("firma")
+                        .UseCollation("german");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<DateOnly?>("Geburtsdatum")
+                        .HasColumnType("date")
+                        .HasColumnName("geburtsdatum");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<string>("Kontaktart")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kontaktart");
+
+                    b.Property<string>("Mobil")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("mobil");
+
+                    b.Property<string>("Nachname")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nachname")
+                        .UseCollation("german");
+
+                    b.Property<string>("Notizen")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("notizen");
+
+                    b.Property<string>("Taetigkeit")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("taetigkeit");
+
+                    b.Property<string>("Telefon")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("telefon");
+
+                    b.Property<string>("Titel")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("titel");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("Vorname")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("vorname")
+                        .UseCollation("german");
+
+                    b.HasKey("Id")
+                        .HasName("pk_personen");
+
+                    b.HasIndex("BenutzerId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_personen_benutzer_id")
+                        .HasFilter("benutzer_id IS NOT NULL AND NOT geloescht");
+
+                    b.HasIndex("Nachname")
+                        .HasDatabaseName("ix_personen_nachname");
+
+                    b.ToTable("personen", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Personen.PersonAnschrift", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<string>("Land")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("land");
+
+                    b.Property<string>("Ort")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("ort");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.Property<string>("Plz")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("plz");
+
+                    b.Property<string>("Strasse")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("strasse");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("Zusatz")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("zusatz");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Gueltigkeit", "MietHahn.Domain.Personen.PersonAnschrift.Gueltigkeit#Zeitraum", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<DateOnly?>("Bis")
+                                .HasColumnType("date")
+                                .HasColumnName("gueltigkeit_bis");
+
+                            b1.Property<DateOnly>("Von")
+                                .HasColumnType("date")
+                                .HasColumnName("gueltigkeit_von");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_person_anschriften");
+
+                    b.HasIndex("PersonId")
+                        .HasDatabaseName("ix_person_anschriften_person_id");
+
+                    b.ToTable("person_anschriften", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Verwaltung.Vermieterprofil", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1439,6 +1715,35 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                         .HasConstraintName("fk_zimmer_flaechen_zimmer_zimmer_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Personen.Bankverbindung", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Personen.Person", null)
+                        .WithMany("Bankverbindungen")
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_bankverbindungen_person_person_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Personen.Person", b =>
+                {
+                    b.HasOne("MietHahn.Infrastructure.Identitaet.Benutzer", null)
+                        .WithMany()
+                        .HasForeignKey("BenutzerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_personen_benutzer_benutzer_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Personen.PersonAnschrift", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Personen.Person", null)
+                        .WithMany("Anschriften")
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_person_anschriften_person_person_id");
+                });
+
             modelBuilder.Entity("MietHahn.Infrastructure.Identitaet.Anmeldelink", b =>
                 {
                     b.HasOne("MietHahn.Infrastructure.Identitaet.Benutzer", null)
@@ -1466,6 +1771,13 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
             modelBuilder.Entity("MietHahn.Domain.Objekte.Zimmer", b =>
                 {
                     b.Navigation("Flaechen");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Personen.Person", b =>
+                {
+                    b.Navigation("Anschriften");
+
+                    b.Navigation("Bankverbindungen");
                 });
 #pragma warning restore 612, 618
         }
