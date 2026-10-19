@@ -1,7 +1,10 @@
 @page "/verwaltung/belege/neu"
+@using Microsoft.AspNetCore.DataProtection
 @using MietHahn.Application.Files
 @inject IReceiptService Receipts
+@inject IReceiptExtraction Extraction
 @inject IFileStore Storage
+@inject IDataProtectionProvider Protection
 @inject Redirector Redirector
 
 <PageHeader Title="Beleg erfassen" Back="/verwaltung/belege" BackText="Alle Belege" />
@@ -10,17 +13,47 @@
 
 @if (selection is not null)
 {
+    @if (Extraction.Info.Enabled)
+    {
+        <section>
+            <h2>Beleg automatisch auslesen</h2>
+            <p class="message message-info" id="extraction-notice">@Extraction.Info.Notice</p>
+            @if (Extraction.Info.Ready)
+            {
+                <form method="post" enctype="multipart/form-data" @formname="extract" @onsubmit="ExtractAsync" class="form-row">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="StoredFileIds" value="@uploadToken" />
+                    <div class="field">
+                        <label for="extract-files">Rechnung (PDF oder Fotos)</label>
+                        <input type="file" id="extract-files" name="ExtractFiles" accept="application/pdf,image/*" multiple />
+                    </div>
+                    <div class="field field-action"><button type="submit" class="button">Vorschlag aus Beleg auslesen</button></div>
+                </form>
+            }
+            else
+            {
+                <p class="small" id="extraction-problem">@Extraction.Info.Problem</p>
+            }
+        </section>
+        <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
+    }
+
     <EditForm Model="Data" FormName="receipt" OnValidSubmit="SaveAsync" enctype="multipart/form-data">
         <DataAnnotationsValidator />
+        <input type="hidden" name="StoredFileIds" value="@uploadToken" />
         <div class="field">
             <label for="files">Rechnung (PDF oder Fotos)</label>
+            @if (storedCount > 0)
+            {
+                <span class="field-hint" id="stored-files">@storedCount @(storedCount == 1 ? "Datei ist" : "Dateien sind") bereits hochgeladen und wird dem Beleg zugeordnet.</span>
+            }
             <input type="file" id="files" name="Files" accept="application/pdf,image/*" multiple />
             <span class="field-hint">Mehrere Seiten auf einmal möglich; auf dem Handy öffnet sich die Kamera zur Auswahl.</span>
         </div>
-        <ReceiptFields Data="Data!" Options="selection" />
+        <ReceiptFields Data="Data!" Options="selection" Uncertain="uncertain" />
         <h2>Kostenart</h2>
         <p class="small">Für eine Rechnung mit einer Kostenart. Aufteilen auf mehrere Kostenarten oder Objekte geht danach.</p>
-        <CostItemFields Position="Position!" Options="selection" WithDetails="false" Required="false" />
+        <CostItemFields Position="Position!" Options="selection" WithDetails="@(Position!.Section35a != Section35a.None)" Required="false" Uncertain="uncertain" />
         <button type="submit" class="button button-primary">Speichern</button>
     </EditForm>
 }
@@ -28,6 +61,10 @@
 @code {
     private ReceiptOptions? selection;
     private IReadOnlyList<string>? errors;
+    private ExtractionOutcome? outcome;
+    private IReadOnlySet<string>? uncertain;
+    private string? uploadToken;
+    private int storedCount;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -41,23 +78,60 @@
     [SupplyParameterFromForm(FormName = "receipt")]
     private IFormFileCollection? Files { get; set; }
 
+    [SupplyParameterFromForm(FormName = "receipt", Name = "StoredFileIds")]
+    private string? ReceiptStoredFileIds { get; set; }
+
+    [SupplyParameterFromForm(FormName = "extract", Name = "StoredFileIds")]
+    private string? ExtractStoredFileIds { get; set; }
+
+    [SupplyParameterFromForm(FormName = "extract")]
+    private IFormFileCollection? ExtractFiles { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         Data ??= new();
         Position ??= new();
         selection = await Receipts.OptionsAsync();
+
+        // Re-render after a failed save: keep the already uploaded files.
+        var stored = UploadToken.Unprotect(Protection, ReceiptStoredFileIds);
+        storedCount = stored.Count;
+        uploadToken = stored.Count > 0 ? UploadToken.Protect(Protection, stored) : null;
+    }
+
+    private async Task ExtractAsync()
+    {
+        try
+        {
+            var ids = new List<Guid>(UploadToken.Unprotect(Protection, ExtractStoredFileIds));
+            ids.AddRange(await StoreAsync(ExtractFiles));
+            storedCount = ids.Count;
+            uploadToken = ids.Count > 0 ? UploadToken.Protect(Protection, ids) : null;
+
+            outcome = await Extraction.SuggestAsync(ids);
+            if (outcome.Suggestion is { } suggestion)
+            {
+                Data = SuggestionMapping.Apply(new ReceiptInput(), suggestion, outcome.SupplierId);
+                Position = SuggestionMapping.ToPosition(suggestion, selection!);
+                uncertain = suggestion.UncertainFields();
+            }
+            else
+            {
+                errors = [outcome.Error ?? "Die Belegauslesung hat kein Ergebnis geliefert."];
+            }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
     }
 
     private async Task SaveAsync()
     {
         try
         {
-            var fileIds = new List<Guid>();
-            foreach (var file in Files?.Where(d => d.Length > 0) ?? [])
-            {
-                await using var content = file.OpenReadStream();
-                fileIds.Add((await Storage.SaveAsync(content, file.FileName)).Id);
-            }
+            var fileIds = new List<Guid>(UploadToken.Unprotect(Protection, ReceiptStoredFileIds));
+            fileIds.AddRange(await StoreAsync(Files));
 
             var result = await Receipts.CreateAsync(Data!, fileIds, Position);
             if (result.Succeeded)
@@ -67,11 +141,25 @@
             else
             {
                 errors = result.Errors;
+                storedCount = fileIds.Count;
+                uploadToken = fileIds.Count > 0 ? UploadToken.Protect(Protection, fileIds) : null;
             }
         }
         catch (FileRejectedException ex)
         {
             errors = [ex.Message];
         }
+    }
+
+    private async Task<List<Guid>> StoreAsync(IFormFileCollection? files)
+    {
+        var ids = new List<Guid>();
+        foreach (var file in files?.Where(d => d.Length > 0) ?? [])
+        {
+            await using var content = file.OpenReadStream();
+            ids.Add((await Storage.SaveAsync(content, file.FileName)).Id);
+        }
+
+        return ids;
     }
 }

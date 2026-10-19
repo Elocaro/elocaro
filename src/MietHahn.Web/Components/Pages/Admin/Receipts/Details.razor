@@ -1,6 +1,7 @@
 @page "/verwaltung/belege/{Id:guid}"
 @using MietHahn.Application.Files
 @inject IReceiptService Receipts
+@inject IReceiptExtraction Extraction
 @inject IFileStore Storage
 @inject Redirector Redirector
 
@@ -103,9 +104,18 @@
 {
     <section>
         <h2>Angaben</h2>
+        @if (Extraction.Info.Ready && receipt.Files.Count > 0)
+        {
+            <p class="message message-info" id="extraction-notice">@Extraction.Info.Notice</p>
+            <form method="post" @formname="extract" @onsubmit="ExtractAsync">
+                <AntiforgeryToken />
+                <button type="submit" class="button">Vorschlag aus Beleg auslesen</button>
+            </form>
+            <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
+        }
         <EditForm Model="Data" FormName="receipt" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
-            <ReceiptFields Data="Data!" Options="selection" />
+            <ReceiptFields Data="Data!" Options="selection" Uncertain="uncertain" />
             <button type="submit" class="button button-primary">Speichern</button>
         </EditForm>
     </section>
@@ -122,6 +132,8 @@
     private ReceiptDetails? receipt;
     private ReceiptOptions? selection;
     private IReadOnlyList<string>? errors;
+    private ExtractionOutcome? outcome;
+    private IReadOnlySet<string>? uncertain;
 
     [Parameter]
     public Guid Id { get; set; }
@@ -156,6 +168,26 @@
         if (form is null && receipt is not null)
         {
             Data = receipt.Data;
+        }
+    }
+
+    /// <summary>Reads a suggestion from the existing pages and pre-fills the form (not saved until the user confirms).</summary>
+    private async Task ExtractAsync()
+    {
+        if (receipt is null)
+        {
+            return;
+        }
+
+        outcome = await Extraction.SuggestAsync(receipt.Files.Select(d => d.FileId).ToList());
+        if (outcome.Suggestion is { } suggestion)
+        {
+            Data = SuggestionMapping.Apply(SuggestionMapping.Copy(receipt.Data), suggestion, outcome.SupplierId);
+            uncertain = suggestion.UncertainFields();
+        }
+        else
+        {
+            errors = [outcome.Error ?? "Die Belegauslesung hat kein Ergebnis geliefert."];
         }
     }
 

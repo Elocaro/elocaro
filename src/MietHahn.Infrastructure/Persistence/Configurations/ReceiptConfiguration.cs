@@ -50,3 +50,14 @@ internal sealed class CostItemConfiguration : IEntityTypeConfiguration<CostItem>
         builder.HasIndex(p => new { p.PropertyId, p.CostType });
     }
 }
+
+internal sealed class SupplierCostTypeRuleConfiguration : IEntityTypeConfiguration<SupplierCostTypeRule>
+{
+    public void Configure(EntityTypeBuilder<SupplierCostTypeRule> builder)
+    {
+        builder.ToTable("supplier_cost_type_rules");
+        builder.Property(r => r.SupplierKey).HasMaxLength(250);
+        builder.Property(r => r.CostType).HasMaxLength(40);
+        builder.HasIndex(r => r.SupplierKey).IsUnique().HasFilter("NOT deleted");
+    }
+}

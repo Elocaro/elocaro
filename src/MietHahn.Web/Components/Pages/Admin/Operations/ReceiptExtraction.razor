@@ -1,0 +1,66 @@
+@page "/verwaltung/system/belegauslesung"
+@using MietHahn.Application.Receipts
+@inject IReceiptExtraction Extraction
+
+<PageHeader Title="Belegauslesung" Subtitle="Automatischer Vorschlag der Belegdaten (Lieferant, Beträge, Datum, Kostenart) beim Erfassen von Belegen." />
+
+@{
+    var info = Extraction.Info;
+}
+
+@if (info.SendsToThirdParty)
+{
+    <p class="message message-error" role="alert" id="third-party-notice">
+        Datenschutz: Dieser Anbieter ist ein externer Dienst. Belege enthalten häufig personenbezogene Daten (Mieter, Handwerker, Anschriften).
+        Sie werden zum Auslesen an den Anbieter übermittelt. Prüfen Sie vorab den Auftragsverarbeitungsvertrag des Anbieters und
+        nehmen Sie die Verarbeitung ins Verzeichnis von Verarbeitungstätigkeiten auf.
+    </p>
+}
+
+<section>
+    <h2>Aktueller Anbieter</h2>
+    <dl class="details">
+        <dt>Anbieter</dt>
+        <dd id="provider-name">@info.Name</dd>
+        @if (info.Model is not null)
+        {
+            <dt>Modell</dt>
+            <dd>@info.Model</dd>
+        }
+        <dt>Status</dt>
+        <dd>
+            @if (info.Ready)
+            {
+                <span class="status status-ok">bereit</span>
+            }
+            else if (info.Enabled)
+            {
+                <span class="status status-error">nicht einsatzbereit</span>
+            }
+            else
+            {
+                <span class="status">ausgeschaltet</span>
+            }
+        </dd>
+        @if (info.Problem is not null && info.Enabled)
+        {
+            <dt>Hinweis</dt>
+            <dd>@info.Problem</dd>
+        }
+        <dt>Datenverarbeitung</dt>
+        <dd id="provider-notice">@info.Notice</dd>
+    </dl>
+</section>
+
+<section>
+    <h2>Einstellen</h2>
+    <p>Der Anbieter wird nur über die Konfiguration (Umgebungsvariablen) gewählt, nicht in der Oberfläche. Der API-Schlüssel steht
+    ausschließlich dort und wird weder in der Datenbank gespeichert noch protokolliert. Standard ist <strong>Keiner</strong>.</p>
+    <pre><code>ReceiptExtraction__Provider=None | Claude | Ollama
+ReceiptExtraction__AcceptExternalProcessing=true          # Einwilligung für Claude
+ReceiptExtraction__Claude__ApiKey=...
+ReceiptExtraction__Claude__Model=claude-sonnet-5-5
+ReceiptExtraction__Ollama__BaseUrl=http://ollama:11434/
+ReceiptExtraction__Ollama__Model=qwen2.5vl:7b</code></pre>
+    <p class="small">Einzelheiten: <code>docs/betrieb.md</code>, Abschnitt „Belegauslesung“.</p>
+</section>

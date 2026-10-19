@@ -1,0 +1,66 @@
+@* Notice and result of the automatic receipt extraction; the result is only a suggestion. *@
+@if (Outcome?.Suggestion is { } s)
+{
+    <section class="suggestion-panel" aria-labelledby="suggestion-title">
+        <h2 id="suggestion-title">Vorschlag aus dem Beleg</h2>
+        <p class="message message-info" role="status">
+            Das ist nur ein Vorschlag von @Info.Name@(Info.Model is null ? "" : $" ({Info.Model})"). Die Felder unten sind vorausgefüllt,
+            nichts ist gespeichert. Bitte alle Werte mit dem Beleg vergleichen; unsicher erkannte Felder sind hervorgehoben.
+        </p>
+        @if (s.Warnings.Count > 0)
+        {
+            <div class="message message-error" role="alert" id="suggestion-warnings">
+                <ul>
+                    @foreach (var w in s.Warnings)
+                    {
+                        <li>@w</li>
+                    }
+                </ul>
+            </div>
+        }
+        <dl class="details">
+            @if (s.CostTypeReason is not null && s.CostType.HasValue)
+            {
+                <dt>Kostenart</dt>
+                <dd>@(CostTypes.Find(s.CostType.Value!)?.Name) (@s.CostTypeReason)</dd>
+            }
+            @if (s.Iban.HasValue)
+            {
+                <dt>IBAN laut Beleg</dt>
+                <dd>@s.Iban.Value</dd>
+            }
+            @if (Outcome.Usage.InputTokens + Outcome.Usage.OutputTokens > 0)
+            {
+                <dt>Verbrauch</dt>
+                <dd id="suggestion-usage">@Format.Number(Outcome.Usage.InputTokens) Eingabe- und @Format.Number(Outcome.Usage.OutputTokens) Ausgabe-Tokens</dd>
+            }
+        </dl>
+        @if (s.Lines.Count > 0)
+        {
+            <h3>Erkannte Positionen</h3>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Beschreibung</th><th class="number">Betrag</th><th>Kostenart</th></tr></thead>
+                    <tbody>
+                        @foreach (var l in s.Lines)
+                        {
+                            <tr>
+                                <td>@l.Description</td>
+                                <td class="number">@Format.Money(l.Amount)</td>
+                                <td>@(l.CostType is null ? "–" : CostTypes.Find(l.CostType)?.Name)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ExtractorInfo Info { get; set; } = default!;
+
+    [Parameter]
+    public ExtractionOutcome? Outcome { get; set; }
+}

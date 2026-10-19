@@ -117,6 +117,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             if (position is not null && !string.IsNullOrWhiteSpace(position.CostType))
             {
                 await CreateCostItemAsync(receipt, position, cancellationToken);
+                await LearnAsync(receipt, position.CostType, cancellationToken);
             }
 
             db.Add(receipt);
@@ -164,6 +165,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             ArgumentNullException.ThrowIfNull(input);
             var receipt = await ReceiptAsync(id, cancellationToken);
             var position = await CreateCostItemAsync(receipt, input, cancellationToken);
+            await LearnAsync(receipt, input.CostType, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
             return position.Id;
         });
@@ -224,6 +226,26 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
         position.Note = TrimToNull(input.Note);
         position.SetSection35a(input.Section35a, input.LaborCosts);
         return position;
+    }
+
+    /// <summary>Remembers "supplier → cost type" for the next extraction (learning from confirmed receipts).</summary>
+    private async Task LearnAsync(Receipt receipt, string costType, CancellationToken cancellationToken)
+    {
+        var key = SupplierCostTypeRule.KeyFor(receipt.SupplierId, receipt.SupplierName);
+        if (key is null || !CostTypes.IsKnown(costType))
+        {
+            return;
+        }
+
+        var rule = await db.Set<SupplierCostTypeRule>().SingleOrDefaultAsync(r => r.SupplierKey == key, cancellationToken);
+        if (rule is null)
+        {
+            db.Add(new SupplierCostTypeRule(key, costType));
+        }
+        else
+        {
+            rule.Learn(costType);
+        }
     }
 
     private async Task ApplyAsync(Receipt receipt, ReceiptInput data, CancellationToken cancellationToken)

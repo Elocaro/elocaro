@@ -1,6 +1,6 @@
 @* Input fields of a cost item; field names "Position.…" (page property Position). *@
 <div class="form-grid">
-    <FormField Id="item-cost-type" Label="Kostenart" For="() => Position.CostType" Required="@Required">
+    <FormField Uncertain="Marked(nameof(ReceiptSuggestion.CostType))" Id="item-cost-type" Label="Kostenart" For="() => Position.CostType" Required="@Required">
         <InputSelect id="item-cost-type" @bind-Value="Position.CostType">
             <option value="">@(Required ? "– bitte wählen –" : "– später aufteilen –")</option>
             <CostTypeOptions />
@@ -35,7 +35,7 @@
         <FormField Id="item-until" Label="bis" For="() => Position.To">
             <InputDate id="item-until" @bind-Value="Position.To" />
         </FormField>
-        <FormField Id="item-35a" Label="§ 35a EStG" For="() => Position.Section35a">
+        <FormField Uncertain="Marked(nameof(ReceiptSuggestion.Section35a))" Id="item-35a" Label="§ 35a EStG" For="() => Position.Section35a">
             <InputSelect id="item-35a" @bind-Value="Position.Section35a">
                 @foreach (var value in Enum.GetValues<Section35a>())
                 {
@@ -43,7 +43,7 @@
                 }
             </InputSelect>
         </FormField>
-        <FormField Id="item-labor" Label="davon Arbeitskosten" For="() => Position.LaborCosts" Hint="Lohn-, Maschinen- und Fahrtkosten inkl. USt">
+        <FormField Uncertain="Marked(nameof(ReceiptSuggestion.LaborCosts))" Id="item-labor" Label="davon Arbeitskosten" For="() => Position.LaborCosts" Hint="Lohn-, Maschinen- und Fahrtkosten inkl. USt">
             <InputAmount id="item-labor" @bind-Value="Position.LaborCosts" />
         </FormField>
     }
@@ -61,4 +61,9 @@
 
     [Parameter]
     public bool Required { get; set; } = true;
+
+    [Parameter]
+    public IReadOnlySet<string>? Uncertain { get; set; }
+
+    private bool Marked(string field) => Uncertain?.Contains(field) == true;
 }

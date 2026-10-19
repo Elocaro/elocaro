@@ -40,6 +40,7 @@ using MietHahn.Infrastructure.Persistence;
 using MietHahn.Infrastructure.Privacy;
 using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Receipts;
+using MietHahn.Infrastructure.Receipts.Extraction;
 using MietHahn.Infrastructure.Templates;
 using Quartz;
 
@@ -65,6 +66,7 @@ public static class DependencyInjection
         AddMail(services, configuration);
         AddFileStore(services, configuration);
         AddPdf(services, configuration);
+        AddReceiptExtraction(services, configuration);
         AddOperations(services, configuration);
         AddMasterData(services);
         AddPrivacy(services, configuration);
@@ -165,6 +167,25 @@ public static class DependencyInjection
         });
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<ILandlordProfileService, LandlordProfileService>();
+    }
+
+    /// <summary>
+    /// Receipt extraction: the provider (None, Claude, Ollama) is chosen by <c>ReceiptExtraction:Provider</c>, no code change needed.
+    /// Default is None: no document leaves the server unless it is switched on explicitly.
+    /// </summary>
+    private static void AddReceiptExtraction(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<ReceiptExtractionOptions>(configuration.GetSection(ReceiptExtractionOptions.Section));
+        services.AddHttpClient<ClaudeReceiptExtractor>().ConfigureHttpClient(http => http.Timeout = Timeout.InfiniteTimeSpan);
+        services.AddHttpClient<OllamaReceiptExtractor>().ConfigureHttpClient(http => http.Timeout = Timeout.InfiniteTimeSpan);
+        services.AddSingleton<NoReceiptExtractor>();
+        services.AddScoped<IReceiptExtractor>(sp => sp.GetRequiredService<IOptions<ReceiptExtractionOptions>>().Value.Provider switch
+        {
+            ExtractionProvider.Claude => sp.GetRequiredService<ClaudeReceiptExtractor>(),
+            ExtractionProvider.Ollama => sp.GetRequiredService<OllamaReceiptExtractor>(),
+            _ => sp.GetRequiredService<NoReceiptExtractor>(),
+        });
+        services.AddScoped<IReceiptExtraction, ReceiptExtraction>();
     }
 
     private static void AddOperations(IServiceCollection services, IConfiguration configuration)

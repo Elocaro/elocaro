@@ -27,12 +27,21 @@ services:
       Mail__Smtp__Security: ${SMTP_SECURITY:-StartTls}
       Mail__Smtp__UserName: ${SMTP_USER:-}
       Mail__Smtp__Password: ${SMTP_PASSWORD:-}
+      # Receipt extraction: None (default) | Claude | Ollama, see docs/betrieb.md
+      ReceiptExtraction__Provider: ${RECEIPT_AI_PROVIDER:-None}
+      ReceiptExtraction__AcceptExternalProcessing: ${RECEIPT_AI_ACCEPT_EXTERNAL:-false}
+      ReceiptExtraction__Claude__ApiKey: ${ANTHROPIC_API_KEY:-}
+      ReceiptExtraction__Claude__Model: ${RECEIPT_AI_CLAUDE_MODEL:-claude-sonnet-5-5}
+      ReceiptExtraction__Ollama__BaseUrl: ${OLLAMA_URL:-http://host.docker.internal:11434/}
+      ReceiptExtraction__Ollama__Model: ${OLLAMA_MODEL:-qwen2.5vl:7b}
       Backup__StatusFile: /backup-status/backup.json
     volumes:
       - files:/data
       - backup-status:/backup-status:ro
     # internal: database/Gotenberg; external: outbound for SMTP (later FinTS, AI API) and for Caddy
     networks: [intern, extern]
+    # lets the app reach an Ollama on the Docker host (OLLAMA_URL)
+    extra_hosts: ["host.docker.internal:host-gateway"]
 
   postgres:
     image: postgres:18-alpine

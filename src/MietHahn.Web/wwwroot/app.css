@@ -247,6 +247,9 @@ section { margin-bottom: 2rem; }
 .form-row .field { flex: 1 1 14rem; margin-bottom: 0; }
 .field-action { justify-content: flex-end; }
 .field-hint { font-size: 0.85rem; color: var(--color-text-muted); }
+.field-uncertain input, .field-uncertain select, .field-uncertain textarea { border-color: var(--color-info); background: var(--color-info-surface); }
+.field-hint-uncertain { color: var(--color-info); font-weight: 600; }
+.suggestion-panel { margin-bottom: var(--spacing); }
 
 /* Table extras */
 .sort-link { color: inherit; text-decoration: none; }
