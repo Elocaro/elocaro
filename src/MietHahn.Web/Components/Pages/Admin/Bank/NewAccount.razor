@@ -8,10 +8,10 @@
 
 <ErrorList Errors="errors" />
 
-<EditForm Model="Data" FormName="konto" OnValidSubmit="SaveAsync">
+<EditForm Model="Data" FormName="account" OnValidSubmit="SaveAsync">
     <DataAnnotationsValidator />
     <AccountFields Data="Data!" Properties="properties" />
-    <button type="submit" class="knopf knopf-primaer">Anlegen</button>
+    <button type="submit" class="button button-primary">Anlegen</button>
 </EditForm>
 
 @code {
@@ -21,7 +21,7 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "konto")]
+    [SupplyParameterFromForm(FormName = "account")]
     private BankAccountInput? Data { get; set; }
 
     protected override async Task OnInitializedAsync()

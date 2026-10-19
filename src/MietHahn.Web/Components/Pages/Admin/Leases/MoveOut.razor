@@ -14,41 +14,41 @@
 
 @if (Done)
 {
-    <p class="meldung meldung-ok" role="status">Das Mietverhältnis endet am @Format.Date(lease.Term.To).</p>
-    <ol class="schritte">
-        <li class="erledigt">Auszug erfasst</li>
+    <p class="message message-ok" role="status">Das Mietverhältnis endet am @Format.Date(lease.Term.To).</p>
+    <ol class="steps">
+        <li class="done">Auszug erfasst</li>
         <li><a href="/verwaltung/objekte/@lease.PropertyId/ablesung?einheit=@lease.UnitId&datum=@(lease.Term.To?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))&art=Zwischenablesung">Zählerstände zum Auszug ablesen</a> (Zwischenablesung für die Abrechnung)</li>
-        <li><a class="knopf knopf-primaer" href="/verwaltung/vertraege/neu?mietobjekt=@lease.RentalUnitId&beginn=@(lease.Term.To?.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))">Neuen Vertrag anlegen</a></li>
+        <li><a class="button button-primary" href="/verwaltung/vertraege/neu?mietobjekt=@lease.RentalUnitId&beginn=@(lease.Term.To?.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))">Neuen Vertrag anlegen</a></li>
     </ol>
-    <p class="klein">Bis zum nächsten Vertrag steht das Mietobjekt leer; Leerstandszeiten erscheinen automatisch in der Vertragshistorie und gehen in die Abrechnung zulasten des Vermieters.</p>
+    <p class="small">Bis zum nächsten Vertrag steht das Mietobjekt leer; Leerstandszeiten erscheinen automatisch in der Vertragshistorie und gehen in die Abrechnung zulasten des Vermieters.</p>
     return;
 }
 
-<ol class="schritte">
-    <li class="aktiv">Auszug: letzter Tag und neue Anschrift</li>
+<ol class="steps">
+    <li class="active">Auszug: letzter Tag und neue Anschrift</li>
     <li>Zählerstände ablesen</li>
     <li>Neuer Vertrag (Einzug)</li>
 </ol>
 
-<EditForm Model="Input" FormName="auszug" OnValidSubmit="MoveOutAsync">
+<EditForm Model="Input" FormName="move-out" OnValidSubmit="MoveOutAsync">
     <DataAnnotationsValidator />
-    <FormField Id="ende" Label="Letzter Tag des Mietverhältnisses" For="() => Input!.End" Required="true">
-        <InputDate id="ende" @bind-Value="Input!.End" />
+    <FormField Id="end" Label="Letzter Tag des Mietverhältnisses" For="() => Input!.End" Required="true">
+        <InputDate id="end" @bind-Value="Input!.End" />
     </FormField>
     <h2>Neue Anschrift der Mieter</h2>
-    <p class="klein">Für die Zustellung der Nebenkostenabrechnung und der Kautionsabrechnung. Gilt ab dem Tag nach dem Auszug.</p>
-    <div class="formular-raster">
-        <FormField Id="neue-strasse" Label="Straße und Hausnummer" For="() => Input!.NewStreet">
-            <InputText id="neue-strasse" @bind-Value="Input!.NewStreet" autocomplete="off" />
+    <p class="small">Für die Zustellung der Nebenkostenabrechnung und der Kautionsabrechnung. Gilt ab dem Tag nach dem Auszug.</p>
+    <div class="form-grid">
+        <FormField Id="new-street" Label="Straße und Hausnummer" For="() => Input!.NewStreet">
+            <InputText id="new-street" @bind-Value="Input!.NewStreet" autocomplete="off" />
         </FormField>
-        <FormField Id="neue-plz" Label="PLZ" For="() => Input!.NewPostalCode">
-            <InputText id="neue-plz" @bind-Value="Input!.NewPostalCode" inputmode="numeric" autocomplete="off" />
+        <FormField Id="new-postal-code" Label="PLZ" For="() => Input!.NewPostalCode">
+            <InputText id="new-postal-code" @bind-Value="Input!.NewPostalCode" inputmode="numeric" autocomplete="off" />
         </FormField>
-        <FormField Id="neuer-ort" Label="Ort" For="() => Input!.NewCity">
-            <InputText id="neuer-ort" @bind-Value="Input!.NewCity" autocomplete="off" />
+        <FormField Id="new-city" Label="Ort" For="() => Input!.NewCity">
+            <InputText id="new-city" @bind-Value="Input!.NewCity" autocomplete="off" />
         </FormField>
     </div>
-    <button type="submit" class="knopf knopf-primaer">Auszug erfassen</button>
+    <button type="submit" class="button button-primary">Auszug erfassen</button>
 </EditForm>
 
 @code {
@@ -64,7 +64,7 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "auszug")]
+    [SupplyParameterFromForm(FormName = "move-out")]
     private MoveOutInput? Input { get; set; }
 
     protected override async Task OnInitializedAsync()

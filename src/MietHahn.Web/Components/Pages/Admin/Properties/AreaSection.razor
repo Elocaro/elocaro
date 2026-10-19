@@ -3,50 +3,50 @@
     <h2>Flächen</h2>
     @if (Current is null)
     {
-        <p class="meldung meldung-hinweis">Noch keine Fläche hinterlegt.</p>
+        <p class="message message-info">Noch keine Fläche hinterlegt.</p>
     }
     else
     {
-        <dl class="angaben">
+        <dl class="details">
             <dt>@AreaText</dt><dd>@Format.Area(Current.Area)</dd>
             <dt>@AdditionalText</dt><dd>@Format.Area(Current.SecondaryArea)</dd>
             <dt>Gültig</dt><dd>@Format.Period(Current.Validity)</dd>
         </dl>
     }
 
-    <details class="aufklapper" open="@(Current is null)">
+    <details class="disclosure" open="@(Current is null)">
         <summary>@(Current is null ? "Fläche erfassen" : "Fläche ändern (neuer Stand ab Stichtag)")</summary>
-        <EditForm Model="Input" FormName="flaeche" OnValidSubmit="OnSave" class="formular-zeile">
+        <EditForm Model="Input" FormName="area" OnValidSubmit="OnSave" class="form-row">
             <DataAnnotationsValidator />
-            <FormField Id="flaeche-ab" Label="Gültig ab" For="() => Input.From" Required="true">
-                <InputDate id="flaeche-ab" @bind-Value="Input.From" />
+            <FormField Id="area-valid-from" Label="Gültig ab" For="() => Input.From" Required="true">
+                <InputDate id="area-valid-from" @bind-Value="Input.From" />
             </FormField>
-            <FormField Id="flaeche-wert" Label="@(AreaText + " (m²)")" For="() => Input.Area" Required="true">
-                <InputArea id="flaeche-wert" @bind-Value="Input.Area" />
+            <FormField Id="area-value" Label="@(AreaText + " (m²)")" For="() => Input.Area" Required="true">
+                <InputArea id="area-value" @bind-Value="Input.Area" />
             </FormField>
-            <FormField Id="flaeche-zusatz" Label="@(AdditionalText + " (m²)")" For="() => Input.SecondaryArea" Hint="@AdditionalHint">
-                <InputArea id="flaeche-zusatz" @bind-Value="Input.SecondaryArea" />
+            <FormField Id="area-supplement" Label="@(AdditionalText + " (m²)")" For="() => Input.SecondaryArea" Hint="@AdditionalHint">
+                <InputArea id="area-supplement" @bind-Value="Input.SecondaryArea" />
             </FormField>
-            <div class="feld feld-aktion">
-                <button type="submit" class="knopf">Fläche speichern</button>
+            <div class="field field-action">
+                <button type="submit" class="button">Fläche speichern</button>
             </div>
         </EditForm>
-        <p class="klein">Der bisherige Stand endet am Tag vor dem Stichtag und bleibt für frühere Abrechnungen erhalten.</p>
+        <p class="small">Der bisherige Stand endet am Tag vor dem Stichtag und bleibt für frühere Abrechnungen erhalten.</p>
     </details>
 
     @if (History.Count > 1)
     {
         <h3>Verlauf</h3>
-        <div class="tabellen-rahmen">
-            <table class="tabelle">
-                <thead><tr><th>Zeitraum</th><th class="zahl">@AreaText</th><th class="zahl">@AdditionalText</th></tr></thead>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Zeitraum</th><th class="number">@AreaText</th><th class="number">@AdditionalText</th></tr></thead>
                 <tbody>
                     @foreach (var entry in History)
                     {
                         <tr>
                             <td>@Format.Period(entry.Validity)</td>
-                            <td class="zahl">@Format.Area(entry.Area)</td>
-                            <td class="zahl">@Format.Area(entry.SecondaryArea)</td>
+                            <td class="number">@Format.Area(entry.Area)</td>
+                            <td class="number">@Format.Area(entry.SecondaryArea)</td>
                         </tr>
                     }
                 </tbody>

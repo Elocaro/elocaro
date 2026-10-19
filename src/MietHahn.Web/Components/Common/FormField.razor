@@ -2,12 +2,12 @@
 @using System.Linq.Expressions
 
 @* Uniform form field: label, input (ChildContent), hint and validation message. *@
-<div class="feld @CssClass">
+<div class="field @CssClass">
     <label for="@Id">@Label@(Required ? " *" : "")</label>
     @ChildContent
     @if (Hint is not null)
     {
-        <span class="feld-hinweis" id="@(Id)-hinweis">@Hint</span>
+        <span class="field-hint" id="@(Id)-hint">@Hint</span>
     }
     <ValidationMessage For="For" />
 </div>

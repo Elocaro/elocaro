@@ -66,7 +66,7 @@ public class PasswordAndProtectionTests(PostgresFixture postgres) : AccountTestB
 
         using var browser = App.Browser();
         var request = await browser.GetAsync("/konto/passwort-vergessen");
-        var confirmation = await browser.SubmitAsync(request, "passwort-vergessen", new Dictionary<string, string> { ["Input.Email"] = AdminEmail });
+        var confirmation = await browser.SubmitAsync(request, "password-forgot", new Dictionary<string, string> { ["Input.Email"] = AdminEmail });
         Assert.Contains("Falls ein passendes Konto existiert", confirmation.Text, StringComparison.Ordinal);
 
         var mail = (await LastMailToAsync(AdminEmail))!;
@@ -90,7 +90,7 @@ public class PasswordAndProtectionTests(PostgresFixture postgres) : AccountTestB
     {
         using var browser = App.Browser();
         await SetUpAsync(browser);
-        await browser.SubmitAsync(await browser.GetAsync("/konto/passwort-vergessen"), "passwort-vergessen", new Dictionary<string, string> { ["Input.Email"] = AdminEmail });
+        await browser.SubmitAsync(await browser.GetAsync("/konto/passwort-vergessen"), "password-forgot", new Dictionary<string, string> { ["Input.Email"] = AdminEmail });
         var link = ExtractLink((await LastMailToAsync(AdminEmail))!);
         var fields = new Dictionary<string, string>
         {
@@ -141,7 +141,7 @@ public class PasswordAndProtectionTests(PostgresFixture postgres) : AccountTestB
         await SignOutAsync(browser);
 
         var twoFactor = await SignInAsync(browser, AdminEmail, AdminPassword, returnUrl: "https://boese.example/phishing");
-        var result = await browser.SubmitAsync(twoFactor, "zwei-faktor", new Dictionary<string, string> { ["Input.Code"] = Code(key) }, followRedirects: false);
+        var result = await browser.SubmitAsync(twoFactor, "two-factor", new Dictionary<string, string> { ["Input.Code"] = Code(key) }, followRedirects: false);
 
         Assert.Equal("/", result.RedirectLocation?.ToString().Replace("https://localhost", "", StringComparison.Ordinal));
     }

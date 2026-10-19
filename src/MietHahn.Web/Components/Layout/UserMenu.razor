@@ -3,15 +3,15 @@
 
 <AuthorizeView>
     <Authorized>
-        <details class="benutzermenue">
+        <details class="user-menu">
             <summary aria-label="Benutzermenü">
-                <span class="benutzername">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</span>
+                <span class="user-name">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</span>
             </summary>
-            <div class="benutzermenue-inhalt">
+            <div class="user-menu-content">
                 <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
                 <form method="post" action="/konto/abmelden">
                     <AntiforgeryToken />
-                    <button type="submit" class="knopf-link">Abmelden</button>
+                    <button type="submit" class="button-link">Abmelden</button>
                 </form>
             </div>
         </details>

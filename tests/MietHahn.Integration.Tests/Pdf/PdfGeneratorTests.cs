@@ -41,7 +41,7 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
         var (html, footer) = await HtmlAsync(new PdfRequest("test", "Testbrief <1>", TestModel(), Erika, Date: new DateOnly(2026, 10, 18)));
 
         Assert.Contains("<title>Testbrief &lt;1&gt;</title>", html, StringComparison.Ordinal);
-        Assert.Contains("class=\"anschrift\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"address\"", html, StringComparison.Ordinal);
         Assert.Contains("Andy Hahn · Musterweg 1 · 12345 Musterstadt", html, StringComparison.Ordinal);
         Assert.Contains("<div>Hauptstraße 5, EG links</div>", html, StringComparison.Ordinal);
         Assert.Contains("Persönlich", html, StringComparison.Ordinal);
@@ -56,7 +56,7 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
     {
         var (html, _) = await HtmlAsync(new PdfRequest("test", "Anlage", TestModel()));
 
-        Assert.DoesNotContain("class=\"anschrift\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"address\"", html, StringComparison.Ordinal);
         Assert.Contains("<h1>Anlage</h1>", html, StringComparison.Ordinal);
     }
 

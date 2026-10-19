@@ -6,16 +6,16 @@
 
 <ErrorList Errors="errors" />
 
-<EditForm Model="Data" FormName="objekt" OnValidSubmit="CreateAsync">
+<EditForm Model="Data" FormName="property" OnValidSubmit="CreateAsync">
     <DataAnnotationsValidator />
     <PropertyFields Data="Data!" />
-    <button type="submit" class="knopf knopf-primaer">Objekt anlegen</button>
+    <button type="submit" class="button button-primary">Objekt anlegen</button>
 </EditForm>
 
 @code {
     private IReadOnlyList<string>? errors;
 
-    [SupplyParameterFromForm(FormName = "objekt")]
+    [SupplyParameterFromForm(FormName = "property")]
     private PropertyInput? Data { get; set; }
 
     [CascadingParameter]

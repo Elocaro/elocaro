@@ -84,7 +84,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         var page = await NewPageAsync(mobile);
         await page.GotoAsync(BaseUrl + "/konto/anmelden");
         await page.FillAsync("#email", email);
-        await page.FillAsync("#passwort", Password);
+        await page.FillAsync("#password", Password);
         await page.ClickAsync("button[type=submit]");
         await page.WaitForURLAsync("**/konto/anmelden/zwei-faktor**");
         await page.FillAsync("#code", Totp.Code(key!, DateTimeOffset.UtcNow));

@@ -1,13 +1,13 @@
 @inherits LayoutComponentBase
 
 @* Frame for pages without their own area (start redirect, error pages). *@
-<a class="sprunglink" href="#inhalt">Zum Inhalt springen</a>
-<div class="app app-einfach">
-    <header class="kopfleiste">
-        <a class="marke" href="/">🐓 MietHahn</a>
+<a class="skip-link" href="#content">Zum Inhalt springen</a>
+<div class="app app-simple">
+    <header class="top-bar">
+        <a class="brand" href="/">🐓 MietHahn</a>
         <UserMenu />
     </header>
-    <main id="inhalt" class="inhalt">
+    <main id="content" class="content">
         @Body
     </main>
 </div>

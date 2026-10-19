@@ -5,13 +5,13 @@
     <h2>Dokumente</h2>
     @if (lines is { Count: 0 })
     {
-        <p class="klein">Noch keine Dokumente.</p>
+        <p class="small">Noch keine Dokumente.</p>
     }
     else if (lines is not null)
     {
         <DocumentTable Rows="lines" />
     }
-    <p><a class="knopf" href="/verwaltung/dokumente/neu?@Query">Dokument hochladen</a></p>
+    <p><a class="button" href="/verwaltung/dokumente/neu?@Query">Dokument hochladen</a></p>
 </section>
 
 @code {

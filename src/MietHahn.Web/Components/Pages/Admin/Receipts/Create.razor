@@ -10,18 +10,18 @@
 
 @if (selection is not null)
 {
-    <EditForm Model="Data" FormName="beleg" OnValidSubmit="SaveAsync" enctype="multipart/form-data">
+    <EditForm Model="Data" FormName="receipt" OnValidSubmit="SaveAsync" enctype="multipart/form-data">
         <DataAnnotationsValidator />
-        <div class="feld">
-            <label for="dateien">Rechnung (PDF oder Fotos)</label>
-            <input type="file" id="dateien" name="Files" accept="application/pdf,image/*" multiple />
-            <span class="feld-hinweis">Mehrere Seiten auf einmal möglich; auf dem Handy öffnet sich die Kamera zur Auswahl.</span>
+        <div class="field">
+            <label for="files">Rechnung (PDF oder Fotos)</label>
+            <input type="file" id="files" name="Files" accept="application/pdf,image/*" multiple />
+            <span class="field-hint">Mehrere Seiten auf einmal möglich; auf dem Handy öffnet sich die Kamera zur Auswahl.</span>
         </div>
         <ReceiptFields Data="Data!" Options="selection" />
         <h2>Kostenart</h2>
-        <p class="klein">Für eine Rechnung mit einer Kostenart. Aufteilen auf mehrere Kostenarten oder Objekte geht danach.</p>
+        <p class="small">Für eine Rechnung mit einer Kostenart. Aufteilen auf mehrere Kostenarten oder Objekte geht danach.</p>
         <CostItemFields Position="Position!" Options="selection" WithDetails="false" Required="false" />
-        <button type="submit" class="knopf knopf-primaer">Speichern</button>
+        <button type="submit" class="button button-primary">Speichern</button>
     </EditForm>
 }
 
@@ -32,13 +32,13 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "beleg")]
+    [SupplyParameterFromForm(FormName = "receipt")]
     private ReceiptInput? Data { get; set; }
 
-    [SupplyParameterFromForm(FormName = "beleg")]
+    [SupplyParameterFromForm(FormName = "receipt")]
     private CostItemInput? Position { get; set; }
 
-    [SupplyParameterFromForm(FormName = "beleg")]
+    [SupplyParameterFromForm(FormName = "receipt")]
     private IFormFileCollection? Files { get; set; }
 
     protected override async Task OnInitializedAsync()

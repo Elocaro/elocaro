@@ -12,7 +12,7 @@
 
 <PageHeader Title="@account.Name" Subtitle="@account.Iban" Back="/verwaltung/bank/konten" BackText="Alle Konten">
     <Actions>
-        <a class="knopf" href="/verwaltung/bank/umsaetze?konto=@Id">Umsätze</a>
+        <a class="button" href="/verwaltung/bank/umsaetze?konto=@Id">Umsätze</a>
     </Actions>
 </PageHeader>
 
@@ -23,15 +23,15 @@
     <h2>Kontoauszug importieren</h2>
     <form method="post" enctype="multipart/form-data" @formname="import" @onsubmit="UploadAsync">
         <AntiforgeryToken />
-        <div class="formular-raster">
-            <div class="feld">
-                <label for="datei">Datei *</label>
-                <input type="file" id="datei" name="Upload" accept=".xml,.sta,.mt940,.940,.txt,.csv" required />
-                <span class="feld-hinweis">camt.053 (XML), MT940 oder CSV. Das Format wird erkannt; schon vorhandene Umsätze werden übersprungen.</span>
+        <div class="form-grid">
+            <div class="field">
+                <label for="file">Datei *</label>
+                <input type="file" id="file" name="Upload" accept=".xml,.sta,.mt940,.940,.txt,.csv" required />
+                <span class="field-hint">camt.053 (XML), MT940 oder CSV. Das Format wird erkannt; schon vorhandene Umsätze werden übersprungen.</span>
             </div>
-            <div class="feld">
-                <label for="profil">CSV-Profil</label>
-                <select id="profil" name="Profile">
+            <div class="field">
+                <label for="profile">CSV-Profil</label>
+                <select id="profile" name="Profile">
                     <option value="">automatisch erkennen</option>
                     @foreach (var profile in profile)
                     {
@@ -40,7 +40,7 @@
                 </select>
             </div>
         </div>
-        <button type="submit" class="knopf knopf-primaer">Vorschau anzeigen</button>
+        <button type="submit" class="button button-primary">Vorschau anzeigen</button>
     </form>
 </section>
 
@@ -48,33 +48,33 @@
     <h2>Importprotokoll</h2>
     @if (imports is { Count: 0 })
     {
-        <p class="klein">Noch keine Importe.</p>
+        <p class="small">Noch keine Importe.</p>
     }
     else if (imports is not null)
     {
-        <div class="tabellen-rahmen">
-            <table class="tabelle">
-                <thead><tr><th>Zeitpunkt</th><th>Datei</th><th>Zeitraum</th><th class="zahl">Umsätze</th><th class="zahl">neu</th><th class="zahl">Duplikate</th></tr></thead>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Zeitpunkt</th><th>Datei</th><th>Zeitraum</th><th class="number">Umsätze</th><th class="number">neu</th><th class="number">Duplikate</th></tr></thead>
                 <tbody>
                     @foreach (var import in imports)
                     {
                         <tr>
-                            <td>@Format.Timestamp(import.Timestamp)<span class="klein"> @import.CreatedBy</span></td>
+                            <td>@Format.Timestamp(import.Timestamp)<span class="small"> @import.CreatedBy</span></td>
                             <td>
                                 @if (import.Status == ImportStatus.Preview)
                                 {
-                                    <a href="/verwaltung/bank/importe/@import.Id">@import.FileName</a> <span class="status status-wartend">Vorschau</span>
+                                    <a href="/verwaltung/bank/importe/@import.Id">@import.FileName</a> <span class="status status-pending">Vorschau</span>
                                 }
                                 else
                                 {
                                     @import.FileName
                                 }
-                                <span class="klein"> @Labels.From(import.Format)@(import.Profile is null ? "" : $" ({import.Profile})")</span>
+                                <span class="small"> @Labels.From(import.Format)@(import.Profile is null ? "" : $" ({import.Profile})")</span>
                             </td>
                             <td>@(import.From is null ? "–" : $"{Format.Date(import.From)} – {Format.Date(import.To)}")</td>
-                            <td class="zahl">@import.Read</td>
-                            <td class="zahl">@import.Added</td>
-                            <td class="zahl">@import.Duplicates</td>
+                            <td class="number">@import.Read</td>
+                            <td class="number">@import.Added</td>
+                            <td class="number">@import.Duplicates</td>
                         </tr>
                     }
                 </tbody>
@@ -85,10 +85,10 @@
 
 <section>
     <h2>Angaben</h2>
-    <EditForm Model="Data" FormName="konto" OnValidSubmit="SaveAsync">
+    <EditForm Model="Data" FormName="account" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <AccountFields Data="Data!" Properties="properties" />
-        <button type="submit" class="knopf">Speichern</button>
+        <button type="submit" class="button">Speichern</button>
     </EditForm>
 </section>
 
@@ -105,7 +105,7 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "konto")]
+    [SupplyParameterFromForm(FormName = "account")]
     private BankAccountInput? Data { get; set; }
 
     [SupplyParameterFromForm(FormName = "import")]

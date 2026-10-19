@@ -1,15 +1,15 @@
 @* Master data of a meter; sits inside an EditForm with Model = Data (field names Data.*). *@
-<div class="formular-raster">
-    <FormField Id="zaehler-typ" Label="Art" For="() => Data.Type" Hint="@(TypeLocked ? "Nicht änderbar; bei einem anderen Zähler einen neuen anlegen." : null)">
+<div class="form-grid">
+    <FormField Id="meter-type" Label="Art" For="() => Data.Type" Hint="@(TypeLocked ? "Nicht änderbar; bei einem anderen Zähler einen neuen anlegen." : null)">
         @if (TypeLocked)
         {
             @* Locked fields would not be submitted: value as a hidden field, display read-only. *@
             <input type="hidden" name="Data.Type" value="@Data.Type" />
-            <input id="zaehler-typ" type="text" value="@Labels.From(Data.Type)" readonly />
+            <input id="meter-type" type="text" value="@Labels.From(Data.Type)" readonly />
         }
         else
         {
-            <InputSelect id="zaehler-typ" @bind-Value="Data.Type">
+            <InputSelect id="meter-type" @bind-Value="Data.Type">
                 @foreach (var value in Enum.GetValues<MeterType>())
                 {
                     <option value="@value">@Labels.From(value)</option>
@@ -17,14 +17,14 @@
             </InputSelect>
         }
     </FormField>
-    <FormField Id="zaehler-bezeichnung" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Kaltwasser Bad“">
-        <InputText id="zaehler-bezeichnung" @bind-Value="Data.Name" />
+    <FormField Id="meter-designation" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Kaltwasser Bad“">
+        <InputText id="meter-designation" @bind-Value="Data.Name" />
     </FormField>
-    <FormField Id="zaehler-nummer" Label="Zählernummer" For="() => Data.Number" Required="true">
-        <InputText id="zaehler-nummer" @bind-Value="Data.Number" autocomplete="off" />
+    <FormField Id="meter-number" Label="Zählernummer" For="() => Data.Number" Required="true">
+        <InputText id="meter-number" @bind-Value="Data.Number" autocomplete="off" />
     </FormField>
-    <FormField Id="zaehler-zuordnung" Label="Zuordnung" For="() => Data.AssignmentId">
-        <InputSelect id="zaehler-zuordnung" @bind-Value="Data.AssignmentId">
+    <FormField Id="meter-assignment" Label="Zuordnung" For="() => Data.AssignmentId">
+        <InputSelect id="meter-assignment" @bind-Value="Data.AssignmentId">
             <option value="">Haus (Haupt-/Allgemeinzähler)</option>
             @foreach (var unit in Units)
             {
@@ -36,8 +36,8 @@
             }
         </InputSelect>
     </FormField>
-    <FormField Id="zaehler-haupt" Label="Hauptzähler" For="() => Data.MainMeterId" Hint="Für die Differenz Haupt- zu Unterzählern">
-        <InputSelect id="zaehler-haupt" @bind-Value="Data.MainMeterId">
+    <FormField Id="meter-main" Label="Hauptzähler" For="() => Data.MainMeterId" Hint="Für die Differenz Haupt- zu Unterzählern">
+        <InputSelect id="meter-main" @bind-Value="Data.MainMeterId">
             <option value="">– keiner –</option>
             @foreach (var z in MainMeter)
             {
@@ -45,14 +45,14 @@
             }
         </InputSelect>
     </FormField>
-    <FormField Id="zaehler-lage" Label="Lage" For="() => Data.Location" Hint="z. B. „Keller, Raum 2“">
-        <InputText id="zaehler-lage" @bind-Value="Data.Location" />
+    <FormField Id="meter-location" Label="Lage" For="() => Data.Location" Hint="z. B. „Keller, Raum 2“">
+        <InputText id="meter-location" @bind-Value="Data.Location" />
     </FormField>
-    <FormField Id="zaehler-eichfrist" Label="Eichfrist bis" For="() => Data.CalibrationDueDate" Hint="Leer = gesetzliche Frist ab Einbau">
-        <InputDate id="zaehler-eichfrist" @bind-Value="Data.CalibrationDueDate" />
+    <FormField Id="meter-calibration-deadline" Label="Eichfrist bis" For="() => Data.CalibrationDueDate" Hint="Leer = gesetzliche Frist ab Einbau">
+        <InputDate id="meter-calibration-deadline" @bind-Value="Data.CalibrationDueDate" />
     </FormField>
-    <FormField Id="zaehler-reihenfolge" Label="Reihenfolge der Ablesung" For="() => Data.Order">
-        <InputNumber id="zaehler-reihenfolge" @bind-Value="Data.Order" min="0" max="999" />
+    <FormField Id="meter-order" Label="Reihenfolge der Ablesung" For="() => Data.Order">
+        <InputNumber id="meter-order" @bind-Value="Data.Order" min="0" max="999" />
     </FormField>
 </div>
 

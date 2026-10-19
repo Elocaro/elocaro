@@ -9,29 +9,29 @@
 
 <section>
     <h2>Wert erfassen</h2>
-    <EditForm Model="Input" FormName="vpi" OnValidSubmit="SaveAsync" class="formular-zeile">
+    <EditForm Model="Input" FormName="cpi" OnValidSubmit="SaveAsync" class="form-row">
         <DataAnnotationsValidator />
-        <FormField Id="vpi-monat" Label="Monat" For="() => Input!.Month" Required="true">
-            <InputText id="vpi-monat" type="month" @bind-Value="Input!.Month" />
+        <FormField Id="cpi-month" Label="Monat" For="() => Input!.Month" Required="true">
+            <InputText id="cpi-month" type="month" @bind-Value="Input!.Month" />
         </FormField>
-        <FormField Id="vpi-wert" Label="Indexwert" For="() => Input!.Value" Required="true">
-            <InputArea id="vpi-wert" @bind-Value="Input!.Value" step="0.1" />
+        <FormField Id="cpi-value" Label="Indexwert" For="() => Input!.Value" Required="true">
+            <InputArea id="cpi-value" @bind-Value="Input!.Value" step="0.1" />
         </FormField>
-        <div class="feld feld-aktion"><button type="submit" class="knopf">Speichern</button></div>
+        <div class="field field-action"><button type="submit" class="button">Speichern</button></div>
     </EditForm>
 </section>
 
 <section>
     <h2>Import</h2>
-    <p class="klein">
+    <p class="small">
         In <a href="https://www-genesis.destatis.de/datenbank/online/table/61111-0002" rel="noopener" target="_blank">GENESIS-Online, Tabelle 61111-0002</a>
         die Monatswerte als CSV herunterladen und den Inhalt hier einfügen. Vorhandene Monate werden aktualisiert.
     </p>
-    <EditForm Model="Import" FormName="vpi-import" OnValidSubmit="ImportAsync">
-        <FormField Id="vpi-csv" Label="CSV-Inhalt" For="() => Import!.Csv">
-            <InputTextArea id="vpi-csv" @bind-Value="Import!.Csv" rows="6" placeholder="2026;Januar;121,2&#10;2026;Februar;121,9" />
+    <EditForm Model="Import" FormName="cpi-import" OnValidSubmit="ImportAsync">
+        <FormField Id="cpi-csv" Label="CSV-Inhalt" For="() => Import!.Csv">
+            <InputTextArea id="cpi-csv" @bind-Value="Import!.Csv" rows="6" placeholder="2026;Januar;121,2&#10;2026;Februar;121,9" />
         </FormField>
-        <button type="submit" class="knopf">Importieren</button>
+        <button type="submit" class="button">Importieren</button>
     </EditForm>
 </section>
 
@@ -43,15 +43,15 @@
     }
     else if (values is not null)
     {
-        <div class="tabellen-rahmen">
-            <table class="tabelle">
-                <thead><tr><th>Monat</th><th class="zahl">Wert</th><th>Quelle</th></tr></thead>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Monat</th><th class="number">Wert</th><th>Quelle</th></tr></thead>
                 <tbody>
                     @foreach (var value in values)
                     {
                         <tr>
                             <td>@value.Month.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("de-DE"))</td>
-                            <td class="zahl">@Format.Number(value.Value)</td>
+                            <td class="number">@Format.Number(value.Value)</td>
                             <td>@value.Source</td>
                         </tr>
                     }
@@ -65,10 +65,10 @@
     private IReadOnlyList<CpiView>? values;
     private IReadOnlyList<string>? errors;
 
-    [SupplyParameterFromForm(FormName = "vpi")]
+    [SupplyParameterFromForm(FormName = "cpi")]
     private CpiInput? Input { get; set; }
 
-    [SupplyParameterFromForm(FormName = "vpi-import")]
+    [SupplyParameterFromForm(FormName = "cpi-import")]
     private ImportInput? Import { get; set; }
 
     [CascadingParameter]

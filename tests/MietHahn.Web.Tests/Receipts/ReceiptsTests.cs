@@ -16,7 +16,7 @@ public class ReceiptsTests(PostgresFixture postgres) : AccountTestBase(postgres)
         using var _ = admin;
         var house = await PropertyAsync();
 
-        var receipt = await admin.SubmitWithFileAsync(await admin.GetAsync("/verwaltung/belege/neu"), "beleg", "Files", Pdf, "rechnung.pdf", "application/pdf", new Dictionary<string, string>
+        var receipt = await admin.SubmitWithFileAsync(await admin.GetAsync("/verwaltung/belege/neu"), "receipt", "Files", Pdf, "rechnung.pdf", "application/pdf", new Dictionary<string, string>
         {
             ["Data.SupplierName"] = "Grünpflege Meier",
             ["Data.InvoiceNumber"] = "R-117",
@@ -27,9 +27,9 @@ public class ReceiptsTests(PostgresFixture postgres) : AccountTestBase(postgres)
         });
         Assert.Contains("Der Beleg wurde gespeichert.", receipt.Text, StringComparison.Ordinal);
         Assert.Contains("Noch 595,00 € nicht aufgeteilt", receipt.Text, StringComparison.Ordinal);
-        Assert.NotNull(receipt.Document.QuerySelector("iframe.dokument-vorschau"));
+        Assert.NotNull(receipt.Document.QuerySelector("iframe.document-preview"));
 
-        receipt = await admin.SubmitAsync(receipt, "position", new Dictionary<string, string>
+        receipt = await admin.SubmitAsync(receipt, "item", new Dictionary<string, string>
         {
             ["Position.CostType"] = "betrkv-14",
             ["Position.PropertyId"] = house.ToString(),
@@ -40,7 +40,7 @@ public class ReceiptsTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("Die Position wurde hinzugefügt.", receipt.Text, StringComparison.Ordinal);
         Assert.Contains("Noch 238,00 € nicht aufgeteilt", receipt.Text, StringComparison.Ordinal);
 
-        var tooMuch = await admin.SubmitAsync(receipt, "position", new Dictionary<string, string>
+        var tooMuch = await admin.SubmitAsync(receipt, "item", new Dictionary<string, string>
         {
             ["Position.CostType"] = "betrkv-10",
             ["Position.PropertyId"] = house.ToString(),
@@ -48,7 +48,7 @@ public class ReceiptsTests(PostgresFixture postgres) : AccountTestBase(postgres)
         });
         Assert.Contains("übersteigen den Rechnungsbetrag", tooMuch.Text, StringComparison.Ordinal);
 
-        receipt = await admin.SubmitAsync(receipt, "position", new Dictionary<string, string>
+        receipt = await admin.SubmitAsync(receipt, "item", new Dictionary<string, string>
         {
             ["Position.CostType"] = "betrkv-10",
             ["Position.PropertyId"] = house.ToString(),
@@ -72,7 +72,7 @@ public class ReceiptsTests(PostgresFixture postgres) : AccountTestBase(postgres)
         using var _ = admin;
         var house = await PropertyAsync();
 
-        var receipt = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/belege/neu"), "beleg", new Dictionary<string, string>
+        var receipt = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/belege/neu"), "receipt", new Dictionary<string, string>
         {
             ["Data.SupplierName"] = "Stadt Köln",
             ["Data.InvoiceDate"] = "2026-02-15",
@@ -85,7 +85,7 @@ public class ReceiptsTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("01.01.2026 – 31.12.2026", receipt.Text, StringComparison.Ordinal);
         Assert.Contains("Noch keine Datei.", receipt.Text, StringComparison.Ordinal);
 
-        var list = await admin.SubmitAsync(receipt, "loeschen");
+        var list = await admin.SubmitAsync(receipt, "delete");
         Assert.Contains("Der Beleg wurde gelöscht.", list.Text, StringComparison.Ordinal);
         Assert.Contains("Keine Belege in dieser Auswahl.", list.Text, StringComparison.Ordinal);
     }
@@ -95,7 +95,7 @@ public class ReceiptsTests(PostgresFixture postgres) : AccountTestBase(postgres)
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        var errors = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/belege/neu"), "beleg", new Dictionary<string, string> { ["Data.Gross"] = "10" });
+        var errors = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/belege/neu"), "receipt", new Dictionary<string, string> { ["Data.Gross"] = "10" });
         Assert.Contains("Bitte das Rechnungsdatum angeben.", errors.Text, StringComparison.Ordinal);
 
         var (manager, _) = await SignedInAsAsync(Roles.Manager, [AccessRight.MasterData]);

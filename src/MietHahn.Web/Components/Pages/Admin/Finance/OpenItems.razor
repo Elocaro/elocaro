@@ -3,7 +3,7 @@
 
 <PageHeader Title="Offene Posten" Subtitle="Fällige, nicht vollständig bezahlte Forderungen aller Mietverhältnisse.">
     <Actions>
-        <a class="knopf" href="/verwaltung/finanzen/offene-posten.csv">CSV exportieren</a>
+        <a class="button" href="/verwaltung/finanzen/offene-posten.csv">CSV exportieren</a>
     </Actions>
 </PageHeader>
 
@@ -14,20 +14,20 @@
 else if (items is not null)
 {
     <p><strong>Summe offen: @Format.Money(items.Sum(p => p.Open))</strong></p>
-    <div class="tabellen-rahmen">
-        <table class="tabelle">
+    <div class="table-wrapper">
+        <table class="data-table">
             <thead>
-                <tr><th>Mietverhältnis</th><th>Forderung</th><th>Fällig</th><th class="zahl">Betrag</th><th class="zahl">Offen</th></tr>
+                <tr><th>Mietverhältnis</th><th>Forderung</th><th>Fällig</th><th class="number">Betrag</th><th class="number">Offen</th></tr>
             </thead>
             <tbody>
                 @foreach (var p in items)
                 {
                     <tr>
-                        <td><a href="/verwaltung/vertraege/@p.LeaseId/konto">@p.Tenant</a><span class="klein"> @p.RentalUnit</span></td>
+                        <td><a href="/verwaltung/vertraege/@p.LeaseId/konto">@p.Tenant</a><span class="small"> @p.RentalUnit</span></td>
                         <td>@p.Text</td>
-                        <td>@Format.Date(p.Due) <span class="klein">(@p.DaysOverdue Tage)</span></td>
-                        <td class="zahl">@Format.Money(p.Amount)</td>
-                        <td class="zahl">@Format.Money(p.Open)</td>
+                        <td>@Format.Date(p.Due) <span class="small">(@p.DaysOverdue Tage)</span></td>
+                        <td class="number">@Format.Money(p.Amount)</td>
+                        <td class="number">@Format.Money(p.Open)</td>
                     </tr>
                 }
             </tbody>

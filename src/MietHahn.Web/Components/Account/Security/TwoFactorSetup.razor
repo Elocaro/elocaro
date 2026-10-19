@@ -9,14 +9,14 @@
 
 @if (codes is not null)
 {
-    <p class="meldung meldung-ok" role="status">Die Zwei-Faktor-Anmeldung ist jetzt aktiv.</p>
+    <p class="message message-ok" role="status">Die Zwei-Faktor-Anmeldung ist jetzt aktiv.</p>
     <RecoveryCodes Codes="codes" />
-    <div class="konto-links"><a href="/">Weiter zu MietHahn</a></div>
+    <div class="account-links"><a href="/">Weiter zu MietHahn</a></div>
 }
 else if (user?.TwoFactorEnabled == true)
 {
     <p>Die Zwei-Faktor-Anmeldung ist aktiv. Bei der Anmeldung fragen wir nach dem Code aus Ihrer Authenticator-App.</p>
-    <div class="konto-links">
+    <div class="account-links">
         <a href="/konto/sicherheit/wiederherstellungscodes">Neue Wiederherstellungscodes erzeugen</a>
         <a href="/konto/sicherheit">Zurück</a>
     </div>
@@ -25,29 +25,29 @@ else if (user is not null)
 {
     @if (required)
     {
-        <p class="meldung meldung-hinweis" role="status">Für Ihre Rolle ist die Zwei-Faktor-Anmeldung vorgeschrieben. Bitte richten Sie sie jetzt ein.</p>
+        <p class="message message-info" role="status">Für Ihre Rolle ist die Zwei-Faktor-Anmeldung vorgeschrieben. Bitte richten Sie sie jetzt ein.</p>
     }
 
-    <ol class="schritte">
+    <ol class="steps">
         <li>Installieren Sie eine Authenticator-App (z. B. Aegis, 2FAS, Google oder Microsoft Authenticator).</li>
         <li>
             Scannen Sie den QR-Code oder geben Sie den Schlüssel manuell ein:
             <div class="qr-code">@((MarkupString)qrSvg)</div>
-            <p><code class="schluessel">@KeyFormatted</code></p>
+            <p><code class="key">@KeyFormatted</code></p>
         </li>
         <li>Geben Sie den 6-stelligen Code aus der App ein.</li>
     </ol>
 
     <StatusMessage Message="@errors" IsError="true" />
 
-    <EditForm Model="Input" FormName="zwei-faktor-einrichten" OnValidSubmit="ActivateAsync">
+    <EditForm Model="Input" FormName="two-factor-setup" OnValidSubmit="ActivateAsync">
         <DataAnnotationsValidator />
-        <div class="feld">
+        <div class="field">
             <label for="code">Code aus der App</label>
             <InputText id="code" @bind-Value="Input!.Code" autocomplete="one-time-code" inputmode="numeric" />
             <ValidationMessage For="() => Input!.Code" />
         </div>
-        <button type="submit" class="knopf knopf-primaer">Aktivieren</button>
+        <button type="submit" class="button button-primary">Aktivieren</button>
     </EditForm>
 }
 
@@ -59,7 +59,7 @@ else if (user is not null)
     private string? errors;
     private IReadOnlyList<string>? codes;
 
-    [SupplyParameterFromForm(FormName = "zwei-faktor-einrichten")]
+    [SupplyParameterFromForm(FormName = "two-factor-setup")]
     private CodeInput? Input { get; set; }
 
     [CascadingParameter]

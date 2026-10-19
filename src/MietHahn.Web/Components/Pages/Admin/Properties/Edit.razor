@@ -14,34 +14,34 @@
 
 <ErrorList Errors="errors" />
 
-<EditForm Model="Data" FormName="objekt" OnValidSubmit="SaveAsync">
+<EditForm Model="Data" FormName="property" OnValidSubmit="SaveAsync">
     <DataAnnotationsValidator />
     <PropertyFields Data="Data!" />
-    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+    <button type="submit" class="button button-primary">Speichern</button>
 </EditForm>
 
 <section>
     <h2>Foto</h2>
     @if (property.ImageFileId is { } image)
     {
-        <img class="objektbild" src="/dateien/@image" alt="Aktuelles Foto" />
+        <img class="property-image" src="/dateien/@image" alt="Aktuelles Foto" />
     }
-    <form method="post" enctype="multipart/form-data" @formname="bild" @onsubmit="UploadImageAsync" class="formular-zeile">
+    <form method="post" enctype="multipart/form-data" @formname="image" @onsubmit="UploadImageAsync" class="form-row">
         <AntiforgeryToken />
-        <div class="feld">
-            <label for="bild">@(property.ImageFileId is null ? "Foto hochladen" : "Foto ersetzen")</label>
-            <input type="file" id="bild" name="Image" accept="image/jpeg,image/png,image/webp,image/heic" capture="environment" required />
-            <span class="feld-hinweis">Fotos werden verkleinert, gedreht und ohne Metadaten (GPS) gespeichert.</span>
+        <div class="field">
+            <label for="image">@(property.ImageFileId is null ? "Foto hochladen" : "Foto ersetzen")</label>
+            <input type="file" id="image" name="Image" accept="image/jpeg,image/png,image/webp,image/heic" capture="environment" required />
+            <span class="field-hint">Fotos werden verkleinert, gedreht und ohne Metadaten (GPS) gespeichert.</span>
         </div>
-        <div class="feld feld-aktion">
-            <button type="submit" class="knopf">Hochladen</button>
+        <div class="field field-action">
+            <button type="submit" class="button">Hochladen</button>
         </div>
     </form>
     @if (property.ImageFileId is not null)
     {
-        <form method="post" @formname="bild-entfernen" @onsubmit="RemoveImageAsync">
+        <form method="post" @formname="image-remove" @onsubmit="RemoveImageAsync">
             <AntiforgeryToken />
-            <button type="submit" class="knopf knopf-gefahr">Foto entfernen</button>
+            <button type="submit" class="button button-danger">Foto entfernen</button>
         </form>
     }
 </section>
@@ -56,10 +56,10 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "objekt")]
+    [SupplyParameterFromForm(FormName = "property")]
     private PropertyInput? Data { get; set; }
 
-    [SupplyParameterFromForm(FormName = "bild")]
+    [SupplyParameterFromForm(FormName = "image")]
     private IFormFile? Image { get; set; }
 
     protected override async Task OnInitializedAsync()

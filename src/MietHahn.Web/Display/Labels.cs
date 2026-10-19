@@ -45,7 +45,7 @@ public static class Labels
     {
         TransactionStatus.Assigned => "status-ok",
         TransactionStatus.Ignored => "",
-        _ => "status-wartend",
+        _ => "status-pending",
     };
 
     public static string From(ChargeType value) => value switch
@@ -182,7 +182,7 @@ public static class Labels
     public static string StatusClass(LeaseStatus value) => value switch
     {
         LeaseStatus.Active => "status-ok",
-        LeaseStatus.Terminated or LeaseStatus.Future => "status-wartend",
+        LeaseStatus.Terminated or LeaseStatus.Future => "status-pending",
         _ => "",
     };
 

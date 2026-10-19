@@ -3,20 +3,20 @@
 
 <PageHeader Title="Dokumente" Subtitle="Verträge, Protokolle, Rechnungen, Versicherungen und mehr, je Objekt, Einheit, Vertrag oder Person.">
     <Actions>
-        <a class="knopf knopf-primaer" href="/verwaltung/dokumente/neu">Dokument hochladen</a>
+        <a class="button button-primary" href="/verwaltung/dokumente/neu">Dokument hochladen</a>
     </Actions>
 </PageHeader>
 
 <StatusMessage />
 
-<form method="get" class="formular-zeile suchleiste" role="search">
-    <div class="feld">
-        <label for="suche">Suche</label>
-        <input id="suche" type="search" name="q" value="@Q" placeholder="Titel, Schlagwort, Dateiname" />
+<form method="get" class="form-row search-bar" role="search">
+    <div class="field">
+        <label for="search">Suche</label>
+        <input id="search" type="search" name="q" value="@Q" placeholder="Titel, Schlagwort, Dateiname" />
     </div>
-    <div class="feld">
-        <label for="kategorie">Kategorie</label>
-        <select id="kategorie" name="kategorie">
+    <div class="field">
+        <label for="category">Kategorie</label>
+        <select id="category" name="kategorie">
             <option value="" selected="@(Category is null)">Alle</option>
             @foreach (var value in Enum.GetValues<DocumentCategory>())
             {
@@ -24,8 +24,8 @@
             }
         </select>
     </div>
-    <div class="feld feld-aktion">
-        <button type="submit" class="knopf">Suchen</button>
+    <div class="field field-action">
+        <button type="submit" class="button">Suchen</button>
     </div>
 </form>
 

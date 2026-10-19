@@ -9,14 +9,14 @@
 
 @if (user is not null)
 {
-    <dl class="angaben">
+    <dl class="details">
         <dt>Name</dt><dd>@user.DisplayName</dd>
         <dt>E-Mail</dt><dd>@user.Email</dd>
         <dt>Rolle</dt><dd>@string.Join(", ", roles.Select(Roles.DisplayName))</dd>
         <dt>Zwei-Faktor-Anmeldung</dt><dd>@(user.TwoFactorEnabled ? "aktiv" : "nicht eingerichtet")</dd>
     </dl>
 
-    <ul class="konto-aktionen">
+    <ul class="account-actions">
         @if (hasPassword)
         {
             <li><a href="/konto/sicherheit/zwei-faktor">@(user.TwoFactorEnabled ? "Zwei-Faktor-Anmeldung anzeigen" : "Zwei-Faktor-Anmeldung einrichten")</a></li>
@@ -35,7 +35,7 @@
 
 <form method="post" action="/konto/abmelden">
     <AntiforgeryToken />
-    <button type="submit" class="knopf">Abmelden</button>
+    <button type="submit" class="button">Abmelden</button>
 </form>
 
 @code {

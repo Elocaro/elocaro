@@ -1,12 +1,12 @@
 @* Risky action with confirmation without JavaScript: expand first, then confirm. *@
-<details class="gefahrenaktion">
-    <summary class="knopf knopf-gefahr">@Text</summary>
-    <div class="gefahrenaktion-inhalt" role="alertdialog" aria-label="@Text">
+<details class="danger-action">
+    <summary class="button button-danger">@Text</summary>
+    <div class="danger-action-content" role="alertdialog" aria-label="@Text">
         <p>@Confirmation</p>
         <form method="post" @formname="@FormName" @onsubmit="Confirmed">
             <AntiforgeryToken />
             @ChildContent
-            <button type="submit" class="knopf knopf-gefahr">@ConfirmText</button>
+            <button type="submit" class="button button-danger">@ConfirmText</button>
         </form>
     </div>
 </details>

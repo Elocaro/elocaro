@@ -16,7 +16,7 @@
 @* Caretakers see the building and its units, but no tenant data. *@
 <PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/service/objekte" BackText="Meine Objekte" />
 
-<dl class="angaben">
+<dl class="details">
     <dt>Heizung</dt><dd>@Labels.From(property.Data.HeatingType), @Labels.From(property.Data.EnergySource)</dd>
     @if (property.Data.Notes is not null)
     {
@@ -26,8 +26,8 @@
 
 <section>
     <h2>Einheiten</h2>
-    <div class="tabellen-rahmen">
-        <table class="tabelle">
+    <div class="table-wrapper">
+        <table class="data-table">
             <thead><tr><th>Einheit</th><th>Lage</th><th>Art</th></tr></thead>
             <tbody>
                 @foreach (var unit in property.Units)

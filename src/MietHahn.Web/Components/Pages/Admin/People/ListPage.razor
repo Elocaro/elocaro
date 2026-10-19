@@ -3,18 +3,18 @@
 
 <PageHeader Title="Personen" Subtitle="Mieter, Bürgen und Kontakte wie Hausmeister, Handwerker und Versorger.">
     <Actions>
-        <a class="knopf knopf-primaer" href="/verwaltung/personen/neu">Person anlegen</a>
+        <a class="button button-primary" href="/verwaltung/personen/neu">Person anlegen</a>
     </Actions>
 </PageHeader>
 
 <StatusMessage />
 
-<form method="get" class="formular-zeile suchleiste" role="search">
-    <div class="feld">
-        <label for="suche">Suche</label>
-        <input id="suche" type="search" name="q" value="@Q" placeholder="Name, E-Mail, Telefon, IBAN, Gewerk" />
+<form method="get" class="form-row search-bar" role="search">
+    <div class="field">
+        <label for="search">Suche</label>
+        <input id="search" type="search" name="q" value="@Q" placeholder="Name, E-Mail, Telefon, IBAN, Gewerk" />
     </div>
-    <div class="feld">
+    <div class="field">
         <label for="filter">Anzeigen</label>
         <select id="filter" name="filter">
             <option value="" selected="@(Filter is null or PersonFilter.All)">Alle</option>
@@ -22,8 +22,8 @@
             <option value="@PersonFilter.Contacts" selected="@(Filter == PersonFilter.Contacts)">Kontakte</option>
         </select>
     </div>
-    <div class="feld feld-aktion">
-        <button type="submit" class="knopf">Suchen</button>
+    <div class="field field-action">
+        <button type="submit" class="button">Suchen</button>
     </div>
 </form>
 
@@ -33,8 +33,8 @@
 }
 else if (page is not null)
 {
-    <div class="tabellen-rahmen">
-        <table class="tabelle">
+    <div class="table-wrapper">
+        <table class="data-table">
             <thead>
                 <tr>
                     <SortHeader Column="name" Text="Name" Query="query" />
@@ -63,7 +63,7 @@ else if (page is not null)
                             }
                             @if (person.Phone is not null)
                             {
-                                <span class="klein"> @person.Phone</span>
+                                <span class="small"> @person.Phone</span>
                             }
                         </td>
                     </tr>

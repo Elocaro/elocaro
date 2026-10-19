@@ -1,25 +1,25 @@
 @* Address as of a reference date; sits inside an EditForm with Model = Address. *@
-<div class="formular-raster">
+<div class="form-grid">
     @if (WithReferenceDate)
     {
-        <FormField Id="anschrift-ab" Label="Gültig ab" For="() => Address.From" Required="true" Hint="Umzugsdatum">
-            <InputDate id="anschrift-ab" @bind-Value="Address.From" />
+        <FormField Id="address-valid-from" Label="Gültig ab" For="() => Address.From" Required="true" Hint="Umzugsdatum">
+            <InputDate id="address-valid-from" @bind-Value="Address.From" />
         </FormField>
     }
-    <FormField Id="anschrift-strasse" Label="Straße und Hausnummer" For="() => Address.Street" Required="@WithReferenceDate">
-        <InputText id="anschrift-strasse" @bind-Value="Address.Street" autocomplete="off" />
+    <FormField Id="address-street" Label="Straße und Hausnummer" For="() => Address.Street" Required="@WithReferenceDate">
+        <InputText id="address-street" @bind-Value="Address.Street" autocomplete="off" />
     </FormField>
-    <FormField Id="anschrift-plz" Label="PLZ" For="() => Address.PostalCode" Required="@WithReferenceDate">
-        <InputText id="anschrift-plz" @bind-Value="Address.PostalCode" inputmode="numeric" autocomplete="off" />
+    <FormField Id="address-postal-code" Label="PLZ" For="() => Address.PostalCode" Required="@WithReferenceDate">
+        <InputText id="address-postal-code" @bind-Value="Address.PostalCode" inputmode="numeric" autocomplete="off" />
     </FormField>
-    <FormField Id="anschrift-ort" Label="Ort" For="() => Address.City" Required="@WithReferenceDate">
-        <InputText id="anschrift-ort" @bind-Value="Address.City" autocomplete="off" />
+    <FormField Id="address-city" Label="Ort" For="() => Address.City" Required="@WithReferenceDate">
+        <InputText id="address-city" @bind-Value="Address.City" autocomplete="off" />
     </FormField>
-    <FormField Id="anschrift-zusatz" Label="Zusatz" For="() => Address.AddressLine2" Hint="z. B. „c/o Müller“">
-        <InputText id="anschrift-zusatz" @bind-Value="Address.AddressLine2" autocomplete="off" />
+    <FormField Id="address-supplement" Label="Zusatz" For="() => Address.AddressLine2" Hint="z. B. „c/o Müller“">
+        <InputText id="address-supplement" @bind-Value="Address.AddressLine2" autocomplete="off" />
     </FormField>
-    <FormField Id="anschrift-land" Label="Land" For="() => Address.Country" Hint="Leer = Deutschland">
-        <InputText id="anschrift-land" @bind-Value="Address.Country" autocomplete="off" />
+    <FormField Id="address-country" Label="Land" For="() => Address.Country" Hint="Leer = Deutschland">
+        <InputText id="address-country" @bind-Value="Address.Country" autocomplete="off" />
     </FormField>
 </div>
 

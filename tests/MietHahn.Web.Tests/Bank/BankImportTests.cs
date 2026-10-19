@@ -11,7 +11,7 @@ public class BankImportTests(PostgresFixture postgres) : AccountTestBase(postgre
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
-        var account = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/bank/konten/neu"), "konto", new Dictionary<string, string>
+        var account = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/bank/konten/neu"), "account", new Dictionary<string, string>
         {
             ["Data.Name"] = "Mietkonto",
             ["Data.Iban"] = "DE89 3704 0044 0532 0130 00",
@@ -26,7 +26,7 @@ public class BankImportTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("Nicht gebuchter Umsatz übersprungen", preview.Text, StringComparison.Ordinal);
         Assert.Contains("Miete Februar 2026 Wohnung 1 Lindenweg 3", preview.Text, StringComparison.Ordinal);
 
-        var transactions = await admin.SubmitAsync(preview, "importieren");
+        var transactions = await admin.SubmitAsync(preview, "run-import");
         Assert.Contains("4 Umsätze importiert.", transactions.Text, StringComparison.Ordinal);
         Assert.Contains("Stadtwerke Musterstadt", transactions.Text, StringComparison.Ordinal);
         Assert.Contains("4 Umsätze ohne Zuordnung", (await admin.GetAsync("/verwaltung")).TextWithStreaming, StringComparison.Ordinal);
@@ -42,8 +42,8 @@ public class BankImportTests(PostgresFixture postgres) : AccountTestBase(postgre
         // Same file again: nothing new, import blocked; discard.
         preview = await admin.SubmitWithFileAsync(await admin.GetAsync(accountPath), "import", "Upload", TestFile("camt053_v02.xml"), "februar.xml", "application/xml");
         Assert.Contains("0 neue Umsätze, 4 schon vorhanden", preview.Text, StringComparison.Ordinal);
-        Assert.True(preview.Form("importieren").QuerySelector("button")!.HasAttribute("disabled"));
-        account = await admin.SubmitAsync(preview, "verwerfen");
+        Assert.True(preview.Form("run-import").QuerySelector("button")!.HasAttribute("disabled"));
+        account = await admin.SubmitAsync(preview, "discard");
         Assert.Contains("Der Import wurde verworfen.", account.Text, StringComparison.Ordinal);
         Assert.Contains("februar.xml", account.Text, StringComparison.Ordinal); // import log
     }
@@ -53,7 +53,7 @@ public class BankImportTests(PostgresFixture postgres) : AccountTestBase(postgre
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        var account = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/bank/konten/neu"), "konto", new Dictionary<string, string>
+        var account = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/bank/konten/neu"), "account", new Dictionary<string, string>
         {
             ["Data.Name"] = "Mietkonto",
             ["Data.Iban"] = "DE89370400440532013000",
@@ -63,7 +63,7 @@ public class BankImportTests(PostgresFixture postgres) : AccountTestBase(postgre
         var errors = await admin.SubmitWithFileAsync(account, "import", "Upload", csv, "export.csv", "text/csv");
         Assert.Contains("Das Dateiformat wurde nicht erkannt.", errors.Text, StringComparison.Ordinal);
 
-        var profile = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/bank/csv-profile"), "profil", new Dictionary<string, string>
+        var profile = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/bank/csv-profile"), "profile", new Dictionary<string, string>
         {
             ["Data.Name"] = "Hausbank",
             ["Data.Delimiter"] = ",",

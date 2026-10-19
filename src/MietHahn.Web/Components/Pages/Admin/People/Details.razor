@@ -14,9 +14,9 @@
     <Actions>
         @if (person.AnonymizedAt is null)
         {
-            <a class="knopf" href="/verwaltung/personen/@Id/bearbeiten">Bearbeiten</a>
+            <a class="button" href="/verwaltung/personen/@Id/bearbeiten">Bearbeiten</a>
         }
-        <a class="knopf" href="/verwaltung/personen/@Id/auskunft" download>DSGVO-Auskunft</a>
+        <a class="button" href="/verwaltung/personen/@Id/auskunft" download>DSGVO-Auskunft</a>
     </Actions>
 </PageHeader>
 
@@ -25,10 +25,10 @@
 
 @if (person.AnonymizedAt is { } anonymized)
 {
-    <p class="meldung meldung-hinweis" role="status">Die personenbezogenen Daten wurden am @Format.Timestamp(anonymized) entfernt (DSGVO).</p>
+    <p class="message message-info" role="status">Die personenbezogenen Daten wurden am @Format.Timestamp(anonymized) entfernt (DSGVO).</p>
 }
 
-<dl class="angaben">
+<dl class="details">
     @if (person.Data.Email is not null)
     {
         <dt>E-Mail</dt><dd><a href="mailto:@person.Data.Email">@person.Data.Email</a></dd>
@@ -84,25 +84,25 @@
         <h2>Anschrift</h2>
         @if (person.Address is null)
         {
-            <p class="klein">Keine aktuelle Anschrift hinterlegt.</p>
+            <p class="small">Keine aktuelle Anschrift hinterlegt.</p>
         }
         else
         {
-            <p>@person.Address.SingleLine <span class="klein">(@Format.Period(person.Address.Validity))</span></p>
+            <p>@person.Address.SingleLine <span class="small">(@Format.Period(person.Address.Validity))</span></p>
         }
-        <details class="aufklapper" open="@(person.Address is null)">
+        <details class="disclosure" open="@(person.Address is null)">
             <summary>Neue Anschrift (Umzug, Einzug, Auszug)</summary>
-            <EditForm Model="Address" FormName="anschrift" OnValidSubmit="SaveAddressAsync">
+            <EditForm Model="Address" FormName="address" OnValidSubmit="SaveAddressAsync">
                 <DataAnnotationsValidator />
                 <AddressFields Address="Address!" />
-                <button type="submit" class="knopf">Anschrift speichern</button>
+                <button type="submit" class="button">Anschrift speichern</button>
             </EditForm>
-            <p class="klein">Die bisherige Anschrift endet am Vortag und bleibt erhalten (z. B. für die Zustellung früherer Abrechnungen an die neue Anschrift).</p>
+            <p class="small">Die bisherige Anschrift endet am Vortag und bleibt erhalten (z. B. für die Zustellung früherer Abrechnungen an die neue Anschrift).</p>
         </details>
         @if (person.Addresses.Count > 1)
         {
             <h3>Frühere und künftige Anschriften</h3>
-            <ul class="klein">
+            <ul class="small">
                 @foreach (var entry in person.Addresses)
                 {
                     <li>@Format.Period(entry.Validity): @entry.SingleLine</li>
@@ -113,14 +113,14 @@
 
     <section>
         <h2>Bankverbindungen</h2>
-        <p class="klein">Alle Konten, von denen die Person zahlt: eingehende Zahlungen werden über die IBAN zugeordnet.</p>
+        <p class="small">Alle Konten, von denen die Person zahlt: eingehende Zahlungen werden über die IBAN zugeordnet.</p>
         @if (person.BankDetails.Count > 0)
         {
             @* One form for all rows: the clicked button submits its id (form names must be unique). *@
-            <form method="post" @formname="iban-entfernen" @onsubmit="RemoveBankDetailsAsync">
+            <form method="post" @formname="iban-remove" @onsubmit="RemoveBankDetailsAsync">
                 <AntiforgeryToken />
-                <div class="tabellen-rahmen">
-                    <table class="tabelle">
+                <div class="table-wrapper">
+                    <table class="data-table">
                         <thead><tr><th>IBAN</th><th>Kontoinhaber</th><th>BIC</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var bank in person.BankDetails)
@@ -129,7 +129,7 @@
                                     <td><code>@bank.Iban</code></td>
                                     <td>@bank.AccountHolder</td>
                                     <td>@bank.Bic</td>
-                                    <td><button type="submit" name="RemoveId" value="@bank.Id" class="knopf knopf-gefahr" aria-label="IBAN @bank.Iban entfernen">Entfernen</button></td>
+                                    <td><button type="submit" name="RemoveId" value="@bank.Id" class="button button-danger" aria-label="IBAN @bank.Iban entfernen">Entfernen</button></td>
                                 </tr>
                             }
                         </tbody>
@@ -137,21 +137,21 @@
                 </div>
             </form>
         }
-        <details class="aufklapper" open="@(person.BankDetails.Count == 0)">
+        <details class="disclosure" open="@(person.BankDetails.Count == 0)">
             <summary>IBAN hinzufügen</summary>
-            <EditForm Model="Bank" FormName="iban" OnValidSubmit="AddBankDetailsAsync" class="formular-raster">
+            <EditForm Model="Bank" FormName="iban" OnValidSubmit="AddBankDetailsAsync" class="form-grid">
                 <DataAnnotationsValidator />
                 <FormField Id="iban" Label="IBAN" For="() => Bank!.Iban" Required="true">
                     <InputText id="iban" @bind-Value="Bank!.Iban" autocomplete="off" />
                 </FormField>
-                <FormField Id="kontoinhaber" Label="Kontoinhaber" For="() => Bank!.AccountHolder" Hint="Falls abweichend">
-                    <InputText id="kontoinhaber" @bind-Value="Bank!.AccountHolder" autocomplete="off" />
+                <FormField Id="account-holder" Label="Kontoinhaber" For="() => Bank!.AccountHolder" Hint="Falls abweichend">
+                    <InputText id="account-holder" @bind-Value="Bank!.AccountHolder" autocomplete="off" />
                 </FormField>
                 <FormField Id="bic" Label="BIC" For="() => Bank!.Bic">
                     <InputText id="bic" @bind-Value="Bank!.Bic" autocomplete="off" />
                 </FormField>
-                <div class="feld feld-aktion">
-                    <button type="submit" class="knopf">IBAN hinzufügen</button>
+                <div class="field field-action">
+                    <button type="submit" class="button">IBAN hinzufügen</button>
                 </div>
             </EditForm>
         </details>
@@ -165,20 +165,20 @@
                 Konto <a href="/verwaltung/benutzer/@access.UserId">@access.Email</a> (@MietHahn.Application.Accounts.Roles.DisplayName(access.Role))
                 @if (access.Locked)
                 {
-                    <span class="status status-fehler">gesperrt</span>
+                    <span class="status status-error">gesperrt</span>
                 }
             </p>
         }
         else
         {
-            <p class="klein">Mit einem Zugang sieht die Person ihre Verträge, Dokumente und Tickets im Portal (Mieter) bzw. im Servicebereich.</p>
-            <form method="post" @formname="zugang" @onsubmit="SetUpAccessAsync">
+            <p class="small">Mit einem Zugang sieht die Person ihre Verträge, Dokumente und Tickets im Portal (Mieter) bzw. im Servicebereich.</p>
+            <form method="post" @formname="access" @onsubmit="SetUpAccessAsync">
                 <AntiforgeryToken />
-                <button type="submit" class="knopf" disabled="@(person.Data.Email is null)">Zugang einrichten und einladen</button>
+                <button type="submit" class="button" disabled="@(person.Data.Email is null)">Zugang einrichten und einladen</button>
             </form>
             @if (person.Data.Email is null)
             {
-                <p class="klein">Dafür zuerst eine E-Mail-Adresse hinterlegen.</p>
+                <p class="small">Dafür zuerst eine E-Mail-Adresse hinterlegen.</p>
             }
         }
     </section>
@@ -187,17 +187,17 @@
         <h2>Löschen &amp; Datenschutz</h2>
         @if (person.References.Count == 0)
         {
-            <DangerAction Text="Person löschen" FormName="loeschen" Confirmed="DeleteAsync"
+            <DangerAction Text="Person löschen" FormName="delete" Confirmed="DeleteAsync"
                             Confirmation="Die Person wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
         }
         else if (person.References.Any(b => b.Active))
         {
-            <p class="klein">Solange Verträge laufen, kann die Person weder gelöscht noch anonymisiert werden.</p>
+            <p class="small">Solange Verträge laufen, kann die Person weder gelöscht noch anonymisiert werden.</p>
         }
         else
         {
-            <p class="klein">Nach Ablauf der Aufbewahrungsfrist erscheint die Person unter <a href="/verwaltung/datenschutz">Datenschutz</a> zur Anonymisierung.</p>
-            <DangerAction Text="Jetzt anonymisieren" FormName="anonymisieren" Confirmed="AnonymizeAsync"
+            <p class="small">Nach Ablauf der Aufbewahrungsfrist erscheint die Person unter <a href="/verwaltung/datenschutz">Datenschutz</a> zur Anonymisierung.</p>
+            <DangerAction Text="Jetzt anonymisieren" FormName="anonymize" Confirmed="AnonymizeAsync"
                             Confirmation="Name, Kontaktdaten, Anschriften, IBANs und die Werte im Änderungsprotokoll werden endgültig entfernt. Das lässt sich nicht rückgängig machen. Aufbewahrungspflichten beachten!"
                             ConfirmText="Ja, endgültig anonymisieren" />
         }
@@ -218,13 +218,13 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "anschrift")]
+    [SupplyParameterFromForm(FormName = "address")]
     private AddressInput? Address { get; set; }
 
     [SupplyParameterFromForm(FormName = "iban")]
     private BankDetailsInput? Bank { get; set; }
 
-    [SupplyParameterFromForm(FormName = "iban-entfernen")]
+    [SupplyParameterFromForm(FormName = "iban-remove")]
     private Guid? RemoveId { get; set; }
 
     private string Subtitle

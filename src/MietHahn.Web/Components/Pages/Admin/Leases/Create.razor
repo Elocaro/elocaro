@@ -9,17 +9,17 @@
 
 @if (rentalUnits.Count == 0 || people.Count == 0)
 {
-    <p class="meldung meldung-hinweis">
+    <p class="message message-info">
         Für einen Vertrag braucht es ein vermietbares <a href="/verwaltung/objekte">Objekt</a> und mindestens eine <a href="/verwaltung/personen/neu">Person</a>.
     </p>
 }
 
-<EditForm Model="Form" FormName="vertrag" OnValidSubmit="CreateAsync">
+<EditForm Model="Form" FormName="lease" OnValidSubmit="CreateAsync">
     <DataAnnotationsValidator />
     <h2>Mietobjekt &amp; Laufzeit</h2>
-    <div class="formular-raster">
-        <FormField Id="mietobjekt" Label="Mietobjekt" For="() => Form!.RentalUnitId" Required="true">
-            <InputSelect id="mietobjekt" @bind-Value="Form!.RentalUnitId">
+    <div class="form-grid">
+        <FormField Id="rental-unit" Label="Mietobjekt" For="() => Form!.RentalUnitId" Required="true">
+            <InputSelect id="rental-unit" @bind-Value="Form!.RentalUnitId">
                 <option value="">– bitte wählen –</option>
                 @foreach (var group in rentalUnits.GroupBy(m => m.Property))
                 {
@@ -32,87 +32,87 @@
                 }
             </InputSelect>
         </FormField>
-        <FormField Id="beginn" Label="Mietbeginn" For="() => Form!.Start" Required="true">
-            <InputDate id="beginn" @bind-Value="Form!.Start" />
+        <FormField Id="start" Label="Mietbeginn" For="() => Form!.Start" Required="true">
+            <InputDate id="start" @bind-Value="Form!.Start" />
         </FormField>
-        <FormField Id="befristet" Label="Befristet bis" For="() => Form!.FixedTermUntil" Hint="Nur bei Zeitmietverträgen (§ 575 BGB).">
-            <InputDate id="befristet" @bind-Value="Form!.FixedTermUntil" />
+        <FormField Id="fixed-term" Label="Befristet bis" For="() => Form!.FixedTermUntil" Hint="Nur bei Zeitmietverträgen (§ 575 BGB).">
+            <InputDate id="fixed-term" @bind-Value="Form!.FixedTermUntil" />
         </FormField>
     </div>
 
     <h2>Mieter</h2>
-    <div class="formular-raster">
-        <FormField Id="mieter1" Label="Mieter" For="() => Form!.Tenant1" Required="true">
-            <PersonSelectField Id="mieter1" @bind-Value="Form!.Tenant1" People="people" />
+    <div class="form-grid">
+        <FormField Id="tenant1" Label="Mieter" For="() => Form!.Tenant1" Required="true">
+            <PersonSelectField Id="tenant1" @bind-Value="Form!.Tenant1" People="people" />
         </FormField>
-        <FormField Id="mieter2" Label="Weiterer Mieter" For="() => Form!.Tenant2" Hint="Gesamtschuldnerisch; weitere später im Vertrag.">
-            <PersonSelectField Id="mieter2" @bind-Value="Form!.Tenant2" People="people" />
+        <FormField Id="tenant2" Label="Weiterer Mieter" For="() => Form!.Tenant2" Hint="Gesamtschuldnerisch; weitere später im Vertrag.">
+            <PersonSelectField Id="tenant2" @bind-Value="Form!.Tenant2" People="people" />
         </FormField>
-        <FormField Id="buerge" Label="Bürge" For="() => Form!.Guarantor">
-            <PersonSelectField Id="buerge" @bind-Value="Form!.Guarantor" People="people" />
+        <FormField Id="guarantor" Label="Bürge" For="() => Form!.Guarantor">
+            <PersonSelectField Id="guarantor" @bind-Value="Form!.Guarantor" People="people" />
         </FormField>
     </div>
-    <p class="klein"><a href="/verwaltung/personen/neu">Neue Person anlegen</a> (danach diese Seite neu laden)</p>
+    <p class="small"><a href="/verwaltung/personen/neu">Neue Person anlegen</a> (danach diese Seite neu laden)</p>
 
     <h2>Miete</h2>
-    <div class="formular-raster">
-        <FormField Id="abrechnungsart" Label="Nebenkosten" For="() => Form!.BillingType">
-            <InputSelect id="abrechnungsart" @bind-Value="Form!.BillingType">
+    <div class="form-grid">
+        <FormField Id="billing-type" Label="Nebenkosten" For="() => Form!.BillingType">
+            <InputSelect id="billing-type" @bind-Value="Form!.BillingType">
                 @foreach (var value in Enum.GetValues<BillingType>())
                 {
                     <option value="@value">@Labels.From(value)</option>
                 }
             </InputSelect>
         </FormField>
-        <FormField Id="kaltmiete" Label="Kaltmiete (€/Monat)" For="() => Form!.BaseRent" Required="true">
-            <InputAmount id="kaltmiete" @bind-Value="Form!.BaseRent" />
+        <FormField Id="base-rent" Label="Kaltmiete (€/Monat)" For="() => Form!.BaseRent" Required="true">
+            <InputAmount id="base-rent" @bind-Value="Form!.BaseRent" />
         </FormField>
-        <FormField Id="bk" Label="Betriebskosten-Vorauszahlung" For="() => Form!.OperatingCostPrepayment">
-            <InputAmount id="bk" @bind-Value="Form!.OperatingCostPrepayment" />
+        <FormField Id="operating-costs" Label="Betriebskosten-Vorauszahlung" For="() => Form!.OperatingCostPrepayment">
+            <InputAmount id="operating-costs" @bind-Value="Form!.OperatingCostPrepayment" />
         </FormField>
-        <FormField Id="hk" Label="Heizkosten-Vorauszahlung" For="() => Form!.HeatingCostPrepayment">
-            <InputAmount id="hk" @bind-Value="Form!.HeatingCostPrepayment" />
+        <FormField Id="heating-costs" Label="Heizkosten-Vorauszahlung" For="() => Form!.HeatingCostPrepayment">
+            <InputAmount id="heating-costs" @bind-Value="Form!.HeatingCostPrepayment" />
         </FormField>
-        <FormField Id="pauschale" Label="Betriebskostenpauschale" For="() => Form!.OperatingCostFlatRate" Hint="Nur bei „Pauschale“, z. B. WG-Zimmer.">
-            <InputAmount id="pauschale" @bind-Value="Form!.OperatingCostFlatRate" />
+        <FormField Id="flat-rate" Label="Betriebskostenpauschale" For="() => Form!.OperatingCostFlatRate" Hint="Nur bei „Pauschale“, z. B. WG-Zimmer.">
+            <InputAmount id="flat-rate" @bind-Value="Form!.OperatingCostFlatRate" />
         </FormField>
-        <FormField Id="personen" Label="Personen im Haushalt" For="() => Form!.People">
-            <InputNumber id="personen" @bind-Value="Form!.People" min="1" max="20" />
+        <FormField Id="persons" Label="Personen im Haushalt" For="() => Form!.People">
+            <InputNumber id="persons" @bind-Value="Form!.People" min="1" max="20" />
         </FormField>
     </div>
-    <div class="feld feld-checkbox">
-        <InputCheckbox id="hk-verbrauch" @bind-Value="Form!.HeatingCostsConsumptionBased" />
-        <label for="hk-verbrauch">Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)</label>
+    <div class="field field-checkbox">
+        <InputCheckbox id="heating-costs-consumption" @bind-Value="Form!.HeatingCostsConsumptionBased" />
+        <label for="heating-costs-consumption">Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)</label>
     </div>
 
     <h2>Weitere Angaben</h2>
-    <div class="formular-raster">
-        <FormField Id="werktag" Label="Fällig am … Werktag" For="() => Form!.DueOnWorkingDay">
-            <InputNumber id="werktag" @bind-Value="Form!.DueOnWorkingDay" min="1" max="10" />
+    <div class="form-grid">
+        <FormField Id="business-day" Label="Fällig am … Werktag" For="() => Form!.DueOnWorkingDay">
+            <InputNumber id="business-day" @bind-Value="Form!.DueOnWorkingDay" min="1" max="10" />
         </FormField>
-        <FormField Id="zahlungsart" Label="Zahlungsart" For="() => Form!.PaymentMethod">
-            <InputSelect id="zahlungsart" @bind-Value="Form!.PaymentMethod">
+        <FormField Id="payment-method" Label="Zahlungsart" For="() => Form!.PaymentMethod">
+            <InputSelect id="payment-method" @bind-Value="Form!.PaymentMethod">
                 @foreach (var value in Enum.GetValues<PaymentMethod>())
                 {
                     <option value="@value">@Labels.From(value)</option>
                 }
             </InputSelect>
         </FormField>
-        <FormField Id="frist" Label="Kündigungsfrist Mieter (Monate)" For="() => Form!.NoticePeriodMonths">
-            <InputNumber id="frist" @bind-Value="Form!.NoticePeriodMonths" min="1" max="24" />
+        <FormField Id="deadline" Label="Kündigungsfrist Mieter (Monate)" For="() => Form!.NoticePeriodMonths">
+            <InputNumber id="deadline" @bind-Value="Form!.NoticePeriodMonths" min="1" max="24" />
         </FormField>
-        <FormField Id="kaution" Label="Kaution (€)" For="() => Form!.Deposit">
-            <InputAmount id="kaution" @bind-Value="Form!.Deposit" />
+        <FormField Id="deposit" Label="Kaution (€)" For="() => Form!.Deposit">
+            <InputAmount id="deposit" @bind-Value="Form!.Deposit" />
         </FormField>
-        <FormField Id="kaution-notiz" Label="Kaution – Notiz" For="() => Form!.DepositNote" Hint="z. B. „Bürgschaft Sparkasse“">
-            <InputText id="kaution-notiz" @bind-Value="Form!.DepositNote" />
+        <FormField Id="deposit-note" Label="Kaution – Notiz" For="() => Form!.DepositNote" Hint="z. B. „Bürgschaft Sparkasse“">
+            <InputText id="deposit-note" @bind-Value="Form!.DepositNote" />
         </FormField>
     </div>
-    <FormField Id="notizen" Label="Notizen" For="() => Form!.Notes">
-        <InputTextArea id="notizen" @bind-Value="Form!.Notes" rows="2" />
+    <FormField Id="notes" Label="Notizen" For="() => Form!.Notes">
+        <InputTextArea id="notes" @bind-Value="Form!.Notes" rows="2" />
     </FormField>
 
-    <button type="submit" class="knopf knopf-primaer">Vertrag anlegen</button>
+    <button type="submit" class="button button-primary">Vertrag anlegen</button>
 </EditForm>
 
 @code {
@@ -120,7 +120,7 @@
     private IReadOnlyList<PersonOption> people = [];
     private IReadOnlyList<string>? errors;
 
-    [SupplyParameterFromForm(FormName = "vertrag")]
+    [SupplyParameterFromForm(FormName = "lease")]
     private LeaseForm? Form { get; set; }
 
     [SupplyParameterFromQuery(Name = "mietobjekt")]

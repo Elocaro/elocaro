@@ -20,19 +20,19 @@ public class RentModelsTests(PostgresFixture postgres) : AccountTestBase(postgre
         using var _ = admin;
         var lease = await admin.GetAsync($"/verwaltung/vertraege/{await LeaseAsync(Today)}");
 
-        lease = await admin.SubmitAsync(lease, "mietmodell", new Dictionary<string, string> { ["Input.Model"] = "Graduated" });
+        lease = await admin.SubmitAsync(lease, "rent-model", new Dictionary<string, string> { ["Input.Model"] = "Graduated" });
         Assert.Contains("Mietmodell: Staffelmiete", lease.Text, StringComparison.Ordinal);
 
         var from = Today.AddYears(1);
-        lease = await admin.SubmitAsync(lease, "staffel", new Dictionary<string, string> { ["Graduated.From"] = Iso(from), ["Graduated.BaseRent"] = "700" });
+        lease = await admin.SubmitAsync(lease, "graduated", new Dictionary<string, string> { ["Graduated.From"] = Iso(from), ["Graduated.BaseRent"] = "700" });
         Assert.Contains("Die Staffel wurde gespeichert.", lease.Text, StringComparison.Ordinal);
         Assert.Contains("geplant", lease.Text, StringComparison.Ordinal);
 
-        var tooEarly = await admin.SubmitAsync(lease, "staffel", new Dictionary<string, string> { ["Graduated.From"] = Iso(from.AddMonths(6)), ["Graduated.BaseRent"] = "720" });
+        var tooEarly = await admin.SubmitAsync(lease, "graduated", new Dictionary<string, string> { ["Graduated.From"] = Iso(from.AddMonths(6)), ["Graduated.BaseRent"] = "720" });
         Assert.Contains("mindestens ein Jahr unverändert", tooEarly.Text, StringComparison.Ordinal);
 
         var rentStepId = lease.Document.QuerySelector("button[name=RemoveStepId]")!.GetAttribute("value")!;
-        lease = await admin.SubmitAsync(lease, "staffel-entfernen", new Dictionary<string, string> { ["RemoveStepId"] = rentStepId });
+        lease = await admin.SubmitAsync(lease, "graduated-remove", new Dictionary<string, string> { ["RemoveStepId"] = rentStepId });
         Assert.Contains("Die Staffel wurde entfernt.", lease.Text, StringComparison.Ordinal);
         Assert.Contains("Noch keine Staffeln erfasst.", lease.Text, StringComparison.Ordinal);
     }
@@ -46,7 +46,7 @@ public class RentModelsTests(PostgresFixture postgres) : AccountTestBase(postgre
         var leasePage = $"/verwaltung/vertraege/{await LeaseAsync(start)}";
         var baseMonth = new DateOnly(start.Year, start.Month, 1);
 
-        var lease = await admin.SubmitAsync(await admin.GetAsync(leasePage), "mietmodell", new Dictionary<string, string>
+        var lease = await admin.SubmitAsync(await admin.GetAsync(leasePage), "rent-model", new Dictionary<string, string>
         {
             ["Input.Model"] = "Index",
             ["Input.BaseMonth"] = baseMonth.ToString("yyyy-MM", CultureInfo.InvariantCulture),
@@ -56,7 +56,7 @@ public class RentModelsTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("Kein VPI-Wert neuer als der Ausgangsindex.", lease.Text, StringComparison.Ordinal);
 
         var newMonth = new DateOnly(Today.Year, Today.Month, 1).AddMonths(-2);
-        var vpi = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/vpi"), "vpi-import", new Dictionary<string, string>
+        var vpi = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/vpi"), "cpi-import", new Dictionary<string, string>
         {
             ["Import.Csv"] = $"Jahr;Monat;Index\n{baseMonth:yyyy-MM};117,4\n{newMonth:yyyy-MM};121,7\n",
         });
@@ -66,7 +66,7 @@ public class RentModelsTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("neue Kaltmiete 673,81 €", lease.Text, StringComparison.Ordinal);
         Assert.Contains("+3,7 %", lease.Text, StringComparison.Ordinal);
 
-        lease = await admin.SubmitAsync(lease, "index-anpassung", new Dictionary<string, string> { ["Adjustment.DeclaredOn"] = Iso(Today) });
+        lease = await admin.SubmitAsync(lease, "index-adjustment", new Dictionary<string, string> { ["Adjustment.DeclaredOn"] = Iso(Today) });
         Assert.Contains("Die Indexanpassung wurde übernommen.", lease.Text, StringComparison.Ordinal);
         Assert.Contains("673,81 €", lease.Text, StringComparison.Ordinal); // in the history from the month after next
         Assert.Contains("121,7", lease.Text, StringComparison.Ordinal);
@@ -78,7 +78,7 @@ public class RentModelsTests(PostgresFixture postgres) : AccountTestBase(postgre
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
-        var page = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/vpi"), "vpi", new Dictionary<string, string> { ["Input.Month"] = "2026-09", ["Input.Value"] = "122.1" });
+        var page = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/vpi"), "cpi", new Dictionary<string, string> { ["Input.Month"] = "2026-09", ["Input.Value"] = "122.1" });
 
         Assert.Contains("Der Indexwert wurde gespeichert.", page.Text, StringComparison.Ordinal);
         Assert.Contains("September 2026", page.Text, StringComparison.Ordinal);

@@ -1,20 +1,20 @@
 @using MietHahn.Application.Properties
 @* Input fields of a bank account; sits inside an EditForm with Model = Data. *@
-<div class="formular-raster">
-    <FormField Id="konto-name" Label="Name" For="() => Data.Name" Required="true" Hint="z. B. „Mietkonto Lindenweg“">
-        <InputText id="konto-name" @bind-Value="Data.Name" />
+<div class="form-grid">
+    <FormField Id="account-name" Label="Name" For="() => Data.Name" Required="true" Hint="z. B. „Mietkonto Lindenweg“">
+        <InputText id="account-name" @bind-Value="Data.Name" />
     </FormField>
-    <FormField Id="konto-iban" Label="IBAN" For="() => Data.Iban" Required="true">
-        <InputText id="konto-iban" @bind-Value="Data.Iban" autocomplete="off" />
+    <FormField Id="account-iban" Label="IBAN" For="() => Data.Iban" Required="true">
+        <InputText id="account-iban" @bind-Value="Data.Iban" autocomplete="off" />
     </FormField>
-    <FormField Id="konto-bic" Label="BIC" For="() => Data.Bic">
-        <InputText id="konto-bic" @bind-Value="Data.Bic" />
+    <FormField Id="account-bic" Label="BIC" For="() => Data.Bic">
+        <InputText id="account-bic" @bind-Value="Data.Bic" />
     </FormField>
-    <FormField Id="konto-bank" Label="Bank" For="() => Data.Bank">
-        <InputText id="konto-bank" @bind-Value="Data.Bank" />
+    <FormField Id="account-bank" Label="Bank" For="() => Data.Bank">
+        <InputText id="account-bank" @bind-Value="Data.Bank" />
     </FormField>
-    <FormField Id="konto-typ" Label="Art" For="() => Data.Type">
-        <InputSelect id="konto-typ" @bind-Value="Data.Type">
+    <FormField Id="account-type" Label="Art" For="() => Data.Type">
+        <InputSelect id="account-type" @bind-Value="Data.Type">
             @foreach (var value in Enum.GetValues<AccountType>())
             {
                 <option value="@value">@Labels.From(value)</option>
@@ -24,13 +24,13 @@
 </div>
 @if (Properties.Count > 0)
 {
-    <fieldset class="feld">
+    <fieldset class="field">
         <legend>Objekte (leer = alle)</legend>
         @foreach (var property in Properties)
         {
-            <div class="feld feld-checkbox">
-                <input type="checkbox" id="konto-objekt-@property.Id" name="Data.PropertyIds" value="@property.Id" checked="@(Data.PropertyIds?.Contains(property.Id) == true)" />
-                <label for="konto-objekt-@property.Id">@property.Name</label>
+            <div class="field field-checkbox">
+                <input type="checkbox" id="account-property-@property.Id" name="Data.PropertyIds" value="@property.Id" checked="@(Data.PropertyIds?.Contains(property.Id) == true)" />
+                <label for="account-property-@property.Id">@property.Name</label>
             </div>
         }
     </fieldset>

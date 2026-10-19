@@ -8,10 +8,10 @@
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<form method="get" class="formular-zeile suchleiste" role="search">
-    <div class="feld">
-        <label for="konto">Konto</label>
-        <select id="konto" name="konto">
+<form method="get" class="form-row search-bar" role="search">
+    <div class="field">
+        <label for="account">Konto</label>
+        <select id="account" name="konto">
             <option value="">Alle Konten</option>
             @foreach (var k in accounts)
             {
@@ -19,7 +19,7 @@
             }
         </select>
     </div>
-    <div class="feld">
+    <div class="field">
         <label for="status">Status</label>
         <select id="status" name="status">
             <option value="">Alle</option>
@@ -29,12 +29,12 @@
             }
         </select>
     </div>
-    <div class="feld">
-        <label for="suche">Suche</label>
-        <input id="suche" type="search" name="q" value="@Q" placeholder="Name, IBAN, Verwendungszweck" />
+    <div class="field">
+        <label for="search">Suche</label>
+        <input id="search" type="search" name="q" value="@Q" placeholder="Name, IBAN, Verwendungszweck" />
     </div>
-    <div class="feld feld-aktion">
-        <button type="submit" class="knopf">Anzeigen</button>
+    <div class="field field-action">
+        <button type="submit" class="button">Anzeigen</button>
     </div>
 </form>
 
@@ -44,39 +44,39 @@
 }
 else if (transactions is not null)
 {
-    <p class="klein">@transactions.Count Umsätze · Eingänge @Format.Money(transactions.Where(u => u.Amount > 0).Sum(u => u.Amount)) · Ausgänge @Format.Money(transactions.Where(u => u.Amount < 0).Sum(u => u.Amount))</p>
+    <p class="small">@transactions.Count Umsätze · Eingänge @Format.Money(transactions.Where(u => u.Amount > 0).Sum(u => u.Amount)) · Ausgänge @Format.Money(transactions.Where(u => u.Amount < 0).Sum(u => u.Amount))</p>
     <form method="post" @formname="status" @onsubmit="StatusAsync">
         <AntiforgeryToken />
-        <div class="tabellen-rahmen">
-            <table class="tabelle">
-                <thead><tr><th>Buchung</th><th>Gegenseite</th><th>Verwendungszweck</th><th class="zahl">Betrag</th><th>Status</th><th></th></tr></thead>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Buchung</th><th>Gegenseite</th><th>Verwendungszweck</th><th class="number">Betrag</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var u in transactions)
                     {
                         <tr>
                             <td>@Format.Date(u.BookingDate)</td>
-                            <td>@u.CounterpartyName<span class="klein"> @u.CounterpartyIban</span></td>
+                            <td>@u.CounterpartyName<span class="small"> @u.CounterpartyIban</span></td>
                             <td>
                                 @u.Purpose
                                 @if (u.BookingText is not null)
                                 {
-                                    <span class="klein"> (@u.BookingText)</span>
+                                    <span class="small"> (@u.BookingText)</span>
                                 }
                                 @if (u.Note is not null)
                                 {
-                                    <br /><span class="klein">Notiz: @u.Note</span>
+                                    <br /><span class="small">Notiz: @u.Note</span>
                                 }
                             </td>
-                            <td class="zahl">@Format.Money(u.Amount)</td>
+                            <td class="number">@Format.Money(u.Amount)</td>
                             <td><span class="status @Labels.StatusClass(u.Status)">@Labels.From(u.Status)</span></td>
                             <td>
                                 @if (u.Status == TransactionStatus.Open)
                                 {
-                                    <button type="submit" class="knopf" name="Action" value="@($"ignorieren:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) ignorieren">Ignorieren</button>
+                                    <button type="submit" class="button" name="Action" value="@($"ignorieren:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) ignorieren">Ignorieren</button>
                                 }
                                 else if (u.Status == TransactionStatus.Ignored)
                                 {
-                                    <button type="submit" class="knopf" name="Action" value="@($"oeffnen:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) wieder öffnen">Wieder öffnen</button>
+                                    <button type="submit" class="button" name="Action" value="@($"oeffnen:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) wieder öffnen">Wieder öffnen</button>
                                 }
                             </td>
                         </tr>
@@ -84,9 +84,9 @@ else if (transactions is not null)
                 </tbody>
             </table>
         </div>
-        <div class="feld">
-            <label for="notiz">Notiz beim Ignorieren (optional)</label>
-            <input id="notiz" name="Note" placeholder="z. B. privat, Umbuchung" />
+        <div class="field">
+            <label for="note">Notiz beim Ignorieren (optional)</label>
+            <input id="note" name="Note" placeholder="z. B. privat, Umbuchung" />
         </div>
     </form>
 }

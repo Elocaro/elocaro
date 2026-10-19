@@ -14,7 +14,7 @@
     <Actions>
         @if (meter.Count > 0)
         {
-            <a class="knopf knopf-primaer" href="/verwaltung/objekte/@PropertyId/ablesung">Ablese-Runde starten</a>
+            <a class="button button-primary" href="/verwaltung/objekte/@PropertyId/ablesung">Ablese-Runde starten</a>
         }
     </Actions>
 </PageHeader>
@@ -28,23 +28,23 @@
 }
 else
 {
-    <div class="tabellen-rahmen">
-        <table class="tabelle">
-            <thead><tr><th>Zähler</th><th>Zuordnung</th><th class="zahl">Letzter Stand</th><th>Eichfrist</th></tr></thead>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Zähler</th><th>Zuordnung</th><th class="number">Letzter Stand</th><th>Eichfrist</th></tr></thead>
             <tbody>
                 @foreach (var z in meter)
                 {
                     <tr>
                         <td>
                             <a href="/verwaltung/zaehler/@z.Id">@z.Name</a>
-                            <span class="klein">@Labels.From(z.Type) · @z.Number@(z.MainMeterId is not null ? " · Unterzähler" : "")</span>
+                            <span class="small">@Labels.From(z.Type) · @z.Number@(z.MainMeterId is not null ? " · Unterzähler" : "")</span>
                         </td>
                         <td>@z.Assignment</td>
-                        <td class="zahl">@Format.Quantity(z.LastReading?.Value, Labels.From(z.MeasurementUnit))<br /><span class="klein">@Format.Date(z.LastReading?.Date)</span></td>
+                        <td class="number">@Format.Quantity(z.LastReading?.Value, Labels.From(z.MeasurementUnit))<br /><span class="small">@Format.Date(z.LastReading?.Date)</span></td>
                         <td>
                             @if (z.CalibrationDueDate is { } deadline)
                             {
-                                <span class="@(deadline < today ? "status status-fehler" : deadline <= today.AddDays(90) ? "status status-wartend" : "")">@Format.Date(deadline)</span>
+                                <span class="@(deadline < today ? "status status-error" : deadline <= today.AddDays(90) ? "status status-pending" : "")">@Format.Date(deadline)</span>
                             }
                         </td>
                     </tr>
@@ -55,20 +55,20 @@ else
 }
 
 <section>
-    <details class="aufklapper" open="@(meter.Count == 0)">
+    <details class="disclosure" open="@(meter.Count == 0)">
         <summary>Zähler hinzufügen</summary>
-        <EditForm Model="Data" FormName="zaehler" OnValidSubmit="CreateAsync">
+        <EditForm Model="Data" FormName="meter" OnValidSubmit="CreateAsync">
             <DataAnnotationsValidator />
             <MeterFields Data="Data!" Units="property.Units" MainMeter="meter" />
-            <div class="formular-raster">
-                <FormField Id="einbau" Label="Eingebaut am" For="() => Creation!.InstalledOn" Required="true" Hint="Bei vorhandenen Zählern: Tag der ersten Ablesung">
-                    <InputDate id="einbau" @bind-Value="Creation!.InstalledOn" />
+            <div class="form-grid">
+                <FormField Id="installation" Label="Eingebaut am" For="() => Creation!.InstalledOn" Required="true" Hint="Bei vorhandenen Zählern: Tag der ersten Ablesung">
+                    <InputDate id="installation" @bind-Value="Creation!.InstalledOn" />
                 </FormField>
-                <FormField Id="anfangsstand" Label="Stand an diesem Tag" For="() => Creation!.InitialReading" Required="true">
-                    <InputArea id="anfangsstand" @bind-Value="Creation!.InitialReading" step="0.001" />
+                <FormField Id="initial-reading" Label="Stand an diesem Tag" For="() => Creation!.InitialReading" Required="true">
+                    <InputArea id="initial-reading" @bind-Value="Creation!.InitialReading" step="0.001" />
                 </FormField>
             </div>
-            <button type="submit" class="knopf">Zähler anlegen</button>
+            <button type="submit" class="button">Zähler anlegen</button>
         </EditForm>
     </details>
 </section>
@@ -86,10 +86,10 @@ else
     private HttpContext HttpContext { get; set; } = default!;
 
     // One form, two models: Data.* (MeterFields) and Creation.* (installation, initial reading)
-    [SupplyParameterFromForm(FormName = "zaehler")]
+    [SupplyParameterFromForm(FormName = "meter")]
     private MeterInput? Data { get; set; }
 
-    [SupplyParameterFromForm(FormName = "zaehler")]
+    [SupplyParameterFromForm(FormName = "meter")]
     private MeterCreation? Creation { get; set; }
 
     protected override async Task OnInitializedAsync()

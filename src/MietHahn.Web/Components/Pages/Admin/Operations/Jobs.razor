@@ -6,7 +6,7 @@
 
 @if (jobs is null)
 {
-    <p class="laedt" role="status">Wird geladen …</p>
+    <p class="loading" role="status">Wird geladen …</p>
 }
 else if (jobs.Count == 0)
 {
@@ -14,8 +14,8 @@ else if (jobs.Count == 0)
 }
 else
 {
-    <div class="tabellen-rahmen">
-    <table class="tabelle">
+    <div class="table-wrapper">
+    <table class="data-table">
         <thead>
             <tr><th>Job</th><th>Beschreibung</th><th>Nächste Ausführung</th><th>Letzter Lauf</th><th>Ergebnis</th></tr>
         </thead>
@@ -31,7 +31,7 @@ else
                         @switch (job.LastRunSucceeded)
                         {
                             case true: <span class="status status-ok">erfolgreich</span> break;
-                            case false: <span class="status status-fehler" title="@job.LastError">fehlgeschlagen</span> break;
+                            case false: <span class="status status-error" title="@job.LastError">fehlgeschlagen</span> break;
                             default: <span class="status">–</span> break;
                         }
                     </td>

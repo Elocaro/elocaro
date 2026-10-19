@@ -58,7 +58,7 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
         var page = await SignInAsync(browser, email, password);
         if (key is not null)
         {
-            page = await browser.SubmitAsync(page, "zwei-faktor", new Dictionary<string, string> { ["Input.Code"] = Code(key) });
+            page = await browser.SubmitAsync(page, "two-factor", new Dictionary<string, string> { ["Input.Code"] = Code(key) });
         }
 
         Assert.DoesNotContain("/konto/", page.Path, StringComparison.Ordinal);
@@ -72,7 +72,7 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
     protected static async Task<Page> SetUpAsync(TestBrowser browser, string email, string password)
     {
         var page = await browser.GetAsync("/konto/einrichtung");
-        return await browser.SubmitAsync(page, "einrichtung", new Dictionary<string, string>
+        return await browser.SubmitAsync(page, "setup", new Dictionary<string, string>
         {
             ["Input.DisplayName"] = "Andy Hahn",
             ["Input.Email"] = email,
@@ -85,8 +85,8 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
     protected async Task<(string Key, IReadOnlyList<string> Codes, Page Page)> EnableTwoFactorAsync(TestBrowser browser)
     {
         var page = await browser.GetAsync("/konto/sicherheit/zwei-faktor");
-        var key = page.Document.QuerySelector("code.schluessel")!.TextContent.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
-        var result = await browser.SubmitAsync(page, "zwei-faktor-einrichten", new Dictionary<string, string> { ["Input.Code"] = Code(key) });
+        var key = page.Document.QuerySelector("code.key")!.TextContent.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
+        var result = await browser.SubmitAsync(page, "two-factor-setup", new Dictionary<string, string> { ["Input.Code"] = Code(key) });
         var codes = result.Document.QuerySelectorAll("ul.codes code").Select(c => c.TextContent).ToList();
         return (key, codes, result);
     }
@@ -96,7 +96,7 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
     protected static async Task<Page> SignInAsync(TestBrowser browser, string email, string password, string? returnUrl = null)
     {
         var page = await browser.GetAsync("/konto/anmelden" + (returnUrl is null ? "" : "?ReturnUrl=" + Uri.EscapeDataString(returnUrl)));
-        return await browser.SubmitAsync(page, "anmelden", new Dictionary<string, string>
+        return await browser.SubmitAsync(page, "login", new Dictionary<string, string>
         {
             ["Input.Email"] = email,
             ["Input.Password"] = password,

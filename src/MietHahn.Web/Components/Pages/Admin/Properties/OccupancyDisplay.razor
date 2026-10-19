@@ -1,11 +1,11 @@
 @if (Occupancy is null)
 {
-    <span class="status status-wartend">Leerstand</span>
+    <span class="status status-pending">Leerstand</span>
 }
 else
 {
     <a href="/verwaltung/vertraege/@Occupancy.LeaseId">@Occupancy.Tenant</a>
-    <span class="klein">seit @Format.Date(Occupancy.Start)@(Occupancy.End is { } end ? $", bis {Format.Date(end)}" : "")</span>
+    <span class="small">seit @Format.Date(Occupancy.Start)@(Occupancy.End is { } end ? $", bis {Format.Date(end)}" : "")</span>
 }
 
 @code {

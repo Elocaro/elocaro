@@ -55,7 +55,7 @@ public class InitialSetupAndTwoFactorTests(PostgresFixture postgres) : AccountTe
         await SetUpAsync(browser);
         var page = await browser.GetAsync("/konto/sicherheit/zwei-faktor");
 
-        var result = await browser.SubmitAsync(page, "zwei-faktor-einrichten", new Dictionary<string, string> { ["Input.Code"] = "000000" });
+        var result = await browser.SubmitAsync(page, "two-factor-setup", new Dictionary<string, string> { ["Input.Code"] = "000000" });
 
         Assert.Contains("Der Code ist ungültig", result.Text, StringComparison.Ordinal);
         Assert.Equal("/konto/sicherheit/zwei-faktor", (await browser.GetAsync("/", followRedirects: false)).RedirectLocation!.ToString());
@@ -99,10 +99,10 @@ public class InitialSetupAndTwoFactorTests(PostgresFixture postgres) : AccountTe
         var twoFactor = await SignInAsync(browser, AdminEmail, AdminPassword, returnUrl: "/verwaltung/system/jobs");
         Assert.Equal("/konto/anmelden/zwei-faktor", twoFactor.Path);
 
-        var wrong = await browser.SubmitAsync(twoFactor, "zwei-faktor", new Dictionary<string, string> { ["Input.Code"] = "123456" });
+        var wrong = await browser.SubmitAsync(twoFactor, "two-factor", new Dictionary<string, string> { ["Input.Code"] = "123456" });
         Assert.Contains("Der Code ist ungültig.", wrong.Text, StringComparison.Ordinal);
 
-        var correct = await browser.SubmitAsync(wrong, "zwei-faktor", new Dictionary<string, string> { ["Input.Code"] = Code(key) });
+        var correct = await browser.SubmitAsync(wrong, "two-factor", new Dictionary<string, string> { ["Input.Code"] = Code(key) });
         Assert.Equal("/verwaltung/system/jobs", correct.Path);
         Assert.Equal(HttpStatusCode.OK, correct.Status);
     }
@@ -122,7 +122,7 @@ public class InitialSetupAndTwoFactorTests(PostgresFixture postgres) : AccountTe
             using var browser = App.Browser();
             await SignInAsync(browser, AdminEmail, AdminPassword);
             var page = await browser.GetAsync("/konto/anmelden/wiederherstellungscode");
-            var result = await browser.SubmitAsync(page, "wiederherstellung", new Dictionary<string, string> { ["Input.Code"] = codes[0] });
+            var result = await browser.SubmitAsync(page, "recovery", new Dictionary<string, string> { ["Input.Code"] = codes[0] });
 
             if (attempt == 0)
             {

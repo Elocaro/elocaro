@@ -4,7 +4,7 @@
 <ul class="navigation">
     <li><NavLink href="/verwaltung" Match="NavLinkMatch.All">Was ist zu tun?</NavLink></li>
     <AuthorizeView Policy="@Policies.MasterData">
-        <li class="navigation-gruppe">Stammdaten</li>
+        <li class="navigation-group">Stammdaten</li>
         <li><NavLink href="/verwaltung/objekte">Objekte</NavLink></li>
         <li><NavLink href="/verwaltung/personen">Personen</NavLink></li>
         <li><NavLink href="/verwaltung/vertraege" Match="NavLinkMatch.All">Verträge</NavLink></li>
@@ -13,7 +13,7 @@
         <li><NavLink href="/verwaltung/datenschutz">Datenschutz</NavLink></li>
     </AuthorizeView>
     <AuthorizeView Policy="@Policies.Finance">
-        <li class="navigation-gruppe">Finanzen</li>
+        <li class="navigation-group">Finanzen</li>
         <li><NavLink href="/verwaltung/bank/konten">Bankkonten</NavLink></li>
         <li><NavLink href="/verwaltung/bank/umsaetze">Umsätze</NavLink></li>
         <li><NavLink href="/verwaltung/finanzen/offene-posten">Offene Posten</NavLink></li>
@@ -24,7 +24,7 @@
         <li><NavLink href="/verwaltung/benutzer">Benutzer</NavLink></li>
     </AuthorizeView>
     <AuthorizeView Policy="@Policies.System">
-        <li class="navigation-gruppe">Einstellungen</li>
+        <li class="navigation-group">Einstellungen</li>
         <li><NavLink href="/verwaltung/einstellungen/vermieter">Vermieter</NavLink></li>
         <li><NavLink href="/verwaltung/system/mails">E-Mail-Versand</NavLink></li>
         <li><NavLink href="/verwaltung/system/jobs">Hintergrundjobs</NavLink></li>

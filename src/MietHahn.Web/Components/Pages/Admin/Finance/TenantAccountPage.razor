@@ -16,36 +16,36 @@
 
 @if (account.AccountingStart is null)
 {
-    <p class="meldung meldung-hinweis" role="status">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></p>
+    <p class="message message-info" role="status">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></p>
 }
 
-<dl class="angaben">
+<dl class="details">
     <dt>Saldo</dt>
     <dd><strong>@Format.Money(Math.Abs(account.Balance))</strong> @(account.Balance > 0 ? "Rückstand" : account.Balance < 0 ? "Guthaben des Mieters" : "ausgeglichen")</dd>
     <dt>Davon fällig</dt><dd>@Format.Money(account.Due)</dd>
     <dt>Verrechnung</dt><dd>@Labels.From(account.Allocation)</dd>
 </dl>
 
-<form method="post" @formname="aktualisieren" @onsubmit="RefreshAsync">
+<form method="post" @formname="refresh" @onsubmit="RefreshAsync">
     <AntiforgeryToken />
-    <button type="submit" class="knopf">Monatsmieten jetzt aktualisieren</button>
-    <span class="feld-hinweis">Passiert sonst jede Nacht automatisch, z. B. nach einer Mieterhöhung.</span>
+    <button type="submit" class="button">Monatsmieten jetzt aktualisieren</button>
+    <span class="field-hint">Passiert sonst jede Nacht automatisch, z. B. nach einer Mieterhöhung.</span>
 </form>
 
 <section>
     <h2>Buchungen</h2>
     @if (account.Entries.Count == 0)
     {
-        <p class="klein">Noch keine Buchungen.</p>
+        <p class="small">Noch keine Buchungen.</p>
     }
     else
     {
-        <form method="post" @formname="loeschen" @onsubmit="DeleteAsync">
+        <form method="post" @formname="delete" @onsubmit="DeleteAsync">
             <AntiforgeryToken />
-            <div class="tabellen-rahmen">
-                <table class="tabelle">
+            <div class="table-wrapper">
+                <table class="data-table">
                     <thead>
-                        <tr><th>Datum</th><th>Buchung</th><th class="zahl">Soll</th><th class="zahl">Haben</th><th class="zahl">Saldo</th><th>Offen</th><th></th></tr>
+                        <tr><th>Datum</th><th>Buchung</th><th class="number">Soll</th><th class="number">Haben</th><th class="number">Saldo</th><th>Offen</th><th></th></tr>
                     </thead>
                     <tbody>
                         @foreach (var b in account.Entries.Reverse())
@@ -53,9 +53,9 @@
                             <tr>
                                 <td>@Format.Date(b.Date)</td>
                                 <td>@b.Text</td>
-                                <td class="zahl">@(b.Debit == 0 ? "" : Format.Money(b.Debit))</td>
-                                <td class="zahl">@(b.Credit == 0 ? "" : Format.Money(b.Credit))</td>
-                                <td class="zahl">@Format.Money(b.Balance)</td>
+                                <td class="number">@(b.Debit == 0 ? "" : Format.Money(b.Debit))</td>
+                                <td class="number">@(b.Credit == 0 ? "" : Format.Money(b.Credit))</td>
+                                <td class="number">@Format.Money(b.Balance)</td>
                                 <td>
                                     @if (b.Open is 0m)
                                     {
@@ -63,17 +63,17 @@
                                     }
                                     else if (b.Open is { } open && open == b.Debit)
                                     {
-                                        <span class="status status-wartend">offen</span>
+                                        <span class="status status-pending">offen</span>
                                     }
                                     else if (b.Open is { } part)
                                     {
-                                        <span class="status status-wartend">@Format.Money(part) offen</span>
+                                        <span class="status status-pending">@Format.Money(part) offen</span>
                                     }
                                 </td>
                                 <td>
                                     @if (!b.Automatic && b.Origin is null or PaymentOrigin.Manual)
                                     {
-                                        <button type="submit" class="knopf knopf-gefahr" name="Delete" value="@($"{b.EntryType}:{b.Id}")" aria-label="@($"{b.Text} löschen")">Löschen</button>
+                                        <button type="submit" class="button button-danger" name="Delete" value="@($"{b.EntryType}:{b.Id}")" aria-label="@($"{b.Text} löschen")">Löschen</button>
                                     }
                                 </td>
                             </tr>
@@ -87,20 +87,20 @@
 
 <section>
     <h2>Zahlung erfassen</h2>
-    <EditForm Model="Payment" FormName="zahlung" OnValidSubmit="PaymentAsync">
+    <EditForm Model="Payment" FormName="payment" OnValidSubmit="PaymentAsync">
         <DataAnnotationsValidator />
-        <div class="formular-raster">
-            <FormField Id="zahlung-datum" Label="Datum" For="() => Payment!.Date" Required="true">
-                <InputDate id="zahlung-datum" @bind-Value="Payment!.Date" />
+        <div class="form-grid">
+            <FormField Id="payment-date" Label="Datum" For="() => Payment!.Date" Required="true">
+                <InputDate id="payment-date" @bind-Value="Payment!.Date" />
             </FormField>
-            <FormField Id="zahlung-betrag" Label="Betrag" For="() => Payment!.Amount" Required="true">
-                <InputAmount id="zahlung-betrag" @bind-Value="Payment!.Amount" />
+            <FormField Id="payment-amount" Label="Betrag" For="() => Payment!.Amount" Required="true">
+                <InputAmount id="payment-amount" @bind-Value="Payment!.Amount" />
             </FormField>
-            <FormField Id="zahlung-zweck" Label="Verwendungszweck" For="() => Payment!.Purpose">
-                <InputText id="zahlung-zweck" @bind-Value="Payment!.Purpose" />
+            <FormField Id="payment-purpose" Label="Verwendungszweck" For="() => Payment!.Purpose">
+                <InputText id="payment-purpose" @bind-Value="Payment!.Purpose" />
             </FormField>
-            <FormField Id="zahlung-bestimmung" Label="Zahlt auf (optional)" For="() => Payment!.ChargeId" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“).">
-                <InputSelect id="zahlung-bestimmung" @bind-Value="Payment!.ChargeId">
+            <FormField Id="payment-allocation" Label="Zahlt auf (optional)" For="() => Payment!.ChargeId" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“).">
+                <InputSelect id="payment-allocation" @bind-Value="Payment!.ChargeId">
                     <option value="">– automatisch verrechnen –</option>
                     @foreach (var b in account.Entries.Where(b => b.Open > 0))
                     {
@@ -109,38 +109,38 @@
                 </InputSelect>
             </FormField>
         </div>
-        <div class="feld feld-checkbox">
-            <InputCheckbox id="zahlung-auszahlung" @bind-Value="Payment!.Payout" />
-            <label for="zahlung-auszahlung">Auszahlung an den Mieter (z. B. Guthaben überwiesen)</label>
+        <div class="field field-checkbox">
+            <InputCheckbox id="payment-payout" @bind-Value="Payment!.Payout" />
+            <label for="payment-payout">Auszahlung an den Mieter (z. B. Guthaben überwiesen)</label>
         </div>
-        <button type="submit" class="knopf knopf-primaer">Zahlung buchen</button>
+        <button type="submit" class="button button-primary">Zahlung buchen</button>
     </EditForm>
 </section>
 
 <section>
     <h2>Sonstige Forderung oder Gutschrift</h2>
-    <EditForm Model="Charge" FormName="sollstellung" OnValidSubmit="ChargeAsync">
+    <EditForm Model="Charge" FormName="charge" OnValidSubmit="ChargeAsync">
         <DataAnnotationsValidator />
-        <div class="formular-raster">
-            <FormField Id="soll-art" Label="Art" For="() => Charge!.Kind">
-                <InputSelect id="soll-art" @bind-Value="Charge!.Kind">
+        <div class="form-grid">
+            <FormField Id="charge-kind" Label="Art" For="() => Charge!.Kind">
+                <InputSelect id="charge-kind" @bind-Value="Charge!.Kind">
                     @foreach (var value in Enum.GetValues<ChargeType>().Where(a => a != ChargeType.Rent))
                     {
                         <option value="@value">@Labels.From(value)</option>
                     }
                 </InputSelect>
             </FormField>
-            <FormField Id="soll-faellig" Label="Fällig am" For="() => Charge!.Due" Required="true">
-                <InputDate id="soll-faellig" @bind-Value="Charge!.Due" />
+            <FormField Id="charge-due" Label="Fällig am" For="() => Charge!.Due" Required="true">
+                <InputDate id="charge-due" @bind-Value="Charge!.Due" />
             </FormField>
-            <FormField Id="soll-betrag" Label="Betrag" For="() => Charge!.Amount" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht.">
-                <InputAmount id="soll-betrag" @bind-Value="Charge!.Amount" />
+            <FormField Id="charge-amount" Label="Betrag" For="() => Charge!.Amount" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht.">
+                <InputAmount id="charge-amount" @bind-Value="Charge!.Amount" />
             </FormField>
-            <FormField Id="soll-text" Label="Bezeichnung" For="() => Charge!.Name" Hint="z. B. „Nachzahlung Betriebskosten 2025“">
-                <InputText id="soll-text" @bind-Value="Charge!.Name" />
+            <FormField Id="charge-text" Label="Bezeichnung" For="() => Charge!.Name" Hint="z. B. „Nachzahlung Betriebskosten 2025“">
+                <InputText id="charge-text" @bind-Value="Charge!.Name" />
             </FormField>
         </div>
-        <button type="submit" class="knopf">Buchen</button>
+        <button type="submit" class="button">Buchen</button>
     </EditForm>
 </section>
 
@@ -148,23 +148,23 @@
     <h2>Mieten je Jahr</h2>
     @if (account.AnnualValues.Count == 0)
     {
-        <p class="klein">Noch keine Monatsmieten.</p>
+        <p class="small">Noch keine Monatsmieten.</p>
     }
     else
     {
-        <p class="klein">Soll nach Leistungsmonat, davon bezahlt (für die Nebenkostenabrechnung) und im Kalenderjahr zugeflossen (Zahlungsdatum, § 11 EStG).</p>
-        <div class="tabellen-rahmen">
-            <table class="tabelle">
-                <thead><tr><th>Jahr</th><th>Bestandteil</th><th class="zahl">Soll</th><th class="zahl">davon bezahlt</th><th class="zahl">Zufluss im Jahr</th></tr></thead>
+        <p class="small">Soll nach Leistungsmonat, davon bezahlt (für die Nebenkostenabrechnung) und im Kalenderjahr zugeflossen (Zahlungsdatum, § 11 EStG).</p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Jahr</th><th>Bestandteil</th><th class="number">Soll</th><th class="number">davon bezahlt</th><th class="number">Zufluss im Jahr</th></tr></thead>
                 <tbody>
                     @foreach (var w in account.AnnualValues)
                     {
                         <tr>
                             <td>@w.Year</td>
                             <td>@Labels.From(w.Component)</td>
-                            <td class="zahl">@Format.Money(w.Debit)</td>
-                            <td class="zahl">@Format.Money(w.Settled)</td>
-                            <td class="zahl">@Format.Money(w.Inflow)</td>
+                            <td class="number">@Format.Money(w.Debit)</td>
+                            <td class="number">@Format.Money(w.Settled)</td>
+                            <td class="number">@Format.Money(w.Inflow)</td>
                         </tr>
                     }
                 </tbody>
@@ -183,13 +183,13 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "zahlung")]
+    [SupplyParameterFromForm(FormName = "payment")]
     private PaymentInput? Payment { get; set; }
 
-    [SupplyParameterFromForm(FormName = "sollstellung")]
+    [SupplyParameterFromForm(FormName = "charge")]
     private ChargeInput? Charge { get; set; }
 
-    [SupplyParameterFromForm(FormName = "loeschen")]
+    [SupplyParameterFromForm(FormName = "delete")]
     private string? Delete { get; set; }
 
     private string Target => $"/verwaltung/vertraege/{Id}/konto";

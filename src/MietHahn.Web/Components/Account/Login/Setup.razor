@@ -11,35 +11,35 @@
 
 <ErrorList Errors="errors" />
 
-<EditForm Model="Input" FormName="einrichtung" OnValidSubmit="CreateAsync">
+<EditForm Model="Input" FormName="setup" OnValidSubmit="CreateAsync">
     <DataAnnotationsValidator />
-    <div class="feld">
-        <label for="anzeigename">Ihr Name</label>
-        <InputText id="anzeigename" @bind-Value="Input!.DisplayName" autocomplete="name" />
+    <div class="field">
+        <label for="display-name">Ihr Name</label>
+        <InputText id="display-name" @bind-Value="Input!.DisplayName" autocomplete="name" />
         <ValidationMessage For="() => Input!.DisplayName" />
     </div>
-    <div class="feld">
+    <div class="field">
         <label for="email">E-Mail-Adresse</label>
         <InputText id="email" type="email" @bind-Value="Input!.Email" autocomplete="username" />
         <ValidationMessage For="() => Input!.Email" />
     </div>
-    <div class="feld">
-        <label for="passwort">Passwort (mindestens 12 Zeichen)</label>
-        <InputText id="passwort" type="password" @bind-Value="Input!.Password" autocomplete="new-password" />
+    <div class="field">
+        <label for="password">Passwort (mindestens 12 Zeichen)</label>
+        <InputText id="password" type="password" @bind-Value="Input!.Password" autocomplete="new-password" />
         <ValidationMessage For="() => Input!.Password" />
     </div>
-    <div class="feld">
-        <label for="passwort2">Passwort wiederholen</label>
-        <InputText id="passwort2" type="password" @bind-Value="Input!.PasswordConfirmation" autocomplete="new-password" />
+    <div class="field">
+        <label for="password2">Passwort wiederholen</label>
+        <InputText id="password2" type="password" @bind-Value="Input!.PasswordConfirmation" autocomplete="new-password" />
         <ValidationMessage For="() => Input!.PasswordConfirmation" />
     </div>
-    <button type="submit" class="knopf knopf-primaer">Administrator anlegen</button>
+    <button type="submit" class="button button-primary">Administrator anlegen</button>
 </EditForm>
 
 @code {
     private IReadOnlyList<string>? errors;
 
-    [SupplyParameterFromForm(FormName = "einrichtung")]
+    [SupplyParameterFromForm(FormName = "setup")]
     private SetupInput? Input { get; set; }
 
     protected override async Task OnInitializedAsync()

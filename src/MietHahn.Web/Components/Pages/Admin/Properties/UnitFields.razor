@@ -1,13 +1,13 @@
 @* Input fields of a unit; sits inside an EditForm with Model = Data. *@
-<div class="formular-raster">
-    <FormField Id="einheit-bezeichnung" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Wohnung 1“">
-        <InputText id="einheit-bezeichnung" @bind-Value="Data.Name" />
+<div class="form-grid">
+    <FormField Id="unit-designation" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Wohnung 1“">
+        <InputText id="unit-designation" @bind-Value="Data.Name" />
     </FormField>
-    <FormField Id="einheit-lage" Label="Lage" For="() => Data.Location" Hint="z. B. „EG links“">
-        <InputText id="einheit-lage" @bind-Value="Data.Location" />
+    <FormField Id="unit-location" Label="Lage" For="() => Data.Location" Hint="z. B. „EG links“">
+        <InputText id="unit-location" @bind-Value="Data.Location" />
     </FormField>
-    <FormField Id="einheit-typ" Label="Art" For="() => Data.Type">
-        <InputSelect id="einheit-typ" @bind-Value="Data.Type">
+    <FormField Id="unit-type" Label="Art" For="() => Data.Type">
+        <InputSelect id="unit-type" @bind-Value="Data.Type">
             @foreach (var value in Enum.GetValues<UnitType>())
             {
                 <option value="@value">@Labels.From(value)</option>
@@ -16,31 +16,31 @@
     </FormField>
     @if (WithFeatures)
     {
-        <FormField Id="einheit-zimmeranzahl" Label="Zimmeranzahl" For="() => Data.RoomCount" Hint="z. B. 2,5">
-            <InputArea id="einheit-zimmeranzahl" @bind-Value="Data.RoomCount" />
+        <FormField Id="unit-room-count" Label="Zimmeranzahl" For="() => Data.RoomCount" Hint="z. B. 2,5">
+            <InputArea id="unit-room-count" @bind-Value="Data.RoomCount" />
         </FormField>
-        <FormField Id="einheit-bad" Label="Bad" For="() => Data.Bathroom" Hint="z. B. „Wanne und Dusche, Fenster“">
-            <InputText id="einheit-bad" @bind-Value="Data.Bathroom" />
+        <FormField Id="unit-bathroom" Label="Bad" For="() => Data.Bathroom" Hint="z. B. „Wanne und Dusche, Fenster“">
+            <InputText id="unit-bathroom" @bind-Value="Data.Bathroom" />
         </FormField>
-        <FormField Id="einheit-energie" Label="Energiestandard" For="() => Data.EnergyStandard">
-            <InputText id="einheit-energie" @bind-Value="Data.EnergyStandard" />
+        <FormField Id="unit-energy" Label="Energiestandard" For="() => Data.EnergyStandard">
+            <InputText id="unit-energy" @bind-Value="Data.EnergyStandard" />
         </FormField>
     }
 </div>
 @if (WithFeatures)
 {
-    <div class="formular-zeile">
-        <div class="feld feld-checkbox">
-            <InputCheckbox id="einheit-balkon" @bind-Value="Data.Balcony" />
-            <label for="einheit-balkon">Balkon/Terrasse</label>
+    <div class="form-row">
+        <div class="field field-checkbox">
+            <InputCheckbox id="unit-balcony" @bind-Value="Data.Balcony" />
+            <label for="unit-balcony">Balkon/Terrasse</label>
         </div>
-        <div class="feld feld-checkbox">
-            <InputCheckbox id="einheit-ebk" @bind-Value="Data.FittedKitchen" />
-            <label for="einheit-ebk">Einbauküche</label>
+        <div class="field field-checkbox">
+            <InputCheckbox id="unit-fitted-kitchen" @bind-Value="Data.FittedKitchen" />
+            <label for="unit-fitted-kitchen">Einbauküche</label>
         </div>
     </div>
-    <FormField Id="einheit-ausstattung" Label="Weitere Ausstattung" For="() => Data.Amenities">
-        <InputTextArea id="einheit-ausstattung" @bind-Value="Data.Amenities" rows="2" />
+    <FormField Id="unit-equipment" Label="Weitere Ausstattung" For="() => Data.Amenities">
+        <InputTextArea id="unit-equipment" @bind-Value="Data.Amenities" rows="2" />
     </FormField>
 }
 

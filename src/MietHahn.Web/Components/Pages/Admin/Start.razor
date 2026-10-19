@@ -7,7 +7,7 @@
 
 @if (todos is null)
 {
-    <p class="laedt" role="status">Aufgaben werden geladen …</p>
+    <p class="loading" role="status">Aufgaben werden geladen …</p>
 }
 else if (todos.Count == 0)
 {
@@ -17,20 +17,20 @@ else
 {
     @foreach (var area in todos.GroupBy(a => a.Area))
     {
-        <section class="aufgaben-bereich">
+        <section class="todos-section">
             <h2>@area.Key</h2>
-            <ul class="aufgaben">
+            <ul class="todos">
                 @foreach (var todo in area.OrderByDescending(a => a.Urgency).ThenBy(a => a.Due))
                 {
-                    <li class="aufgabe aufgabe-@todo.Urgency.ToString().ToLowerInvariant()">
+                    <li class="todo todo-@todo.Urgency.ToString().ToLowerInvariant()">
                         <a href="@todo.Link">@todo.Title</a>
                         @if (todo.Due is { } due)
                         {
-                            <span class="klein">fällig am @Format.Date(due)</span>
+                            <span class="small">fällig am @Format.Date(due)</span>
                         }
                         @if (todo.Details is not null)
                         {
-                            <p class="klein">@todo.Details</p>
+                            <p class="small">@todo.Details</p>
                         }
                     </li>
                 }

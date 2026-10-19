@@ -10,16 +10,16 @@
 
 @if (invalid)
 {
-    <p class="meldung meldung-fehler" role="alert">Dieser Link ist ungültig, abgelaufen oder wurde bereits verwendet.</p>
-    <div class="konto-links"><a href="/konto/link">Neuen Anmeldelink anfordern</a></div>
+    <p class="message message-error" role="alert">Dieser Link ist ungültig, abgelaufen oder wurde bereits verwendet.</p>
+    <div class="account-links"><a href="/konto/link">Neuen Anmeldelink anfordern</a></div>
 }
 else
 {
     @* Only the click redeems the link: email scanners that open links in advance therefore do not consume it. *@
     <p>Klicken Sie auf „Anmelden“, um sich bei MietHahn anzumelden.</p>
-    <form method="post" @formname="link-einloesen" @onsubmit="RedeemAsync">
+    <form method="post" @formname="link-redeem" @onsubmit="RedeemAsync">
         <AntiforgeryToken />
-        <button type="submit" class="knopf knopf-primaer">Anmelden</button>
+        <button type="submit" class="button button-primary">Anmelden</button>
     </form>
 }
 

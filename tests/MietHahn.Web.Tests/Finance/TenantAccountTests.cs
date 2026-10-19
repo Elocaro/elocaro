@@ -28,7 +28,7 @@ public class TenantAccountTests(PostgresFixture postgres) : AccountTestBase(post
         Assert.Contains("Noch kein Buchhaltungsbeginn festgelegt", account.Text, StringComparison.Ordinal);
         Assert.Contains("Buchhaltungsbeginn festlegen", (await admin.GetAsync("/verwaltung")).TextWithStreaming, StringComparison.Ordinal);
 
-        var settings = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/finanzen/einstellungen"), "finanzen", new Dictionary<string, string>
+        var settings = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/finanzen/einstellungen"), "finance", new Dictionary<string, string>
         {
             ["Data.AccountingStart"] = Iso(previousMonth),
             ["Data.Allocation"] = "Statutory",
@@ -38,25 +38,25 @@ public class TenantAccountTests(PostgresFixture postgres) : AccountTestBase(post
         account = await admin.GetAsync($"/verwaltung/vertraege/{lease}/konto");
         var prorated = decimal.Round(650m * (days - 14) / days, 2, MidpointRounding.AwayFromZero);
         Assert.Contains($"Kaltmiete {previousMonth:MM/yyyy} (anteilig {days - 14}/{days})", account.Text, StringComparison.Ordinal);
-        Assert.Contains(Money(prorated + 650m), account.Document.QuerySelector("dl.angaben")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(Money(prorated + 650m), account.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
 
-        account = await admin.SubmitAsync(account, "zahlung", new Dictionary<string, string>
+        account = await admin.SubmitAsync(account, "payment", new Dictionary<string, string>
         {
             ["Payment.Date"] = Iso(today),
             ["Payment.Amount"] = "100.50",
             ["Payment.Purpose"] = "Miete",
         });
         Assert.Contains("Die Zahlung wurde gebucht.", account.Text, StringComparison.Ordinal);
-        Assert.Contains(Money(prorated + 650m - 100.50m), account.Document.QuerySelector("dl.angaben")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(Money(prorated + 650m - 100.50m), account.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("offen", account.Text, StringComparison.Ordinal);
 
         // Monthly rents have no delete button, the payment does.
-        var buttons = account.Form("loeschen").QuerySelectorAll("button[name=Delete]").ToList();
+        var buttons = account.Form("delete").QuerySelectorAll("button[name=Delete]").ToList();
         var button = Assert.Single(buttons);
         Assert.StartsWith("Payment:", button.GetAttribute("value"), StringComparison.Ordinal);
-        account = await admin.SubmitAsync(account, "loeschen", new Dictionary<string, string> { ["Delete"] = button.GetAttribute("value")! });
+        account = await admin.SubmitAsync(account, "delete", new Dictionary<string, string> { ["Delete"] = button.GetAttribute("value")! });
         Assert.Contains("Die Buchung wurde gelöscht.", account.Text, StringComparison.Ordinal);
-        Assert.Contains(Money(prorated + 650m), account.Document.QuerySelector("dl.angaben")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(Money(prorated + 650m), account.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class TenantAccountTests(PostgresFixture postgres) : AccountTestBase(post
         var lease = await LeaseAsync(today.AddMonths(-3));
         var account = await admin.GetAsync($"/verwaltung/vertraege/{lease}/konto");
 
-        account = await admin.SubmitAsync(account, "sollstellung", new Dictionary<string, string>
+        account = await admin.SubmitAsync(account, "charge", new Dictionary<string, string>
         {
             ["Charge.Kind"] = "AdditionalPayment",
             ["Charge.Due"] = Iso(today.AddDays(-20)),
@@ -76,14 +76,14 @@ public class TenantAccountTests(PostgresFixture postgres) : AccountTestBase(post
             ["Charge.Name"] = "=Nachzahlung NK 2025",
         });
         Assert.Contains("Die Buchung wurde angelegt.", account.Text, StringComparison.Ordinal);
-        account = await admin.SubmitAsync(account, "sollstellung", new Dictionary<string, string>
+        account = await admin.SubmitAsync(account, "charge", new Dictionary<string, string>
         {
             ["Charge.Kind"] = "Refund",
             ["Charge.Due"] = Iso(today.AddDays(-10)),
             ["Charge.Amount"] = "12.40",
         });
         Assert.Contains("Erstattung (Guthaben)", account.Text, StringComparison.Ordinal);
-        Assert.Contains(Money(200m), account.Document.QuerySelector("dl.angaben")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains(Money(200m), account.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
 
         var list = await admin.GetAsync("/verwaltung/finanzen/offene-posten");
         Assert.Contains("=Nachzahlung NK 2025", list.Text, StringComparison.Ordinal);

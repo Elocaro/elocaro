@@ -9,30 +9,30 @@
 
 <StatusMessage Message="@errors" IsError="true" />
 
-<EditForm Model="Input" FormName="zwei-faktor" OnValidSubmit="ValidateAsync">
+<EditForm Model="Input" FormName="two-factor" OnValidSubmit="ValidateAsync">
     <DataAnnotationsValidator />
     <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
     <input type="hidden" name="RememberMe" value="@RememberMe" />
-    <div class="feld">
+    <div class="field">
         <label for="code">Code</label>
         <InputText id="code" @bind-Value="Input!.Code" autocomplete="one-time-code" inputmode="numeric" />
         <ValidationMessage For="() => Input!.Code" />
     </div>
-    <div class="feld feld-checkbox">
-        <InputCheckbox id="geraet" @bind-Value="Input!.RememberDevice" />
-        <label for="geraet">Dieses Gerät 30 Tage lang merken</label>
+    <div class="field field-checkbox">
+        <InputCheckbox id="device" @bind-Value="Input!.RememberDevice" />
+        <label for="device">Dieses Gerät 30 Tage lang merken</label>
     </div>
-    <button type="submit" class="knopf knopf-primaer">Anmelden</button>
+    <button type="submit" class="button button-primary">Anmelden</button>
 </EditForm>
 
-<div class="konto-links">
+<div class="account-links">
     <a href="/konto/anmelden/wiederherstellungscode?ReturnUrl=@Uri.EscapeDataString(ReturnUrl ?? "")">Kein Zugriff auf die App? Mit Wiederherstellungscode anmelden</a>
 </div>
 
 @code {
     private string? errors;
 
-    [SupplyParameterFromForm(FormName = "zwei-faktor")]
+    [SupplyParameterFromForm(FormName = "two-factor")]
     private TwoFactorInput? Input { get; set; }
 
     [SupplyParameterFromQuery]

@@ -12,9 +12,9 @@
 else if (active)
 {
     <p>Neue Codes ersetzen alle bisherigen Wiederherstellungscodes.</p>
-    <form method="post" @formname="codes-erzeugen" @onsubmit="GenerateAsync">
+    <form method="post" @formname="codes-generate" @onsubmit="GenerateAsync">
         <AntiforgeryToken />
-        <button type="submit" class="knopf knopf-primaer">Neue Codes erzeugen</button>
+        <button type="submit" class="button button-primary">Neue Codes erzeugen</button>
     </form>
 }
 else
@@ -22,7 +22,7 @@ else
     <p>Richten Sie zuerst die <a href="/konto/sicherheit/zwei-faktor">Zwei-Faktor-Anmeldung</a> ein.</p>
 }
 
-<div class="konto-links"><a href="/konto/sicherheit">Zurück</a></div>
+<div class="account-links"><a href="/konto/sicherheit">Zurück</a></div>
 
 @code {
     private bool active;

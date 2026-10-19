@@ -7,35 +7,35 @@
 
 <StatusMessage />
 
-<EditForm Model="Data" FormName="finanzen" OnValidSubmit="SaveAsync">
+<EditForm Model="Data" FormName="finance" OnValidSubmit="SaveAsync">
     <DataAnnotationsValidator />
-    <div class="formular-raster">
-        <FormField Id="buchhaltung-ab" Label="Buchhaltung ab (Monat)" For="() => Data!.AccountingStart"
+    <div class="form-grid">
+        <FormField Id="accounting-valid-from" Label="Buchhaltung ab (Monat)" For="() => Data!.AccountingStart"
                       Hint="Ab diesem Monat entstehen die Monatsmieten automatisch. Rückstände aus der Zeit davor als „Saldovortrag“ im Mieterkonto erfassen.">
-            <InputDate id="buchhaltung-ab" @bind-Value="Data!.AccountingStart" />
+            <InputDate id="accounting-valid-from" @bind-Value="Data!.AccountingStart" />
         </FormField>
     </div>
-    <fieldset class="feld">
+    <fieldset class="field">
         <legend>Verrechnung von Teilzahlungen</legend>
         <InputRadioGroup @bind-Value="Data!.Allocation">
             @foreach (var value in Enum.GetValues<AllocationOrder>())
             {
-                <div class="feld-checkbox">
-                    <InputRadio id="@($"verrechnung-{value}")" Value="value" />
-                    <label for="@($"verrechnung-{value}")">@Labels.From(value)</label>
+                <div class="field-checkbox">
+                    <InputRadio id="@($"allocation-{value}")" Value="value" />
+                    <label for="@($"allocation-{value}")">@Labels.From(value)</label>
                 </div>
             }
         </InputRadioGroup>
-        <span class="feld-hinweis">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
+        <span class="field-hint">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
     </fieldset>
-    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+    <button type="submit" class="button button-primary">Speichern</button>
 </EditForm>
 
 @code {
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "finanzen")]
+    [SupplyParameterFromForm(FormName = "finance")]
     private FinanceSettingsInput? Data { get; set; }
 
     protected override async Task OnInitializedAsync()

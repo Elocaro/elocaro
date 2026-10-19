@@ -23,7 +23,7 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
         using var _ = admin;
         var (property, apartment) = await PropertyAsync();
 
-        var list = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/objekte/{property}/zaehler"), "zaehler", new Dictionary<string, string>
+        var list = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/objekte/{property}/zaehler"), "meter", new Dictionary<string, string>
         {
             ["Data.Type"] = "ColdWater",
             ["Data.Name"] = "Kaltwasser Bad",
@@ -37,19 +37,19 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("100,5 m³", list.Text, StringComparison.Ordinal);
 
         var page = await admin.GetAsync(list.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Kaltwasser Bad").GetAttribute("href")!);
-        page = await admin.SubmitWithFileAsync(page, "stand", "Photo", Jpeg(), "meter.jpg");
+        page = await admin.SubmitWithFileAsync(page, "entry", "Photo", Jpeg(), "meter.jpg");
         Assert.Contains("Bitte den Zählerstand angeben.", page.Text, StringComparison.Ordinal);
 
         var fields = new Dictionary<string, string> { ["Entry.Date"] = Iso(Today.AddDays(-30)), ["Entry.Value"] = "130" };
-        page = await admin.SubmitAsync(await admin.GetAsync(page.Path), "stand", fields);
+        page = await admin.SubmitAsync(await admin.GetAsync(page.Path), "entry", fields);
         Assert.Contains("Der Zählerstand wurde gespeichert.", page.Text, StringComparison.Ordinal);
 
-        var warning = await admin.SubmitAsync(page, "stand", new Dictionary<string, string> { ["Entry.Date"] = Iso(Today), ["Entry.Value"] = "120" });
+        var warning = await admin.SubmitAsync(page, "entry", new Dictionary<string, string> { ["Entry.Date"] = Iso(Today), ["Entry.Value"] = "120" });
         Assert.Contains("Rückwärtslauf", warning.Text, StringComparison.Ordinal);
         Assert.Contains("Trotzdem speichern", warning.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("120 ", warning.Document.QuerySelector("table.tabelle")!.TextContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("120 ", warning.Document.QuerySelector("table.data-table")!.TextContent, StringComparison.Ordinal);
 
-        var confirmed = await admin.SubmitAsync(warning, "stand", new Dictionary<string, string> { ["Entry.Date"] = Iso(Today), ["Entry.Value"] = "120" });
+        var confirmed = await admin.SubmitAsync(warning, "entry", new Dictionary<string, string> { ["Entry.Date"] = Iso(Today), ["Entry.Value"] = "120" });
         Assert.Contains("Der Zählerstand wurde gespeichert.", confirmed.Text, StringComparison.Ordinal);
     }
 
@@ -63,8 +63,8 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var page = await admin.GetAsync($"/verwaltung/zaehler/{meter}");
 
         // Set form fields and attach a photo: the test browser submits the inputs along
-        page.Form("stand").Elements.OfType<AngleSharp.Html.Dom.IHtmlInputElement>().Single(e => e.Name == "Entry.Value").Value = "150";
-        var saved = await admin.SubmitWithFileAsync(page, "stand", "Photo", Jpeg(), "meter.jpg");
+        page.Form("entry").Elements.OfType<AngleSharp.Html.Dom.IHtmlInputElement>().Single(e => e.Name == "Entry.Value").Value = "150";
+        var saved = await admin.SubmitWithFileAsync(page, "entry", "Photo", Jpeg(), "meter.jpg");
 
         Assert.Contains("Der Zählerstand wurde gespeichert.", saved.Text, StringComparison.Ordinal);
         var photo = saved.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Foto").GetAttribute("href")!;
@@ -86,14 +86,14 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("Zähler 1 von 3", step.Text, StringComparison.Ordinal);
         Assert.Contains("Nr. HWZ", step.Text, StringComparison.Ordinal);
 
-        step = await admin.SubmitAsync(step, "ablesung", new Dictionary<string, string> { ["Entry.Value"] = "1010" });
+        step = await admin.SubmitAsync(step, "reading", new Dictionary<string, string> { ["Entry.Value"] = "1010" });
         Assert.Contains("Zähler 2 von 3", step.Text, StringComparison.Ordinal);
         Assert.Contains("gespeichert.", step.Text, StringComparison.Ordinal);
 
         step = await admin.GetAsync(step.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Überspringen").GetAttribute("href")!);
         Assert.Contains("Zähler 3 von 3", step.Text, StringComparison.Ordinal);
 
-        var end = await admin.SubmitAsync(step, "ablesung", new Dictionary<string, string> { ["Entry.Value"] = "21.5" });
+        var end = await admin.SubmitAsync(step, "reading", new Dictionary<string, string> { ["Entry.Value"] = "21.5" });
         Assert.Contains("Runde abgeschlossen: 2 von 3 Zählern erfasst.", end.Text, StringComparison.Ordinal);
         Assert.Contains("nicht erfasst", end.Text, StringComparison.Ordinal);
         Assert.Contains("21,5 m³", end.Text, StringComparison.Ordinal);
@@ -111,7 +111,7 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var step = await admin.GetAsync($"/verwaltung/objekte/{property}/ablesung?einheit={apartment}&datum={Iso(Today)}&art=InterimReading");
         Assert.Contains("Zähler 1 von 1", step.Text, StringComparison.Ordinal);
         Assert.Contains("Zwischenablesung", step.Text, StringComparison.Ordinal);
-        await admin.SubmitAsync(step, "ablesung", new Dictionary<string, string> { ["Entry.Value"] = "12" });
+        await admin.SubmitAsync(step, "reading", new Dictionary<string, string> { ["Entry.Value"] = "12" });
 
         var entry = (await App.WithScopeAsync(sp => sp.GetRequiredService<IMeterService>().GetAsync(waterMeter, TestContext.Current.CancellationToken)))!.Readings[0];
         Assert.Equal(ReadingType.InterimReading, entry.Kind);
@@ -125,7 +125,7 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var (property, apartment) = await PropertyAsync();
         var meter = await MeterAsync(property, apartment, "WZ-ALT", 100m);
 
-        var newItem = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/zaehler/{meter}"), "tausch", new Dictionary<string, string>
+        var newItem = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/zaehler/{meter}"), "replacement", new Dictionary<string, string>
         {
             ["Replacement.Date"] = Iso(Today),
             ["Replacement.FinalReading"] = "150",

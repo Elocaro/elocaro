@@ -12,12 +12,12 @@
 }
 else if (properties is not null)
 {
-    <ul class="aufgaben">
+    <ul class="todos">
         @foreach (var property in properties)
         {
-            <li class="aufgabe">
+            <li class="todo">
                 <a href="/service/objekte/@property.Id">@property.Name</a>
-                <p class="klein">@property.Address · @property.Units Einheiten</p>
+                <p class="small">@property.Address · @property.Units Einheiten</p>
             </li>
         }
     </ul>

@@ -10,15 +10,15 @@
 
 @if (selection is not null)
 {
-    <EditForm EditContext="context" FormName="dokument" OnSubmit="UploadAsync" enctype="multipart/form-data">
+    <EditForm EditContext="context" FormName="document" OnSubmit="UploadAsync" enctype="multipart/form-data">
         <DataAnnotationsValidator />
-        <div class="feld">
-            <label for="datei">Datei *</label>
-            <input type="file" id="datei" name="Upload" accept="application/pdf,image/*" required />
-            <span class="feld-hinweis">PDF oder Foto. Fotos werden verkleinert und ohne Metadaten (GPS) gespeichert.</span>
+        <div class="field">
+            <label for="file">Datei *</label>
+            <input type="file" id="file" name="Upload" accept="application/pdf,image/*" required />
+            <span class="field-hint">PDF oder Foto. Fotos werden verkleinert und ohne Metadaten (GPS) gespeichert.</span>
         </div>
         <DocumentFields Data="Data!" Options="selection" TitleRequired="false" />
-        <button type="submit" class="knopf knopf-primaer">Hochladen</button>
+        <button type="submit" class="button button-primary">Hochladen</button>
     </EditForm>
 }
 
@@ -30,10 +30,10 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "dokument")]
+    [SupplyParameterFromForm(FormName = "document")]
     private DocumentInput? Data { get; set; }
 
-    [SupplyParameterFromForm(FormName = "dokument")]
+    [SupplyParameterFromForm(FormName = "document")]
     private IFormFile? Upload { get; set; }
 
     [SupplyParameterFromQuery(Name = "objekt")]

@@ -10,14 +10,14 @@
 
 <PageHeader Title="@document.Document.Title" Subtitle="@($"{Labels.From(document.Document.Category)} · {document.Document.Reference}")" Back="/verwaltung/dokumente" BackText="Alle Dokumente">
     <Actions>
-        <a class="knopf" href="/dateien/@document.Document.FileId?download=true">Herunterladen</a>
+        <a class="button" href="/dateien/@document.Document.FileId?download=true">Herunterladen</a>
     </Actions>
 </PageHeader>
 
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<dl class="angaben">
+<dl class="details">
     <dt>Datei</dt><dd>@document.FileName (@Size(document.Document.Size))</dd>
     <dt>Hochgeladen</dt><dd>@Format.Timestamp(document.UploadedAt)@(document.UploadedBy is null ? "" : $" von {document.UploadedBy}")</dd>
     <dt>Freigabe</dt><dd>@DocumentTable.Share(document.Document)</dd>
@@ -25,11 +25,11 @@
 
 @if (document.Document.MimeType.StartsWith("image/", StringComparison.Ordinal))
 {
-    <img class="dokument-vorschau" src="/dateien/@document.Document.FileId" alt="Vorschau: @document.Document.Title" />
+    <img class="document-preview" src="/dateien/@document.Document.FileId" alt="Vorschau: @document.Document.Title" />
 }
 else if (document.Document.MimeType == "application/pdf")
 {
-    <iframe class="dokument-vorschau" src="/dateien/@document.Document.FileId" title="Vorschau: @document.Document.Title"></iframe>
+    <iframe class="document-preview" src="/dateien/@document.Document.FileId" title="Vorschau: @document.Document.Title"></iframe>
 }
 
 @* During static rendering an intermediate state may be rendered before the option lists are loaded. *@
@@ -37,17 +37,17 @@ else if (document.Document.MimeType == "application/pdf")
 {
     <section>
         <h2>Angaben</h2>
-        <EditForm Model="Data" FormName="dokument" OnValidSubmit="SaveAsync">
+        <EditForm Model="Data" FormName="document" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
             <DocumentFields Data="Data!" Options="selection" />
-            <button type="submit" class="knopf knopf-primaer">Speichern</button>
+            <button type="submit" class="button button-primary">Speichern</button>
         </EditForm>
     </section>
 }
 
 <section>
     <h2>Löschen</h2>
-    <DangerAction Text="Dokument löschen" Confirmation="Das Dokument wird aus der Ablage entfernt und ist für Mieter und Hausmeister nicht mehr sichtbar." ConfirmText="Ja, löschen" FormName="loeschen" Confirmed="DeleteAsync" />
+    <DangerAction Text="Dokument löschen" Confirmation="Das Dokument wird aus der Ablage entfernt und ist für Mieter und Hausmeister nicht mehr sichtbar." ConfirmText="Ja, löschen" FormName="delete" Confirmed="DeleteAsync" />
 </section>
 
 <ChangeHistory EntityType="@nameof(Document)" EntityId="Id" />
@@ -63,7 +63,7 @@ else if (document.Document.MimeType == "application/pdf")
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "dokument")]
+    [SupplyParameterFromForm(FormName = "document")]
     private DocumentInput? Data { get; set; }
 
     protected override async Task OnInitializedAsync()

@@ -25,12 +25,12 @@ public class MagicLinkAndInvitationTests(PostgresFixture postgres) : AccountTest
 
         // Merely opening it (e.g. by a mail scanner) does not consume the link.
         var openedAgain = await browser.GetAsync(link);
-        var signedIn = await browser.SubmitAsync(openedAgain, "link-einloesen");
+        var signedIn = await browser.SubmitAsync(openedAgain, "link-redeem");
         Assert.Equal("/portal", signedIn.Path);
         Assert.Equal(HttpStatusCode.OK, signedIn.Status);
 
         using var secondBrowser = App.Browser();
-        var again = await secondBrowser.SubmitAsync(await secondBrowser.GetAsync(link), "link-einloesen");
+        var again = await secondBrowser.SubmitAsync(await secondBrowser.GetAsync(link), "link-redeem");
         Assert.Contains("ungültig, abgelaufen oder wurde bereits verwendet", again.Text, StringComparison.Ordinal);
     }
 
@@ -45,7 +45,7 @@ public class MagicLinkAndInvitationTests(PostgresFixture postgres) : AccountTest
         Assert.Equal("Ihr Anmeldelink für MietHahn", mail.Subject);
 
         App.Clock.Advance(TimeSpan.FromMinutes(16));
-        var page = await browser.SubmitAsync(await browser.GetAsync(ExtractLink(mail)), "link-einloesen");
+        var page = await browser.SubmitAsync(await browser.GetAsync(ExtractLink(mail)), "link-redeem");
 
         Assert.Contains("ungültig, abgelaufen", page.Text, StringComparison.Ordinal);
     }
@@ -76,7 +76,7 @@ public class MagicLinkAndInvitationTests(PostgresFixture postgres) : AccountTest
 
         using var browser = App.Browser();
         var page = await browser.GetAsync(ExtractLink(mail));
-        var result = await browser.SubmitAsync(page, "einladung", new Dictionary<string, string>
+        var result = await browser.SubmitAsync(page, "invitation", new Dictionary<string, string>
         {
             ["Input.Password"] = "Partnerin-Passwort-2026",
             ["Input.PasswordConfirmation"] = "Partnerin-Passwort-2026",
@@ -126,7 +126,7 @@ public class MagicLinkAndInvitationTests(PostgresFixture postgres) : AccountTest
         });
 
         using var browser = App.Browser();
-        var page = await browser.SubmitAsync(await browser.GetAsync(link), "link-einloesen");
+        var page = await browser.SubmitAsync(await browser.GetAsync(link), "link-redeem");
 
         Assert.Contains("ungültig", page.Text, StringComparison.Ordinal);
     }

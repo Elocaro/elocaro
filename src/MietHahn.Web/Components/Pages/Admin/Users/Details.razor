@@ -19,7 +19,7 @@
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<dl class="angaben">
+<dl class="details">
     <dt>E-Mail</dt><dd>@user.Email</dd>
     <dt>Rolle</dt><dd>@Roles.DisplayName(user.Role)</dd>
     <dt>Status</dt><dd>@(user.Locked ? "gesperrt" : user.InvitationAccepted ? "aktiv" : "eingeladen")</dd>
@@ -30,14 +30,14 @@
 
 <section>
     <h2>Rolle</h2>
-    <EditForm Model="RoleInput" FormName="rolle" OnSubmit="ChangeRoleAsync" class="formular-zeile">
-        <InputSelect id="rolle" @bind-Value="RoleInput!.Role" aria-label="Rolle">
+    <EditForm Model="RoleInput" FormName="role" OnSubmit="ChangeRoleAsync" class="form-row">
+        <InputSelect id="role" @bind-Value="RoleInput!.Role" aria-label="Rolle">
             @foreach (var role in Roles.All)
             {
                 <option value="@role">@Roles.DisplayName(role)</option>
             }
         </InputSelect>
-        <button type="submit" class="knopf">Rolle ändern</button>
+        <button type="submit" class="button">Rolle ändern</button>
     </EditForm>
 </section>
 
@@ -45,15 +45,15 @@
 {
     <section>
         <h2>Rechte</h2>
-        <EditForm Model="PermissionsInput" FormName="rechte" OnSubmit="SetPermissionsAsync">
+        <EditForm Model="PermissionsInput" FormName="permissions" OnSubmit="SetPermissionsAsync">
             @foreach (var permission in Permissions.All)
             {
-                <div class="feld feld-checkbox">
-                    <input type="checkbox" id="recht-@permission" name="PermissionsInput.Options" value="@permission" checked="@user.Permissions.Contains(permission)" />
-                    <label for="recht-@permission">@Permissions.DisplayName(permission)</label>
+                <div class="field field-checkbox">
+                    <input type="checkbox" id="permission-@permission" name="PermissionsInput.Options" value="@permission" checked="@user.Permissions.Contains(permission)" />
+                    <label for="permission-@permission">@Permissions.DisplayName(permission)</label>
                 </div>
             }
-            <button type="submit" class="knopf">Rechte speichern</button>
+            <button type="submit" class="button">Rechte speichern</button>
         </EditForm>
     </section>
 }
@@ -64,21 +64,21 @@
         <h2>Betreute Objekte</h2>
         @if (allProperties.Count == 0)
         {
-            <p class="klein">Es gibt noch keine Objekte.</p>
+            <p class="small">Es gibt noch keine Objekte.</p>
         }
         else
         {
-            <EditForm Model="PropertiesInput" FormName="objekte" OnSubmit="SetPropertiesAsync">
+            <EditForm Model="PropertiesInput" FormName="properties" OnSubmit="SetPropertiesAsync">
                 @foreach (var property in allProperties)
                 {
-                    <div class="feld feld-checkbox">
-                        <input type="checkbox" id="objekt-@property.Id" name="PropertiesInput.Options" value="@property.Id" checked="@assigned.Contains(property.Id)" />
-                        <label for="objekt-@property.Id">@property.Name <span class="klein">@property.Address</span></label>
+                    <div class="field field-checkbox">
+                        <input type="checkbox" id="property-@property.Id" name="PropertiesInput.Options" value="@property.Id" checked="@assigned.Contains(property.Id)" />
+                        <label for="property-@property.Id">@property.Name <span class="small">@property.Address</span></label>
                     </div>
                 }
-                <button type="submit" class="knopf">Objekte speichern</button>
+                <button type="submit" class="button">Objekte speichern</button>
             </EditForm>
-            <p class="klein">Hausmeister sehen nur diese Objekte (ohne Mieterdaten).</p>
+            <p class="small">Hausmeister sehen nur diese Objekte (ohne Mieterdaten).</p>
         }
     </section>
 }
@@ -89,14 +89,14 @@
         <h2>Zugang</h2>
         @if (user.Locked)
         {
-            <form method="post" @formname="sperren" @onsubmit="ToggleLockAsync">
+            <form method="post" @formname="lock" @onsubmit="ToggleLockAsync">
                 <AntiforgeryToken />
-                <button type="submit" class="knopf">Konto entsperren</button>
+                <button type="submit" class="button">Konto entsperren</button>
             </form>
         }
         else
         {
-            <DangerAction Text="Konto sperren" FormName="sperren" Confirmed="ToggleLockAsync"
+            <DangerAction Text="Konto sperren" FormName="lock" Confirmed="ToggleLockAsync"
                             Confirmation="Das Konto wird sofort abgemeldet und kann sich nicht mehr anmelden. Fortfahren?"
                             ConfirmText="Ja, Konto sperren" />
         }
@@ -116,13 +116,13 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "rolle")]
+    [SupplyParameterFromForm(FormName = "role")]
     private RoleModel? RoleInput { get; set; }
 
-    [SupplyParameterFromForm(FormName = "rechte")]
+    [SupplyParameterFromForm(FormName = "permissions")]
     private PermissionsModel? PermissionsInput { get; set; }
 
-    [SupplyParameterFromForm(FormName = "objekte")]
+    [SupplyParameterFromForm(FormName = "properties")]
     private PropertiesModel? PropertiesInput { get; set; }
 
     private IReadOnlyList<PropertyOverview> allProperties = [];

@@ -9,21 +9,21 @@
 
 <StatusMessage Message="@errors" IsError="true" />
 
-<EditForm Model="Input" FormName="wiederherstellung" OnValidSubmit="ValidateAsync">
+<EditForm Model="Input" FormName="recovery" OnValidSubmit="ValidateAsync">
     <DataAnnotationsValidator />
     <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
-    <div class="feld">
+    <div class="field">
         <label for="code">Wiederherstellungscode</label>
         <InputText id="code" @bind-Value="Input!.Code" autocomplete="off" />
         <ValidationMessage For="() => Input!.Code" />
     </div>
-    <button type="submit" class="knopf knopf-primaer">Anmelden</button>
+    <button type="submit" class="button button-primary">Anmelden</button>
 </EditForm>
 
 @code {
     private string? errors;
 
-    [SupplyParameterFromForm(FormName = "wiederherstellung")]
+    [SupplyParameterFromForm(FormName = "recovery")]
     private CodeInput? Input { get; set; }
 
     [SupplyParameterFromQuery]

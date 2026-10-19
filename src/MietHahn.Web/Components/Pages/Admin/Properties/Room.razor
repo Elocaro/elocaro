@@ -26,15 +26,15 @@
 
 <section>
     <h2>Angaben</h2>
-    <EditForm Model="Data" FormName="zimmer" OnValidSubmit="SaveAsync">
+    <EditForm Model="Data" FormName="room" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <RoomFields Data="Data!" />
-        <button type="submit" class="knopf knopf-primaer">Speichern</button>
+        <button type="submit" class="button button-primary">Speichern</button>
     </EditForm>
 </section>
 
 <section>
-    <DangerAction Text="Zimmer löschen" FormName="loeschen" Confirmed="DeleteAsync"
+    <DangerAction Text="Zimmer löschen" FormName="delete" Confirmed="DeleteAsync"
                     Confirmation="Das Zimmer wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
 </section>
 
@@ -50,10 +50,10 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "zimmer")]
+    [SupplyParameterFromForm(FormName = "room")]
     private RoomInput? Data { get; set; }
 
-    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // field names come from AreaSection
+    [SupplyParameterFromForm(FormName = "area", Name = "Input")] // field names come from AreaSection
     private AreaInput? Area { get; set; }
 
     protected override async Task OnInitializedAsync()

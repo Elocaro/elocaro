@@ -1,10 +1,10 @@
 @* Input fields of a shared-flat room; sits inside an EditForm with Model = Data. *@
-<div class="formular-raster">
-    <FormField Id="zimmer-bezeichnung" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Zimmer 1“">
-        <InputText id="zimmer-bezeichnung" @bind-Value="Data.Name" />
+<div class="form-grid">
+    <FormField Id="room-designation" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Zimmer 1“">
+        <InputText id="room-designation" @bind-Value="Data.Name" />
     </FormField>
-    <FormField Id="zimmer-moeblierung" Label="Möblierung" For="() => Data.Furnishing">
-        <InputSelect id="zimmer-moeblierung" @bind-Value="Data.Furnishing">
+    <FormField Id="room-furnishing" Label="Möblierung" For="() => Data.Furnishing">
+        <InputSelect id="room-furnishing" @bind-Value="Data.Furnishing">
             @foreach (var value in Enum.GetValues<Furnishing>())
             {
                 <option value="@value">@Labels.From(value)</option>
@@ -14,8 +14,8 @@
 </div>
 @if (WithNotes)
 {
-    <FormField Id="zimmer-notizen" Label="Notizen" For="() => Data.Notes">
-        <InputTextArea id="zimmer-notizen" @bind-Value="Data.Notes" rows="2" />
+    <FormField Id="room-notes" Label="Notizen" For="() => Data.Notes">
+        <InputTextArea id="room-notes" @bind-Value="Data.Notes" rows="2" />
     </FormField>
 }
 

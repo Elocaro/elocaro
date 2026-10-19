@@ -47,12 +47,12 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
 
         // Each row has its own button in the shared form; the clicked one submits its id.
         var firstIban = person.Document.QuerySelector("button[name=RemoveId]")!.GetAttribute("value")!;
-        person = await admin.SubmitAsync(person, "iban-entfernen", new Dictionary<string, string> { ["RemoveId"] = firstIban });
+        person = await admin.SubmitAsync(person, "iban-remove", new Dictionary<string, string> { ["RemoveId"] = firstIban });
         Assert.Contains("Die IBAN wurde entfernt.", person.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("DE02 1203", person.Text, StringComparison.Ordinal);
 
         // Move-in: new address, previous address stays in the history
-        person = await admin.SubmitAsync(person, "anschrift", new Dictionary<string, string>
+        person = await admin.SubmitAsync(person, "address", new Dictionary<string, string>
         {
             ["Address.From"] = MietHahn.Domain.Common.GermanTime.Today(App.Clock.GetUtcNow()).AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
             ["Address.Street"] = "Lindenweg 3",
@@ -87,7 +87,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         });
         Assert.Contains("Handwerker (Sanitär)", person.Text, StringComparison.Ordinal);
 
-        person = await admin.SubmitAsync(person, "zugang");
+        person = await admin.SubmitAsync(person, "access");
 
         Assert.Contains("Der Zugang wurde eingerichtet.", person.Text, StringComparison.Ordinal);
         Assert.Contains("rohr@example.de (Handwerker)", person.Text, StringComparison.Ordinal);
@@ -127,7 +127,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.True(suggestions.Text.Contains("Anna Schmidt", StringComparison.Ordinal), suggestions.Text);
 
         var button = suggestions.Document.QuerySelector("button[name=PersonId]")!.GetAttribute("value")!;
-        var afterwards = await admin.SubmitAsync(suggestions, "anonymisieren", new Dictionary<string, string> { ["PersonId"] = button });
+        var afterwards = await admin.SubmitAsync(suggestions, "anonymize", new Dictionary<string, string> { ["PersonId"] = button });
         Assert.Contains("Die Person wurde anonymisiert.", afterwards.Text, StringComparison.Ordinal);
 
         var record = await admin.GetAsync(path);

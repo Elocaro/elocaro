@@ -16,13 +16,13 @@
 
 @if (preview.Status == ImportStatus.Imported)
 {
-    <p class="meldung meldung-hinweis" role="status">Diese Datei wurde bereits importiert. <a href="/verwaltung/bank/umsaetze?konto=@preview.BankAccountId">Zu den Umsätzen</a></p>
+    <p class="message message-info" role="status">Diese Datei wurde bereits importiert. <a href="/verwaltung/bank/umsaetze?konto=@preview.BankAccountId">Zu den Umsätzen</a></p>
     return;
 }
 
 @if (preview.DifferentIban is not null)
 {
-    <p class="meldung meldung-fehler" role="alert">Die Datei gehört zum Konto @preview.DifferentIban, nicht zu „@preview.Account“. Bitte beim richtigen Konto importieren.</p>
+    <p class="message message-error" role="alert">Die Datei gehört zum Konto @preview.DifferentIban, nicht zu „@preview.Account“. Bitte beim richtigen Konto importieren.</p>
 }
 
 <p>
@@ -30,31 +30,31 @@
 </p>
 @foreach (var hint in preview.Hints)
 {
-    <p class="klein">@hint</p>
+    <p class="small">@hint</p>
 }
 
-<div class="formular-zeile">
-    <form method="post" @formname="importieren" @onsubmit="ImportAsync">
+<div class="form-row">
+    <form method="post" @formname="run-import" @onsubmit="ImportAsync">
         <AntiforgeryToken />
-        <button type="submit" class="knopf knopf-primaer" disabled="@(preview.DifferentIban is not null || newItem == 0)">@newItem Umsätze importieren</button>
+        <button type="submit" class="button button-primary" disabled="@(preview.DifferentIban is not null || newItem == 0)">@newItem Umsätze importieren</button>
     </form>
-    <form method="post" @formname="verwerfen" @onsubmit="DiscardAsync">
+    <form method="post" @formname="discard" @onsubmit="DiscardAsync">
         <AntiforgeryToken />
-        <button type="submit" class="knopf">Verwerfen</button>
+        <button type="submit" class="button">Verwerfen</button>
     </form>
 </div>
 
-<div class="tabellen-rahmen">
-    <table class="tabelle">
-        <thead><tr><th>Buchung</th><th>Gegenseite</th><th>Verwendungszweck</th><th class="zahl">Betrag</th><th></th></tr></thead>
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead><tr><th>Buchung</th><th>Gegenseite</th><th>Verwendungszweck</th><th class="number">Betrag</th><th></th></tr></thead>
         <tbody>
             @foreach (var line in preview.Rows)
             {
-                <tr class="@(line.Duplicate ? "zeile-gedimmt" : "")">
+                <tr class="@(line.Duplicate ? "row-dimmed" : "")">
                     <td>@Format.Date(line.Transaction.BookingDate)</td>
-                    <td>@line.Transaction.CounterpartyName<span class="klein"> @line.Transaction.CounterpartyIban</span></td>
+                    <td>@line.Transaction.CounterpartyName<span class="small"> @line.Transaction.CounterpartyIban</span></td>
                     <td>@line.Transaction.Purpose</td>
-                    <td class="zahl">@Format.Money(line.Transaction.Amount)</td>
+                    <td class="number">@Format.Money(line.Transaction.Amount)</td>
                     <td>@if (line.Duplicate) {<span class="status">schon vorhanden</span>}</td>
                 </tr>
             }

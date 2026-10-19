@@ -20,7 +20,7 @@ public class ChangeHistoryTests : BunitContext
         var component = Render<ChangeHistory>(p => p.Add(x => x.EntityType, "Mietvertrag").Add(x => x.EntityId, Id));
 
         Assert.Contains("Änderungshistorie (2)", component.Find("summary").TextContent, StringComparison.Ordinal);
-        var entries = component.FindAll("ol.historie-liste > li");
+        var entries = component.FindAll("ol.history-list > li");
         Assert.Equal(2, entries.Count);
         Assert.Contains("01.03.2026 10:30", entries[0].TextContent, StringComparison.Ordinal); // CET
         Assert.Contains("geändert", entries[0].TextContent, StringComparison.Ordinal);

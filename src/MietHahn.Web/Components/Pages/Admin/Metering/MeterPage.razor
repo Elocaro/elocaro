@@ -17,7 +17,7 @@
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<dl class="angaben">
+<dl class="details">
     <dt>Eingebaut</dt><dd>@Format.Date(meter.Meter.InstalledOn)@(meter.Meter.RemovedOn is { } removal ? $", ausgebaut am {Format.Date(removal)}" : "")</dd>
     @if (meter.Meter.CalibrationDueDate is { } deadline)
     {
@@ -34,7 +34,7 @@
             @foreach (var m in meter.MeteringPoint)
             {
                 <a href="/verwaltung/zaehler/@m.Id">@m.Number</a>
-                <span class="klein">(@Format.Date(m.InstalledOn) – @(m.RemovedOn is null ? "heute" : Format.Date(m.RemovedOn)))</span>
+                <span class="small">(@Format.Date(m.InstalledOn) – @(m.RemovedOn is null ? "heute" : Format.Date(m.RemovedOn)))</span>
                 @if (m != meter.MeteringPoint[^1])
                 {
                     <span> → </span>
@@ -50,7 +50,7 @@
         <h2>Stand erfassen</h2>
         @if (warnings is { Count: > 0 })
         {
-            <div class="meldung meldung-hinweis" role="alert">
+            <div class="message message-info" role="alert">
                 <strong>Bitte prüfen:</strong>
                 <ul>
                     @foreach (var w in warnings)
@@ -60,39 +60,39 @@
                 </ul>
             </div>
         }
-        <EditForm Model="Entry" FormName="stand" OnValidSubmit="RecordReadingAsync" enctype="multipart/form-data">
+        <EditForm Model="Entry" FormName="entry" OnValidSubmit="RecordReadingAsync" enctype="multipart/form-data">
             <DataAnnotationsValidator />
-            <div class="formular-raster">
-                <FormField Id="stand-datum" Label="Datum" For="() => Entry!.Date" Required="true">
-                    <InputDate id="stand-datum" @bind-Value="Entry!.Date" />
+            <div class="form-grid">
+                <FormField Id="entry-date" Label="Datum" For="() => Entry!.Date" Required="true">
+                    <InputDate id="entry-date" @bind-Value="Entry!.Date" />
                 </FormField>
-                <FormField Id="stand-wert" Label="@($"Zählerstand ({Labels.From(meter.Meter.MeasurementUnit)})")" For="() => Entry!.Value" Required="true">
-                    <InputArea id="stand-wert" @bind-Value="Entry!.Value" step="0.001" />
+                <FormField Id="entry-value" Label="@($"Zählerstand ({Labels.From(meter.Meter.MeasurementUnit)})")" For="() => Entry!.Value" Required="true">
+                    <InputArea id="entry-value" @bind-Value="Entry!.Value" step="0.001" />
                 </FormField>
-                <FormField Id="stand-art" Label="Art" For="() => Entry!.Kind">
-                    <InputSelect id="stand-art" @bind-Value="Entry!.Kind">
+                <FormField Id="entry-kind" Label="Art" For="() => Entry!.Kind">
+                    <InputSelect id="entry-kind" @bind-Value="Entry!.Kind">
                         <option value="@ReadingType.Reading">Ablesung</option>
                         <option value="@ReadingType.InterimReading">Zwischenablesung (z. B. Mieterwechsel)</option>
                         <option value="@ReadingType.Estimate">Schätzung</option>
                     </InputSelect>
                 </FormField>
-                <div class="feld">
-                    <label for="stand-foto">Foto</label>
-                    <input type="file" id="stand-foto" name="Photo" accept="image/*" capture="environment" />
+                <div class="field">
+                    <label for="entry-photo">Foto</label>
+                    <input type="file" id="entry-photo" name="Photo" accept="image/*" capture="environment" />
                 </div>
-                <FormField Id="stand-notiz" Label="Notiz" For="() => Entry!.Note">
-                    <InputText id="stand-notiz" @bind-Value="Entry!.Note" />
+                <FormField Id="entry-note" Label="Notiz" For="() => Entry!.Note">
+                    <InputText id="entry-note" @bind-Value="Entry!.Note" />
                 </FormField>
             </div>
             @if (warnings is { Count: > 0 })
             {
                 <input type="hidden" name="Entry.Confirmed" value="true" />
                 <input type="hidden" name="PhotoId" value="@PhotoId" />
-                <button type="submit" class="knopf knopf-primaer">Trotzdem speichern</button>
+                <button type="submit" class="button button-primary">Trotzdem speichern</button>
             }
             else
             {
-                <button type="submit" class="knopf knopf-primaer">Stand speichern</button>
+                <button type="submit" class="button button-primary">Stand speichern</button>
             }
         </EditForm>
     </section>
@@ -100,16 +100,16 @@
 
 <section>
     <h2>Verbrauch</h2>
-    <div class="tabellen-rahmen">
-        <table class="tabelle">
-            <thead><tr><th>Jahr</th><th class="zahl">Verbrauch</th><th>Hinweis</th></tr></thead>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Jahr</th><th class="number">Verbrauch</th><th>Hinweis</th></tr></thead>
             <tbody>
                 @foreach (var year in meter.AnnualConsumptions)
                 {
                     <tr>
                         <td>@year.Year</td>
-                        <td class="zahl">@Format.Quantity(year.Consumption.Quantity, Labels.From(meter.Meter.MeasurementUnit))</td>
-                        <td class="klein">@(year.Consumption.MissingReason ?? (year.Consumption.ContainsInterpolation ? "enthält interpolierte Stände" : ""))</td>
+                        <td class="number">@Format.Quantity(year.Consumption.Quantity, Labels.From(meter.Meter.MeasurementUnit))</td>
+                        <td class="small">@(year.Consumption.MissingReason ?? (year.Consumption.ContainsInterpolation ? "enthält interpolierte Stände" : ""))</td>
                     </tr>
                 }
             </tbody>
@@ -124,19 +124,19 @@
         <ul>
             @foreach (var u in meter.SubMeters)
             {
-                <li><a href="/verwaltung/zaehler/@u.Id">@u.Name</a> <span class="klein">@u.Number · @u.Assignment</span></li>
+                <li><a href="/verwaltung/zaehler/@u.Id">@u.Name</a> <span class="small">@u.Number · @u.Assignment</span></li>
             }
         </ul>
         @if (meter.Balance is { } balance)
         {
-            <dl class="angaben">
+            <dl class="details">
                 <dt>@balance.Year: Hauptzähler</dt><dd>@Format.Quantity(balance.MainMeter, Labels.From(meter.Meter.MeasurementUnit))</dd>
                 <dt>Summe Unterzähler</dt><dd>@Format.Quantity(balance.SubMeterTotal, Labels.From(meter.Meter.MeasurementUnit))</dd>
-                <dt>Differenz</dt><dd><strong>@Format.Quantity(balance.Difference, Labels.From(meter.Meter.MeasurementUnit))</strong> <span class="klein">(Allgemeinverbrauch, Schwund, Messtoleranz)</span></dd>
+                <dt>Differenz</dt><dd><strong>@Format.Quantity(balance.Difference, Labels.From(meter.Meter.MeasurementUnit))</strong> <span class="small">(Allgemeinverbrauch, Schwund, Messtoleranz)</span></dd>
             </dl>
             @foreach (var hint in balance.Hints)
             {
-                <p class="klein">@hint</p>
+                <p class="small">@hint</p>
             }
         }
     </section>
@@ -144,17 +144,17 @@
 
 <section>
     <h2>Stände</h2>
-    <form method="post" @formname="stand-entfernen" @onsubmit="RemoveReadingAsync">
+    <form method="post" @formname="entry-remove" @onsubmit="RemoveReadingAsync">
         <AntiforgeryToken />
-        <div class="tabellen-rahmen">
-            <table class="tabelle">
-                <thead><tr><th>Datum</th><th class="zahl">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Datum</th><th class="number">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var entry in meter.Readings)
                     {
                         <tr>
                             <td>@Format.Date(entry.Date)</td>
-                            <td class="zahl">@Format.Quantity(entry.Value)</td>
+                            <td class="number">@Format.Quantity(entry.Value)</td>
                             <td>
                                 @Labels.From(entry.Kind)
                                 @if (entry.PhotoFileId is { } photo)
@@ -163,14 +163,14 @@
                                 }
                                 @if (entry.Note is not null)
                                 {
-                                    <span class="klein">@entry.Note</span>
+                                    <span class="small">@entry.Note</span>
                                 }
                             </td>
-                            <td class="klein">@entry.ReadBy</td>
+                            <td class="small">@entry.ReadBy</td>
                             <td>
                                 @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
                                 {
-                                    <button type="submit" name="RemoveReadingId" value="@entry.Id" class="knopf knopf-gefahr" aria-label="Stand vom @Format.Date(entry.Date) entfernen">Entfernen</button>
+                                    <button type="submit" name="RemoveReadingId" value="@entry.Id" class="button button-danger" aria-label="Stand vom @Format.Date(entry.Date) entfernen">Entfernen</button>
                                 }
                             </td>
                         </tr>
@@ -184,38 +184,38 @@
 @if (meter.Meter.RemovedOn is null)
 {
     <section>
-        <details class="aufklapper">
+        <details class="disclosure">
             <summary>Zähler tauschen</summary>
-            <EditForm Model="Replacement" FormName="tausch" OnValidSubmit="ReplaceAsync" class="formular-raster">
+            <EditForm Model="Replacement" FormName="replacement" OnValidSubmit="ReplaceAsync" class="form-grid">
                 <DataAnnotationsValidator />
-                <FormField Id="tausch-datum" Label="Tauschdatum" For="() => Replacement!.Date" Required="true">
-                    <InputDate id="tausch-datum" @bind-Value="Replacement!.Date" />
+                <FormField Id="replacement-date" Label="Tauschdatum" For="() => Replacement!.Date" Required="true">
+                    <InputDate id="replacement-date" @bind-Value="Replacement!.Date" />
                 </FormField>
-                <FormField Id="tausch-endstand" Label="Endstand alter Zähler" For="() => Replacement!.FinalReading" Required="true">
-                    <InputArea id="tausch-endstand" @bind-Value="Replacement!.FinalReading" step="0.001" />
+                <FormField Id="replacement-final-reading" Label="Endstand alter Zähler" For="() => Replacement!.FinalReading" Required="true">
+                    <InputArea id="replacement-final-reading" @bind-Value="Replacement!.FinalReading" step="0.001" />
                 </FormField>
-                <FormField Id="tausch-nummer" Label="Nummer neuer Zähler" For="() => Replacement!.NewNumber" Required="true">
-                    <InputText id="tausch-nummer" @bind-Value="Replacement!.NewNumber" autocomplete="off" />
+                <FormField Id="replacement-number" Label="Nummer neuer Zähler" For="() => Replacement!.NewNumber" Required="true">
+                    <InputText id="replacement-number" @bind-Value="Replacement!.NewNumber" autocomplete="off" />
                 </FormField>
-                <FormField Id="tausch-anfang" Label="Anfangsstand neuer Zähler" For="() => Replacement!.InitialReading" Required="true">
-                    <InputArea id="tausch-anfang" @bind-Value="Replacement!.InitialReading" step="0.001" />
+                <FormField Id="replacement-opening" Label="Anfangsstand neuer Zähler" For="() => Replacement!.InitialReading" Required="true">
+                    <InputArea id="replacement-opening" @bind-Value="Replacement!.InitialReading" step="0.001" />
                 </FormField>
-                <FormField Id="tausch-eichfrist" Label="Eichfrist neuer Zähler" For="() => Replacement!.CalibrationDueDate" Hint="Leer = gesetzliche Frist">
-                    <InputDate id="tausch-eichfrist" @bind-Value="Replacement!.CalibrationDueDate" />
+                <FormField Id="replacement-calibration-deadline" Label="Eichfrist neuer Zähler" For="() => Replacement!.CalibrationDueDate" Hint="Leer = gesetzliche Frist">
+                    <InputDate id="replacement-calibration-deadline" @bind-Value="Replacement!.CalibrationDueDate" />
                 </FormField>
-                <div class="feld feld-aktion"><button type="submit" class="knopf">Tausch erfassen</button></div>
+                <div class="field field-action"><button type="submit" class="button">Tausch erfassen</button></div>
             </EditForm>
-            <p class="klein">Der Verbrauch wird über alten und neuen Zähler durchgängig berechnet.</p>
+            <p class="small">Der Verbrauch wird über alten und neuen Zähler durchgängig berechnet.</p>
         </details>
     </section>
 
     <section>
-        <details class="aufklapper">
+        <details class="disclosure">
             <summary>Angaben ändern</summary>
-            <EditForm Model="Data" FormName="daten" OnValidSubmit="SaveDataAsync">
+            <EditForm Model="Data" FormName="data" OnValidSubmit="SaveDataAsync">
                 <DataAnnotationsValidator />
                 <MeterFields Data="Data!" Units="units" MainMeter="mainMeter" TypeLocked="true" />
-                <button type="submit" class="knopf knopf-primaer">Speichern</button>
+                <button type="submit" class="button button-primary">Speichern</button>
             </EditForm>
         </details>
     </section>
@@ -236,23 +236,23 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "stand")]
+    [SupplyParameterFromForm(FormName = "entry")]
     private ReadingInput? Entry { get; set; }
 
-    [SupplyParameterFromForm(FormName = "stand")]
+    [SupplyParameterFromForm(FormName = "entry")]
     private IFormFile? Photo { get; set; }
 
     /// <summary>When confirming after warnings: do not upload the already saved photo again.</summary>
-    [SupplyParameterFromForm(FormName = "stand")]
+    [SupplyParameterFromForm(FormName = "entry")]
     private Guid? PhotoId { get; set; }
 
-    [SupplyParameterFromForm(FormName = "stand-entfernen")]
+    [SupplyParameterFromForm(FormName = "entry-remove")]
     private Guid? RemoveReadingId { get; set; }
 
-    [SupplyParameterFromForm(FormName = "tausch")]
+    [SupplyParameterFromForm(FormName = "replacement")]
     private ReplacementInput? Replacement { get; set; }
 
-    [SupplyParameterFromForm(FormName = "daten")]
+    [SupplyParameterFromForm(FormName = "data")]
     private MeterInput? Data { get; set; }
 
     protected override async Task OnInitializedAsync()

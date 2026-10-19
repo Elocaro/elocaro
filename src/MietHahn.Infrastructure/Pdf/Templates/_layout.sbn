@@ -23,49 +23,49 @@
   tr { page-break-inside: avoid; }
   th, td { text-align: left; padding: 1.2mm 1.5mm; border-bottom: 0.3pt solid #999; vertical-align: top; }
   th { font-weight: 600; border-bottom: 0.6pt solid #000; }
-  td.zahl, th.zahl { text-align: right; white-space: nowrap; }
+  td.number, th.number { text-align: right; white-space: nowrap; }
   tfoot td { font-weight: 600; border-top: 0.6pt solid #000; border-bottom: none; }
-  .klein { font-size: 8.5pt; }
+  .small { font-size: 8.5pt; }
   .seitenumbruch { page-break-before: always; }
 
-  .erste-seite { position: relative; margin: 0 -20mm 0 -25mm; height: 100mm; }
-  .briefkopf { position: absolute; top: 15mm; right: 20mm; text-align: right; font-size: 9pt; }
-  .briefkopf .name { font-size: 14pt; font-weight: 700; }
-  .anschrift { position: absolute; top: 45mm; left: 20mm; width: 85mm; height: 45mm; }
-  .ruecksende { height: 5mm; line-height: 5mm; font-size: 7pt; border-bottom: 0.3pt solid #000; white-space: nowrap; overflow: hidden; }
-  .vermerk { height: 12.7mm; font-size: 8pt; display: flex; align-items: flex-end; }
-  .empfaenger { height: 27.3mm; overflow: hidden; }
-  .infoblock { position: absolute; top: 50mm; left: 125mm; width: 65mm; font-size: 9pt; }
-  .falzmarke { position: absolute; left: 0; width: 5mm; border-top: 0.3pt solid #000; }
-  .lochmarke { width: 8mm; }
+  .first-page { position: relative; margin: 0 -20mm 0 -25mm; height: 100mm; }
+  .letterhead { position: absolute; top: 15mm; right: 20mm; text-align: right; font-size: 9pt; }
+  .letterhead .name { font-size: 14pt; font-weight: 700; }
+  .address { position: absolute; top: 45mm; left: 20mm; width: 85mm; height: 45mm; }
+  .return-address { height: 5mm; line-height: 5mm; font-size: 7pt; border-bottom: 0.3pt solid #000; white-space: nowrap; overflow: hidden; }
+  .remark { height: 12.7mm; font-size: 8pt; display: flex; align-items: flex-end; }
+  .recipient { height: 27.3mm; overflow: hidden; }
+  .info-block { position: absolute; top: 50mm; left: 125mm; width: 65mm; font-size: 9pt; }
+  .fold-mark { position: absolute; left: 0; width: 5mm; border-top: 0.3pt solid #000; }
+  .punch-mark { width: 8mm; }
 </style>
 </head>
 <body>
 {{~ if recipient ~}}
-<div class="erste-seite">
-  <div class="falzmarke" style="top:105mm"></div>
-  <div class="falzmarke lochmarke" style="top:148.5mm"></div>
-  <div class="falzmarke" style="top:210mm"></div>
-  <div class="briefkopf">
+<div class="first-page">
+  <div class="fold-mark" style="top:105mm"></div>
+  <div class="fold-mark punch-mark" style="top:148.5mm"></div>
+  <div class="fold-mark" style="top:210mm"></div>
+  <div class="letterhead">
     <div class="name">{{ sender.name }}</div>
     {{~ if sender.address_line2 ~}}<div>{{ sender.address_line2 }}</div>{{~ end ~}}
     <div>{{ sender.street }} · {{ sender.postal_code }} {{ sender.city }}</div>
     {{~ if sender.phone ~}}<div>Telefon {{ sender.phone }}</div>{{~ end ~}}
     {{~ if sender.email ~}}<div>{{ sender.email }}</div>{{~ end ~}}
   </div>
-  <div class="anschrift">
-    <div class="ruecksende">{{ sender.return_address_line }}</div>
-    <div class="vermerk">{{ recipient.remark }}</div>
-    <div class="empfaenger">
+  <div class="address">
+    <div class="return-address">{{ sender.return_address_line }}</div>
+    <div class="remark">{{ recipient.remark }}</div>
+    <div class="recipient">
       {{~ for line in recipient.rows ~}}<div>{{ line }}</div>{{~ end ~}}
     </div>
   </div>
-  <div class="infoblock">
+  <div class="info-block">
     <div>Datum: {{ date letter_date }}</div>
   </div>
 </div>
 {{~ else ~}}
-<div class="klein" style="text-align:right;margin-bottom:6mm">{{ sender.name }} · {{ date letter_date }}</div>
+<div class="small" style="text-align:right;margin-bottom:6mm">{{ sender.name }} · {{ date letter_date }}</div>
 {{~ end ~}}
 <h1>{{ title }}</h1>
 {{ content }}

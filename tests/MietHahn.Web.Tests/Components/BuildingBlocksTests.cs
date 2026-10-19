@@ -93,11 +93,11 @@ public class BuildingBlocksTests : BunitContext
         var header = Render<PageHeader>(p => p
             .Add(x => x.Title, "Benutzer")
             .Add(x => x.Back, "/verwaltung")
-            .Add(x => x.Actions, (RenderFragment)(b => b.AddMarkupContent(0, "<a class=\"knopf\" href=\"/neu\">Neu</a>"))));
+            .Add(x => x.Actions, (RenderFragment)(b => b.AddMarkupContent(0, "<a class=\"button\" href=\"/neu\">Neu</a>"))));
 
         Assert.Equal("Benutzer", header.Find("h1").TextContent);
-        Assert.Equal("/verwaltung", header.Find("a.zurueck").GetAttribute("href"));
-        Assert.NotNull(header.Find(".seitenkopf-aktionen a.knopf"));
+        Assert.Equal("/verwaltung", header.Find("a.back").GetAttribute("href"));
+        Assert.NotNull(header.Find(".page-header-actions a.button"));
     }
 
     [Fact]
@@ -106,10 +106,10 @@ public class BuildingBlocksTests : BunitContext
         var action = Render<DangerAction>(p => p
             .Add(x => x.Text, "Konto sperren")
             .Add(x => x.Confirmation, "Wirklich sperren?")
-            .Add(x => x.FormName, "sperren")
+            .Add(x => x.FormName, "lock")
             .Add(x => x.Confirmed, () => { }));
 
-        var details = action.Find("details.gefahrenaktion");
+        var details = action.Find("details.danger-action");
         Assert.False(details.HasAttribute("open"));
         Assert.Equal("Konto sperren", details.QuerySelector("summary")!.TextContent);
         Assert.Contains("Wirklich sperren?", details.TextContent, StringComparison.Ordinal);

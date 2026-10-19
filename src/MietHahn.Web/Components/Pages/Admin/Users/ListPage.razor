@@ -11,7 +11,7 @@
 
 <section>
     <h2>Person einladen</h2>
-    <EditForm Model="Invitation" FormName="einladen" OnValidSubmit="InviteAsync" class="formular-raster">
+    <EditForm Model="Invitation" FormName="invite" OnValidSubmit="InviteAsync" class="form-grid">
         <DataAnnotationsValidator />
         <FormField Id="name" Label="Name" For="() => Invitation!.DisplayName" Required="true">
             <InputText id="name" @bind-Value="Invitation!.DisplayName" autocomplete="off" />
@@ -19,24 +19,24 @@
         <FormField Id="email" Label="E-Mail-Adresse" For="() => Invitation!.Email" Required="true">
             <InputText id="email" type="email" @bind-Value="Invitation!.Email" autocomplete="off" />
         </FormField>
-        <FormField Id="rolle" Label="Rolle" For="() => Invitation!.Role">
-            <InputSelect id="rolle" @bind-Value="Invitation!.Role">
+        <FormField Id="role" Label="Rolle" For="() => Invitation!.Role">
+            <InputSelect id="role" @bind-Value="Invitation!.Role">
                 @foreach (var role in Roles.All)
                 {
                     <option value="@role">@Roles.DisplayName(role)</option>
                 }
             </InputSelect>
         </FormField>
-        <div class="feld feld-aktion">
-            <button type="submit" class="knopf knopf-primaer">Einladung senden</button>
+        <div class="field field-action">
+            <button type="submit" class="button button-primary">Einladung senden</button>
         </div>
     </EditForm>
 </section>
 
 <section>
     <h2>Konten</h2>
-    <div class="tabellen-rahmen">
-        <table class="tabelle">
+    <div class="table-wrapper">
+        <table class="data-table">
             <thead>
                 <tr><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Status</th><th>Letzte Anmeldung</th></tr>
             </thead>
@@ -50,11 +50,11 @@
                         <td>
                             @if (b.Locked)
                             {
-                                <span class="status status-fehler">gesperrt</span>
+                                <span class="status status-error">gesperrt</span>
                             }
                             else if (!b.InvitationAccepted)
                             {
-                                <span class="status status-wartend">eingeladen</span>
+                                <span class="status status-pending">eingeladen</span>
                             }
                             else
                             {
@@ -78,7 +78,7 @@
     private string? message;
     private IReadOnlyList<string>? errors;
 
-    [SupplyParameterFromForm(FormName = "einladen")]
+    [SupplyParameterFromForm(FormName = "invite")]
     private InvitationInput? Invitation { get; set; }
 
     protected override async Task OnInitializedAsync()

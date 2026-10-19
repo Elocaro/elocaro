@@ -2,7 +2,7 @@
 @inherits DataComponent
 
 @* Shows the change history of a record from the audit log (collapsed). *@
-<details class="historie">
+<details class="history">
     <summary>Änderungshistorie (@(entries?.Count ?? 0))</summary>
     @if (entries is { Count: 0 })
     {
@@ -10,22 +10,22 @@
     }
     else if (entries is not null)
     {
-        <ol class="historie-liste">
+        <ol class="history-list">
             @foreach (var entry in entries)
             {
                 <li>
-                    <div class="historie-kopf">
+                    <div class="history-header">
                         <time>@Format.Timestamp(entry.Timestamp)</time>
-                        <span class="historie-aktion">@ActionText(entry.Action)</span>
-                        <span class="historie-benutzer">@entry.User</span>
+                        <span class="history-action">@ActionText(entry.Action)</span>
+                        <span class="history-user">@entry.User</span>
                         @if (entry.Purpose is not null)
                         {
-                            <span class="historie-zweck">(@entry.Purpose)</span>
+                            <span class="history-purpose">(@entry.Purpose)</span>
                         }
                     </div>
                     @if (entry.Changes.Count > 0)
                     {
-                        <table class="tabelle historie-felder">
+                        <table class="data-table history-fields">
                             <thead><tr><th>Feld</th><th>Vorher</th><th>Nachher</th></tr></thead>
                             <tbody>
                                 @foreach (var field in entry.Changes)

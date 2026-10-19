@@ -1,6 +1,6 @@
 @if (Errors is { Count: > 0 })
 {
-    <div class="meldung meldung-fehler" role="alert">
+    <div class="message message-error" role="alert">
         @if (Errors.Count == 1)
         {
             @Errors[0]

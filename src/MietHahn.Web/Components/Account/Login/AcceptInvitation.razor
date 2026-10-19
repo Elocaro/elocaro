@@ -9,18 +9,18 @@
 
 @if (invalid)
 {
-    <p class="meldung meldung-fehler" role="alert">Diese Einladung ist ungültig oder abgelaufen. Bitte wenden Sie sich an den Vermieter.</p>
+    <p class="message message-error" role="alert">Diese Einladung ist ungültig oder abgelaufen. Bitte wenden Sie sich an den Vermieter.</p>
 }
 else
 {
     <p>Bitte legen Sie Ihr Passwort fest.</p>
     <ErrorList Errors="errors" />
-    <EditForm Model="Input" FormName="einladung" OnValidSubmit="AcceptAsync">
+    <EditForm Model="Input" FormName="invitation" OnValidSubmit="AcceptAsync">
         <DataAnnotationsValidator />
         <input type="hidden" name="Benutzer" value="@UserId" />
         <input type="hidden" name="Code" value="@Code" />
         <PasswordFields Input="Input!" />
-        <button type="submit" class="knopf knopf-primaer">Passwort festlegen</button>
+        <button type="submit" class="button button-primary">Passwort festlegen</button>
     </EditForm>
 }
 
@@ -28,7 +28,7 @@ else
     private bool invalid;
     private IReadOnlyList<string>? errors;
 
-    [SupplyParameterFromForm(FormName = "einladung")]
+    [SupplyParameterFromForm(FormName = "invitation")]
     private NewPasswordInput? Input { get; set; }
 
     [SupplyParameterFromQuery(Name = "benutzer")]

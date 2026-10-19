@@ -26,17 +26,17 @@
 
 @if (Step >= round.Count)
 {
-    <p class="meldung meldung-ok" role="status">Runde abgeschlossen: @round.Count(z => z.LastReading?.Date == ReferenceDate) von @round.Count Zählern erfasst.</p>
-    <ul class="aufgaben">
+    <p class="message message-ok" role="status">Runde abgeschlossen: @round.Count(z => z.LastReading?.Date == ReferenceDate) von @round.Count Zählern erfasst.</p>
+    <ul class="todos">
         @foreach (var z in round)
         {
-            <li class="aufgabe @(z.LastReading?.Date == ReferenceDate ? "" : "aufgabe-bald")">
-                <a href="/verwaltung/zaehler/@z.Id">@z.Name</a> <span class="klein">@z.Assignment · @z.Number</span>
-                <p class="klein">@(z.LastReading?.Date == ReferenceDate ? $"{Format.Quantity(z.LastReading.Value, Labels.From(z.MeasurementUnit))}" : "nicht erfasst")</p>
+            <li class="todo @(z.LastReading?.Date == ReferenceDate ? "" : "todo-soon")">
+                <a href="/verwaltung/zaehler/@z.Id">@z.Name</a> <span class="small">@z.Assignment · @z.Number</span>
+                <p class="small">@(z.LastReading?.Date == ReferenceDate ? $"{Format.Quantity(z.LastReading.Value, Labels.From(z.MeasurementUnit))}" : "nicht erfasst")</p>
             </li>
         }
     </ul>
-    <p><a class="knopf" href="@Link(0)">Runde erneut durchgehen</a></p>
+    <p><a class="button" href="@Link(0)">Runde erneut durchgehen</a></p>
     return;
 }
 
@@ -45,29 +45,29 @@
     var recorded = meter.LastReading?.Date == ReferenceDate;
 }
 
-<p class="klein" aria-live="polite">Zähler @(Step + 1) von @round.Count</p>
-<progress class="fortschritt" max="@round.Count" value="@Step">@(Step + 1) von @round.Count</progress>
+<p class="small" aria-live="polite">Zähler @(Step + 1) von @round.Count</p>
+<progress class="progress" max="@round.Count" value="@Step">@(Step + 1) von @round.Count</progress>
 
-<div class="ablese-karte">
+<div class="reading-card">
     <h2>@meter.Name</h2>
     <p>@Labels.From(meter.Type) · <strong>Nr. @meter.Number</strong></p>
-    <p class="klein">@meter.Assignment@(meter.Location is null ? "" : " · " + meter.Location)</p>
+    <p class="small">@meter.Assignment@(meter.Location is null ? "" : " · " + meter.Location)</p>
     @if (meter.LastReading is { } lastReading)
     {
-        <p class="klein">Letzter Stand: @Format.Quantity(lastReading.Value, Labels.From(meter.MeasurementUnit)) am @Format.Date(lastReading.Date)</p>
+        <p class="small">Letzter Stand: @Format.Quantity(lastReading.Value, Labels.From(meter.MeasurementUnit)) am @Format.Date(lastReading.Date)</p>
     }
 </div>
 
 @if (recorded)
 {
-    <p class="meldung meldung-ok">Für diesen Tag bereits erfasst.</p>
-    <a class="knopf knopf-primaer" href="@Link(Step + 1)">Weiter</a>
+    <p class="message message-ok">Für diesen Tag bereits erfasst.</p>
+    <a class="button button-primary" href="@Link(Step + 1)">Weiter</a>
     return;
 }
 
 @if (warnings is { Count: > 0 })
 {
-    <div class="meldung meldung-hinweis" role="alert">
+    <div class="message message-info" role="alert">
         <ul>
             @foreach (var w in warnings)
             {
@@ -77,14 +77,14 @@
     </div>
 }
 
-<EditForm Model="Entry" FormName="ablesung" OnValidSubmit="SaveAsync" enctype="multipart/form-data">
+<EditForm Model="Entry" FormName="reading" OnValidSubmit="SaveAsync" enctype="multipart/form-data">
     <DataAnnotationsValidator />
-    <FormField Id="ablesung-wert" Label="@($"Zählerstand ({Labels.From(meter.MeasurementUnit)})")" For="() => Entry!.Value" Required="true">
-        <InputArea id="ablesung-wert" class="eingabe-gross" @bind-Value="Entry!.Value" step="0.001" autofocus />
+    <FormField Id="reading-value" Label="@($"Zählerstand ({Labels.From(meter.MeasurementUnit)})")" For="() => Entry!.Value" Required="true">
+        <InputArea id="reading-value" class="input-large" @bind-Value="Entry!.Value" step="0.001" autofocus />
     </FormField>
-    <div class="feld">
-        <label for="ablesung-foto">Foto vom Zähler</label>
-        <input type="file" id="ablesung-foto" name="Photo" accept="image/*" capture="environment" />
+    <div class="field">
+        <label for="reading-photo">Foto vom Zähler</label>
+        <input type="file" id="reading-photo" name="Photo" accept="image/*" capture="environment" />
     </div>
     <input type="hidden" name="Entry.Date" value="@ReferenceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
     <input type="hidden" name="Entry.Kind" value="@TypeValue" />
@@ -93,9 +93,9 @@
         <input type="hidden" name="Entry.Confirmed" value="true" />
         <input type="hidden" name="PhotoId" value="@PhotoId" />
     }
-    <div class="formular-zeile">
-        <button type="submit" class="knopf knopf-primaer">@(warnings is { Count: > 0 } ? "Trotzdem speichern & weiter" : "Speichern & weiter")</button>
-        <a class="knopf" href="@Link(Step + 1)">Überspringen</a>
+    <div class="form-row">
+        <button type="submit" class="button button-primary">@(warnings is { Count: > 0 } ? "Trotzdem speichern & weiter" : "Speichern & weiter")</button>
+        <a class="button" href="@Link(Step + 1)">Überspringen</a>
     </div>
 </EditForm>
 
@@ -123,13 +123,13 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "ablesung")]
+    [SupplyParameterFromForm(FormName = "reading")]
     private ReadingInput? Entry { get; set; }
 
-    [SupplyParameterFromForm(FormName = "ablesung")]
+    [SupplyParameterFromForm(FormName = "reading")]
     private IFormFile? Photo { get; set; }
 
-    [SupplyParameterFromForm(FormName = "ablesung")]
+    [SupplyParameterFromForm(FormName = "reading")]
     private Guid? PhotoId { get; set; }
 
     private DateOnly ReferenceDate => Date ?? MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow());

@@ -12,8 +12,8 @@ Blazor-Vorlagen bringen Bootstrap mit, Alternativen wären Pico.css oder Tailwin
 Ein **eigenes, schlankes Design-System** in `wwwroot/app.css`:
 
 - Farben, Abstände und Radien als **CSS-Variablen**, mit **Dark Mode** über `prefers-color-scheme`.
-- Mobil zuerst: Touch-Ziele ≥ 44 px, Navigation ohne JavaScript (`<details>`), Tabellen in `.tabellen-rahmen` scrollen horizontal statt der Seite.
-- Klassen auf Deutsch, passend zum Code (`.knopf`, `.feld`, `.meldung`, `.tabelle`, `.status-ok`).
+- Mobil zuerst: Touch-Ziele ≥ 44 px, Navigation ohne JavaScript (`<details>`), Tabellen in `.table-wrapper` scrollen horizontal statt der Seite.
+- Klassen auf Englisch, passend zum Code (`.button`, `.field`, `.message`, `.data-table`, `.status-ok`).
 - Komponenten-spezifisches CSS bei Bedarf als CSS-Isolation (`*.razor.css`).
 
 ## Begründung

@@ -8,7 +8,7 @@
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<p class="klein">
+<p class="small">
     MietHahn schlägt nur vor, gelöscht wird nichts automatisch. Vor dem Anonymisieren prüfen, ob noch Fristen laufen
     (z. B. offene Forderungen, Rechtsstreit). Eine Auskunft nach Art. 15 DSGVO gibt es in jeder Personenakte.
 </p>
@@ -19,10 +19,10 @@
 }
 else if (suggestions is not null)
 {
-    <form method="post" @formname="anonymisieren" @onsubmit="AnonymizeAsync">
+    <form method="post" @formname="anonymize" @onsubmit="AnonymizeAsync">
         <AntiforgeryToken />
-        <div class="tabellen-rahmen">
-            <table class="tabelle">
+        <div class="table-wrapper">
+            <table class="data-table">
                 <thead><tr><th>Person</th><th>Grund</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var suggestion in suggestions)
@@ -30,7 +30,7 @@ else if (suggestions is not null)
                         <tr>
                             <td><a href="/verwaltung/personen/@suggestion.PersonId">@suggestion.DisplayName</a></td>
                             <td>@suggestion.Reason</td>
-                            <td><button type="submit" name="PersonId" value="@suggestion.PersonId" class="knopf knopf-gefahr" aria-label="@suggestion.DisplayName anonymisieren">Anonymisieren</button></td>
+                            <td><button type="submit" name="PersonId" value="@suggestion.PersonId" class="button button-danger" aria-label="@suggestion.DisplayName anonymisieren">Anonymisieren</button></td>
                         </tr>
                     }
                 </tbody>
@@ -46,7 +46,7 @@ else if (suggestions is not null)
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "anonymisieren")]
+    [SupplyParameterFromForm(FormName = "anonymize")]
     private Guid? PersonId { get; set; }
 
     protected override async Task OnInitializedAsync() => suggestions = await Privacy.SuggestionsAsync();

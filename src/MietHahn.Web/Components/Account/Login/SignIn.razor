@@ -10,27 +10,27 @@
 <StatusMessage Message="@(SignedOut ? "Sie wurden abgemeldet." : null)" />
 <StatusMessage Message="@errors" IsError="true" />
 
-<EditForm Model="Input" FormName="anmelden" OnValidSubmit="SignInAsync">
+<EditForm Model="Input" FormName="login" OnValidSubmit="SignInAsync">
     <DataAnnotationsValidator />
     <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
-    <div class="feld">
+    <div class="field">
         <label for="email">E-Mail-Adresse</label>
         <InputText id="email" type="email" @bind-Value="Input!.Email" autocomplete="username" />
         <ValidationMessage For="() => Input!.Email" />
     </div>
-    <div class="feld">
-        <label for="passwort">Passwort</label>
-        <InputText id="passwort" type="password" @bind-Value="Input!.Password" autocomplete="current-password" />
+    <div class="field">
+        <label for="password">Passwort</label>
+        <InputText id="password" type="password" @bind-Value="Input!.Password" autocomplete="current-password" />
         <ValidationMessage For="() => Input!.Password" />
     </div>
-    <div class="feld feld-checkbox">
-        <InputCheckbox id="bleiben" @bind-Value="Input!.RememberMe" />
-        <label for="bleiben">Angemeldet bleiben</label>
+    <div class="field field-checkbox">
+        <InputCheckbox id="keep" @bind-Value="Input!.RememberMe" />
+        <label for="keep">Angemeldet bleiben</label>
     </div>
-    <button type="submit" class="knopf knopf-primaer">Anmelden</button>
+    <button type="submit" class="button button-primary">Anmelden</button>
 </EditForm>
 
-<div class="konto-links">
+<div class="account-links">
     <a href="/konto/link">Ohne Passwort anmelden (Link per E-Mail)</a>
     <a href="/konto/passwort-vergessen">Passwort vergessen?</a>
 </div>
@@ -38,7 +38,7 @@
 @code {
     private string? errors;
 
-    [SupplyParameterFromForm(FormName = "anmelden")]
+    [SupplyParameterFromForm(FormName = "login")]
     private SignInInput? Input { get; set; }
 
     [SupplyParameterFromQuery]

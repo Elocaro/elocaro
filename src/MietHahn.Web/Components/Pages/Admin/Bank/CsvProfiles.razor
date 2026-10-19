@@ -7,10 +7,10 @@
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<form method="post" @formname="loeschen" @onsubmit="DeleteAsync">
+<form method="post" @formname="delete" @onsubmit="DeleteAsync">
     <AntiforgeryToken />
-    <div class="tabellen-rahmen">
-        <table class="tabelle">
+    <div class="table-wrapper">
+        <table class="data-table">
             <thead><tr><th>Profil</th><th>Trennzeichen</th><th>Datum</th><th>Spalten (Datum · Betrag · Zweck)</th><th></th></tr></thead>
             <tbody>
                 @foreach (var p in profile)
@@ -19,11 +19,11 @@
                         <td>@p.Name @if (p.IsDefault) {<span class="status">mitgeliefert</span>}</td>
                         <td>@(p.Delimiter == "\t" ? "Tab" : p.Delimiter), Dezimal „@p.DecimalSeparator“</td>
                         <td>@p.DateFormat</td>
-                        <td class="klein">@p.BookingDateColumn · @(p.AmountColumn ?? $"{p.DebitColumn} / {p.CreditColumn}") · @p.PurposeColumn</td>
+                        <td class="small">@p.BookingDateColumn · @(p.AmountColumn ?? $"{p.DebitColumn} / {p.CreditColumn}") · @p.PurposeColumn</td>
                         <td>
                             @if (p.Id is { } id)
                             {
-                                <button type="submit" class="knopf knopf-gefahr" name="DeleteId" value="@id" aria-label="Profil @p.Name löschen">Löschen</button>
+                                <button type="submit" class="button button-danger" name="DeleteId" value="@id" aria-label="Profil @p.Name löschen">Löschen</button>
                             }
                         </td>
                     </tr>
@@ -35,50 +35,50 @@
 
 <section>
     <h2>Eigenes Profil anlegen</h2>
-    <p class="klein">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>
-    <EditForm Model="Data" FormName="profil" OnValidSubmit="SaveAsync">
+    <p class="small">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>
+    <EditForm Model="Data" FormName="profile" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
-        <div class="formular-raster">
+        <div class="form-grid">
             <FormField Id="p-name" Label="Name" For="() => Data!.Name" Required="true">
                 <InputText id="p-name" @bind-Value="Data!.Name" />
             </FormField>
-            <FormField Id="p-trenner" Label="Trennzeichen" For="() => Data!.Delimiter" Hint="; , oder \t für Tab">
-                <InputText id="p-trenner" @bind-Value="Data!.Delimiter" maxlength="2" />
+            <FormField Id="p-separator" Label="Trennzeichen" For="() => Data!.Delimiter" Hint="; , oder \t für Tab">
+                <InputText id="p-separator" @bind-Value="Data!.Delimiter" maxlength="2" />
             </FormField>
-            <FormField Id="p-dezimal" Label="Dezimaltrennzeichen" For="() => Data!.DecimalSeparator">
-                <InputSelect id="p-dezimal" @bind-Value="Data!.DecimalSeparator">
+            <FormField Id="p-decimal" Label="Dezimaltrennzeichen" For="() => Data!.DecimalSeparator">
+                <InputSelect id="p-decimal" @bind-Value="Data!.DecimalSeparator">
                     <option value=",">Komma (1.234,56)</option>
                     <option value=".">Punkt (1,234.56)</option>
                 </InputSelect>
             </FormField>
-            <FormField Id="p-zeichensatz" Label="Zeichensatz" For="() => Data!.Charset">
-                <InputSelect id="p-zeichensatz" @bind-Value="Data!.Charset">
+            <FormField Id="p-charset" Label="Zeichensatz" For="() => Data!.Charset">
+                <InputSelect id="p-charset" @bind-Value="Data!.Charset">
                     <option value="auto">automatisch</option>
                     <option value="utf-8">UTF-8</option>
                     <option value="windows-1252">Windows-1252 / ISO-8859-1</option>
                 </InputSelect>
             </FormField>
-            <FormField Id="p-datum" Label="Datumsformat" For="() => Data!.DateFormat" Hint="z. B. dd.MM.yyyy|dd.MM.yy oder yyyy-MM-dd">
-                <InputText id="p-datum" @bind-Value="Data!.DateFormat" />
+            <FormField Id="p-date" Label="Datumsformat" For="() => Data!.DateFormat" Hint="z. B. dd.MM.yyyy|dd.MM.yy oder yyyy-MM-dd">
+                <InputText id="p-date" @bind-Value="Data!.DateFormat" />
             </FormField>
         </div>
         <h3>Spaltenüberschriften</h3>
-        <div class="formular-raster">
-            <FormField Id="p-buchung" Label="Buchungsdatum" For="() => Data!.BookingDateColumn" Required="true"><InputText id="p-buchung" @bind-Value="Data!.BookingDateColumn" /></FormField>
-            <FormField Id="p-valuta" Label="Valutadatum" For="() => Data!.ValueDateColumn"><InputText id="p-valuta" @bind-Value="Data!.ValueDateColumn" /></FormField>
-            <FormField Id="p-betrag" Label="Betrag" For="() => Data!.AmountColumn"><InputText id="p-betrag" @bind-Value="Data!.AmountColumn" /></FormField>
-            <FormField Id="p-soll" Label="Soll (Ausgang)" For="() => Data!.DebitColumn"><InputText id="p-soll" @bind-Value="Data!.DebitColumn" /></FormField>
-            <FormField Id="p-haben" Label="Haben (Eingang)" For="() => Data!.CreditColumn"><InputText id="p-haben" @bind-Value="Data!.CreditColumn" /></FormField>
-            <FormField Id="p-name-gegen" Label="Name Gegenseite" For="() => Data!.NameColumn"><InputText id="p-name-gegen" @bind-Value="Data!.NameColumn" /></FormField>
+        <div class="form-grid">
+            <FormField Id="p-booking" Label="Buchungsdatum" For="() => Data!.BookingDateColumn" Required="true"><InputText id="p-booking" @bind-Value="Data!.BookingDateColumn" /></FormField>
+            <FormField Id="p-value-date" Label="Valutadatum" For="() => Data!.ValueDateColumn"><InputText id="p-value-date" @bind-Value="Data!.ValueDateColumn" /></FormField>
+            <FormField Id="p-amount" Label="Betrag" For="() => Data!.AmountColumn"><InputText id="p-amount" @bind-Value="Data!.AmountColumn" /></FormField>
+            <FormField Id="p-charge" Label="Soll (Ausgang)" For="() => Data!.DebitColumn"><InputText id="p-charge" @bind-Value="Data!.DebitColumn" /></FormField>
+            <FormField Id="p-credit" Label="Haben (Eingang)" For="() => Data!.CreditColumn"><InputText id="p-credit" @bind-Value="Data!.CreditColumn" /></FormField>
+            <FormField Id="p-name-counterparty" Label="Name Gegenseite" For="() => Data!.NameColumn"><InputText id="p-name-counterparty" @bind-Value="Data!.NameColumn" /></FormField>
             <FormField Id="p-iban" Label="IBAN Gegenseite" For="() => Data!.IbanColumn"><InputText id="p-iban" @bind-Value="Data!.IbanColumn" /></FormField>
             <FormField Id="p-bic" Label="BIC Gegenseite" For="() => Data!.BicColumn"><InputText id="p-bic" @bind-Value="Data!.BicColumn" /></FormField>
-            <FormField Id="p-zweck" Label="Verwendungszweck" For="() => Data!.PurposeColumn"><InputText id="p-zweck" @bind-Value="Data!.PurposeColumn" /></FormField>
+            <FormField Id="p-purpose" Label="Verwendungszweck" For="() => Data!.PurposeColumn"><InputText id="p-purpose" @bind-Value="Data!.PurposeColumn" /></FormField>
             <FormField Id="p-text" Label="Buchungstext" For="() => Data!.BookingTextColumn"><InputText id="p-text" @bind-Value="Data!.BookingTextColumn" /></FormField>
             <FormField Id="p-eref" Label="End-to-End-Referenz" For="() => Data!.EndToEndColumn"><InputText id="p-eref" @bind-Value="Data!.EndToEndColumn" /></FormField>
             <FormField Id="p-mref" Label="Mandatsreferenz" For="() => Data!.MandateReferenceColumn"><InputText id="p-mref" @bind-Value="Data!.MandateReferenceColumn" /></FormField>
             <FormField Id="p-cred" Label="Gläubiger-ID" For="() => Data!.CreditorIdColumn"><InputText id="p-cred" @bind-Value="Data!.CreditorIdColumn" /></FormField>
         </div>
-        <button type="submit" class="knopf knopf-primaer">Profil anlegen</button>
+        <button type="submit" class="button button-primary">Profil anlegen</button>
     </EditForm>
 </section>
 
@@ -89,10 +89,10 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "profil")]
+    [SupplyParameterFromForm(FormName = "profile")]
     private CsvProfileInput? Data { get; set; }
 
-    [SupplyParameterFromForm(FormName = "loeschen")]
+    [SupplyParameterFromForm(FormName = "delete")]
     private Guid? DeleteId { get; set; }
 
     protected override async Task OnInitializedAsync()

@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <style>
   body { margin: 0 20mm 0 25mm; width: 100%; font-family: "Noto Sans", "DejaVu Sans", Arial, sans-serif; font-size: 7.5pt; color: #444; }
-  .zeile { display: flex; justify-content: space-between; width: 165mm; border-top: 0.3pt solid #999; padding-top: 1.5mm; }
+  .row { display: flex; justify-content: space-between; width: 165mm; border-top: 0.3pt solid #999; padding-top: 1.5mm; }
 </style>
 </head>
 <body>
-<div class="zeile">
+<div class="row">
   <span>{{ sender.name }}{{ if sender.iban }} · IBAN {{ sender.iban }}{{ end }}{{ if sender.bank }} · {{ sender.bank }}{{ end }}{{ if sender.tax_number }} · St.-Nr. {{ sender.tax_number }}{{ end }}</span>
   <span>Seite <span class="pageNumber"></span> von <span class="totalPages"></span></span>
 </div>

@@ -26,13 +26,13 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     {
         var page = await SignedInAsAdminAsync();
 
-        Assert.False(await page.IsVisibleAsync(".seitenleiste"));
-        Assert.False(await page.IsVisibleAsync(".navigation-mobil .navigation"));
+        Assert.False(await page.IsVisibleAsync(".sidebar"));
+        Assert.False(await page.IsVisibleAsync(".mobile-navigation .navigation"));
 
-        await page.ClickAsync(".navigation-mobil > summary");
-        Assert.True(await page.IsVisibleAsync(".navigation-mobil .navigation"));
+        await page.ClickAsync(".mobile-navigation > summary");
+        Assert.True(await page.IsVisibleAsync(".mobile-navigation .navigation"));
 
-        await page.ClickAsync(".navigation-mobil >> text=Benutzer");
+        await page.ClickAsync(".mobile-navigation >> text=Benutzer");
         await page.WaitForURLAsync("**/verwaltung/benutzer");
         await page.WaitForSelectorAsync("h1:text-is('Benutzer')");
     }
@@ -43,9 +43,9 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         var page = await SignedInAsAdminAsync(mobile: false);
         await page.GotoAsync(BaseUrl + "/verwaltung/benutzer");
 
-        Assert.True(await page.IsVisibleAsync(".seitenleiste"));
-        Assert.False(await page.IsVisibleAsync(".navigation-mobil > summary"));
-        Assert.Equal("Benutzer", await page.TextContentAsync(".seitenleiste a.active"));
+        Assert.True(await page.IsVisibleAsync(".sidebar"));
+        Assert.False(await page.IsVisibleAsync(".mobile-navigation > summary"));
+        Assert.Equal("Benutzer", await page.TextContentAsync(".sidebar a.active"));
     }
 
     [Fact]
@@ -56,11 +56,11 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
 
         await page.FillAsync("#name", "Erika Mustermann");
         await page.FillAsync("#email", "erika@example.de");
-        await page.SelectOptionAsync("#rolle", "Tenant");
+        await page.SelectOptionAsync("#role", "Tenant");
         await page.ClickAsync("text=Einladung senden");
 
-        await page.WaitForSelectorAsync(".meldung-ok:has-text('erika@example.de')");
-        Assert.Contains("Erika Mustermann", await page.TextContentAsync("table.tabelle"), StringComparison.Ordinal);
+        await page.WaitForSelectorAsync(".message-ok:has-text('erika@example.de')");
+        Assert.Contains("Erika Mustermann", await page.TextContentAsync("table.data-table"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -68,9 +68,9 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     {
         var page = await SignedInAsAdminAsync();
 
-        await page.ClickAsync(".benutzermenue > summary");
-        Assert.Equal("Andy Hahn", (await page.TextContentAsync(".benutzername"))!.Trim());
-        await page.ClickAsync(".benutzermenue >> text=Abmelden");
+        await page.ClickAsync(".user-menu > summary");
+        Assert.Equal("Andy Hahn", (await page.TextContentAsync(".user-name"))!.Trim());
+        await page.ClickAsync(".user-menu >> text=Abmelden");
 
         await page.WaitForURLAsync("**/konto/anmelden?abgemeldet=true");
         Assert.Contains("Sie wurden abgemeldet.", await page.TextContentAsync("body"), StringComparison.Ordinal);
@@ -86,16 +86,16 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
             await page.FillAsync("#name", "Mieter Test");
             await page.FillAsync("#email", "m@example.de");
             await page.ClickAsync("text=Einladung senden");
-            await page.WaitForSelectorAsync(".meldung-ok:has-text('m@example.de')");
+            await page.WaitForSelectorAsync(".message-ok:has-text('m@example.de')");
 
-            await page.ClickAsync("table.tabelle a:text-is('Mieter Test')");
+            await page.ClickAsync("table.data-table a:text-is('Mieter Test')");
             await page.WaitForSelectorAsync("h1:text-is('Mieter Test')");
 
             Assert.False(await page.IsVisibleAsync("text=Ja, Konto sperren"));
             await page.ClickAsync("summary:has-text('Konto sperren')");
             await page.ClickAsync("button:has-text('Ja, Konto sperren')");
 
-            await page.WaitForSelectorAsync(".meldung-ok:has-text('Das Konto wurde gesperrt.')");
+            await page.WaitForSelectorAsync(".message-ok:has-text('Das Konto wurde gesperrt.')");
         });
     }
 }

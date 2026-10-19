@@ -31,11 +31,11 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         {
             await page.GotoAsync(BaseUrl + $"/verwaltung/einheiten/{sharedFlatId}");
             await page.ClickAsync("summary:text('Fläche ändern')");
-            await page.FillAsync("#flaeche-ab", "2026-07-01");
-            await page.FillAsync("#flaeche-wert", "");
+            await page.FillAsync("#area-valid-from", "2026-07-01");
+            await page.FillAsync("#area-value", "");
             // Headless Chromium formats number fields with a dot regardless of language; a German browser shows a comma.
             // In both cases "112.5" is submitted.
-            await page.Locator("#flaeche-wert").PressSequentiallyAsync("112.5");
+            await page.Locator("#area-value").PressSequentiallyAsync("112.5");
             await page.ClickAsync("button:text('Fläche speichern')");
             await page.WaitForSelectorAsync("text=Die Fläche wurde gespeichert.");
         });
@@ -129,7 +129,7 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             {
                 await page.WaitForSelectorAsync($"text=Zähler {i + 1} von {meterIds.Count}");
                 await NoHorizontalScrollAsync(page);
-                await page.FillAsync("#ablesung-wert", (110 + i).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                await page.FillAsync("#reading-value", (110 + i).ToString(System.Globalization.CultureInfo.InvariantCulture));
                 await page.ClickAsync("button:has-text('Speichern & weiter')");
             }
 
