@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using MietHahn.Application.Betrieb;
+using MietHahn.Application.Operations;
 using MietHahn.Infrastructure.Jobs;
-using MietHahn.Infrastructure.Persistenz;
-using MietHahn.Integration.Tests.Infrastruktur;
+using MietHahn.Infrastructure.Persistence;
+using MietHahn.Integration.Tests.Infrastructure;
 using Quartz;
 
 namespace MietHahn.Integration.Tests.Jobs;
@@ -13,133 +13,133 @@ public class QuartzJobsTests(PostgresFixture postgres)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task Scheduler_startet_mit_persistentem_Store_und_plant_die_Systemjobs()
+    public async Task Scheduler_starts_with_persistent_store_and_schedules_system_jobs()
     {
-        await using var umgebung = await MitJobsAsync();
-        await using var laufend = await StartenAsync(umgebung);
+        await using var environment = await WithJobsAsync();
+        await using var running = await StartAsync(environment);
 
-        var uebersicht = await UebersichtAsync(umgebung);
+        var overview = await OverviewAsync(environment);
 
-        Assert.Contains(uebersicht, j => j.Name == "mail-outbox" && j.NaechsteAusfuehrung is not null);
-        var bereinigung = Assert.Single(uebersicht, j => j.Name == "job-protokoll-bereinigung");
-        Assert.Equal("Löscht alte Einträge des Job-Laufprotokolls", bereinigung.Beschreibung);
-        Assert.NotNull(bereinigung.NaechsteAusfuehrung);
+        Assert.Contains(overview, j => j.Name == "mail-outbox" && j.NextRun is not null);
+        var cleanup = Assert.Single(overview, j => j.Name == "job-protokoll-bereinigung");
+        Assert.Equal("Löscht alte Einträge des Job-Laufprotokolls", cleanup.Description);
+        Assert.NotNull(cleanup.NextRun);
     }
 
     [Fact]
-    public async Task Joblauf_wird_protokolliert()
+    public async Task Job_run_is_logged()
     {
-        await using var umgebung = await MitJobsAsync();
-        await using var laufend = await StartenAsync(umgebung);
-        var scheduler = await laufend.SchedulerAsync();
+        await using var environment = await WithJobsAsync();
+        await using var running = await StartAsync(environment);
+        var scheduler = await running.SchedulerAsync();
 
         await scheduler.TriggerJob(new JobKey("job-protokoll-bereinigung", "system"), Ct);
-        var lauf = await WartenAufLaufAsync(umgebung, "job-protokoll-bereinigung");
+        var run = await WaitForRunAsync(environment, "job-protokoll-bereinigung");
 
-        Assert.True(lauf.Erfolgreich);
-        Assert.NotNull(lauf.BeendetAm);
-        var status = Assert.Single(await UebersichtAsync(umgebung), j => j.Name == "job-protokoll-bereinigung");
-        Assert.True(status.LetzterLaufErfolgreich);
+        Assert.True(run.Succeeded);
+        Assert.NotNull(run.EndedAt);
+        var status = Assert.Single(await OverviewAsync(environment), j => j.Name == "job-protokoll-bereinigung");
+        Assert.True(status.LastRunSucceeded);
     }
 
     [Fact]
-    public async Task Fehlschlag_eines_Jobs_wird_mit_Meldung_protokolliert()
+    public async Task Job_failure_is_logged_with_message()
     {
-        await using var umgebung = await MitJobsAsync();
-        await using var laufend = await StartenAsync(umgebung);
-        var scheduler = await laufend.SchedulerAsync();
+        await using var environment = await WithJobsAsync();
+        await using var running = await StartAsync(environment);
+        var scheduler = await running.SchedulerAsync();
 
-        var schluessel = new JobKey("absichtlich-fehlerhaft", "test");
+        var key = new JobKey("absichtlich-fehlerhaft", "test");
         await scheduler.ScheduleJob(
-            JobBuilder.Create<FehlerhafterJob>().WithIdentity(schluessel).Build(),
+            JobBuilder.Create<FailingJob>().WithIdentity(key).Build(),
             TriggerBuilder.Create().StartNow().Build(),
             Ct);
-        var lauf = await WartenAufLaufAsync(umgebung, schluessel.Name);
+        var run = await WaitForRunAsync(environment, key.Name);
 
-        Assert.False(lauf.Erfolgreich);
-        Assert.Equal("Absichtlicher Testfehler", lauf.Fehler);
+        Assert.False(run.Succeeded);
+        Assert.Equal("Absichtlicher Testfehler", run.Errors);
     }
 
     [Fact]
-    public async Task Geplante_Jobs_ueberstehen_einen_Neustart()
+    public async Task Scheduled_jobs_survive_a_restart()
     {
-        await using var umgebung = await MitJobsAsync();
-        var schluessel = new JobKey("einmalig-spaeter", "test");
+        await using var environment = await WithJobsAsync();
+        var key = new JobKey("einmalig-spaeter", "test");
 
-        await using (var erster = await StartenAsync(umgebung))
+        await using (var first = await StartAsync(environment))
         {
-            var scheduler = await erster.SchedulerAsync();
+            var scheduler = await first.SchedulerAsync();
             await scheduler.ScheduleJob(
-                JobBuilder.Create<FehlerhafterJob>().WithIdentity(schluessel).Build(),
+                JobBuilder.Create<FailingJob>().WithIdentity(key).Build(),
                 TriggerBuilder.Create().StartAt(DateTimeOffset.UtcNow.AddDays(1)).Build(),
                 Ct);
         }
 
         // Neuer Prozess (neuer ServiceProvider) gegen dieselbe Datenbank.
-        await using var neu = await InfrastrukturUmgebung.ErstellenAsync(postgres, new Dictionary<string, string?>
+        await using var newItem = await InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?>
         {
-            ["Jobs:Aktiv"] = "true",
-            ["ConnectionStrings:MietHahn"] = umgebung.Verbindung,
+            ["Jobs:Active"] = "true",
+            ["ConnectionStrings:MietHahn"] = environment.Connection,
         });
-        await using var zweiter = await StartenAsync(neu);
-        var neuerScheduler = await zweiter.SchedulerAsync();
+        await using var second = await StartAsync(newItem);
+        var newScheduler = await second.SchedulerAsync();
 
-        Assert.True(await neuerScheduler.CheckExists(schluessel, Ct));
+        Assert.True(await newScheduler.CheckExists(key, Ct));
     }
 
     [Fact]
-    public async Task Bereinigung_loescht_nur_alte_Protokolleintraege()
+    public async Task Cleanup_deletes_only_old_log_entries()
     {
-        await using var umgebung = await MitJobsAsync();
-        await using (var scope = umgebung.Services.CreateAsyncScope())
+        await using var environment = await WithJobsAsync();
+        await using (var scope = environment.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MietHahnDbContext>();
             db.AddRange(
-                new JobLauf("alt", InfrastrukturUmgebung.Startzeit.AddDays(-31)),
-                new JobLauf("neu", InfrastrukturUmgebung.Startzeit.AddDays(-29)));
+                new JobRun("alt", InfrastructureEnvironment.StartTime.AddDays(-31)),
+                new JobRun("neu", InfrastructureEnvironment.StartTime.AddDays(-29)));
             await db.SaveChangesAsync(Ct);
         }
 
-        await using var laufend = await StartenAsync(umgebung);
-        await (await laufend.SchedulerAsync()).TriggerJob(new JobKey("job-protokoll-bereinigung", "system"), Ct);
-        await WartenAufLaufAsync(umgebung, "job-protokoll-bereinigung");
+        await using var running = await StartAsync(environment);
+        await (await running.SchedulerAsync()).TriggerJob(new JobKey("job-protokoll-bereinigung", "system"), Ct);
+        await WaitForRunAsync(environment, "job-protokoll-bereinigung");
 
-        await using var pruefung = umgebung.Services.CreateAsyncScope();
-        var namen = await pruefung.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<JobLauf>()
+        await using var check = environment.Services.CreateAsyncScope();
+        var names = await check.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<JobRun>()
             .Select(l => l.JobName).ToListAsync(Ct);
-        Assert.DoesNotContain("alt", namen);
-        Assert.Contains("neu", namen);
+        Assert.DoesNotContain("alt", names);
+        Assert.Contains("neu", names);
     }
 
-    private Task<InfrastrukturUmgebung> MitJobsAsync() =>
-        InfrastrukturUmgebung.ErstellenAsync(postgres, new Dictionary<string, string?> { ["Jobs:Aktiv"] = "true" });
+    private Task<InfrastructureEnvironment> WithJobsAsync() =>
+        InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?> { ["Jobs:Active"] = "true" });
 
     /// <summary>Startet den Scheduler wie der QuartzHostedService (der in Tests keinen Host hat).</summary>
-    private static async Task<LaufenderScheduler> StartenAsync(InfrastrukturUmgebung umgebung)
+    private static async Task<RunningScheduler> StartAsync(InfrastructureEnvironment environment)
     {
-        var scheduler = await umgebung.Services.GetRequiredService<ISchedulerFactory>().GetScheduler(Ct);
+        var scheduler = await environment.Services.GetRequiredService<ISchedulerFactory>().GetScheduler(Ct);
         await scheduler.Start(Ct);
-        return new LaufenderScheduler(scheduler);
+        return new RunningScheduler(scheduler);
     }
 
-    private static async Task<IReadOnlyList<JobStatus>> UebersichtAsync(InfrastrukturUmgebung umgebung)
+    private static async Task<IReadOnlyList<JobStatus>> OverviewAsync(InfrastructureEnvironment environment)
     {
-        await using var scope = umgebung.Services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IJobUebersicht>().LadenAsync(Ct);
+        await using var scope = environment.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IJobOverview>().GetAsync(Ct);
     }
 
-    private static async Task<JobLauf> WartenAufLaufAsync(InfrastrukturUmgebung umgebung, string jobName)
+    private static async Task<JobRun> WaitForRunAsync(InfrastructureEnvironment environment, string jobName)
     {
-        var bis = DateTime.UtcNow.AddSeconds(30);
-        while (DateTime.UtcNow < bis)
+        var to = DateTime.UtcNow.AddSeconds(30);
+        while (DateTime.UtcNow < to)
         {
-            await using var scope = umgebung.Services.CreateAsyncScope();
-            var lauf = await scope.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<JobLauf>().AsNoTracking()
-                .Where(l => l.JobName == jobName && l.BeendetAm != null)
+            await using var scope = environment.Services.CreateAsyncScope();
+            var run = await scope.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<JobRun>().AsNoTracking()
+                .Where(l => l.JobName == jobName && l.EndedAt != null)
                 .FirstOrDefaultAsync(Ct);
-            if (lauf is not null)
+            if (run is not null)
             {
-                return lauf;
+                return run;
             }
 
             await Task.Delay(200, Ct);
@@ -148,7 +148,7 @@ public class QuartzJobsTests(PostgresFixture postgres)
         throw new TimeoutException($"Job {jobName} wurde nicht innerhalb von 30 Sekunden protokolliert.");
     }
 
-    private sealed class LaufenderScheduler(IScheduler scheduler) : IAsyncDisposable
+    private sealed class RunningScheduler(IScheduler scheduler) : IAsyncDisposable
     {
         public Task<IScheduler> SchedulerAsync() => Task.FromResult(scheduler);
 
@@ -157,7 +157,7 @@ public class QuartzJobsTests(PostgresFixture postgres)
 }
 
 /// <summary>Testjob, der immer fehlschlägt.</summary>
-public sealed class FehlerhafterJob : IJob
+public sealed class FailingJob : IJob
 {
     public Task Execute(IJobExecutionContext context) => throw new InvalidOperationException("Absichtlicher Testfehler");
 }

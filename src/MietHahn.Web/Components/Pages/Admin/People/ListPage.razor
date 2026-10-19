@@ -1,0 +1,121 @@
+@page "/verwaltung/personen"
+@inject IPersonService Admin
+
+<PageHeader Title="Personen" Subtitle="Mieter, Bürgen und Kontakte wie Hausmeister, Handwerker und Versorger.">
+    <Actions>
+        <a class="knopf knopf-primaer" href="/verwaltung/personen/neu">Person anlegen</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+
+<form method="get" class="formular-zeile suchleiste" role="search">
+    <div class="feld">
+        <label for="suche">Suche</label>
+        <input id="suche" type="search" name="q" value="@Q" placeholder="Name, E-Mail, Telefon, IBAN, Gewerk" />
+    </div>
+    <div class="feld">
+        <label for="filter">Anzeigen</label>
+        <select id="filter" name="filter">
+            <option value="" selected="@(Filter is null or PersonFilter.All)">Alle</option>
+            <option value="@PersonFilter.Private" selected="@(Filter == PersonFilter.Private)">Mieter &amp; Privatpersonen</option>
+            <option value="@PersonFilter.Contacts" selected="@(Filter == PersonFilter.Contacts)">Kontakte</option>
+        </select>
+    </div>
+    <div class="feld feld-aktion">
+        <button type="submit" class="knopf">Suchen</button>
+    </div>
+</form>
+
+@if (page is { Total: 0 })
+{
+    <EmptyState Text="@(!string.IsNullOrWhiteSpace(Q) ? $"Keine Treffer für „{Q}“." : Filter is not null and not PersonFilter.All ? "Keine Personen in dieser Auswahl." : "Noch keine Personen.")" />
+}
+else if (page is not null)
+{
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead>
+                <tr>
+                    <SortHeader Column="name" Text="Name" Query="query" />
+                    <th>Rolle</th>
+                    <SortHeader Column="ort" Text="Ort" Query="query" />
+                    <th>Kontakt</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var person in page.Entries)
+                {
+                    <tr>
+                        <td>
+                            <a href="/verwaltung/personen/@person.Id">@person.SortName</a>
+                            @if (person.HasAccess)
+                            {
+                                <span class="status" title="Hat einen Zugang">Zugang</span>
+                            }
+                        </td>
+                        <td>@RoleText(person)</td>
+                        <td>@person.City</td>
+                        <td>
+                            @if (person.Email is not null)
+                            {
+                                <a href="mailto:@person.Email">@person.Email</a>
+                            }
+                            @if (person.Phone is not null)
+                            {
+                                <span class="klein"> @person.Phone</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <Pagination Page="page.Page" Pages="page.Pages" Total="page.Total" />
+}
+
+@code {
+    private Paged<PersonOverview>? page;
+    private TableQuery query = new(null, false, 1);
+
+    [SupplyParameterFromQuery]
+    private string? Q { get; set; }
+
+    // Enums lassen sich nicht direkt aus dem Query-String binden.
+    [SupplyParameterFromQuery(Name = "filter")]
+    private string? FilterText { get; set; }
+
+    private PersonFilter? Filter => Enum.TryParse<PersonFilter>(FilterText, out var filter) ? filter : null;
+
+    [SupplyParameterFromQuery(Name = "sortierung")]
+    private string? SortOrder { get; set; }
+
+    [SupplyParameterFromQuery(Name = "absteigend")]
+    private bool Descending { get; set; }
+
+    [SupplyParameterFromQuery(Name = "seite")]
+    private int PageNumber { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        query = new TableQuery(SortOrder, Descending, PageNumber);
+        var people = await Admin.SearchAsync(new PersonQuery(Q, Filter ?? PersonFilter.All));
+        var sorted = query.Sort(people, new Dictionary<string, Func<PersonOverview, object?>>
+        {
+            ["name"] = p => p.SortName,
+            ["ort"] = p => p.City,
+        }, "name").ToList();
+        page = query.Paginate(sorted);
+    }
+
+    private static string RoleText(PersonOverview person)
+    {
+        var parts = new List<string>(person.Roles);
+        if (person.ContactType != ContactType.None)
+        {
+            parts.Add(Labels.From(person.ContactType) + (person.Occupation is null ? "" : $" ({person.Occupation})"));
+        }
+
+        return parts.Count == 0 ? "–" : string.Join(", ", parts);
+    }
+}

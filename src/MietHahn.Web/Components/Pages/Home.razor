@@ -1,5 +1,5 @@
 @page "/"
-@using MietHahn.Web.Autorisierung
+@using MietHahn.Web.AccessControl
 @inject NavigationManager Navigation
 
 @* Leitet je nach Rolle in den passenden Bereich. *@
@@ -9,5 +9,5 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    protected override void OnInitialized() => Navigation.NavigateTo(AutorisierungErweiterungen.Startseite(HttpContext.User));
+    protected override void OnInitialized() => Navigation.NavigateTo(AccessControlExtensions.HomePage(HttpContext.User));
 }

@@ -1,0 +1,36 @@
+@typeparam TValue
+@using System.Linq.Expressions
+
+@* Einheitliches Formularfeld: Beschriftung, Eingabe (ChildContent), Hinweis und Validierungsmeldung. *@
+<div class="feld @CssClass">
+    <label for="@Id">@Label@(Required ? " *" : "")</label>
+    @ChildContent
+    @if (Hint is not null)
+    {
+        <span class="feld-hinweis" id="@(Id)-hinweis">@Hint</span>
+    }
+    <ValidationMessage For="For" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public Expression<Func<TValue>> For { get; set; } = default!;
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+}

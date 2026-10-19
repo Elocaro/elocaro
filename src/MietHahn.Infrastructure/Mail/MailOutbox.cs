@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MietHahn.Application.Dateien;
-using MietHahn.Domain.Kommunikation;
-using MietHahn.Infrastructure.Persistenz;
+using MietHahn.Application.Files;
+using MietHahn.Domain.Communication;
+using MietHahn.Infrastructure.Persistence;
 using MimeKit;
 
 namespace MietHahn.Infrastructure.Mail;
@@ -11,94 +11,94 @@ namespace MietHahn.Infrastructure.Mail;
 /// <summary>Stellt fällige Mails aus der Outbox zu, mit Wiederholung und Backoff bei Fehlern.</summary>
 internal sealed partial class MailOutbox(
     MietHahnDbContext db,
-    ISmtpVersender smtp,
-    IDateiablage dateiablage,
-    TimeProvider uhr,
-    IOptions<MailOptionen> optionen,
+    ISmtpSender smtp,
+    IFileStore fileStore,
+    TimeProvider clock,
+    IOptions<MailOptions> options,
     ILogger<MailOutbox> logger)
 {
     /// <summary>Verarbeitet einen Stapel fälliger Mails und liefert die Anzahl erfolgreich gesendeter.</summary>
-    public async Task<int> ZustellenAsync(CancellationToken cancellationToken = default)
+    public async Task<int> DeliverAsync(CancellationToken cancellationToken = default)
     {
-        var jetzt = uhr.GetUtcNow();
-        var faellig = await db.Set<AusgehendeMail>()
-            .Where(m => m.Status == MailStatus.Ausstehend && m.NaechsterVersuchAm <= jetzt)
-            .OrderBy(m => m.NaechsterVersuchAm)
-            .Take(optionen.Value.StapelGroesse)
+        var now = clock.GetUtcNow();
+        var due = await db.Set<OutgoingMail>()
+            .Where(m => m.Status == MailStatus.Pending && m.NextAttemptAt <= now)
+            .OrderBy(m => m.NextAttemptAt)
+            .Take(options.Value.BatchSize)
             .ToListAsync(cancellationToken);
 
-        if (faellig.Count == 0)
+        if (due.Count == 0)
         {
             return 0;
         }
 
-        var gesendet = 0;
-        var zuordnung = new Dictionary<MimeMessage, AusgehendeMail>();
-        foreach (var mail in faellig)
+        var sent = 0;
+        var assignment = new Dictionary<MimeMessage, OutgoingMail>();
+        foreach (var mail in due)
         {
             try
             {
-                zuordnung[await NachrichtErstellenAsync(mail, cancellationToken)] = mail;
+                assignment[await CreateMessageAsync(mail, cancellationToken)] = mail;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                mail.MarkiereFehlversuch(jetzt, "Nachricht konnte nicht erstellt werden: " + ex.Message);
+                mail.MarkFailedAttempt(now, "Nachricht konnte nicht erstellt werden: " + ex.Message);
             }
         }
 
-        await smtp.SendenAsync(zuordnung.Keys.ToList(), (nachricht, fehler) =>
+        await smtp.SendAsync(assignment.Keys.ToList(), (message, errors) =>
         {
-            var mail = zuordnung[nachricht];
-            if (fehler is null)
+            var mail = assignment[message];
+            if (errors is null)
             {
-                mail.MarkiereGesendet(uhr.GetUtcNow());
-                gesendet++;
+                mail.MarkSent(clock.GetUtcNow());
+                sent++;
             }
             else
             {
-                mail.MarkiereFehlversuch(uhr.GetUtcNow(), fehler.Message);
-                ZustellungFehlgeschlagen(logger, fehler, mail.Id, mail.Versuche);
+                mail.MarkFailedAttempt(clock.GetUtcNow(), errors.Message);
+                DeliveryFailed(logger, errors, mail.Id, mail.Attempts);
             }
 
             return Task.CompletedTask;
         }, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
-        return gesendet;
+        return sent;
     }
 
-    private async Task<MimeMessage> NachrichtErstellenAsync(AusgehendeMail mail, CancellationToken cancellationToken)
+    private async Task<MimeMessage> CreateMessageAsync(OutgoingMail mail, CancellationToken cancellationToken)
     {
-        var o = optionen.Value;
-        var nachricht = new MimeMessage();
-        nachricht.From.Add(new MailboxAddress(o.AbsenderName, o.AbsenderAdresse));
-        if (!string.IsNullOrWhiteSpace(o.AntwortAn))
+        var o = options.Value;
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(o.SenderName, o.SenderAddress));
+        if (!string.IsNullOrWhiteSpace(o.ReplyTo))
         {
-            nachricht.ReplyTo.Add(MailboxAddress.Parse(o.AntwortAn));
+            message.ReplyTo.Add(MailboxAddress.Parse(o.ReplyTo));
         }
 
-        foreach (var an in mail.An)
+        foreach (var to in mail.To)
         {
-            nachricht.To.Add(MailboxAddress.Parse(an));
+            message.To.Add(MailboxAddress.Parse(to));
         }
 
-        nachricht.Subject = mail.Betreff;
-        nachricht.MessageId = $"{mail.Id:N}@miethahn";
+        message.Subject = mail.Subject;
+        message.MessageId = $"{mail.Id:N}@miethahn";
 
         var body = new BodyBuilder { HtmlBody = mail.Html, TextBody = mail.Text };
-        foreach (var dateiId in mail.AnhangDateiIds)
+        foreach (var fileId in mail.AttachmentFileIds)
         {
-            await using var datei = await dateiablage.OeffnenAsync(dateiId, cancellationToken)
-                ?? throw new InvalidOperationException($"Anhang {dateiId} nicht gefunden.");
-            using var puffer = new MemoryStream();
-            await datei.Inhalt.CopyToAsync(puffer, cancellationToken);
-            await body.Attachments.AddAsync(datei.Datei.Name, new MemoryStream(puffer.ToArray()), ContentType.Parse(datei.Datei.MimeTyp), cancellationToken);
+            await using var file = await fileStore.OpenAsync(fileId, cancellationToken)
+                ?? throw new InvalidOperationException($"Anhang {fileId} nicht gefunden.");
+            using var buffer = new MemoryStream();
+            await file.Content.CopyToAsync(buffer, cancellationToken);
+            await body.Attachments.AddAsync(file.StoredFile.Name, new MemoryStream(buffer.ToArray()), ContentType.Parse(file.StoredFile.MimeType), cancellationToken);
         }
 
-        nachricht.Body = body.ToMessageBody();
-        return nachricht;
+        message.Body = body.ToMessageBody();
+        return message;
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Zustellung der Mail {MailId} fehlgeschlagen (Versuch {Versuch}).")]
-    private static partial void ZustellungFehlgeschlagen(ILogger logger, Exception fehler, Guid mailId, int versuch);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Zustellung der Mail {MailId} fehlgeschlagen (Versuch {Attempt}).")]
+    private static partial void DeliveryFailed(ILogger logger, Exception errors, Guid mailId, int attempt);
 }

@@ -1,0 +1,421 @@
+@page "/verwaltung/vertraege/{Id:guid}"
+@inject ILeaseService Admin
+@inject IPersonService People
+@inject Redirector Redirector
+
+@if (lease is null)
+{
+    <PageHeader Title="Vertrag nicht gefunden" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
+    return;
+}
+
+<PageHeader Title="@($"Mietvertrag {lease.RentalUnit}")" Subtitle="@($"{lease.Property} · {TenantText}")" Back="/verwaltung/vertraege" BackText="Alle Verträge">
+    <Actions>
+        <AuthorizeView Policy="@Policies.Finance">
+            <a class="knopf" href="/verwaltung/vertraege/@Id/konto">Mieterkonto</a>
+        </AuthorizeView>
+        @if (lease.Status != LeaseStatus.Ended)
+        {
+            <a class="knopf" href="/verwaltung/vertraege/@Id/auszug">Mieterwechsel</a>
+        }
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<dl class="angaben">
+    <dt>Status</dt><dd><span class="status @Labels.StatusClass(lease.Status)">@Labels.From(lease.Status)</span></dd>
+    <dt>Laufzeit</dt>
+    <dd>
+        @Format.Date(lease.Term.From) – @(lease.Term.To is null ? "unbefristet" : Format.Date(lease.Term.To))
+        @if (lease.FixedTermUntil is not null)
+        {
+            <span class="klein">(Zeitmietvertrag bis @Format.Date(lease.FixedTermUntil))</span>
+        }
+    </dd>
+    @if (lease.TerminationReceivedOn is { } incoming)
+    {
+        <dt>Kündigung</dt><dd>durch @Labels.From(lease.TerminatedBy!.Value), eingegangen am @Format.Date(incoming)</dd>
+    }
+    <dt>Mietobjekt</dt>
+    <dd><a href="@(lease.RoomId is { } z ? $"/verwaltung/zimmer/{z}" : $"/verwaltung/einheiten/{lease.UnitId}")">@lease.RentalUnit</a>, <a href="/verwaltung/objekte/@lease.PropertyId">@lease.Property</a></dd>
+    <dt>Nebenkosten</dt><dd>@Labels.From(lease.Data.BillingType)@(lease.Data.HeatingCostsConsumptionBased ? ", Heizkosten verbrauchsabhängig" : "")</dd>
+    <dt>Fälligkeit</dt><dd>@(lease.Data.DueOnWorkingDay). Werktag, @Labels.From(lease.Data.PaymentMethod)@(lease.NextDueDate is { } f ? $" (nächste: {Format.Date(f)})" : "")</dd>
+    @if (lease.Data.Deposit is not null)
+    {
+        <dt>Kaution</dt><dd>@Format.Money(lease.Data.Deposit) @lease.Data.DepositNote</dd>
+    }
+</dl>
+
+<section>
+    <h2>Miete <span class="klein">am @Format.Date(lease.ReferenceDate)</span></h2>
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <tbody>
+                @foreach (var b in lease.CurrentComponents)
+                {
+                    <tr>
+                        <td>@Labels.From(b.Kind)@(b.Name is null ? "" : $" ({b.Name})")</td>
+                        <td class="klein">@Format.Period(b.Validity)</td>
+                        <td class="zahl">@Format.Money(b.Amount)</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr><th colspan="2">Monatlich gesamt</th><th class="zahl">@Format.Money(lease.MonthlyRent)</th></tr>
+            </tfoot>
+        </table>
+    </div>
+
+    @if (lease.Status != LeaseStatus.Ended)
+    {
+        <details class="aufklapper">
+            <summary>Betrag ändern oder hinzufügen (ab Stichtag)</summary>
+            <EditForm Model="Component" FormName="bestandteil" OnValidSubmit="SetComponentAsync" class="formular-raster">
+                <DataAnnotationsValidator />
+                <FormField Id="art" Label="Bestandteil" For="() => Component!.Kind">
+                    <InputSelect id="art" @bind-Value="Component!.Kind">
+                        @foreach (var value in Enum.GetValues<RentComponentType>())
+                        {
+                            <option value="@value">@Labels.From(value)</option>
+                        }
+                    </InputSelect>
+                </FormField>
+                <FormField Id="bestandteil-ab" Label="Gültig ab" For="() => Component!.From" Required="true">
+                    <InputDate id="bestandteil-ab" @bind-Value="Component!.From" />
+                </FormField>
+                <FormField Id="betrag" Label="Betrag (€/Monat)" For="() => Component!.Amount" Required="true">
+                    <InputAmount id="betrag" @bind-Value="Component!.Amount" />
+                </FormField>
+                <FormField Id="bezeichnung" Label="Bezeichnung" For="() => Component!.Name" Hint="Für „Sonstiges“">
+                    <InputText id="bezeichnung" @bind-Value="Component!.Name" />
+                </FormField>
+                <div class="feld feld-aktion"><button type="submit" class="knopf">Betrag speichern</button></div>
+            </EditForm>
+            <p class="klein">Der bisherige Betrag gilt bis zum Vortag weiter. Für Mieterhöhungen nach § 558 BGB folgt ein Assistent mit Schreiben.</p>
+        </details>
+        <details class="aufklapper">
+            <summary>Bestandteil beenden (z. B. Stellplatz gekündigt)</summary>
+            <EditForm Model="End" FormName="beenden" OnValidSubmit="EndComponentAsync" class="formular-raster">
+                <DataAnnotationsValidator />
+                <FormField Id="beenden-art" Label="Bestandteil" For="() => End!.Kind">
+                    <InputSelect id="beenden-art" @bind-Value="End!.Kind">
+                        @foreach (var b in lease.CurrentComponents.Select(b => b.Kind).Distinct())
+                        {
+                            <option value="@b">@Labels.From(b)</option>
+                        }
+                    </InputSelect>
+                </FormField>
+                <FormField Id="beenden-tag" Label="Letzter Tag" For="() => End!.LastDay" Required="true">
+                    <InputDate id="beenden-tag" @bind-Value="End!.LastDay" />
+                </FormField>
+                <div class="feld feld-aktion"><button type="submit" class="knopf">Beenden</button></div>
+            </EditForm>
+        </details>
+    }
+
+    @if (lease.Components.Count > lease.CurrentComponents.Count)
+    {
+        <h3>Verlauf</h3>
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Bestandteil</th><th>Zeitraum</th><th class="zahl">Betrag</th></tr></thead>
+                <tbody>
+                    @foreach (var b in lease.Components)
+                    {
+                        <tr>
+                            <td>@Labels.From(b.Kind)@(b.Name is null ? "" : $" ({b.Name})")</td>
+                            <td>@Format.Period(b.Validity)</td>
+                            <td class="zahl">@Format.Money(b.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<RentModelSection Model="lease.RentModel" Input="Model!" Graduated="Graduated!" Adjustment="Adjustment!"
+                   OnSetModel="SetRentModelAsync" OnAddStep="AddRentStepAsync"
+                   OnRemoveStep="RemoveRentStepAsync" OnAdjustIndex="AdjustIndexAsync" />
+
+<section>
+    <h2>Vertragsparteien</h2>
+    <form method="post" @formname="partei-entfernen" @onsubmit="RemovePartyAsync">
+        <AntiforgeryToken />
+        <ul class="aufgaben">
+            @foreach (var party in lease.Parties)
+            {
+                <li class="aufgabe">
+                    <a href="/verwaltung/personen/@party.PersonId">@party.Name</a> <span class="status">@Labels.From(party.Role)</span>
+                    <p class="klein">@party.Email @party.Phone</p>
+                    @if (lease.Parties.Count(p => p.Role == PartyRole.Tenant) > 1 || party.Role == PartyRole.Guarantor)
+                    {
+                        <button type="submit" name="RemovePersonId" value="@party.PersonId" class="knopf knopf-gefahr" aria-label="@party.Name entfernen">Entfernen</button>
+                    }
+                </li>
+            }
+        </ul>
+    </form>
+    <details class="aufklapper">
+        <summary>Mieter oder Bürgen hinzufügen</summary>
+        <EditForm Model="NewParty" FormName="partei" OnValidSubmit="AddPartyAsync" class="formular-raster">
+            <DataAnnotationsValidator />
+            <FormField Id="partei-person" Label="Person" For="() => NewParty!.PersonId" Required="true">
+                <PersonSelectField Id="partei-person" @bind-Value="NewParty!.PersonId" People="people" />
+            </FormField>
+            <FormField Id="partei-rolle" Label="Rolle" For="() => NewParty!.Role">
+                <InputSelect id="partei-rolle" @bind-Value="NewParty!.Role">
+                    @foreach (var value in Enum.GetValues<PartyRole>())
+                    {
+                        <option value="@value">@Labels.From(value)</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <div class="feld feld-aktion"><button type="submit" class="knopf">Hinzufügen</button></div>
+        </EditForm>
+    </details>
+</section>
+
+<section>
+    <h2>Personen im Haushalt</h2>
+    <p>
+        @(lease.People.FirstOrDefault(p => p.Validity.Contains(lease.ReferenceDate))?.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")
+        <span class="klein">(Umlage nach Personen)</span>
+    </p>
+    @if (lease.Status != LeaseStatus.Ended)
+    {
+        <details class="aufklapper">
+            <summary>Personenanzahl ändern</summary>
+            <EditForm Model="OccupantCount" FormName="personen" OnValidSubmit="SetOccupantCountAsync" class="formular-zeile">
+                <DataAnnotationsValidator />
+                <FormField Id="personen-ab" Label="Ab" For="() => OccupantCount!.From" Required="true">
+                    <InputDate id="personen-ab" @bind-Value="OccupantCount!.From" />
+                </FormField>
+                <FormField Id="personen-anzahl" Label="Anzahl" For="() => OccupantCount!.Count">
+                    <InputNumber id="personen-anzahl" @bind-Value="OccupantCount!.Count" min="1" max="20" />
+                </FormField>
+                <div class="feld feld-aktion"><button type="submit" class="knopf">Speichern</button></div>
+            </EditForm>
+        </details>
+    }
+    @if (lease.People.Count > 1)
+    {
+        <ul class="klein">
+            @foreach (var entry in lease.People)
+            {
+                <li>@Format.Period(entry.Validity): @entry.Count</li>
+            }
+        </ul>
+    }
+</section>
+
+<section>
+    <h2>Kündigung</h2>
+    @if (lease.TerminationReceivedOn is not null)
+    {
+        <p>Das Mietverhältnis endet am <strong>@Format.Date(lease.Term.To)</strong>.</p>
+        <form method="post" @formname="kuendigung-aufheben" @onsubmit="RevokeTerminationAsync">
+            <AntiforgeryToken />
+            <button type="submit" class="knopf">Kündigung aufheben (zurückgenommen)</button>
+        </form>
+    }
+    else if (lease.Status != LeaseStatus.Ended)
+    {
+        <EditForm Model="Termination" FormName="kuendigung" OnValidSubmit="TerminateAsync" class="formular-raster">
+            <DataAnnotationsValidator />
+            <FormField Id="kuendigung-eingang" Label="Eingegangen am" For="() => Termination!.ReceivedOn" Required="true">
+                <InputDate id="kuendigung-eingang" @bind-Value="Termination!.ReceivedOn" />
+            </FormField>
+            <FormField Id="kuendigung-durch" Label="Gekündigt durch" For="() => Termination!.By">
+                <InputSelect id="kuendigung-durch" @bind-Value="Termination!.By">
+                    @foreach (var value in Enum.GetValues<TerminatingParty>())
+                    {
+                        <option value="@value">@Labels.From(value)</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="kuendigung-zum" Label="Zum" For="() => Termination!.EffectiveDate" Hint="@($"Leer = gesetzliche Frist (Mieter {lease.Data.NoticePeriodMonths}, Vermieter derzeit {lease.LandlordNoticePeriodMonths} Monate).")">
+                <InputDate id="kuendigung-zum" @bind-Value="Termination!.EffectiveDate" />
+            </FormField>
+            <div class="feld feld-aktion"><button type="submit" class="knopf">Kündigung erfassen</button></div>
+        </EditForm>
+        <p class="klein">Frist nach § 573c BGB: Geht die Kündigung bis zum 3. Werktag eines Monats zu, zählt dieser Monat mit. Vermieter brauchen zudem einen Kündigungsgrund (§ 573 BGB).</p>
+    }
+</section>
+
+<section>
+    <h2>Angaben</h2>
+    <EditForm Model="Data" FormName="daten" OnValidSubmit="SaveDataAsync">
+        <DataAnnotationsValidator />
+        <div class="formular-raster">
+            <FormField Id="daten-abrechnungsart" Label="Nebenkosten" For="() => Data!.BillingType">
+                <InputSelect id="daten-abrechnungsart" @bind-Value="Data!.BillingType">
+                    @foreach (var value in Enum.GetValues<BillingType>())
+                    {
+                        <option value="@value">@Labels.From(value)</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="daten-werktag" Label="Fällig am … Werktag" For="() => Data!.DueOnWorkingDay">
+                <InputNumber id="daten-werktag" @bind-Value="Data!.DueOnWorkingDay" min="1" max="10" />
+            </FormField>
+            <FormField Id="daten-zahlungsart" Label="Zahlungsart" For="() => Data!.PaymentMethod">
+                <InputSelect id="daten-zahlungsart" @bind-Value="Data!.PaymentMethod">
+                    @foreach (var value in Enum.GetValues<PaymentMethod>())
+                    {
+                        <option value="@value">@Labels.From(value)</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="daten-frist" Label="Kündigungsfrist Mieter (Monate)" For="() => Data!.NoticePeriodMonths">
+                <InputNumber id="daten-frist" @bind-Value="Data!.NoticePeriodMonths" min="1" max="24" />
+            </FormField>
+            <FormField Id="daten-kaution" Label="Kaution (€)" For="() => Data!.Deposit">
+                <InputAmount id="daten-kaution" @bind-Value="Data!.Deposit" />
+            </FormField>
+            <FormField Id="daten-kaution-notiz" Label="Kaution – Notiz" For="() => Data!.DepositNote">
+                <InputText id="daten-kaution-notiz" @bind-Value="Data!.DepositNote" />
+            </FormField>
+        </div>
+        <div class="feld feld-checkbox">
+            <InputCheckbox id="daten-hk" @bind-Value="Data!.HeatingCostsConsumptionBased" />
+            <label for="daten-hk">Heizkosten trotz Pauschale verbrauchsabhängig abrechnen</label>
+        </div>
+        <FormField Id="daten-notizen" Label="Notizen" For="() => Data!.Notes">
+            <InputTextArea id="daten-notizen" @bind-Value="Data!.Notes" rows="2" />
+        </FormField>
+        <button type="submit" class="knopf knopf-primaer">Angaben speichern</button>
+    </EditForm>
+</section>
+
+<DocumentsSection LeaseId="Id" />
+
+<ChangeHistory EntityType="@nameof(Lease)" EntityId="Id" />
+
+@code {
+    private LeaseDetails? lease;
+    private IReadOnlyList<PersonOption> people = [];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "bestandteil")]
+    private ComponentInput? Component { get; set; }
+
+    [SupplyParameterFromForm(FormName = "beenden")]
+    private EndModel? End { get; set; }
+
+    [SupplyParameterFromForm(FormName = "personen")]
+    private OccupantCountInput? OccupantCount { get; set; }
+
+    [SupplyParameterFromForm(FormName = "partei")]
+    private PartyModel? NewParty { get; set; }
+
+    [SupplyParameterFromForm(FormName = "partei-entfernen")]
+    private Guid? RemovePersonId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "kuendigung")]
+    private TerminationInput? Termination { get; set; }
+
+    [SupplyParameterFromForm(FormName = "daten")]
+    private LeaseInput? Data { get; set; }
+
+    // Felder aus MietmodellBereich: Feldnamen Eingabe.*, Staffel.*, Anpassung.*
+    [SupplyParameterFromForm(FormName = "mietmodell", Name = "Input")]
+    private RentModelForm? Model { get; set; }
+
+    [SupplyParameterFromForm(FormName = "staffel", Name = "Graduated")]
+    private RentStepInput? Graduated { get; set; }
+
+    [SupplyParameterFromForm(FormName = "staffel-entfernen")]
+    private Guid? RemoveStepId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "index-anpassung", Name = "Adjustment")]
+    private IndexAdjustmentInput? Adjustment { get; set; }
+
+    private string TenantText => string.Join(", ", lease!.Parties.Where(p => p.Role == PartyRole.Tenant).Select(p => p.Name));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        var modelForm = Model;
+        Graduated ??= new();
+        Adjustment ??= new();
+        Component ??= new();
+        End ??= new();
+        OccupantCount ??= new();
+        NewParty ??= new();
+        Termination ??= new();
+        Data ??= new();
+        Model ??= new();
+        lease = await Admin.GetAsync(Id);
+        if (lease is not null)
+        {
+            Data = form ?? lease.Data;
+            Model = modelForm ?? RentModelForm.From(lease.RentModel);
+            people = await People.OptionsAsync();
+        }
+    }
+
+    private Task SetComponentAsync() => ExecuteAsync(Admin.SetComponentAsync(Id, Component!), "Der Betrag wurde gespeichert.");
+
+    private Task EndComponentAsync() => ExecuteAsync(Admin.EndComponentAsync(Id, End!.Kind, End.LastDay!.Value), "Der Bestandteil wurde beendet.");
+
+    private Task SetOccupantCountAsync() => ExecuteAsync(Admin.SetOccupantCountAsync(Id, OccupantCount!), "Die Personenanzahl wurde gespeichert.");
+
+    private Task AddPartyAsync() => ExecuteAsync(Admin.AddPartyAsync(Id, NewParty!.PersonId!.Value, NewParty.Role), "Die Person wurde hinzugefügt.");
+
+    private Task RemovePartyAsync() =>
+        RemovePersonId is { } person ? ExecuteAsync(Admin.RemovePartyAsync(Id, person), "Die Person wurde entfernt.") : Task.CompletedTask;
+
+    private Task TerminateAsync() => ExecuteAsync(Admin.TerminateAsync(Id, Termination!), "Die Kündigung wurde erfasst.");
+
+    private Task RevokeTerminationAsync() => ExecuteAsync(Admin.RevokeTerminationAsync(Id), "Die Kündigung wurde aufgehoben.");
+
+    private Task SetRentModelAsync() => ExecuteAsync(Admin.SetRentModelAsync(Id, Model!.AfterInput()), "Das Mietmodell wurde gespeichert.");
+
+    private Task AddRentStepAsync() => ExecuteAsync(Admin.AddRentStepAsync(Id, Graduated!), "Die Staffel wurde gespeichert.");
+
+    private Task RemoveRentStepAsync() =>
+        RemoveStepId is { } rentStep ? ExecuteAsync(Admin.RemoveRentStepAsync(Id, rentStep), "Die Staffel wurde entfernt.") : Task.CompletedTask;
+
+    private Task AdjustIndexAsync() => ExecuteAsync(Admin.AdjustIndexAsync(Id, Adjustment!), "Die Indexanpassung wurde übernommen.");
+
+    private Task SaveDataAsync() => ExecuteAsync(Admin.UpdateAsync(Id, Data!), "Die Angaben wurden gespeichert.");
+
+    private async Task ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/vertraege/{Id}", success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            lease = await Admin.GetAsync(Id);
+        }
+    }
+
+    private sealed class EndModel
+    {
+        public RentComponentType Kind { get; set; }
+
+        [Required(ErrorMessage = "Bitte den letzten Tag angeben.")]
+        public DateOnly? LastDay { get; set; }
+    }
+
+    private sealed class PartyModel
+    {
+        [Required(ErrorMessage = "Bitte eine Person wählen.")]
+        public Guid? PersonId { get; set; }
+
+        public PartyRole Role { get; set; }
+    }
+}

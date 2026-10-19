@@ -1,0 +1,96 @@
+@page "/verwaltung/dokumente/neu"
+@using MietHahn.Application.Files
+@inject IDocumentLibrary Storage
+@inject IFileStore Files
+@inject Redirector Redirector
+
+<PageHeader Title="Dokument hochladen" Back="/verwaltung/dokumente" BackText="Alle Dokumente" />
+
+<ErrorList Errors="errors" />
+
+@if (selection is not null)
+{
+    <EditForm EditContext="context" FormName="dokument" OnSubmit="UploadAsync" enctype="multipart/form-data">
+        <DataAnnotationsValidator />
+        <div class="feld">
+            <label for="datei">Datei *</label>
+            <input type="file" id="datei" name="Upload" accept="application/pdf,image/*" required />
+            <span class="feld-hinweis">PDF oder Foto. Fotos werden verkleinert und ohne Metadaten (GPS) gespeichert.</span>
+        </div>
+        <DocumentFields Data="Data!" Options="selection" TitleRequired="false" />
+        <button type="submit" class="knopf knopf-primaer">Hochladen</button>
+    </EditForm>
+}
+
+@code {
+    private ReferenceOptions? selection;
+    private EditContext? context;
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "dokument")]
+    private DocumentInput? Data { get; set; }
+
+    [SupplyParameterFromForm(FormName = "dokument")]
+    private IFormFile? Upload { get; set; }
+
+    [SupplyParameterFromQuery(Name = "objekt")]
+    private Guid? PropertyId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "einheit")]
+    private Guid? UnitId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "vertrag")]
+    private Guid? LeaseId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "person")]
+    private Guid? PersonId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Data ??= new() { PropertyId = PropertyId, UnitId = UnitId, LeaseId = LeaseId, PersonId = PersonId };
+        context = new EditContext(Data);
+        selection = await Storage.ReferenceOptionsAsync();
+    }
+
+    private async Task UploadAsync()
+    {
+        if (Upload is null || Upload.Length == 0)
+        {
+            errors = ["Bitte eine Datei auswählen."];
+            return;
+        }
+
+        // Ohne Titel gilt der Dateiname.
+        if (string.IsNullOrWhiteSpace(Data!.Title))
+        {
+            Data.Title = Path.GetFileNameWithoutExtension(Upload.FileName);
+        }
+
+        if (!context!.Validate())
+        {
+            return;
+        }
+
+        try
+        {
+            await using var content = Upload.OpenReadStream();
+            var file = await Files.SaveAsync(content, Upload.FileName);
+            var result = await Storage.CreateAsync(file.Id, Data);
+            if (result.Succeeded)
+            {
+                Redirector.RedirectWithMessage($"/verwaltung/dokumente/{result.Id}", "Das Dokument wurde abgelegt.", HttpContext);
+            }
+            else
+            {
+                errors = result.Errors;
+            }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+    }
+}

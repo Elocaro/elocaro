@@ -1,0 +1,198 @@
+@page "/verwaltung/benutzer/{Id:guid}"
+@using Microsoft.AspNetCore.Identity
+@using MietHahn.Infrastructure.Identity
+@using MietHahn.Application.Properties
+@inject IUserManagementService Admin
+@inject IPropertyService Properties
+@inject IPropertyAssignments Assignments
+@inject UserManager<ApplicationUser> UserManager
+@inject Redirector Redirector
+
+@if (user is null)
+{
+    <PageHeader Title="Konto nicht gefunden" Back="/verwaltung/benutzer" BackText="Alle Benutzer" />
+    return;
+}
+
+<PageHeader Title="@user.DisplayName" Subtitle="@Roles.DisplayName(user.Role)" Back="/verwaltung/benutzer" BackText="Alle Benutzer" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<dl class="angaben">
+    <dt>E-Mail</dt><dd>@user.Email</dd>
+    <dt>Rolle</dt><dd>@Roles.DisplayName(user.Role)</dd>
+    <dt>Status</dt><dd>@(user.Locked ? "gesperrt" : user.InvitationAccepted ? "aktiv" : "eingeladen")</dd>
+    <dt>Anmeldung</dt><dd>@(user.HasPassword ? "Passwort" : "Anmeldelink")@(user.TwoFactorEnabled ? " + Zwei-Faktor" : "")</dd>
+    <dt>Angelegt</dt><dd>@Format.Timestamp(user.CreatedAt)</dd>
+    <dt>Letzte Anmeldung</dt><dd>@Format.Timestamp(user.LastSignInAt)</dd>
+</dl>
+
+<section>
+    <h2>Rolle</h2>
+    <EditForm Model="RoleInput" FormName="rolle" OnSubmit="ChangeRoleAsync" class="formular-zeile">
+        <InputSelect id="rolle" @bind-Value="RoleInput!.Role" aria-label="Rolle">
+            @foreach (var role in Roles.All)
+            {
+                <option value="@role">@Roles.DisplayName(role)</option>
+            }
+        </InputSelect>
+        <button type="submit" class="knopf">Rolle ändern</button>
+    </EditForm>
+</section>
+
+@if (user.Role == Roles.Manager)
+{
+    <section>
+        <h2>Rechte</h2>
+        <EditForm Model="PermissionsInput" FormName="rechte" OnSubmit="SetPermissionsAsync">
+            @foreach (var permission in Permissions.All)
+            {
+                <div class="feld feld-checkbox">
+                    <input type="checkbox" id="recht-@permission" name="PermissionsInput.Options" value="@permission" checked="@user.Permissions.Contains(permission)" />
+                    <label for="recht-@permission">@Permissions.DisplayName(permission)</label>
+                </div>
+            }
+            <button type="submit" class="knopf">Rechte speichern</button>
+        </EditForm>
+    </section>
+}
+
+@if (user.Role == Roles.Caretaker)
+{
+    <section>
+        <h2>Betreute Objekte</h2>
+        @if (allProperties.Count == 0)
+        {
+            <p class="klein">Es gibt noch keine Objekte.</p>
+        }
+        else
+        {
+            <EditForm Model="PropertiesInput" FormName="objekte" OnSubmit="SetPropertiesAsync">
+                @foreach (var property in allProperties)
+                {
+                    <div class="feld feld-checkbox">
+                        <input type="checkbox" id="objekt-@property.Id" name="PropertiesInput.Options" value="@property.Id" checked="@assigned.Contains(property.Id)" />
+                        <label for="objekt-@property.Id">@property.Name <span class="klein">@property.Address</span></label>
+                    </div>
+                }
+                <button type="submit" class="knopf">Objekte speichern</button>
+            </EditForm>
+            <p class="klein">Hausmeister sehen nur diese Objekte (ohne Mieterdaten).</p>
+        }
+    </section>
+}
+
+@if (!isOwnAccount)
+{
+    <section>
+        <h2>Zugang</h2>
+        @if (user.Locked)
+        {
+            <form method="post" @formname="sperren" @onsubmit="ToggleLockAsync">
+                <AntiforgeryToken />
+                <button type="submit" class="knopf">Konto entsperren</button>
+            </form>
+        }
+        else
+        {
+            <DangerAction Text="Konto sperren" FormName="sperren" Confirmed="ToggleLockAsync"
+                            Confirmation="Das Konto wird sofort abgemeldet und kann sich nicht mehr anmelden. Fortfahren?"
+                            ConfirmText="Ja, Konto sperren" />
+        }
+    </section>
+}
+
+<ChangeHistory EntityType="ApplicationUser" EntityId="Id" />
+
+@code {
+    private UserOverview? user;
+    private bool isOwnAccount;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "rolle")]
+    private RoleModel? RoleInput { get; set; }
+
+    [SupplyParameterFromForm(FormName = "rechte")]
+    private PermissionsModel? PermissionsInput { get; set; }
+
+    [SupplyParameterFromForm(FormName = "objekte")]
+    private PropertiesModel? PropertiesInput { get; set; }
+
+    private IReadOnlyList<PropertyOverview> allProperties = [];
+    private IReadOnlyList<Guid> assigned = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await Admin.GetAsync(Id);
+        RoleInput ??= new() { Role = user?.Role ?? Roles.Tenant };
+        PermissionsInput ??= new();
+        PropertiesInput ??= new();
+        if (user?.Role == Roles.Caretaker)
+        {
+            allProperties = await Properties.ListAsync();
+            assigned = await Assignments.PropertiesOfAsync(Id);
+        }
+
+        isOwnAccount = UserManager.GetUserId(HttpContext.User) == Id.ToString();
+    }
+
+    private async Task ChangeRoleAsync() =>
+        await ExecuteAsync(Admin.ChangeRoleAsync(Id, RoleInput!.Role), "Die Rolle wurde geändert.");
+
+    private async Task SetPermissionsAsync() =>
+        await ExecuteAsync(Admin.SetPermissionsAsync(Id, PermissionsInput!.Options), "Die Rechte wurden gespeichert.");
+
+    private async Task SetPropertiesAsync()
+    {
+        var result = await Assignments.SetAsync(Id, PropertiesInput!.Options);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/benutzer/{Id}", "Die betreuten Objekte wurden gespeichert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task ToggleLockAsync() =>
+        await ExecuteAsync(
+            user!.Locked ? Admin.UnlockAsync(Id) : Admin.LockAsync(Id),
+            user.Locked ? "Das Konto wurde entsperrt." : "Das Konto wurde gesperrt.");
+
+    private async Task ExecuteAsync(Task<AccountResult> action, string success)
+    {
+        var result = await action;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/benutzer/{Id}", success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            user = await Admin.GetAsync(Id);
+        }
+    }
+
+    private sealed class RoleModel
+    {
+        public string Role { get; set; } = Roles.Tenant;
+    }
+
+    private sealed class PermissionsModel
+    {
+        public List<AccessRight> Options { get; set; } = [];
+    }
+
+    private sealed class PropertiesModel
+    {
+        public List<Guid> Options { get; set; } = [];
+    }
+}

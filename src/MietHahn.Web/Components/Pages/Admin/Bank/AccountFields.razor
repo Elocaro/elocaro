@@ -1,0 +1,45 @@
+@using MietHahn.Application.Properties
+@* Eingabefelder eines Bankkontos; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormField Id="konto-name" Label="Name" For="() => Data.Name" Required="true" Hint="z. B. „Mietkonto Lindenweg“">
+        <InputText id="konto-name" @bind-Value="Data.Name" />
+    </FormField>
+    <FormField Id="konto-iban" Label="IBAN" For="() => Data.Iban" Required="true">
+        <InputText id="konto-iban" @bind-Value="Data.Iban" autocomplete="off" />
+    </FormField>
+    <FormField Id="konto-bic" Label="BIC" For="() => Data.Bic">
+        <InputText id="konto-bic" @bind-Value="Data.Bic" />
+    </FormField>
+    <FormField Id="konto-bank" Label="Bank" For="() => Data.Bank">
+        <InputText id="konto-bank" @bind-Value="Data.Bank" />
+    </FormField>
+    <FormField Id="konto-typ" Label="Art" For="() => Data.Type">
+        <InputSelect id="konto-typ" @bind-Value="Data.Type">
+            @foreach (var value in Enum.GetValues<AccountType>())
+            {
+                <option value="@value">@Labels.From(value)</option>
+            }
+        </InputSelect>
+    </FormField>
+</div>
+@if (Properties.Count > 0)
+{
+    <fieldset class="feld">
+        <legend>Objekte (leer = alle)</legend>
+        @foreach (var property in Properties)
+        {
+            <div class="feld feld-checkbox">
+                <input type="checkbox" id="konto-objekt-@property.Id" name="Data.PropertyIds" value="@property.Id" checked="@(Data.PropertyIds?.Contains(property.Id) == true)" />
+                <label for="konto-objekt-@property.Id">@property.Name</label>
+            </div>
+        }
+    </fieldset>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public BankAccountInput Data { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PropertyOverview> Properties { get; set; } = [];
+}

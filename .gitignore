@@ -482,7 +482,7 @@ $RECYCLE.BIN/
 *.swp
 
 # Lokale Laufzeitdaten (Dateiablage in der Entwicklung)
-daten/
+data/
 
 # Produktionsgeheimnisse
 deploy/.env

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
-using MietHahn.Infrastructure.Persistenz;
+using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Web.Tests;
 
@@ -11,18 +11,18 @@ namespace MietHahn.Web.Tests;
 /// Startet die echte Web-App gegen eine eigene, frische Datenbank. Jobs sind aus (Mails bleiben in der Outbox
 /// und werden dort geprüft), die Uhr ist steuerbar.
 /// </summary>
-public sealed class MietHahnWebFactory(string verbindung, IDictionary<string, string?>? zusatz = null, Action<IServiceCollection>? dienste = null)
+public sealed class MietHahnWebFactory(string connection, IDictionary<string, string?>? supplement = null, Action<IServiceCollection>? configureServices = null)
     : WebApplicationFactory<Program>
 {
-    public FakeTimeProvider Uhr { get; } = new(DateTimeOffset.UtcNow);
+    public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
 
-    public string DateiPfad { get; } = Path.Combine(Path.GetTempPath(), "miethahn-webtests", Guid.NewGuid().ToString("N"));
+    public string FilePath { get; } = Path.Combine(Path.GetTempPath(), "miethahn-webtests", Guid.NewGuid().ToString("N"));
 
-    public static async Task<MietHahnWebFactory> MitDatenbankAsync(
-        PostgresFixture postgres, IDictionary<string, string?>? zusatz = null, Action<IServiceCollection>? dienste = null)
+    public static async Task<MietHahnWebFactory> WithDatabaseAsync(
+        PostgresFixture postgres, IDictionary<string, string?>? supplement = null, Action<IServiceCollection>? configureServices = null)
     {
         ArgumentNullException.ThrowIfNull(postgres);
-        var factory = new MietHahnWebFactory(await postgres.NeueDatenbankAsync(TestContext.Current.CancellationToken), zusatz, dienste);
+        var factory = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), supplement, configureServices);
         _ = factory.Server; // Host starten (Migrationen laufen dabei)
         return factory;
     }
@@ -35,18 +35,18 @@ public sealed class MietHahnWebFactory(string verbindung, IDictionary<string, st
         BaseAddress = new Uri("https://localhost/"),
     }));
 
-    public async Task<T> MitScopeAsync<T>(Func<IServiceProvider, Task<T>> aktion)
+    public async Task<T> WithScopeAsync<T>(Func<IServiceProvider, Task<T>> action)
     {
-        ArgumentNullException.ThrowIfNull(aktion);
+        ArgumentNullException.ThrowIfNull(action);
         await using var scope = Services.CreateAsyncScope();
-        return await aktion(scope.ServiceProvider);
+        return await action(scope.ServiceProvider);
     }
 
-    public async Task MitDbAsync(Func<MietHahnDbContext, Task> aktion)
+    public async Task WithDbAsync(Func<MietHahnDbContext, Task> action)
     {
-        ArgumentNullException.ThrowIfNull(aktion);
+        ArgumentNullException.ThrowIfNull(action);
         await using var scope = Services.CreateAsyncScope();
-        await aktion(scope.ServiceProvider.GetRequiredService<MietHahnDbContext>());
+        await action(scope.ServiceProvider.GetRequiredService<MietHahnDbContext>());
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -54,30 +54,30 @@ public sealed class MietHahnWebFactory(string verbindung, IDictionary<string, st
         ArgumentNullException.ThrowIfNull(builder);
         builder.UseEnvironment("Testing");
         builder.UseStaticWebAssets(); // blazor.web.js und app.css wie in der Entwicklung ausliefern
-        builder.UseSetting("ConnectionStrings:MietHahn", verbindung);
-        builder.UseSetting("Datenbank:AutomatischMigrieren", "true");
-        builder.UseSetting("Jobs:Aktiv", "false");
-        builder.UseSetting("Anwendung:BasisUrl", "https://localhost/");
-        builder.UseSetting("Anmeldung:AnfragenProMinute", "1000");
-        builder.UseSetting("Dateiablage:Pfad", DateiPfad);
-        foreach (var (schluessel, wert) in zusatz ?? new Dictionary<string, string?>())
+        builder.UseSetting("ConnectionStrings:MietHahn", connection);
+        builder.UseSetting("Database:AutoMigrate", "true");
+        builder.UseSetting("Jobs:Active", "false");
+        builder.UseSetting("Application:BaseUrl", "https://localhost/");
+        builder.UseSetting("SignIn:RequestsPerMinute", "1000");
+        builder.UseSetting("FileStore:Path", FilePath);
+        foreach (var (key, value) in supplement ?? new Dictionary<string, string?>())
         {
-            builder.UseSetting(schluessel, wert);
+            builder.UseSetting(key, value);
         }
 
         builder.ConfigureTestServices(services =>
         {
-            services.AddSingleton<TimeProvider>(Uhr);
-            dienste?.Invoke(services);
+            services.AddSingleton<TimeProvider>(Clock);
+            configureServices?.Invoke(services);
         });
     }
 
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        if (Directory.Exists(DateiPfad))
+        if (Directory.Exists(FilePath))
         {
-            Directory.Delete(DateiPfad, recursive: true);
+            Directory.Delete(FilePath, recursive: true);
         }
     }
 }

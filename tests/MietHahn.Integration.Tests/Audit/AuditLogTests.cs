@@ -1,154 +1,154 @@
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Audit;
-using MietHahn.Domain.Dateien;
-using MietHahn.Domain.Gemeinsam;
+using MietHahn.Domain.Common;
+using MietHahn.Domain.Files;
 using MietHahn.Infrastructure.Audit;
-using MietHahn.Infrastructure.Persistenz;
-using MietHahn.Integration.Tests.Infrastruktur;
-using MietHahn.Integration.Tests.Persistenz;
+using MietHahn.Infrastructure.Persistence;
+using MietHahn.Integration.Tests.Infrastructure;
+using MietHahn.Integration.Tests.Persistence;
 
 namespace MietHahn.Integration.Tests.Audit;
 
-public class AuditLogTests(PostgresFixture postgres) : PersistenzTestBasis(postgres)
+public class AuditLogTests(PostgresFixture postgres) : PersistenceTestBase(postgres)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task Neuanlage_protokolliert_alle_gesetzten_Felder()
+    public async Task Creation_logs_all_set_fields()
     {
-        var eintrag = await AnlegenAsync(new TestEintrag
+        var entry = await CreateAsync(new TestEntry
         {
             Name = "EG links",
-            Betrag = 650m,
-            Gueltigkeit = new Zeitraum(new DateOnly(2026, 1, 1)),
-            Schlagworte = ["WG", "Balkon"],
+            Amount = 650m,
+            Validity = new Period(new DateOnly(2026, 1, 1)),
+            Tags = ["WG", "Balkon"],
         });
 
-        var protokoll = Assert.Single(await HistorieAsync(eintrag.Id));
-        Assert.Equal(AuditAktion.Angelegt, protokoll.Aktion);
-        Assert.Equal("test", protokoll.Benutzer);
-        Assert.Equal(Startzeit, protokoll.Zeitpunkt);
-        Assert.Contains(new Feldaenderung("Name", null, "EG links"), protokoll.Aenderungen);
-        Assert.Contains(new Feldaenderung("Betrag", null, "650"), protokoll.Aenderungen);
-        Assert.Contains(new Feldaenderung("Gueltigkeit.Von", null, "2026-01-01"), protokoll.Aenderungen);
-        Assert.Contains(new Feldaenderung("Schlagworte", null, "WG, Balkon"), protokoll.Aenderungen);
-        Assert.DoesNotContain(protokoll.Aenderungen, a => a.Feld is "Iban" or "Gueltigkeit.Bis" or "ErstelltAm" or "Version");
+        var log = Assert.Single(await HistoryAsync(entry.Id));
+        Assert.Equal(AuditAction.Created, log.Action);
+        Assert.Equal("test", log.User);
+        Assert.Equal(StartTime, log.Timestamp);
+        Assert.Contains(new FieldChange("Name", null, "EG links"), log.Changes);
+        Assert.Contains(new FieldChange("Amount", null, "650"), log.Changes);
+        Assert.Contains(new FieldChange("Validity.From", null, "2026-01-01"), log.Changes);
+        Assert.Contains(new FieldChange("Tags", null, "WG, Balkon"), log.Changes);
+        Assert.DoesNotContain(log.Changes, a => a.Field is "Iban" or "Validity.To" or "CreatedAt" or "Version");
     }
 
     [Fact]
-    public async Task Aenderung_protokolliert_alten_und_neuen_Wert_mit_Benutzer()
+    public async Task Change_logs_old_and_new_value_with_user()
     {
-        var eintrag = await AnlegenAsync(new TestEintrag { Name = "Kaltmiete", Betrag = 650m });
+        var entry = await CreateAsync(new TestEntry { Name = "Kaltmiete", Amount = 650m });
 
-        Uhr.Advance(TimeSpan.FromDays(1));
-        Benutzer.Kennung = "partnerin";
-        await using (var db = NeuerContext())
+        Clock.Advance(TimeSpan.FromDays(1));
+        User.Identifier = "partnerin";
+        await using (var db = NewContext())
         {
-            var geladen = await db.Eintraege.SingleAsync(e => e.Id == eintrag.Id, Ct);
-            geladen.Betrag = 700m;
-            geladen.Gueltigkeit = geladen.Gueltigkeit.BeendenZum(new DateOnly(2026, 12, 31));
+            var loaded = await db.Entries.SingleAsync(e => e.Id == entry.Id, Ct);
+            loaded.Amount = 700m;
+            loaded.Validity = loaded.Validity.EndOn(new DateOnly(2026, 12, 31));
             await db.SaveChangesAsync(Ct);
         }
 
-        var aenderung = (await HistorieAsync(eintrag.Id))[0];
-        Assert.Equal(AuditAktion.Geaendert, aenderung.Aktion);
-        Assert.Equal("partnerin", aenderung.Benutzer);
-        Assert.Equal(Startzeit.AddDays(1), aenderung.Zeitpunkt);
+        var change = (await HistoryAsync(entry.Id))[0];
+        Assert.Equal(AuditAction.Modified, change.Action);
+        Assert.Equal("partnerin", change.User);
+        Assert.Equal(StartTime.AddDays(1), change.Timestamp);
         Assert.Equal(
-            [new Feldaenderung("Betrag", "650", "700"), new Feldaenderung("Gueltigkeit.Bis", null, "2026-12-31")],
-            aenderung.Aenderungen.OrderBy(a => a.Feld, StringComparer.Ordinal));
+            [new FieldChange("Amount", "650", "700"), new FieldChange("Validity.To", null, "2026-12-31")],
+            change.Changes.OrderBy(a => a.Field, StringComparer.Ordinal));
     }
 
     [Fact]
-    public async Task Speichern_ohne_echte_Aenderung_erzeugt_keinen_Eintrag()
+    public async Task Saving_without_real_change_creates_no_entry()
     {
-        var eintrag = await AnlegenAsync(new TestEintrag { Name = "unverändert", Betrag = 1m });
+        var entry = await CreateAsync(new TestEntry { Name = "unverändert", Amount = 1m });
 
-        await using (var db = NeuerContext())
+        await using (var db = NewContext())
         {
-            var geladen = await db.Eintraege.SingleAsync(e => e.Id == eintrag.Id, Ct);
-            geladen.Betrag = 1m;
-            geladen.Schlagworte = [];
+            var loaded = await db.Entries.SingleAsync(e => e.Id == entry.Id, Ct);
+            loaded.Amount = 1m;
+            loaded.Tags = [];
             await db.SaveChangesAsync(Ct);
         }
 
-        Assert.Single(await HistorieAsync(eintrag.Id));
+        Assert.Single(await HistoryAsync(entry.Id));
     }
 
     [Fact]
-    public async Task Vertrauliche_Felder_werden_maskiert()
+    public async Task Confidential_fields_are_masked()
     {
-        var eintrag = await AnlegenAsync(new TestEintrag { Name = "Konto", Iban = "DE02120300000000202051" });
+        var entry = await CreateAsync(new TestEntry { Name = "Konto", Iban = "DE02120300000000202051" });
 
-        await using (var db = NeuerContext())
+        await using (var db = NewContext())
         {
-            (await db.Eintraege.SingleAsync(e => e.Id == eintrag.Id, Ct)).Iban = "DE89370400440532013000";
+            (await db.Entries.SingleAsync(e => e.Id == entry.Id, Ct)).Iban = "DE89370400440532013000";
             await db.SaveChangesAsync(Ct);
         }
 
-        var historie = await HistorieAsync(eintrag.Id);
-        Assert.Contains(new Feldaenderung("Iban", AuditErfassung.Maskiert, AuditErfassung.Maskiert), historie[0].Aenderungen);
-        Assert.Contains(new Feldaenderung("Iban", null, AuditErfassung.Maskiert), historie[1].Aenderungen);
-        await using var pruefung = NeuerContext();
-        var roh = await pruefung.Set<AuditEintrag>().Select(a => a.AenderungenJson).ToListAsync(Ct);
-        Assert.DoesNotContain(roh, j => j.Contains("DE02", StringComparison.Ordinal) || j.Contains("DE89", StringComparison.Ordinal));
+        var history = await HistoryAsync(entry.Id);
+        Assert.Contains(new FieldChange("Iban", AuditCapture.Masked, AuditCapture.Masked), history[0].Changes);
+        Assert.Contains(new FieldChange("Iban", null, AuditCapture.Masked), history[1].Changes);
+        await using var check = NewContext();
+        var raw = await check.Set<AuditEntry>().Select(a => a.ChangesJson).ToListAsync(Ct);
+        Assert.DoesNotContain(raw, j => j.Contains("DE02", StringComparison.Ordinal) || j.Contains("DE89", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task Loeschen_wird_als_Loeschung_protokolliert()
+    public async Task Delete_is_logged_as_deletion()
     {
-        var eintrag = await AnlegenAsync(new TestEintrag { Name = "weg" });
+        var entry = await CreateAsync(new TestEntry { Name = "weg" });
 
-        await using (var db = NeuerContext())
+        await using (var db = NewContext())
         {
-            db.Eintraege.Remove(await db.Eintraege.SingleAsync(e => e.Id == eintrag.Id, Ct));
+            db.Entries.Remove(await db.Entries.SingleAsync(e => e.Id == entry.Id, Ct));
             await db.SaveChangesAsync(Ct);
         }
 
-        var loeschung = (await HistorieAsync(eintrag.Id))[0];
-        Assert.Equal(AuditAktion.Geloescht, loeschung.Aktion);
-        Assert.Empty(loeschung.Aenderungen);
+        var deletion = (await HistoryAsync(entry.Id))[0];
+        Assert.Equal(AuditAction.Deleted, deletion.Action);
+        Assert.Empty(deletion.Changes);
     }
 
     [Fact]
-    public async Task Technische_Entitaeten_werden_nicht_protokolliert()
+    public async Task Technical_entities_are_not_logged()
     {
-        await using (var db = NeuerContext())
+        await using (var db = NewContext())
         {
-            db.Add(new MietHahn.Domain.Kommunikation.AusgehendeMail(["a@example.de"], "Betreff", "<p/>", "", Startzeit));
-            db.Add(new Datei("beleg.pdf", "application/pdf", 10, new string('a', 64)));
+            db.Add(new MietHahn.Domain.Communication.OutgoingMail(["a@example.de"], "Betreff", "<p/>", "", StartTime));
+            db.Add(new StoredFile("receipt.pdf", "application/pdf", 10, new string('a', 64)));
             await db.SaveChangesAsync(Ct);
         }
 
-        await using var pruefung = NeuerContext();
-        var typen = await pruefung.Set<AuditEintrag>().Select(a => a.EntitaetTyp).ToListAsync(Ct);
-        Assert.Equal(["Datei"], typen);
+        await using var check = NewContext();
+        var types = await check.Set<AuditEntry>().Select(a => a.EntityType).ToListAsync(Ct);
+        Assert.Equal(["StoredFile"], types);
     }
 
     [Fact]
-    public async Task Audit_Eintrag_wird_mit_der_Aenderung_zurueckgerollt()
+    public async Task Audit_entry_is_rolled_back_with_the_change()
     {
-        await using var db = NeuerContext();
-        await using var transaktion = await db.Database.BeginTransactionAsync(Ct);
-        db.Eintraege.Add(new TestEintrag { Name = "abgebrochen" });
+        await using var db = NewContext();
+        await using var transaction = await db.Database.BeginTransactionAsync(Ct);
+        db.Entries.Add(new TestEntry { Name = "abgebrochen" });
         await db.SaveChangesAsync(Ct);
-        await transaktion.RollbackAsync(Ct);
+        await transaction.RollbackAsync(Ct);
 
-        await using var pruefung = NeuerContext();
-        Assert.False(await pruefung.Set<AuditEintrag>().AnyAsync(Ct));
+        await using var check = NewContext();
+        Assert.False(await check.Set<AuditEntry>().AnyAsync(Ct));
     }
 
-    private async Task<TestEintrag> AnlegenAsync(TestEintrag eintrag)
+    private async Task<TestEntry> CreateAsync(TestEntry entry)
     {
-        await using var db = NeuerContext();
-        db.Eintraege.Add(eintrag);
+        await using var db = NewContext();
+        db.Entries.Add(entry);
         await db.SaveChangesAsync(Ct);
-        return eintrag;
+        return entry;
     }
 
-    private async Task<IReadOnlyList<AuditEintragAnsicht>> HistorieAsync(Guid id)
+    private async Task<IReadOnlyList<AuditEntryView>> HistoryAsync(Guid id)
     {
-        await using var db = NeuerContext();
-        return await new AenderungsHistorie(db).LadenAsync(nameof(TestEintrag), id, Ct);
+        await using var db = NewContext();
+        return await new ChangeHistory(db).GetAsync(nameof(TestEntry), id, Ct);
     }
 }

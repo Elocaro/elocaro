@@ -1,0 +1,36 @@
+@* Überschrift mit Seitentitel und optionalen Aktionen (Knöpfe/Links rechts bzw. darunter auf dem Smartphone). *@
+<PageTitle>@Title – MietHahn</PageTitle>
+<div class="seitenkopf">
+    <div>
+        @if (Back is not null)
+        {
+            <a class="zurueck" href="@Back">← @(BackText ?? "Zurück")</a>
+        }
+        <h1>@Title</h1>
+        @if (Subtitle is not null)
+        {
+            <p class="klein">@Subtitle</p>
+        }
+    </div>
+    @if (Actions is not null)
+    {
+        <div class="seitenkopf-aktionen">@Actions</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string? Subtitle { get; set; }
+
+    [Parameter]
+    public string? Back { get; set; }
+
+    [Parameter]
+    public string? BackText { get; set; }
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+}

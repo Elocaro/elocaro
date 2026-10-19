@@ -14,115 +14,115 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
 
     public HttpClient Http => http;
 
-    public async Task<Seite> LadenAsync(string url, bool weiterleitungenFolgen = true)
+    public async Task<Page> GetAsync(string url, bool followRedirects = true)
     {
-        using var antwort = await http.GetAsync(new Uri(url, UriKind.RelativeOrAbsolute), TestContext.Current.CancellationToken);
-        return await AuswertenAsync(antwort, weiterleitungenFolgen);
+        using var response = await http.GetAsync(new Uri(url, UriKind.RelativeOrAbsolute), TestContext.Current.CancellationToken);
+        return await EvaluateAsync(response, followRedirects);
     }
 
-    public async Task<Seite> AbsendenAsync(Seite seite, string formName, IDictionary<string, string>? felder = null, bool weiterleitungenFolgen = true)
+    public async Task<Page> SubmitAsync(Page page, string formName, IDictionary<string, string>? fields = null, bool followRedirects = true)
     {
-        ArgumentNullException.ThrowIfNull(seite);
-        var formular = seite.Formular(formName);
-        using var inhalt = new FormUrlEncodedContent(Werte(formular, formName, felder));
-        using var antwort = await http.PostAsync(Ziel(seite, formular), inhalt, TestContext.Current.CancellationToken);
-        return await AuswertenAsync(antwort, weiterleitungenFolgen);
+        ArgumentNullException.ThrowIfNull(page);
+        var form = page.Form(formName);
+        using var content = new FormUrlEncodedContent(Values(form, formName, fields));
+        using var response = await http.PostAsync(Target(page, form), content, TestContext.Current.CancellationToken);
+        return await EvaluateAsync(response, followRedirects);
     }
 
     /// <summary>Schickt ein Formular als multipart/form-data mit einer Datei ab (z. B. Foto-Upload).</summary>
-    public async Task<Seite> AbsendenMitDateiAsync(Seite seite, string formName, string dateiFeld, byte[] inhalt, string dateiname, string mimeTyp = "image/jpeg", IDictionary<string, string>? felder = null)
+    public async Task<Page> SubmitWithFileAsync(Page page, string formName, string fileField, byte[] content, string fileName, string mimeType = "image/jpeg", IDictionary<string, string>? fields = null)
     {
-        ArgumentNullException.ThrowIfNull(seite);
-        var formular = seite.Formular(formName);
-        using var daten = new MultipartFormDataContent();
-        foreach (var (name, wert) in Werte(formular, formName, felder))
+        ArgumentNullException.ThrowIfNull(page);
+        var form = page.Form(formName);
+        using var data = new MultipartFormDataContent();
+        foreach (var (name, value) in Values(form, formName, fields))
         {
-            daten.Add(new StringContent(wert), name);
+            data.Add(new StringContent(value), name);
         }
 
-        var datei = new ByteArrayContent(inhalt);
-        datei.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeTyp);
-        daten.Add(datei, dateiFeld, dateiname);
-        using var antwort = await http.PostAsync(Ziel(seite, formular), daten, TestContext.Current.CancellationToken);
-        return await AuswertenAsync(antwort, weiterleitungenFolgen: true);
+        var file = new ByteArrayContent(content);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeType);
+        data.Add(file, fileField, fileName);
+        using var response = await http.PostAsync(Target(page, form), data, TestContext.Current.CancellationToken);
+        return await EvaluateAsync(response, followRedirects: true);
     }
 
-    private static Uri Ziel(Seite seite, IHtmlFormElement formular) =>
-        string.IsNullOrEmpty(formular.GetAttribute("action")) ? seite.Url : new Uri(seite.Url, formular.GetAttribute("action"));
+    private static Uri Target(Page page, IHtmlFormElement form) =>
+        string.IsNullOrEmpty(form.GetAttribute("action")) ? page.Url : new Uri(page.Url, form.GetAttribute("action"));
 
-    /// <summary>Feldwerte wie ein Browser (ohne Dateifelder), überschrieben mit <paramref name="felder"/>.</summary>
-    private static List<KeyValuePair<string, string>> Werte(IHtmlFormElement formular, string formName, IDictionary<string, string>? felder)
+    /// <summary>Feldwerte wie ein Browser (ohne Dateifelder), überschrieben mit <paramref name="fields"/>.</summary>
+    private static List<KeyValuePair<string, string>> Values(IHtmlFormElement form, string formName, IDictionary<string, string>? fields)
     {
-        var werte = new List<KeyValuePair<string, string>>();
-        foreach (var element in formular.Elements.OfType<IHtmlInputElement>())
+        var values = new List<KeyValuePair<string, string>>();
+        foreach (var element in form.Elements.OfType<IHtmlInputElement>())
         {
             if (string.IsNullOrEmpty(element.Name) || element.Type == "file" || (element.Type is "checkbox" or "radio" && !element.IsChecked))
             {
                 continue;
             }
 
-            werte.Add(new(element.Name, element.Value));
+            values.Add(new(element.Name, element.Value));
         }
 
         // Wie ein Browser: ausgewählte Option bzw. Inhalt von Auswahllisten und Textfeldern mitsenden.
-        foreach (var auswahl in formular.Elements.OfType<IHtmlSelectElement>().Where(e => !string.IsNullOrEmpty(e.Name)))
+        foreach (var selection in form.Elements.OfType<IHtmlSelectElement>().Where(e => !string.IsNullOrEmpty(e.Name)))
         {
-            var option = auswahl.Options.FirstOrDefault(o => o.IsSelected) ?? (auswahl.Options.Length > 0 ? auswahl.Options[0] : null);
+            var option = selection.Options.FirstOrDefault(o => o.IsSelected) ?? (selection.Options.Length > 0 ? selection.Options[0] : null);
             if (option is not null)
             {
-                werte.Add(new(auswahl.Name!, option.Value));
+                values.Add(new(selection.Name!, option.Value));
             }
         }
 
-        foreach (var text in formular.Elements.OfType<IHtmlTextAreaElement>().Where(e => !string.IsNullOrEmpty(e.Name)))
+        foreach (var text in form.Elements.OfType<IHtmlTextAreaElement>().Where(e => !string.IsNullOrEmpty(e.Name)))
         {
-            werte.Add(new(text.Name!, text.Value));
+            values.Add(new(text.Name!, text.Value));
         }
 
         // Nur Felder setzen, die das Formular wirklich hat: sonst bestünde ein Test, obwohl der Browser andere Namen sendet.
-        var vorhanden = formular.Elements.OfType<IHtmlElement>().Select(e => e.GetAttribute("name")).Where(n => n is not null).ToHashSet();
-        foreach (var (name, wert) in felder ?? new Dictionary<string, string>())
+        var existing = form.Elements.OfType<IHtmlElement>().Select(e => e.GetAttribute("name")).Where(n => n is not null).ToHashSet();
+        foreach (var (name, value) in fields ?? new Dictionary<string, string>())
         {
-            if (!vorhanden.Contains(name))
+            if (!existing.Contains(name))
             {
-                throw new InvalidOperationException($"Formular '{formName}' hat kein Feld '{name}'. Vorhanden: {string.Join(", ", vorhanden)}");
+                throw new InvalidOperationException($"Formular '{formName}' hat kein Feld '{name}'. Vorhanden: {string.Join(", ", existing)}");
             }
 
-            werte.RemoveAll(w => w.Key == name);
-            werte.Add(new(name, wert));
+            values.RemoveAll(w => w.Key == name);
+            values.Add(new(name, value));
         }
 
-        return werte;
+        return values;
     }
 
     public void Dispose() => http.Dispose();
 
-    private async Task<Seite> AuswertenAsync(HttpResponseMessage antwort, bool weiterleitungenFolgen)
+    private async Task<Page> EvaluateAsync(HttpResponseMessage response, bool followRedirects)
     {
-        var url = antwort.RequestMessage!.RequestUri!;
-        for (var i = 0; weiterleitungenFolgen && i < 10 && antwort.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Found or HttpStatusCode.SeeOther or HttpStatusCode.TemporaryRedirect; i++)
+        var url = response.RequestMessage!.RequestUri!;
+        for (var i = 0; followRedirects && i < 10 && response.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Found or HttpStatusCode.SeeOther or HttpStatusCode.TemporaryRedirect; i++)
         {
-            var ziel = new Uri(url, antwort.Headers.Location!);
-            antwort = await http.GetAsync(ziel, TestContext.Current.CancellationToken);
-            url = ziel;
+            var destination = new Uri(url, response.Headers.Location!);
+            response = await http.GetAsync(destination, TestContext.Current.CancellationToken);
+            url = destination;
         }
 
-        var html = await antwort.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        return new Seite(antwort.StatusCode, url, antwort.Headers.Location, html, Parser.ParseDocument(html));
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        return new Page(response.StatusCode, url, response.Headers.Location, html, Parser.ParseDocument(html));
     }
 }
 
-public sealed record Seite(HttpStatusCode Status, Uri Url, Uri? Weiterleitung, string Html, IHtmlDocument Dokument)
+public sealed record Page(HttpStatusCode Status, Uri Url, Uri? RedirectLocation, string Html, IHtmlDocument Document)
 {
-    public string Pfad => Url.AbsolutePath;
+    public string Path => Url.AbsolutePath;
 
-    public string Text => Dokument.Body?.TextContent ?? "";
+    public string Text => Document.Body?.TextContent ?? "";
 
     /// <summary>Text inklusive der per Stream-Rendering nachgelieferten Teile (<c>&lt;blazor-ssr&gt;&lt;template&gt;</c>).</summary>
-    public string TextMitStreaming =>
-        Text + string.Concat(Dokument.QuerySelectorAll("blazor-ssr template").OfType<IHtmlTemplateElement>().Select(t => t.Content.TextContent));
+    public string TextWithStreaming =>
+        Text + string.Concat(Document.QuerySelectorAll("blazor-ssr template").OfType<IHtmlTemplateElement>().Select(t => t.Content.TextContent));
 
-    public IHtmlFormElement Formular(string formName) =>
-        Dokument.Forms.FirstOrDefault(f => f.Elements.OfType<IHtmlInputElement>().Any(i => i.Name == "_handler" && i.Value == formName))
-        ?? throw new InvalidOperationException($"Formular '{formName}' nicht gefunden auf {Url}. Vorhanden: {string.Join(", ", Dokument.Forms.SelectMany(f => f.Elements.OfType<IHtmlInputElement>()).Where(i => i.Name == "_handler").Select(i => i.Value))}");
+    public IHtmlFormElement Form(string formName) =>
+        Document.Forms.FirstOrDefault(f => f.Elements.OfType<IHtmlInputElement>().Any(i => i.Name == "_handler" && i.Value == formName))
+        ?? throw new InvalidOperationException($"Formular '{formName}' nicht gefunden auf {Url}. Vorhanden: {string.Join(", ", Document.Forms.SelectMany(f => f.Elements.OfType<IHtmlInputElement>()).Where(i => i.Name == "_handler").Select(i => i.Value))}");
 }

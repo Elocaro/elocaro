@@ -1,0 +1,161 @@
+@page "/verwaltung/einheiten/{Id:guid}"
+@inject IPropertyService Admin
+@inject Redirector Redirector
+
+@if (unit is null)
+{
+    <PageHeader Title="Einheit nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+    return;
+}
+
+<PageHeader Title="@unit.Data.Name" Subtitle="@Subtitle" Back="@($"/verwaltung/objekte/{unit.PropertyId}")" BackText="@unit.PropertyName" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+@foreach (var hint in unit.ValidationHints)
+{
+    <p class="meldung meldung-hinweis" role="status">@hint</p>
+}
+
+@if (!unit.IsSharedFlat)
+{
+    <section>
+        <h2>Belegung</h2>
+        <p><OccupancyDisplay Occupancy="unit.Occupancy" /></p>
+    </section>
+    <LeaseHistory RentalUnitId="Id" />
+}
+
+<section>
+    <h2>Zimmer (WG)</h2>
+    @if (unit.IsSharedFlat)
+    {
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Zimmer</th><th>Möblierung</th><th class="zahl">Fläche</th><th class="zahl">Anteil Gemeinschaft</th><th>Belegung</th></tr></thead>
+                <tbody>
+                    @foreach (var room in unit.Room)
+                    {
+                        <tr>
+                            <td><a href="/verwaltung/zimmer/@room.Id">@room.Name</a></td>
+                            <td>@Labels.From(room.Furnishing)</td>
+                            <td class="zahl">@Format.Area(room.Area?.Area)</td>
+                            <td class="zahl">@Format.Area(room.Area?.SecondaryArea)</td>
+                            <td><OccupancyDisplay Occupancy="room.Occupancy" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p class="klein">Wird die Wohnung als WG zimmerweise vermietet, hier die Zimmer anlegen. Danach sind nur noch die Zimmer einzeln vermietbar.</p>
+    }
+    <details class="aufklapper">
+        <summary>Zimmer hinzufügen</summary>
+        <EditForm Model="NewRoom" FormName="zimmer" OnValidSubmit="CreateRoomAsync">
+            <DataAnnotationsValidator />
+            <RoomFields Data="NewRoom!" WithNotes="false" />
+            <button type="submit" class="knopf">Zimmer hinzufügen</button>
+        </EditForm>
+    </details>
+</section>
+
+<AreaSection Input="Area!" OnSave="SaveAreaAsync" Current="unit.Area" History="unit.AreaHistory"
+                 AreaText="Wohnfläche" AdditionalText="Heizfläche" AdditionalHint="Leer lassen, wenn gleich der Wohnfläche." />
+
+<section>
+    <h2>Angaben &amp; Ausstattung</h2>
+    <EditForm Model="Data" FormName="einheit" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <UnitFields Data="Data!" />
+        <button type="submit" class="knopf knopf-primaer">Speichern</button>
+    </EditForm>
+</section>
+
+@if (!unit.IsSharedFlat)
+{
+    <section>
+        <DangerAction Text="Einheit löschen" FormName="loeschen" Confirmed="DeleteAsync"
+                        Confirmation="Die Einheit wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
+    </section>
+}
+
+<DocumentsSection UnitId="Id" />
+
+<ChangeHistory EntityType="@nameof(MietHahn.Domain.Properties.Unit)" EntityId="Id" />
+
+@code {
+    private UnitDetails? unit;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "einheit")]
+    private UnitInput? Data { get; set; }
+
+    [SupplyParameterFromForm(FormName = "zimmer", Name = "Data")] // Feldnamen kommen aus RoomFields
+    private RoomInput? NewRoom { get; set; }
+
+    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // Feldnamen kommen aus AreaSection
+    private AreaInput? Area { get; set; }
+
+    private string Subtitle => $"{Labels.From(unit!.Data.Type)}{(unit.Data.Location is { } level ? ", " + level : "")} · {unit.PropertyName}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        Data ??= new();
+        NewRoom ??= new();
+        Area ??= new();
+        unit = await Admin.GetUnitAsync(Id);
+        if (unit is not null)
+        {
+            Data = form ?? unit.Data;
+            if (Area.From is null)
+            {
+                Area.Area ??= unit.Area?.Area;
+                Area.SecondaryArea ??= unit.Area?.SecondaryArea;
+            }
+        }
+    }
+
+    private Task SaveAsync() => ExecuteAsync(Admin.UpdateUnitAsync(Id, Data!), "Die Angaben wurden gespeichert.");
+
+    private Task CreateRoomAsync() => ExecuteAsync(Admin.CreateRoomAsync(Id, NewRoom!), "Das Zimmer wurde hinzugefügt.");
+
+    private Task SaveAreaAsync() => ExecuteAsync(Admin.SetUnitAreaAsync(Id, Area!), "Die Fläche wurde gespeichert.");
+
+    private async Task DeleteAsync()
+    {
+        var propertyId = unit!.PropertyId;
+        var result = await Admin.DeleteUnitAsync(Id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/objekte/{propertyId}", "Die Einheit wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/einheiten/{Id}", success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            unit = await Admin.GetUnitAsync(Id);
+        }
+    }
+}

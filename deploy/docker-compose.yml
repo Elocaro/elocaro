@@ -16,20 +16,20 @@ services:
       gotenberg:
         condition: service_started
     environment:
-      ConnectionStrings__MietHahn: "Host=postgres;Database=miethahn;Username=miethahn;Password=${POSTGRES_PASSWORT};GSS Encryption Mode=Disable"
-      Anwendung__BasisUrl: "https://${MIETHAHN_DOMAIN}/"
+      ConnectionStrings__MietHahn: "Host=postgres;Database=miethahn;Username=miethahn;Password=${POSTGRES_PASSWORD};GSS Encryption Mode=Disable"
+      Application__BaseUrl: "https://${MIETHAHN_DOMAIN}/"
       Pdf__GotenbergUrl: "http://gotenberg:3000"
-      Mail__AbsenderAdresse: ${MAIL_ABSENDER}
-      Mail__AbsenderName: ${MAIL_ABSENDER_NAME:-MietHahn}
-      Mail__AntwortAn: ${MAIL_ANTWORT_AN:-}
+      Mail__SenderAddress: ${MAIL_SENDER}
+      Mail__SenderName: ${MAIL_SENDER_NAME:-MietHahn}
+      Mail__ReplyTo: ${MAIL_REPLY_TO:-}
       Mail__Smtp__Host: ${SMTP_HOST}
       Mail__Smtp__Port: ${SMTP_PORT:-587}
-      Mail__Smtp__Sicherheit: ${SMTP_SICHERHEIT:-StartTls}
-      Mail__Smtp__Benutzer: ${SMTP_BENUTZER:-}
-      Mail__Smtp__Passwort: ${SMTP_PASSWORT:-}
-      Backup__StatusDatei: /backup-status/backup.json
+      Mail__Smtp__Security: ${SMTP_SECURITY:-StartTls}
+      Mail__Smtp__UserName: ${SMTP_USER:-}
+      Mail__Smtp__Password: ${SMTP_PASSWORD:-}
+      Backup__StatusFile: /backup-status/backup.json
     volumes:
-      - dateien:/daten
+      - files:/data
       - backup-status:/backup-status:ro
     # intern: Datenbank/Gotenberg; extern: ausgehend für SMTP (später FinTS, KI-API) und für Caddy
     networks: [intern, extern]
@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: miethahn
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORT}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: miethahn
     volumes:
       - postgres:/var/lib/postgresql
@@ -66,24 +66,24 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      PGPASSWORD: ${POSTGRES_PASSWORT}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
       RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-/repo}
-      RESTIC_PASSWORD: ${RESTIC_PASSWORT}
-      BACKUP_ZEIT: ${BACKUP_ZEIT:-02:30}
-      BACKUP_BEHALTEN_TAGE: ${BACKUP_BEHALTEN_TAGE:-7}
-      BACKUP_BEHALTEN_WOCHEN: ${BACKUP_BEHALTEN_WOCHEN:-4}
-      BACKUP_BEHALTEN_MONATE: ${BACKUP_BEHALTEN_MONATE:-12}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD}
+      BACKUP_TIME: ${BACKUP_TIME:-02:30}
+      BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-7}
+      BACKUP_KEEP_WEEKLY: ${BACKUP_KEEP_WEEKLY:-4}
+      BACKUP_KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-12}
       # S3-kompatible Ziele (z. B. RESTIC_REPOSITORY=s3:https://s3.eu-central-1.amazonaws.com/bucket/miethahn)
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
     volumes:
-      - dateien:/daten
+      - files:/data
       - backup-status:/status
       - backup-cache:/cache
       # Lokales Repository (Standard) bzw. SSH-Schlüssel für SFTP-Ziele
-      - ${BACKUP_LOKAL_PFAD:-./backup-repo}:/repo
-      - ${BACKUP_SSH_PFAD:-./backup-ssh}:/root/.ssh:ro
+      - ${BACKUP_LOCAL_PATH:-./backup-repo}:/repo
+      - ${BACKUP_SSH_PATH:-./backup-ssh}:/root/.ssh:ro
     # intern: Datenbank; extern: Upload zum Backup-Ziel
     networks: [intern, extern]
 
@@ -101,8 +101,8 @@ services:
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-daten:/data
-      - caddy-konfig:/config
+      - caddy-data:/data
+      - caddy-config:/config
     networks: [extern]
 
 networks:
@@ -112,8 +112,8 @@ networks:
 
 volumes:
   postgres:
-  dateien:
+  files:
   backup-status:
   backup-cache:
-  caddy-daten:
-  caddy-konfig:
+  caddy-data:
+  caddy-config:

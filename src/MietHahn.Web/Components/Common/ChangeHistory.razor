@@ -1,0 +1,65 @@
+@using MietHahn.Application.Audit
+@inherits DataComponent
+
+@* Zeigt die Änderungshistorie eines Datensatzes aus dem Audit-Log (zusammengeklappt). *@
+<details class="historie">
+    <summary>Änderungshistorie (@(entries?.Count ?? 0))</summary>
+    @if (entries is { Count: 0 })
+    {
+        <p>Keine Einträge.</p>
+    }
+    else if (entries is not null)
+    {
+        <ol class="historie-liste">
+            @foreach (var entry in entries)
+            {
+                <li>
+                    <div class="historie-kopf">
+                        <time>@Format.Timestamp(entry.Timestamp)</time>
+                        <span class="historie-aktion">@ActionText(entry.Action)</span>
+                        <span class="historie-benutzer">@entry.User</span>
+                        @if (entry.Purpose is not null)
+                        {
+                            <span class="historie-zweck">(@entry.Purpose)</span>
+                        }
+                    </div>
+                    @if (entry.Changes.Count > 0)
+                    {
+                        <table class="tabelle historie-felder">
+                            <thead><tr><th>Feld</th><th>Vorher</th><th>Nachher</th></tr></thead>
+                            <tbody>
+                                @foreach (var field in entry.Changes)
+                                {
+                                    <tr><td>@field.Field</td><td>@(field.Old ?? "–")</td><td>@(field.New ?? "–")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </li>
+            }
+        </ol>
+    }
+</details>
+
+@code {
+    private IReadOnlyList<AuditEntryView>? entries;
+
+    /// <summary>Klassenname der Entität (z. B. <c>nameof(Mietvertrag)</c>).</summary>
+    [Parameter, EditorRequired]
+    public string EntityType { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public Guid EntityId { get; set; }
+
+    protected override async Task OnParametersSetAsync() =>
+        entries = await GetAsync<IChangeHistory, IReadOnlyList<AuditEntryView>>(h => h.GetAsync(EntityType, EntityId));
+
+    private static string ActionText(AuditAction action) => action switch
+    {
+        AuditAction.Created => "angelegt",
+        AuditAction.Modified => "geändert",
+        AuditAction.Deleted => "gelöscht",
+        AuditAction.Read => "eingesehen",
+        _ => action.ToString(),
+    };
+}

@@ -1,0 +1,108 @@
+@page "/verwaltung/dokumente/{Id:guid}"
+@inject IDocumentLibrary Storage
+@inject Redirector Redirector
+
+@if (document is null)
+{
+    <PageHeader Title="Dokument nicht gefunden" Back="/verwaltung/dokumente" BackText="Alle Dokumente" />
+    return;
+}
+
+<PageHeader Title="@document.Document.Title" Subtitle="@($"{Labels.From(document.Document.Category)} · {document.Document.Reference}")" Back="/verwaltung/dokumente" BackText="Alle Dokumente">
+    <Actions>
+        <a class="knopf" href="/dateien/@document.Document.FileId?download=true">Herunterladen</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<dl class="angaben">
+    <dt>Datei</dt><dd>@document.FileName (@Size(document.Document.Size))</dd>
+    <dt>Hochgeladen</dt><dd>@Format.Timestamp(document.UploadedAt)@(document.UploadedBy is null ? "" : $" von {document.UploadedBy}")</dd>
+    <dt>Freigabe</dt><dd>@DocumentTable.Share(document.Document)</dd>
+</dl>
+
+@if (document.Document.MimeType.StartsWith("image/", StringComparison.Ordinal))
+{
+    <img class="dokument-vorschau" src="/dateien/@document.Document.FileId" alt="Vorschau: @document.Document.Title" />
+}
+else if (document.Document.MimeType == "application/pdf")
+{
+    <iframe class="dokument-vorschau" src="/dateien/@document.Document.FileId" title="Vorschau: @document.Document.Title"></iframe>
+}
+
+@* Beim statischen Rendern kann ein Zwischenstand gerendert werden, bevor die Auswahllisten geladen sind. *@
+@if (selection is not null)
+{
+    <section>
+        <h2>Angaben</h2>
+        <EditForm Model="Data" FormName="dokument" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <DocumentFields Data="Data!" Options="selection" />
+            <button type="submit" class="knopf knopf-primaer">Speichern</button>
+        </EditForm>
+    </section>
+}
+
+<section>
+    <h2>Löschen</h2>
+    <DangerAction Text="Dokument löschen" Confirmation="Das Dokument wird aus der Ablage entfernt und ist für Mieter und Hausmeister nicht mehr sichtbar." ConfirmText="Ja, löschen" FormName="loeschen" Confirmed="DeleteAsync" />
+</section>
+
+<ChangeHistory EntityType="@nameof(Document)" EntityId="Id" />
+
+@code {
+    private DocumentDetails? document;
+    private ReferenceOptions? selection;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "dokument")]
+    private DocumentInput? Data { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        Data ??= new();
+        document = await Storage.GetAsync(Id);
+        selection = await Storage.ReferenceOptionsAsync();
+        if (form is null && document is not null)
+        {
+            Data = document.Data;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Storage.UpdateAsync(Id, Data!);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/dokumente/{Id}", "Die Angaben wurden gespeichert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var result = await Storage.DeleteAsync(Id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/dokumente", "Das Dokument wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private static string Size(long bytes) => bytes < 1024 * 1024 ? $"{bytes / 1024.0:0.#} KB" : $"{bytes / 1024.0 / 1024.0:0.#} MB";
+}

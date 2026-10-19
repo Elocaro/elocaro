@@ -21,7 +21,7 @@ RUN dotnet publish src/MietHahn.Web/MietHahn.Web.csproj -c Release -o /app --no-
       -r "$(cat /tmp/rid)" --self-contained false /p:UseAppHost=false /p:DebugType=none
 
 # Datenverzeichnis vorbereiten; das Laufzeit-Image hat keine Shell für mkdir/chown.
-RUN mkdir -p /daten/dateien
+RUN mkdir -p /data/files
 
 # ---------- Laufzeit ----------
 # chiseled: ohne Shell und Paketmanager, läuft als Non-Root (UID 1654); „extra“ enthält ICU und Zeitzonendaten
@@ -30,17 +30,17 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS laufzeit
 WORKDIR /app
 COPY --from=build /app .
 # Besitzer = App-Benutzer, damit ein neues Docker-Volume beschreibbar initialisiert wird.
-COPY --from=build --chown=$APP_UID:$APP_UID /daten /daten
+COPY --from=build --chown=$APP_UID:$APP_UID /data /data
 
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_gcServer=0 \
     TZ=Europe/Berlin \
-    Dateiablage__Pfad=/daten/dateien \
-    Betrieb__HttpsUmleitung=false
+    FileStore__Path=/data/files \
+    Hosting__HttpsRedirection=false
 
 # Dateiablage als Volume (Eigentümer: app-Benutzer des Images)
-VOLUME ["/daten"]
+VOLUME ["/data"]
 EXPOSE 8080
 USER $APP_UID
 

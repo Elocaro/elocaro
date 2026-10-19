@@ -1,0 +1,48 @@
+@page "/verwaltung/bank/konten"
+@inject IBankService Bank
+
+<PageHeader Title="Bankkonten" Subtitle="Konten für Mieteingänge, Darlehen und Rücklagen; Umsätze per Datei-Import.">
+    <Actions>
+        <a class="knopf" href="/verwaltung/bank/csv-profile">CSV-Profile</a>
+        <a class="knopf knopf-primaer" href="/verwaltung/bank/konten/neu">Konto anlegen</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+
+@if (accounts is { Count: 0 })
+{
+    <EmptyState Text="Noch keine Bankkonten." />
+}
+else if (accounts is not null)
+{
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead><tr><th>Konto</th><th>IBAN</th><th>Art</th><th>Objekte</th><th>Umsätze</th></tr></thead>
+            <tbody>
+                @foreach (var account in accounts)
+                {
+                    <tr>
+                        <td><a href="/verwaltung/bank/konten/@account.Id">@account.Name</a>@if (account.Bank is not null) {<span class="klein"> @account.Bank</span>}</td>
+                        <td>@account.Iban</td>
+                        <td>@Labels.From(account.Type)</td>
+                        <td>@(account.Properties.Count == 0 ? "alle" : string.Join(", ", account.Properties))</td>
+                        <td>
+                            <a href="/verwaltung/bank/umsaetze?konto=@account.Id">@(account.LastTransaction is { } lastReading ? $"bis {Format.Date(lastReading)}" : "keine")</a>
+                            @if (account.OpenTransactions > 0)
+                            {
+                                <span class="status status-wartend">@account.OpenTransactions offen</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<BankAccountRow>? accounts;
+
+    protected override async Task OnInitializedAsync() => accounts = await Bank.AccountsAsync();
+}

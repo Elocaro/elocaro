@@ -1,0 +1,237 @@
+@page "/verwaltung/vertraege/neu"
+@inject ILeaseService Admin
+@inject IPersonService People
+@inject Redirector Redirector
+
+<PageHeader Title="Mietvertrag anlegen" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
+
+<ErrorList Errors="errors" />
+
+@if (rentalUnits.Count == 0 || people.Count == 0)
+{
+    <p class="meldung meldung-hinweis">
+        Für einen Vertrag braucht es ein vermietbares <a href="/verwaltung/objekte">Objekt</a> und mindestens eine <a href="/verwaltung/personen/neu">Person</a>.
+    </p>
+}
+
+<EditForm Model="Form" FormName="vertrag" OnValidSubmit="CreateAsync">
+    <DataAnnotationsValidator />
+    <h2>Mietobjekt &amp; Laufzeit</h2>
+    <div class="formular-raster">
+        <FormField Id="mietobjekt" Label="Mietobjekt" For="() => Form!.RentalUnitId" Required="true">
+            <InputSelect id="mietobjekt" @bind-Value="Form!.RentalUnitId">
+                <option value="">– bitte wählen –</option>
+                @foreach (var group in rentalUnits.GroupBy(m => m.Property))
+                {
+                    <optgroup label="@group.Key">
+                        @foreach (var m in group)
+                        {
+                            <option value="@m.Id">@m.Name@(m.CurrentlyOccupied is { } occupied ? $" (vermietet{(occupied.To is { } to ? " bis " + Format.Date(to) : "")})" : " (frei)")</option>
+                        }
+                    </optgroup>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="beginn" Label="Mietbeginn" For="() => Form!.Start" Required="true">
+            <InputDate id="beginn" @bind-Value="Form!.Start" />
+        </FormField>
+        <FormField Id="befristet" Label="Befristet bis" For="() => Form!.FixedTermUntil" Hint="Nur bei Zeitmietverträgen (§ 575 BGB).">
+            <InputDate id="befristet" @bind-Value="Form!.FixedTermUntil" />
+        </FormField>
+    </div>
+
+    <h2>Mieter</h2>
+    <div class="formular-raster">
+        <FormField Id="mieter1" Label="Mieter" For="() => Form!.Tenant1" Required="true">
+            <PersonSelectField Id="mieter1" @bind-Value="Form!.Tenant1" People="people" />
+        </FormField>
+        <FormField Id="mieter2" Label="Weiterer Mieter" For="() => Form!.Tenant2" Hint="Gesamtschuldnerisch; weitere später im Vertrag.">
+            <PersonSelectField Id="mieter2" @bind-Value="Form!.Tenant2" People="people" />
+        </FormField>
+        <FormField Id="buerge" Label="Bürge" For="() => Form!.Guarantor">
+            <PersonSelectField Id="buerge" @bind-Value="Form!.Guarantor" People="people" />
+        </FormField>
+    </div>
+    <p class="klein"><a href="/verwaltung/personen/neu">Neue Person anlegen</a> (danach diese Seite neu laden)</p>
+
+    <h2>Miete</h2>
+    <div class="formular-raster">
+        <FormField Id="abrechnungsart" Label="Nebenkosten" For="() => Form!.BillingType">
+            <InputSelect id="abrechnungsart" @bind-Value="Form!.BillingType">
+                @foreach (var value in Enum.GetValues<BillingType>())
+                {
+                    <option value="@value">@Labels.From(value)</option>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="kaltmiete" Label="Kaltmiete (€/Monat)" For="() => Form!.BaseRent" Required="true">
+            <InputAmount id="kaltmiete" @bind-Value="Form!.BaseRent" />
+        </FormField>
+        <FormField Id="bk" Label="Betriebskosten-Vorauszahlung" For="() => Form!.OperatingCostPrepayment">
+            <InputAmount id="bk" @bind-Value="Form!.OperatingCostPrepayment" />
+        </FormField>
+        <FormField Id="hk" Label="Heizkosten-Vorauszahlung" For="() => Form!.HeatingCostPrepayment">
+            <InputAmount id="hk" @bind-Value="Form!.HeatingCostPrepayment" />
+        </FormField>
+        <FormField Id="pauschale" Label="Betriebskostenpauschale" For="() => Form!.OperatingCostFlatRate" Hint="Nur bei „Pauschale“, z. B. WG-Zimmer.">
+            <InputAmount id="pauschale" @bind-Value="Form!.OperatingCostFlatRate" />
+        </FormField>
+        <FormField Id="personen" Label="Personen im Haushalt" For="() => Form!.People">
+            <InputNumber id="personen" @bind-Value="Form!.People" min="1" max="20" />
+        </FormField>
+    </div>
+    <div class="feld feld-checkbox">
+        <InputCheckbox id="hk-verbrauch" @bind-Value="Form!.HeatingCostsConsumptionBased" />
+        <label for="hk-verbrauch">Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)</label>
+    </div>
+
+    <h2>Weitere Angaben</h2>
+    <div class="formular-raster">
+        <FormField Id="werktag" Label="Fällig am … Werktag" For="() => Form!.DueOnWorkingDay">
+            <InputNumber id="werktag" @bind-Value="Form!.DueOnWorkingDay" min="1" max="10" />
+        </FormField>
+        <FormField Id="zahlungsart" Label="Zahlungsart" For="() => Form!.PaymentMethod">
+            <InputSelect id="zahlungsart" @bind-Value="Form!.PaymentMethod">
+                @foreach (var value in Enum.GetValues<PaymentMethod>())
+                {
+                    <option value="@value">@Labels.From(value)</option>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="frist" Label="Kündigungsfrist Mieter (Monate)" For="() => Form!.NoticePeriodMonths">
+            <InputNumber id="frist" @bind-Value="Form!.NoticePeriodMonths" min="1" max="24" />
+        </FormField>
+        <FormField Id="kaution" Label="Kaution (€)" For="() => Form!.Deposit">
+            <InputAmount id="kaution" @bind-Value="Form!.Deposit" />
+        </FormField>
+        <FormField Id="kaution-notiz" Label="Kaution – Notiz" For="() => Form!.DepositNote" Hint="z. B. „Bürgschaft Sparkasse“">
+            <InputText id="kaution-notiz" @bind-Value="Form!.DepositNote" />
+        </FormField>
+    </div>
+    <FormField Id="notizen" Label="Notizen" For="() => Form!.Notes">
+        <InputTextArea id="notizen" @bind-Value="Form!.Notes" rows="2" />
+    </FormField>
+
+    <button type="submit" class="knopf knopf-primaer">Vertrag anlegen</button>
+</EditForm>
+
+@code {
+    private IReadOnlyList<RentalUnitOption> rentalUnits = [];
+    private IReadOnlyList<PersonOption> people = [];
+    private IReadOnlyList<string>? errors;
+
+    [SupplyParameterFromForm(FormName = "vertrag")]
+    private LeaseForm? Form { get; set; }
+
+    [SupplyParameterFromQuery(Name = "mietobjekt")]
+    private Guid? RentalUnit { get; set; }
+
+    [SupplyParameterFromQuery(Name = "beginn")]
+    private DateOnly? Start { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Form ??= new() { RentalUnitId = RentalUnit, Start = Start };
+        rentalUnits = await Admin.RentalUnitsAsync();
+        people = await People.OptionsAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        var f = Form!;
+        var creation = new LeaseCreation
+        {
+            RentalUnitId = f.RentalUnitId,
+            Start = f.Start,
+            FixedTermUntil = f.FixedTermUntil,
+            TenantIds = new[] { f.Tenant1, f.Tenant2 }.OfType<Guid>().Distinct().ToList(),
+            GuarantorIds = f.Guarantor is { } b ? [b] : [],
+            BillingType = f.BillingType,
+            HeatingCostsConsumptionBased = f.HeatingCostsConsumptionBased,
+            BaseRent = f.BaseRent,
+            OperatingCostPrepayment = f.OperatingCostPrepayment,
+            HeatingCostPrepayment = f.HeatingCostPrepayment,
+            OperatingCostFlatRate = f.OperatingCostFlatRate,
+            People = f.People,
+            Data = new LeaseInput
+            {
+                DueOnWorkingDay = f.DueOnWorkingDay,
+                PaymentMethod = f.PaymentMethod,
+                NoticePeriodMonths = f.NoticePeriodMonths,
+                BillingType = f.BillingType,
+                HeatingCostsConsumptionBased = f.HeatingCostsConsumptionBased,
+                Deposit = f.Deposit,
+                DepositNote = f.DepositNote,
+                Notes = f.Notes,
+            },
+        };
+        var result = await Admin.CreateAsync(creation);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/vertraege/{result.Id}", "Der Vertrag wurde angelegt.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    /// <summary>Flaches Formularmodell (eine Ebene, damit Feldnamen und Validierung einfach bleiben).</summary>
+    private sealed class LeaseForm
+    {
+        [Required(ErrorMessage = "Bitte das Mietobjekt wählen.")]
+        public Guid? RentalUnitId { get; set; }
+
+        [Required(ErrorMessage = "Bitte den Mietbeginn angeben.")]
+        public DateOnly? Start { get; set; }
+
+        public DateOnly? FixedTermUntil { get; set; }
+
+        [Required(ErrorMessage = "Bitte den Mieter wählen.")]
+        public Guid? Tenant1 { get; set; }
+
+        public Guid? Tenant2 { get; set; }
+
+        public Guid? Guarantor { get; set; }
+
+        public BillingType BillingType { get; set; }
+
+        public bool HeatingCostsConsumptionBased { get; set; }
+
+        [Required(ErrorMessage = "Bitte die Kaltmiete angeben.")]
+        [Range(typeof(decimal), "0", "100000", ErrorMessage = "Bitte einen Betrag zwischen 0 und 100.000 € angeben.", ParseLimitsInInvariantCulture = true)]
+        public decimal? BaseRent { get; set; }
+
+        [Range(typeof(decimal), "0", "100000", ErrorMessage = "Bitte einen Betrag zwischen 0 und 100.000 € angeben.", ParseLimitsInInvariantCulture = true)]
+        public decimal? OperatingCostPrepayment { get; set; }
+
+        [Range(typeof(decimal), "0", "100000", ErrorMessage = "Bitte einen Betrag zwischen 0 und 100.000 € angeben.", ParseLimitsInInvariantCulture = true)]
+        public decimal? HeatingCostPrepayment { get; set; }
+
+        [Range(typeof(decimal), "0", "100000", ErrorMessage = "Bitte einen Betrag zwischen 0 und 100.000 € angeben.", ParseLimitsInInvariantCulture = true)]
+        public decimal? OperatingCostFlatRate { get; set; }
+
+        [Range(1, 20, ErrorMessage = "Bitte eine Personenanzahl zwischen 1 und 20 angeben.")]
+        public int People { get; set; } = 1;
+
+        [Range(1, 10, ErrorMessage = "Bitte einen Werktag zwischen 1 und 10 angeben.")]
+        public int DueOnWorkingDay { get; set; } = 3;
+
+        public PaymentMethod PaymentMethod { get; set; }
+
+        [Range(1, 24, ErrorMessage = "Bitte eine Kündigungsfrist zwischen 1 und 24 Monaten angeben.")]
+        public int NoticePeriodMonths { get; set; } = 3;
+
+        [Range(typeof(decimal), "0", "100000", ErrorMessage = "Bitte einen Betrag zwischen 0 und 100.000 € angeben.", ParseLimitsInInvariantCulture = true)]
+        public decimal? Deposit { get; set; }
+
+        [StringLength(1000)]
+        public string? DepositNote { get; set; }
+
+        [StringLength(4000)]
+        public string? Notes { get; set; }
+    }
+}

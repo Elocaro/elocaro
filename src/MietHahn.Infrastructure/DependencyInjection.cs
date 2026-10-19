@@ -5,100 +5,100 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Audit;
-using MietHahn.Application.Aufgaben;
 using MietHahn.Application.Bank;
-using MietHahn.Application.Belege;
-using MietHahn.Application.Betrieb;
-using MietHahn.Application.Dateien;
-using MietHahn.Application.Datenschutz;
-using MietHahn.Application.Dokumente;
-using MietHahn.Application.Finanzen;
-using MietHahn.Application.Gemeinsam;
-using MietHahn.Application.Kommunikation;
-using MietHahn.Application.Konten;
-using MietHahn.Application.Objekte;
-using MietHahn.Application.Personen;
-using MietHahn.Application.Vertraege;
-using MietHahn.Application.Verwaltung;
-using MietHahn.Application.Zaehlerwesen;
+using MietHahn.Application.Common;
+using MietHahn.Application.Communication;
+using MietHahn.Application.Documents;
+using MietHahn.Application.Files;
+using MietHahn.Application.Finance;
+using MietHahn.Application.Leases;
+using MietHahn.Application.Metering;
+using MietHahn.Application.Operations;
+using MietHahn.Application.People;
+using MietHahn.Application.Privacy;
+using MietHahn.Application.Properties;
+using MietHahn.Application.Receipts;
+using MietHahn.Application.Todos;
+using MietHahn.Infrastructure.Admin;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Bank;
-using MietHahn.Infrastructure.Belege;
-using MietHahn.Infrastructure.Betrieb;
-using MietHahn.Infrastructure.Dateien;
-using MietHahn.Infrastructure.Datenschutz;
-using MietHahn.Infrastructure.Dokumente;
-using MietHahn.Infrastructure.Finanzen;
-using MietHahn.Infrastructure.Identitaet;
+using MietHahn.Infrastructure.Documents;
+using MietHahn.Infrastructure.Files;
+using MietHahn.Infrastructure.Finance;
+using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Jobs;
+using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Mail;
-using MietHahn.Infrastructure.Objekte;
+using MietHahn.Infrastructure.Metering;
+using MietHahn.Infrastructure.Operations;
 using MietHahn.Infrastructure.Pdf;
-using MietHahn.Infrastructure.Persistenz;
-using MietHahn.Infrastructure.Personen;
-using MietHahn.Infrastructure.Vertraege;
-using MietHahn.Infrastructure.Verwaltung;
-using MietHahn.Infrastructure.Vorlagen;
-using MietHahn.Infrastructure.Zaehlerwesen;
+using MietHahn.Infrastructure.People;
+using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Privacy;
+using MietHahn.Infrastructure.Properties;
+using MietHahn.Infrastructure.Receipts;
+using MietHahn.Infrastructure.Templates;
 using Quartz;
 
 namespace MietHahn.Infrastructure;
 
 public static class DependencyInjection
 {
-    public const string VerbindungsName = "MietHahn";
+    public const string ConnectionName = "MietHahn";
 
     /// <summary>Registriert Persistenz und Infrastrukturdienste (Mail, Dateiablage, Hintergrundjobs).</summary>
-    public static IServiceCollection AddMietHahnInfrastruktur(this IServiceCollection services, IConfiguration konfiguration)
+    public static IServiceCollection AddMietHahnInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        ArgumentNullException.ThrowIfNull(konfiguration);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
-        services.TryAddScoped<IAktuellerBenutzer, SystemBenutzer>();
+        services.TryAddScoped<ICurrentUser, SystemUser>();
 
-        services.Configure<AnwendungOptionen>(konfiguration.GetSection(AnwendungOptionen.Abschnitt));
+        services.Configure<ApplicationOptions>(configuration.GetSection(ApplicationOptions.Section));
 
-        PersistenzRegistrieren(services, konfiguration);
-        IdentitaetRegistrieren(services);
-        AuditRegistrieren(services, konfiguration);
-        MailRegistrieren(services, konfiguration);
-        DateiablageRegistrieren(services, konfiguration);
-        PdfRegistrieren(services, konfiguration);
-        BetriebRegistrieren(services, konfiguration);
-        StammdatenRegistrieren(services);
-        DatenschutzRegistrieren(services, konfiguration);
-        JobsRegistrieren(services, konfiguration);
-        HealthChecksRegistrieren(services);
+        AddPersistence(services, configuration);
+        AddIdentity(services);
+        AddAudit(services, configuration);
+        AddMail(services, configuration);
+        AddFileStore(services, configuration);
+        AddPdf(services, configuration);
+        AddOperations(services, configuration);
+        AddMasterData(services);
+        AddPrivacy(services, configuration);
+        AddJobs(services, configuration);
+        AddHealthChecks(services);
 
         return services;
     }
 
-    internal static void KonfiguriereNpgsql(DbContextOptionsBuilder optionen, string verbindung) =>
-        optionen
-            .UseNpgsql(verbindung, npgsql => npgsql.MigrationsHistoryTable("__ef_migrationen"))
+    internal static void ConfigureNpgsql(DbContextOptionsBuilder options, string connection) =>
+        options
+            .UseNpgsql(connection, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations"))
             .UseSnakeCaseNamingConvention();
 
-    private static void PersistenzRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    private static void AddPersistence(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<DatenbankOptionen>(konfiguration.GetSection(DatenbankOptionen.Abschnitt));
-        services.AddScoped<EntitaetSpeichernInterceptor>();
+        services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.Section));
+        services.AddScoped<EntitySaveInterceptor>();
 
-        services.AddDbContext<MietHahnDbContext>((sp, optionen) =>
+        services.AddDbContext<MietHahnDbContext>((sp, options) =>
         {
-            KonfiguriereNpgsql(optionen, Verbindung(konfiguration));
-            optionen.AddInterceptors(sp.GetRequiredService<EntitaetSpeichernInterceptor>());
+            ConfigureNpgsql(options, Connection(configuration));
+            options.AddInterceptors(sp.GetRequiredService<EntitySaveInterceptor>());
         });
     }
 
-    private static void IdentitaetRegistrieren(IServiceCollection services)
+    private static void AddIdentity(IServiceCollection services)
     {
         services.AddHttpContextAccessor();
         services.AddDataProtection()
             .SetApplicationName("MietHahn")
             .PersistKeysToDbContext<MietHahnDbContext>();
 
-        services.AddIdentityCore<Benutzer>(o =>
+        services.AddIdentityCore<ApplicationUser>(o =>
             {
                 o.User.RequireUniqueEmail = true;
                 o.SignIn.RequireConfirmedAccount = false;
@@ -114,154 +114,154 @@ public static class DependencyInjection
                 o.Lockout.MaxFailedAccessAttempts = 5;
                 o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
-            .AddRoles<Rolle>()
+            .AddRoles<Role>()
             .AddEntityFrameworkStores<MietHahnDbContext>()
             .AddSignInManager<MietHahnSignInManager>()
             .AddDefaultTokenProviders()
-            .AddTokenProvider<EinladungsTokenProvider>(TokenAnbieter.Einladung)
+            .AddTokenProvider<InvitationTokenProvider>(TokenProviders.Invitation)
             .AddClaimsPrincipalFactory<MietHahnClaimsFactory>()
-            .AddErrorDescriber<DeutscheIdentityFehler>();
+            .AddErrorDescriber<GermanIdentityErrorDescriber>();
 
         // Passwort-Reset-Links: 2 Stunden; Einladungen nutzen den eigenen Anbieter (7 Tage).
         services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromHours(2));
-        services.AddScoped<IKontoverwaltung, Kontoverwaltung>();
-        services.AddScoped<IBenutzerverwaltung, Benutzerverwaltung>();
+        services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<IUserManagementService, UserManagement>();
     }
 
-    private static void AuditRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    private static void AddAudit(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<AuditOptionen>(konfiguration.GetSection(AuditOptionen.Abschnitt));
-        services.AddScoped<IZugriffsprotokoll, Zugriffsprotokoll>();
-        services.AddScoped<IAenderungsHistorie, AenderungsHistorie>();
-        services.AddScoped<AuditBereinigung>();
-        services.AddScoped<AuditSchreiber>();
+        services.Configure<AuditOptions>(configuration.GetSection(AuditOptions.Section));
+        services.AddScoped<IAccessLog, AccessLog>();
+        services.AddScoped<IChangeHistory, ChangeHistory>();
+        services.AddScoped<AuditCleanup>();
+        services.AddScoped<AuditWriter>();
     }
 
-    private static void MailRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    private static void AddMail(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<MailOptionen>(konfiguration.GetSection(MailOptionen.Abschnitt));
+        services.Configure<MailOptions>(configuration.GetSection(MailOptions.Section));
         services.TryAddSingleton<ScribanRenderer>();
-        services.AddScoped<IMailVersand, MailVersand>();
-        services.TryAddScoped<ISmtpVersender, MailKitSmtpVersender>();
+        services.AddScoped<IMailSender, MailSender>();
+        services.TryAddScoped<ISmtpSender, MailKitSmtpSender>();
         services.AddScoped<MailOutbox>();
-        services.AddScoped<IMailVerwaltung, MailVerwaltung>();
-        services.AddScoped<IAufgabenQuelle, MailAufgaben>();
+        services.AddScoped<IMailService, MailService>();
+        services.AddScoped<ITodoSource, MailTodos>();
     }
 
-    private static void DateiablageRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    private static void AddFileStore(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<DateiablageOptionen>(konfiguration.GetSection(DateiablageOptionen.Abschnitt));
-        services.AddScoped<IDateiablage, LokaleDateiablage>();
+        services.Configure<FileStoreOptions>(configuration.GetSection(FileStoreOptions.Section));
+        services.AddScoped<IFileStore, LocalFileStore>();
     }
 
-    private static void PdfRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    private static void AddPdf(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<PdfOptionen>(konfiguration.GetSection(PdfOptionen.Abschnitt));
-        services.AddHttpClient<GotenbergKonverter>((sp, http) =>
+        services.Configure<PdfOptions>(configuration.GetSection(PdfOptions.Section));
+        services.AddHttpClient<GotenbergConverter>((sp, http) =>
         {
-            var optionen = sp.GetRequiredService<IOptions<PdfOptionen>>().Value;
-            http.BaseAddress = optionen.GotenbergUrl;
-            http.Timeout = TimeSpan.FromSeconds(optionen.TimeoutSekunden);
+            var options = sp.GetRequiredService<IOptions<PdfOptions>>().Value;
+            http.BaseAddress = options.GotenbergUrl;
+            http.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
         });
-        services.AddScoped<IPdfErzeugung, PdfErzeugung>();
-        services.AddScoped<IVermieterprofilVerwaltung, VermieterprofilVerwaltung>();
+        services.AddScoped<IPdfGenerator, PdfGenerator>();
+        services.AddScoped<ILandlordProfileService, LandlordProfileService>();
     }
 
-    private static void BetriebRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    private static void AddOperations(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<BackupOptionen>(konfiguration.GetSection(BackupOptionen.Abschnitt));
+        services.Configure<BackupOptions>(configuration.GetSection(BackupOptions.Section));
         services.AddScoped<IBackupStatus, BackupStatus>();
-        services.AddScoped<IAufgabenQuelle, BackupAufgaben>();
-        services.AddScoped<BackupWarnung>();
-        services.AddScoped<IDatenexport, Datenexport>();
+        services.AddScoped<ITodoSource, BackupTodos>();
+        services.AddScoped<BackupWarning>();
+        services.AddScoped<IDataExport, DataExport>();
     }
 
-    private static void StammdatenRegistrieren(IServiceCollection services)
+    private static void AddMasterData(IServiceCollection services)
     {
-        services.AddScoped<IObjektVerwaltung, ObjektVerwaltung>();
-        services.AddScoped<IObjektZuordnungen, ObjektZuordnungen>();
-        services.AddScoped<IBelegungsauskunft, VertragsBelegung>();
-        services.AddScoped<IPersonenVerwaltung, PersonenVerwaltung>();
-        services.AddScoped<IVertragsVerwaltung, VertragsVerwaltung>();
-        services.AddScoped<IPersonenbezug, VertragsPersonenbezug>();
-        services.AddScoped<IPersonendatenQuelle, VertragsPersonendaten>();
-        services.AddScoped<IVpiVerwaltung, VpiVerwaltung>();
-        services.AddScoped<StaffelAnwendung>();
-        services.AddScoped<IAufgabenQuelle, MietmodellAufgaben>();
-        services.AddScoped<IZaehlerVerwaltung, ZaehlerVerwaltung>();
-        services.AddScoped<IAufgabenQuelle, EichfristAufgaben>();
-        services.AddScoped<IDokumentablage, Dokumentablage>();
-        services.AddScoped<IDateiFreigabe, DokumentDateiFreigabe>();
-        services.AddScoped<IAufgabenQuelle, DokumentAblaufAufgaben>();
-        services.AddScoped<IPersonendatenQuelle, DokumentPersonendaten>();
-        services.AddScoped<IMieterkonten, Mieterkonten>();
-        services.AddScoped<IFinanzeinstellungen, Finanzeinstellungsverwaltung>();
-        services.AddScoped<IAufgabenQuelle, FinanzAufgaben>();
-        services.AddScoped<IPersonendatenQuelle, MieterkontoPersonendaten>();
-        services.AddScoped<IBankverwaltung, Bankverwaltung>();
-        services.AddScoped<IAufgabenQuelle, BankAufgaben>();
-        services.AddScoped<IBelegverwaltung, Belegverwaltung>();
-        services.AddScoped<IAufgabenQuelle, BelegAufgaben>();
-        services.AddScoped<IPersonendatenQuelle, BelegPersonendaten>();
+        services.AddScoped<IPropertyService, PropertyService>();
+        services.AddScoped<IPropertyAssignments, PropertyAssignments>();
+        services.AddScoped<IOccupancyLookup, LeaseOccupancy>();
+        services.AddScoped<IPersonService, PersonService>();
+        services.AddScoped<ILeaseService, LeaseService>();
+        services.AddScoped<IPersonReference, LeasePersonalReferences>();
+        services.AddScoped<IPersonalDataSource, LeasePersonalData>();
+        services.AddScoped<ICpiService, CpiService>();
+        services.AddScoped<RentStepApplication>();
+        services.AddScoped<ITodoSource, RentModelTodos>();
+        services.AddScoped<IMeterService, MeterService>();
+        services.AddScoped<ITodoSource, CalibrationDueTodos>();
+        services.AddScoped<IDocumentLibrary, DocumentLibrary>();
+        services.AddScoped<IFileShare, DocumentFileShare>();
+        services.AddScoped<ITodoSource, DocumentExpiryTodos>();
+        services.AddScoped<IPersonalDataSource, DocumentPersonalData>();
+        services.AddScoped<ITenantAccounts, TenantAccounts>();
+        services.AddScoped<IFinanceSettings, FinanceSettingsService>();
+        services.AddScoped<ITodoSource, FinanceTodos>();
+        services.AddScoped<IPersonalDataSource, TenantAccountPersonalData>();
+        services.AddScoped<IBankService, BankService>();
+        services.AddScoped<ITodoSource, BankTodos>();
+        services.AddScoped<IReceiptService, ReceiptService>();
+        services.AddScoped<ITodoSource, ReceiptTodos>();
+        services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();
     }
 
-    private static void DatenschutzRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    private static void AddPrivacy(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<DatenschutzOptionen>(konfiguration.GetSection(DatenschutzOptionen.Abschnitt));
-        services.AddScoped<IDatenschutz, Datenschutz.Datenschutz>();
+        services.Configure<PrivacyOptions>(configuration.GetSection(PrivacyOptions.Section));
+        services.AddScoped<IPrivacyService, Privacy.Privacy>();
     }
 
-    private static void HealthChecksRegistrieren(IServiceCollection services) =>
+    private static void AddHealthChecks(IServiceCollection services) =>
         services.AddHealthChecks()
-            .AddDbContextCheck<MietHahnDbContext>("datenbank", tags: [HealthTags.Bereit])
-            .AddCheck<GotenbergHealthCheck>("gotenberg", tags: [HealthTags.Bereit])
-            .AddCheck<DateiablageHealthCheck>("dateiablage", tags: [HealthTags.Bereit])
-            .AddCheck<BackupHealthCheck>("backup", tags: [HealthTags.Bereit]);
+            .AddDbContextCheck<MietHahnDbContext>("database", tags: [HealthTags.Ready])
+            .AddCheck<GotenbergHealthCheck>("gotenberg", tags: [HealthTags.Ready])
+            .AddCheck<FileStoreHealthCheck>("file-store", tags: [HealthTags.Ready])
+            .AddCheck<BackupHealthCheck>("backup", tags: [HealthTags.Ready]);
 
-    private static void JobsRegistrieren(IServiceCollection services, IConfiguration konfiguration)
+    private static void AddJobs(IServiceCollection services, IConfiguration configuration)
     {
-        var abschnitt = konfiguration.GetSection(JobsOptionen.Abschnitt);
-        services.Configure<JobsOptionen>(abschnitt);
-        var jobs = abschnitt.Get<JobsOptionen>() ?? new JobsOptionen();
+        var section = configuration.GetSection(JobsOptions.Section);
+        services.Configure<JobsOptions>(section);
+        var jobs = section.Get<JobsOptions>() ?? new JobsOptions();
 
-        if (!jobs.Aktiv)
+        if (!jobs.Active)
         {
-            services.AddScoped<IJobUebersicht, LeereJobUebersicht>();
+            services.AddScoped<IJobOverview, EmptyJobOverview>();
             return;
         }
 
-        services.AddSingleton<JobLaufProtokoll>();
+        services.AddSingleton<JobRunLog>();
         services.AddQuartz(q =>
         {
             q.SchedulerName = "MietHahn";
             q.SchedulerId = "AUTO";
             q.UsePersistentStore(s =>
             {
-                s.UsePostgres(Verbindung(konfiguration));
+                s.UsePostgres(Connection(configuration));
                 s.UseSystemTextJsonSerializer();
                 s.PerformSchemaValidation = true;
             });
-            q.AddJobListener<JobLaufProtokoll>();
+            q.AddJobListener<JobRunLog>();
 
-            q.PlaneIntervall<MailOutboxJob>(MailOutboxJob.Schluessel, "Versendet fällige E-Mails aus der Outbox", TimeSpan.FromSeconds(30));
-            q.PlaneTaeglich<JobProtokollBereinigungJob>(JobProtokollBereinigungJob.Schluessel, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);
-            q.PlaneTaeglich<AuditBereinigungJob>(AuditBereinigungJob.Schluessel, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
-            q.PlaneTaeglich<StaffelJob>(StaffelJob.Schluessel, "Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins", 0, 30);
-            q.PlaneTaeglich<SollstellungJob>(SollstellungJob.Schluessel, "Erzeugt die Monatsmieten (Sollstellungen) und gleicht sie an Vertragsänderungen an", 0, 40);
-            q.PlaneTaeglich<BackupWarnungJob>(BackupWarnungJob.Schluessel, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
+            q.ScheduleInterval<MailOutboxJob>(MailOutboxJob.Key, "Versendet fällige E-Mails aus der Outbox", TimeSpan.FromSeconds(30));
+            q.ScheduleDaily<JobLogCleanupJob>(JobLogCleanupJob.Key, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);
+            q.ScheduleDaily<AuditCleanupJob>(AuditCleanupJob.Key, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
+            q.ScheduleDaily<RentStepJob>(RentStepJob.Key, "Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins", 0, 30);
+            q.ScheduleDaily<ChargeJob>(ChargeJob.Key, "Erzeugt die Monatsmieten (Sollstellungen) und gleicht sie an Vertragsänderungen an", 0, 40);
+            q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
-        services.AddScoped<IJobUebersicht, QuartzJobUebersicht>();
+        services.AddScoped<IJobOverview, QuartzJobOverview>();
     }
 
-    private static string Verbindung(IConfiguration konfiguration)
+    private static string Connection(IConfiguration configuration)
     {
-        var verbindung = konfiguration.GetConnectionString(VerbindungsName);
-        if (string.IsNullOrWhiteSpace(verbindung))
+        var connection = configuration.GetConnectionString(ConnectionName);
+        if (string.IsNullOrWhiteSpace(connection))
         {
-            throw new InvalidOperationException($"Verbindungszeichenfolge 'ConnectionStrings:{VerbindungsName}' fehlt.");
+            throw new InvalidOperationException($"Verbindungszeichenfolge 'ConnectionStrings:{ConnectionName}' fehlt.");
         }
 
-        return verbindung;
+        return connection;
     }
 }

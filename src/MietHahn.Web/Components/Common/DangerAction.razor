@@ -1,0 +1,33 @@
+@* Riskante Aktion mit Rückfrage ohne JavaScript: erst aufklappen, dann bestätigen. *@
+<details class="gefahrenaktion">
+    <summary class="knopf knopf-gefahr">@Text</summary>
+    <div class="gefahrenaktion-inhalt" role="alertdialog" aria-label="@Text">
+        <p>@Confirmation</p>
+        <form method="post" @formname="@FormName" @onsubmit="Confirmed">
+            <AntiforgeryToken />
+            @ChildContent
+            <button type="submit" class="knopf knopf-gefahr">@ConfirmText</button>
+        </form>
+    </div>
+</details>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Confirmation { get; set; } = "";
+
+    [Parameter]
+    public string ConfirmText { get; set; } = "Ja, ausführen";
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public EventCallback Confirmed { get; set; }
+
+    /// <summary>Zusätzliche (versteckte) Felder des Formulars.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

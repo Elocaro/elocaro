@@ -1,0 +1,45 @@
+@page "/verwaltung/bank/konten/neu"
+@using MietHahn.Application.Properties
+@inject IBankService Bank
+@inject IPropertyService PropertyService
+@inject Redirector Redirector
+
+<PageHeader Title="Bankkonto anlegen" Back="/verwaltung/bank/konten" BackText="Alle Konten" />
+
+<ErrorList Errors="errors" />
+
+<EditForm Model="Data" FormName="konto" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <AccountFields Data="Data!" Properties="properties" />
+    <button type="submit" class="knopf knopf-primaer">Anlegen</button>
+</EditForm>
+
+@code {
+    private IReadOnlyList<PropertyOverview> properties = [];
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "konto")]
+    private BankAccountInput? Data { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Data ??= new();
+        properties = await PropertyService.ListAsync(null);
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Bank.CreateAccountAsync(Data!);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/bank/konten/{result.Id}", "Das Konto wurde angelegt. Jetzt einen Kontoauszug importieren.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

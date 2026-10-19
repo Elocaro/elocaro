@@ -1,0 +1,19 @@
+@using System.Security.Claims
+@using MietHahn.Infrastructure.Identity
+
+<AuthorizeView>
+    <Authorized>
+        <details class="benutzermenue">
+            <summary aria-label="Benutzermenü">
+                <span class="benutzername">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</span>
+            </summary>
+            <div class="benutzermenue-inhalt">
+                <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
+                <form method="post" action="/konto/abmelden">
+                    <AntiforgeryToken />
+                    <button type="submit" class="knopf-link">Abmelden</button>
+                </form>
+            </div>
+        </details>
+    </Authorized>
+</AuthorizeView>

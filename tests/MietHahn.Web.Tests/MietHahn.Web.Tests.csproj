@@ -9,11 +9,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MietHahn.Web\MietHahn.Web.csproj" />
-    <ProjectReference Include="..\MietHahn.TestHilfen\MietHahn.TestHilfen.csproj" />
+    <ProjectReference Include="..\MietHahn.TestHelpers\MietHahn.TestHelpers.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\MietHahn.Integration.Tests\Bank\Testdateien\**" Link="Bank\Testdateien\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\MietHahn.Integration.Tests\Bank\TestFiles\**" Link="Bank\TestFiles\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

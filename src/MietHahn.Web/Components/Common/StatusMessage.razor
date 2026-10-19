@@ -1,0 +1,29 @@
+@* Zeigt eine Meldung aus dem Parameter oder aus dem Status-Cookie der vorherigen Seite. *@
+@if (!string.IsNullOrEmpty(DisplayText))
+{
+    <p class="meldung @(IsError ? "meldung-fehler" : "meldung-ok")" role="@(IsError ? "alert" : "status")">@DisplayText</p>
+}
+
+@code {
+    private string? cookieMessage;
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>Als Fehler darstellen (rot, role=alert).</summary>
+    [Parameter]
+    public bool IsError { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? DisplayText => Message ?? cookieMessage;
+
+    protected override void OnInitialized()
+    {
+        if (HttpContext is not null)
+        {
+            cookieMessage = Redirector.ReadMessage(HttpContext);
+        }
+    }
+}

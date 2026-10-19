@@ -1,0 +1,51 @@
+@* Eingabefelder eines Objekts; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormField Id="bezeichnung" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Lindenweg 3“">
+        <InputText id="bezeichnung" @bind-Value="Data.Name" />
+    </FormField>
+    <FormField Id="strasse" Label="Straße und Hausnummer" For="() => Data.Street" Required="true">
+        <InputText id="strasse" @bind-Value="Data.Street" autocomplete="street-address" />
+    </FormField>
+    <FormField Id="plz" Label="PLZ" For="() => Data.PostalCode" Required="true">
+        <InputText id="plz" @bind-Value="Data.PostalCode" inputmode="numeric" autocomplete="postal-code" />
+    </FormField>
+    <FormField Id="ort" Label="Ort" For="() => Data.City" Required="true">
+        <InputText id="ort" @bind-Value="Data.City" autocomplete="address-level2" />
+    </FormField>
+    <FormField Id="baujahr" Label="Baujahr" For="() => Data.YearBuilt">
+        <InputNumber id="baujahr" @bind-Value="Data.YearBuilt" inputmode="numeric" />
+    </FormField>
+    <FormField Id="heizungsart" Label="Heizungsart" For="() => Data.HeatingType">
+        <InputSelect id="heizungsart" @bind-Value="Data.HeatingType">
+            @foreach (var value in Enum.GetValues<HeatingType>())
+            {
+                <option value="@value">@Labels.From(value)</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="energietraeger" Label="Energieträger" For="() => Data.EnergySource" Hint="Wichtig für die CO₂-Kostenaufteilung.">
+        <InputSelect id="energietraeger" @bind-Value="Data.EnergySource">
+            @foreach (var value in Enum.GetValues<EnergySource>())
+            {
+                <option value="@value">@Labels.From(value)</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="gemarkung" Label="Gemarkung" For="() => Data.CadastralDistrict">
+        <InputText id="gemarkung" @bind-Value="Data.CadastralDistrict" />
+    </FormField>
+    <FormField Id="flurstueck" Label="Flur/Flurstück" For="() => Data.ParcelNumber">
+        <InputText id="flurstueck" @bind-Value="Data.ParcelNumber" />
+    </FormField>
+    <FormField Id="grundsteuer" Label="Grundsteuer-Aktenzeichen" For="() => Data.PropertyTaxReference">
+        <InputText id="grundsteuer" @bind-Value="Data.PropertyTaxReference" />
+    </FormField>
+</div>
+<FormField Id="notizen" Label="Notizen" For="() => Data.Notes">
+    <InputTextArea id="notizen" @bind-Value="Data.Notes" rows="3" />
+</FormField>
+
+@code {
+    [Parameter, EditorRequired]
+    public PropertyInput Data { get; set; } = default!;
+}

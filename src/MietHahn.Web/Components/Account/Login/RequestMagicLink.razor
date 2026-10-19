@@ -1,0 +1,50 @@
+@page "/konto/link"
+@inject IAccountService Accounts
+
+<PageTitle>Anmeldelink anfordern – MietHahn</PageTitle>
+
+<h1>Anmelden per E-Mail</h1>
+
+@if (sent)
+{
+    <p class="meldung meldung-ok" role="status">
+        Falls ein passendes Konto existiert, haben wir Ihnen einen Anmeldelink geschickt. Er ist 15 Minuten gültig.
+    </p>
+}
+else
+{
+    <p>Sie erhalten einen Link, mit dem Sie sich ohne Passwort anmelden können (für Mieter, Handwerker und Hausmeister).</p>
+    <EditForm Model="Input" FormName="magic-link" OnValidSubmit="RequestAsync">
+        <DataAnnotationsValidator />
+        <div class="feld">
+            <label for="email">E-Mail-Adresse</label>
+            <InputText id="email" type="email" @bind-Value="Input!.Email" autocomplete="email" />
+            <ValidationMessage For="() => Input!.Email" />
+        </div>
+        <button type="submit" class="knopf knopf-primaer">Link senden</button>
+    </EditForm>
+}
+
+<div class="konto-links"><a href="/konto/anmelden">Mit Passwort anmelden</a></div>
+
+@code {
+    private bool sent;
+
+    [SupplyParameterFromForm(FormName = "magic-link")]
+    private EmailInput? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task RequestAsync()
+    {
+        await Accounts.RequestMagicLinkAsync(Input!.Email.Trim());
+        sent = true; // gleiche Antwort für bekannte und unbekannte Adressen
+    }
+
+    private sealed class EmailInput
+    {
+        [Required(ErrorMessage = "Bitte die E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string Email { get; set; } = "";
+    }
+}

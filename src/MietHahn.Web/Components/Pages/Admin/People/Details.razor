@@ -1,0 +1,288 @@
+@page "/verwaltung/personen/{Id:guid}"
+@using MietHahn.Application.Privacy
+@inject IPersonService Admin
+@inject IPrivacyService Privacy
+@inject Redirector Redirector
+
+@if (person is null)
+{
+    <PageHeader Title="Person nicht gefunden" Back="/verwaltung/personen" BackText="Alle Personen" />
+    return;
+}
+
+<PageHeader Title="@person.DisplayName" Subtitle="@Subtitle" Back="/verwaltung/personen" BackText="Alle Personen">
+    <Actions>
+        @if (person.AnonymizedAt is null)
+        {
+            <a class="knopf" href="/verwaltung/personen/@Id/bearbeiten">Bearbeiten</a>
+        }
+        <a class="knopf" href="/verwaltung/personen/@Id/auskunft" download>DSGVO-Auskunft</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+@if (person.AnonymizedAt is { } anonymized)
+{
+    <p class="meldung meldung-hinweis" role="status">Die personenbezogenen Daten wurden am @Format.Timestamp(anonymized) entfernt (DSGVO).</p>
+}
+
+<dl class="angaben">
+    @if (person.Data.Email is not null)
+    {
+        <dt>E-Mail</dt><dd><a href="mailto:@person.Data.Email">@person.Data.Email</a></dd>
+    }
+    @if (person.Data.Phone is not null)
+    {
+        <dt>Telefon</dt><dd><a href="tel:@person.Data.Phone">@person.Data.Phone</a></dd>
+    }
+    @if (person.Data.Mobile is not null)
+    {
+        <dt>Mobil</dt><dd><a href="tel:@person.Data.Mobile">@person.Data.Mobile</a></dd>
+    }
+    @if (person.Data.DateOfBirth is not null)
+    {
+        <dt>Geburtsdatum</dt><dd>@Format.Date(person.Data.DateOfBirth)</dd>
+    }
+    @if (person.Data.Notes is not null)
+    {
+        <dt>Notizen</dt><dd>@person.Data.Notes</dd>
+    }
+</dl>
+
+@if (person.References.Count > 0)
+{
+    <section>
+        <h2>Verträge &amp; Vorgänge</h2>
+        <ul>
+            @foreach (var reference in person.References)
+            {
+                <li>
+                    <strong>@reference.Role:</strong>
+                    @if (reference.Link is not null)
+                    {
+                        <a href="@reference.Link">@reference.Description</a>
+                    }
+                    else
+                    {
+                        @reference.Description
+                    }
+                    @if (!reference.Active)
+                    {
+                        <span class="status">beendet</span>
+                    }
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+@if (person.AnonymizedAt is null)
+{
+    <section>
+        <h2>Anschrift</h2>
+        @if (person.Address is null)
+        {
+            <p class="klein">Keine aktuelle Anschrift hinterlegt.</p>
+        }
+        else
+        {
+            <p>@person.Address.SingleLine <span class="klein">(@Format.Period(person.Address.Validity))</span></p>
+        }
+        <details class="aufklapper" open="@(person.Address is null)">
+            <summary>Neue Anschrift (Umzug, Einzug, Auszug)</summary>
+            <EditForm Model="Address" FormName="anschrift" OnValidSubmit="SaveAddressAsync">
+                <DataAnnotationsValidator />
+                <AddressFields Address="Address!" />
+                <button type="submit" class="knopf">Anschrift speichern</button>
+            </EditForm>
+            <p class="klein">Die bisherige Anschrift endet am Vortag und bleibt erhalten (z. B. für die Zustellung früherer Abrechnungen an die neue Anschrift).</p>
+        </details>
+        @if (person.Addresses.Count > 1)
+        {
+            <h3>Frühere und künftige Anschriften</h3>
+            <ul class="klein">
+                @foreach (var entry in person.Addresses)
+                {
+                    <li>@Format.Period(entry.Validity): @entry.SingleLine</li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section>
+        <h2>Bankverbindungen</h2>
+        <p class="klein">Alle Konten, von denen die Person zahlt: eingehende Zahlungen werden über die IBAN zugeordnet.</p>
+        @if (person.BankDetails.Count > 0)
+        {
+            @* Ein Formular für alle Zeilen: der geklickte Knopf sendet seine Id (Formularnamen müssen eindeutig sein). *@
+            <form method="post" @formname="iban-entfernen" @onsubmit="RemoveBankDetailsAsync">
+                <AntiforgeryToken />
+                <div class="tabellen-rahmen">
+                    <table class="tabelle">
+                        <thead><tr><th>IBAN</th><th>Kontoinhaber</th><th>BIC</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var bank in person.BankDetails)
+                            {
+                                <tr>
+                                    <td><code>@bank.Iban</code></td>
+                                    <td>@bank.AccountHolder</td>
+                                    <td>@bank.Bic</td>
+                                    <td><button type="submit" name="RemoveId" value="@bank.Id" class="knopf knopf-gefahr" aria-label="IBAN @bank.Iban entfernen">Entfernen</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        }
+        <details class="aufklapper" open="@(person.BankDetails.Count == 0)">
+            <summary>IBAN hinzufügen</summary>
+            <EditForm Model="Bank" FormName="iban" OnValidSubmit="AddBankDetailsAsync" class="formular-raster">
+                <DataAnnotationsValidator />
+                <FormField Id="iban" Label="IBAN" For="() => Bank!.Iban" Required="true">
+                    <InputText id="iban" @bind-Value="Bank!.Iban" autocomplete="off" />
+                </FormField>
+                <FormField Id="kontoinhaber" Label="Kontoinhaber" For="() => Bank!.AccountHolder" Hint="Falls abweichend">
+                    <InputText id="kontoinhaber" @bind-Value="Bank!.AccountHolder" autocomplete="off" />
+                </FormField>
+                <FormField Id="bic" Label="BIC" For="() => Bank!.Bic">
+                    <InputText id="bic" @bind-Value="Bank!.Bic" autocomplete="off" />
+                </FormField>
+                <div class="feld feld-aktion">
+                    <button type="submit" class="knopf">IBAN hinzufügen</button>
+                </div>
+            </EditForm>
+        </details>
+    </section>
+
+    <section>
+        <h2>Zugang</h2>
+        @if (person.Access is { } access)
+        {
+            <p>
+                Konto <a href="/verwaltung/benutzer/@access.UserId">@access.Email</a> (@MietHahn.Application.Accounts.Roles.DisplayName(access.Role))
+                @if (access.Locked)
+                {
+                    <span class="status status-fehler">gesperrt</span>
+                }
+            </p>
+        }
+        else
+        {
+            <p class="klein">Mit einem Zugang sieht die Person ihre Verträge, Dokumente und Tickets im Portal (Mieter) bzw. im Servicebereich.</p>
+            <form method="post" @formname="zugang" @onsubmit="SetUpAccessAsync">
+                <AntiforgeryToken />
+                <button type="submit" class="knopf" disabled="@(person.Data.Email is null)">Zugang einrichten und einladen</button>
+            </form>
+            @if (person.Data.Email is null)
+            {
+                <p class="klein">Dafür zuerst eine E-Mail-Adresse hinterlegen.</p>
+            }
+        }
+    </section>
+
+    <section>
+        <h2>Löschen &amp; Datenschutz</h2>
+        @if (person.References.Count == 0)
+        {
+            <DangerAction Text="Person löschen" FormName="loeschen" Confirmed="DeleteAsync"
+                            Confirmation="Die Person wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
+        }
+        else if (person.References.Any(b => b.Active))
+        {
+            <p class="klein">Solange Verträge laufen, kann die Person weder gelöscht noch anonymisiert werden.</p>
+        }
+        else
+        {
+            <p class="klein">Nach Ablauf der Aufbewahrungsfrist erscheint die Person unter <a href="/verwaltung/datenschutz">Datenschutz</a> zur Anonymisierung.</p>
+            <DangerAction Text="Jetzt anonymisieren" FormName="anonymisieren" Confirmed="AnonymizeAsync"
+                            Confirmation="Name, Kontaktdaten, Anschriften, IBANs und die Werte im Änderungsprotokoll werden endgültig entfernt. Das lässt sich nicht rückgängig machen. Aufbewahrungspflichten beachten!"
+                            ConfirmText="Ja, endgültig anonymisieren" />
+        }
+    </section>
+}
+
+<DocumentsSection PersonId="Id" />
+
+<ChangeHistory EntityType="@nameof(Person)" EntityId="Id" />
+
+@code {
+    private PersonDetails? person;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "anschrift")]
+    private AddressInput? Address { get; set; }
+
+    [SupplyParameterFromForm(FormName = "iban")]
+    private BankDetailsInput? Bank { get; set; }
+
+    [SupplyParameterFromForm(FormName = "iban-entfernen")]
+    private Guid? RemoveId { get; set; }
+
+    private string Subtitle
+    {
+        get
+        {
+            var parts = new List<string>(person!.References.Select(b => b.Role).Distinct());
+            if (person.Data.ContactType != ContactType.None)
+            {
+                parts.Add(Labels.From(person.Data.ContactType) + (person.Data.Occupation is null ? "" : $" ({person.Data.Occupation})"));
+            }
+
+            return parts.Count == 0 ? "Privatperson" : string.Join(", ", parts);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Address ??= new();
+        Bank ??= new();
+        person = await Admin.GetAsync(Id);
+    }
+
+    private Task SaveAddressAsync() => ExecuteAsync(Admin.SetAddressAsync(Id, Address!), "Die Anschrift wurde gespeichert.");
+
+    private Task AddBankDetailsAsync() => ExecuteAsync(Admin.AddBankDetailsAsync(Id, Bank!), "Die IBAN wurde hinzugefügt.");
+
+    private Task RemoveBankDetailsAsync() =>
+        RemoveId is { } bank ? ExecuteAsync(Admin.RemoveBankDetailsAsync(Id, bank), "Die IBAN wurde entfernt.") : Task.CompletedTask;
+
+    private Task SetUpAccessAsync() => ExecuteAsync(Admin.SetUpAccessAsync(Id), "Der Zugang wurde eingerichtet.");
+
+    private Task AnonymizeAsync() => ExecuteAsync(Privacy.AnonymizeAsync(Id), "Die Person wurde anonymisiert.");
+
+    private async Task DeleteAsync()
+    {
+        var result = await Admin.DeleteAsync(Id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/personen", "Die Person wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/personen/{Id}", success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            person = await Admin.GetAsync(Id);
+        }
+    }
+}

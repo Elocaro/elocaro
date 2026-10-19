@@ -1,0 +1,107 @@
+@page "/verwaltung/zimmer/{Id:guid}"
+@inject IPropertyService Admin
+@inject Redirector Redirector
+
+@if (room is null)
+{
+    <PageHeader Title="Zimmer nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+    return;
+}
+
+<PageHeader Title="@room.Data.Name" Subtitle="@($"{room.UnitName} · {room.PropertyName}")"
+            Back="@($"/verwaltung/einheiten/{room.UnitId}")" BackText="@room.UnitName" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<section>
+    <h2>Belegung</h2>
+    <p><OccupancyDisplay Occupancy="room.Occupancy" /></p>
+</section>
+
+<LeaseHistory RentalUnitId="Id" />
+
+<AreaSection Input="Area!" OnSave="SaveAreaAsync" Current="room.Area" History="room.AreaHistory"
+                 AreaText="Zimmerfläche" AdditionalText="Anteil Gemeinschaftsfläche" AdditionalHint="Anteil an Küche, Bad, Flur der WG (für Umlagen nach Fläche)." />
+
+<section>
+    <h2>Angaben</h2>
+    <EditForm Model="Data" FormName="zimmer" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <RoomFields Data="Data!" />
+        <button type="submit" class="knopf knopf-primaer">Speichern</button>
+    </EditForm>
+</section>
+
+<section>
+    <DangerAction Text="Zimmer löschen" FormName="loeschen" Confirmed="DeleteAsync"
+                    Confirmation="Das Zimmer wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
+</section>
+
+<ChangeHistory EntityType="@nameof(MietHahn.Domain.Properties.Room)" EntityId="Id" />
+
+@code {
+    private RoomDetails? room;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "zimmer")]
+    private RoomInput? Data { get; set; }
+
+    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // Feldnamen kommen aus AreaSection
+    private AreaInput? Area { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        Data ??= new();
+        Area ??= new();
+        room = await Admin.GetRoomAsync(Id);
+        if (room is not null)
+        {
+            Data = form ?? room.Data;
+            if (Area.From is null)
+            {
+                Area.Area ??= room.Area?.Area;
+                Area.SecondaryArea ??= room.Area?.SecondaryArea;
+            }
+        }
+    }
+
+    private Task SaveAsync() => ExecuteAsync(Admin.UpdateRoomAsync(Id, Data!), "Die Angaben wurden gespeichert.");
+
+    private Task SaveAreaAsync() => ExecuteAsync(Admin.SetRoomAreaAsync(Id, Area!), "Die Fläche wurde gespeichert.");
+
+    private async Task DeleteAsync()
+    {
+        var unitId = room!.UnitId;
+        var result = await Admin.DeleteRoomAsync(Id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/einheiten/{unitId}", "Das Zimmer wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/zimmer/{Id}", success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            room = await Admin.GetRoomAsync(Id);
+        }
+    }
+}

@@ -1,0 +1,328 @@
+@page "/verwaltung/zaehler/{Id:guid}"
+@inject IMeterService Admin
+@inject IPropertyService Properties
+@inject IFileStore Storage
+@inject Redirector Redirector
+@inject TimeProvider Clock
+
+@if (meter is null)
+{
+    <PageHeader Title="Zähler nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+    return;
+}
+
+<PageHeader Title="@meter.Meter.Name" Subtitle="@($"{Labels.From(meter.Meter.Type)} · Nr. {meter.Meter.Number} · {meter.Meter.Assignment}")"
+            Back="@($"/verwaltung/objekte/{meter.PropertyId}/zaehler")" BackText="@($"Zähler {meter.PropertyName}")" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<dl class="angaben">
+    <dt>Eingebaut</dt><dd>@Format.Date(meter.Meter.InstalledOn)@(meter.Meter.RemovedOn is { } removal ? $", ausgebaut am {Format.Date(removal)}" : "")</dd>
+    @if (meter.Meter.CalibrationDueDate is { } deadline)
+    {
+        <dt>Eichfrist</dt><dd>@Format.Date(deadline)</dd>
+    }
+    @if (meter.Meter.Location is not null)
+    {
+        <dt>Lage</dt><dd>@meter.Meter.Location</dd>
+    }
+    @if (meter.MeteringPoint.Count > 1)
+    {
+        <dt>Messstelle</dt>
+        <dd>
+            @foreach (var m in meter.MeteringPoint)
+            {
+                <a href="/verwaltung/zaehler/@m.Id">@m.Number</a>
+                <span class="klein">(@Format.Date(m.InstalledOn) – @(m.RemovedOn is null ? "heute" : Format.Date(m.RemovedOn)))</span>
+                @if (m != meter.MeteringPoint[^1])
+                {
+                    <span> → </span>
+                }
+            }
+        </dd>
+    }
+</dl>
+
+@if (meter.Meter.RemovedOn is null)
+{
+    <section>
+        <h2>Stand erfassen</h2>
+        @if (warnings is { Count: > 0 })
+        {
+            <div class="meldung meldung-hinweis" role="alert">
+                <strong>Bitte prüfen:</strong>
+                <ul>
+                    @foreach (var w in warnings)
+                    {
+                        <li>@w</li>
+                    }
+                </ul>
+            </div>
+        }
+        <EditForm Model="Entry" FormName="stand" OnValidSubmit="RecordReadingAsync" enctype="multipart/form-data">
+            <DataAnnotationsValidator />
+            <div class="formular-raster">
+                <FormField Id="stand-datum" Label="Datum" For="() => Entry!.Date" Required="true">
+                    <InputDate id="stand-datum" @bind-Value="Entry!.Date" />
+                </FormField>
+                <FormField Id="stand-wert" Label="@($"Zählerstand ({Labels.From(meter.Meter.MeasurementUnit)})")" For="() => Entry!.Value" Required="true">
+                    <InputArea id="stand-wert" @bind-Value="Entry!.Value" step="0.001" />
+                </FormField>
+                <FormField Id="stand-art" Label="Art" For="() => Entry!.Kind">
+                    <InputSelect id="stand-art" @bind-Value="Entry!.Kind">
+                        <option value="@ReadingType.Reading">Ablesung</option>
+                        <option value="@ReadingType.InterimReading">Zwischenablesung (z. B. Mieterwechsel)</option>
+                        <option value="@ReadingType.Estimate">Schätzung</option>
+                    </InputSelect>
+                </FormField>
+                <div class="feld">
+                    <label for="stand-foto">Foto</label>
+                    <input type="file" id="stand-foto" name="Photo" accept="image/*" capture="environment" />
+                </div>
+                <FormField Id="stand-notiz" Label="Notiz" For="() => Entry!.Note">
+                    <InputText id="stand-notiz" @bind-Value="Entry!.Note" />
+                </FormField>
+            </div>
+            @if (warnings is { Count: > 0 })
+            {
+                <input type="hidden" name="Entry.Confirmed" value="true" />
+                <input type="hidden" name="PhotoId" value="@PhotoId" />
+                <button type="submit" class="knopf knopf-primaer">Trotzdem speichern</button>
+            }
+            else
+            {
+                <button type="submit" class="knopf knopf-primaer">Stand speichern</button>
+            }
+        </EditForm>
+    </section>
+}
+
+<section>
+    <h2>Verbrauch</h2>
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead><tr><th>Jahr</th><th class="zahl">Verbrauch</th><th>Hinweis</th></tr></thead>
+            <tbody>
+                @foreach (var year in meter.AnnualConsumptions)
+                {
+                    <tr>
+                        <td>@year.Year</td>
+                        <td class="zahl">@Format.Quantity(year.Consumption.Quantity, Labels.From(meter.Meter.MeasurementUnit))</td>
+                        <td class="klein">@(year.Consumption.MissingReason ?? (year.Consumption.ContainsInterpolation ? "enthält interpolierte Stände" : ""))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@if (meter.SubMeters.Count > 0)
+{
+    <section>
+        <h2>Unterzähler</h2>
+        <ul>
+            @foreach (var u in meter.SubMeters)
+            {
+                <li><a href="/verwaltung/zaehler/@u.Id">@u.Name</a> <span class="klein">@u.Number · @u.Assignment</span></li>
+            }
+        </ul>
+        @if (meter.Balance is { } balance)
+        {
+            <dl class="angaben">
+                <dt>@balance.Year: Hauptzähler</dt><dd>@Format.Quantity(balance.MainMeter, Labels.From(meter.Meter.MeasurementUnit))</dd>
+                <dt>Summe Unterzähler</dt><dd>@Format.Quantity(balance.SubMeterTotal, Labels.From(meter.Meter.MeasurementUnit))</dd>
+                <dt>Differenz</dt><dd><strong>@Format.Quantity(balance.Difference, Labels.From(meter.Meter.MeasurementUnit))</strong> <span class="klein">(Allgemeinverbrauch, Schwund, Messtoleranz)</span></dd>
+            </dl>
+            @foreach (var hint in balance.Hints)
+            {
+                <p class="klein">@hint</p>
+            }
+        }
+    </section>
+}
+
+<section>
+    <h2>Stände</h2>
+    <form method="post" @formname="stand-entfernen" @onsubmit="RemoveReadingAsync">
+        <AntiforgeryToken />
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Datum</th><th class="zahl">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var entry in meter.Readings)
+                    {
+                        <tr>
+                            <td>@Format.Date(entry.Date)</td>
+                            <td class="zahl">@Format.Quantity(entry.Value)</td>
+                            <td>
+                                @Labels.From(entry.Kind)
+                                @if (entry.PhotoFileId is { } photo)
+                                {
+                                    <a href="/dateien/@photo" target="_blank" rel="noopener">Foto</a>
+                                }
+                                @if (entry.Note is not null)
+                                {
+                                    <span class="klein">@entry.Note</span>
+                                }
+                            </td>
+                            <td class="klein">@entry.ReadBy</td>
+                            <td>
+                                @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
+                                {
+                                    <button type="submit" name="RemoveReadingId" value="@entry.Id" class="knopf knopf-gefahr" aria-label="Stand vom @Format.Date(entry.Date) entfernen">Entfernen</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </form>
+</section>
+
+@if (meter.Meter.RemovedOn is null)
+{
+    <section>
+        <details class="aufklapper">
+            <summary>Zähler tauschen</summary>
+            <EditForm Model="Replacement" FormName="tausch" OnValidSubmit="ReplaceAsync" class="formular-raster">
+                <DataAnnotationsValidator />
+                <FormField Id="tausch-datum" Label="Tauschdatum" For="() => Replacement!.Date" Required="true">
+                    <InputDate id="tausch-datum" @bind-Value="Replacement!.Date" />
+                </FormField>
+                <FormField Id="tausch-endstand" Label="Endstand alter Zähler" For="() => Replacement!.FinalReading" Required="true">
+                    <InputArea id="tausch-endstand" @bind-Value="Replacement!.FinalReading" step="0.001" />
+                </FormField>
+                <FormField Id="tausch-nummer" Label="Nummer neuer Zähler" For="() => Replacement!.NewNumber" Required="true">
+                    <InputText id="tausch-nummer" @bind-Value="Replacement!.NewNumber" autocomplete="off" />
+                </FormField>
+                <FormField Id="tausch-anfang" Label="Anfangsstand neuer Zähler" For="() => Replacement!.InitialReading" Required="true">
+                    <InputArea id="tausch-anfang" @bind-Value="Replacement!.InitialReading" step="0.001" />
+                </FormField>
+                <FormField Id="tausch-eichfrist" Label="Eichfrist neuer Zähler" For="() => Replacement!.CalibrationDueDate" Hint="Leer = gesetzliche Frist">
+                    <InputDate id="tausch-eichfrist" @bind-Value="Replacement!.CalibrationDueDate" />
+                </FormField>
+                <div class="feld feld-aktion"><button type="submit" class="knopf">Tausch erfassen</button></div>
+            </EditForm>
+            <p class="klein">Der Verbrauch wird über alten und neuen Zähler durchgängig berechnet.</p>
+        </details>
+    </section>
+
+    <section>
+        <details class="aufklapper">
+            <summary>Angaben ändern</summary>
+            <EditForm Model="Data" FormName="daten" OnValidSubmit="SaveDataAsync">
+                <DataAnnotationsValidator />
+                <MeterFields Data="Data!" Units="units" MainMeter="mainMeter" TypeLocked="true" />
+                <button type="submit" class="knopf knopf-primaer">Speichern</button>
+            </EditForm>
+        </details>
+    </section>
+}
+
+<ChangeHistory EntityType="Zaehler" EntityId="Id" />
+
+@code {
+    private MeterDetails? meter;
+    private IReadOnlyList<UnitRow> units = [];
+    private IReadOnlyList<MeterRow> mainMeter = [];
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<string>? warnings;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "stand")]
+    private ReadingInput? Entry { get; set; }
+
+    [SupplyParameterFromForm(FormName = "stand")]
+    private IFormFile? Photo { get; set; }
+
+    /// <summary>Beim Bestätigen nach Warnungen: das bereits gespeicherte Foto nicht erneut hochladen.</summary>
+    [SupplyParameterFromForm(FormName = "stand")]
+    private Guid? PhotoId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "stand-entfernen")]
+    private Guid? RemoveReadingId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "tausch")]
+    private ReplacementInput? Replacement { get; set; }
+
+    [SupplyParameterFromForm(FormName = "daten")]
+    private MeterInput? Data { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        Entry ??= new() { Date = MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()) };
+        Replacement ??= new();
+        Data ??= new();
+        meter = await Admin.GetAsync(Id);
+        if (meter is not null)
+        {
+            Data = form ?? meter.Data;
+            units = (await Properties.GetAsync(meter.PropertyId))?.Units ?? [];
+            mainMeter = (await Admin.ListAsync(meter.PropertyId)).Where(z => z.Id != Id).ToList();
+        }
+    }
+
+    private async Task RecordReadingAsync()
+    {
+        if (Photo is { Length: > 0 } && PhotoId is null)
+        {
+            try
+            {
+                await using var content = Photo.OpenReadStream();
+                PhotoId = (await Storage.SaveAsync(content, Photo.FileName)).Id;
+            }
+            catch (FileRejectedException ex)
+            {
+                errors = [ex.Message];
+                return;
+            }
+        }
+
+        var result = await Admin.RecordReadingAsync(Id, Entry!, PhotoId);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/zaehler/{Id}", "Der Zählerstand wurde gespeichert.", HttpContext);
+        }
+        else if (result.NeedsConfirmation)
+        {
+            warnings = result.Warnings;
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private Task RemoveReadingAsync() =>
+        RemoveReadingId is { } entry ? ExecuteAsync(Admin.RemoveReadingAsync(Id, entry), $"/verwaltung/zaehler/{Id}", "Der Stand wurde entfernt.") : Task.CompletedTask;
+
+    private async Task ReplaceAsync()
+    {
+        var result = await Admin.ReplaceAsync(Id, Replacement!);
+        await ExecuteAsync(Task.FromResult(result), $"/verwaltung/zaehler/{result.Id}", "Der Zähler wurde getauscht. Das ist der neue Zähler.");
+    }
+
+    private Task SaveDataAsync() => ExecuteAsync(Admin.UpdateAsync(Id, Data!), $"/verwaltung/zaehler/{Id}", "Die Angaben wurden gespeichert.");
+
+    private async Task ExecuteAsync(Task<Result> command, string destination, string success)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage(destination, success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            meter = await Admin.GetAsync(Id);
+        }
+    }
+}

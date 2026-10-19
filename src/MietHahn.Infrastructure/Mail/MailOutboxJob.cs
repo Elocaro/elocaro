@@ -6,11 +6,11 @@ namespace MietHahn.Infrastructure.Mail;
 [DisallowConcurrentExecution]
 internal sealed class MailOutboxJob(MailOutbox outbox) : IJob
 {
-    public static readonly JobKey Schluessel = new("mail-outbox", "system");
+    public static readonly JobKey Key = new("mail-outbox", "system");
 
     public async Task Execute(IJobExecutionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        await outbox.ZustellenAsync(context.CancellationToken);
+        await outbox.DeliverAsync(context.CancellationToken);
     }
 }

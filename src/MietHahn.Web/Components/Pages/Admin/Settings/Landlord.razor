@@ -1,0 +1,85 @@
+@page "/verwaltung/einstellungen/vermieter"
+@using MietHahn.Application.Admin
+@inject ILandlordProfileService Profile
+@inject Redirector Redirector
+
+<PageHeader Title="Vermieter" Subtitle="Absenderangaben für Briefkopf, Fußzeile und Zahlungshinweise in Dokumenten." />
+
+<StatusMessage />
+@if (newItem)
+{
+    <p class="meldung meldung-hinweis" role="status">Noch kein Vermieterprofil hinterlegt – ohne diese Angaben können keine Dokumente erzeugt werden.</p>
+}
+
+<EditForm Model="Data" FormName="vermieter" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <div class="formular-raster">
+        <FormField Id="name" Label="Name" For="() => Data!.Name" Required="true">
+            <InputText id="name" @bind-Value="Data!.Name" autocomplete="name" />
+        </FormField>
+        <FormField Id="zusatz" Label="Zusatz" For="() => Data!.AddressLine2" Hint="z. B. „Hausverwaltung Hauptstraße 5“">
+            <InputText id="zusatz" @bind-Value="Data!.AddressLine2" />
+        </FormField>
+        <FormField Id="strasse" Label="Straße und Hausnummer" For="() => Data!.Street" Required="true">
+            <InputText id="strasse" @bind-Value="Data!.Street" autocomplete="street-address" />
+        </FormField>
+        <FormField Id="plz" Label="PLZ" For="() => Data!.PostalCode" Required="true">
+            <InputText id="plz" @bind-Value="Data!.PostalCode" inputmode="numeric" autocomplete="postal-code" />
+        </FormField>
+        <FormField Id="ort" Label="Ort" For="() => Data!.City" Required="true">
+            <InputText id="ort" @bind-Value="Data!.City" autocomplete="address-level2" />
+        </FormField>
+        <FormField Id="telefon" Label="Telefon" For="() => Data!.Phone">
+            <InputText id="telefon" type="tel" @bind-Value="Data!.Phone" autocomplete="tel" />
+        </FormField>
+        <FormField Id="email" Label="E-Mail" For="() => Data!.Email">
+            <InputText id="email" type="email" @bind-Value="Data!.Email" autocomplete="email" />
+        </FormField>
+    </div>
+
+    <h2>Bankverbindung &amp; Steuer</h2>
+    <div class="formular-raster">
+        <FormField Id="iban" Label="IBAN" For="() => Data!.Iban" Hint="Erscheint in der Fußzeile und in Zahlungsaufforderungen.">
+            <InputText id="iban" @bind-Value="Data!.Iban" autocomplete="off" />
+        </FormField>
+        <FormField Id="bic" Label="BIC" For="() => Data!.Bic">
+            <InputText id="bic" @bind-Value="Data!.Bic" autocomplete="off" />
+        </FormField>
+        <FormField Id="bank" Label="Bank" For="() => Data!.Bank">
+            <InputText id="bank" @bind-Value="Data!.Bank" />
+        </FormField>
+        <FormField Id="steuernummer" Label="Steuernummer" For="() => Data!.TaxNumber">
+            <InputText id="steuernummer" @bind-Value="Data!.TaxNumber" />
+        </FormField>
+    </div>
+
+    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+</EditForm>
+
+@code {
+    private bool newItem;
+
+    [SupplyParameterFromForm(FormName = "vermieter")]
+    private LandlordProfileInput? Data { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Data is null)
+        {
+            // Modell synchron setzen: Blazor rendert vor dem ersten await bereits einmal.
+            Data = new();
+            var loaded = await Profile.GetAsync();
+            newItem = loaded is null;
+            Data = loaded ?? Data;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        await Profile.SaveAsync(Data!);
+        Redirector.RedirectWithMessage("/verwaltung/einstellungen/vermieter", "Die Vermieterangaben wurden gespeichert.", HttpContext);
+    }
+}

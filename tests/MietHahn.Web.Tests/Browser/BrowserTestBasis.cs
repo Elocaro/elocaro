@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
-using MietHahn.Application.Konten;
-using MietHahn.Infrastructure.Identitaet;
+using MietHahn.Application.Accounts;
+using MietHahn.Infrastructure.Identity;
 
 namespace MietHahn.Web.Tests.Browser;
 
@@ -15,7 +15,7 @@ namespace MietHahn.Web.Tests.Browser;
 [Trait("Kategorie", "Browser")]
 public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetime
 {
-    protected const string Passwort = "Browser-Test-Passwort-2026";
+    protected const string Password = "Browser-Test-Passwort-2026";
 
     private IPlaywright? playwright;
 
@@ -23,14 +23,14 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
 
     protected IBrowser Browser { get; private set; } = null!;
 
-    protected string BasisUrl { get; private set; } = "";
+    protected string BaseUrl { get; private set; } = "";
 
     public async ValueTask InitializeAsync()
     {
-        App = new MietHahnWebFactory(await postgres.NeueDatenbankAsync(TestContext.Current.CancellationToken));
+        App = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken));
         App.UseKestrel(0);
         App.StartServer();
-        BasisUrl = App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First().Replace("127.0.0.1", "localhost", StringComparison.Ordinal);
+        BaseUrl = App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First().Replace("127.0.0.1", "localhost", StringComparison.Ordinal);
 
         playwright = await Playwright.CreateAsync();
         try
@@ -55,65 +55,65 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
     }
 
     /// <summary>Neue Seite in Handy-Größe (360 × 780) oder Desktop.</summary>
-    protected async Task<IPage> NeueSeiteAsync(bool mobil = true)
+    protected async Task<IPage> NewPageAsync(bool mobile = true)
     {
-        var kontext = await Browser.NewContextAsync(new()
+        var context = await Browser.NewContextAsync(new()
         {
-            ViewportSize = mobil ? new() { Width = 360, Height = 780 } : new() { Width = 1280, Height = 900 },
+            ViewportSize = mobile ? new() { Width = 360, Height = 780 } : new() { Width = 1280, Height = 900 },
             Locale = "de-DE",
             TimezoneId = "Europe/Berlin",
         });
-        return await kontext.NewPageAsync();
+        return await context.NewPageAsync();
     }
 
     /// <summary>Legt einen Admin mit aktiver 2FA an und meldet ihn über die Oberfläche an.</summary>
-    protected async Task<IPage> AlsAdminAngemeldetAsync(bool mobil = true)
+    protected async Task<IPage> SignedInAsAdminAsync(bool mobile = true)
     {
         const string email = "admin@example.de";
-        var schluessel = await App.MitScopeAsync(async sp =>
+        var key = await App.WithScopeAsync(async sp =>
         {
-            var manager = sp.GetRequiredService<UserManager<Benutzer>>();
-            var benutzer = new Benutzer { UserName = email, Email = email, EmailConfirmed = true, Anzeigename = "Andy Hahn" };
-            await manager.CreateAsync(benutzer, Passwort);
-            await manager.AddToRoleAsync(benutzer, Rollen.Admin);
-            await manager.ResetAuthenticatorKeyAsync(benutzer);
-            await manager.SetTwoFactorEnabledAsync(benutzer, true);
-            return await manager.GetAuthenticatorKeyAsync(benutzer);
+            var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, DisplayName = "Andy Hahn" };
+            await manager.CreateAsync(user, Password);
+            await manager.AddToRoleAsync(user, Roles.Admin);
+            await manager.ResetAuthenticatorKeyAsync(user);
+            await manager.SetTwoFactorEnabledAsync(user, true);
+            return await manager.GetAuthenticatorKeyAsync(user);
         });
 
-        var seite = await NeueSeiteAsync(mobil);
-        await seite.GotoAsync(BasisUrl + "/konto/anmelden");
-        await seite.FillAsync("#email", email);
-        await seite.FillAsync("#passwort", Passwort);
-        await seite.ClickAsync("button[type=submit]");
-        await seite.WaitForURLAsync("**/konto/anmelden/zwei-faktor**");
-        await seite.FillAsync("#code", Totp.Code(schluessel!, DateTimeOffset.UtcNow));
-        await seite.ClickAsync("button[type=submit]");
-        await seite.WaitForURLAsync("**/verwaltung");
-        return seite;
+        var page = await NewPageAsync(mobile);
+        await page.GotoAsync(BaseUrl + "/konto/anmelden");
+        await page.FillAsync("#email", email);
+        await page.FillAsync("#passwort", Password);
+        await page.ClickAsync("button[type=submit]");
+        await page.WaitForURLAsync("**/konto/anmelden/zwei-faktor**");
+        await page.FillAsync("#code", Totp.Code(key!, DateTimeOffset.UtcNow));
+        await page.ClickAsync("button[type=submit]");
+        await page.WaitForURLAsync("**/verwaltung");
+        return page;
     }
 
     /// <summary>Speichert bei einem Fehlschlag einen Screenshot (Pfad in der Fehlermeldung) zur Diagnose.</summary>
-    protected static async Task MitScreenshotBeiFehlerAsync(IPage seite, Func<Task> schritte)
+    protected static async Task WithScreenshotOnFailureAsync(IPage page, Func<Task> steps)
     {
-        ArgumentNullException.ThrowIfNull(seite);
-        ArgumentNullException.ThrowIfNull(schritte);
+        ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(steps);
         try
         {
-            await schritte();
+            await steps();
         }
         catch (Exception ex) when (ex is TimeoutException or PlaywrightException)
         {
-            var pfad = Path.Combine(Path.GetTempPath(), $"miethahn-browsertest-{Guid.NewGuid():N}.png");
-            await seite.ScreenshotAsync(new() { Path = pfad, FullPage = true });
-            throw new InvalidOperationException($"Browser-Schritt fehlgeschlagen auf {seite.Url}. Screenshot: {pfad}", ex);
+            var path = Path.Combine(Path.GetTempPath(), $"miethahn-browsertest-{Guid.NewGuid():N}.png");
+            await page.ScreenshotAsync(new() { Path = path, FullPage = true });
+            throw new InvalidOperationException($"Browser-Schritt fehlgeschlagen auf {page.Url}. Screenshot: {path}", ex);
         }
     }
 
     /// <summary>Breite des Dokuments ≤ Breite des Fensters, also kein horizontales Scrollen.</summary>
-    protected static async Task KeinHorizontalesScrollenAsync(IPage seite)
+    protected static async Task NoHorizontalScrollAsync(IPage page)
     {
-        var masse = await seite.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
-        Assert.True(masse[0] <= masse[1], $"{seite.Url}: Inhalt ist {masse[0]}px breit, Fenster {masse[1]}px.");
+        var dimensions = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+        Assert.True(dimensions[0] <= dimensions[1], $"{page.Url}: Inhalt ist {dimensions[0]}px breit, Fenster {dimensions[1]}px.");
     }
 }

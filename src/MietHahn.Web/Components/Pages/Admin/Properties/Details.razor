@@ -1,0 +1,189 @@
+@page "/verwaltung/objekte/{Id:guid}"
+@inject IPropertyService Admin
+@inject Redirector Redirector
+
+@if (property is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+    return;
+}
+
+<PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/verwaltung/objekte" BackText="Alle Objekte">
+    <Actions>
+        <a class="knopf" href="/verwaltung/objekte/@Id/zaehler">Zähler</a>
+        <a class="knopf" href="/verwaltung/objekte/@Id/bearbeiten">Bearbeiten</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+@if (property.ValidationHints.Count > 0)
+{
+    <div class="meldung meldung-hinweis" role="status">
+        <strong>Bitte prüfen:</strong>
+        <ul>
+            @foreach (var hint in property.ValidationHints)
+            {
+                <li>@hint</li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="objekt-kopf">
+    @if (property.ImageFileId is { } image)
+    {
+        <img class="objektbild" src="/dateien/@image" alt="Foto von @property.Data.Name" />
+    }
+    <dl class="angaben">
+        <dt>Baujahr</dt><dd>@(property.Data.YearBuilt?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</dd>
+        <dt>Heizung</dt><dd>@Labels.From(property.Data.HeatingType), @Labels.From(property.Data.EnergySource)</dd>
+        @if (property.Data.CadastralDistrict is not null || property.Data.ParcelNumber is not null)
+        {
+            <dt>Grundbuch</dt><dd>@property.Data.CadastralDistrict @property.Data.ParcelNumber</dd>
+        }
+        @if (property.Data.PropertyTaxReference is not null)
+        {
+            <dt>Grundsteuer</dt><dd>@property.Data.PropertyTaxReference</dd>
+        }
+        @if (property.Data.Notes is not null)
+        {
+            <dt>Notizen</dt><dd>@property.Data.Notes</dd>
+        }
+    </dl>
+</div>
+
+<section>
+    <h2>Einheiten &amp; Belegung</h2>
+    @if (property.Units.Count == 0)
+    {
+        <EmptyState Text="Noch keine Einheiten. Füge unten die erste Wohnung hinzu." />
+    }
+    else
+    {
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Einheit</th><th>Lage</th><th class="zahl">Wohnfläche</th><th>Mietobjekt</th><th>Belegung</th></tr></thead>
+                <tbody>
+                    @foreach (var unit in property.Units)
+                    {
+                        @for (var i = 0; i < unit.RentalUnits.Count; i++)
+                        {
+                            var rentalUnit = unit.RentalUnits[i];
+                            <tr>
+                                @if (i == 0)
+                                {
+                                    <td rowspan="@unit.RentalUnits.Count">
+                                        <a href="/verwaltung/einheiten/@unit.Id">@unit.Name</a>
+                                        @if (unit.IsSharedFlat)
+                                        {
+                                            <span class="status">WG</span>
+                                        }
+                                    </td>
+                                    <td rowspan="@unit.RentalUnits.Count">@unit.Location</td>
+                                    <td rowspan="@unit.RentalUnits.Count" class="zahl">@Format.Area(unit.LivingArea)</td>
+                                }
+                                <td>
+                                    @if (rentalUnit.IsRoom)
+                                    {
+                                        <a href="/verwaltung/zimmer/@rentalUnit.Id">@rentalUnit.Name</a>
+                                        <span class="klein">@Format.Area(rentalUnit.Area)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>ganze Einheit</span>
+                                    }
+                                </td>
+                                <td><OccupancyDisplay Occupancy="rentalUnit.Occupancy" /></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <details class="aufklapper" open="@(property.Units.Count == 0)">
+        <summary>Einheit hinzufügen</summary>
+        <EditForm Model="NewUnit" FormName="einheit" OnValidSubmit="CreateUnitAsync">
+            <DataAnnotationsValidator />
+            <UnitFields Data="NewUnit!" WithFeatures="false" />
+            <button type="submit" class="knopf">Einheit hinzufügen</button>
+        </EditForm>
+    </details>
+</section>
+
+<AreaSection Input="Area!" OnSave="SaveAreaAsync" Current="property.Area" History="property.AreaHistory"
+                 AreaText="Gesamtfläche" AdditionalText="Gemeinschaftsfläche" AdditionalHint="Treppenhaus, Keller, Waschküche …" />
+
+@if (property.Units.Count == 0)
+{
+    <section>
+        <DangerAction Text="Objekt löschen" FormName="loeschen" Confirmed="DeleteAsync"
+                        Confirmation="Das Objekt wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
+    </section>
+}
+
+<DocumentsSection PropertyId="Id" />
+
+<ChangeHistory EntityType="@nameof(Property)" EntityId="Id" />
+
+@code {
+    private PropertyDetails? property;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "einheit", Name = "Data")] // Feldnamen kommen aus UnitFields
+    private UnitInput? NewUnit { get; set; }
+
+    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // Feldnamen kommen aus AreaSection
+    private AreaInput? Area { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        NewUnit ??= new();
+        Area ??= new();
+        property = await Admin.GetAsync(Id);
+        if (property is not null && Area.From is null)
+        {
+            Area.Area ??= property.Area?.Area;
+            Area.SecondaryArea ??= property.Area?.SecondaryArea;
+        }
+    }
+
+    private Task CreateUnitAsync() => ExecuteAsync(Admin.CreateUnitAsync(Id, NewUnit!), "Die Einheit wurde hinzugefügt.");
+
+    private Task SaveAreaAsync() => ExecuteAsync(Admin.SetAreaAsync(Id, Area!), "Die Fläche wurde gespeichert.");
+
+    private async Task DeleteAsync()
+    {
+        var result = await Admin.DeleteAsync(Id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/objekte", "Das Objekt wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/objekte/{Id}", success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            property = await Admin.GetAsync(Id);
+        }
+    }
+}

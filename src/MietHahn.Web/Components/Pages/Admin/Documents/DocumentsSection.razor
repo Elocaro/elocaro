@@ -1,0 +1,36 @@
+@inherits DataComponent
+
+@* Dokumente eines Objekts, einer Einheit, eines Vertrags oder einer Person (genau ein Parameter gesetzt). *@
+<section>
+    <h2>Dokumente</h2>
+    @if (lines is { Count: 0 })
+    {
+        <p class="klein">Noch keine Dokumente.</p>
+    }
+    else if (lines is not null)
+    {
+        <DocumentTable Rows="lines" />
+    }
+    <p><a class="knopf" href="/verwaltung/dokumente/neu?@Query">Dokument hochladen</a></p>
+</section>
+
+@code {
+    private IReadOnlyList<DocumentRow>? lines;
+
+    [Parameter]
+    public Guid? PropertyId { get; set; }
+
+    [Parameter]
+    public Guid? UnitId { get; set; }
+
+    [Parameter]
+    public Guid? LeaseId { get; set; }
+
+    [Parameter]
+    public Guid? PersonId { get; set; }
+
+    private string Query => PropertyId is { } o ? $"objekt={o}" : UnitId is { } e ? $"einheit={e}" : LeaseId is { } v ? $"vertrag={v}" : $"person={PersonId}";
+
+    protected override async Task OnParametersSetAsync() =>
+        lines = await GetAsync<IDocumentLibrary, IReadOnlyList<DocumentRow>>(a => a.SearchAsync(new DocumentQuery(PropertyId: PropertyId, UnitId: UnitId, LeaseId: LeaseId, PersonId: PersonId)));
+}

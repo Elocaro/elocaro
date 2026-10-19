@@ -1,0 +1,67 @@
+@* Dokumentliste; intern mit Link auf die Detailseite, sonst direkt auf die Datei. *@
+<div class="tabellen-rahmen">
+    <table class="tabelle">
+        <thead>
+            <tr>
+                <th>Titel</th>
+                <th>Kategorie</th>
+                <th>Datum</th>
+                @if (WithRelation)
+                {
+                    <th>Bezug</th>
+                }
+                @if (Internal)
+                {
+                    <th>Freigabe</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var document in Rows)
+            {
+                <tr>
+                    <td>
+                        <a href="@(Internal ? $"/verwaltung/dokumente/{document.Id}" : $"/dateien/{document.FileId}")">@document.Title</a>
+                        @foreach (var day in document.Tags)
+                        {
+                            <span class="status">@day</span>
+                        }
+                        @if (document.ExpiresOn is { } expiry)
+                        {
+                            <span class="klein"> gültig bis @Format.Date(expiry)</span>
+                        }
+                    </td>
+                    <td>@Labels.From(document.Category)</td>
+                    <td>@Format.Date(document.Date)</td>
+                    @if (WithRelation)
+                    {
+                        <td>@document.Reference</td>
+                    }
+                    @if (Internal)
+                    {
+                        <td>@Share(document)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<DocumentRow> Rows { get; set; } = [];
+
+    [Parameter]
+    public bool Internal { get; set; } = true;
+
+    [Parameter]
+    public bool WithRelation { get; set; } = true;
+
+    internal static string Share(DocumentRow document) => (document.ForTenants, document.ForCaretaker) switch
+    {
+        (true, true) => "Mieter, Hausmeister",
+        (true, false) => "Mieter",
+        (false, true) => "Hausmeister",
+        _ => "intern",
+    };
+}

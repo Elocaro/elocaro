@@ -9,11 +9,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MietHahn.Infrastructure\MietHahn.Infrastructure.csproj" />
-    <ProjectReference Include="..\MietHahn.TestHilfen\MietHahn.TestHilfen.csproj" />
+    <ProjectReference Include="..\MietHahn.TestHelpers\MietHahn.TestHelpers.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Bank\Testdateien\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Bank\TestFiles\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

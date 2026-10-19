@@ -1,0 +1,98 @@
+using System.ComponentModel.DataAnnotations;
+using MietHahn.Domain.Properties;
+
+namespace MietHahn.Application.Properties;
+
+/// <summary>Formular- und Anzeigedaten eines Objekts.</summary>
+public sealed class PropertyInput
+{
+    [Required(ErrorMessage = "Bitte eine Bezeichnung angeben.")]
+    [StringLength(200)]
+    public string Name { get; set; } = "";
+
+    [Required(ErrorMessage = "Bitte Straße und Hausnummer angeben.")]
+    [StringLength(200)]
+    public string Street { get; set; } = "";
+
+    [Required(ErrorMessage = "Bitte die Postleitzahl angeben.")]
+    [RegularExpression(@"^\d{5}$", ErrorMessage = "Die Postleitzahl hat 5 Ziffern.")]
+    public string PostalCode { get; set; } = "";
+
+    [Required(ErrorMessage = "Bitte den Ort angeben.")]
+    [StringLength(100)]
+    public string City { get; set; } = "";
+
+    [Range(1500, 2100, ErrorMessage = "Bitte ein Baujahr zwischen 1500 und 2100 angeben.")]
+    public int? YearBuilt { get; set; }
+
+    [StringLength(100)]
+    public string? CadastralDistrict { get; set; }
+
+    [StringLength(50)]
+    public string? ParcelNumber { get; set; }
+
+    [StringLength(50)]
+    public string? PropertyTaxReference { get; set; }
+
+    public HeatingType HeatingType { get; set; }
+
+    public EnergySource EnergySource { get; set; }
+
+    [StringLength(4000)]
+    public string? Notes { get; set; }
+}
+
+public sealed class UnitInput
+{
+    [Required(ErrorMessage = "Bitte eine Bezeichnung angeben, z. B. „Wohnung 1“.")]
+    [StringLength(100)]
+    public string Name { get; set; } = "";
+
+    [StringLength(100)]
+    public string? Location { get; set; }
+
+    public UnitType Type { get; set; }
+
+    [Range(typeof(decimal), "0.5", "50", ErrorMessage = "Bitte eine Zimmeranzahl zwischen 0,5 und 50 angeben.", ParseLimitsInInvariantCulture = true)]
+    public decimal? RoomCount { get; set; }
+
+    [StringLength(100)]
+    public string? Bathroom { get; set; }
+
+    public bool Balcony { get; set; }
+
+    public bool FittedKitchen { get; set; }
+
+    [StringLength(50)]
+    public string? EnergyStandard { get; set; }
+
+    [StringLength(2000)]
+    public string? Amenities { get; set; }
+}
+
+public sealed class RoomInput
+{
+    [Required(ErrorMessage = "Bitte eine Bezeichnung angeben, z. B. „Zimmer 1“.")]
+    [StringLength(100)]
+    public string Name { get; set; } = "";
+
+    public Furnishing Furnishing { get; set; }
+
+    [StringLength(2000)]
+    public string? Notes { get; set; }
+}
+
+/// <summary>
+/// Neuer Flächenstand ab Stichtag. Bedeutung je Ebene: Objekt = Gesamt-/Gemeinschaftsfläche,
+/// Einheit = Wohn-/Heizfläche (leer = wie Wohnfläche), Zimmer = Zimmerfläche/Anteil Gemeinschaftsfläche.
+/// </summary>
+public sealed class AreaInput
+{
+    [Required(ErrorMessage = "Bitte angeben, ab wann die Fläche gilt.")]
+    public DateOnly? From { get; set; }
+
+    [Required(ErrorMessage = "Bitte die Fläche angeben.")]
+    public decimal? Area { get; set; }
+
+    public decimal? SecondaryArea { get; set; }
+}

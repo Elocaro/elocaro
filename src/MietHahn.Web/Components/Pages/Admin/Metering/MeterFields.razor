@@ -1,0 +1,71 @@
+@* Stammdaten eines Zählers; steht innerhalb eines EditForm mit Model = Daten (Feldnamen Daten.*). *@
+<div class="formular-raster">
+    <FormField Id="zaehler-typ" Label="Art" For="() => Data.Type" Hint="@(TypeLocked ? "Nicht änderbar; bei einem anderen Zähler einen neuen anlegen." : null)">
+        @if (TypeLocked)
+        {
+            @* Gesperrte Felder würden nicht mitgesendet: Wert als verstecktes Feld, Anzeige schreibgeschützt. *@
+            <input type="hidden" name="Data.Type" value="@Data.Type" />
+            <input id="zaehler-typ" type="text" value="@Labels.From(Data.Type)" readonly />
+        }
+        else
+        {
+            <InputSelect id="zaehler-typ" @bind-Value="Data.Type">
+                @foreach (var value in Enum.GetValues<MeterType>())
+                {
+                    <option value="@value">@Labels.From(value)</option>
+                }
+            </InputSelect>
+        }
+    </FormField>
+    <FormField Id="zaehler-bezeichnung" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Kaltwasser Bad“">
+        <InputText id="zaehler-bezeichnung" @bind-Value="Data.Name" />
+    </FormField>
+    <FormField Id="zaehler-nummer" Label="Zählernummer" For="() => Data.Number" Required="true">
+        <InputText id="zaehler-nummer" @bind-Value="Data.Number" autocomplete="off" />
+    </FormField>
+    <FormField Id="zaehler-zuordnung" Label="Zuordnung" For="() => Data.AssignmentId">
+        <InputSelect id="zaehler-zuordnung" @bind-Value="Data.AssignmentId">
+            <option value="">Haus (Haupt-/Allgemeinzähler)</option>
+            @foreach (var unit in Units)
+            {
+                <option value="@unit.Id">@unit.Name</option>
+                @foreach (var room in unit.RentalUnits.Where(m => m.IsRoom))
+                {
+                    <option value="@room.Id">@unit.Name, @room.Name</option>
+                }
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="zaehler-haupt" Label="Hauptzähler" For="() => Data.MainMeterId" Hint="Für die Differenz Haupt- zu Unterzählern">
+        <InputSelect id="zaehler-haupt" @bind-Value="Data.MainMeterId">
+            <option value="">– keiner –</option>
+            @foreach (var z in MainMeter)
+            {
+                <option value="@z.Id">@z.Name (@z.Number)</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="zaehler-lage" Label="Lage" For="() => Data.Location" Hint="z. B. „Keller, Raum 2“">
+        <InputText id="zaehler-lage" @bind-Value="Data.Location" />
+    </FormField>
+    <FormField Id="zaehler-eichfrist" Label="Eichfrist bis" For="() => Data.CalibrationDueDate" Hint="Leer = gesetzliche Frist ab Einbau">
+        <InputDate id="zaehler-eichfrist" @bind-Value="Data.CalibrationDueDate" />
+    </FormField>
+    <FormField Id="zaehler-reihenfolge" Label="Reihenfolge der Ablesung" For="() => Data.Order">
+        <InputNumber id="zaehler-reihenfolge" @bind-Value="Data.Order" min="0" max="999" />
+    </FormField>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public MeterInput Data { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<UnitRow> Units { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<MeterRow> MainMeter { get; set; } = [];
+
+    [Parameter]
+    public bool TypeLocked { get; set; }
+}

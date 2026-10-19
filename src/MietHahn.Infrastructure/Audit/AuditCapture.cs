@@ -1,0 +1,125 @@
+using System.Collections;
+using System.Globalization;
+using System.Reflection;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
+using MietHahn.Application.Audit;
+using MietHahn.Domain.Common;
+
+namespace MietHahn.Infrastructure.Audit;
+
+/// <summary>Leitet aus dem Change-Tracker die Audit-Einträge einer Speicherung ab.</summary>
+internal static class AuditCapture
+{
+    public const string Masked = "***";
+
+    private static readonly HashSet<string> Technical = new(StringComparer.Ordinal)
+    {
+        nameof(Entity.Id), nameof(Entity.CreatedAt), nameof(Entity.CreatedBy),
+        nameof(Entity.ModifiedAt), nameof(Entity.ModifiedBy), nameof(Entity.Version), nameof(Entity.Deleted),
+    };
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    public static IReadOnlyList<AuditEntry> Capture(DbContext context, DateTimeOffset timestamp, string user)
+    {
+        var result = new List<AuditEntry>();
+        foreach (var entry in context.ChangeTracker.Entries<Entity>())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified)
+                || entry.Metadata.ClrType.GetCustomAttribute<NoAuditAttribute>() is not null)
+            {
+                continue;
+            }
+
+            var deleted = entry.State == EntityState.Modified
+                && entry.Property(e => e.Deleted) is { IsModified: true, CurrentValue: true, OriginalValue: false };
+            var action = entry.State == EntityState.Added ? AuditAction.Created
+                : deleted ? AuditAction.Deleted
+                : AuditAction.Modified;
+
+            var changes = action == AuditAction.Deleted ? [] : FieldChanges(entry, action);
+            if (action == AuditAction.Modified && changes.Count == 0)
+            {
+                continue;
+            }
+
+            result.Add(new AuditEntry(
+                timestamp, user, entry.Metadata.ClrType.Name, entry.Entity.Id, action, JsonSerializer.Serialize(changes, Json)));
+        }
+
+        return result;
+    }
+
+    public static IReadOnlyList<FieldChange> Read(string json) =>
+        JsonSerializer.Deserialize<List<FieldChange>>(json, Json) ?? [];
+
+    private static List<FieldChange> FieldChanges(EntityEntry<Entity> entry, AuditAction action)
+    {
+        var list = new List<FieldChange>();
+        foreach (var property in entry.Properties)
+        {
+            Add(list, property.Metadata, property.Metadata.Name, property.OriginalValue, property.CurrentValue, property.IsModified, action);
+        }
+
+        foreach (var complexProperty in entry.ComplexProperties)
+        {
+            foreach (var property in complexProperty.Properties)
+            {
+                var name = complexProperty.Metadata.Name + "." + property.Metadata.Name;
+                Add(list, property.Metadata, name, property.OriginalValue, property.CurrentValue, property.IsModified, action);
+            }
+        }
+
+        return list;
+    }
+
+    private static void Add(List<FieldChange> list, IProperty property, string name, object? old, object? newItem, bool changed, AuditAction action)
+    {
+        if (Technical.Contains(name) || property.IsShadowProperty())
+        {
+            return;
+        }
+
+        if (action == AuditAction.Created)
+        {
+            if (newItem is not null)
+            {
+                list.Add(new FieldChange(name, null, Text(property, newItem)));
+            }
+
+            return;
+        }
+
+        if (changed && !Equals(old, newItem) && !(old is IEnumerable a && newItem is IEnumerable n && a is not string && Enumerable.SequenceEqual(a.Cast<object>(), n.Cast<object>())))
+        {
+            list.Add(new FieldChange(name, Text(property, old), Text(property, newItem)));
+        }
+    }
+
+    private static string? Text(IProperty property, object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (property.PropertyInfo?.GetCustomAttribute<ConfidentialAttribute>() is not null)
+        {
+            return Masked;
+        }
+
+        return value switch
+        {
+            DateOnly d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            DateTimeOffset dto => dto.ToString("O", CultureInfo.InvariantCulture),
+            decimal m => m.ToString("0.############################", CultureInfo.InvariantCulture), // ohne Nachkomma-Nullen: 650.00 == 650
+            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
+            string s => s,
+            IEnumerable e => string.Join(", ", e.Cast<object>()),
+            _ => value.ToString(),
+        };
+    }
+}

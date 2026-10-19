@@ -1,7 +1,7 @@
 #!/bin/sh
 # MietHahn-Backup: Datenbank (pg_dump) und Dateiablage in ein restic-Repository sichern bzw. daraus wiederherstellen.
 #
-#   miethahn-backup zeitplan                 täglich um BACKUP_ZEIT sichern (Standard im Container)
+#   miethahn-backup zeitplan                 täglich um BACKUP_TIME sichern (Standard im Container)
 #   miethahn-backup sichern                  sofort sichern
 #   miethahn-backup snapshots                vorhandene Sicherungen anzeigen
 #   miethahn-backup wiederherstellen [ID]    Sicherung einspielen (Standard: latest); die App muss gestoppt sein
@@ -11,10 +11,10 @@
 # Nach jedem Sicherungslauf steht das Ergebnis in BACKUP_STATUS_DATEI; MietHahn liest sie und warnt den Admin.
 set -eu
 
-DATEN="${BACKUP_DATEN_PFAD:-/daten}"
+DATEN="${BACKUP_DATA_PATH:-/data}"
 ARBEIT="${BACKUP_ARBEITSVERZEICHNIS:-/arbeit}"
 STATUS_DATEI="${BACKUP_STATUS_DATEI:-/status/backup.json}"
-ZEIT="${BACKUP_ZEIT:-02:30}"
+ZEIT="${BACKUP_TIME:-02:30}"
 DB="${PGDATABASE:-miethahn}"
 APP_UID="${APP_UID:-1654}"
 # Fester Hostname, sonst erzeugt jeder neue Container eine eigene Snapshot-Reihe.
@@ -28,7 +28,7 @@ fehler() { log "FEHLER: $*" >&2; exit 1; }
 status_schreiben() { # erfolgreich meldung snapshot dauer
     mkdir -p "$(dirname "$STATUS_DATEI")"
     meldung=$(printf '%s' "$2" | tr '\n\r\t"' '    ' | tr -d '\134' | cut -c1-500)
-    printf '{"zeitpunkt":"%s","erfolgreich":%s,"meldung":"%s","snapshot":"%s","dauerSekunden":%s}\n' \
+    printf '{"timestamp":"%s","succeeded":%s,"message":"%s","snapshot":"%s","durationSeconds":%s}\n' \
         "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$meldung" "$3" "$4" > "$STATUS_DATEI.tmp"
     mv "$STATUS_DATEI.tmp" "$STATUS_DATEI"
 }
@@ -57,9 +57,9 @@ sichern_intern() {
 
     log "Alte Sicherungen aufräumen"
     restic forget --host "$RESTIC_HOST" --tag "$TAG" --prune \
-        --keep-daily "${BACKUP_BEHALTEN_TAGE:-7}" \
-        --keep-weekly "${BACKUP_BEHALTEN_WOCHEN:-4}" \
-        --keep-monthly "${BACKUP_BEHALTEN_MONATE:-12}"
+        --keep-daily "${BACKUP_KEEP_DAILY:-7}" \
+        --keep-weekly "${BACKUP_KEEP_WEEKLY:-4}" \
+        --keep-monthly "${BACKUP_KEEP_MONTHLY:-12}"
 
     log "Repository prüfen"
     restic check
@@ -89,7 +89,7 @@ sichern() {
 
 sekunden_bis() { # HH:MM
     jetzt=$(date +%s)
-    ziel=$(date -d "$(date '+%Y-%m-%d') $1" +%s) || fehler "BACKUP_ZEIT '$1' ist keine Uhrzeit (HH:MM)."
+    ziel=$(date -d "$(date '+%Y-%m-%d') $1" +%s) || fehler "BACKUP_TIME '$1' ist keine Uhrzeit (HH:MM)."
     [ "$ziel" -gt "$jetzt" ] || ziel=$((ziel + 86400))
     echo $((ziel - jetzt))
 }

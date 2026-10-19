@@ -1,0 +1,72 @@
+@page "/verwaltung/datenschutz"
+@using MietHahn.Application.Privacy
+@inject IPrivacyService Privacy
+@inject Redirector Redirector
+
+<PageHeader Title="Datenschutz" Subtitle="Personen, deren Daten nach Ablauf der Aufbewahrungsfrist nicht mehr benötigt werden." />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<p class="klein">
+    MietHahn schlägt nur vor, gelöscht wird nichts automatisch. Vor dem Anonymisieren prüfen, ob noch Fristen laufen
+    (z. B. offene Forderungen, Rechtsstreit). Eine Auskunft nach Art. 15 DSGVO gibt es in jeder Personenakte.
+</p>
+
+@if (suggestions is { Count: 0 })
+{
+    <EmptyState Text="Derzeit gibt es keine Personen, deren Aufbewahrungsfrist abgelaufen ist." />
+}
+else if (suggestions is not null)
+{
+    <form method="post" @formname="anonymisieren" @onsubmit="AnonymizeAsync">
+        <AntiforgeryToken />
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Person</th><th>Grund</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var suggestion in suggestions)
+                    {
+                        <tr>
+                            <td><a href="/verwaltung/personen/@suggestion.PersonId">@suggestion.DisplayName</a></td>
+                            <td>@suggestion.Reason</td>
+                            <td><button type="submit" name="PersonId" value="@suggestion.PersonId" class="knopf knopf-gefahr" aria-label="@suggestion.DisplayName anonymisieren">Anonymisieren</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<AnonymizationSuggestion>? suggestions;
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "anonymisieren")]
+    private Guid? PersonId { get; set; }
+
+    protected override async Task OnInitializedAsync() => suggestions = await Privacy.SuggestionsAsync();
+
+    private async Task AnonymizeAsync()
+    {
+        if (PersonId is not { } id)
+        {
+            return;
+        }
+
+        var result = await Privacy.AnonymizeAsync(id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/datenschutz", "Die Person wurde anonymisiert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            suggestions = await Privacy.SuggestionsAsync();
+        }
+    }
+}

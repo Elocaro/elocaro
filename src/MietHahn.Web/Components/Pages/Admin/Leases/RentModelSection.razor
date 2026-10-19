@@ -1,0 +1,150 @@
+@* Mietmodell eines Vertrags: Standard (Mietentwicklung), Staffeln oder Indexmiete. Formulare verarbeitet die Seite. *@
+<section>
+    <h2>Mietmodell: @Labels.From(Model.Model)</h2>
+
+    @switch (Model.Model)
+    {
+        case RentModel.Standard:
+            <dl class="angaben">
+                <dt>Letzte Erhöhung</dt><dd>@(Model.LastIncrease is { } last ? Format.Date(last) : "seit Mietbeginn unverändert")</dd>
+                @if (Model.BaseRentThreeYearsAgo is { } before && Model.BaseRent is { } now)
+                {
+                    <dt>Vor 3 Jahren</dt><dd>@Format.Money(before) (Steigerung @Format.Number(Math.Round((now / before - 1) * 100, 1)) %, Kappungsgrenze beachten)</dd>
+                }
+            </dl>
+            <p class="klein">Erhöhung auf die ortsübliche Vergleichsmiete (§ 558 BGB): frühestens 15 Monate nach Einzug bzw. letzter Erhöhung wirksam, höchstens 20 % (in angespannten Märkten 15 %) in 3 Jahren.</p>
+            break;
+
+        case RentModel.Graduated:
+            @if (Model.RentSteps.Count == 0)
+            {
+                <p class="klein">Noch keine Staffeln erfasst.</p>
+            }
+            else
+            {
+                <form method="post" @formname="staffel-entfernen" @onsubmit="OnRemoveStep">
+                    <AntiforgeryToken />
+                    <div class="tabellen-rahmen">
+                        <table class="tabelle">
+                            <thead><tr><th>Ab</th><th class="zahl">Kaltmiete</th><th>Status</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var rentStep in Model.RentSteps)
+                                {
+                                    <tr>
+                                        <td>@Format.Date(rentStep.From)</td>
+                                        <td class="zahl">@Format.Money(rentStep.BaseRent)</td>
+                                        <td>
+                                            @if (rentStep.AppliedAt is not null)
+                                            {
+                                                <span class="status status-ok">übernommen</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="status status-wartend">geplant</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (rentStep.AppliedAt is null)
+                                            {
+                                                <button type="submit" name="RemoveStepId" value="@rentStep.Id" class="knopf knopf-gefahr" aria-label="Staffel @Format.Date(rentStep.From) entfernen">Entfernen</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            }
+            <details class="aufklapper" open="@(Model.RentSteps.Count == 0)">
+                <summary>Staffel hinzufügen</summary>
+                <EditForm Model="Graduated" FormName="staffel" OnValidSubmit="OnAddStep" class="formular-zeile">
+                    <DataAnnotationsValidator />
+                    <FormField Id="staffel-ab" Label="Ab" For="() => Graduated.From" Required="true">
+                        <InputDate id="staffel-ab" @bind-Value="Graduated.From" />
+                    </FormField>
+                    <FormField Id="staffel-miete" Label="Neue Kaltmiete (€)" For="() => Graduated.BaseRent" Required="true">
+                        <InputAmount id="staffel-miete" @bind-Value="Graduated.BaseRent" />
+                    </FormField>
+                    <div class="feld feld-aktion"><button type="submit" class="knopf">Staffel speichern</button></div>
+                </EditForm>
+                <p class="klein">§ 557a BGB: Die Miete muss jeweils mindestens ein Jahr unverändert bleiben. Am Stichtag übernimmt MietHahn die Staffel automatisch als Kaltmiete.</p>
+            </details>
+            break;
+
+        case RentModel.Index:
+            <dl class="angaben">
+                <dt>Ausgangsindex</dt><dd>@Format.Number(Model.IndexBaseValue) (@Month(Model.IndexBaseMonth))</dd>
+                <dt>Letzte Änderung</dt><dd>@(Model.LastIncrease is { } lastChange ? Format.Date(lastChange) : "seit Mietbeginn unverändert")</dd>
+            </dl>
+            @if (Model.Index is { } suggestion)
+            {
+                <div class="meldung @(suggestion.PossibleNow ? "meldung-hinweis" : "")">
+                    <p>VPI @Month(suggestion.CpiMonth): @Format.Number(suggestion.CpiValue) (@(suggestion.ChangePercent >= 0 ? "+" : "")@Format.Number(suggestion.ChangePercent) %) → neue Kaltmiete <strong>@Format.Money(suggestion.NewBaseRent)</strong> statt @Format.Money(Model.BaseRent).</p>
+                    <p class="klein">Frühestens wirksam ab @Format.Date(suggestion.EarliestEffective) (ein Jahr nach der letzten Änderung).</p>
+                </div>
+                <EditForm Model="Adjustment" FormName="index-anpassung" OnValidSubmit="OnAdjustIndex" class="formular-zeile">
+                    <DataAnnotationsValidator />
+                    <FormField Id="erklaerung" Label="Erklärung geht zu am" For="() => Adjustment.DeclaredOn" Required="true" Hint="Die neue Miete gilt ab dem übernächsten Monat (§ 557b Abs. 3 BGB).">
+                        <InputDate id="erklaerung" @bind-Value="Adjustment.DeclaredOn" />
+                    </FormField>
+                    <div class="feld feld-aktion"><button type="submit" class="knopf">Anpassung übernehmen</button></div>
+                </EditForm>
+            }
+            else
+            {
+                <p class="klein">Kein VPI-Wert neuer als der Ausgangsindex. <a href="/verwaltung/vpi">Verbraucherpreisindex pflegen</a></p>
+            }
+            break;
+    }
+
+    <details class="aufklapper">
+        <summary>Mietmodell ändern</summary>
+        <EditForm Model="Input" FormName="mietmodell" OnValidSubmit="OnSetModel" class="formular-raster">
+            <DataAnnotationsValidator />
+            <FormField Id="modell" Label="Mietmodell" For="() => Input.Model">
+                <InputSelect id="modell" @bind-Value="Input.Model">
+                    @foreach (var value in Enum.GetValues<RentModel>())
+                    {
+                        <option value="@value">@Labels.From(value)</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="index-monat" Label="Indexmiete: Ausgangsmonat" For="() => Input.BaseMonth" Hint="Monat des Ausgangsindex, z. B. Mietbeginn">
+                <InputText id="index-monat" type="month" @bind-Value="Input.BaseMonth" />
+            </FormField>
+            <FormField Id="index-wert" Label="Indexmiete: Ausgangswert" For="() => Input.BaseValue" Hint="VPI (2020 = 100), z. B. 117,4">
+                <InputArea id="index-wert" @bind-Value="Input.BaseValue" step="0.1" />
+            </FormField>
+            <div class="feld feld-aktion"><button type="submit" class="knopf">Mietmodell speichern</button></div>
+        </EditForm>
+    </details>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public RentModelView Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public RentModelForm Input { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public RentStepInput Graduated { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IndexAdjustmentInput Adjustment { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnSetModel { get; set; }
+
+    [Parameter]
+    public EventCallback OnAddStep { get; set; }
+
+    [Parameter]
+    public EventCallback OnRemoveStep { get; set; }
+
+    [Parameter]
+    public EventCallback OnAdjustIndex { get; set; }
+
+    private static string Month(DateOnly? month) => month?.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) ?? "–";
+}

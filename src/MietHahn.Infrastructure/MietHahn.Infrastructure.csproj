@@ -25,13 +25,13 @@
 
   <ItemGroup>
     <EmbeddedResource Include="**\*.sbn" />
-    <EmbeddedResource Include="Persistenz\Sql\*.sql" />
+    <EmbeddedResource Include="Persistence\Sql\*.sql" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="MietHahn.Integration.Tests" />
     <InternalsVisibleTo Include="MietHahn.Web.Tests" />
-    <InternalsVisibleTo Include="MietHahn.TestHilfen" />
+    <InternalsVisibleTo Include="MietHahn.TestHelpers" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,14 @@
+@if (Occupancy is null)
+{
+    <span class="status status-wartend">Leerstand</span>
+}
+else
+{
+    <a href="/verwaltung/vertraege/@Occupancy.LeaseId">@Occupancy.Tenant</a>
+    <span class="klein">seit @Format.Date(Occupancy.Start)@(Occupancy.End is { } end ? $", bis {Format.Date(end)}" : "")</span>
+}
+
+@code {
+    [Parameter]
+    public Occupancy? Occupancy { get; set; }
+}

@@ -1,0 +1,59 @@
+@page "/verwaltung/personen/neu"
+@inject IPersonService Admin
+@inject Redirector Redirector
+@inject TimeProvider Clock
+
+<PageHeader Title="Person anlegen" Back="/verwaltung/personen" BackText="Alle Personen" />
+
+<ErrorList Errors="errors" />
+
+<EditForm Model="Data" FormName="person" OnValidSubmit="CreateAsync">
+    <DataAnnotationsValidator />
+    <PersonFields Data="Data!" />
+    <h2>Anschrift</h2>
+    <p class="klein">Optional. Für Mieter die bisherige Anschrift (Voranschrift); beim Einzug wird sie fortgeschrieben.</p>
+    <AddressFields Address="Address!" WithReferenceDate="false" />
+    <button type="submit" class="knopf knopf-primaer">Person anlegen</button>
+</EditForm>
+
+@code {
+    private IReadOnlyList<string>? errors;
+
+    // Ein Formular, zwei Modelle: Feldnamen Daten.* (PersonFelder) und Anschrift.* (AnschriftFelder).
+    [SupplyParameterFromForm(FormName = "person")]
+    private PersonInput? Data { get; set; }
+
+    [SupplyParameterFromForm(FormName = "person")]
+    private AddressInput? Address { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Data ??= new();
+        Address ??= new();
+    }
+
+    private async Task CreateAsync()
+    {
+        var address = Address!;
+        var withAddress = !string.IsNullOrWhiteSpace(address.Street);
+        if (withAddress && (string.IsNullOrWhiteSpace(address.PostalCode) || string.IsNullOrWhiteSpace(address.City)))
+        {
+            errors = ["Bitte zur Straße auch PLZ und Ort angeben."];
+            return;
+        }
+
+        address.From ??= MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow());
+        var result = await Admin.CreateAsync(Data!, withAddress ? address : null);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/personen/{result.Id}", "Die Person wurde angelegt.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

@@ -1,0 +1,112 @@
+@page "/verwaltung/objekte/{Id:guid}/bearbeiten"
+@using MietHahn.Application.Files
+@inject IPropertyService Admin
+@inject IFileStore Storage
+@inject Redirector Redirector
+
+@if (property is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+    return;
+}
+
+<PageHeader Title="@($"{property.Data.Name} bearbeiten")" Back="@($"/verwaltung/objekte/{Id}")" BackText="Zum Objekt" />
+
+<ErrorList Errors="errors" />
+
+<EditForm Model="Data" FormName="objekt" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <PropertyFields Data="Data!" />
+    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+</EditForm>
+
+<section>
+    <h2>Foto</h2>
+    @if (property.ImageFileId is { } image)
+    {
+        <img class="objektbild" src="/dateien/@image" alt="Aktuelles Foto" />
+    }
+    <form method="post" enctype="multipart/form-data" @formname="bild" @onsubmit="UploadImageAsync" class="formular-zeile">
+        <AntiforgeryToken />
+        <div class="feld">
+            <label for="bild">@(property.ImageFileId is null ? "Foto hochladen" : "Foto ersetzen")</label>
+            <input type="file" id="bild" name="Image" accept="image/jpeg,image/png,image/webp,image/heic" capture="environment" required />
+            <span class="feld-hinweis">Fotos werden verkleinert, gedreht und ohne Metadaten (GPS) gespeichert.</span>
+        </div>
+        <div class="feld feld-aktion">
+            <button type="submit" class="knopf">Hochladen</button>
+        </div>
+    </form>
+    @if (property.ImageFileId is not null)
+    {
+        <form method="post" @formname="bild-entfernen" @onsubmit="RemoveImageAsync">
+            <AntiforgeryToken />
+            <button type="submit" class="knopf knopf-gefahr">Foto entfernen</button>
+        </form>
+    }
+</section>
+
+@code {
+    private PropertyDetails? property;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "objekt")]
+    private PropertyInput? Data { get; set; }
+
+    [SupplyParameterFromForm(FormName = "bild")]
+    private IFormFile? Image { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        Data ??= new();
+        property = await Admin.GetAsync(Id);
+        if (form is null && property is not null)
+        {
+            Data = property.Data;
+        }
+    }
+
+    private Task SaveAsync() => ExecuteAsync(Admin.UpdateAsync(Id, Data!), $"/verwaltung/objekte/{Id}", "Die Angaben wurden gespeichert.");
+
+    private async Task UploadImageAsync()
+    {
+        if (Image is null || Image.Length == 0)
+        {
+            errors = ["Bitte ein Foto auswählen."];
+            return;
+        }
+
+        try
+        {
+            await using var content = Image.OpenReadStream();
+            var file = await Storage.SaveAsync(content, Image.FileName);
+            await ExecuteAsync(Admin.SetImageAsync(Id, file.Id), $"/verwaltung/objekte/{Id}", "Das Foto wurde gespeichert.");
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+    }
+
+    private Task RemoveImageAsync() => ExecuteAsync(Admin.SetImageAsync(Id, null), $"/verwaltung/objekte/{Id}/bearbeiten", "Das Foto wurde entfernt.");
+
+    private async Task ExecuteAsync(Task<Result> command, string destination, string success)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage(destination, success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

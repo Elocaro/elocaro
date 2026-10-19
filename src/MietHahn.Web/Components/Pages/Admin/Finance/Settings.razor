@@ -1,0 +1,57 @@
+@page "/verwaltung/finanzen/einstellungen"
+@inject IFinanceSettings Admin
+@inject ITenantAccounts Accounts
+@inject Redirector Redirector
+
+<PageHeader Title="Einstellungen Finanzen" Subtitle="Buchhaltungsbeginn und Verrechnung von Zahlungen." />
+
+<StatusMessage />
+
+<EditForm Model="Data" FormName="finanzen" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <div class="formular-raster">
+        <FormField Id="buchhaltung-ab" Label="Buchhaltung ab (Monat)" For="() => Data!.AccountingStart"
+                      Hint="Ab diesem Monat entstehen die Monatsmieten automatisch. Rückstände aus der Zeit davor als „Saldovortrag“ im Mieterkonto erfassen.">
+            <InputDate id="buchhaltung-ab" @bind-Value="Data!.AccountingStart" />
+        </FormField>
+    </div>
+    <fieldset class="feld">
+        <legend>Verrechnung von Teilzahlungen</legend>
+        <InputRadioGroup @bind-Value="Data!.Allocation">
+            @foreach (var value in Enum.GetValues<AllocationOrder>())
+            {
+                <div class="feld-checkbox">
+                    <InputRadio id="@($"verrechnung-{value}")" Value="value" />
+                    <label for="@($"verrechnung-{value}")">@Labels.From(value)</label>
+                </div>
+            }
+        </InputRadioGroup>
+        <span class="feld-hinweis">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
+    </fieldset>
+    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "finanzen")]
+    private FinanceSettingsInput? Data { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        Data ??= new();
+        if (form is null)
+        {
+            Data = await Admin.GetAsync();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        await Admin.SaveAsync(Data!);
+        var count = await Accounts.GenerateChargesAsync();
+        Redirector.RedirectWithMessage("/verwaltung/finanzen/einstellungen", count == 0 ? "Gespeichert." : $"Gespeichert. {count} Sollstellungen angelegt oder angeglichen.", HttpContext);
+    }
+}

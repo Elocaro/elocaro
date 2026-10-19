@@ -4,11 +4,11 @@
 <div class="app app-einfach">
     <header class="kopfleiste">
         <a class="marke" href="/service">🐓 MietHahn <span class="bereich">Service</span></a>
-        <BenutzerMenue />
+        <UserMenu />
     </header>
     <nav class="bereichsnavigation" aria-label="Hauptnavigation">
         <NavLink href="/service" Match="NavLinkMatch.All">Aufträge</NavLink>
-        <AuthorizeView Roles="@MietHahn.Application.Konten.Rollen.Hausmeister">
+        <AuthorizeView Roles="@MietHahn.Application.Accounts.Roles.Caretaker">
             <NavLink href="/service/objekte">Objekte</NavLink>
         </AuthorizeView>
     </nav>

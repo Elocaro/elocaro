@@ -1,0 +1,64 @@
+@* Eingabefelder einer Kostenposition; Feldnamen „Position.…“ (Seiteneigenschaft Position). *@
+<div class="formular-raster">
+    <FormField Id="position-kostenart" Label="Kostenart" For="() => Position.CostType" Required="@Required">
+        <InputSelect id="position-kostenart" @bind-Value="Position.CostType">
+            <option value="">@(Required ? "– bitte wählen –" : "– später aufteilen –")</option>
+            <CostTypeOptions />
+        </InputSelect>
+    </FormField>
+    <FormField Id="position-objekt" Label="Objekt" For="() => Position.PropertyId" Required="@Required">
+        <InputSelect id="position-objekt" @bind-Value="Position.PropertyId">
+            <option value="">–</option>
+            @foreach (var o in Options.Properties)
+            {
+                <option value="@o.Id">@o.Name</option>
+            }
+        </InputSelect>
+    </FormField>
+    @if (WithDetails)
+    {
+        <FormField Id="position-betrag" Label="Betrag" For="() => Position.Amount" Hint="Leer = noch nicht aufgeteilter Rest">
+            <InputAmount id="position-betrag" @bind-Value="Position.Amount" />
+        </FormField>
+        <FormField Id="position-einheit" Label="Nur Einheit" For="() => Position.UnitId" Hint="Bei Kosten einer einzelnen Einheit">
+            <InputSelect id="position-einheit" @bind-Value="Position.UnitId">
+                <option value="">– ganzes Objekt –</option>
+                @foreach (var e in Options.Units)
+                {
+                    <option value="@e.Id">@e.Name</option>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="position-von" Label="Abrechnungszeitraum von" For="() => Position.From" Hint="Leer = Leistungszeitraum bzw. Kalenderjahr">
+            <InputDate id="position-von" @bind-Value="Position.From" />
+        </FormField>
+        <FormField Id="position-bis" Label="bis" For="() => Position.To">
+            <InputDate id="position-bis" @bind-Value="Position.To" />
+        </FormField>
+        <FormField Id="position-35a" Label="§ 35a EStG" For="() => Position.Section35a">
+            <InputSelect id="position-35a" @bind-Value="Position.Section35a">
+                @foreach (var value in Enum.GetValues<Section35a>())
+                {
+                    <option value="@value">@Labels.From(value)</option>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="position-arbeit" Label="davon Arbeitskosten" For="() => Position.LaborCosts" Hint="Lohn-, Maschinen- und Fahrtkosten inkl. USt">
+            <InputAmount id="position-arbeit" @bind-Value="Position.LaborCosts" />
+        </FormField>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public CostItemInput Position { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ReceiptOptions Options { get; set; } = default!;
+
+    [Parameter]
+    public bool WithDetails { get; set; } = true;
+
+    [Parameter]
+    public bool Required { get; set; } = true;
+}

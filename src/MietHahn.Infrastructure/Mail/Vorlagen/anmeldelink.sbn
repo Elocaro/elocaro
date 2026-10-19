@@ -1,5 +1,0 @@
-{{ capture betreff }}Ihr Anmeldelink für MietHahn{{ end }}
-<p>Hallo {{ anzeigename }},</p>
-<p>mit dem folgenden Link melden Sie sich bei MietHahn an:</p>
-<p><a href="{{ link }}">Anmelden</a></p>
-<p>Der Link ist {{ gueltig_minuten }} Minuten gültig und kann nur einmal verwendet werden. Wenn Sie keinen Link angefordert haben, ignorieren Sie diese Nachricht.</p>

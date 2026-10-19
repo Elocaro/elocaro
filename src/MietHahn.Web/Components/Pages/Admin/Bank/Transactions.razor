@@ -1,0 +1,146 @@
+@page "/verwaltung/bank/umsaetze"
+@inject IBankService Bank
+@inject Redirector Redirector
+@inject NavigationManager Navigation
+
+<PageHeader Title="Umsätze" Subtitle="Importierte Kontoumsätze; offene warten auf Zuordnung." Back="/verwaltung/bank/konten" BackText="Bankkonten" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<form method="get" class="formular-zeile suchleiste" role="search">
+    <div class="feld">
+        <label for="konto">Konto</label>
+        <select id="konto" name="konto">
+            <option value="">Alle Konten</option>
+            @foreach (var k in accounts)
+            {
+                <option value="@k.Id" selected="@(k.Id == AccountId)">@k.Name</option>
+            }
+        </select>
+    </div>
+    <div class="feld">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="">Alle</option>
+            @foreach (var value in Enum.GetValues<TransactionStatus>())
+            {
+                <option value="@value" selected="@(Status == value)">@Labels.From(value)</option>
+            }
+        </select>
+    </div>
+    <div class="feld">
+        <label for="suche">Suche</label>
+        <input id="suche" type="search" name="q" value="@Q" placeholder="Name, IBAN, Verwendungszweck" />
+    </div>
+    <div class="feld feld-aktion">
+        <button type="submit" class="knopf">Anzeigen</button>
+    </div>
+</form>
+
+@if (transactions is { Count: 0 })
+{
+    <EmptyState Text="Keine Umsätze in dieser Auswahl." />
+}
+else if (transactions is not null)
+{
+    <p class="klein">@transactions.Count Umsätze · Eingänge @Format.Money(transactions.Where(u => u.Amount > 0).Sum(u => u.Amount)) · Ausgänge @Format.Money(transactions.Where(u => u.Amount < 0).Sum(u => u.Amount))</p>
+    <form method="post" @formname="status" @onsubmit="StatusAsync">
+        <AntiforgeryToken />
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Buchung</th><th>Gegenseite</th><th>Verwendungszweck</th><th class="zahl">Betrag</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var u in transactions)
+                    {
+                        <tr>
+                            <td>@Format.Date(u.BookingDate)</td>
+                            <td>@u.CounterpartyName<span class="klein"> @u.CounterpartyIban</span></td>
+                            <td>
+                                @u.Purpose
+                                @if (u.BookingText is not null)
+                                {
+                                    <span class="klein"> (@u.BookingText)</span>
+                                }
+                                @if (u.Note is not null)
+                                {
+                                    <br /><span class="klein">Notiz: @u.Note</span>
+                                }
+                            </td>
+                            <td class="zahl">@Format.Money(u.Amount)</td>
+                            <td><span class="status @Labels.StatusClass(u.Status)">@Labels.From(u.Status)</span></td>
+                            <td>
+                                @if (u.Status == TransactionStatus.Open)
+                                {
+                                    <button type="submit" class="knopf" name="Action" value="@($"ignorieren:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) ignorieren">Ignorieren</button>
+                                }
+                                else if (u.Status == TransactionStatus.Ignored)
+                                {
+                                    <button type="submit" class="knopf" name="Action" value="@($"oeffnen:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) wieder öffnen">Wieder öffnen</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="feld">
+            <label for="notiz">Notiz beim Ignorieren (optional)</label>
+            <input id="notiz" name="Note" placeholder="z. B. privat, Umbuchung" />
+        </div>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<BankAccountRow> accounts = [];
+    private IReadOnlyList<TransactionRow>? transactions;
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "konto")]
+    private Guid? AccountId { get; set; }
+
+    // Enums lassen sich nicht direkt aus dem Query-String binden.
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? StatusText { get; set; }
+
+    private TransactionStatus? Status => Enum.TryParse<TransactionStatus>(StatusText, out var value) ? value : null;
+
+    [SupplyParameterFromQuery]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromForm(FormName = "status")]
+    private string? Action { get; set; }
+
+    [SupplyParameterFromForm(FormName = "status")]
+    private string? Note { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        accounts = await Bank.AccountsAsync();
+        transactions = await Bank.TransactionsAsync(new TransactionQuery(AccountId, Status, Q));
+    }
+
+    private async Task StatusAsync()
+    {
+        var parts = (Action ?? "").Split(':');
+        if (parts.Length != 2 || !Guid.TryParse(parts[1], out var id))
+        {
+            errors = ["Unbekannte Aktion."];
+            return;
+        }
+
+        var result = parts[0] == "ignorieren" ? await Bank.IgnoreAsync(id, Note) : await Bank.ReopenAsync(id);
+        if (result.Succeeded)
+        {
+            // Zurück auf dieselbe Auswahl (Konto, Status, Suche)
+            Redirector.RedirectWithMessage("/" + Navigation.ToBaseRelativePath(Navigation.Uri), parts[0] == "ignorieren" ? "Der Umsatz wird ignoriert." : "Der Umsatz ist wieder offen.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

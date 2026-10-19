@@ -1,0 +1,127 @@
+@page "/verwaltung/system/mails"
+@using System.ComponentModel.DataAnnotations
+@using MietHahn.Application.Common
+@using MietHahn.Application.Communication
+@using MietHahn.Domain.Communication
+@inject IMailService MailService
+@inject IMailSender MailSender
+@inject ICurrentUser CurrentUser
+@inject TimeProvider Clock
+
+<PageHeader Title="E-Mail-Versand" Subtitle="Ausgehende Nachrichten und ihr Zustellstatus." />
+
+@if (message is not null)
+{
+    <p class="meldung meldung-ok" role="status">@message</p>
+}
+
+<section>
+    <h2>Testnachricht senden</h2>
+    <EditForm Model="Test" FormName="testmail" OnValidSubmit="SendTestAsync" class="formular-zeile">
+        <DataAnnotationsValidator />
+        <FormField Id="empfaenger" Label="Empfänger" For="() => Test!.Recipient">
+            <InputText id="empfaenger" @bind-Value="Test!.Recipient" type="email" autocomplete="email" />
+        </FormField>
+        <button type="submit" class="knopf">Testnachricht einreihen</button>
+    </EditForm>
+</section>
+
+<section>
+    <h2>Letzte Nachrichten</h2>
+    @if (mails is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Nachrichten." />
+    }
+    else if (mails is not null)
+    {
+        @* Ein Formular für alle Zeilen: der geklickte Knopf sendet seine Id (Formularnamen müssen eindeutig sein). *@
+        <form method="post" @formname="erneut" @onsubmit="RetryAsync" data-enhance>
+        <AntiforgeryToken />
+        <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead>
+                <tr><th>Erstellt</th><th>An</th><th>Betreff</th><th>Status</th><th>Versuche</th><th>Gesendet / nächster Versuch</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var mail in mails)
+                {
+                    <tr>
+                        <td>@Format.Timestamp(mail.CreatedAt)</td>
+                        <td>@string.Join(", ", mail.To)</td>
+                        <td>@mail.Subject</td>
+                        <td><span class="status @StatusClass(mail.Status)" title="@mail.LastError">@StatusText(mail.Status)</span></td>
+                        <td>@mail.Attempts</td>
+                        <td>@(mail.Status == MailStatus.Sent ? Format.Timestamp(mail.SentAt) : Format.Timestamp(mail.NextAttemptAt))</td>
+                        <td>
+                            @if (mail.Status != MailStatus.Sent)
+                            {
+                                <button type="submit" name="RetryId" value="@mail.Id" class="knopf">Erneut senden</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+        </form>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<MailOverview>? mails;
+    private string? message;
+
+    [SupplyParameterFromForm(FormName = "testmail")]
+    private TestModel? Test { get; set; }
+
+    [SupplyParameterFromForm(FormName = "erneut")]
+    private Guid? RetryId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Test ??= new();
+        mails = await MailService.LatestAsync(100);
+    }
+
+    private async Task SendTestAsync()
+    {
+        await MailSender.EnqueueAsync(new MailRequest(
+            [Test!.Recipient!],
+            "test",
+            new { SentAt = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime), TriggeredBy = CurrentUser.Identifier }));
+        message = $"Testnachricht an {Test!.Recipient} wurde eingereiht und wird in Kürze versendet.";
+        Test = new();
+        mails = await MailService.LatestAsync(100);
+    }
+
+    private async Task RetryAsync()
+    {
+        if (RetryId is { } id)
+        {
+            await MailService.RetryAsync(id);
+            message = "Die Nachricht wird erneut versendet.";
+            mails = await MailService.LatestAsync(100);
+        }
+    }
+
+    private static string StatusText(MailStatus status) => status switch
+    {
+        MailStatus.Sent => "gesendet",
+        MailStatus.Failed => "fehlgeschlagen",
+        _ => "ausstehend",
+    };
+
+    private static string StatusClass(MailStatus status) => status switch
+    {
+        MailStatus.Sent => "status-ok",
+        MailStatus.Failed => "status-fehler",
+        _ => "status-wartend",
+    };
+
+    private sealed class TestModel
+    {
+        [Required(ErrorMessage = "Bitte eine E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string? Recipient { get; set; }
+    }
+}

@@ -1,0 +1,91 @@
+@* Eingabefelder eines Dokuments; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormField Id="dokument-titel" Label="Titel" For="() => Data.Title" Required="@TitleRequired" Hint="@(TitleRequired ? null : "Leer lassen für den Dateinamen.")">
+        <InputText id="dokument-titel" @bind-Value="Data.Title" />
+    </FormField>
+    <FormField Id="dokument-kategorie" Label="Kategorie" For="() => Data.Category">
+        <InputSelect id="dokument-kategorie" @bind-Value="Data.Category">
+            @foreach (var value in Enum.GetValues<DocumentCategory>())
+            {
+                <option value="@value">@Labels.From(value)</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="dokument-datum" Label="Datum des Dokuments" For="() => Data.Date">
+        <InputDate id="dokument-datum" @bind-Value="Data.Date" />
+    </FormField>
+    <FormField Id="dokument-ablauf" Label="Gültig bis" For="() => Data.ExpiresOn" Hint="Erinnerung 60 Tage vorher, z. B. Energieausweis, Versicherung.">
+        <InputDate id="dokument-ablauf" @bind-Value="Data.ExpiresOn" />
+    </FormField>
+    <FormField Id="dokument-tags" Label="Schlagworte" For="() => Data.Tags" Hint="Kommagetrennt, z. B. „Heizung, Wartung 2026“">
+        <InputText id="dokument-tags" @bind-Value="Data.Tags" />
+    </FormField>
+</div>
+
+<h3>Bezug</h3>
+<p class="klein">Mindestens ein Bezug. Dokumente eines Vertrags erscheinen auch bei der Einheit und dem Objekt.</p>
+<div class="formular-raster">
+    <FormField Id="dokument-objekt" Label="Objekt" For="() => Data.PropertyId">
+        <InputSelect id="dokument-objekt" @bind-Value="Data.PropertyId">
+            <option value="">–</option>
+            @foreach (var option in Options.Properties)
+            {
+                <option value="@option.Id">@option.Name</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="dokument-einheit" Label="Einheit" For="() => Data.UnitId">
+        <InputSelect id="dokument-einheit" @bind-Value="Data.UnitId">
+            <option value="">–</option>
+            @foreach (var option in Options.Units)
+            {
+                <option value="@option.Id">@option.Name</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="dokument-vertrag" Label="Vertrag" For="() => Data.LeaseId">
+        <InputSelect id="dokument-vertrag" @bind-Value="Data.LeaseId">
+            <option value="">–</option>
+            @foreach (var option in Options.Leases)
+            {
+                <option value="@option.Id">@option.Name</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="dokument-person" Label="Person" For="() => Data.PersonId">
+        <InputSelect id="dokument-person" @bind-Value="Data.PersonId">
+            <option value="">–</option>
+            @foreach (var option in Options.People)
+            {
+                <option value="@option.Id">@option.Name</option>
+            }
+        </InputSelect>
+    </FormField>
+</div>
+
+<div class="formular-zeile">
+    <div class="feld feld-checkbox">
+        <InputCheckbox id="dokument-mieter" @bind-Value="Data.SharedWithTenants" />
+        <label for="dokument-mieter">Für Mieter freigeben</label>
+    </div>
+    <div class="feld feld-checkbox">
+        <InputCheckbox id="dokument-hausmeister" @bind-Value="Data.SharedWithCaretakers" />
+        <label for="dokument-hausmeister">Für Hausmeister freigeben</label>
+    </div>
+</div>
+<p class="klein">Mieter sehen freigegebene Dokumente ihres Vertrags, ihrer Person und des Hauses bzw. der Wohnung, in der sie aktuell wohnen. Hausmeister sehen freigegebene Dokumente ihrer zugeordneten Objekte.</p>
+
+<FormField Id="dokument-notiz" Label="Notiz" For="() => Data.Note">
+    <InputTextArea id="dokument-notiz" @bind-Value="Data.Note" rows="3" />
+</FormField>
+
+@code {
+    [Parameter, EditorRequired]
+    public DocumentInput Data { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ReferenceOptions Options { get; set; } = default!;
+
+    [Parameter]
+    public bool TitleRequired { get; set; } = true;
+}

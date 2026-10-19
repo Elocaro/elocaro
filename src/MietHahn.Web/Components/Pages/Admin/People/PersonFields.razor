@@ -1,0 +1,54 @@
+@* Eingabefelder einer Person; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormField Id="anrede" Label="Anrede" For="() => Data.Salutation">
+        <InputSelect id="anrede" @bind-Value="Data.Salutation">
+            @foreach (var value in Enum.GetValues<Salutation>())
+            {
+                <option value="@value">@Labels.From(value)</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="titel" Label="Titel" For="() => Data.Title">
+        <InputText id="titel" @bind-Value="Data.Title" autocomplete="honorific-prefix" />
+    </FormField>
+    <FormField Id="vorname" Label="Vorname" For="() => Data.FirstName">
+        <InputText id="vorname" @bind-Value="Data.FirstName" autocomplete="off" />
+    </FormField>
+    <FormField Id="nachname" Label="Nachname bzw. Name" For="() => Data.LastName" Required="true">
+        <InputText id="nachname" @bind-Value="Data.LastName" autocomplete="off" />
+    </FormField>
+    <FormField Id="firma" Label="Firma" For="() => Data.Company">
+        <InputText id="firma" @bind-Value="Data.Company" autocomplete="off" />
+    </FormField>
+    <FormField Id="kontaktart" Label="Kontaktart" For="() => Data.ContactType" Hint="Für Mieter und Bürgen „privat“ lassen.">
+        <InputSelect id="kontaktart" @bind-Value="Data.ContactType">
+            @foreach (var value in Enum.GetValues<ContactType>())
+            {
+                <option value="@value">@Labels.From(value)</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="taetigkeit" Label="Gewerk / Sparte" For="() => Data.Occupation" Hint="z. B. „Sanitär“ oder „Wasser“">
+        <InputText id="taetigkeit" @bind-Value="Data.Occupation" />
+    </FormField>
+    <FormField Id="email" Label="E-Mail" For="() => Data.Email">
+        <InputText id="email" type="email" @bind-Value="Data.Email" autocomplete="off" />
+    </FormField>
+    <FormField Id="telefon" Label="Telefon" For="() => Data.Phone">
+        <InputText id="telefon" type="tel" @bind-Value="Data.Phone" autocomplete="off" />
+    </FormField>
+    <FormField Id="mobil" Label="Mobil" For="() => Data.Mobile">
+        <InputText id="mobil" type="tel" @bind-Value="Data.Mobile" autocomplete="off" />
+    </FormField>
+    <FormField Id="geburtsdatum" Label="Geburtsdatum" For="() => Data.DateOfBirth" Hint="Nur wenn nötig (Datensparsamkeit).">
+        <InputDate id="geburtsdatum" @bind-Value="Data.DateOfBirth" />
+    </FormField>
+</div>
+<FormField Id="notizen" Label="Notizen" For="() => Data.Notes">
+    <InputTextArea id="notizen" @bind-Value="Data.Notes" rows="3" />
+</FormField>
+
+@code {
+    [Parameter, EditorRequired]
+    public PersonInput Data { get; set; } = default!;
+}

@@ -1,0 +1,49 @@
+@using MietHahn.Application.Leases
+@inherits DataComponent
+
+@* Verträge und Leerstandszeiten eines Mietobjekts (Einheit ohne Zimmer oder WG-Zimmer). *@
+<section>
+    <h2>Verträge</h2>
+    @if (entries is { Count: 0 })
+    {
+        <p class="klein">Noch kein Vertrag.</p>
+    }
+    else if (entries is not null)
+    {
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Zeitraum</th><th>Mieter</th><th class="zahl">Kaltmiete bei Beginn</th></tr></thead>
+                <tbody>
+                    @foreach (var entry in entries)
+                    {
+                        <tr>
+                            <td>@Format.Period(entry.Period)</td>
+                            <td>
+                                @if (entry.IsVacancy)
+                                {
+                                    <span class="status status-wartend">Leerstand</span>
+                                }
+                                else
+                                {
+                                    <a href="/verwaltung/vertraege/@entry.LeaseId">@entry.Tenant</a>
+                                }
+                            </td>
+                            <td class="zahl">@Format.Money(entry.BaseRent)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    <p><a class="knopf" href="/verwaltung/vertraege/neu?mietobjekt=@RentalUnitId">Vertrag anlegen</a></p>
+</section>
+
+@code {
+    private IReadOnlyList<LeaseHistoryEntry>? entries;
+
+    [Parameter, EditorRequired]
+    public Guid RentalUnitId { get; set; }
+
+    protected override async Task OnParametersSetAsync() =>
+        entries = await GetAsync<ILeaseService, IReadOnlyList<LeaseHistoryEntry>>(v => v.HistoryAsync(RentalUnitId));
+}

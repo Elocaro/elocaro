@@ -1,0 +1,107 @@
+@page "/verwaltung/bank/importe/{Id:guid}"
+@inject IBankService Bank
+@inject Redirector Redirector
+
+@if (preview is null)
+{
+    <PageHeader Title="Import nicht gefunden" Back="/verwaltung/bank/konten" BackText="Alle Konten" />
+    return;
+}
+
+<PageHeader Title="@($"Import {preview.FileName}")" Subtitle="@($"{preview.Account} · {Labels.From(preview.Format)}{(preview.Profile is null ? "" : $" ({preview.Profile})")}")"
+            Back="@($"/verwaltung/bank/konten/{preview.BankAccountId}")" BackText="Zum Konto" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+@if (preview.Status == ImportStatus.Imported)
+{
+    <p class="meldung meldung-hinweis" role="status">Diese Datei wurde bereits importiert. <a href="/verwaltung/bank/umsaetze?konto=@preview.BankAccountId">Zu den Umsätzen</a></p>
+    return;
+}
+
+@if (preview.DifferentIban is not null)
+{
+    <p class="meldung meldung-fehler" role="alert">Die Datei gehört zum Konto @preview.DifferentIban, nicht zu „@preview.Account“. Bitte beim richtigen Konto importieren.</p>
+}
+
+<p>
+    <strong>@newItem neue Umsätze</strong>@(preview.Rows.Count - newItem > 0 ? $", {preview.Rows.Count - newItem} schon vorhanden (werden übersprungen)" : "").
+</p>
+@foreach (var hint in preview.Hints)
+{
+    <p class="klein">@hint</p>
+}
+
+<div class="formular-zeile">
+    <form method="post" @formname="importieren" @onsubmit="ImportAsync">
+        <AntiforgeryToken />
+        <button type="submit" class="knopf knopf-primaer" disabled="@(preview.DifferentIban is not null || newItem == 0)">@newItem Umsätze importieren</button>
+    </form>
+    <form method="post" @formname="verwerfen" @onsubmit="DiscardAsync">
+        <AntiforgeryToken />
+        <button type="submit" class="knopf">Verwerfen</button>
+    </form>
+</div>
+
+<div class="tabellen-rahmen">
+    <table class="tabelle">
+        <thead><tr><th>Buchung</th><th>Gegenseite</th><th>Verwendungszweck</th><th class="zahl">Betrag</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var line in preview.Rows)
+            {
+                <tr class="@(line.Duplicate ? "zeile-gedimmt" : "")">
+                    <td>@Format.Date(line.Transaction.BookingDate)</td>
+                    <td>@line.Transaction.CounterpartyName<span class="klein"> @line.Transaction.CounterpartyIban</span></td>
+                    <td>@line.Transaction.Purpose</td>
+                    <td class="zahl">@Format.Money(line.Transaction.Amount)</td>
+                    <td>@if (line.Duplicate) {<span class="status">schon vorhanden</span>}</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private ImportPreview? preview;
+    private int newItem;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        preview = await Bank.PreviewAsync(Id);
+        newItem = preview?.Rows.Count(z => !z.Duplicate) ?? 0;
+    }
+
+    private async Task ImportAsync()
+    {
+        var result = await Bank.ImportAsync(Id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/bank/umsaetze?konto={preview!.BankAccountId}", $"{newItem} Umsätze importiert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task DiscardAsync()
+    {
+        var result = await Bank.DiscardAsync(Id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/bank/konten/{result.Id}", "Der Import wurde verworfen.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

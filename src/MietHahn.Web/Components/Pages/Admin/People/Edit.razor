@@ -1,0 +1,57 @@
+@page "/verwaltung/personen/{Id:guid}/bearbeiten"
+@inject IPersonService Admin
+@inject Redirector Redirector
+
+@if (person is null)
+{
+    <PageHeader Title="Person nicht gefunden" Back="/verwaltung/personen" BackText="Alle Personen" />
+    return;
+}
+
+<PageHeader Title="@($"{person.DisplayName} bearbeiten")" Back="@($"/verwaltung/personen/{Id}")" BackText="Zur Person" />
+
+<ErrorList Errors="errors" />
+
+<EditForm Model="Data" FormName="person" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <PersonFields Data="Data!" />
+    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+</EditForm>
+
+@code {
+    private PersonDetails? person;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "person")]
+    private PersonInput? Data { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        Data ??= new();
+        person = await Admin.GetAsync(Id);
+        if (person is not null)
+        {
+            Data = form ?? person.Data;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.UpdateAsync(Id, Data!);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/personen/{Id}", "Die Angaben wurden gespeichert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

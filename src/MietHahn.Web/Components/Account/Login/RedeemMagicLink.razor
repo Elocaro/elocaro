@@ -1,0 +1,45 @@
+@page "/konto/link/{Token}"
+@inject IAccountService Accounts
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> Login
+@inject Redirector Redirector
+
+<PageTitle>Anmelden – MietHahn</PageTitle>
+
+<h1>Anmelden</h1>
+
+@if (invalid)
+{
+    <p class="meldung meldung-fehler" role="alert">Dieser Link ist ungültig, abgelaufen oder wurde bereits verwendet.</p>
+    <div class="konto-links"><a href="/konto/link">Neuen Anmeldelink anfordern</a></div>
+}
+else
+{
+    @* Erst der Klick löst den Link ein: E-Mail-Scanner, die Links vorab öffnen, verbrauchen ihn so nicht. *@
+    <p>Klicken Sie auf „Anmelden“, um sich bei MietHahn anzumelden.</p>
+    <form method="post" @formname="link-einloesen" @onsubmit="RedeemAsync">
+        <AntiforgeryToken />
+        <button type="submit" class="knopf knopf-primaer">Anmelden</button>
+    </form>
+}
+
+@code {
+    private bool invalid;
+
+    [Parameter]
+    public string Token { get; set; } = "";
+
+    private async Task RedeemAsync()
+    {
+        var id = await Accounts.RedeemMagicLinkAsync(Token);
+        var user = id is null ? null : await UserManager.FindByIdAsync(id.Value.ToString());
+        if (user is null)
+        {
+            invalid = true;
+            return;
+        }
+
+        await Login.SignInAsync(user, isPersistent: true);
+        Redirector.To("/");
+    }
+}

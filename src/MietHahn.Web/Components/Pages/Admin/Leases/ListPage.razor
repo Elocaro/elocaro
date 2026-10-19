@@ -1,0 +1,57 @@
+@page "/verwaltung/vertraege"
+@inject ILeaseService Admin
+
+<PageHeader Title="Mietverträge" Subtitle="@(All ? "Alle Verträge, auch beendete." : "Laufende und künftige Verträge.")">
+    <Actions>
+        <a class="knopf knopf-primaer" href="/verwaltung/vertraege/neu">Vertrag anlegen</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+
+<p>
+    @if (All)
+    {
+        <a href="/verwaltung/vertraege">Nur laufende anzeigen</a>
+    }
+    else
+    {
+        <a href="/verwaltung/vertraege?alle=true">Auch beendete anzeigen</a>
+    }
+</p>
+
+@if (leases is { Count: 0 })
+{
+    <EmptyState Text="Keine Verträge. Lege zuerst Objekte und Personen an, dann den ersten Vertrag." />
+}
+else if (leases is not null)
+{
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead>
+                <tr><th>Mietobjekt</th><th>Mieter</th><th>Laufzeit</th><th>Status</th><th class="zahl">Monatsmiete</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var lease in leases)
+                {
+                    <tr>
+                        <td><a href="/verwaltung/vertraege/@lease.Id">@lease.RentalUnit</a> <span class="klein">@lease.Property</span></td>
+                        <td>@lease.Tenant</td>
+                        <td>@Format.Date(lease.Start) – @(lease.End is null ? "unbefristet" : Format.Date(lease.End))</td>
+                        <td><span class="status @Labels.StatusClass(lease.Status)">@Labels.From(lease.Status)</span></td>
+                        <td class="zahl">@Format.Money(lease.MonthlyRent)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<LeaseOverview>? leases;
+
+    [SupplyParameterFromQuery(Name = "alle")]
+    private bool All { get; set; }
+
+    protected override async Task OnParametersSetAsync() => leases = await Admin.ListAsync(!All);
+}

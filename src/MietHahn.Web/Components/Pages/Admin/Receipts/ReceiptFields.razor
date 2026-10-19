@@ -1,0 +1,67 @@
+@* Eingabefelder eines Belegs; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormField Id="beleg-lieferant" Label="Lieferant (Kontakt)" For="() => Data.SupplierId" Hint="Kontakte unter Personen anlegen; sonst unten den Namen eintragen.">
+        <InputSelect id="beleg-lieferant" @bind-Value="Data.SupplierId">
+            <option value="">–</option>
+            @foreach (var l in Options.Suppliers)
+            {
+                <option value="@l.Id">@l.Name</option>
+            }
+        </InputSelect>
+    </FormField>
+    <FormField Id="beleg-lieferant-name" Label="oder Name" For="() => Data.SupplierName">
+        <InputText id="beleg-lieferant-name" @bind-Value="Data.SupplierName" />
+    </FormField>
+    <FormField Id="beleg-nummer" Label="Rechnungsnummer" For="() => Data.InvoiceNumber">
+        <InputText id="beleg-nummer" @bind-Value="Data.InvoiceNumber" />
+    </FormField>
+    <FormField Id="beleg-datum" Label="Rechnungsdatum" For="() => Data.InvoiceDate" Required="true">
+        <InputDate id="beleg-datum" @bind-Value="Data.InvoiceDate" />
+    </FormField>
+    <FormField Id="beleg-von" Label="Leistung von" For="() => Data.ServiceFrom">
+        <InputDate id="beleg-von" @bind-Value="Data.ServiceFrom" />
+    </FormField>
+    <FormField Id="beleg-bis" Label="Leistung bis" For="() => Data.ServiceTo">
+        <InputDate id="beleg-bis" @bind-Value="Data.ServiceTo" />
+    </FormField>
+    <FormField Id="beleg-brutto" Label="Brutto" For="() => Data.Gross" Required="true" Hint="Gutschriften negativ">
+        <InputAmount id="beleg-brutto" @bind-Value="Data.Gross" />
+    </FormField>
+    <FormField Id="beleg-netto" Label="Netto" For="() => Data.Net">
+        <InputAmount id="beleg-netto" @bind-Value="Data.Net" />
+    </FormField>
+    <FormField Id="beleg-ust" Label="Umsatzsteuer" For="() => Data.Vat">
+        <InputAmount id="beleg-ust" @bind-Value="Data.Vat" />
+    </FormField>
+    <FormField Id="beleg-faellig" Label="Fällig am" For="() => Data.DueOn">
+        <InputDate id="beleg-faellig" @bind-Value="Data.DueOn" />
+    </FormField>
+    <FormField Id="beleg-bezahlt" Label="Bezahlt am" For="() => Data.PaidOn" Hint="Bei Bankumsätzen später über die Zuordnung.">
+        <InputDate id="beleg-bezahlt" @bind-Value="Data.PaidOn" />
+    </FormField>
+</div>
+<details class="feld">
+    <summary>Brennstoff (Menge, CO₂)</summary>
+    <div class="formular-raster">
+        <FormField Id="beleg-menge" Label="Menge" For="() => Data.FuelQuantity">
+            <InputNumber id="beleg-menge" @bind-Value="Data.FuelQuantity" step="0.001" />
+        </FormField>
+        <FormField Id="beleg-einheit" Label="Einheit" For="() => Data.FuelUnit" Hint="l, kWh, kg, m³">
+            <InputText id="beleg-einheit" @bind-Value="Data.FuelUnit" />
+        </FormField>
+        <FormField Id="beleg-co2" Label="CO₂ (kg)" For="() => Data.Co2Kg" Hint="Pflichtangabe des Lieferanten (CO2KostAufG)">
+            <InputNumber id="beleg-co2" @bind-Value="Data.Co2Kg" step="0.001" />
+        </FormField>
+    </div>
+</details>
+<FormField Id="beleg-notiz" Label="Notiz" For="() => Data.Note">
+    <InputTextArea id="beleg-notiz" @bind-Value="Data.Note" rows="2" />
+</FormField>
+
+@code {
+    [Parameter, EditorRequired]
+    public ReceiptInput Data { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ReceiptOptions Options { get; set; } = default!;
+}

@@ -1,0 +1,174 @@
+@page "/verwaltung/bank/konten/{Id:guid}"
+@using MietHahn.Application.Properties
+@inject IBankService Bank
+@inject IPropertyService PropertyService
+@inject Redirector Redirector
+
+@if (account is null)
+{
+    <PageHeader Title="Konto nicht gefunden" Back="/verwaltung/bank/konten" BackText="Alle Konten" />
+    return;
+}
+
+<PageHeader Title="@account.Name" Subtitle="@account.Iban" Back="/verwaltung/bank/konten" BackText="Alle Konten">
+    <Actions>
+        <a class="knopf" href="/verwaltung/bank/umsaetze?konto=@Id">Umsätze</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<section>
+    <h2>Kontoauszug importieren</h2>
+    <form method="post" enctype="multipart/form-data" @formname="import" @onsubmit="UploadAsync">
+        <AntiforgeryToken />
+        <div class="formular-raster">
+            <div class="feld">
+                <label for="datei">Datei *</label>
+                <input type="file" id="datei" name="Upload" accept=".xml,.sta,.mt940,.940,.txt,.csv" required />
+                <span class="feld-hinweis">camt.053 (XML), MT940 oder CSV. Das Format wird erkannt; schon vorhandene Umsätze werden übersprungen.</span>
+            </div>
+            <div class="feld">
+                <label for="profil">CSV-Profil</label>
+                <select id="profil" name="Profile">
+                    <option value="">automatisch erkennen</option>
+                    @foreach (var profile in profile)
+                    {
+                        <option value="@profile.Name">@profile.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="knopf knopf-primaer">Vorschau anzeigen</button>
+    </form>
+</section>
+
+<section>
+    <h2>Importprotokoll</h2>
+    @if (imports is { Count: 0 })
+    {
+        <p class="klein">Noch keine Importe.</p>
+    }
+    else if (imports is not null)
+    {
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Zeitpunkt</th><th>Datei</th><th>Zeitraum</th><th class="zahl">Umsätze</th><th class="zahl">neu</th><th class="zahl">Duplikate</th></tr></thead>
+                <tbody>
+                    @foreach (var import in imports)
+                    {
+                        <tr>
+                            <td>@Format.Timestamp(import.Timestamp)<span class="klein"> @import.CreatedBy</span></td>
+                            <td>
+                                @if (import.Status == ImportStatus.Preview)
+                                {
+                                    <a href="/verwaltung/bank/importe/@import.Id">@import.FileName</a> <span class="status status-wartend">Vorschau</span>
+                                }
+                                else
+                                {
+                                    @import.FileName
+                                }
+                                <span class="klein"> @Labels.From(import.Format)@(import.Profile is null ? "" : $" ({import.Profile})")</span>
+                            </td>
+                            <td>@(import.From is null ? "–" : $"{Format.Date(import.From)} – {Format.Date(import.To)}")</td>
+                            <td class="zahl">@import.Read</td>
+                            <td class="zahl">@import.Added</td>
+                            <td class="zahl">@import.Duplicates</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<section>
+    <h2>Angaben</h2>
+    <EditForm Model="Data" FormName="konto" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <AccountFields Data="Data!" Properties="properties" />
+        <button type="submit" class="knopf">Speichern</button>
+    </EditForm>
+</section>
+
+@code {
+    private BankAccountInput? account;
+    private IReadOnlyList<ImportRow>? imports;
+    private IReadOnlyList<CsvProfileInput> profile = [];
+    private IReadOnlyList<PropertyOverview> properties = [];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "konto")]
+    private BankAccountInput? Data { get; set; }
+
+    [SupplyParameterFromForm(FormName = "import")]
+    private IFormFile? Upload { get; set; }
+
+    [SupplyParameterFromForm(FormName = "import")]
+    private string? Profile { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = Data;
+        Data ??= new();
+        account = await Bank.GetAccountAsync(Id);
+        if (account is null)
+        {
+            return;
+        }
+
+        if (form is null)
+        {
+            Data = account;
+        }
+
+        imports = await Bank.ImportsAsync(Id);
+        profile = await Bank.CsvProfilesAsync();
+        properties = await PropertyService.ListAsync(null);
+    }
+
+    private async Task UploadAsync()
+    {
+        if (Upload is null || Upload.Length == 0)
+        {
+            errors = ["Bitte eine Datei auswählen."];
+            return;
+        }
+
+        using var buffer = new MemoryStream();
+        await using (var content = Upload.OpenReadStream())
+        {
+            await content.CopyToAsync(buffer);
+        }
+
+        var result = await Bank.CreatePreviewAsync(Id, Upload.FileName, buffer.ToArray(), Profile);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/bank/importe/{result.Id}", "Bitte die Vorschau prüfen und den Import bestätigen.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Bank.UpdateAccountAsync(Id, Data!);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/bank/konten/{Id}", "Die Angaben wurden gespeichert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

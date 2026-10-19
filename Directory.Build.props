@@ -10,6 +10,8 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <InvariantGlobalization>false</InvariantGlobalization>
     <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
+    <!-- CA1716 warns about names that are keywords in other .NET languages (e.g. VB "Property"); irrelevant for an application. -->
+    <NoWarn>$(NoWarn);CA1716</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">

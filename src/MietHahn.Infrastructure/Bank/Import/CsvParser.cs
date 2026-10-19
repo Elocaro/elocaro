@@ -5,206 +5,206 @@ using MietHahn.Domain.Bank;
 
 namespace MietHahn.Infrastructure.Bank.Import;
 
-/// <summary>CSV-Umsätze nach einem <see cref="CsvProfil"/>; Vorspann-Zeilen vor der Überschrift werden übersprungen.</summary>
+/// <summary>CSV-Umsätze nach einem <see cref="CsvProfile"/>; Vorspann-Zeilen vor der Überschrift werden übersprungen.</summary>
 internal static class CsvParser
 {
-    private static readonly Regex IbanMuster = new(@"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+    private static readonly Regex IbanPattern = new(@"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
     /// <summary>
     /// Anzahl gefundener Spalten, wenn alle Pflichtspalten in einer Überschriftszeile stehen, sonst 0. Mehrere Profile
     /// können passen (gleiche Spaltennamen); das mit den meisten Treffern beschreibt die Datei am genauesten.
     /// </summary>
-    public static int Treffer(CsvProfil profil, byte[] inhalt)
+    public static int Hits(CsvProfile profile, byte[] content)
     {
-        ArgumentNullException.ThrowIfNull(profil);
-        var zeilen = Zeilen(Textdekodierung.Lesen(inhalt, profil.Zeichensatz), profil.Trennzeichen).Take(40);
-        return zeilen.Select(z => Spalten(profil, z)?.Count ?? 0).DefaultIfEmpty(0).Max();
+        ArgumentNullException.ThrowIfNull(profile);
+        var lines = Rows(TextDecoding.Read(content, profile.Charset), profile.Delimiter).Take(40);
+        return lines.Select(z => Columns(profile, z)?.Count ?? 0).DefaultIfEmpty(0).Max();
     }
 
-    public static Kontoauszug Lesen(CsvProfil profil, byte[] inhalt)
+    public static BankStatement Read(CsvProfile profile, byte[] content)
     {
-        ArgumentNullException.ThrowIfNull(profil);
-        var text = Textdekodierung.Lesen(inhalt, profil.Zeichensatz);
-        var zeilen = Zeilen(text, profil.Trennzeichen).ToList();
-        var kopf = zeilen.FindIndex(z => Spalten(profil, z) is not null);
-        if (kopf < 0)
+        ArgumentNullException.ThrowIfNull(profile);
+        var text = TextDecoding.Read(content, profile.Charset);
+        var lines = Rows(text, profile.Delimiter).ToList();
+        var header = lines.FindIndex(z => Columns(profile, z) is not null);
+        if (header < 0)
         {
-            throw new BankdateiFehlerException($"Die Spaltenüberschriften passen nicht zum Profil „{profil.Name}“.");
+            throw new BankFileErrorException($"Die Spaltenüberschriften passen nicht zum Profil „{profile.Name}“.");
         }
 
-        var spalten = Spalten(profil, zeilen[kopf])!;
+        var columns = Columns(profile, lines[header])!;
         // Im Vorspann steht oft die IBAN des Kontos (ING, DKB).
-        var iban = zeilen.Take(kopf).SelectMany(z => z).Select(f => IbanMuster.Match(f.ToUpperInvariant())).FirstOrDefault(m => m.Success && Domain.Gemeinsam.Iban.IstGueltig(m.Value))?.Value;
-        var zerlegung = profil.Zerlegung is null ? null : new Regex(profil.Zerlegung, RegexOptions.Singleline, TimeSpan.FromSeconds(1));
-        var formate = profil.Datumsformat.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var umsaetze = new List<GelesenerUmsatz>();
-        var hinweise = new List<string>();
+        var iban = lines.Take(header).SelectMany(z => z).Select(f => IbanPattern.Match(f.ToUpperInvariant())).FirstOrDefault(m => m.Success && Domain.Common.Iban.IsValid(m.Value))?.Value;
+        var split = profile.ParsePattern is null ? null : new Regex(profile.ParsePattern, RegexOptions.Singleline, TimeSpan.FromSeconds(1));
+        var formats = profile.DateFormat.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var transactions = new List<ParsedTransaction>();
+        var hints = new List<string>();
 
-        foreach (var (zeile, nummer) in zeilen.Skip(kopf + 1).Select((z, i) => (z, i + kopf + 2)))
+        foreach (var (line, number) in lines.Skip(header + 1).Select((z, i) => (z, i + header + 2)))
         {
-            string? Wert(string schluessel) => spalten.TryGetValue(schluessel, out var index) && index < zeile.Count && zeile[index].Trim() is { Length: > 0 } w ? w : null;
+            string? Value(string key) => columns.TryGetValue(key, out var index) && index < line.Count && line[index].Trim() is { Length: > 0 } w ? w : null;
 
-            if (zeile.All(string.IsNullOrWhiteSpace))
+            if (line.All(string.IsNullOrWhiteSpace))
             {
                 continue;
             }
 
-            var datumText = Wert(nameof(CsvProfil.SpalteBuchungsdatum));
-            if (datumText is null || !DateOnly.TryParseExact(datumText, formate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var buchung))
+            var dateText = Value(nameof(CsvProfile.BookingDateColumn));
+            if (dateText is null || !DateOnly.TryParseExact(dateText, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var booking))
             {
                 // Fußzeilen wie „Kontostand“ oder „Alter Kontostand“
-                hinweise.Add($"Zeile {nummer} übersprungen (kein Buchungsdatum).");
+                hints.Add($"Zeile {number} übersprungen (kein Buchungsdatum).");
                 continue;
             }
 
-            if (Wert(nameof(CsvProfil.SpalteStatus)) is { } status && (status.Contains("vorgemerkt", StringComparison.OrdinalIgnoreCase) || status.Contains("offen", StringComparison.OrdinalIgnoreCase)))
+            if (Value(nameof(CsvProfile.StatusColumn)) is { } status && (status.Contains("vorgemerkt", StringComparison.OrdinalIgnoreCase) || status.Contains("offen", StringComparison.OrdinalIgnoreCase)))
             {
-                hinweise.Add($"Zeile {nummer} übersprungen (vorgemerkt).");
+                hints.Add($"Zeile {number} übersprungen (vorgemerkt).");
                 continue;
             }
 
-            decimal? betrag = Betrag(Wert(nameof(CsvProfil.SpalteBetrag)), profil.Dezimaltrennzeichen);
-            if (betrag is null && (profil.SpalteSoll is not null || profil.SpalteHaben is not null))
+            decimal? amount = Amount(Value(nameof(CsvProfile.AmountColumn)), profile.DecimalSeparator);
+            if (amount is null && (profile.DebitColumn is not null || profile.CreditColumn is not null))
             {
-                var soll = Betrag(Wert(nameof(CsvProfil.SpalteSoll)), profil.Dezimaltrennzeichen);
-                var haben = Betrag(Wert(nameof(CsvProfil.SpalteHaben)), profil.Dezimaltrennzeichen);
-                betrag = soll is null && haben is null ? null : (haben ?? 0) - Math.Abs(soll ?? 0);
+                var target = Amount(Value(nameof(CsvProfile.DebitColumn)), profile.DecimalSeparator);
+                var creditItems = Amount(Value(nameof(CsvProfile.CreditColumn)), profile.DecimalSeparator);
+                amount = target is null && creditItems is null ? null : (creditItems ?? 0) - Math.Abs(target ?? 0);
             }
 
-            if (betrag is null)
+            if (amount is null)
             {
-                hinweise.Add($"Zeile {nummer} übersprungen (kein Betrag).");
+                hints.Add($"Zeile {number} übersprungen (kein Betrag).");
                 continue;
             }
 
-            var valuta = Wert(nameof(CsvProfil.SpalteValutadatum)) is { } v && DateOnly.TryParseExact(v, formate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var valutaDatum) ? valutaDatum : (DateOnly?)null;
-            var zweckRoh = Wert(nameof(CsvProfil.SpalteVerwendungszweck)) ?? "";
-            var name = Wert(nameof(CsvProfil.SpalteName))
-                ?? (betrag > 0 ? Wert(nameof(CsvProfil.SpalteNameEingang)) : Wert(nameof(CsvProfil.SpalteNameAusgang)));
-            if (zerlegung?.Match(zweckRoh) is { Success: true } teile)
+            var valueDate = Value(nameof(CsvProfile.ValueDateColumn)) is { } v && DateOnly.TryParseExact(v, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var valueDateRaw) ? valueDateRaw : (DateOnly?)null;
+            var purposeRaw = Value(nameof(CsvProfile.PurposeColumn)) ?? "";
+            var name = Value(nameof(CsvProfile.NameColumn))
+                ?? (amount > 0 ? Value(nameof(CsvProfile.IncomingNameColumn)) : Value(nameof(CsvProfile.OutgoingNameColumn)));
+            if (split?.Match(purposeRaw) is { Success: true } parts)
             {
-                name ??= teile.Groups["name"].Success ? teile.Groups["name"].Value.Trim() : null;
-                zweckRoh = teile.Groups["zweck"].Success ? teile.Groups["zweck"].Value : zweckRoh;
+                name ??= parts.Groups["name"].Success ? parts.Groups["name"].Value.Trim() : null;
+                purposeRaw = parts.Groups["zweck"].Success ? parts.Groups["zweck"].Value : purposeRaw;
             }
 
-            var sepa = SepaZweck.Zerlegen(zweckRoh);
-            var gegenIban = Wert(nameof(CsvProfil.SpalteIban))?.Replace(" ", "", StringComparison.Ordinal);
-            umsaetze.Add(new GelesenerUmsatz(
-                buchung,
-                betrag.Value,
-                sepa.Verwendungszweck,
-                valuta,
-                Wert(nameof(CsvProfil.SpalteWaehrung)) ?? "EUR",
-                GegenName: name,
-                GegenIban: gegenIban is not null && Domain.Gemeinsam.Iban.IstGueltig(gegenIban) ? gegenIban : null,
-                GegenBic: Wert(nameof(CsvProfil.SpalteBic)),
-                Buchungstext: Wert(nameof(CsvProfil.SpalteBuchungstext)),
-                EndToEndId: Ohne(Wert(nameof(CsvProfil.SpalteEndToEnd))) ?? sepa.EndToEndId,
-                Mandatsreferenz: Wert(nameof(CsvProfil.SpalteMandatsreferenz)) ?? sepa.Mandatsreferenz,
-                GlaeubigerId: Wert(nameof(CsvProfil.SpalteGlaeubigerId)) ?? sepa.GlaeubigerId));
+            var sepa = SepaPurpose.Parse(purposeRaw);
+            var counterpartyIban = Value(nameof(CsvProfile.IbanColumn))?.Replace(" ", "", StringComparison.Ordinal);
+            transactions.Add(new ParsedTransaction(
+                booking,
+                amount.Value,
+                sepa.Purpose,
+                valueDate,
+                Value(nameof(CsvProfile.CurrencyColumn)) ?? "EUR",
+                CounterpartyName: name,
+                CounterpartyIban: counterpartyIban is not null && Domain.Common.Iban.IsValid(counterpartyIban) ? counterpartyIban : null,
+                CounterpartyBic: Value(nameof(CsvProfile.BicColumn)),
+                BookingText: Value(nameof(CsvProfile.BookingTextColumn)),
+                EndToEndId: NullIfNotProvided(Value(nameof(CsvProfile.EndToEndColumn))) ?? sepa.EndToEndId,
+                MandateReference: Value(nameof(CsvProfile.MandateReferenceColumn)) ?? sepa.MandateReference,
+                CreditorId: Value(nameof(CsvProfile.CreditorIdColumn)) ?? sepa.CreditorId));
         }
 
-        return new Kontoauszug(iban is null ? null : Domain.Gemeinsam.Iban.Kompakt(iban), umsaetze, hinweise);
+        return new BankStatement(iban is null ? null : Domain.Common.Iban.Compact(iban), transactions, hints);
     }
 
-    private static string? Ohne(string? wert) => wert is null or "NOTPROVIDED" ? null : wert;
+    private static string? NullIfNotProvided(string? value) => value is null or "NOTPROVIDED" ? null : value;
 
     /// <summary>„-1.234,56“, „1234,56 €“, „+12,00“ bzw. mit Punkt als Dezimaltrennzeichen.</summary>
-    internal static decimal? Betrag(string? text, char dezimal)
+    internal static decimal? Amount(string? text, char decimalSeparator)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
             return null;
         }
 
-        var bereinigt = new string(text.Where(c => char.IsAsciiDigit(c) || c is ',' or '.' or '-' or '+').ToArray());
-        bereinigt = dezimal == ','
-            ? bereinigt.Replace(".", "", StringComparison.Ordinal).Replace(',', '.')
-            : bereinigt.Replace(",", "", StringComparison.Ordinal);
-        return decimal.TryParse(bereinigt, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var betrag) ? betrag : null;
+        var cleaned = new string(text.Where(c => char.IsAsciiDigit(c) || c is ',' or '.' or '-' or '+').ToArray());
+        cleaned = decimalSeparator == ','
+            ? cleaned.Replace(".", "", StringComparison.Ordinal).Replace(',', '.')
+            : cleaned.Replace(",", "", StringComparison.Ordinal);
+        return decimal.TryParse(cleaned, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var amount) ? amount : null;
     }
 
     /// <summary>Spaltenindex je Profileigenschaft oder <c>null</c>, wenn Pflichtspalten fehlen.</summary>
-    private static Dictionary<string, int>? Spalten(CsvProfil profil, List<string> kopf)
+    private static Dictionary<string, int>? Columns(CsvProfile profile, List<string> header)
     {
-        var namen = kopf.Select(Normalisieren).ToList();
-        var zuordnung = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var (eigenschaft, angabe) in Angaben(profil))
+        var names = header.Select(Normalize).ToList();
+        var assignment = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (property, value) in Fields(profile))
         {
-            if (angabe is null)
+            if (value is null)
             {
                 continue;
             }
 
-            var index = angabe.Split('|').Select(Normalisieren).Select(n => namen.IndexOf(n)).FirstOrDefault(i => i >= 0, -1);
+            var index = value.Split('|').Select(Normalize).Select(n => names.IndexOf(n)).FirstOrDefault(i => i >= 0, -1);
             if (index >= 0)
             {
-                zuordnung[eigenschaft] = index;
+                assignment[property] = index;
             }
         }
 
-        var pflicht = zuordnung.ContainsKey(nameof(CsvProfil.SpalteBuchungsdatum))
-            && (zuordnung.ContainsKey(nameof(CsvProfil.SpalteBetrag)) || (zuordnung.ContainsKey(nameof(CsvProfil.SpalteSoll)) && zuordnung.ContainsKey(nameof(CsvProfil.SpalteHaben))))
-            && (profil.SpalteVerwendungszweck is null || zuordnung.ContainsKey(nameof(CsvProfil.SpalteVerwendungszweck)));
-        return pflicht ? zuordnung : null;
+        var required = assignment.ContainsKey(nameof(CsvProfile.BookingDateColumn))
+            && (assignment.ContainsKey(nameof(CsvProfile.AmountColumn)) || (assignment.ContainsKey(nameof(CsvProfile.DebitColumn)) && assignment.ContainsKey(nameof(CsvProfile.CreditColumn))))
+            && (profile.PurposeColumn is null || assignment.ContainsKey(nameof(CsvProfile.PurposeColumn)));
+        return required ? assignment : null;
     }
 
-    private static IEnumerable<(string, string?)> Angaben(CsvProfil p) =>
+    private static IEnumerable<(string, string?)> Fields(CsvProfile p) =>
     [
-        (nameof(p.SpalteBuchungsdatum), p.SpalteBuchungsdatum),
-        (nameof(p.SpalteValutadatum), p.SpalteValutadatum),
-        (nameof(p.SpalteBetrag), p.SpalteBetrag),
-        (nameof(p.SpalteSoll), p.SpalteSoll),
-        (nameof(p.SpalteHaben), p.SpalteHaben),
-        (nameof(p.SpalteName), p.SpalteName),
-        (nameof(p.SpalteNameEingang), p.SpalteNameEingang),
-        (nameof(p.SpalteNameAusgang), p.SpalteNameAusgang),
-        (nameof(p.SpalteIban), p.SpalteIban),
-        (nameof(p.SpalteBic), p.SpalteBic),
-        (nameof(p.SpalteVerwendungszweck), p.SpalteVerwendungszweck),
-        (nameof(p.SpalteBuchungstext), p.SpalteBuchungstext),
-        (nameof(p.SpalteEndToEnd), p.SpalteEndToEnd),
-        (nameof(p.SpalteMandatsreferenz), p.SpalteMandatsreferenz),
-        (nameof(p.SpalteGlaeubigerId), p.SpalteGlaeubigerId),
-        (nameof(p.SpalteWaehrung), p.SpalteWaehrung),
-        (nameof(p.SpalteStatus), p.SpalteStatus),
+        (nameof(p.BookingDateColumn), p.BookingDateColumn),
+        (nameof(p.ValueDateColumn), p.ValueDateColumn),
+        (nameof(p.AmountColumn), p.AmountColumn),
+        (nameof(p.DebitColumn), p.DebitColumn),
+        (nameof(p.CreditColumn), p.CreditColumn),
+        (nameof(p.NameColumn), p.NameColumn),
+        (nameof(p.IncomingNameColumn), p.IncomingNameColumn),
+        (nameof(p.OutgoingNameColumn), p.OutgoingNameColumn),
+        (nameof(p.IbanColumn), p.IbanColumn),
+        (nameof(p.BicColumn), p.BicColumn),
+        (nameof(p.PurposeColumn), p.PurposeColumn),
+        (nameof(p.BookingTextColumn), p.BookingTextColumn),
+        (nameof(p.EndToEndColumn), p.EndToEndColumn),
+        (nameof(p.MandateReferenceColumn), p.MandateReferenceColumn),
+        (nameof(p.CreditorIdColumn), p.CreditorIdColumn),
+        (nameof(p.CurrencyColumn), p.CurrencyColumn),
+        (nameof(p.StatusColumn), p.StatusColumn),
     ];
 
-    private static string Normalisieren(string name) => name.Trim().Trim('"').Trim().ToLowerInvariant();
+    private static string Normalize(string name) => name.Trim().Trim('"').Trim().ToLowerInvariant();
 
     /// <summary>Zerlegt CSV nach RFC 4180 (Anführungszeichen, Zeilenumbrüche in Feldern).</summary>
-    internal static IEnumerable<List<string>> Zeilen(string text, char trenner)
+    internal static IEnumerable<List<string>> Rows(string text, char separator)
     {
-        var feld = new StringBuilder();
-        var zeile = new List<string>();
-        var inAnfuehrung = false;
+        var field = new StringBuilder();
+        var line = new List<string>();
+        var inQuotes = false;
         for (var i = 0; i < text.Length; i++)
         {
             var c = text[i];
-            if (inAnfuehrung)
+            if (inQuotes)
             {
                 if (c == '"' && i + 1 < text.Length && text[i + 1] == '"')
                 {
-                    feld.Append('"');
+                    field.Append('"');
                     i++;
                 }
                 else if (c == '"')
                 {
-                    inAnfuehrung = false;
+                    inQuotes = false;
                 }
                 else
                 {
-                    feld.Append(c);
+                    field.Append(c);
                 }
             }
             else if (c == '"')
             {
-                inAnfuehrung = true;
+                inQuotes = true;
             }
-            else if (c == trenner)
+            else if (c == separator)
             {
-                zeile.Add(feld.ToString());
-                feld.Clear();
+                line.Add(field.ToString());
+                field.Clear();
             }
             else if (c is '\n' or '\r')
             {
@@ -213,95 +213,95 @@ internal static class CsvParser
                     i++;
                 }
 
-                zeile.Add(feld.ToString());
-                feld.Clear();
-                yield return zeile;
-                zeile = [];
+                line.Add(field.ToString());
+                field.Clear();
+                yield return line;
+                line = [];
             }
             else
             {
-                feld.Append(c);
+                field.Append(c);
             }
         }
 
-        if (feld.Length > 0 || zeile.Count > 0)
+        if (field.Length > 0 || line.Count > 0)
         {
-            zeile.Add(feld.ToString());
-            yield return zeile;
+            line.Add(field.ToString());
+            yield return line;
         }
     }
 }
 
 /// <summary>Mitgelieferte Profile (Stand der Exporte 2024–2026).</summary>
-internal static class CsvVorgaben
+internal static class CsvDefaults
 {
-    public static IReadOnlyList<CsvProfil> Alle { get; } =
+    public static IReadOnlyList<CsvProfile> All { get; } =
     [
         new("Sparkasse (CSV-CAMT)", "Buchungstag")
         {
-            Vorgabe = true,
-            Datumsformat = "dd.MM.yy|dd.MM.yyyy",
-            SpalteValutadatum = "Valutadatum",
-            SpalteBetrag = "Betrag",
-            SpalteName = "Beguenstigter/Zahlungspflichtiger|Begünstigter/Zahlungspflichtiger",
-            SpalteIban = "Kontonummer/IBAN|Kontonummer",
-            SpalteBic = "BIC (SWIFT-Code)",
-            SpalteVerwendungszweck = "Verwendungszweck",
-            SpalteBuchungstext = "Buchungstext",
-            SpalteEndToEnd = "Kundenreferenz (End-to-End)",
-            SpalteMandatsreferenz = "Mandatsreferenz",
-            SpalteGlaeubigerId = "Glaeubiger ID|Gläubiger ID",
-            SpalteWaehrung = "Waehrung|Währung",
-            SpalteStatus = "Info",
+            IsDefault = true,
+            DateFormat = "dd.MM.yy|dd.MM.yyyy",
+            ValueDateColumn = "Valutadatum",
+            AmountColumn = "Betrag",
+            NameColumn = "Beguenstigter/Zahlungspflichtiger|Begünstigter/Zahlungspflichtiger",
+            IbanColumn = "Kontonummer/IBAN|Kontonummer",
+            BicColumn = "BIC (SWIFT-Code)",
+            PurposeColumn = "Verwendungszweck",
+            BookingTextColumn = "Buchungstext",
+            EndToEndColumn = "Kundenreferenz (End-to-End)",
+            MandateReferenceColumn = "Mandatsreferenz",
+            CreditorIdColumn = "Glaeubiger ID|Gläubiger ID",
+            CurrencyColumn = "Waehrung|Währung",
+            StatusColumn = "Info",
         },
         new("Volksbank / Raiffeisenbank", "Buchungstag")
         {
-            Vorgabe = true,
-            SpalteValutadatum = "Valutadatum",
-            SpalteBetrag = "Betrag",
-            SpalteName = "Name Zahlungsbeteiligter",
-            SpalteIban = "IBAN Zahlungsbeteiligter",
-            SpalteBic = "BIC (SWIFT-Code) Zahlungsbeteiligter",
-            SpalteVerwendungszweck = "Verwendungszweck",
-            SpalteBuchungstext = "Buchungstext",
-            SpalteMandatsreferenz = "Mandatsreferenz",
-            SpalteGlaeubigerId = "Glaeubiger ID|Gläubiger ID",
-            SpalteWaehrung = "Waehrung|Währung",
+            IsDefault = true,
+            ValueDateColumn = "Valutadatum",
+            AmountColumn = "Betrag",
+            NameColumn = "Name Zahlungsbeteiligter",
+            IbanColumn = "IBAN Zahlungsbeteiligter",
+            BicColumn = "BIC (SWIFT-Code) Zahlungsbeteiligter",
+            PurposeColumn = "Verwendungszweck",
+            BookingTextColumn = "Buchungstext",
+            MandateReferenceColumn = "Mandatsreferenz",
+            CreditorIdColumn = "Glaeubiger ID|Gläubiger ID",
+            CurrencyColumn = "Waehrung|Währung",
         },
         new("DKB", "Buchungsdatum")
         {
-            Vorgabe = true,
-            Datumsformat = "dd.MM.yy|dd.MM.yyyy",
-            SpalteValutadatum = "Wertstellung",
-            SpalteBetrag = "Betrag (€)|Betrag (EUR)",
-            SpalteNameEingang = "Zahlungspflichtige*r",
-            SpalteNameAusgang = "Zahlungsempfänger*in",
-            SpalteIban = "IBAN",
-            SpalteVerwendungszweck = "Verwendungszweck",
-            SpalteBuchungstext = "Umsatztyp",
-            SpalteEndToEnd = "Kundenreferenz",
-            SpalteMandatsreferenz = "Mandatsreferenz",
-            SpalteGlaeubigerId = "Gläubiger-ID",
-            SpalteStatus = "Status",
+            IsDefault = true,
+            DateFormat = "dd.MM.yy|dd.MM.yyyy",
+            ValueDateColumn = "Wertstellung",
+            AmountColumn = "Betrag (€)|Betrag (EUR)",
+            IncomingNameColumn = "Zahlungspflichtige*r",
+            OutgoingNameColumn = "Zahlungsempfänger*in",
+            IbanColumn = "IBAN",
+            PurposeColumn = "Verwendungszweck",
+            BookingTextColumn = "Umsatztyp",
+            EndToEndColumn = "Kundenreferenz",
+            MandateReferenceColumn = "Mandatsreferenz",
+            CreditorIdColumn = "Gläubiger-ID",
+            StatusColumn = "Status",
         },
         new("ING", "Buchung|Buchungsdatum")
         {
-            Vorgabe = true,
-            SpalteValutadatum = "Wertstellungsdatum|Valuta",
-            SpalteBetrag = "Betrag",
-            SpalteName = "Auftraggeber/Empfänger",
-            SpalteVerwendungszweck = "Verwendungszweck",
-            SpalteBuchungstext = "Buchungstext",
-            SpalteWaehrung = "Währung",
+            IsDefault = true,
+            ValueDateColumn = "Wertstellungsdatum|Valuta",
+            AmountColumn = "Betrag",
+            NameColumn = "Auftraggeber/Empfänger",
+            PurposeColumn = "Verwendungszweck",
+            BookingTextColumn = "Buchungstext",
+            CurrencyColumn = "Währung",
         },
         new("comdirect", "Buchungstag")
         {
-            Vorgabe = true,
-            SpalteValutadatum = "Wertstellung (Valuta)",
-            SpalteBetrag = "Umsatz in EUR",
-            SpalteVerwendungszweck = "Buchungstext",
-            SpalteBuchungstext = "Vorgang",
-            Zerlegung = @"^(?:(?:Auftraggeber|Empfänger):\s*(?<name>.*?)\s+)?Buchungstext:\s*(?<zweck>.*?)(?:\s+Ref\.\s.*)?$",
+            IsDefault = true,
+            ValueDateColumn = "Wertstellung (Valuta)",
+            AmountColumn = "Umsatz in EUR",
+            PurposeColumn = "Buchungstext",
+            BookingTextColumn = "Vorgang",
+            ParsePattern = @"^(?:(?:Auftraggeber|Empfänger):\s*(?<name>.*?)\s+)?Buchungstext:\s*(?<zweck>.*?)(?:\s+Ref\.\s.*)?$",
         },
     ];
 }

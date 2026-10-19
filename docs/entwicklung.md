@@ -19,7 +19,7 @@ docker compose -f deploy/docker-compose.dev.yml up -d
 
 Die Verbindung für die Entwicklung steht in `src/MietHahn.Web/appsettings.Development.json`. In Produktion kommt sie **nur** aus der Umgebung: `ConnectionStrings__MietHahn=...`.
 
-Beim Start wendet die App ausstehende Migrationen automatisch an. Abschalten mit `Datenbank__AutomatischMigrieren=false`. Beim allerersten Start auf einer leeren DB protokolliert EF/Npgsql einmal einen fehlgeschlagenen `SELECT` auf die History-Tabelle `__ef_migrationen`. Das ist erwartet.
+Beim Start wendet die App ausstehende Migrationen automatisch an. Abschalten mit `Database__AutoMigrate=false`. Beim allerersten Start auf einer leeren DB protokolliert EF/Npgsql einmal einen fehlgeschlagenen `SELECT` auf die History-Tabelle `__ef_migrations`. Das ist erwartet.
 
 Die Dateiablage liegt in der Entwicklung unter `src/MietHahn.Web/daten/dateien` (per `.gitignore` ausgeschlossen).
 
@@ -129,8 +129,8 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Monate mit `<i
 - **Einladungen** (`IKontoverwaltung.EinladenAsync`): Admin, Verwalter und Hausmeister erhalten einen Link zum Festlegen des Passworts, Mieter und Handwerker einen Anmeldelink. Beides ist 7 Tage gültig.
 - **Passwörter:** mindestens 12 Zeichen, keine Zeichenklassen-Pflicht (NIST). Reset-Link 2 Stunden gültig. Nach 5 Fehlversuchen 15 Minuten Sperre. Konten mit `Gesperrt = true` können sich nicht anmelden (wirksam spätestens nach 10 Minuten durch die Security-Stamp-Prüfung).
 - **Keine Kontenauskunft:** Anmeldung, Magic Link und Passwort-Reset antworten für bekannte und unbekannte Adressen gleich.
-- **Rate-Limiting:** POST auf `/konto/*` höchstens `Anmeldung:AnfragenProMinute` (10) je IP.
-- **Links in Mails** basieren auf `Anwendung:BasisUrl` (konfiguriert, nicht aus dem Host-Header).
+- **Rate-Limiting:** POST auf `/konto/*` höchstens `SignIn:RequestsPerMinute` (10) je IP.
+- **Links in Mails** basieren auf `Application:BaseUrl` (konfiguriert, nicht aus dem Host-Header).
 - **Data-Protection-Schlüssel** liegen in PostgreSQL (`data_protection_keys`): Anmeldungen überstehen Neustarts und sind im DB-Backup enthalten.
 - Identity rechnet Token-Laufzeiten und Sperren mit der Systemuhr (ohne `TimeProvider`). Tests prüfen daher die Konfiguration statt Zeit vorzuspulen; eigene Anmeldelinks nutzen `TimeProvider`.
 
@@ -157,7 +157,7 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Monate mit `<i
 - Technische Felder (Id, Audit-Felder, Version) werden ausgelassen. Properties mit `[Vertraulich]` (IBAN, Zugangsdaten) erscheinen nur als `***`. Klassen mit `[OhneAudit]` (Outbox, Job-Protokoll) werden nicht protokolliert.
 - **Lesende Zugriffe** auf personenbezogene Daten protokolliert man explizit: `IZugriffsprotokoll.ProtokollierenAsync("Person", id, "Mieterakte geöffnet")`. Abschaltbar mit `Audit:ZugriffeProtokollieren=false`.
 - Anzeige: `<AenderungsHistorie EntitaetTyp="@nameof(Mietvertrag)" EntitaetId="@id" />`, Daten über `IAenderungsHistorie`.
-- Aufbewahrung: Änderungen `Audit:AufbewahrungJahre` (10, angelehnt an steuerliche Fristen), Zugriffe `Audit:ZugriffeAufbewahrungMonate` (12). Bereinigt wird täglich durch den Job `audit-bereinigung`.
+- Aufbewahrung: Änderungen `Audit:RetentionYears` (10, angelehnt an steuerliche Fristen), Zugriffe `Audit:ZugriffeAufbewahrungMonate` (12). Bereinigt wird täglich durch den Job `audit-bereinigung`.
 
 ## Infrastrukturdienste
 
@@ -196,7 +196,7 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 
 ### Dateiablage (`IDateiablage`)
 
-- Erlaubt sind **PDF, JPG, PNG und HEIC**. Erkannt wird am Inhalt (Magic Bytes), nicht an der Endung. Maximalgröße: `Dateiablage:MaxGroesseMb` (Standard 25).
+- Erlaubt sind **PDF, JPG, PNG und HEIC**. Erkannt wird am Inhalt (Magic Bytes), nicht an der Endung. Maximalgröße: `FileStore:MaxSizeMb` (Standard 25).
 - Fotos (JPG/PNG) werden gemäß EXIF gedreht, auf `MaxBildKante` (Standard 2560 px) verkleinert und neu kodiert. Dabei fallen **alle Metadaten inklusive GPS** weg. HEIC wird unverändert abgelegt, weil SkiaSharp es unter Linux nicht dekodiert.
 - Ablage inhaltsadressiert: `{Pfad}/{sha[0..2]}/{sha256}`. Gleiche Inhalte liegen nur einmal vor. Metadaten in `dateien`. Der Dateiname wird bereinigt (keine Pfadanteile), die Endung folgt dem erkannten Typ.
 - Abruf nur über `OeffnenAsync(id)`; Auslieferung über `/dateien/{id}` (`?download=true` als Anhang) mit `DateiZugriffHandler`.
@@ -204,7 +204,7 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 
 ### Datensicherung & Vollexport
 
-- `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusDatei`, Format siehe `deploy/backup/miethahn-backup.sh`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warnung` (täglich 8:05, Mail an aktive Admins).
+- `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusFile`, Format siehe `deploy/backup/miethahn-backup.sh`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warnung` (täglich 8:05, Mail an aktive Admins).
 - `IDatenexport` erzeugt den Vollexport generisch aus dem relationalen EF-Modell: neue Tabellen sind automatisch enthalten. Geheimnisse mit `[OhneExport]` (Klasse oder Eigenschaft) ausnehmen und die Liste in `DatenexportTests.Jede_Tabelle_ist_exportiert_oder_bewusst_ausgenommen` ergänzen. `[Vertraulich]` (z. B. IBAN) bleibt im Export, denn es sind fachliche Daten.
 - Der ZIP-Export wird zuerst in eine temporäre Datei geschrieben: Die Eintrags-Streams von `ZipArchive` schreiben beim Schließen synchron, und Kestrel erlaubt kein synchrones Schreiben.
 
@@ -272,14 +272,14 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - `Person` (Mieter, Bürgen, Kontakte) mit Anschriften als Zeitreihe (Voranschrift → aktuelle → neue Anschrift nach Auszug) und beliebig vielen `Bankverbindung`en (IBAN mit Prüfsumme, `Domain.Gemeinsam.Iban`). Mieter und Bürgen ergeben sich aus Verträgen, nicht aus einem Feld.
 - **Erweiterungspunkte** für Fachmodule: `IPersonenbezug` (Rolle, Beschreibung, aktiv, Ende) steuert Rollenanzeige, Löschsperre und Aufbewahrungsfrist; `IPersonendatenQuelle` liefert einen Abschnitt für die DSGVO-Auskunft. Ein neues Modul, das Personendaten speichert, muss beide registrieren.
 - **Auskunft** (`IDatenschutz.AuskunftAsync`, `/verwaltung/personen/{id}/auskunft`): JSON mit den serialisierten Entitäten (neue Felder sind automatisch enthalten), logisch gelöschten Einträgen, Konto, Bezügen, Änderungsprotokoll im Klartext und den Abschnitten der Module. Der Abruf steht im Audit-Log.
-- **Anonymisieren**: entfernt Name, Kontaktdaten, Anschriften, IBANs (physisch, nicht nur logisch) und die Werte im Änderungsprotokoll. Der Datensatz bleibt für Buchungen erhalten. Vorschläge nach `Datenschutz:AufbewahrungJahre` (10) ab Ende des letzten Bezugs bzw. `Datenschutz:OhneBezugMonate` (12) ohne Bezug; Geschäftskontakte werden nicht vorgeschlagen.
+- **Anonymisieren**: entfernt Name, Kontaktdaten, Anschriften, IBANs (physisch, nicht nur logisch) und die Werte im Änderungsprotokoll. Der Datensatz bleibt für Buchungen erhalten. Vorschläge nach `Privacy:RetentionYears` (10) ab Ende des letzten Bezugs bzw. `Privacy:MonthsWithoutRelation` (12) ohne Bezug; Geschäftskontakte werden nicht vorgeschlagen.
 - **Zugriffsprotokoll**: Öffnen einer Personenakte wird protokolliert, derselbe Zugriff (Benutzer, Datensatz, Zweck) höchstens einmal je 30 Minuten.
 
 ### Hintergrundjobs (Quartz.NET 3)
 
 - Persistenter Store in PostgreSQL (Tabellen `qrtz_*`, angelegt per Migration aus dem offiziellen Skript `Persistenz/Sql/quartz_3_22_6_postgres.sql`). Geplante Jobs überstehen Neustarts.
 - Neue Jobs registriert man in `DependencyInjection.JobsRegistrieren` mit `q.PlaneIntervall<TJob>(…)` oder `q.PlaneTaeglich<TJob>(…)` (deutsche Uhrzeit). Die Logik gehört in einen testbaren Dienst, der Job ruft ihn nur auf (Beispiel `MailOutboxJob` → `MailOutbox`).
-- Jeder Lauf wird in `job_laeufe` protokolliert (`JobLaufProtokoll`). Die Einträge werden nach `Jobs:ProtokollAufbewahrungTage` (30) gelöscht. Übersicht unter `/verwaltung/system/jobs`.
+- Jeder Lauf wird in `job_laeufe` protokolliert (`JobLaufProtokoll`). Die Einträge werden nach `Jobs:LogRetentionDays` (30) gelöscht. Übersicht unter `/verwaltung/system/jobs`.
 - `Jobs:Aktiv=false` schaltet den Scheduler ab (z. B. in Web-Tests).
 - Hinweis: Quartz 4.x ist erst seit September 2026 verfügbar und hat eine stark geänderte API. Bewusst wird die ausgereifte 3.x-Linie genutzt.
 

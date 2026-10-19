@@ -1,0 +1,201 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/ablesung"
+@using System.Globalization
+@inject IMeterService Admin
+@inject IPropertyService Properties
+@inject IFileStore Storage
+@inject Redirector Redirector
+@inject TimeProvider Clock
+
+@if (property is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+    return;
+}
+
+<PageHeader Title="Ablese-Runde" Subtitle="@($"{property.Data.Name} · {Format.Date(ReferenceDate)}{(TypeValue == ReadingType.InterimReading ? " · Zwischenablesung" : "")}")"
+            Back="@($"/verwaltung/objekte/{PropertyId}/zaehler")" BackText="Alle Zähler" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+@if (round.Count == 0)
+{
+    <EmptyState Text="Keine aktiven Zähler für diese Runde." />
+    return;
+}
+
+@if (Step >= round.Count)
+{
+    <p class="meldung meldung-ok" role="status">Runde abgeschlossen: @round.Count(z => z.LastReading?.Date == ReferenceDate) von @round.Count Zählern erfasst.</p>
+    <ul class="aufgaben">
+        @foreach (var z in round)
+        {
+            <li class="aufgabe @(z.LastReading?.Date == ReferenceDate ? "" : "aufgabe-bald")">
+                <a href="/verwaltung/zaehler/@z.Id">@z.Name</a> <span class="klein">@z.Assignment · @z.Number</span>
+                <p class="klein">@(z.LastReading?.Date == ReferenceDate ? $"{Format.Quantity(z.LastReading.Value, Labels.From(z.MeasurementUnit))}" : "nicht erfasst")</p>
+            </li>
+        }
+    </ul>
+    <p><a class="knopf" href="@Link(0)">Runde erneut durchgehen</a></p>
+    return;
+}
+
+@{
+    var meter = round[Step];
+    var recorded = meter.LastReading?.Date == ReferenceDate;
+}
+
+<p class="klein" aria-live="polite">Zähler @(Step + 1) von @round.Count</p>
+<progress class="fortschritt" max="@round.Count" value="@Step">@(Step + 1) von @round.Count</progress>
+
+<div class="ablese-karte">
+    <h2>@meter.Name</h2>
+    <p>@Labels.From(meter.Type) · <strong>Nr. @meter.Number</strong></p>
+    <p class="klein">@meter.Assignment@(meter.Location is null ? "" : " · " + meter.Location)</p>
+    @if (meter.LastReading is { } lastReading)
+    {
+        <p class="klein">Letzter Stand: @Format.Quantity(lastReading.Value, Labels.From(meter.MeasurementUnit)) am @Format.Date(lastReading.Date)</p>
+    }
+</div>
+
+@if (recorded)
+{
+    <p class="meldung meldung-ok">Für diesen Tag bereits erfasst.</p>
+    <a class="knopf knopf-primaer" href="@Link(Step + 1)">Weiter</a>
+    return;
+}
+
+@if (warnings is { Count: > 0 })
+{
+    <div class="meldung meldung-hinweis" role="alert">
+        <ul>
+            @foreach (var w in warnings)
+            {
+                <li>@w</li>
+            }
+        </ul>
+    </div>
+}
+
+<EditForm Model="Entry" FormName="ablesung" OnValidSubmit="SaveAsync" enctype="multipart/form-data">
+    <DataAnnotationsValidator />
+    <FormField Id="ablesung-wert" Label="@($"Zählerstand ({Labels.From(meter.MeasurementUnit)})")" For="() => Entry!.Value" Required="true">
+        <InputArea id="ablesung-wert" class="eingabe-gross" @bind-Value="Entry!.Value" step="0.001" autofocus />
+    </FormField>
+    <div class="feld">
+        <label for="ablesung-foto">Foto vom Zähler</label>
+        <input type="file" id="ablesung-foto" name="Photo" accept="image/*" capture="environment" />
+    </div>
+    <input type="hidden" name="Entry.Date" value="@ReferenceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
+    <input type="hidden" name="Entry.Kind" value="@TypeValue" />
+    @if (warnings is { Count: > 0 })
+    {
+        <input type="hidden" name="Entry.Confirmed" value="true" />
+        <input type="hidden" name="PhotoId" value="@PhotoId" />
+    }
+    <div class="formular-zeile">
+        <button type="submit" class="knopf knopf-primaer">@(warnings is { Count: > 0 } ? "Trotzdem speichern & weiter" : "Speichern & weiter")</button>
+        <a class="knopf" href="@Link(Step + 1)">Überspringen</a>
+    </div>
+</EditForm>
+
+@code {
+    private PropertyDetails? property;
+    private IReadOnlyList<MeterRow> round = [];
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<string>? warnings;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "schritt")]
+    private int Step { get; set; }
+
+    [SupplyParameterFromQuery(Name = "einheit")]
+    private Guid? Unit { get; set; }
+
+    [SupplyParameterFromQuery(Name = "datum")]
+    private DateOnly? Date { get; set; }
+
+    [SupplyParameterFromQuery(Name = "art")]
+    private string? Kind { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "ablesung")]
+    private ReadingInput? Entry { get; set; }
+
+    [SupplyParameterFromForm(FormName = "ablesung")]
+    private IFormFile? Photo { get; set; }
+
+    [SupplyParameterFromForm(FormName = "ablesung")]
+    private Guid? PhotoId { get; set; }
+
+    private DateOnly ReferenceDate => Date ?? MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow());
+
+    private ReadingType TypeValue => Enum.TryParse<ReadingType>(Kind, out var kind) && kind is ReadingType.InterimReading or ReadingType.Estimate ? kind : ReadingType.Reading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Entry ??= new();
+        property = await Properties.GetAsync(PropertyId);
+        if (property is not null)
+        {
+            round = await Admin.RoundAsync(PropertyId, Unit);
+            Step = Math.Clamp(Step, 0, round.Count);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (Photo is { Length: > 0 } && PhotoId is null)
+        {
+            try
+            {
+                await using var content = Photo.OpenReadStream();
+                PhotoId = (await Storage.SaveAsync(content, Photo.FileName)).Id;
+            }
+            catch (FileRejectedException ex)
+            {
+                errors = [ex.Message];
+                return;
+            }
+        }
+
+        var result = await Admin.RecordReadingAsync(round[Step].Id, Entry!, PhotoId);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage(Link(Step + 1), $"{round[Step].Name}: gespeichert.", HttpContext);
+        }
+        else if (result.NeedsConfirmation)
+        {
+            warnings = result.Warnings;
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private string Link(int step)
+    {
+        var parts = new List<string> { $"schritt={step}" };
+        if (Unit is { } unit)
+        {
+            parts.Add($"einheit={unit}");
+        }
+
+        if (Date is { } date)
+        {
+            parts.Add($"datum={date:yyyy-MM-dd}");
+        }
+
+        if (TypeValue != ReadingType.Reading)
+        {
+            parts.Add($"art={TypeValue}");
+        }
+
+        return $"/verwaltung/objekte/{PropertyId}/ablesung?{string.Join('&', parts)}";
+    }
+}

@@ -1,0 +1,131 @@
+@page "/verwaltung/vpi"
+@inject ICpiService Admin
+@inject Redirector Redirector
+
+<PageHeader Title="Verbraucherpreisindex" Subtitle="Monatswerte für Indexmieten (Destatis, Basis 2020 = 100, Tabelle 61111-0002)." />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<section>
+    <h2>Wert erfassen</h2>
+    <EditForm Model="Input" FormName="vpi" OnValidSubmit="SaveAsync" class="formular-zeile">
+        <DataAnnotationsValidator />
+        <FormField Id="vpi-monat" Label="Monat" For="() => Input!.Month" Required="true">
+            <InputText id="vpi-monat" type="month" @bind-Value="Input!.Month" />
+        </FormField>
+        <FormField Id="vpi-wert" Label="Indexwert" For="() => Input!.Value" Required="true">
+            <InputArea id="vpi-wert" @bind-Value="Input!.Value" step="0.1" />
+        </FormField>
+        <div class="feld feld-aktion"><button type="submit" class="knopf">Speichern</button></div>
+    </EditForm>
+</section>
+
+<section>
+    <h2>Import</h2>
+    <p class="klein">
+        In <a href="https://www-genesis.destatis.de/datenbank/online/table/61111-0002" rel="noopener" target="_blank">GENESIS-Online, Tabelle 61111-0002</a>
+        die Monatswerte als CSV herunterladen und den Inhalt hier einfügen. Vorhandene Monate werden aktualisiert.
+    </p>
+    <EditForm Model="Import" FormName="vpi-import" OnValidSubmit="ImportAsync">
+        <FormField Id="vpi-csv" Label="CSV-Inhalt" For="() => Import!.Csv">
+            <InputTextArea id="vpi-csv" @bind-Value="Import!.Csv" rows="6" placeholder="2026;Januar;121,2&#10;2026;Februar;121,9" />
+        </FormField>
+        <button type="submit" class="knopf">Importieren</button>
+    </EditForm>
+</section>
+
+<section>
+    <h2>Werte</h2>
+    @if (values is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Indexwerte." />
+    }
+    else if (values is not null)
+    {
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Monat</th><th class="zahl">Wert</th><th>Quelle</th></tr></thead>
+                <tbody>
+                    @foreach (var value in values)
+                    {
+                        <tr>
+                            <td>@value.Month.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("de-DE"))</td>
+                            <td class="zahl">@Format.Number(value.Value)</td>
+                            <td>@value.Source</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<CpiView>? values;
+    private IReadOnlyList<string>? errors;
+
+    [SupplyParameterFromForm(FormName = "vpi")]
+    private CpiInput? Input { get; set; }
+
+    [SupplyParameterFromForm(FormName = "vpi-import")]
+    private ImportInput? Import { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        Import ??= new();
+        values = await Admin.ListAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!DateOnly.TryParseExact(Input!.Month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var month))
+        {
+            errors = ["Bitte einen Monat wählen."];
+            return;
+        }
+
+        var result = await Admin.SetAsync(month, Input.Value!.Value);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/vpi", "Der Indexwert wurde gespeichert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task ImportAsync()
+    {
+        var result = await Admin.ImportAsync(Import!.Csv ?? "");
+        var message = $"Import: {result.Added} neu, {result.Modified} geändert, {result.Unchanged} unverändert.";
+        if (result.Errors.Count > 0)
+        {
+            errors = [message, .. result.Errors];
+            values = await Admin.ListAsync();
+            return;
+        }
+
+        Redirector.RedirectWithMessage("/verwaltung/vpi", message, HttpContext);
+    }
+
+    private sealed class CpiInput
+    {
+        [Required(ErrorMessage = "Bitte einen Monat wählen.")]
+        public string? Month { get; set; }
+
+        [Required(ErrorMessage = "Bitte den Indexwert angeben.")]
+        [Range(typeof(decimal), "1", "1000", ErrorMessage = "Bitte einen Indexwert wie 121,7 angeben.", ParseLimitsInInvariantCulture = true)]
+        public decimal? Value { get; set; }
+    }
+
+    private sealed class ImportInput
+    {
+        public string? Csv { get; set; }
+    }
+}

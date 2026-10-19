@@ -1,0 +1,118 @@
+@page "/verwaltung/benutzer"
+@using System.ComponentModel.DataAnnotations
+@inject IUserManagementService Admin
+@inject IAccountService Accounts
+
+<PageHeader Title="Benutzer" Subtitle="Wer Zugang zu MietHahn hat – Verwaltung, Hausmeister, Handwerker und Mieter." />
+
+<StatusMessage />
+<StatusMessage Message="@message" />
+<ErrorList Errors="errors" />
+
+<section>
+    <h2>Person einladen</h2>
+    <EditForm Model="Invitation" FormName="einladen" OnValidSubmit="InviteAsync" class="formular-raster">
+        <DataAnnotationsValidator />
+        <FormField Id="name" Label="Name" For="() => Invitation!.DisplayName" Required="true">
+            <InputText id="name" @bind-Value="Invitation!.DisplayName" autocomplete="off" />
+        </FormField>
+        <FormField Id="email" Label="E-Mail-Adresse" For="() => Invitation!.Email" Required="true">
+            <InputText id="email" type="email" @bind-Value="Invitation!.Email" autocomplete="off" />
+        </FormField>
+        <FormField Id="rolle" Label="Rolle" For="() => Invitation!.Role">
+            <InputSelect id="rolle" @bind-Value="Invitation!.Role">
+                @foreach (var role in Roles.All)
+                {
+                    <option value="@role">@Roles.DisplayName(role)</option>
+                }
+            </InputSelect>
+        </FormField>
+        <div class="feld feld-aktion">
+            <button type="submit" class="knopf knopf-primaer">Einladung senden</button>
+        </div>
+    </EditForm>
+</section>
+
+<section>
+    <h2>Konten</h2>
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead>
+                <tr><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Status</th><th>Letzte Anmeldung</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var b in user)
+                {
+                    <tr>
+                        <td><a href="/verwaltung/benutzer/@b.Id">@b.DisplayName</a></td>
+                        <td>@b.Email</td>
+                        <td>@Roles.DisplayName(b.Role)</td>
+                        <td>
+                            @if (b.Locked)
+                            {
+                                <span class="status status-fehler">gesperrt</span>
+                            }
+                            else if (!b.InvitationAccepted)
+                            {
+                                <span class="status status-wartend">eingeladen</span>
+                            }
+                            else
+                            {
+                                <span class="status status-ok">aktiv</span>
+                            }
+                            @if (b.TwoFactorEnabled)
+                            {
+                                <span class="status" title="Zwei-Faktor-Anmeldung aktiv">2FA</span>
+                            }
+                        </td>
+                        <td>@Format.Timestamp(b.LastSignInAt)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@code {
+    private IReadOnlyList<UserOverview> user = [];
+    private string? message;
+    private IReadOnlyList<string>? errors;
+
+    [SupplyParameterFromForm(FormName = "einladen")]
+    private InvitationInput? Invitation { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Invitation ??= new();
+        user = await Admin.ListAsync();
+    }
+
+    private async Task InviteAsync()
+    {
+        var result = await Accounts.InviteAsync(Invitation!.Email.Trim(), Invitation.DisplayName.Trim(), Invitation.Role);
+        if (result.Succeeded)
+        {
+            message = $"Die Einladung an {Invitation.Email} wurde verschickt.";
+            Invitation = new();
+            user = await Admin.ListAsync();
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private sealed class InvitationInput
+    {
+        [Required(ErrorMessage = "Bitte einen Namen angeben.")]
+        [StringLength(200)]
+        public string DisplayName { get; set; } = "";
+
+        [Required(ErrorMessage = "Bitte eine E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        public string Role { get; set; } = Roles.Tenant;
+    }
+}

@@ -1,0 +1,117 @@
+@page "/verwaltung/belege"
+@inject IReceiptService Receipts
+
+<PageHeader Title="Belege" Subtitle="Rechnungen und Kostenbelege, aufgeteilt nach Kostenart und Objekt.">
+    <Actions>
+        <a class="knopf knopf-primaer" href="/verwaltung/belege/neu">Beleg erfassen</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+
+<form method="get" class="formular-zeile suchleiste" role="search">
+    <div class="feld">
+        <label for="jahr">Jahr</label>
+        <input id="jahr" type="number" name="jahr" value="@Year" min="2000" max="2100" />
+    </div>
+    <div class="feld">
+        <label for="objekt">Objekt</label>
+        <select id="objekt" name="objekt">
+            <option value="">Alle</option>
+            @foreach (var o in selection?.Properties ?? [])
+            {
+                <option value="@o.Id" selected="@(o.Id == PropertyId)">@o.Name</option>
+            }
+        </select>
+    </div>
+    <div class="feld">
+        <label for="kostenart">Kostenart</label>
+        <select id="kostenart" name="kostenart">
+            <option value="">Alle</option>
+            <CostTypeOptions Selected="@CostType" />
+        </select>
+    </div>
+    <div class="feld">
+        <label for="suche">Suche</label>
+        <input id="suche" type="search" name="q" value="@Q" placeholder="Lieferant, Rechnungsnr." />
+    </div>
+    <div class="feld feld-checkbox">
+        <input id="ohne-zahlung" type="checkbox" name="ohneZahlung" value="true" checked="@Unpaid" />
+        <label for="ohne-zahlung">ohne Zahlung</label>
+    </div>
+    <div class="feld feld-checkbox">
+        <input id="aufteilen" type="checkbox" name="aufteilen" value="true" checked="@Split" />
+        <label for="aufteilen">nicht aufgeteilt</label>
+    </div>
+    <div class="feld feld-aktion">
+        <button type="submit" class="knopf">Filtern</button>
+    </div>
+</form>
+
+@if (receipts is { Count: 0 })
+{
+    <EmptyState Text="Keine Belege in dieser Auswahl." />
+}
+else if (receipts is not null)
+{
+    <p class="klein">@receipts.Count Belege · Summe @Format.Money(receipts.Sum(b => b.Gross))</p>
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead><tr><th>Datum</th><th>Lieferant</th><th>Kostenarten</th><th class="zahl">Betrag</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var b in receipts)
+                {
+                    <tr>
+                        <td>@Format.Date(b.InvoiceDate)</td>
+                        <td><a href="/verwaltung/belege/@b.Id">@b.Supplier</a>@if (b.InvoiceNumber is not null) {<span class="klein"> @b.InvoiceNumber</span>}</td>
+                        <td>@string.Join(", ", b.CostTypes)<span class="klein"> @string.Join(", ", b.Properties)</span></td>
+                        <td class="zahl">@Format.Money(b.Gross)</td>
+                        <td>
+                            @if (b.Allocated != b.Gross)
+                            {
+                                <span class="status status-wartend">@Format.Money(b.Gross - b.Allocated) nicht aufgeteilt</span>
+                            }
+                            @if (b.PaidOn is null)
+                            {
+                                <span class="status status-wartend">unbezahlt</span>
+                            }
+                            @if (b.Files == 0)
+                            {
+                                <span class="status">ohne Datei</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<ReceiptRow>? receipts;
+    private ReceiptOptions? selection;
+
+    [SupplyParameterFromQuery(Name = "jahr")]
+    private int? Year { get; set; }
+
+    [SupplyParameterFromQuery(Name = "objekt")]
+    private Guid? PropertyId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "kostenart")]
+    private string? CostType { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromQuery(Name = "ohneZahlung")]
+    private bool Unpaid { get; set; }
+
+    [SupplyParameterFromQuery(Name = "aufteilen")]
+    private bool Split { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        selection = await Receipts.OptionsAsync();
+        receipts = await Receipts.SearchAsync(new ReceiptQuery(Year, PropertyId, string.IsNullOrEmpty(CostType) ? null : CostType, Unpaid, Split, Q));
+    }
+}

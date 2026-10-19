@@ -11,10 +11,10 @@ set -eu
 cd "$(dirname "$0")/.."
 export MIETHAHN_IMAGE="${1:-miethahn:lokal}"
 export MIETHAHN_BACKUP_IMAGE="${2:-miethahn-backup:lokal}"
-export MIETHAHN_DOMAIN=localhost ACME_EMAIL=test@example.de POSTGRES_PASSWORT=restoretest
-export MAIL_ABSENDER=test@example.de SMTP_HOST=localhost RESTIC_PASSWORT=restoretest
+export MIETHAHN_DOMAIN=localhost ACME_EMAIL=test@example.de POSTGRES_PASSWORD=restoretest
+export MAIL_SENDER=test@example.de SMTP_HOST=localhost RESTIC_PASSWORD=restoretest
 ARBEIT=$(mktemp -d)
-export BACKUP_LOKAL_PFAD="$ARBEIT/repo" BACKUP_SSH_PFAD="$ARBEIT/ssh"
+export BACKUP_LOCAL_PATH="$ARBEIT/repo" BACKUP_SSH_PATH="$ARBEIT/ssh"
 
 dc() { docker compose -p miethahn-restoretest -f docker-compose.yml "$@"; }
 log() { printf '\n==> %s\n' "$*"; }
@@ -57,7 +57,7 @@ ORDER BY 1
 \gexec
 SQL
         echo "## Dateien"
-        sh_backup 'cd /daten && find . -type f -exec stat -c "%u:%g %s %n" {} + | sort && find . -type f -exec sha256sum {} + | sort'
+        sh_backup 'cd /data && find . -type f -exec stat -c "%u:%g %s %n" {} + | sort && find . -type f -exec sha256sum {} + | sort'
     } > "$1"
 }
 
@@ -69,19 +69,19 @@ dc stop app
 log "Testdaten anlegen"
 inhalt="Mietvertrag Müller – Testdatei"
 sha=$(printf '%s' "$inhalt" | sha256sum | cut -d' ' -f1)
-sh_backup "mkdir -p /daten/dateien/${sha%"${sha#??}"} && printf '%s' '$inhalt' > /daten/dateien/${sha%"${sha#??}"}/$sha && chown -R 1654:1654 /daten"
+sh_backup "mkdir -p /data/files/${sha%"${sha#??}"} && printf '%s' '$inhalt' > /data/files/${sha%"${sha#??}"}/$sha && chown -R 1654:1654 /data"
 sql <<SQL
-INSERT INTO dateien (id, name, mime_typ, groesse, sha256, erstellt_am, erstellt_von, geloescht)
+INSERT INTO stored_files (id, name, mime_type, size, sha256, created_at, created_by, deleted)
 VALUES ('0192a000-0000-7000-8000-000000000001', 'Mietvertrag Müller.txt', 'text/plain', $(printf '%s' "$inhalt" | wc -c), '$sha', now(), 'restore-test', false);
 SQL
 
 fingerabdruck "$ARBEIT/vorher.txt"
-grep -q "public.dateien|1|" "$ARBEIT/vorher.txt" || { echo "Testdaten fehlen im Fingerabdruck" >&2; exit 1; }
+grep -q "public.stored_files|1|" "$ARBEIT/vorher.txt" || { echo "Testdaten fehlen im Fingerabdruck" >&2; exit 1; }
 
 log "Sichern"
 dc run --rm -T --no-deps backup sichern
 sh_backup 'cat /status/backup.json' | tee "$ARBEIT/status.json"
-grep -q '"erfolgreich":true' "$ARBEIT/status.json"
+grep -q '"succeeded":true' "$ARBEIT/status.json"
 
 log "Alles löschen (Volumes), leere Datenbank starten"
 dc down -v

@@ -1,0 +1,4 @@
+@layout MietHahn.Web.Components.Layout.AdminLayout
+@using MietHahn.Application.Accounts
+@attribute [Authorize(Policy = Policies.Admin)]
+@using MietHahn.Web.Components.Pages.Admin.Documents

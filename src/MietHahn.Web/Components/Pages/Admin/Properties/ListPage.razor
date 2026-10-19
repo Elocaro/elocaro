@@ -1,0 +1,49 @@
+@page "/verwaltung/objekte"
+@inject IPropertyService Admin
+
+<PageHeader Title="Objekte" Subtitle="Häuser mit ihren Wohnungen und WG-Zimmern.">
+    <Actions>
+        <a class="knopf knopf-primaer" href="/verwaltung/objekte/neu">Objekt anlegen</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+
+@if (properties is { Count: 0 })
+{
+    <EmptyState Text="Noch keine Objekte. Lege zuerst ein Haus an, danach die Wohnungen." />
+}
+else if (properties is not null)
+{
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead>
+                <tr><th>Objekt</th><th>Anschrift</th><th class="zahl">Einheiten</th><th class="zahl">Wohnfläche</th><th>Belegung</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var property in properties)
+                {
+                    <tr>
+                        <td><a href="/verwaltung/objekte/@property.Id">@property.Name</a></td>
+                        <td>@property.Address</td>
+                        <td class="zahl">@property.Units</td>
+                        <td class="zahl">@Format.Area(property.LivingArea)</td>
+                        <td>
+                            @property.Rented von @property.RentalUnits vermietet
+                            @if (property.Vacancy > 0)
+                            {
+                                <span class="status status-wartend">@property.Vacancy leer</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<PropertyOverview>? properties;
+
+    protected override async Task OnInitializedAsync() => properties = await Admin.ListAsync();
+}

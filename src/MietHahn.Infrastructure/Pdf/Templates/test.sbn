@@ -1,0 +1,12 @@
+<p>Sehr geehrte Damen und Herren,</p>
+<p>dies ist ein Testdokument von MietHahn. Es prüft Briefkopf, Anschriftfeld und Fußzeile.</p>
+<table>
+  <thead><tr><th>Position</th><th class="zahl">Betrag</th></tr></thead>
+  <tbody>
+  {{~ for p in items ~}}
+    <tr><td>{{ p.name }}</td><td class="zahl">{{ money p.amount }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+  <tfoot><tr><td>Summe</td><td class="zahl">{{ money total }}</td></tr></tfoot>
+</table>
+<p>Mit freundlichen Grüßen</p>

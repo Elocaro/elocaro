@@ -393,6 +393,6 @@ dotnet_naming_style.s_camelcase.capitalization = camel_case
 
 
 # Von "dotnet ef migrations add" erzeugt: nicht formatieren/analysieren
-[src/MietHahn.Infrastructure/Persistenz/Migrationen/*.cs]
+[src/MietHahn.Infrastructure/Persistence/Migrations/*.cs]
 generated_code = true
 dotnet_analyzer_diagnostic.severity = none
