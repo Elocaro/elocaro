@@ -32,14 +32,18 @@ else if (dokument.Dokument.MimeTyp == "application/pdf")
     <iframe class="dokument-vorschau" src="/dateien/@dokument.Dokument.DateiId" title="Vorschau: @dokument.Dokument.Titel"></iframe>
 }
 
-<section>
-    <h2>Angaben</h2>
-    <EditForm Model="Daten" FormName="dokument" OnValidSubmit="SpeichernAsync">
-        <DataAnnotationsValidator />
-        <DokumentFelder Daten="Daten!" Auswahl="auswahl!" />
-        <button type="submit" class="knopf knopf-primaer">Speichern</button>
-    </EditForm>
-</section>
+@* Beim statischen Rendern kann ein Zwischenstand gerendert werden, bevor die Auswahllisten geladen sind. *@
+@if (auswahl is not null)
+{
+    <section>
+        <h2>Angaben</h2>
+        <EditForm Model="Daten" FormName="dokument" OnValidSubmit="SpeichernAsync">
+            <DataAnnotationsValidator />
+            <DokumentFelder Daten="Daten!" Auswahl="auswahl" />
+            <button type="submit" class="knopf knopf-primaer">Speichern</button>
+        </EditForm>
+    </section>
+}
 
 <section>
     <h2>Löschen</h2>
