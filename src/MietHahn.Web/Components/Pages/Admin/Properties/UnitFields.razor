@@ -1,4 +1,4 @@
-@* Eingabefelder einer Einheit; steht innerhalb eines EditForm mit Model = Daten. *@
+@* Input fields of a unit; sits inside an EditForm with Model = Data. *@
 <div class="formular-raster">
     <FormField Id="einheit-bezeichnung" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Wohnung 1“">
         <InputText id="einheit-bezeichnung" @bind-Value="Data.Name" />
@@ -48,7 +48,7 @@
     [Parameter, EditorRequired]
     public UnitInput Data { get; set; } = default!;
 
-    /// <summary>Beim schnellen Anlegen nur Bezeichnung, Lage und Art.</summary>
+    /// <summary>For quick creation only name, location and type.</summary>
     [Parameter]
     public bool WithFeatures { get; set; } = true;
 }

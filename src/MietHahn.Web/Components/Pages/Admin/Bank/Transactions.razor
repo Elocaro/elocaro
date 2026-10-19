@@ -102,7 +102,7 @@ else if (transactions is not null)
     [SupplyParameterFromQuery(Name = "konto")]
     private Guid? AccountId { get; set; }
 
-    // Enums lassen sich nicht direkt aus dem Query-String binden.
+    // Enums cannot be bound directly from the query string.
     [SupplyParameterFromQuery(Name = "status")]
     private string? StatusText { get; set; }
 
@@ -135,7 +135,7 @@ else if (transactions is not null)
         var result = parts[0] == "ignorieren" ? await Bank.IgnoreAsync(id, Note) : await Bank.ReopenAsync(id);
         if (result.Succeeded)
         {
-            // Zurück auf dieselbe Auswahl (Konto, Status, Suche)
+            // Back to the same selection (account, status, search)
             Redirector.RedirectWithMessage("/" + Navigation.ToBaseRelativePath(Navigation.Uri), parts[0] == "ignorieren" ? "Der Umsatz wird ignoriert." : "Der Umsatz ist wieder offen.", HttpContext);
         }
         else

@@ -46,7 +46,7 @@
             </div>
         </form>
     }
-    @* Beim statischen Rendern kann ein Zwischenstand gerendert werden, bevor die Auswahllisten geladen sind. *@
+    @* During static rendering an intermediate state may be rendered before the option lists are loaded. *@
     @if (receipt.Open != 0 && selection is not null)
     {
         <h3>Position hinzufügen</h3>

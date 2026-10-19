@@ -99,10 +99,10 @@
     [SupplyParameterFromForm(FormName = "einheit")]
     private UnitInput? Data { get; set; }
 
-    [SupplyParameterFromForm(FormName = "zimmer", Name = "Data")] // Feldnamen kommen aus RoomFields
+    [SupplyParameterFromForm(FormName = "zimmer", Name = "Data")] // field names come from RoomFields
     private RoomInput? NewRoom { get; set; }
 
-    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // Feldnamen kommen aus AreaSection
+    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // field names come from AreaSection
     private AreaInput? Area { get; set; }
 
     private string Subtitle => $"{Labels.From(unit!.Data.Type)}{(unit.Data.Location is { } level ? ", " + level : "")} · {unit.PropertyName}";

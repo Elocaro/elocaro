@@ -1,4 +1,4 @@
-@* Optionen für eine Kostenart-Auswahl, gruppiert nach umlagefähig (§ 2 BetrKV) und nicht umlagefähig. *@
+@* Options for a cost type select, grouped into allocable (§ 2 BetrKV) and non-allocable. *@
 <optgroup label="Betriebskosten (§ 2 BetrKV, umlagefähig)">
     @foreach (var kind in CostTypes.All.Where(k => k.Allocable))
     {
@@ -13,7 +13,7 @@
 </optgroup>
 
 @code {
-    /// <summary>Nur für einfache <c>select</c>-Felder; bei <c>InputSelect</c> setzt die Bindung die Auswahl.</summary>
+    /// <summary>Only for plain <c>select</c> fields; with <c>InputSelect</c> the binding sets the selection.</summary>
     [Parameter]
     public string? Selected { get; set; }
 }

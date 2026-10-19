@@ -1,4 +1,4 @@
-@* Eingabefelder eines Dokuments; steht innerhalb eines EditForm mit Model = Daten. *@
+@* Input fields of a document; sits inside an EditForm with Model = Data. *@
 <div class="formular-raster">
     <FormField Id="dokument-titel" Label="Titel" For="() => Data.Title" Required="@TitleRequired" Hint="@(TitleRequired ? null : "Leer lassen für den Dateinamen.")">
         <InputText id="dokument-titel" @bind-Value="Data.Title" />

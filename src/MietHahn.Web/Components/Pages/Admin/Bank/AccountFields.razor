@@ -1,5 +1,5 @@
 @using MietHahn.Application.Properties
-@* Eingabefelder eines Bankkontos; steht innerhalb eines EditForm mit Model = Daten. *@
+@* Input fields of a bank account; sits inside an EditForm with Model = Data. *@
 <div class="formular-raster">
     <FormField Id="konto-name" Label="Name" For="() => Data.Name" Required="true" Hint="z. B. „Mietkonto Lindenweg“">
         <InputText id="konto-name" @bind-Value="Data.Name" />

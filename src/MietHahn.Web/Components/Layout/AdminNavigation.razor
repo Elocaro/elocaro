@@ -1,6 +1,6 @@
 @using MietHahn.Application.Accounts
 
-@* Hauptnavigation der Verwaltung; Einträge erscheinen nur mit passendem Recht. *@
+@* Main navigation of the administration; entries only appear with the matching permission. *@
 <ul class="navigation">
     <li><NavLink href="/verwaltung" Match="NavLinkMatch.All">Was ist zu tun?</NavLink></li>
     <AuthorizeView Policy="@Policies.MasterData">

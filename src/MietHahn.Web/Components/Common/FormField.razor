@@ -1,7 +1,7 @@
 @typeparam TValue
 @using System.Linq.Expressions
 
-@* Einheitliches Formularfeld: Beschriftung, Eingabe (ChildContent), Hinweis und Validierungsmeldung. *@
+@* Uniform form field: label, input (ChildContent), hint and validation message. *@
 <div class="feld @CssClass">
     <label for="@Id">@Label@(Required ? " *" : "")</label>
     @ChildContent

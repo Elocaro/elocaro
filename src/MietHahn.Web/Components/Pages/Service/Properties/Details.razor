@@ -13,7 +13,7 @@
     return;
 }
 
-@* Hausmeister sehen das Haus und seine Einheiten, aber keine Mieterdaten. *@
+@* Caretakers see the building and its units, but no tenant data. *@
 <PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/service/objekte" BackText="Meine Objekte" />
 
 <dl class="angaben">
@@ -63,7 +63,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Ressourcenbasiert: nicht zugeordnete Objekte verhalten sich wie unbekannte (keine Auskunft über ihre Existenz).
+        // Resource-based: unassigned properties behave like unknown ones (no information about their existence).
         if ((await AccessControl.AuthorizeAsync(HttpContext.User, new PropertyResource(Id), PropertyReadRequirement.Requirement)).Succeeded)
         {
             property = await Admin.GetAsync(Id);

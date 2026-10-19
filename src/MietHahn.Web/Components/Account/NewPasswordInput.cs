@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MietHahn.Web.Components.Account;
 
-/// <summary>Neues Passwort mit Wiederholung (Einladung, Zurücksetzen, Ändern).</summary>
+/// <summary>New password with confirmation (invitation, reset, change).</summary>
 public class NewPasswordInput
 {
     [Required(ErrorMessage = "Bitte ein Passwort angeben.")]

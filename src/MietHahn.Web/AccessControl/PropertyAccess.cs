@@ -5,16 +5,16 @@ using MietHahn.Application.Properties;
 
 namespace MietHahn.Web.AccessControl;
 
-/// <summary>Anforderung „Objekt ansehen“ (ressourcenbasiert).</summary>
+/// <summary>Requirement "view property" (resource-based).</summary>
 internal sealed class PropertyReadRequirement : IAuthorizationRequirement
 {
     public static readonly PropertyReadRequirement Requirement = new();
 }
 
-/// <summary>Ressource für <see cref="PropertyReadRequirement"/>.</summary>
+/// <summary>Resource for <see cref="PropertyReadRequirement"/>.</summary>
 internal sealed record PropertyResource(Guid PropertyId);
 
-/// <summary>Verwaltung mit Recht Stammdaten sieht alle Objekte, Hausmeister nur die ihnen zugeordneten.</summary>
+/// <summary>Administrators with the master data permission see all properties, caretakers only those assigned to them.</summary>
 internal sealed class PropertyAccessHandler(IPropertyAssignments assignments) : AuthorizationHandler<PropertyReadRequirement, PropertyResource>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PropertyReadRequirement requirement, PropertyResource resource)

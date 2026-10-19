@@ -6,7 +6,7 @@ namespace MietHahn.Web.People;
 
 internal static class AccessReportEndpoint
 {
-    /// <summary>DSGVO-Auskunft (Art. 15) als JSON-Download; der Abruf wird im Audit-Log vermerkt.</summary>
+    /// <summary>GDPR access report (Art. 15) as a JSON download; the request is recorded in the audit log.</summary>
     public static IEndpointRouteBuilder MapAccessReportEndpoint(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/verwaltung/personen/{id:guid}/auskunft", async (Guid id, IPrivacyService privacy, TimeProvider clock, HttpContext context) =>

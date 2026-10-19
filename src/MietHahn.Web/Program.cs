@@ -15,7 +15,7 @@ if (args.FirstOrDefault() == "healthcheck")
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Vor der Infrastruktur registrieren: dort wird nur ein Standard (System-Benutzer) ergänzt, falls nichts gesetzt ist.
+// Register before the infrastructure: it only adds a default (system user) if nothing is set.
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddMietHahnInfrastructure(builder.Configuration);
 builder.Services.AddMietHahnSignIn(builder.Configuration);
@@ -35,7 +35,7 @@ app.UseSecurityHeaders();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 if (app.Configuration.GetValue("Hosting:HttpsRedirection", true))
 {
-    app.UseHttpsRedirection(); // im Container übernimmt das Caddy (Hosting__HttpsRedirection=false)
+    app.UseHttpsRedirection(); // in the container Caddy handles this (Hosting__HttpsRedirection=false)
 }
 
 app.UseAuthentication();
@@ -57,5 +57,5 @@ await app.Services.MigrateDatabaseAsync();
 await app.RunAsync();
 return 0;
 
-/// <summary>Sichtbar für Tests (WebApplicationFactory, Architekturtests).</summary>
+/// <summary>Visible to tests (WebApplicationFactory, architecture tests).</summary>
 public partial class Program;

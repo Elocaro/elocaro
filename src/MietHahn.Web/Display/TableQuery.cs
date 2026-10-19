@@ -2,12 +2,12 @@ using System.Linq.Expressions;
 
 namespace MietHahn.Web.Display;
 
-/// <summary>Sortierung und Blättern über Query-Parameter (<c>?sortierung=name&amp;absteigend=true&amp;seite=2</c>).</summary>
+/// <summary>Sorting and paging via query parameters (<c>?sortierung=name&amp;absteigend=true&amp;seite=2</c>).</summary>
 public sealed record TableQuery(string? SortOrder, bool Descending, int Page, int PageSize = 25)
 {
     public int Skip => (Math.Max(Page, 1) - 1) * PageSize;
 
-    /// <summary>Sortiert nach der gewählten Spalte; unbekannte Spalten fallen auf den Standard zurück.</summary>
+    /// <summary>Sorts by the selected column; unknown columns fall back to the default.</summary>
     public IQueryable<T> Sort<T>(IQueryable<T> query, IReadOnlyDictionary<string, Expression<Func<T, object?>>> columns, string standard)
     {
         ArgumentNullException.ThrowIfNull(columns);

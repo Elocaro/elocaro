@@ -34,8 +34,8 @@ internal static class AccountExtensions
             o.SlidingExpiration = true;
         });
 
-        // Security-Stamp bei jeder Anfrage prüfen (für die kleine Nutzerzahl unkritisch): Gesperrte Konten werden
-        // sofort abgemeldet, geänderte Rollen und Rechte gelten ab der nächsten Anfrage (Principal wird neu aufgebaut).
+        // Validate the security stamp on every request (uncritical for the small number of users): locked accounts are
+        // signed out immediately, changed roles and permissions apply from the next request (the principal is rebuilt).
         services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.Zero);
 
         services.AddAuthorizationBuilder()
@@ -58,7 +58,7 @@ internal static class AccountExtensions
         return services;
     }
 
-    /// <summary>Admin und Verwalter müssen Zwei-Faktor einrichten, bevor sie etwas anderes tun können.</summary>
+    /// <summary>Admins and managers must set up two-factor authentication before they can do anything else.</summary>
     public static IApplicationBuilder UseTwoFactorRequirement(this IApplicationBuilder app) =>
         app.Use(async (context, next) =>
         {

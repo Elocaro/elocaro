@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Components;
 namespace MietHahn.Web.Components.Common;
 
 /// <summary>
-/// Basis für Unterkomponenten, die selbst Daten laden (z. B. Änderungshistorie). Beim statischen Rendern starten mehrere
-/// Unterkomponenten ihre asynchronen Ladevorgänge gleichzeitig; ein gemeinsamer (scoped) DbContext erlaubt aber nur eine
-/// Abfrage zur Zeit. Daher bekommt jeder Ladevorgang einen eigenen DI-Scope und damit einen eigenen DbContext.
+/// Base for child components that load their own data (e.g. change history). During static rendering several
+/// child components start their asynchronous loads at the same time; a shared (scoped) DbContext only allows one
+/// query at a time. Therefore each load gets its own DI scope and thus its own DbContext.
 /// </summary>
 public abstract class DataComponent : ComponentBase
 {

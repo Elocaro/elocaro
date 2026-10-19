@@ -11,7 +11,7 @@ internal static class OpenItemsEndpoint
 {
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
 
-    /// <summary>Offene Posten als CSV (Semikolon, deutsche Zahlen, UTF-8 mit BOM für Excel).</summary>
+    /// <summary>Open items as CSV (semicolon, German numbers, UTF-8 with BOM for Excel).</summary>
     public static IEndpointRouteBuilder MapOpenItemsEndpoint(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/verwaltung/finanzen/offene-posten.csv", async (ITenantAccounts accounts, TimeProvider clock, HttpContext context) =>
@@ -26,7 +26,7 @@ internal static class OpenItemsEndpoint
     internal static byte[] Csv(IEnumerable<OpenItem> items)
     {
         var text = new StringBuilder();
-        // Zeilenende nach RFC 4180 unabhängig vom Betriebssystem.
+        // Line ending per RFC 4180 regardless of the operating system.
         text.Append("Mietobjekt;Mieter;Art;Forderung;Fällig;Betrag;Offen;Tage überfällig\r\n");
         foreach (var p in items)
         {
@@ -44,7 +44,7 @@ internal static class OpenItemsEndpoint
         return [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(text.ToString())];
     }
 
-    /// <summary>Quotiert bei Bedarf und entschärft Formeln (CSV-Injection).</summary>
+    /// <summary>Quotes where needed and neutralizes formulas (CSV injection).</summary>
     private static string Field(string value)
     {
         if (value.Length > 0 && value[0] is '=' or '+' or '-' or '@' or '\t' or '\r')

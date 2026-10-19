@@ -83,7 +83,7 @@ else if (user is not null)
             await UserManager.ResetAuthenticatorKeyAsync(user);
             key = await UserManager.GetAuthenticatorKeyAsync(user);
 
-            // Das Erzeugen des Schlüssels erneuert den Security-Stamp; ohne neues Cookie wäre die Sitzung ungültig.
+            // Generating the key renews the security stamp; without a new cookie the session would be invalid.
             await Login.RefreshSignInAsync(user);
         }
 
@@ -105,7 +105,7 @@ else if (user is not null)
 
         await UserManager.SetTwoFactorEnabledAsync(user!, true);
         codes = [.. await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(user!, 10) ?? []];
-        await Login.RefreshSignInAsync(user!); // Claim „2FA aktiv“ aktualisieren
+        await Login.RefreshSignInAsync(user!); // Update the "2FA active" claim
     }
 
     private sealed class CodeInput

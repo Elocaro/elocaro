@@ -138,10 +138,10 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "einheit", Name = "Data")] // Feldnamen kommen aus UnitFields
+    [SupplyParameterFromForm(FormName = "einheit", Name = "Data")] // field names come from UnitFields
     private UnitInput? NewUnit { get; set; }
 
-    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // Feldnamen kommen aus AreaSection
+    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // field names come from AreaSection
     private AreaInput? Area { get; set; }
 
     protected override async Task OnInitializedAsync()

@@ -1,4 +1,4 @@
-@* Eingabefelder eines Objekts; steht innerhalb eines EditForm mit Model = Daten. *@
+@* Input fields of a property; sits inside an EditForm with Model = Data. *@
 <div class="formular-raster">
     <FormField Id="bezeichnung" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Lindenweg 3“">
         <InputText id="bezeichnung" @bind-Value="Data.Name" />

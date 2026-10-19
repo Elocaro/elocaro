@@ -85,7 +85,7 @@ else
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    // Ein Formular, zwei Modelle: Daten.* (ZaehlerFelder) und Anlage.* (Einbau, Anfangsstand)
+    // One form, two models: Data.* (MeterFields) and Creation.* (installation, initial reading)
     [SupplyParameterFromForm(FormName = "zaehler")]
     private MeterInput? Data { get; set; }
 

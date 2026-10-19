@@ -81,7 +81,7 @@ else if (page is not null)
     [SupplyParameterFromQuery]
     private string? Q { get; set; }
 
-    // Enums lassen sich nicht direkt aus dem Query-String binden.
+    // Enums cannot be bound directly from the query string.
     [SupplyParameterFromQuery(Name = "filter")]
     private string? FilterText { get; set; }
 

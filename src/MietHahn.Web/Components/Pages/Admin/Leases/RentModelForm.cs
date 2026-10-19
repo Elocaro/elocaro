@@ -5,8 +5,8 @@ using MietHahn.Domain.Leases;
 namespace MietHahn.Web.Components.Pages.Admin.Leases;
 
 /// <summary>
-/// Formularmodell für das Mietmodell. Der Ausgangsmonat kommt aus <c>&lt;input type="month"&gt;</c> als „2026-01“;
-/// <see cref="DateOnly"/> lässt sich daraus nicht direkt binden.
+/// Form model for the rent model. The starting month comes from <c>&lt;input type="month"&gt;</c> as "2026-01";
+/// <see cref="DateOnly"/> cannot be bound from it directly.
 /// </summary>
 public sealed class RentModelForm
 {

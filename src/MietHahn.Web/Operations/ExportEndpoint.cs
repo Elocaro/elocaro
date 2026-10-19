@@ -9,7 +9,7 @@ internal static class ExportEndpoint
 {
     public const string Path = "/verwaltung/system/datensicherung/export";
 
-    /// <summary>Vollexport als ZIP-Download (POST mit Antiforgery-Token, damit kein Link den Export auslösen kann).</summary>
+    /// <summary>Full export as a ZIP download (POST with antiforgery token so no link can trigger the export).</summary>
     public static IEndpointRouteBuilder MapExportEndpoint(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost(Path, async (HttpContext context, IDataExport export, IAntiforgery antiforgery) =>

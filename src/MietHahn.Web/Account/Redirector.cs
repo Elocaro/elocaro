@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Components;
 namespace MietHahn.Web.Account;
 
 /// <summary>
-/// Weiterleitungen aus statisch gerenderten Seiten, mit Schutz vor offenen Weiterleitungen (nur lokale Ziele)
-/// und optionaler Statusmeldung für die Zielseite (kurzlebiges Cookie).
+/// Redirects from statically rendered pages, protected against open redirects (local targets only)
+/// and an optional status message for the target page (short-lived cookie).
 /// </summary>
 internal sealed class Redirector(NavigationManager navigation)
 {
@@ -18,7 +18,7 @@ internal sealed class Redirector(NavigationManager navigation)
         MaxAge = TimeSpan.FromSeconds(10),
     };
 
-    /// <summary>Nur relative, lokale Ziele; alles andere führt zur Startseite.</summary>
+    /// <summary>Only relative, local targets; anything else leads to the start page.</summary>
     public static string LocalTarget(string? destination) =>
         string.IsNullOrWhiteSpace(destination)
         || !Uri.IsWellFormedUriString(destination, UriKind.Relative)
@@ -40,7 +40,7 @@ internal sealed class Redirector(NavigationManager navigation)
         To(destination);
     }
 
-    /// <summary>Liest (und löscht) eine Statusmeldung, die von der vorherigen Seite gesetzt wurde.</summary>
+    /// <summary>Reads (and deletes) a status message set by the previous page.</summary>
     public static string? ReadMessage(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);

@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Components.Rendering;
 namespace MietHahn.Web.Components.Common;
 
 /// <summary>
-/// Gemeinsame Basis für Dezimaleingaben. Gerendert wird <c>&lt;input type="number" step="0.01"&gt;</c>: Der Browser zeigt
-/// und akzeptiert die Zahl in der Schreibweise des Nutzers („1234,56“), sendet sie aber immer mit Punkt. Das ist nötig,
-/// weil Blazor bei statischem SSR Formularwerte kulturinvariant bindet (<c>[SupplyParameterFromForm]</c>); ein Textfeld
-/// mit „30,5“ käme nicht als Zahl an. Mobil öffnet sich die Zahlentastatur.
+/// Common base for decimal inputs. Renders <c>&lt;input type="number" step="0.01"&gt;</c>: The browser shows
+/// and accepts the number in the user's notation ("1234,56") but always submits it with a decimal point. This is necessary
+/// because Blazor binds form values culture-invariantly in static SSR (<c>[SupplyParameterFromForm]</c>); a text field
+/// with "30,5" would not arrive as a number. On mobile the numeric keypad opens.
 /// </summary>
 public abstract class InputDecimalBase : InputBase<decimal?>
 {
@@ -34,7 +34,7 @@ public abstract class InputDecimalBase : InputBase<decimal?>
         builder.CloseElement();
     }
 
-    /// <summary>Wert für das <c>value</c>-Attribut: immer mit Punkt, ohne Tausendertrennzeichen.</summary>
+    /// <summary>Value for the <c>value</c> attribute: always with a decimal point, without thousands separators.</summary>
     protected override string? FormatValueAsString(decimal? value) => value?.ToString("0.##", CultureInfo.InvariantCulture);
 
     protected override bool TryParseValueFromString(string? value, [MaybeNullWhen(false)] out decimal? result, [NotNullWhen(false)] out string? validationErrorMessage)
@@ -46,7 +46,7 @@ public abstract class InputDecimalBase : InputBase<decimal?>
             return true;
         }
 
-        // Vom Browser kommt der Wert mit Punkt; deutsche Schreibweise nur als Rückfall (z. B. interaktive Eingabe).
+        // The browser sends the value with a decimal point; German notation only as a fallback (e.g. interactive input).
         decimal? parsed = decimal.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var invariant)
             ? invariant
             : InputAmount.Read(value, out var german) ? german : null;
@@ -63,18 +63,18 @@ public abstract class InputDecimalBase : InputBase<decimal?>
     }
 }
 
-/// <summary>Flächen in m² (z. B. 75,5), höchstens zwei Nachkommastellen.</summary>
+/// <summary>Areas in m² (e.g. 75.5), at most two decimal places.</summary>
 public sealed class InputArea : InputDecimalBase
 {
     protected override string ErrorText(string? input) => $"„{input}“ ist keine gültige Fläche (z. B. 75,5).";
 }
 
-/// <summary>Geldbeträge in Euro, auf Cent gerundet.</summary>
+/// <summary>Amounts in euros, rounded to cents.</summary>
 public sealed class InputAmount : InputDecimalBase
 {
     protected override string ErrorText(string? input) => $"„{input}“ ist kein gültiger Betrag (z. B. 1234,56).";
 
-    /// <summary>Liest einen Betrag in deutscher (oder einfacher Punkt-)Schreibweise, z. B. aus importierten Daten.</summary>
+    /// <summary>Reads an amount in German (or plain decimal-point) notation, e.g. from imported data.</summary>
     public static bool Read(string? text, out decimal? amount)
     {
         amount = null;
@@ -85,7 +85,7 @@ public sealed class InputAmount : InputDecimalBase
 
         var cleaned = text.Replace("€", "", StringComparison.Ordinal).Replace(" ", "", StringComparison.Ordinal).Trim();
 
-        // „1234.56“ (nur ein Punkt, max. 2 Nachkommastellen, kein Komma) als Dezimalpunkt verstehen.
+        // Treat "1234.56" (a single dot, max. 2 decimal places, no comma) as a decimal point.
         if (!cleaned.Contains(',', StringComparison.Ordinal) && cleaned.Count(z => z == '.') == 1 && cleaned.Length - cleaned.IndexOf('.', StringComparison.Ordinal) - 1 is 1 or 2)
         {
             cleaned = cleaned.Replace('.', ',');

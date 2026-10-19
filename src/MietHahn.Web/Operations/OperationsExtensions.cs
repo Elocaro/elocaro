@@ -12,20 +12,20 @@ internal static class OperationsExtensions
     public const string LivenessPath = "/health/live";
     public const string ReadyPath = "/health";
 
-    /// <summary>Hinter einem Reverse-Proxy (Caddy) Schema und Client-IP aus X-Forwarded-* übernehmen.</summary>
+    /// <summary>Behind a reverse proxy (Caddy), take scheme and client IP from X-Forwarded-*.</summary>
     public static IServiceCollection AddMietHahnOperations(this IServiceCollection services) =>
         services.Configure<ForwardedHeadersOptions>(o =>
         {
             o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
             o.ForwardLimit = 1;
 
-            // Die App ist nur im Docker-Netz erreichbar; dort sitzt ausschließlich der Proxy.
+            // The app is only reachable within the Docker network; only the proxy sits there.
             o.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("10.0.0.0/8"));
             o.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("172.16.0.0/12"));
             o.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("192.168.0.0/16"));
         });
 
-    /// <summary>Sicherheits-Header für alle Antworten (CSP passend zu statischem Blazor-SSR).</summary>
+    /// <summary>Security headers for all responses (CSP suited to static Blazor SSR).</summary>
     public static IApplicationBuilder UseSecurityHeaders(this IApplicationBuilder app) =>
         app.Use(async (context, next) =>
         {
@@ -47,10 +47,10 @@ internal static class OperationsExtensions
 
     public static IEndpointRouteBuilder MapHealthEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        // Lebt: Prozess antwortet (für den Container-Healthcheck).
+        // Live: the process responds (for the container health check).
         endpoints.MapHealthChecks(LivenessPath, new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 
-        // Bereit: Datenbank und Gotenberg erreichbar. Ausgabe ohne Fehlerdetails (keine Interna nach außen).
+        // Ready: database and Gotenberg reachable. Output without error details (no internals exposed).
         endpoints.MapHealthChecks(ReadyPath, new HealthCheckOptions
         {
             Predicate = c => c.Tags.Contains(HealthTags.Ready),
@@ -75,8 +75,8 @@ internal static class OperationsExtensions
     }
 
     /// <summary>
-    /// <c>dotnet MietHahn.Web.dll healthcheck</c>: prüft die laufende Instanz im selben Container (das chiseled Image
-    /// hat weder Shell noch curl). Exit-Code 0 = gesund.
+    /// <c>dotnet MietHahn.Web.dll healthcheck</c>: checks the running instance in the same container (the chiseled image
+    /// has neither a shell nor curl). Exit code 0 = healthy.
     /// </summary>
     public static async Task<int> SelfCheckAsync(string[] args)
     {

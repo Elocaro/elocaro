@@ -5,15 +5,15 @@ using MietHahn.Domain.Files;
 
 namespace MietHahn.Web.AccessControl;
 
-/// <summary>Anforderung „Datei lesen“ (ressourcenbasiert).</summary>
+/// <summary>Requirement "read file" (resource-based).</summary>
 internal sealed class FileReadRequirement : IAuthorizationRequirement
 {
     public static readonly FileReadRequirement Requirement = new();
 }
 
 /// <summary>
-/// Verwaltung (mit Recht Stammdaten oder Finanzen) darf alle Dateien lesen; alle anderen nur, wenn ein Fachmodul
-/// die Datei über <see cref="IFileShare"/> freigibt.
+/// Administrators (with the master data or finance permission) may read all files; everyone else only if a feature module
+/// shares the file via <see cref="IFileShare"/>.
 /// </summary>
 internal sealed class FileAccessHandler(IEnumerable<IFileShare> shares) : AuthorizationHandler<FileReadRequirement, StoredFile>
 {
@@ -40,7 +40,7 @@ internal static class FileEndpoints
 {
     public static IEndpointRouteBuilder MapFileEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        // Ohne Policy-Angabe gilt die Fallback-Richtlinie (angemeldet); die Datei selbst prüft der Handler.
+        // Without a policy name the fallback policy (signed in) applies; the handler checks the file itself.
         endpoints.MapGet("/dateien/{id:guid}", async (Guid id, bool? download, HttpContext context, IFileStore fileStore, IAuthorizationService authorization) =>
         {
             var opened = await fileStore.OpenAsync(id, context.RequestAborted);
@@ -55,10 +55,10 @@ internal static class FileEndpoints
                 return Results.Forbid();
             }
 
-            // Hochgeladene Inhalte nie als aktive Inhalte im Kontext der App ausführen.
+            // Never execute uploaded content as active content in the app context.
             context.Response.Headers.XContentTypeOptions = "nosniff";
-            // PDFs: der eingebaute PDF-Betrachter des Browsers läuft nicht in einer Sandbox, daher dort ohne „sandbox“;
-            // Skripte bleiben über default-src 'none' gesperrt. Einbetten (Vorschau) nur in Seiten der App selbst.
+            // PDFs: the browser's built-in PDF viewer does not run in a sandbox, so there is no "sandbox" here;
+            // scripts stay blocked via default-src 'none'. Embedding (preview) only in pages of the app itself.
             var sandbox = opened.StoredFile.MimeType == "application/pdf" ? "" : "; sandbox";
             context.Response.Headers.ContentSecurityPolicy = $"default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'self'{sandbox}";
             context.Response.Headers.XFrameOptions = "SAMEORIGIN";

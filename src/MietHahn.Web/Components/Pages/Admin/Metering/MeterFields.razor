@@ -1,9 +1,9 @@
-@* Stammdaten eines Zählers; steht innerhalb eines EditForm mit Model = Daten (Feldnamen Daten.*). *@
+@* Master data of a meter; sits inside an EditForm with Model = Data (field names Data.*). *@
 <div class="formular-raster">
     <FormField Id="zaehler-typ" Label="Art" For="() => Data.Type" Hint="@(TypeLocked ? "Nicht änderbar; bei einem anderen Zähler einen neuen anlegen." : null)">
         @if (TypeLocked)
         {
-            @* Gesperrte Felder würden nicht mitgesendet: Wert als verstecktes Feld, Anzeige schreibgeschützt. *@
+            @* Locked fields would not be submitted: value as a hidden field, display read-only. *@
             <input type="hidden" name="Data.Type" value="@Data.Type" />
             <input id="zaehler-typ" type="text" value="@Labels.From(Data.Type)" readonly />
         }

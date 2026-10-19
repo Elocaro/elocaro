@@ -9,7 +9,7 @@ using MietHahn.Domain.Receipts;
 
 namespace MietHahn.Web.Display;
 
-/// <summary>Deutsche Anzeigenamen für fachliche Aufzählungen.</summary>
+/// <summary>German display names for domain enumerations.</summary>
 public static class Labels
 {
     public static string From(Section35a value) => value switch

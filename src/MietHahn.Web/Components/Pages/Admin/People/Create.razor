@@ -19,7 +19,7 @@
 @code {
     private IReadOnlyList<string>? errors;
 
-    // Ein Formular, zwei Modelle: Feldnamen Daten.* (PersonFelder) und Anschrift.* (AnschriftFelder).
+    // One form, two models: field names Data.* (PersonFields) and Address.* (AddressFields).
     [SupplyParameterFromForm(FormName = "person")]
     private PersonInput? Data { get; set; }
 

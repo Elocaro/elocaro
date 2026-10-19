@@ -2,7 +2,7 @@ using MietHahn.Application.Common;
 
 namespace MietHahn.Web.Account;
 
-/// <summary>Angemeldeter Benutzer aus dem HTTP-Kontext; ohne Anfrage (Hintergrundjobs) „system“.</summary>
+/// <summary>Signed-in user from the HTTP context; without a request (background jobs) "system".</summary>
 internal sealed class HttpCurrentUser(IHttpContextAccessor context) : ICurrentUser
 {
     public string Identifier =>

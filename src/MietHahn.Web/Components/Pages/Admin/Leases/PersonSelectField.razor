@@ -1,6 +1,6 @@
 @inherits InputBase<Guid?>
 
-@* Auswahl einer Person (Name und Ort zur Unterscheidung gleichnamiger Personen). *@
+@* Selection of a person (name and city to tell apart people with the same name). *@
 <select id="@Id" name="@NameAttributeValue" class="@CssClass" @onchange="e => CurrentValueAsString = e.Value?.ToString()">
     <option value="" selected="@(CurrentValue is null)">– keine –</option>
     @foreach (var person in People)

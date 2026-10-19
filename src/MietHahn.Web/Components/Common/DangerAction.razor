@@ -1,4 +1,4 @@
-@* Riskante Aktion mit Rückfrage ohne JavaScript: erst aufklappen, dann bestätigen. *@
+@* Risky action with confirmation without JavaScript: expand first, then confirm. *@
 <details class="gefahrenaktion">
     <summary class="knopf knopf-gefahr">@Text</summary>
     <div class="gefahrenaktion-inhalt" role="alertdialog" aria-label="@Text">
@@ -27,7 +27,7 @@
     [Parameter, EditorRequired]
     public EventCallback Confirmed { get; set; }
 
-    /// <summary>Zusätzliche (versteckte) Felder des Formulars.</summary>
+    /// <summary>Additional (hidden) fields of the form.</summary>
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 }

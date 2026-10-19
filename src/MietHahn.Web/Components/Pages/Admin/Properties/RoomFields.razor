@@ -1,4 +1,4 @@
-@* Eingabefelder eines WG-Zimmers; steht innerhalb eines EditForm mit Model = Daten. *@
+@* Input fields of a shared-flat room; sits inside an EditForm with Model = Data. *@
 <div class="formular-raster">
     <FormField Id="zimmer-bezeichnung" Label="Bezeichnung" For="() => Data.Name" Required="true" Hint="z. B. „Zimmer 1“">
         <InputText id="zimmer-bezeichnung" @bind-Value="Data.Name" />

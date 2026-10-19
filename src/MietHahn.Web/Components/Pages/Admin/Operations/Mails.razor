@@ -34,7 +34,7 @@
     }
     else if (mails is not null)
     {
-        @* Ein Formular für alle Zeilen: der geklickte Knopf sendet seine Id (Formularnamen müssen eindeutig sein). *@
+        @* One form for all rows: the clicked button submits its id (form names must be unique). *@
         <form method="post" @formname="erneut" @onsubmit="RetryAsync" data-enhance>
         <AntiforgeryToken />
         <div class="tabellen-rahmen">

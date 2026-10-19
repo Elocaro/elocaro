@@ -1,4 +1,4 @@
-@* Eingabefelder eines Belegs; steht innerhalb eines EditForm mit Model = Daten. *@
+@* Input fields of a receipt; sits inside an EditForm with Model = Data. *@
 <div class="formular-raster">
     <FormField Id="beleg-lieferant" Label="Lieferant (Kontakt)" For="() => Data.SupplierId" Hint="Kontakte unter Personen anlegen; sonst unten den Namen eintragen.">
         <InputSelect id="beleg-lieferant" @bind-Value="Data.SupplierId">

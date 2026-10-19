@@ -69,7 +69,7 @@
     {
         if (Data is null)
         {
-            // Modell synchron setzen: Blazor rendert vor dem ersten await bereits einmal.
+            // Set the model synchronously: Blazor already renders once before the first await.
             Data = new();
             var loaded = await Profile.GetAsync();
             newItem = loaded is null;

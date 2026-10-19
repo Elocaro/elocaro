@@ -3,7 +3,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Web.Display;
 
-/// <summary>Formatierung für die Oberfläche (deutsche Zeit und Schreibweise).</summary>
+/// <summary>Formatting for the UI (German time and notation).</summary>
 public static class Format
 {
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
@@ -19,7 +19,7 @@ public static class Format
 
     public static string Number(decimal? value) => value?.ToString("#,##0.##", German) ?? "–";
 
-    /// <summary>Zählerstände/Mengen mit bis zu drei Nachkommastellen.</summary>
+    /// <summary>Meter readings/quantities with up to three decimal places.</summary>
     public static string Quantity(decimal? value, string? unit = null) =>
         value is null ? "–" : value.Value.ToString("#,##0.###", German) + (unit is null ? "" : " " + unit);
 

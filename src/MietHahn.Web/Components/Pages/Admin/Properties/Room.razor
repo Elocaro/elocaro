@@ -53,7 +53,7 @@
     [SupplyParameterFromForm(FormName = "zimmer")]
     private RoomInput? Data { get; set; }
 
-    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // Feldnamen kommen aus AreaSection
+    [SupplyParameterFromForm(FormName = "flaeche", Name = "Input")] // field names come from AreaSection
     private AreaInput? Area { get; set; }
 
     protected override async Task OnInitializedAsync()

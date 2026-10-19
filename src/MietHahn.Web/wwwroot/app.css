@@ -1,4 +1,4 @@
-/* MietHahn – Design-System (CSS-Variablen, hell/dunkel, mobil zuerst). Kein CSS-Framework. */
+/* MietHahn design system (CSS variables, light/dark, mobile first). No CSS framework. */
 
 :root {
     --farbe-hintergrund: #f6f6f4;
@@ -7,7 +7,7 @@
     --farbe-text: #1c1c1a;
     --farbe-text-leise: #5c5c57;
     --farbe-rand: #d9d9d4;
-    --farbe-primaer: #b4441b;          /* Hahnenkamm-Rot */
+    --farbe-primaer: #b4441b;          /* Rooster-comb red */
     --farbe-primaer-hover: #963614;
     --farbe-primaer-text: #ffffff;
     --farbe-fokus: #2563eb;
@@ -73,7 +73,7 @@ pre code { font-size: 0.85rem; }
 
 .klein { font-size: 0.875rem; color: var(--farbe-text-leise); }
 
-/* Formulare */
+/* Forms */
 .feld { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: var(--abstand); }
 .feld label { font-weight: 600; font-size: 0.95rem; }
 .feld-checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
@@ -87,14 +87,14 @@ input:not([type=checkbox]):not([type=radio]):not([type=hidden]), select, textare
     background: var(--farbe-flaeche);
     border: 1px solid var(--farbe-rand);
     border-radius: var(--radius);
-    min-height: 2.75rem; /* gut treffbar auf dem Smartphone */
+    min-height: 2.75rem; /* easy to tap on a smartphone */
 }
 
 input[type=checkbox] { width: 1.15rem; height: 1.15rem; accent-color: var(--farbe-primaer); }
 input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehler); }
 .validation-message { color: var(--farbe-fehler); font-size: 0.875rem; }
 
-/* Knöpfe */
+/* Buttons */
 .knopf, button {
     display: inline-flex;
     align-items: center;
@@ -116,7 +116,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .knopf-primaer { color: var(--farbe-primaer-text); background: var(--farbe-primaer); border-color: var(--farbe-primaer); }
 .knopf-primaer:hover { background: var(--farbe-primaer-hover); color: var(--farbe-primaer-text); }
 
-/* Meldungen */
+/* Messages */
 .meldung { padding: 0.75rem 1rem; border-radius: var(--radius); margin: 0 0 var(--abstand); border: 1px solid transparent; }
 .meldung ul { margin: 0; padding-left: 1.2rem; }
 .meldung-ok { background: var(--farbe-ok-flaeche); color: var(--farbe-ok); border-color: color-mix(in srgb, var(--farbe-ok) 30%, transparent); }
@@ -124,7 +124,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .meldung-hinweis { background: var(--farbe-hinweis-flaeche); color: var(--farbe-hinweis); }
 .meldung:not(.meldung-ok):not(.meldung-fehler):not(.meldung-hinweis) { background: var(--farbe-flaeche-2); }
 
-/* Tabellen: auf schmalen Bildschirmen horizontal scrollbar statt Seiten-Scroll */
+/* Tables: scroll horizontally on narrow screens instead of scrolling the page */
 .tabelle { width: 100%; border-collapse: collapse; background: var(--farbe-flaeche); }
 .tabelle th, .tabelle td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--farbe-rand); vertical-align: top; }
 .tabelle th { font-size: 0.85rem; color: var(--farbe-text-leise); font-weight: 600; }
@@ -137,7 +137,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .status-fehler { background: var(--farbe-fehler-flaeche); color: var(--farbe-fehler); }
 .status-wartend { background: var(--farbe-hinweis-flaeche); color: var(--farbe-hinweis); }
 
-/* Angaben (Definitionslisten) */
+/* Details (definition lists) */
 .angaben { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.35rem 1rem; margin: 0 0 var(--abstand); }
 .angaben dt { color: var(--farbe-text-leise); }
 .angaben dd { margin: 0; overflow-wrap: anywhere; }
@@ -146,7 +146,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
     .angaben dt { font-size: 0.85rem; margin-top: 0.5rem; }
 }
 
-/* Konto-Seiten (Anmeldung usw.) */
+/* Account pages (sign-in etc.) */
 .konto-seite { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
 .konto-karte { width: 100%; max-width: 28rem; background: var(--farbe-flaeche); border: 1px solid var(--farbe-rand); border-radius: calc(var(--radius) * 1.5); box-shadow: var(--schatten); padding: 1.5rem; }
 .konto-karte button[type=submit] { width: 100%; }
@@ -161,7 +161,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .codes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; list-style: none; padding: 0; }
 .codes code { display: block; padding: 0.3rem 0.5rem; background: var(--farbe-flaeche-2); border-radius: 4px; text-align: center; }
 
-/* Änderungshistorie */
+/* Change history */
 .historie summary { cursor: pointer; font-weight: 600; }
 .historie-liste { list-style: none; padding: 0; }
 .historie-liste > li { padding: 0.5rem 0; border-bottom: 1px solid var(--farbe-rand); }
@@ -171,7 +171,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .blazor-error-boundary { background: var(--farbe-fehler); padding: 1rem; color: #fff; }
 .blazor-error-boundary::after { content: "Es ist ein Fehler aufgetreten."; }
 
-/* ---------- Anwendungsrahmen ---------- */
+/* ---------- Application frame ---------- */
 .sprunglink { position: absolute; left: -9999px; top: 0; z-index: 100; padding: 0.5rem 1rem; background: var(--farbe-flaeche); }
 .sprunglink:focus { left: 0.5rem; top: 0.5rem; }
 
@@ -197,7 +197,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .bereichsnavigation a { padding: 0.5rem 0.75rem; border-radius: var(--radius); color: var(--farbe-text); text-decoration: none; white-space: nowrap; }
 .bereichsnavigation a.active { color: var(--farbe-primaer); font-weight: 600; }
 
-/* Mobil: Menü als <details> (ohne JavaScript) */
+/* Mobile: menu as <details> (no JavaScript) */
 .navigation-mobil > summary { list-style: none; cursor: pointer; font-size: 1.4rem; padding: 0.25rem 0.5rem; border-radius: var(--radius); }
 .navigation-mobil > summary::-webkit-details-marker { display: none; }
 .navigation-mobil[open] > .navigation {
@@ -215,7 +215,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
     .inhalt { padding: 1.75rem 2rem 3rem; }
 }
 
-/* Benutzermenü */
+/* User menu */
 .benutzermenue { position: relative; }
 .benutzermenue > summary { list-style: none; cursor: pointer; padding: 0.4rem 0.6rem; border-radius: var(--radius); max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .benutzermenue > summary::-webkit-details-marker { display: none; }
@@ -229,7 +229,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 .knopf-link { width: 100%; min-height: auto; justify-content: flex-start; background: none; border: none; font-weight: normal; }
 .benutzermenue-inhalt a:hover, .knopf-link:hover { background: var(--farbe-flaeche-2); }
 
-/* Seitenkopf */
+/* Page header */
 .seitenkopf { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.25rem; }
 .seitenkopf h1 { margin: 0; }
 .seitenkopf .klein { margin: 0.25rem 0 0; }
@@ -238,7 +238,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--farbe-fehl
 
 section { margin-bottom: 2rem; }
 
-/* Formular-Layouts */
+/* Form layouts */
 .formular-raster { display: grid; gap: 0 1rem; grid-template-columns: 1fr; align-items: end; }
 @media (min-width: 700px) { .formular-raster { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); } }
 .formular-zeile { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; }
@@ -246,43 +246,43 @@ section { margin-bottom: 2rem; }
 .feld-aktion { justify-content: flex-end; }
 .feld-hinweis { font-size: 0.85rem; color: var(--farbe-text-leise); }
 
-/* Tabellen-Extras */
+/* Table extras */
 .sortierlink { color: inherit; text-decoration: none; }
 .sortierlink:hover { text-decoration: underline; }
 .seitenwahl { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.9rem; }
 
-/* Aufklappbare Formulare („Einheit hinzufügen“) ohne JavaScript */
+/* Collapsible forms ("add unit") without JavaScript */
 .aufklapper { margin: 0.75rem 0 var(--abstand); }
 .aufklapper > summary { cursor: pointer; font-weight: 600; color: var(--farbe-primaer); min-height: 2.75rem; display: flex; align-items: center; }
 .aufklapper[open] > summary { margin-bottom: 0.5rem; }
 
-/* Schritte (Assistenten) */
+/* Steps (wizards) */
 .schritte { padding-left: 1.4rem; margin: 0 0 var(--abstand); }
 .schritte li { margin: 0.35rem 0; color: var(--farbe-text-leise); }
 .schritte li.aktiv { color: var(--farbe-text); font-weight: 600; }
 .schritte li.erledigt { color: var(--farbe-ok); }
 .schritte li.erledigt::after { content: " ✓"; }
 
-/* Ablese-Runde (mobil) */
+/* Reading round (mobile) */
 .ablese-karte { padding: 1rem; margin-bottom: var(--abstand); background: var(--farbe-flaeche); border: 1px solid var(--farbe-rand); border-radius: var(--radius); }
 .ablese-karte h2 { margin-top: 0; }
 .ablese-karte p { margin: 0.25rem 0; }
 input.eingabe-gross { font-size: 1.6rem; min-height: 3.5rem; font-variant-numeric: tabular-nums; }
 .fortschritt { width: 100%; height: 0.5rem; margin-bottom: var(--abstand); accent-color: var(--farbe-primaer); }
 
-/* Suche */
+/* Search */
 .suchleiste { margin-bottom: var(--abstand); }
 
-/* Objekte */
+/* Properties */
 .objekt-kopf { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: flex-start; margin-bottom: var(--abstand); }
 .objekt-kopf .angaben { flex: 1 1 18rem; }
 .objektbild { display: block; max-width: min(100%, 20rem); height: auto; border-radius: var(--radius); border: 1px solid var(--farbe-rand); }
-/* Dokumentvorschau (Bild oder PDF) */
+/* Document preview (image or PDF) */
 img.dokument-vorschau { display: block; max-width: 100%; max-height: 70vh; height: auto; border-radius: var(--radius); border: 1px solid var(--farbe-rand); }
 iframe.dokument-vorschau { display: block; width: 100%; height: 70vh; border-radius: var(--radius); border: 1px solid var(--farbe-rand); }
 h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 
-/* Gefahrenaktionen */
+/* Danger actions */
 .knopf-gefahr { color: var(--farbe-fehler); border-color: color-mix(in srgb, var(--farbe-fehler) 40%, var(--farbe-rand)); background: var(--farbe-flaeche); }
 .gefahrenaktion > summary { list-style: none; width: max-content; }
 .gefahrenaktion > summary::-webkit-details-marker { display: none; }
@@ -300,12 +300,12 @@ h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 .leerzustand { padding: 2rem 1rem; text-align: center; color: var(--farbe-text-leise); background: var(--farbe-flaeche); border: 1px dashed var(--farbe-rand); border-radius: var(--radius); }
 .laedt { color: var(--farbe-text-leise); }
 
-/* Druck: Navigation ausblenden */
+/* Print: hide navigation */
 @media print {
     .kopfleiste, .seitenleiste, .bereichsnavigation, .sprunglink { display: none !important; }
     .inhalt { padding: 0; }
     body { background: #fff; }
 }
 
-/* Bankimport: schon vorhandene Umsätze */
+/* Bank import: transactions that already exist */
 .zeile-gedimmt { color: var(--farbe-text-leise); }

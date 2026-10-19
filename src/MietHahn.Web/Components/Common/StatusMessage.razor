@@ -1,4 +1,4 @@
-@* Zeigt eine Meldung aus dem Parameter oder aus dem Status-Cookie der vorherigen Seite. *@
+@* Shows a message from the parameter or from the status cookie of the previous page. *@
 @if (!string.IsNullOrEmpty(DisplayText))
 {
     <p class="meldung @(IsError ? "meldung-fehler" : "meldung-ok")" role="@(IsError ? "alert" : "status")">@DisplayText</p>
@@ -10,7 +10,7 @@
     [Parameter]
     public string? Message { get; set; }
 
-    /// <summary>Als Fehler darstellen (rot, role=alert).</summary>
+    /// <summary>Show as an error (red, role=alert).</summary>
     [Parameter]
     public bool IsError { get; set; }
 

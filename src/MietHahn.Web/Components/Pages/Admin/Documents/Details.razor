@@ -32,7 +32,7 @@ else if (document.Document.MimeType == "application/pdf")
     <iframe class="dokument-vorschau" src="/dateien/@document.Document.FileId" title="Vorschau: @document.Document.Title"></iframe>
 }
 
-@* Beim statischen Rendern kann ein Zwischenstand gerendert werden, bevor die Auswahllisten geladen sind. *@
+@* During static rendering an intermediate state may be rendered before the option lists are loaded. *@
 @if (selection is not null)
 {
     <section>

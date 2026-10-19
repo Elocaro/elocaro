@@ -38,7 +38,7 @@ else
     private async Task RequestAsync()
     {
         await Accounts.RequestMagicLinkAsync(Input!.Email.Trim());
-        sent = true; // gleiche Antwort für bekannte und unbekannte Adressen
+        sent = true; // same response for known and unknown addresses
     }
 
     private sealed class EmailInput

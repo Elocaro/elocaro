@@ -15,7 +15,7 @@
 }
 else
 {
-    @* Erst der Klick löst den Link ein: E-Mail-Scanner, die Links vorab öffnen, verbrauchen ihn so nicht. *@
+    @* Only the click redeems the link: email scanners that open links in advance therefore do not consume it. *@
     <p>Klicken Sie auf „Anmelden“, um sich bei MietHahn anzumelden.</p>
     <form method="post" @formname="link-einloesen" @onsubmit="RedeemAsync">
         <AntiforgeryToken />
