@@ -1,8 +1,8 @@
 namespace MietHahn.Application.Audit;
 
 /// <summary>
-/// Protokolliert lesende Zugriffe auf personenbezogene Daten (DSGVO-Nachweis), z. B. beim Öffnen einer Mieterakte.
-/// Abschaltbar über <c>Audit:ZugriffeProtokollieren</c>.
+/// Logs read access to personal data (GDPR evidence), e.g. when opening a tenant record.
+/// Can be switched off via <c>Audit:ZugriffeProtokollieren</c>.
 /// </summary>
 public interface IAccessLog
 {

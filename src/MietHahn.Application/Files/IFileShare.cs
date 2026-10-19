@@ -3,8 +3,8 @@ using System.Security.Claims;
 namespace MietHahn.Application.Files;
 
 /// <summary>
-/// Erweiterungspunkt für den Dateizugriff außerhalb der Verwaltung: Fachmodule (z. B. Dokumente, Tickets)
-/// melden, ob eine Datei für den Benutzer freigegeben ist (Mieter sehen nur ihre Dokumente usw.).
+/// Extension point for file access outside the administration: business modules (e.g. documents, tickets)
+/// report whether a file is shared with the user (tenants only see their documents, etc.).
 /// </summary>
 public interface IFileShare
 {

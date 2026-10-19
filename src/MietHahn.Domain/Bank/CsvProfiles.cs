@@ -3,8 +3,8 @@ using MietHahn.Domain.Common;
 namespace MietHahn.Domain.Bank;
 
 /// <summary>
-/// Beschreibung eines CSV-Exports einer Bank. Spalten werden über ihre Überschrift gefunden (mehrere Namen mit „|“
-/// getrennt), Vorspann-Zeilen vor der Überschrift werden übersprungen.
+/// Description of a bank's CSV export. Columns are found by their header (several names separated by "|"),
+/// preamble lines before the header are skipped.
 /// </summary>
 public sealed class CsvProfile : Entity
 {
@@ -24,20 +24,20 @@ public sealed class CsvProfile : Entity
 
     public char Delimiter { get; set; } = ';';
 
-    /// <summary>„auto“ (UTF-8, sonst Windows-1252), „utf-8“ oder „windows-1252“.</summary>
+    /// <summary>"auto" (UTF-8, otherwise Windows-1252), "utf-8" or "windows-1252".</summary>
     public string Charset { get; set; } = "auto";
 
-    /// <summary>Mehrere Formate mit „|“, z. B. „dd.MM.yyyy|dd.MM.yy“.</summary>
+    /// <summary>Several formats separated by "|", e.g. "dd.MM.yyyy|dd.MM.yy".</summary>
     public string DateFormat { get; set; } = "dd.MM.yyyy|dd.MM.yy";
 
-    /// <summary>„,“ (deutsch, Tausenderpunkt) oder „.“.</summary>
+    /// <summary>"," (German, thousands separator period) or ".".</summary>
     public char DecimalSeparator { get; set; } = ',';
 
     public string BookingDateColumn { get; set; }
 
     public string? ValueDateColumn { get; set; }
 
-    /// <summary>Betrag mit Vorzeichen; alternativ getrennte Soll-/Haben-Spalten.</summary>
+    /// <summary>Signed amount; alternatively separate debit/credit columns.</summary>
     public string? AmountColumn { get; set; }
 
     public string? DebitColumn { get; set; }
@@ -46,7 +46,7 @@ public sealed class CsvProfile : Entity
 
     public string? NameColumn { get; set; }
 
-    /// <summary>Name der Gegenseite getrennt nach Richtung (z. B. DKB: Zahlungspflichtige*r / Zahlungsempfänger*in).</summary>
+    /// <summary>Name of the counterparty by direction (e.g. DKB: Zahlungspflichtige*r / Zahlungsempfänger*in).</summary>
     public string? IncomingNameColumn { get; set; }
 
     public string? OutgoingNameColumn { get; set; }
@@ -67,16 +67,16 @@ public sealed class CsvProfile : Entity
 
     public string? CurrencyColumn { get; set; }
 
-    /// <summary>Optionale Spalte mit Status; Zeilen mit „vorgemerkt“ bzw. „offen“ werden übersprungen.</summary>
+    /// <summary>Optional status column; rows with "vorgemerkt" or "offen" are skipped.</summary>
     public string? StatusColumn { get; set; }
 
     /// <summary>
-    /// Optionaler regulärer Ausdruck auf den Verwendungszweck mit Gruppen <c>name</c> und <c>zweck</c>, wenn die Bank
-    /// beides in einer Spalte liefert (z. B. comdirect „Auftraggeber: … Buchungstext: …“).
+    /// Optional regular expression on the payment purpose with groups <c>name</c> and <c>zweck</c>, if the bank
+    /// delivers both in one column (e.g. comdirect "Auftraggeber: … Buchungstext: …").
     /// </summary>
     public string? ParsePattern { get; set; }
 
-    /// <summary>Mitgeliefertes Profil (nicht änderbar).</summary>
+    /// <summary>Bundled profile (not editable).</summary>
     public bool IsDefault { get; set; }
 
     public void Validate()

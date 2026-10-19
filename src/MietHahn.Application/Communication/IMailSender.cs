@@ -1,17 +1,17 @@
 namespace MietHahn.Application.Communication;
 
-/// <summary>Reiht E-Mails in die Outbox ein; zugestellt wird asynchron mit Wiederholungen.</summary>
+/// <summary>Enqueues emails in the outbox; delivery happens asynchronously with retries.</summary>
 public interface IMailSender
 {
-    /// <summary>Rendert die Vorlage, speichert die Mail in der Outbox und liefert ihre Id.</summary>
+    /// <summary>Renders the template, stores the mail in the outbox and returns its id.</summary>
     Task<Guid> EnqueueAsync(MailRequest job, CancellationToken cancellationToken = default);
 }
 
-/// <param name="To">Empfängeradressen.</param>
-/// <param name="Template">Name der Mailvorlage (ohne Endung), z. B. <c>test</c>.</param>
-/// <param name="Model">Daten für die Vorlage; Eigenschaften sind dort in snake_case verfügbar.</param>
-/// <param name="Attachments">Ids von Dateien aus der Dateiablage.</param>
-/// <param name="Reference">Optionaler fachlicher Bezug für den Versandnachweis.</param>
+/// <param name="To">Recipient addresses.</param>
+/// <param name="Template">Name of the mail template (without extension), e.g. <c>test</c>.</param>
+/// <param name="Model">Data for the template; properties are available there in snake_case.</param>
+/// <param name="Attachments">Ids of files from the file store.</param>
+/// <param name="Reference">Optional business reference for the proof of delivery.</param>
 public sealed record MailRequest(
     IReadOnlyList<string> To,
     string Template,

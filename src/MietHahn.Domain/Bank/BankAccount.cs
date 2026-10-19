@@ -10,7 +10,7 @@ public enum AccountType
     Miscellaneous = 9,
 }
 
-/// <summary>Bankkonto des Vermieters, optional bestimmten Objekten zugeordnet.</summary>
+/// <summary>Landlord's bank account, optionally assigned to specific properties.</summary>
 public sealed class BankAccount : Entity
 {
     private BankAccount()
@@ -30,7 +30,7 @@ public sealed class BankAccount : Entity
 
     public string Name { get; set; }
 
-    /// <summary>Kompakt ohne Leerzeichen, in Großbuchstaben.</summary>
+    /// <summary>Compact without spaces, in uppercase.</summary>
     [Confidential]
     public string Iban { get; private set; }
 
@@ -68,7 +68,7 @@ public enum TransactionStatus
     Ignored = 2,
 }
 
-/// <summary>Ein Kontoumsatz aus dem Bankimport; Betrag positiv = Eingang.</summary>
+/// <summary>An account transaction from the bank import; positive amount = incoming.</summary>
 public sealed class Transaction : Entity
 {
     private Transaction()
@@ -118,7 +118,7 @@ public sealed class Transaction : Entity
 
     public string Purpose { get; private set; }
 
-    /// <summary>Art der Buchung laut Bank, z. B. „Gutschrift“, „Lastschrift“.</summary>
+    /// <summary>Type of posting according to the bank, e.g. "Gutschrift", "Lastschrift".</summary>
     public string? BookingText { get; private set; }
 
     /// <summary>EREF.</summary>
@@ -134,7 +134,7 @@ public sealed class Transaction : Entity
 
     public string? Note { get; set; }
 
-    /// <summary>Fingerabdruck zur Duplikaterkennung, eindeutig je Konto.</summary>
+    /// <summary>Fingerprint for duplicate detection, unique per account.</summary>
     public string Hash { get; private set; }
 
     public void Ignore(string? note)
@@ -161,7 +161,7 @@ public sealed class Transaction : Entity
     public void MarkAsAssigned() => Status = TransactionStatus.Assigned;
 }
 
-/// <summary>Ein aus einer Datei gelesener, noch nicht gespeicherter Umsatz.</summary>
+/// <summary>A transaction read from a file but not yet saved.</summary>
 public sealed record ParsedTransaction(
     DateOnly BookingDate,
     decimal Amount,
@@ -189,7 +189,7 @@ public enum ImportStatus
     Imported = 1,
 }
 
-/// <summary>Hochgeladene Kontoauszugsdatei: erst Vorschau, nach Bestätigung importiert (Importprotokoll).</summary>
+/// <summary>Uploaded account statement file: preview first, imported after confirmation (import log).</summary>
 public sealed class BankImport : Entity
 {
     private BankImport()
@@ -213,10 +213,10 @@ public sealed class BankImport : Entity
 
     public BankFormat Format { get; private set; }
 
-    /// <summary>Name des CSV-Profils.</summary>
+    /// <summary>Name of the CSV profile.</summary>
     public string? Profile { get; private set; }
 
-    /// <summary>Nur bis zum Import gespeichert.</summary>
+    /// <summary>Stored only until the import.</summary>
     [NoExport]
     public byte[] Content { get; private set; }
 

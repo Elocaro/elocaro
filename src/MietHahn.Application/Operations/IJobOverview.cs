@@ -1,6 +1,6 @@
 namespace MietHahn.Application.Operations;
 
-/// <summary>Status der geplanten Hintergrundjobs für die Admin-Übersicht.</summary>
+/// <summary>Status of the scheduled background jobs for the admin overview.</summary>
 public interface IJobOverview
 {
     Task<IReadOnlyList<JobStatus>> GetAsync(CancellationToken cancellationToken = default);

@@ -18,8 +18,8 @@ public enum DocumentCategory
 }
 
 /// <summary>
-/// Ein abgelegtes Dokument (Datei aus der Dateiablage) mit Bezug auf Objekt, Einheit, Vertrag und/oder Person.
-/// Sichtbar ist es intern; Freigaben machen es zusätzlich für die betroffenen Mieter bzw. zugeordneten Hausmeister sichtbar.
+/// A stored document (file from the file store) related to a property, unit, lease and/or person.
+/// It is visible internally; shares additionally make it visible to the affected tenants or assigned caretakers.
 /// </summary>
 public sealed class Document : Entity
 {
@@ -44,10 +44,10 @@ public sealed class Document : Entity
 
     public DocumentCategory Category { get; set; }
 
-    /// <summary>Datum des Dokuments (z. B. Rechnungsdatum), nicht des Uploads.</summary>
+    /// <summary>Date of the document (e.g. invoice date), not of the upload.</summary>
     public DateOnly? Date { get; set; }
 
-    /// <summary>Gültig bis (z. B. Energieausweis, Versicherung) für Erinnerungen.</summary>
+    /// <summary>Valid until (e.g. energy certificate, insurance), used for reminders.</summary>
     public DateOnly? ExpiresOn { get; set; }
 
     public List<string> Tags { get; private set; } = [];
@@ -62,10 +62,10 @@ public sealed class Document : Entity
 
     public Guid? PersonId { get; private set; }
 
-    /// <summary>Im Mieterportal sichtbar für die Mieter des Bezugs (Vertrag, Einheit, Objekt oder Person).</summary>
+    /// <summary>Visible in the tenant portal to the tenants of the subject (lease, unit, property or person).</summary>
     public bool SharedWithTenants { get; set; }
 
-    /// <summary>Im Servicebereich sichtbar für Hausmeister, denen das Objekt zugeordnet ist.</summary>
+    /// <summary>Visible in the service area to caretakers assigned to the property.</summary>
     public bool SharedWithCaretakers { get; set; }
 
     public void SetReference(Guid? propertyId, Guid? unitId, Guid? leaseId, Guid? personId)
@@ -81,7 +81,7 @@ public sealed class Document : Entity
         PersonId = personId;
     }
 
-    /// <summary>Kommagetrennt eingegebene Schlagworte: getrimmt, ohne Doppelte (Groß/Klein egal).</summary>
+    /// <summary>Comma-separated tags as entered: trimmed, without duplicates (case-insensitive).</summary>
     public void SetTags(IEnumerable<string> tags)
     {
         ArgumentNullException.ThrowIfNull(tags);

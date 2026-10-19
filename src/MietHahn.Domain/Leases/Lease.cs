@@ -2,16 +2,16 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Domain.Leases;
 
-/// <summary>Wie Betriebs- und Heizkosten mit dem Mieter abgerechnet werden.</summary>
+/// <summary>How operating and heating costs are settled with the tenant.</summary>
 public enum BillingType
 {
-    /// <summary>Monatliche Vorauszahlungen, jährliche Nebenkostenabrechnung.</summary>
+    /// <summary>Monthly prepayments, annual utility cost statement.</summary>
     Prepayment = 0,
 
-    /// <summary>Betriebskostenpauschale ohne Abrechnung (z. B. WG-Zimmer); intern Ist/Pauschale-Vergleich.</summary>
+    /// <summary>Flat-rate operating costs without a statement (e.g. shared-flat room); internally actual/flat-rate comparison.</summary>
     FlatRate = 1,
 
-    /// <summary>Nebenkosten sind in der Miete enthalten (Inklusivmiete).</summary>
+    /// <summary>Utility costs are included in the rent (all-inclusive rent).</summary>
     Inclusive = 2,
 }
 
@@ -36,18 +36,18 @@ public enum TerminatingParty
 
 public enum LeaseStatus
 {
-    /// <summary>Beginnt in der Zukunft.</summary>
+    /// <summary>Starts in the future.</summary>
     Future = 0,
     Active = 1,
 
-    /// <summary>Gekündigt oder befristet, Ende steht fest und liegt in der Zukunft.</summary>
+    /// <summary>Terminated or fixed-term, end is known and lies in the future.</summary>
     Terminated = 2,
     Ended = 3,
 }
 
 /// <summary>
-/// Mietvertrag über ein Mietobjekt (Einheit ohne Zimmer oder WG-Zimmer) mit einem oder mehreren Mietern
-/// (gesamtschuldnerisch). Miete, Vorauszahlungen und Personenanzahl sind zeitabhängig und werden nie überschrieben.
+/// Lease for a rental object (unit without rooms or shared-flat room) with one or more tenants
+/// (jointly and severally liable). Rent, prepayments and number of persons are time-dependent and never overwritten.
 /// </summary>
 public sealed class Lease : Entity
 {
@@ -55,8 +55,8 @@ public sealed class Lease : Entity
     {
     }
 
-    /// <param name="rentalUnitId">Id der Einheit bzw. des Zimmers.</param>
-    /// <param name="unitId">Einheit des Mietobjekts (bei Zimmern die WG-Wohnung).</param>
+    /// <param name="rentalUnitId">Id of the unit or room.</param>
+    /// <param name="unitId">Unit of the rental object (for rooms, the shared-flat apartment).</param>
     public Lease(Guid rentalUnitId, Guid unitId, Guid? roomId, DateOnly start, DateOnly? fixedTermUntil = null)
     {
         if (fixedTermUntil < start)
@@ -71,17 +71,17 @@ public sealed class Lease : Entity
         Term = new Period(start, fixedTermUntil);
     }
 
-    /// <summary>Einheit- oder Zimmer-Id; je Mietobjekt darf zu jedem Tag nur ein Vertrag laufen.</summary>
+    /// <summary>Unit or room id; only one lease may run per rental object on any given day.</summary>
     public Guid RentalUnitId { get; private set; }
 
     public Guid UnitId { get; private set; }
 
     public Guid? RoomId { get; private set; }
 
-    /// <summary>Tatsächliche Laufzeit: Beginn bis Befristung bzw. Ende nach Kündigung (<c>null</c> = unbefristet).</summary>
+    /// <summary>Actual term: start until fixed end or end after termination (<c>null</c> = open-ended).</summary>
     public Period Term { get; private set; }
 
-    /// <summary>Zeitmietvertrag (§ 575 BGB) bis zu diesem Tag.</summary>
+    /// <summary>Fixed-term lease (§ 575 BGB) until this day.</summary>
     public DateOnly? FixedTermUntil { get; private set; }
 
     public DateOnly Start => Term.From;
@@ -92,20 +92,20 @@ public sealed class Lease : Entity
 
     public TerminatingParty? TerminatedBy { get; private set; }
 
-    /// <summary>Kündigungsfrist für den Mieter in Monaten (gesetzlich 3, § 573c Abs. 1 BGB).</summary>
+    /// <summary>Notice period for the tenant in months (statutory 3, § 573c Abs. 1 BGB).</summary>
     public int NoticePeriodMonths { get; set; } = 3;
 
     public BillingType BillingType { get; set; }
 
-    /// <summary>Heizung/Warmwasser trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV hat Vorrang, siehe docs/fachlichkeit.md).</summary>
+    /// <summary>Bill heating/hot water by consumption despite a flat rate (HeizkostenV takes precedence, see docs/fachlichkeit.md).</summary>
     public bool HeatingCostsConsumptionBased { get; set; }
 
-    /// <summary>Fällig am n-ten Werktag des Monats (gesetzlich: 3., § 556b BGB).</summary>
+    /// <summary>Due on the n-th working day of the month (statutory: 3rd, § 556b BGB).</summary>
     public int DueOnWorkingDay { get; set; } = 3;
 
     public PaymentMethod PaymentMethod { get; set; }
 
-    /// <summary>Kaution: nur Betrag und Notiz (keine Kautionskontoverwaltung).</summary>
+    /// <summary>Deposit: amount and note only (no deposit account management).</summary>
     public decimal? Deposit { get; set; }
 
     public string? DepositNote { get; set; }
@@ -114,10 +114,10 @@ public sealed class Lease : Entity
 
     public RentModel RentModel { get; private set; }
 
-    /// <summary>Indexmiete: Monat des Ausgangsindex (erster Tag des Monats).</summary>
+    /// <summary>Index rent: month of the base index (first day of the month).</summary>
     public DateOnly? IndexBaseMonth { get; private set; }
 
-    /// <summary>Indexmiete: Indexstand des Ausgangsmonats (VPI, Basis 2020 = 100).</summary>
+    /// <summary>Index rent: index value of the base month (CPI, base 2020 = 100).</summary>
     public decimal? IndexBaseValue { get; private set; }
 
     public List<RentStep> RentSteps { get; private set; } = [];
@@ -130,10 +130,10 @@ public sealed class Lease : Entity
 
     public IEnumerable<LeaseParty> Tenant => Parties.Where(p => p.Role == PartyRole.Tenant).OrderBy(p => p.Order);
 
-    /// <summary>Nur Verträge mit Vorauszahlungen bekommen eine Nebenkostenabrechnung.</summary>
+    /// <summary>Only leases with prepayments get a utility cost statement.</summary>
     public bool ReceivesOperatingCostStatement => BillingType == BillingType.Prepayment;
 
-    /// <summary>Heizkosten werden verbrauchsabhängig abgerechnet (auch bei Pauschale, wenn so konfiguriert).</summary>
+    /// <summary>Heating costs are billed by consumption (also with a flat rate, if so configured).</summary>
     public bool ReceivesHeatingCostStatement => BillingType == BillingType.Prepayment || HeatingCostsConsumptionBased;
 
     public LeaseStatus StatusAt(DateOnly day) =>
@@ -163,7 +163,7 @@ public sealed class Lease : Entity
         Parties.Remove(party);
     }
 
-    /// <summary>Setzt einen Bestandteil (z. B. neue Kaltmiete) ab Stichtag; der bisherige Betrag bleibt bis zum Vortag.</summary>
+    /// <summary>Sets a component (e.g. new base rent) from the effective date; the previous amount remains until the day before.</summary>
     public RentComponent SetComponent(RentComponentType kind, DateOnly from, decimal amount, string? name = null)
     {
         ValidateWithinLease(from);
@@ -178,7 +178,7 @@ public sealed class Lease : Entity
         return newItem;
     }
 
-    /// <summary>Beendet einen Bestandteil (z. B. Stellplatz gekündigt) zum angegebenen Tag.</summary>
+    /// <summary>Ends a component (e.g. parking space terminated) on the given day.</summary>
     public void EndComponent(RentComponentType kind, DateOnly lastDay)
     {
         var current = TimeSeries.At(Components.Where(b => b.Kind == kind), lastDay)
@@ -200,14 +200,14 @@ public sealed class Lease : Entity
     public IReadOnlyList<RentComponent> ComponentsAt(DateOnly day) =>
         Components.Where(b => b.Validity.Contains(day)).OrderBy(b => b.Kind).ToList();
 
-    /// <summary>Monatliche Gesamtmiete (Kaltmiete + Vorauszahlungen/Pauschale + Zuschläge) an einem Tag.</summary>
+    /// <summary>Total monthly rent (base rent + prepayments/flat rate + surcharges) on a day.</summary>
     public decimal MonthlyRentOn(DateOnly day) => ComponentsAt(day).Sum(b => b.Amount);
 
     public decimal? AmountAt(RentComponentType kind, DateOnly day) => TimeSeries.At(Components.Where(b => b.Kind == kind), day)?.Amount;
 
     public int? OccupantCountOn(DateOnly day) => TimeSeries.At(People, day)?.Count;
 
-    /// <summary>Erfasst eine Kündigung; das Vertragsende ist der letzte Tag des Mietverhältnisses.</summary>
+    /// <summary>Records a termination; the lease end is the last day of the tenancy.</summary>
     public void Terminate(DateOnly receivedAt, TerminatingParty by, DateOnly effectiveOn)
     {
         if (effectiveOn < Start)
@@ -226,8 +226,8 @@ public sealed class Lease : Entity
     }
 
     /// <summary>
-    /// Hebt eine erfasste Kündigung auf (z. B. zurückgenommen): wieder unbefristet bzw. bis zur Befristung.
-    /// Bestandteile und Personenanzahl, die zum bisherigen Ende ausliefen, laufen weiter.
+    /// Revokes a recorded termination (e.g. withdrawn): open-ended again or until the fixed end.
+    /// Components and number of persons that expired at the previous end continue.
     /// </summary>
     public void RevokeTermination()
     {
@@ -252,8 +252,8 @@ public sealed class Lease : Entity
     }
 
     /// <summary>
-    /// Kündigungstermin bei Kündigung durch den Mieter (§ 573c Abs. 1 BGB): Zugang spätestens am 3. Werktag eines Monats
-    /// → Ende mit Ablauf des übernächsten Monats (bei 3 Monaten Frist). Abweichende Fristen verschieben entsprechend.
+    /// Termination date for termination by the tenant (§ 573c Abs. 1 BGB): receipt by the 3rd working day of a month at the latest
+    /// → end at the end of the month after next (with a 3-month period). Different periods shift accordingly.
     /// </summary>
     public static DateOnly TerminationDateForTenant(DateOnly incoming, int noticeMonths = 3)
     {
@@ -265,7 +265,7 @@ public sealed class Lease : Entity
     }
 
     /// <summary>
-    /// Kündigungsfrist des Vermieters (§ 573c Abs. 1 Satz 2 BGB): 3 Monate, nach 5 Jahren Mietdauer 6, nach 8 Jahren 9 Monate.
+    /// Landlord's notice period (§ 573c Abs. 1 Satz 2 BGB): 3 months, after 5 years of tenancy 6, after 8 years 9 months.
     /// </summary>
     public int LandlordNoticePeriodMonths(DateOnly incoming)
     {
@@ -273,7 +273,7 @@ public sealed class Lease : Entity
         return years >= 8 ? 9 : years >= 5 ? 6 : 3;
     }
 
-    /// <summary>Wechselt das Mietmodell. Beim Wechsel weg von der Staffelmiete müssen offene Staffeln entfernt sein.</summary>
+    /// <summary>Changes the rent model. When moving away from graduated rent, open steps must be removed.</summary>
     public void SetRentModel(RentModel model, DateOnly? indexBaseMonth = null, decimal? indexBaseValue = null)
     {
         if (model != RentModel.Graduated && RentSteps.Any(s => s.AppliedAt is null))
@@ -292,8 +292,8 @@ public sealed class Lease : Entity
     }
 
     /// <summary>
-    /// Fügt eine Staffel hinzu (§ 557a BGB): Die Miete muss jeweils mindestens ein Jahr unverändert bleiben, der Betrag
-    /// ist als Geldbetrag ausgewiesen.
+    /// Adds a step (§ 557a BGB): the rent must remain unchanged for at least one year each time, the amount
+    /// is stated as a monetary amount.
     /// </summary>
     public RentStep AddRentStep(DateOnly from, decimal baseRent)
     {
@@ -335,7 +335,7 @@ public sealed class Lease : Entity
         RentSteps.Remove(rentStep);
     }
 
-    /// <summary>Übernimmt fällige Staffeln als Kaltmiete (täglicher Job). Liefert die übernommenen Staffeln.</summary>
+    /// <summary>Adopts due steps as base rent (daily job). Returns the adopted steps.</summary>
     public IReadOnlyList<RentStep> ApplyDueSteps(DateOnly today, DateTimeOffset timestamp)
     {
         var applied = new List<RentStep>();
@@ -349,7 +349,7 @@ public sealed class Lease : Entity
         return applied;
     }
 
-    /// <summary>Übernimmt eine Indexanpassung: neue Kaltmiete ab Wirksamkeit und neuer Ausgangsindex.</summary>
+    /// <summary>Adopts an index adjustment: new base rent from its effective date and new base index.</summary>
     public decimal AdjustIndex(DateOnly effectiveFrom, DateOnly cpiMonth, decimal cpiValue)
     {
         if (RentModel != RentModel.Index || IndexBaseValue is not { } baseValue)
@@ -372,7 +372,7 @@ public sealed class Lease : Entity
         return newItem;
     }
 
-    /// <summary>Beginn der aktuell gültigen Kaltmiete, falls sie nach Mietbeginn geändert wurde.</summary>
+    /// <summary>Start of the currently valid base rent, if it was changed after the lease start.</summary>
     public DateOnly? LastBaseRentChange(DateOnly? referenceDate = null)
     {
         var day = referenceDate ?? DateOnly.MaxValue;
@@ -405,7 +405,7 @@ public sealed class Lease : Entity
         }
     }
 
-    /// <summary>Überträgt Hinzufügen/Entfernen aus der gefilterten Teilliste auf die Gesamtliste.</summary>
+    /// <summary>Applies additions/removals from the filtered sublist to the full list.</summary>
     private static void Reconcile<T>(List<T> total, Func<T, bool> filter, List<T> part)
     {
         total.RemoveAll(e => filter(e) && !part.Contains(e));
@@ -447,7 +447,7 @@ public enum RentComponentType
     Miscellaneous = 9,
 }
 
-/// <summary>Ein monatlicher Betrag (Kaltmiete, Vorauszahlung, Pauschale, Zuschlag) in einem Zeitraum.</summary>
+/// <summary>A monthly amount (base rent, prepayment, flat rate, surcharge) in a period.</summary>
 public sealed class RentComponent : Entity, ITimeDependent
 {
     private RentComponent()
@@ -469,10 +469,10 @@ public sealed class RentComponent : Entity, ITimeDependent
 
     public Period Validity { get; private set; }
 
-    /// <summary>Monatsbetrag in Euro.</summary>
+    /// <summary>Monthly amount in euros.</summary>
     public decimal Amount { get; private set; }
 
-    /// <summary>Für „Sonstiges“, z. B. „Gartennutzung“.</summary>
+    /// <summary>For "Sonstiges", e.g. "Gartennutzung".</summary>
     public string? Name { get; private set; }
 
     public void EndValidity(DateOnly lastDay) => Validity = Validity.EndOn(lastDay);
@@ -480,7 +480,7 @@ public sealed class RentComponent : Entity, ITimeDependent
     internal void SetTo(DateOnly? to) => Validity = new Period(Validity.From, to);
 }
 
-/// <summary>Anzahl der im Mietobjekt lebenden Personen (Umlage nach Personen).</summary>
+/// <summary>Number of persons living in the rental object (allocation by persons).</summary>
 public sealed class OccupantCount : Entity, ITimeDependent
 {
     private OccupantCount()

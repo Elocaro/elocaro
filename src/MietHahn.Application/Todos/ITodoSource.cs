@@ -3,8 +3,8 @@ using System.Security.Claims;
 namespace MietHahn.Application.Todos;
 
 /// <summary>
-/// Liefert offene Aufgaben für das Dashboard „Was ist zu tun?“. Jedes Fachmodul registriert eine eigene Quelle
-/// (offene Posten, Fristen, Tickets, unzugeordnete Umsätze …); das Dashboard sammelt alle ein.
+/// Provides open tasks for the "Was ist zu tun?" dashboard. Each business module registers its own source
+/// (open items, deadlines, tickets, unassigned transactions ...); the dashboard collects them all.
 /// </summary>
 public interface ITodoSource
 {
@@ -18,8 +18,8 @@ public enum Urgency
     Urgent = 2,
 }
 
-/// <param name="Area">Gruppierung im Dashboard, z. B. „Finanzen“.</param>
-/// <param name="Title">Kurz und handlungsorientiert, z. B. „3 Umsätze zuordnen“.</param>
-/// <param name="Link">Seite, auf der die Aufgabe erledigt wird.</param>
-/// <param name="Due">Optionaler Stichtag (z. B. Abrechnungsfrist).</param>
+/// <param name="Area">Grouping on the dashboard, e.g. "Finanzen".</param>
+/// <param name="Title">Short and action-oriented, e.g. "3 Umsätze zuordnen".</param>
+/// <param name="Link">Page on which the task is completed.</param>
+/// <param name="Due">Optional due date (e.g. statement deadline).</param>
 public sealed record TodoItem(string Area, string Title, string Link, Urgency Urgency, string? Details = null, DateOnly? Due = null);

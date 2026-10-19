@@ -1,19 +1,19 @@
 namespace MietHahn.Application.Accounts;
 
-/// <summary>Verwaltung bestehender Benutzerkonten (Admin bzw. Recht „Benutzerverwaltung“).</summary>
+/// <summary>Management of existing user accounts (admin or the "Benutzerverwaltung" permission).</summary>
 public interface IUserManagementService
 {
     Task<IReadOnlyList<UserOverview>> ListAsync(CancellationToken cancellationToken = default);
 
     Task<UserOverview?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Ersetzt die Rolle des Kontos. Der letzte aktive Admin kann seine Rolle nicht verlieren.</summary>
+    /// <summary>Replaces the account's role. The last active admin cannot lose their role.</summary>
     Task<AccountResult> ChangeRoleAsync(Guid id, string role, CancellationToken cancellationToken = default);
 
-    /// <summary>Setzt die Einzelrechte eines Verwalters.</summary>
+    /// <summary>Sets the individual permissions of a manager.</summary>
     Task<AccountResult> SetPermissionsAsync(Guid id, IReadOnlyCollection<AccessRight> permissions, CancellationToken cancellationToken = default);
 
-    /// <summary>Sperrt das Konto und beendet alle Sitzungen. Der letzte aktive Admin kann nicht gesperrt werden.</summary>
+    /// <summary>Locks the account and ends all sessions. The last active admin cannot be locked.</summary>
     Task<AccountResult> LockAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<AccountResult> UnlockAsync(Guid id, CancellationToken cancellationToken = default);

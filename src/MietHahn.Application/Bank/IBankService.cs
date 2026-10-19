@@ -4,7 +4,7 @@ using MietHahn.Domain.Bank;
 
 namespace MietHahn.Application.Bank;
 
-/// <summary>Bankkonten, Datei-Import (camt.053, MT940, CSV) und Umsätze.</summary>
+/// <summary>Bank accounts, file import (camt.053, MT940, CSV) and transactions.</summary>
 public interface IBankService
 {
     Task<IReadOnlyList<BankAccountRow>> AccountsAsync(CancellationToken cancellationToken = default);
@@ -15,12 +15,12 @@ public interface IBankService
 
     Task<Result> UpdateAccountAsync(Guid id, BankAccountInput data, CancellationToken cancellationToken = default);
 
-    /// <summary>Liest die Datei, speichert sie bis zur Bestätigung und liefert die Id der Vorschau.</summary>
+    /// <summary>Reads the file, stores it until confirmation and returns the preview id.</summary>
     Task<Result> CreatePreviewAsync(Guid bankAccountId, string fileName, byte[] content, string? profile = null, CancellationToken cancellationToken = default);
 
     Task<ImportPreview?> PreviewAsync(Guid bankImportId, CancellationToken cancellationToken = default);
 
-    /// <summary>Übernimmt die neuen Umsätze; bereits vorhandene (gleicher Fingerabdruck) werden übersprungen.</summary>
+    /// <summary>Adopts the new transactions; already existing ones (same fingerprint) are skipped.</summary>
     Task<Result> ImportAsync(Guid bankImportId, CancellationToken cancellationToken = default);
 
     Task<Result> DiscardAsync(Guid bankImportId, CancellationToken cancellationToken = default);
@@ -33,7 +33,7 @@ public interface IBankService
 
     Task<Result> ReopenAsync(Guid transactionId, CancellationToken cancellationToken = default);
 
-    /// <summary>Mitgelieferte und eigene CSV-Profile.</summary>
+    /// <summary>Bundled and custom CSV profiles.</summary>
     Task<IReadOnlyList<CsvProfileInput>> CsvProfilesAsync(CancellationToken cancellationToken = default);
 
     Task<Result> SaveCsvProfileAsync(Guid? id, CsvProfileInput data, CancellationToken cancellationToken = default);
@@ -64,7 +64,7 @@ public sealed class BankAccountInput
 
 public sealed record BankAccountRow(Guid Id, string Name, string Iban, string? Bank, AccountType Type, IReadOnlyList<string> Properties, int OpenTransactions, DateOnly? LastTransaction);
 
-/// <param name="DifferentIban">Die Datei gehört laut ihrer Kontoangabe zu einer anderen IBAN.</param>
+/// <param name="DifferentIban">According to its account details, the file belongs to a different IBAN.</param>
 public sealed record ImportPreview(
     Guid Id,
     Guid BankAccountId,

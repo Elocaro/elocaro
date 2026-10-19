@@ -3,8 +3,8 @@ using MietHahn.Domain.Common;
 namespace MietHahn.Domain.Files;
 
 /// <summary>
-/// Metadaten einer abgelegten Datei. Der Inhalt liegt inhaltsadressiert (SHA-256) in der Dateiablage;
-/// identische Inhalte werden nur einmal gespeichert, können aber von mehreren <see cref="StoredFile"/>-Einträgen referenziert werden.
+/// Metadata of a stored file. The content is stored content-addressed (SHA-256) in the file store;
+/// identical contents are stored only once but can be referenced by several <see cref="StoredFile"/> entries.
 /// </summary>
 public sealed class StoredFile : Entity
 {
@@ -33,15 +33,15 @@ public sealed class StoredFile : Entity
         Sha256 = sha256.ToLowerInvariant();
     }
 
-    /// <summary>Ursprünglicher Dateiname (nur zur Anzeige/zum Download, nie als Pfad verwenden).</summary>
+    /// <summary>Original file name (for display/download only, never use as a path).</summary>
     public string Name { get; private set; }
 
     public string MimeType { get; private set; }
 
-    /// <summary>Größe in Bytes des gespeicherten (ggf. aufbereiteten) Inhalts.</summary>
+    /// <summary>Size in bytes of the stored (possibly processed) content.</summary>
     public long Size { get; private set; }
 
-    /// <summary>Hex-kodierter SHA-256 des gespeicherten Inhalts (Kleinbuchstaben).</summary>
+    /// <summary>Hex-encoded SHA-256 of the stored content (lowercase).</summary>
     public string Sha256 { get; private set; }
 
     public bool IsImage => MimeType.StartsWith("image/", StringComparison.Ordinal);

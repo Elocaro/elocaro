@@ -1,30 +1,30 @@
 namespace MietHahn.Application.Accounts;
 
-/// <summary>Anlage und Einladung von Benutzerkonten sowie passwortlose Anmeldung (Magic Link).</summary>
+/// <summary>Creation and invitation of user accounts as well as passwordless sign-in (magic link).</summary>
 public interface IAccountService
 {
-    /// <summary>Die Ersteinrichtung ist nur möglich, solange es noch keinen Benutzer gibt.</summary>
+    /// <summary>The initial setup is only possible as long as there is no user yet.</summary>
     Task<bool> InitialSetupPossibleAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Legt den ersten Administrator an.</summary>
+    /// <summary>Creates the first administrator.</summary>
     Task<AccountResult> CreateFirstAdminAsync(string email, string displayName, string password, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lädt einen Benutzer ein. Rollen mit Passwort erhalten einen Link zum Festlegen des Passworts (7 Tage gültig),
-    /// Mieter und Handwerker einen Anmeldelink (7 Tage gültig).
+    /// Invites a user. Roles with a password receive a link to set the password (valid 7 days),
+    /// tenants and tradespeople a sign-in link (valid 7 days).
     /// </summary>
     Task<AccountResult> InviteAsync(string email, string displayName, string role, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Verschickt einen Anmeldelink (15 Minuten gültig), sofern ein passendes, berechtigtes Konto existiert.
-    /// Gibt bewusst keine Auskunft darüber, ob die Adresse bekannt ist.
+    /// Sends a sign-in link (valid 15 minutes) if a matching, authorized account exists.
+    /// Deliberately gives no information about whether the address is known.
     /// </summary>
     Task RequestMagicLinkAsync(string email, CancellationToken cancellationToken = default);
 
-    /// <summary>Löst einen Anmeldelink ein (einmalig) und liefert die Benutzer-Id oder <c>null</c>.</summary>
+    /// <summary>Redeems a sign-in link (once) and returns the user id, or <c>null</c>.</summary>
     Task<Guid?> RedeemMagicLinkAsync(string token, CancellationToken cancellationToken = default);
 
-    /// <summary>Verschickt einen Link zum Zurücksetzen des Passworts (2 Stunden gültig); ohne Auskunft, ob die Adresse bekannt ist.</summary>
+    /// <summary>Sends a password reset link (valid 2 hours); without revealing whether the address is known.</summary>
     Task RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default);
 }
 

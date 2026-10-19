@@ -4,12 +4,12 @@ using MietHahn.Domain.People;
 
 namespace MietHahn.Application.People;
 
-/// <summary>Pflege von Personen: Mieter, Bürgen und Kontakte (Hausmeister, Handwerker, Versorger …).</summary>
+/// <summary>Maintenance of persons: tenants, guarantors and contacts (caretakers, tradespeople, utilities ...).</summary>
 public interface IPersonService
 {
     Task<IReadOnlyList<PersonOverview>> SearchAsync(PersonQuery query, CancellationToken cancellationToken = default);
 
-    /// <summary>Lädt die Personenakte und protokolliert den Zugriff (DSGVO).</summary>
+    /// <summary>Loads the person record and logs the access (GDPR).</summary>
     Task<PersonDetails?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<Result> CreateAsync(PersonInput data, AddressInput? address = null, CancellationToken cancellationToken = default);
@@ -23,15 +23,15 @@ public interface IPersonService
     Task<Result> RemoveBankDetailsAsync(Guid id, Guid bankDetailsId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Verknüpft die Person mit einem Benutzerkonto: ein vorhandenes Konto mit derselben E-Mail-Adresse oder eine neue
-    /// Einladung (Rolle nach Kontaktart: Hausmeister, Handwerker, sonst Mieter).
+    /// Links the person to a user account: an existing account with the same email address or a new
+    /// invitation (role by contact type: caretaker, tradesperson, otherwise tenant).
     /// </summary>
     Task<Result> SetUpAccessAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Nur ohne Bezüge (Verträge …) möglich; sonst nach Ablauf der Frist anonymisieren.</summary>
+    /// <summary>Only possible without references (leases ...); otherwise anonymize after the retention period.</summary>
     Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Personen zur Auswahl in Formularen (z. B. Mieter eines Vertrags), ohne Zugriffsprotokoll.</summary>
+    /// <summary>Persons for selection in forms (e.g. tenants of a lease), without access log.</summary>
     Task<IReadOnlyList<PersonOption>> OptionsAsync(CancellationToken cancellationToken = default);
 }
 
@@ -39,10 +39,10 @@ public enum PersonFilter
 {
     All = 0,
 
-    /// <summary>Privatpersonen: Mieter, Bürgen, Interessenten.</summary>
+    /// <summary>Private persons: tenants, guarantors, prospects.</summary>
     Private = 1,
 
-    /// <summary>Kontakte mit Kontaktart (Hausmeister, Handwerker, Versorger …).</summary>
+    /// <summary>Contacts with contact type (caretaker, tradesperson, utility ...).</summary>
     Contacts = 2,
 }
 

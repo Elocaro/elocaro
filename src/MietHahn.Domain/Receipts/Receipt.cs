@@ -2,7 +2,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Domain.Receipts;
 
-/// <summary>Anteil nach § 35a EStG (Steuerermäßigung des Mieters, Ausweis in der Nebenkostenabrechnung).</summary>
+/// <summary>Share under § 35a EStG (tax reduction for the tenant, shown in the utility cost statement).</summary>
 public enum Section35a
 {
     None = 0,
@@ -11,8 +11,8 @@ public enum Section35a
 }
 
 /// <summary>
-/// Eingangsrechnung bzw. Kostenbeleg. Die Dateien liegen unveränderlich in der Dateiablage (SHA-256); Datenänderungen
-/// hält das Änderungsprotokoll fest, gelöscht wird nur logisch.
+/// Incoming invoice or cost receipt. The files are stored immutably in the file store (SHA-256); data changes
+/// are recorded in the change log, deletion is logical only.
 /// </summary>
 public sealed class Receipt : Entity
 {
@@ -20,14 +20,14 @@ public sealed class Receipt : Entity
     {
     }
 
-    /// <summary>Lieferant und übrige Angaben danach setzen und <see cref="Validate"/> aufrufen.</summary>
+    /// <summary>Set the supplier and remaining details afterwards and call <see cref="Validate"/>.</summary>
     public Receipt(DateOnly invoiceDate, decimal gross)
     {
         InvoiceDate = invoiceDate;
         Gross = gross;
     }
 
-    /// <summary>Lieferant aus den Kontakten; alternativ nur als Name.</summary>
+    /// <summary>Supplier from the contacts; alternatively just a name.</summary>
     public Guid? SupplierId { get; set; }
 
     public string? SupplierName { get; set; }
@@ -40,7 +40,7 @@ public sealed class Receipt : Entity
 
     public DateOnly? ServiceTo { get; private set; }
 
-    /// <summary>Als zwei Spalten gespeichert (optionaler Zeitraum).</summary>
+    /// <summary>Stored as two columns (optional period).</summary>
     public Period? ServicePeriod => ServiceFrom is { } from ? new Period(from, ServiceTo) : null;
 
     public decimal Gross { get; set; }
@@ -51,10 +51,10 @@ public sealed class Receipt : Entity
 
     public DateOnly? DueOn { get; set; }
 
-    /// <summary>Von Hand erfasstes Zahlungsdatum (z. B. bar oder Lastschrift ohne Bankimport).</summary>
+    /// <summary>Manually entered payment date (e.g. cash or direct debit without bank import).</summary>
     public DateOnly? PaidOn { get; set; }
 
-    /// <summary>Brennstoffe: gelieferte Menge, Einheit (l, kWh, kg, m³) und CO₂-Emissionen laut Lieferant (CO2KostAufG).</summary>
+    /// <summary>Fuels: delivered quantity, unit (l, kWh, kg, m³) and CO₂ emissions according to the supplier (CO2KostAufG).</summary>
     public decimal? FuelQuantity { get; set; }
 
     public string? FuelUnit { get; set; }
@@ -117,7 +117,7 @@ public sealed class Receipt : Entity
 
     public void RemoveCostItem(Guid positionId) => Items.RemoveAll(p => p.Id == positionId);
 
-    /// <summary>Neuer Rechnungsbetrag: darf nicht unter der Summe der Positionen liegen.</summary>
+    /// <summary>New invoice amount: must not be below the sum of the items.</summary>
     public void SetGross(decimal gross)
     {
         if (Items.Count > 0 && (Math.Abs(Allocated) > Math.Abs(gross) || Math.Sign(gross) != Math.Sign(Gross)))
@@ -153,7 +153,7 @@ public sealed class Receipt : Entity
     }
 }
 
-/// <summary>Eine Seite bzw. Datei eines Belegs.</summary>
+/// <summary>A page or file of a receipt.</summary>
 public sealed class ReceiptFile : Entity
 {
     private ReceiptFile()
@@ -174,7 +174,7 @@ public sealed class ReceiptFile : Entity
     public int Page { get; private set; }
 }
 
-/// <summary>Teil eines Belegs für eine Kostenart, ein Objekt (optional eine Einheit) und einen Abrechnungszeitraum.</summary>
+/// <summary>Part of a receipt for one cost type, one property (optionally a unit) and one billing period.</summary>
 public sealed class CostItem : Entity
 {
     private CostItem()
@@ -199,14 +199,14 @@ public sealed class CostItem : Entity
 
     public Guid ReceiptId { get; private set; }
 
-    /// <summary>Schlüssel aus <see cref="CostTypes"/>.</summary>
+    /// <summary>Key from <see cref="CostTypes"/>.</summary>
     public string CostType { get; private set; }
 
     public decimal Amount { get; private set; }
 
     public Guid PropertyId { get; private set; }
 
-    /// <summary>Nur bei Kosten einer einzelnen Einheit (direkte Zuordnung).</summary>
+    /// <summary>Only for costs of a single unit (direct assignment).</summary>
     public Guid? UnitId { get; set; }
 
     public Period BillingPeriod { get; private set; }
@@ -215,7 +215,7 @@ public sealed class CostItem : Entity
 
     public Section35a Section35a { get; private set; }
 
-    /// <summary>Lohn-, Maschinen- und Fahrtkosten inkl. USt; nur diese sind nach § 35a begünstigt.</summary>
+    /// <summary>Labor, machine and travel costs incl. VAT; only these are eligible under § 35a.</summary>
     public decimal? LaborCosts { get; private set; }
 
     public string? Note { get; set; }

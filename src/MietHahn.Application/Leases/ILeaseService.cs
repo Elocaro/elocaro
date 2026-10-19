@@ -4,17 +4,17 @@ using MietHahn.Domain.Leases;
 
 namespace MietHahn.Application.Leases;
 
-/// <summary>Mietverträge mit zeitabhängigen Bestandteilen, Kündigung und Mieterwechsel.</summary>
+/// <summary>Leases with time-dependent components, termination and tenant change.</summary>
 public interface ILeaseService
 {
     Task<IReadOnlyList<LeaseOverview>> ListAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
 
     Task<LeaseDetails?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Alle vermietbaren Objekte (Einheiten ohne Zimmer, WG-Zimmer) für die Auswahl.</summary>
+    /// <summary>All rentable objects (units without rooms, shared-flat rooms) for selection.</summary>
     Task<IReadOnlyList<RentalUnitOption>> RentalUnitsAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Vertragshistorie eines Mietobjekts (neueste zuerst), inkl. Leerstandszeiten dazwischen.</summary>
+    /// <summary>Lease history of a rental object (newest first), including vacancy periods in between.</summary>
     Task<IReadOnlyList<LeaseHistoryEntry>> HistoryAsync(Guid rentalUnitId, CancellationToken cancellationToken = default);
 
     Task<Result> CreateAsync(LeaseCreation creation, CancellationToken cancellationToken = default);
@@ -31,12 +31,12 @@ public interface ILeaseService
 
     Task<Result> RemovePartyAsync(Guid id, Guid personId, CancellationToken cancellationToken = default);
 
-    /// <summary>Erfasst die Kündigung; ohne Termin wird er nach § 573c BGB berechnet.</summary>
+    /// <summary>Records the termination; without a date it is calculated under § 573c BGB.</summary>
     Task<Result> TerminateAsync(Guid id, TerminationInput input, CancellationToken cancellationToken = default);
 
     Task<Result> RevokeTerminationAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Mieterwechsel: beendet den Vertrag und schreibt die neuen Anschriften der Mieter fort.</summary>
+    /// <summary>Tenant change: ends the lease and carries forward the tenants' new addresses.</summary>
     Task<Result> MoveOutAsync(Guid id, MoveOutInput input, CancellationToken cancellationToken = default);
 
     Task<Result> SetRentModelAsync(Guid id, RentModelInput input, CancellationToken cancellationToken = default);
@@ -45,7 +45,7 @@ public interface ILeaseService
 
     Task<Result> RemoveRentStepAsync(Guid id, Guid rentStepId, CancellationToken cancellationToken = default);
 
-    /// <summary>Übernimmt die Indexanpassung: neue Kaltmiete ab dem übernächsten Monat nach Zugang der Erklärung.</summary>
+    /// <summary>Adopts the index adjustment: new base rent from the month after next following receipt of the declaration.</summary>
     Task<Result> AdjustIndexAsync(Guid id, IndexAdjustmentInput input, CancellationToken cancellationToken = default);
 }
 
@@ -62,7 +62,7 @@ public sealed record LeaseOverview(
 
 public sealed record RentalUnitOption(Guid Id, string Name, string Property, bool IsRoom, Occupied? CurrentlyOccupied);
 
-/// <param name="To">Ende des laufenden Vertrags, <c>null</c> = unbefristet.</param>
+/// <param name="To">End of the current lease, <c>null</c> = open-ended.</param>
 public sealed record Occupied(string Tenant, DateOnly? To);
 
 public sealed record LeasePartyView(Guid PersonId, string Name, PartyRole Role, string? Email, string? Phone);
@@ -95,8 +95,8 @@ public sealed record LeaseDetails(
     int LandlordNoticePeriodMonths,
     RentModelView RentModel);
 
-/// <param name="LastIncrease">Beginn der aktuellen Kaltmiete, falls nach Mietbeginn geändert.</param>
-/// <param name="BaseRentThreeYearsAgo">Für die Kappungsgrenze (§ 558 Abs. 3 BGB).</param>
+/// <param name="LastIncrease">Start of the current base rent, if changed after the lease start.</param>
+/// <param name="BaseRentThreeYearsAgo">For the cap limit (§ 558 Abs. 3 BGB).</param>
 public sealed record RentModelView(
     RentModel Model,
     DateOnly? LastIncrease,
@@ -109,10 +109,10 @@ public sealed record RentModelView(
 
 public sealed record RentStepView(Guid Id, DateOnly From, decimal BaseRent, DateTimeOffset? AppliedAt);
 
-/// <summary>Berechnete Indexanpassung mit dem neuesten VPI-Wert.</summary>
+/// <summary>Calculated index adjustment with the latest CPI value.</summary>
 public sealed record IndexProposal(DateOnly CpiMonth, decimal CpiValue, decimal ChangePercent, decimal NewBaseRent, DateOnly EarliestEffective, bool PossibleNow);
 
-/// <summary>Ein Vertrag oder eine Leerstandszeit in der Historie eines Mietobjekts.</summary>
+/// <summary>A lease or a vacancy period in the history of a rental object.</summary>
 public sealed record LeaseHistoryEntry(Guid? LeaseId, Period Period, string? Tenant, decimal? BaseRent)
 {
     public bool IsVacancy => LeaseId is null;

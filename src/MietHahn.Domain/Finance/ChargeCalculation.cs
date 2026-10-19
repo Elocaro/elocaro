@@ -5,10 +5,10 @@ namespace MietHahn.Domain.Finance;
 
 public sealed record MonthlyItem(RentComponentType Component, decimal Amount, string Name, bool ProRata);
 
-/// <summary>Monatsmieten aus den Mietbestandteilen, bei Ein- und Auszug oder Änderung im Monat taggenau anteilig.</summary>
+/// <summary>Monthly rents from the rent components, prorated by day for move-in, move-out or changes within the month.</summary>
 public static class ChargeCalculation
 {
-    /// <param name="from">Frühester Tag, für den Miete gefordert wird (Buchhaltungsbeginn).</param>
+    /// <param name="from">Earliest day for which rent is claimed (start of accounting).</param>
     public static IReadOnlyList<MonthlyItem> Month(Lease lease, int year, int month, DateOnly? from = null)
     {
         ArgumentNullException.ThrowIfNull(lease);
@@ -38,7 +38,7 @@ public static class ChargeCalculation
                     continue;
                 }
 
-                // Ungerundet summieren, erst der Monatsbetrag wird auf Cent gerundet.
+                // Sum unrounded; only the monthly amount is rounded to cents.
                 total += component.Amount * part.Days / daysInMonth;
                 days += part.Days;
                 name = component.Name ?? name;
@@ -55,7 +55,7 @@ public static class ChargeCalculation
         return items;
     }
 
-    /// <summary>Monate, für die ab <paramref name="from"/> bis einschließlich <paramref name="toMonth"/> Miete anfällt.</summary>
+    /// <summary>Months for which rent is due from <paramref name="from"/> up to and including <paramref name="toMonth"/>.</summary>
     public static IEnumerable<DateOnly> Months(Lease lease, DateOnly from, DateOnly toMonth)
     {
         ArgumentNullException.ThrowIfNull(lease);

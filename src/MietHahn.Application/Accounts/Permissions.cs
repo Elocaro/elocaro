@@ -1,21 +1,21 @@
 namespace MietHahn.Application.Accounts;
 
 /// <summary>
-/// Einzelrechte in der Verwaltung. Admins haben immer alle Rechte; Verwalter erhalten eine konfigurierbare Auswahl
-/// (Standard: <see cref="ManagerDefault"/>).
+/// Individual permissions in the administration. Admins always have all permissions; managers get a configurable selection
+/// (default: <see cref="ManagerDefault"/>).
 /// </summary>
 public enum AccessRight
 {
-    /// <summary>Objekte, Mieter, Verträge, Zähler, Dokumente.</summary>
+    /// <summary>Properties, tenants, leases, meters, documents.</summary>
     MasterData,
 
-    /// <summary>Konten, Umsätze, Sollstellungen, Mahnwesen, Belege, Abrechnungen, Steuer.</summary>
+    /// <summary>Accounts, transactions, charges, dunning, receipts, statements, tax.</summary>
     Finance,
 
-    /// <summary>Konten einladen, sperren, Rollen und Rechte ändern.</summary>
+    /// <summary>Invite, lock accounts, change roles and permissions.</summary>
     UserManagement,
 
-    /// <summary>Technische Einstellungen: Mailversand, Jobs, Vorlagen, Vermieterprofil.</summary>
+    /// <summary>Technical settings: mail delivery, jobs, templates, landlord profile.</summary>
     System,
 }
 
@@ -37,7 +37,7 @@ public static class Permissions
     };
 }
 
-/// <summary>Namen der Autorisierungsrichtlinien.</summary>
+/// <summary>Names of the authorization policies.</summary>
 public static class Policies
 {
     public const string Admin = "Admin";

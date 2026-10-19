@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace MietHahn.Domain;
 
-/// <summary>Anker für Reflection, z. B. in Architekturtests und bei der DI-Registrierung.</summary>
+/// <summary>Anchor for reflection, e.g. in architecture tests and DI registration.</summary>
 public static class DomainAssembly
 {
     public static Assembly Instance => typeof(DomainAssembly).Assembly;

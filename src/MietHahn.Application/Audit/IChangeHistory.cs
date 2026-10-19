@@ -1,9 +1,9 @@
 namespace MietHahn.Application.Audit;
 
-/// <summary>Liest die Änderungshistorie eines Datensatzes aus dem Audit-Log.</summary>
+/// <summary>Reads the change history of a record from the audit log.</summary>
 public interface IChangeHistory
 {
-    /// <param name="entityType">Klassenname der Entität, z. B. <c>Mietvertrag</c>.</param>
+    /// <param name="entityType">Class name of the entity, e.g. <c>Mietvertrag</c>.</param>
     Task<IReadOnlyList<AuditEntryView>> GetAsync(string entityType, Guid entityId, CancellationToken cancellationToken = default);
 }
 
@@ -22,6 +22,6 @@ public sealed record AuditEntryView(
     IReadOnlyList<FieldChange> Changes,
     string? Purpose);
 
-/// <param name="Old">Bisheriger Wert (als Text), <c>null</c> bei Neuanlage.</param>
-/// <param name="New">Neuer Wert (als Text).</param>
+/// <param name="Old">Previous value (as text), <c>null</c> on creation.</param>
+/// <param name="New">New value (as text).</param>
 public sealed record FieldChange(string Field, string? Old, string? New);

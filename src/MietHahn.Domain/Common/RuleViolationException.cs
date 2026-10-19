@@ -1,8 +1,8 @@
 namespace MietHahn.Domain.Common;
 
 /// <summary>
-/// Eine fachliche Regel wurde verletzt (z. B. rückwirkende Änderung, Überschneidung). <see cref="Exception.Message"/>
-/// ist für Benutzer formuliert und wird in der Oberfläche angezeigt.
+/// A business rule was violated (e.g. retroactive change, overlap). <see cref="Exception.Message"/>
+/// is phrased for users and shown in the UI.
 /// </summary>
 public sealed class RuleViolationException : Exception
 {

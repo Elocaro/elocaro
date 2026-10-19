@@ -4,10 +4,10 @@ using MietHahn.Domain.Properties;
 
 namespace MietHahn.Application.Properties;
 
-/// <summary>Pflege von Objekten, Einheiten und WG-Zimmern samt Flächen mit Gültigkeit.</summary>
+/// <summary>Maintenance of properties, units and shared-flat rooms including areas with validity.</summary>
 public interface IPropertyService
 {
-    /// <param name="idsOnly">Nur diese Objekte (z. B. die eines Hausmeisters); <c>null</c> = alle.</param>
+    /// <param name="idsOnly">Only these properties (e.g. those of a caretaker); <c>null</c> = all.</param>
     Task<IReadOnlyList<PropertyOverview>> ListAsync(IReadOnlyCollection<Guid>? idsOnly = null, CancellationToken cancellationToken = default);
 
     Task<PropertyDetails?> GetAsync(Guid id, CancellationToken cancellationToken = default);
@@ -16,12 +16,12 @@ public interface IPropertyService
 
     Task<Result> UpdateAsync(Guid id, PropertyInput data, CancellationToken cancellationToken = default);
 
-    /// <summary>Setzt das Foto des Hauses (Datei aus der Dateiablage) oder entfernt es.</summary>
+    /// <summary>Sets the photo of the house (file from the file store) or removes it.</summary>
     Task<Result> SetImageAsync(Guid id, Guid? fileId, CancellationToken cancellationToken = default);
 
     Task<Result> SetAreaAsync(Guid id, AreaInput input, CancellationToken cancellationToken = default);
 
-    /// <summary>Nur ohne Einheiten möglich.</summary>
+    /// <summary>Only possible without units.</summary>
     Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<Result> CreateUnitAsync(Guid propertyId, UnitInput data, CancellationToken cancellationToken = default);
@@ -32,7 +32,7 @@ public interface IPropertyService
 
     Task<Result> SetUnitAreaAsync(Guid id, AreaInput input, CancellationToken cancellationToken = default);
 
-    /// <summary>Nur ohne Zimmer und Verträge möglich.</summary>
+    /// <summary>Only possible without rooms and leases.</summary>
     Task<Result> DeleteUnitAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<Result> CreateRoomAsync(Guid unitId, RoomInput data, CancellationToken cancellationToken = default);
@@ -43,7 +43,7 @@ public interface IPropertyService
 
     Task<Result> SetRoomAreaAsync(Guid id, AreaInput input, CancellationToken cancellationToken = default);
 
-    /// <summary>Nur ohne Verträge möglich.</summary>
+    /// <summary>Only possible without leases.</summary>
     Task<Result> DeleteRoomAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
@@ -52,10 +52,10 @@ public sealed record PropertyOverview(Guid Id, string Name, string Address, int 
     public int Vacancy => RentalUnits - Rented;
 }
 
-/// <summary>Ein Flächenstand; <see cref="SecondaryArea"/> je nach Ebene Gemeinschafts-, Heiz- bzw. Anteilsfläche.</summary>
+/// <summary>An area state; <see cref="SecondaryArea"/> is common, heated or share area depending on the level.</summary>
 public sealed record AreaReading(Period Validity, decimal Area, decimal SecondaryArea);
 
-/// <summary>Was vermietet werden kann: eine Einheit ohne Zimmer oder ein WG-Zimmer.</summary>
+/// <summary>What can be rented: a unit without rooms or a shared-flat room.</summary>
 public sealed record RentalUnitRow(Guid Id, string Name, bool IsRoom, decimal? Area, Occupancy? Occupancy);
 
 public sealed record UnitRow(

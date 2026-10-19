@@ -1,25 +1,25 @@
 namespace MietHahn.Domain.Common;
 
-/// <summary>Ein Stand eines zeitabhängigen Werts (Fläche, Mietbestandteil, Personenanzahl …).</summary>
+/// <summary>A state of a time-dependent value (area, rent component, number of persons ...).</summary>
 public interface ITimeDependent
 {
     Period Validity { get; }
 
-    /// <summary>Beendet den Stand zum angegebenen Tag (inklusive).</summary>
+    /// <summary>Ends the state on the given day (inclusive).</summary>
     void EndValidity(DateOnly lastDay);
 }
 
 /// <summary>
-/// Pflege zeitabhängiger Werte ohne Überschreiben: Ein neuer Stand gilt ab einem Stichtag, der bisherige endet am Vortag.
-/// So bleiben frühere Werte für Abrechnungen erhalten (z. B. Fläche vor einem Umbau, Miete vor einer Erhöhung).
+/// Maintenance of time-dependent values without overwriting: a new state applies from an effective date, the previous one ends the day before.
+/// This keeps earlier values available for statements (e.g. area before a renovation, rent before an increase).
 /// </summary>
 public static class TimeSeries
 {
     /// <summary>
-    /// Fügt einen neuen, unbefristeten Stand ab <paramref name="from"/> hinzu. Der jüngste bisherige Stand endet am Vortag;
-    /// beginnt er genau am Stichtag, wird er ersetzt (Korrektur). Änderungen vor dem jüngsten Stand sind nicht möglich.
+    /// Adds a new open-ended state from <paramref name="from"/>. The latest previous state ends the day before;
+    /// if it starts exactly on the effective date, it is replaced (correction). Changes before the latest state are not possible.
     /// </summary>
-    /// <returns>Der neue Stand.</returns>
+    /// <returns>The new state.</returns>
     public static T CarryForward<T>(ICollection<T> readings, DateOnly from, Func<Period, T> create)
         where T : class, ITimeDependent
     {
@@ -50,7 +50,7 @@ public static class TimeSeries
         return newItem;
     }
 
-    /// <summary>Der am Tag gültige Stand oder <c>null</c>.</summary>
+    /// <summary>The state valid on the day, or <c>null</c>.</summary>
     public static T? At<T>(IEnumerable<T> readings, DateOnly day)
         where T : ITimeDependent =>
         readings.FirstOrDefault(s => s.Validity.Contains(day));

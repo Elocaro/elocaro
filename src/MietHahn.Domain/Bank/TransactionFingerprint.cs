@@ -5,9 +5,9 @@ using System.Text;
 namespace MietHahn.Domain.Bank;
 
 /// <summary>
-/// Fingerabdruck eines Umsatzes für die Duplikaterkennung aus Konto, Buchungsdatum, Betrag, Verwendungszweck,
-/// Gegen-IBAN und End-to-End-ID. Gleiche Umsätze innerhalb einer Datei (z. B. zwei gleiche Überweisungen am selben Tag)
-/// werden durchnummeriert, damit sie nicht als Duplikat gelten, ein erneuter Import derselben Datei aber schon.
+/// Fingerprint of a transaction for duplicate detection from account, booking date, amount, purpose,
+/// counterparty IBAN and end-to-end id. Identical transactions within one file (e.g. two identical transfers on the same day)
+/// are numbered so that they do not count as duplicates, whereas re-importing the same file does.
 /// </summary>
 public static class TransactionFingerprint
 {
@@ -34,7 +34,7 @@ public static class TransactionFingerprint
         u.CounterpartyIban is null ? "" : Common.Iban.Compact(u.CounterpartyIban),
         Normalize(u.EndToEndId is "NOTPROVIDED" ? null : u.EndToEndId));
 
-    // Banken umbrechen Verwendungszwecke unterschiedlich; Leerraum und Groß/Klein spielen keine Rolle.
+    // Banks wrap payment purposes differently; whitespace and letter case do not matter.
     private static string Normalize(string? text) =>
         string.Concat((text ?? "").Where(c => !char.IsWhiteSpace(c))).ToUpperInvariant();
 }

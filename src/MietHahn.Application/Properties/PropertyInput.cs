@@ -3,7 +3,7 @@ using MietHahn.Domain.Properties;
 
 namespace MietHahn.Application.Properties;
 
-/// <summary>Formular- und Anzeigedaten eines Objekts.</summary>
+/// <summary>Form and display data of a property.</summary>
 public sealed class PropertyInput
 {
     [Required(ErrorMessage = "Bitte eine Bezeichnung angeben.")]
@@ -83,8 +83,8 @@ public sealed class RoomInput
 }
 
 /// <summary>
-/// Neuer Flächenstand ab Stichtag. Bedeutung je Ebene: Objekt = Gesamt-/Gemeinschaftsfläche,
-/// Einheit = Wohn-/Heizfläche (leer = wie Wohnfläche), Zimmer = Zimmerfläche/Anteil Gemeinschaftsfläche.
+/// New area state from the effective date. Meaning per level: property = total/common area,
+/// unit = living/heated area (empty = same as living area), room = room area/share of common area.
 /// </summary>
 public sealed class AreaInput
 {

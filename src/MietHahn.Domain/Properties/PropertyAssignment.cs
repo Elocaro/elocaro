@@ -2,7 +2,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Domain.Properties;
 
-/// <summary>Ein Benutzerkonto (Hausmeister) betreut ein Objekt und sieht es im Servicebereich.</summary>
+/// <summary>A user account (caretaker) looks after a property and sees it in the service area.</summary>
 public sealed class PropertyAssignment : Entity
 {
     private PropertyAssignment()

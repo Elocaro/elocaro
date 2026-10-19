@@ -20,7 +20,7 @@ public sealed class MeterInput
     [StringLength(200)]
     public string? Location { get; set; }
 
-    /// <summary>Einheit oder Zimmer, dem der Zähler zugeordnet ist; leer = Hauszähler.</summary>
+    /// <summary>Unit or room to which the meter is assigned; empty = house meter.</summary>
     public Guid? AssignmentId { get; set; }
 
     public Guid? MainMeterId { get; set; }
@@ -58,7 +58,7 @@ public sealed class ReadingInput
     [StringLength(1000)]
     public string? Note { get; set; }
 
-    /// <summary>Warnungen (Rückwärtslauf, Ausreißer) bestätigt: trotzdem speichern.</summary>
+    /// <summary>Warnings (backward running, outliers) confirmed: save anyway.</summary>
     public bool Confirmed { get; set; }
 }
 

@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace MietHahn.Application;
 
-/// <summary>Anker für Reflection, z. B. in Architekturtests und bei der DI-Registrierung.</summary>
+/// <summary>Anchor for reflection, e.g. in architecture tests and DI registration.</summary>
 public static class ApplicationAssembly
 {
     public static Assembly Instance => typeof(ApplicationAssembly).Assembly;

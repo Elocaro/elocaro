@@ -11,8 +11,8 @@ public enum UnitType
 }
 
 /// <summary>
-/// Wohnung (bzw. Gewerbe, Stellplatz) in einem <see cref="Property"/>. Ohne Zimmer ist die Einheit selbst vermietbar;
-/// mit Zimmern (WG) werden nur die Zimmer einzeln vermietet.
+/// Apartment (or commercial unit, parking space) in a <see cref="Property"/>. Without rooms the unit itself can be rented;
+/// with rooms (shared flat) only the rooms are rented individually.
 /// </summary>
 public sealed class Unit : Entity
 {
@@ -32,28 +32,28 @@ public sealed class Unit : Entity
 
     public Guid PropertyId { get; private set; }
 
-    /// <summary>Nummer oder Name, z. B. „Wohnung 1“.</summary>
+    /// <summary>Number or name, e.g. "Wohnung 1".</summary>
     public string Name { get; set; }
 
-    /// <summary>Lage im Haus, z. B. „EG links“.</summary>
+    /// <summary>Location in the building, e.g. "EG links".</summary>
     public string? Location { get; set; }
 
     public UnitType Type { get; set; }
 
-    /// <summary>Anzeigereihenfolge im Objekt.</summary>
+    /// <summary>Display order within the property.</summary>
     public int Order { get; set; }
 
-    /// <summary>Anzahl Zimmer laut Exposé/Mietvertrag, z. B. 2,5.</summary>
+    /// <summary>Number of rooms according to listing/lease, e.g. 2.5.</summary>
     public decimal? RoomCount { get; set; }
 
-    // Ausstattung (Mietspiegel-Merkmale)
+    // Features (rent index criteria)
     public string? Bathroom { get; set; }
 
     public bool Balcony { get; set; }
 
     public bool FittedKitchen { get; set; }
 
-    /// <summary>z. B. Energieeffizienzklasse oder „KfW 70“.</summary>
+    /// <summary>E.g. energy efficiency class or "KfW 70".</summary>
     public string? EnergyStandard { get; set; }
 
     public string? Amenities { get; set; }
@@ -62,7 +62,7 @@ public sealed class Unit : Entity
 
     public List<UnitArea> Areas { get; private set; } = [];
 
-    /// <summary>WG: Die Zimmer werden einzeln vermietet.</summary>
+    /// <summary>Shared flat: the rooms are rented individually.</summary>
     public bool IsSharedFlat => Room.Count > 0;
 
     public bool IsSelfRentable => !IsSharedFlat;
@@ -79,7 +79,7 @@ public sealed class Unit : Entity
         return room;
     }
 
-    /// <summary>Wohn- und Heizfläche ab dem Stichtag. Ohne Angabe gilt die Heizfläche = Wohnfläche.</summary>
+    /// <summary>Living and heated area from the effective date. If not specified, the heated area equals the living area.</summary>
     public UnitArea SetArea(DateOnly from, decimal livingArea, decimal? heatedArea = null) =>
         TimeSeries.CarryForward(Areas, from, g => new UnitArea(Id, g, livingArea, heatedArea ?? livingArea));
 
@@ -123,10 +123,10 @@ public sealed class UnitArea : Entity, ITimeDependent
 
     public Period Validity { get; private set; }
 
-    /// <summary>Wohnfläche nach WoFlV in m² (Umlage nach Fläche).</summary>
+    /// <summary>Living area according to WoFlV in m² (allocation by area).</summary>
     public decimal LivingArea { get; private set; }
 
-    /// <summary>Beheizte Fläche in m² (Grundkosten der Heizkostenabrechnung), kann von der Wohnfläche abweichen.</summary>
+    /// <summary>Heated area in m² (basic costs of the heating cost statement); may differ from the living area.</summary>
     public decimal HeatedArea { get; private set; }
 
     public void EndValidity(DateOnly lastDay) => Validity = Validity.EndOn(lastDay);

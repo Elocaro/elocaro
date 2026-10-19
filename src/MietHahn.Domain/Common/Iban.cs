@@ -2,17 +2,17 @@ using System.Numerics;
 
 namespace MietHahn.Domain.Common;
 
-/// <summary>Prüfung und Formatierung internationaler Kontonummern (ISO 13616, Prüfsumme Modulo 97).</summary>
+/// <summary>Validation and formatting of international bank account numbers (ISO 13616, checksum modulo 97).</summary>
 public static class Iban
 {
-    /// <summary>„de02 1203…“ → „DE021203…“ (ohne Leerzeichen, Großbuchstaben).</summary>
+    /// <summary>"de02 1203…" → "DE021203…" (without spaces, uppercase).</summary>
     public static string Compact(string iban)
     {
         ArgumentNullException.ThrowIfNull(iban);
         return new string(iban.Where(z => !char.IsWhiteSpace(z)).ToArray()).ToUpperInvariant();
     }
 
-    /// <summary>„DE02 1203 0000 …“ (Vierergruppen, wie auf Dokumenten üblich).</summary>
+    /// <summary>"DE02 1203 0000 …" (groups of four, as usual on documents).</summary>
     public static string Format(string iban) => string.Join(' ', Compact(iban).Chunk(4).Select(c => new string(c)));
 
     public static bool IsValid(string? iban)
@@ -34,7 +34,7 @@ public static class Iban
             return false;
         }
 
-        // Ländercode und Prüfziffer ans Ende, Buchstaben als Zahlen (A = 10 … Z = 35), Rest modulo 97 muss 1 sein.
+        // Move country code and check digits to the end, letters as numbers (A = 10 … Z = 35); the remainder modulo 97 must be 1.
         var rearranged = compact[4..] + compact[..4];
         var digits = string.Concat(rearranged.Select(z => char.IsAsciiLetter(z) ? (z - 'A' + 10).ToString(System.Globalization.CultureInfo.InvariantCulture) : z.ToString()));
         return BigInteger.Parse(digits, System.Globalization.CultureInfo.InvariantCulture) % 97 == 1;

@@ -1,8 +1,8 @@
 namespace MietHahn.Application.Operations;
 
 /// <summary>
-/// Ergebnis der letzten Sicherung. Der Backup-Container schreibt nach jedem Lauf eine Statusdatei,
-/// MietHahn liest sie für Dashboard, Health-Check und Warnmails.
+/// Result of the last backup. The backup container writes a status file after each run,
+/// MietHahn reads it for the dashboard, health check and warning mails.
 /// </summary>
 public interface IBackupStatus
 {
@@ -11,15 +11,15 @@ public interface IBackupStatus
 
 public enum BackupState
 {
-    /// <summary>Keine Statusdatei konfiguriert (z. B. lokale Entwicklung).</summary>
+    /// <summary>No status file configured (e.g. local development).</summary>
     NotConfigured = 0,
     Ok = 1,
     Failed = 2,
 
-    /// <summary>Die letzte erfolgreiche Sicherung ist älter als erlaubt (Backup-Container läuft nicht?).</summary>
+    /// <summary>The last successful backup is older than allowed (backup container not running?).</summary>
     Outdated = 3,
 
-    /// <summary>Statusdatei fehlt oder ist unlesbar (noch nie gesichert?).</summary>
+    /// <summary>Status file missing or unreadable (never backed up yet?).</summary>
     Unknown = 4,
 }
 

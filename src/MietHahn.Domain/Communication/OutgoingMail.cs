@@ -10,13 +10,13 @@ public enum MailStatus
 }
 
 /// <summary>
-/// Eine E-Mail in der Outbox. Wird beim Einreihen fertig gerendert gespeichert (Nachweis, was verschickt wurde)
-/// und von einem Hintergrundjob mit Wiederholungen zugestellt.
+/// An email in the outbox. It is stored fully rendered when enqueued (proof of what was sent)
+/// and delivered with retries by a background job.
 /// </summary>
 [NoAudit]
 public sealed class OutgoingMail : Entity
 {
-    /// <summary>Nach so vielen Fehlversuchen wird nicht mehr automatisch wiederholt.</summary>
+    /// <summary>After this many failed attempts it is no longer retried automatically.</summary>
     public const int MaxAttempts = 8;
 
     public const int MaxErrorLength = 2000;
@@ -76,10 +76,10 @@ public sealed class OutgoingMail : Entity
 
     public List<Guid> AttachmentFileIds { get; private set; } = [];
 
-    /// <summary>Name der verwendeten Vorlage (zur Nachvollziehbarkeit).</summary>
+    /// <summary>Name of the template used (for traceability).</summary>
     public string? Template { get; private set; }
 
-    /// <summary>Optionaler fachlicher Bezug, z. B. <c>Abrechnung:…</c>, für den Versandnachweis.</summary>
+    /// <summary>Optional business reference, e.g. <c>Abrechnung:…</c>, as proof of delivery.</summary>
     public string? Reference { get; private set; }
 
     public MailStatus Status { get; private set; }
@@ -114,7 +114,7 @@ public sealed class OutgoingMail : Entity
         NextAttemptAt = now + RetryDelay(Attempts);
     }
 
-    /// <summary>Manuelles erneutes Versenden einer fehlgeschlagenen Mail.</summary>
+    /// <summary>Manually resend a failed mail.</summary>
     public void Retry(DateTimeOffset now)
     {
         if (Status == MailStatus.Sent)
@@ -127,7 +127,7 @@ public sealed class OutgoingMail : Entity
         NextAttemptAt = now;
     }
 
-    /// <summary>Exponentieller Backoff: 1, 2, 4, 8 … Minuten, höchstens 6 Stunden.</summary>
+    /// <summary>Exponential backoff: 1, 2, 4, 8 ... minutes, at most 6 hours.</summary>
     public static TimeSpan RetryDelay(int failedAttempts)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(failedAttempts);

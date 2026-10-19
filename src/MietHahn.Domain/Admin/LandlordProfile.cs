@@ -3,8 +3,8 @@ using MietHahn.Domain.Common;
 namespace MietHahn.Domain.Admin;
 
 /// <summary>
-/// Absenderangaben des Vermieters für Briefkopf, Fußzeile und Zahlungsinformationen in Dokumenten.
-/// Aktuell gibt es genau ein Profil; mit „Eigentümer je Objekt“ (M7) wird es je Objekt zugeordnet.
+/// Landlord's sender details for letterhead, footer and payment information in documents.
+/// Currently there is exactly one profile; with "owner per property" (M7) it will be assigned per property.
 /// </summary>
 public sealed class LandlordProfile : Entity
 {
@@ -27,7 +27,7 @@ public sealed class LandlordProfile : Entity
 
     public string Name { get; set; }
 
-    /// <summary>Optionaler Zusatz unter dem Namen, z. B. „Hausverwaltung Hauptstraße 5“.</summary>
+    /// <summary>Optional addition below the name, e.g. "Hausverwaltung Hauptstraße 5".</summary>
     public string? AddressLine2 { get; set; }
 
     public string Street { get; set; }
@@ -49,7 +49,7 @@ public sealed class LandlordProfile : Entity
 
     public string? TaxNumber { get; set; }
 
-    /// <summary>Einzeilige Absenderangabe für die Rücksendezeile im Anschriftfeld.</summary>
+    /// <summary>Single-line sender address for the return line in the address window.</summary>
     public string ReturnAddressLine => $"{Name} · {Street} · {PostalCode} {City}";
 
     public void Validate()

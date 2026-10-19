@@ -3,7 +3,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Application.Common;
 
-/// <summary>Leer oder eine IBAN mit gültiger Prüfsumme (Leerzeichen und Kleinbuchstaben erlaubt).</summary>
+/// <summary>Empty or an IBAN with a valid checksum (spaces and lowercase allowed).</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class IbanAttribute : ValidationAttribute
 {

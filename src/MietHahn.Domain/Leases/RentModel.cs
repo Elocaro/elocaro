@@ -4,17 +4,17 @@ namespace MietHahn.Domain.Leases;
 
 public enum RentModel
 {
-    /// <summary>Erhöhung auf die ortsübliche Vergleichsmiete (§ 558 BGB).</summary>
+    /// <summary>Increase to the local comparative rent (§ 558 BGB).</summary>
     Standard = 0,
 
-    /// <summary>Staffelmiete (§ 557a BGB): vereinbarte Erhöhungen zu festen Terminen.</summary>
+    /// <summary>Graduated rent (§ 557a BGB): agreed increases on fixed dates.</summary>
     Graduated = 1,
 
-    /// <summary>Indexmiete (§ 557b BGB): Anpassung an den Verbraucherpreisindex.</summary>
+    /// <summary>Index rent (§ 557b BGB): adjustment to the consumer price index.</summary>
     Index = 2,
 }
 
-/// <summary>Eine vereinbarte Staffel: ab diesem Tag gilt die neue Kaltmiete.</summary>
+/// <summary>An agreed step: from this day the new base rent applies.</summary>
 public sealed class RentStep : Entity
 {
     private RentStep()
@@ -32,16 +32,16 @@ public sealed class RentStep : Entity
 
     public DateOnly From { get; private set; }
 
-    /// <summary>Neue Kaltmiete in Euro (§ 557a: als Geldbetrag ausgewiesen).</summary>
+    /// <summary>New base rent in euros (§ 557a: stated as a monetary amount).</summary>
     public decimal BaseRent { get; private set; }
 
-    /// <summary>Wann die Staffel als Mietbestandteil übernommen wurde.</summary>
+    /// <summary>When the step was adopted as a rent component.</summary>
     public DateTimeOffset? AppliedAt { get; private set; }
 
     internal void MarkApplied(DateTimeOffset timestamp) => AppliedAt = timestamp;
 }
 
-/// <summary>Monatlicher Verbraucherpreisindex (Destatis, Basis 2020 = 100, Tabelle 61111-0002).</summary>
+/// <summary>Monthly consumer price index (Destatis, base 2020 = 100, table 61111-0002).</summary>
 public sealed class CpiValue : Entity
 {
     private CpiValue()
@@ -61,10 +61,10 @@ public sealed class CpiValue : Entity
         Source = source;
     }
 
-    /// <summary>Erster Tag des Monats.</summary>
+    /// <summary>First day of the month.</summary>
     public DateOnly Month { get; private set; }
 
-    /// <summary>Indexstand mit einer Nachkommastelle, z. B. 121,7.</summary>
+    /// <summary>Index value with one decimal place, e.g. 121.7.</summary>
     public decimal Value { get; private set; }
 
     public string Source { get; private set; }
@@ -81,13 +81,13 @@ public sealed class CpiValue : Entity
     }
 }
 
-/// <summary>Rechenregeln der Indexmiete (§ 557b BGB).</summary>
+/// <summary>Calculation rules of the index rent (§ 557b BGB).</summary>
 public static class IndexedRent
 {
-    /// <summary>Die Miete muss jeweils mindestens ein Jahr unverändert bleiben (§ 557b Abs. 2 BGB).</summary>
+    /// <summary>The rent must remain unchanged for at least one year each time (§ 557b Abs. 2 BGB).</summary>
     public const int LockoutPeriodMonths = 12;
 
-    /// <summary>Neue Kaltmiete = bisherige × (VPI neu ÷ VPI alt), kaufmännisch auf Cent gerundet.</summary>
+    /// <summary>New base rent = previous × (new CPI ÷ old CPI), commercially rounded to cents.</summary>
     public static decimal NewRent(decimal previousRent, decimal oldCpi, decimal newCpi)
     {
         if (oldCpi <= 0 || newCpi <= 0)
@@ -98,14 +98,14 @@ public static class IndexedRent
         return Math.Round(previousRent * newCpi / oldCpi, 2, MidpointRounding.AwayFromZero);
     }
 
-    /// <summary>Veränderung in Prozent mit einer Nachkommastelle (z. B. für das Anpassungsschreiben).</summary>
+    /// <summary>Change in percent with one decimal place (e.g. for the adjustment letter).</summary>
     public static decimal ChangePercent(decimal oldCpi, decimal newCpi) =>
         Math.Round(((newCpi / oldCpi) - 1) * 100, 1, MidpointRounding.AwayFromZero);
 
-    /// <summary>Frühester Tag, ab dem die angepasste Miete gelten darf (ein Jahr nach der letzten Änderung).</summary>
+    /// <summary>Earliest day from which the adjusted rent may apply (one year after the last change).</summary>
     public static DateOnly EarliestEffectiveDate(DateOnly lastChange) => lastChange.AddMonths(LockoutPeriodMonths);
 
-    /// <summary>Die geänderte Miete gilt ab dem übernächsten Monat nach Zugang der Erklärung (§ 557b Abs. 3 BGB).</summary>
+    /// <summary>The changed rent applies from the month after next following receipt of the declaration (§ 557b Abs. 3 BGB).</summary>
     public static DateOnly EffectiveFrom(DateOnly declarationReceived) =>
         new DateOnly(declarationReceived.Year, declarationReceived.Month, 1).AddMonths(2);
 }

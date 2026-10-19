@@ -2,24 +2,24 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Domain.Metering;
 
-/// <summary>Ein Zählerstand zu einem Tag; <see cref="Interpolated"/> kennzeichnet berechnete Werte.</summary>
+/// <summary>A meter reading on a day; <see cref="Interpolated"/> marks calculated values.</summary>
 public sealed record ReadingOnDay(DateOnly Date, decimal Value, bool Interpolated);
 
-/// <summary>Verbrauch in einem Zeitraum mit Nachweis der verwendeten Stände.</summary>
-/// <param name="Quantity">Verbrauch; <c>null</c>, wenn Stände fehlen (siehe <see cref="MissingReason"/>).</param>
+/// <summary>Consumption in a period with proof of the readings used.</summary>
+/// <param name="Quantity">Consumption; <c>null</c> if readings are missing (see <see cref="MissingReason"/>).</param>
 public sealed record Consumption(Period Period, decimal? Quantity, IReadOnlyList<ReadingOnDay> Basis, string? MissingReason)
 {
     public bool ContainsInterpolation => Basis.Any(g => g.Interpolated);
 }
 
 /// <summary>
-/// Rechenkern für Verbräuche: Stand an einem Stichtag (gemessen oder linear zwischen zwei Ablesungen interpoliert)
-/// und Verbrauch über eine Messstelle, auch über einen Zählertausch hinweg. Hochrechnen über die letzte Ablesung hinaus
-/// erfolgt nicht; dann fehlt der Wert und muss abgelesen oder geschätzt werden.
+/// Calculation core for consumption: reading on a reference date (measured or linearly interpolated between two readings)
+/// and consumption over a measuring point, including across a meter replacement. Extrapolation beyond the last reading
+/// is not done; the value is then missing and must be read or estimated.
 /// </summary>
 public static class ConsumptionCalculator
 {
-    /// <summary>Stand am Tag: gemessen, sonst linear interpoliert; <c>null</c> außerhalb der Ablesungen.</summary>
+    /// <summary>Reading on the day: measured, otherwise linearly interpolated; <c>null</c> outside the readings.</summary>
     public static ReadingOnDay? ReadingAt(IEnumerable<MeterReading> readings, DateOnly day)
     {
         ArgumentNullException.ThrowIfNull(readings);
@@ -42,8 +42,8 @@ public static class ConsumptionCalculator
     }
 
     /// <summary>
-    /// Verbrauch einer Messstelle (Kette getauschter Zähler, älteste zuerst) vom Stand am Ende des Vortags von
-    /// <c>zeitraum.Von</c> bis zum Stand am Ende von <c>zeitraum.Bis</c>. Ablesungen gelten als Stand am Ende des Tages.
+    /// Consumption of a measuring point (chain of replaced meters, oldest first) from the reading at the end of the day before
+    /// <c>zeitraum.Von</c> to the reading at the end of <c>zeitraum.Bis</c>. Readings count as the reading at the end of the day.
     /// </summary>
     public static Consumption Calculate(IReadOnlyList<Meter> meteringPoint, Period period)
     {
@@ -58,7 +58,7 @@ public static class ConsumptionCalculator
         decimal total = 0;
         foreach (var meter in meteringPoint.OrderBy(z => z.InstalledOn))
         {
-            // Abschnitt dieses Zählers innerhalb des Zeitraums
+            // Section of this meter within the period
             var from = start > meter.InstalledOn ? start : meter.InstalledOn;
             var end = meter.RemovedOn is { } removal && removal < to ? removal : to;
             if (end < from)

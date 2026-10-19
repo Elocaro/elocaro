@@ -27,8 +27,8 @@ public enum EnergySource
 }
 
 /// <summary>
-/// Ein Haus bzw. Grundstück. Aggregatwurzel für <see cref="Unit"/>en und deren <see cref="Room"/>.
-/// Flächen sind zeitabhängig (<see cref="PropertyArea"/>), damit Abrechnungen nach einem Umbau stimmen.
+/// A house or plot. Aggregate root for <see cref="Unit"/>s and their <see cref="Room"/>s.
+/// Areas are time-dependent (<see cref="PropertyArea"/>) so that statements stay correct after a renovation.
 /// </summary>
 public sealed class Property : Entity
 {
@@ -49,7 +49,7 @@ public sealed class Property : Entity
         Validate();
     }
 
-    /// <summary>Kurzname, z. B. „Hauptstraße 5“ oder „MFH Lindenweg“.</summary>
+    /// <summary>Short name, e.g. "Hauptstraße 5" or "MFH Lindenweg".</summary>
     public string Name { get; set; }
 
     public string Street { get; set; }
@@ -70,7 +70,7 @@ public sealed class Property : Entity
 
     public EnergySource EnergySource { get; set; }
 
-    /// <summary>Foto des Hauses aus der Dateiablage.</summary>
+    /// <summary>Photo of the house from the file store.</summary>
     public Guid? ImageFileId { get; set; }
 
     public string? Notes { get; set; }
@@ -101,13 +101,13 @@ public sealed class Property : Entity
         return unit;
     }
 
-    /// <summary>Gesamt- und Gemeinschaftsfläche ab dem Stichtag (Wohnfläche des Hauses bzw. Treppenhaus, Keller …).</summary>
+    /// <summary>Total and common area from the effective date (living area of the house, or stairwell, cellar ...).</summary>
     public PropertyArea SetArea(DateOnly from, decimal totalArea, decimal commonArea) =>
         TimeSeries.CarryForward(Areas, from, g => new PropertyArea(Id, g, totalArea, commonArea));
 
     public PropertyArea? AreaOn(DateOnly day) => TimeSeries.At(Areas, day);
 
-    /// <summary>Plausibilitätshinweise zum Stichtag (keine Fehler: Daten dürfen unvollständig sein).</summary>
+    /// <summary>Plausibility hints as of the effective date (not errors: data may be incomplete).</summary>
     public IReadOnlyList<string> ValidationHints(DateOnly day)
     {
         var hints = new List<string>();
@@ -127,7 +127,7 @@ public sealed class Property : Entity
     internal static string SquareMeters(decimal value) => value.ToString("#,##0.##", CultureInfo.GetCultureInfo("de-DE")) + " m²";
 }
 
-/// <summary>Flächen eines Objekts in einem Zeitraum.</summary>
+/// <summary>Areas of a property in a period.</summary>
 public sealed class PropertyArea : Entity, ITimeDependent
 {
     private PropertyArea()
@@ -148,10 +148,10 @@ public sealed class PropertyArea : Entity, ITimeDependent
 
     public Period Validity { get; private set; }
 
-    /// <summary>Summe aller Wohn-/Nutzflächen des Hauses in m².</summary>
+    /// <summary>Sum of all residential/usable areas of the house in m².</summary>
     public decimal TotalArea { get; private set; }
 
-    /// <summary>Gemeinschaftlich genutzte Flächen (Treppenhaus, Waschküche …) in m².</summary>
+    /// <summary>Jointly used areas (stairwell, laundry room ...) in m².</summary>
     public decimal CommonArea { get; private set; }
 
     public void EndValidity(DateOnly lastDay) => Validity = Validity.EndOn(lastDay);

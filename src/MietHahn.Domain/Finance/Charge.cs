@@ -5,11 +5,11 @@ namespace MietHahn.Domain.Finance;
 
 public enum ChargeType
 {
-    /// <summary>Monatliche Miete aus den Mietbestandteilen (automatisch).</summary>
+    /// <summary>Monthly rent from the rent components (automatic).</summary>
     Rent = 0,
     AdditionalPayment = 1,
 
-    /// <summary>Guthaben des Mieters, z. B. aus der Nebenkostenabrechnung (negativer Betrag).</summary>
+    /// <summary>Tenant credit, e.g. from the utility cost statement (negative amount).</summary>
     Refund = 2,
     DunningFee = 3,
     ReturnedDebitFee = 4,
@@ -17,12 +17,12 @@ public enum ChargeType
     Damages = 6,
     Deposit = 7,
 
-    /// <summary>Offener Betrag aus der Zeit vor dem Buchhaltungsbeginn.</summary>
+    /// <summary>Outstanding amount from the period before accounting started.</summary>
     BalanceCarriedForward = 8,
     Miscellaneous = 99,
 }
 
-/// <summary>Rang bei der Verrechnung nach § 367 BGB.</summary>
+/// <summary>Rank for allocation under § 367 BGB.</summary>
 public enum AllocationRank
 {
     Costs = 0,
@@ -31,8 +31,8 @@ public enum AllocationRank
 }
 
 /// <summary>
-/// Eine Forderung an den Mieter (Soll) bzw. bei negativem Betrag eine Gutschrift (Haben).
-/// Monatsmieten erzeugt der Job je Bestandteil und Leistungsmonat; alles andere wird von Hand angelegt.
+/// A claim against the tenant (debit) or, for a negative amount, a credit note (credit).
+/// The job creates monthly rents per component and service month; everything else is created manually.
 /// </summary>
 public sealed class Charge : Entity
 {
@@ -60,10 +60,10 @@ public sealed class Charge : Entity
 
     public ChargeType Kind { get; private set; }
 
-    /// <summary>Nur bei Monatsmieten: welcher Bestandteil.</summary>
+    /// <summary>Only for monthly rents: which component.</summary>
     public RentComponentType? Component { get; private set; }
 
-    /// <summary>Nur bei Monatsmieten: erster Tag des Monats, für den die Miete geschuldet ist.</summary>
+    /// <summary>Only for monthly rents: first day of the month for which the rent is owed.</summary>
     public DateOnly? ServiceMonth { get; private set; }
 
     public DateOnly Due { get; private set; }
@@ -104,7 +104,7 @@ public sealed class Charge : Entity
         return charge;
     }
 
-    /// <summary>Gleicht eine automatische Monatsmiete an geänderte Vertragsdaten an.</summary>
+    /// <summary>Adjusts an automatic monthly rent to changed lease data.</summary>
     public bool Adjust(DateOnly due, decimal amount, string name)
     {
         if (!Automatic)
@@ -164,7 +164,7 @@ public enum PaymentOrigin
 }
 
 /// <summary>
-/// Zahlung des Mieters (positiv) bzw. Auszahlung an den Mieter (negativ, z. B. ausgezahltes Guthaben).
+/// Payment by the tenant (positive) or payout to the tenant (negative, e.g. a paid-out credit).
 /// </summary>
 public sealed class Payment : Entity
 {
@@ -183,7 +183,7 @@ public sealed class Payment : Entity
 
     public Guid LeaseId { get; private set; }
 
-    /// <summary>Tag des Zahlungseingangs (Wertstellung), maßgeblich für das Zuflussprinzip.</summary>
+    /// <summary>Day the payment was received (value date), decisive for the cash-basis principle.</summary>
     public DateOnly Date { get; private set; }
 
     public decimal Amount { get; private set; }
@@ -192,7 +192,7 @@ public sealed class Payment : Entity
 
     public string? Purpose { get; set; }
 
-    /// <summary>Tilgungsbestimmung des Mieters (§ 366 Abs. 1 BGB): diese Forderung zuerst.</summary>
+    /// <summary>Tenant's designation of payment (§ 366 Abs. 1 BGB): settle this claim first.</summary>
     public Guid? ChargeId { get; set; }
 
     public void Update(DateOnly date, decimal amount)
@@ -213,20 +213,20 @@ public sealed class Payment : Entity
 
 public enum AllocationOrder
 {
-    /// <summary>§§ 366, 367 BGB: Kosten → Zinsen → älteste Forderung.</summary>
+    /// <summary>§§ 366, 367 BGB: costs → interest → oldest claim.</summary>
     Statutory = 0,
 
-    /// <summary>Nur nach Fälligkeit, Kosten und Zinsen ohne Vorrang.</summary>
+    /// <summary>Only after due date; costs and interest take no precedence.</summary>
     OldestFirst = 1,
 
-    /// <summary>Erst Monatsmieten (älteste zuerst), dann alle übrigen Forderungen.</summary>
+    /// <summary>Monthly rents first (oldest first), then all other claims.</summary>
     RentFirst = 2,
 }
 
-/// <summary>Einstellungen der Buchhaltung (genau ein Datensatz).</summary>
+/// <summary>Accounting settings (exactly one record).</summary>
 public sealed class FinanceSettings : Entity
 {
-    /// <summary>Ab diesem Monat erzeugt der Job Monatsmieten; leer = noch keine automatischen Sollstellungen.</summary>
+    /// <summary>From this month on the job creates monthly rents; empty = no automatic charges yet.</summary>
     public DateOnly? AccountingStart { get; private set; }
 
     public AllocationOrder Allocation { get; set; }

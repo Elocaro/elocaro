@@ -1,12 +1,12 @@
 namespace MietHahn.Domain.Receipts;
 
-/// <summary>Kostenart mit festem Schlüssel; die Betriebskostenarten folgen § 2 BetrKV.</summary>
-/// <param name="BetrKvNumber">Nummer nach § 2 BetrKV, bei nicht umlagefähigen Kosten <c>null</c>.</param>
+/// <summary>Cost type with a fixed key; the operating cost types follow § 2 BetrKV.</summary>
+/// <param name="BetrKvNumber">Number under § 2 BetrKV, <c>null</c> for non-allocable costs.</param>
 public sealed record CostType(string Key, string Name, bool Allocable, int? BetrKvNumber = null, string? Hint = null);
 
 /// <summary>
-/// Stammkatalog der Kostenarten. Die Schlüssel werden gespeichert und dürfen sich nicht ändern; eigene Unterarten
-/// (z. B. „Gebäudeversicherung“ unter Nr. 13) kommen mit dem Kostenarten-Katalog je Objekt (#28).
+/// Master catalog of cost types. The keys are stored and must not change; custom subtypes
+/// (e.g. "Gebäudeversicherung" under no. 13) come with the per-property cost type catalog (#28).
 /// </summary>
 public static class CostTypes
 {

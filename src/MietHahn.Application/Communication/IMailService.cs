@@ -2,12 +2,12 @@ using MietHahn.Domain.Communication;
 
 namespace MietHahn.Application.Communication;
 
-/// <summary>Einsicht in die Outbox und manuelles Wiederholen (Admin).</summary>
+/// <summary>Insight into the outbox and manual retry (admin).</summary>
 public interface IMailService
 {
     Task<IReadOnlyList<MailOverview>> LatestAsync(int count, CancellationToken cancellationToken = default);
 
-    /// <summary>Setzt eine fehlgeschlagene oder wartende Mail auf „sofort erneut versuchen“.</summary>
+    /// <summary>Sets a failed or waiting mail to "retry immediately".</summary>
     Task RetryAsync(Guid id, CancellationToken cancellationToken = default);
 }
 

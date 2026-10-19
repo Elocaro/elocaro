@@ -3,7 +3,7 @@ using MietHahn.Application.Common;
 
 namespace MietHahn.Application.Admin;
 
-/// <summary>Pflege der Absenderangaben (Briefkopf, Fußzeile, Bankverbindung).</summary>
+/// <summary>Maintenance of the sender details (letterhead, footer, bank details).</summary>
 public interface ILandlordProfileService
 {
     Task<LandlordProfileInput?> GetAsync(CancellationToken cancellationToken = default);

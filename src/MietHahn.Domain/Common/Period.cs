@@ -3,8 +3,8 @@ using System.Globalization;
 namespace MietHahn.Domain.Common;
 
 /// <summary>
-/// Gültigkeitszeitraum mit inklusiven Grenzen. <see cref="To"/> = <c>null</c> bedeutet „unbefristet“.
-/// Grundlage aller zeitabhängigen Werte (Miete, Flächen, Personen, Verträge) und der taggenauen Abrechnung.
+/// Validity period with inclusive bounds. <see cref="To"/> = <c>null</c> means "open-ended".
+/// Basis of all time-dependent values (rent, areas, persons, leases) and of day-exact statements.
 /// </summary>
 public readonly record struct Period
 {
@@ -25,7 +25,7 @@ public readonly record struct Period
 
     public bool IsOpenEnded => To is null;
 
-    /// <summary>Anzahl Kalendertage inklusive beider Grenzen (nur für befristete Zeiträume).</summary>
+    /// <summary>Number of calendar days including both bounds (only for bounded periods).</summary>
     public int Days => To is { } to
         ? to.DayNumber - From.DayNumber + 1
         : throw new InvalidOperationException("Ein unbefristeter Zeitraum hat keine Tagesanzahl.");
@@ -40,7 +40,7 @@ public readonly record struct Period
     public bool Overlaps(Period other) =>
         (To is null || other.From <= To) && (other.To is null || From <= other.To);
 
-    /// <summary>Gemeinsamer Teil beider Zeiträume oder <c>null</c>, wenn sie sich nicht überschneiden.</summary>
+    /// <summary>Common part of both periods, or <c>null</c> if they do not overlap.</summary>
     public Period? Intersect(Period other)
     {
         if (!Overlaps(other))
@@ -59,7 +59,7 @@ public readonly record struct Period
         return new Period(from, to);
     }
 
-    /// <summary>Tage, die in den Begrenzungszeitraum fallen (z. B. Mietdauer innerhalb eines Abrechnungsjahres).</summary>
+    /// <summary>Days that fall into the bounding period (e.g. rental duration within a billing year).</summary>
     public int DaysIn(Period bounds)
     {
         if (bounds.IsOpenEnded)
@@ -70,10 +70,10 @@ public readonly record struct Period
         return Intersect(bounds)?.Days ?? 0;
     }
 
-    /// <summary>Beendet den Zeitraum zum angegebenen Tag (inklusive).</summary>
+    /// <summary>Ends the period on the given day (inclusive).</summary>
     public Period EndOn(DateOnly lastDay) => new(From, lastDay);
 
-    /// <summary>Prüft, dass sich keine zwei der Zeiträume überschneiden.</summary>
+    /// <summary>Checks that no two of the periods overlap.</summary>
     public static bool AreNonOverlapping(IEnumerable<Period> periods)
     {
         ArgumentNullException.ThrowIfNull(periods);

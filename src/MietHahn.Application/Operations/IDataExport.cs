@@ -1,14 +1,14 @@
 namespace MietHahn.Application.Operations;
 
 /// <summary>
-/// Vollexport aller Daten als ZIP (JSON und CSV je Tabelle, dazu alle Dateien), lesbar ohne MietHahn.
-/// Geheimnisse (Passwort-Hashes, Tokens, Schlüssel) sind ausgenommen.
+/// Full export of all data as ZIP (JSON and CSV per table, plus all files), readable without MietHahn.
+/// Secrets (password hashes, tokens, keys) are excluded.
 /// </summary>
 public interface IDataExport
 {
-    /// <summary>Vorschlag für den Dateinamen, z. B. <c>miethahn-export-2026-10-18.zip</c>.</summary>
+    /// <summary>Suggested file name, e.g. <c>miethahn-export-2026-10-18.zip</c>.</summary>
     string FileName();
 
-    /// <summary>Schreibt das ZIP in <paramref name="destination"/>, nur asynchron (geeignet für den Response-Body).</summary>
+    /// <summary>Writes the ZIP to <paramref name="destination"/>, async only (suitable for the response body).</summary>
     Task ExportAsync(Stream destination, CancellationToken cancellationToken = default);
 }

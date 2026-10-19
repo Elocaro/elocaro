@@ -3,7 +3,7 @@ using MietHahn.Domain.Leases;
 
 namespace MietHahn.Application.Leases;
 
-/// <summary>Neuer Mietvertrag mit den Anfangswerten.</summary>
+/// <summary>New lease with the initial values.</summary>
 public sealed class LeaseCreation
 {
     [Required(ErrorMessage = "Bitte das Mietobjekt wählen.")]
@@ -12,7 +12,7 @@ public sealed class LeaseCreation
     [Required(ErrorMessage = "Bitte den Mietbeginn angeben.")]
     public DateOnly? Start { get; set; }
 
-    /// <summary>Nur bei Zeitmietverträgen (§ 575 BGB).</summary>
+    /// <summary>Only for fixed-term leases (§ 575 BGB).</summary>
     public DateOnly? FixedTermUntil { get; set; }
 
     [MinLength(1, ErrorMessage = "Bitte mindestens einen Mieter wählen.")]
@@ -42,7 +42,7 @@ public sealed class LeaseCreation
     public LeaseInput Data { get; set; } = new();
 }
 
-/// <summary>Nicht zeitabhängige Vertragsangaben.</summary>
+/// <summary>Lease details that are not time-dependent.</summary>
 public sealed class LeaseInput
 {
     [Range(1, 10, ErrorMessage = "Bitte einen Werktag zwischen 1 und 10 angeben.")]
@@ -98,17 +98,17 @@ public sealed class TerminationInput
 
     public TerminatingParty By { get; set; }
 
-    /// <summary>Leer = gesetzliche Frist berechnen (§ 573c BGB).</summary>
+    /// <summary>Empty = calculate the statutory period (§ 573c BGB).</summary>
     public DateOnly? EffectiveDate { get; set; }
 }
 
-/// <summary>Mieterwechsel, Teil 1: Auszug (Vertragsende, neue Anschriften der Mieter).</summary>
+/// <summary>Tenant change, part 1: move-out (lease end, new addresses of the tenants).</summary>
 public sealed class MoveOutInput
 {
     [Required(ErrorMessage = "Bitte den letzten Tag des Mietverhältnisses angeben.")]
     public DateOnly? End { get; set; }
 
-    /// <summary>Neue Anschrift für alle Mieter (für die Zustellung der Abrechnung), optional.</summary>
+    /// <summary>New address for all tenants (for delivering the statement), optional.</summary>
     [StringLength(200)]
     public string? NewStreet { get; set; }
 
@@ -123,7 +123,7 @@ public sealed class RentModelInput
 {
     public RentModel Model { get; set; }
 
-    /// <summary>Indexmiete: Monat des Ausgangsindex.</summary>
+    /// <summary>Index rent: month of the base index.</summary>
     public DateOnly? IndexBaseMonth { get; set; }
 
     [Range(typeof(decimal), "1", "1000", ErrorMessage = "Bitte einen Indexwert wie 121,7 angeben.", ParseLimitsInInvariantCulture = true)]
@@ -142,7 +142,7 @@ public sealed class RentStepInput
 
 public sealed class IndexAdjustmentInput
 {
-    /// <summary>Zugang der Anpassungserklärung beim Mieter; die neue Miete gilt ab dem übernächsten Monat.</summary>
+    /// <summary>Receipt of the adjustment declaration by the tenant; the new rent applies from the month after next.</summary>
     [Required(ErrorMessage = "Bitte angeben, wann die Erklärung zugeht.")]
     public DateOnly? DeclaredOn { get; set; }
 }

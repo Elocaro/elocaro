@@ -1,11 +1,11 @@
 namespace MietHahn.Domain.Finance;
 
-/// <summary>Eine Forderung (Soll) oder ein Guthaben (Haben) für die Verrechnung, Betrag stets positiv.</summary>
-/// <param name="IsRent">Monatsmiete (für <see cref="AllocationOrder.RentFirst"/>).</param>
-/// <param name="Designation">Nur bei Guthaben: Forderung, die zuerst getilgt werden soll.</param>
+/// <summary>A claim (debit) or credit for allocation; amount is always positive.</summary>
+/// <param name="IsRent">Monthly rent (for <see cref="AllocationOrder.RentFirst"/>).</param>
+/// <param name="Designation">Credits only: claim that should be settled first.</param>
 public sealed record AllocationItem(Guid Id, DateOnly Date, decimal Amount, AllocationRank Rank = AllocationRank.PrincipalClaim, bool IsRent = false, Guid? Designation = null);
 
-/// <summary>Teil eines Guthabens, der eine Forderung tilgt; <see cref="Date"/> ist der Tag des Guthabens (Zufluss).</summary>
+/// <summary>Part of a credit that settles a claim; <see cref="Date"/> is the day of the credit (inflow).</summary>
 public sealed record AllocationShare(Guid CreditId, Guid ClaimId, decimal Amount, DateOnly Date);
 
 public sealed record AllocationResult(IReadOnlyList<AllocationShare> Shares, IReadOnlyDictionary<Guid, decimal> Open, decimal Overpayment)
@@ -14,10 +14,10 @@ public sealed record AllocationResult(IReadOnlyList<AllocationShare> Shares, IRe
 }
 
 /// <summary>
-/// Verteilt Zahlungen und Gutschriften auf Forderungen. Ein Guthaben tilgt zuerst die bestimmte Forderung, dann die
-/// zu seinem Datum fälligen Forderungen in der gewählten Reihenfolge. Was übrig bleibt (Vorauszahlung, Überzahlung),
-/// tilgt spätere Forderungen, sobald sie fällig werden. Forderungen gleichen Rangs und gleicher Fälligkeit (z. B. die
-/// Bestandteile einer Monatsmiete) werden anteilig getilgt.
+/// Distributes payments and credit notes across claims. A credit first settles the designated claim, then the
+/// claims due on its date in the chosen order. Whatever is left over (prepayment, overpayment)
+/// settles later claims as they fall due. Claims of equal rank and equal due date (e.g. the
+/// components of a monthly rent) are settled proportionally.
 /// </summary>
 public static class Allocation
 {
@@ -38,12 +38,12 @@ public static class Allocation
         var due = new List<AllocationItem>();
         var pool = new List<AllocationItem>();
 
-        // Zeitlich: am selben Tag werden Forderungen vor den Zahlungen fällig.
+        // Chronologically: on the same day, claims fall due before payments.
         var events = target.Select(f => (f.Date, Kind: 0, Items: f))
             .Concat(creditItems.Select(g => (g.Date, Kind: 1, Items: g)))
             .OrderBy(e => e.Date).ThenBy(e => e.Kind).ThenBy(e => e.Items.Id);
 
-        // Alle Ereignisse eines Tages und einer Art gemeinsam, damit z. B. alle Bestandteile einer Monatsmiete offen sind.
+        // All events of one day and kind together, so that e.g. all components of a monthly rent are open.
         foreach (var group in events.GroupBy(e => (e.Date, e.Kind)))
         {
             foreach (var (_, kind, items) in group)
@@ -99,7 +99,7 @@ public static class Allocation
             shares.Add(new AllocationShare(credit.Id, claim, amount, credit.Date));
         }
 
-        // Anteilig nach offenen Beträgen, Rundungsreste in Cent an die größten Nachkommareste.
+        // Proportional to open amounts; rounding remainders in cents go to the largest fractional remainders.
         IEnumerable<(Guid, decimal)> ProRata(List<AllocationItem> group, decimal amount)
         {
             var total = group.Sum(f => open[f.Id]);

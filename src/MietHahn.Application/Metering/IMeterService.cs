@@ -4,7 +4,7 @@ using MietHahn.Domain.Metering;
 
 namespace MietHahn.Application.Metering;
 
-/// <summary>Zähler eines Objekts, Zählerstände (mit Foto), Zählertausch und Verbrauch.</summary>
+/// <summary>Meters of a property, meter readings (with photo), meter replacement and consumption.</summary>
 public interface IMeterService
 {
     Task<IReadOnlyList<MeterRow>> ListAsync(Guid propertyId, bool includeRemoved = false, CancellationToken cancellationToken = default);
@@ -16,20 +16,20 @@ public interface IMeterService
     Task<Result> UpdateAsync(Guid id, MeterInput data, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Erfasst einen Stand. Bei Auffälligkeiten (Rückwärtslauf, Ausreißer) wird ohne <see cref="ReadingInput.Confirmed"/>
-    /// nicht gespeichert, sondern die Warnungen kommen zurück.
+    /// Records a reading. For anomalies (backward running, outliers) it is not saved without <see cref="ReadingInput.Confirmed"/>;
+    /// instead the warnings are returned.
     /// </summary>
     Task<ReadingResult> RecordReadingAsync(Guid id, ReadingInput input, Guid? photoFileId = null, CancellationToken cancellationToken = default);
 
     Task<Result> RemoveReadingAsync(Guid id, Guid readingId, CancellationToken cancellationToken = default);
 
-    /// <summary>Baut den Zähler aus und legt den neuen Zähler der Messstelle an (liefert dessen Id).</summary>
+    /// <summary>Removes the meter and creates the new meter of the measuring point (returns its id).</summary>
     Task<Result> ReplaceAsync(Guid id, ReplacementInput input, CancellationToken cancellationToken = default);
 
-    /// <summary>Aktive Zähler in Ablesereihenfolge, optional nur einer Einheit (z. B. bei Mieterwechsel).</summary>
+    /// <summary>Active meters in reading order, optionally only of one unit (e.g. on tenant change).</summary>
     Task<IReadOnlyList<MeterRow>> RoundAsync(Guid propertyId, Guid? unitId = null, CancellationToken cancellationToken = default);
 
-    /// <summary>Verbrauch der Messstelle (über Zählertausch hinweg) im Zeitraum.</summary>
+    /// <summary>Consumption of the measuring point (across meter replacements) in the period.</summary>
     Task<Consumption?> ConsumptionAsync(Guid id, Period period, CancellationToken cancellationToken = default);
 }
 
@@ -58,7 +58,7 @@ public sealed record MeterRow(
 
 public sealed record AnnualConsumption(int Year, Consumption Consumption);
 
-/// <summary>Differenz Hauptzähler − Summe der Unterzähler (Allgemeinverbrauch, Schwund) für ein Jahr.</summary>
+/// <summary>Difference main meter − sum of sub-meters (common consumption, loss) for a year.</summary>
 public sealed record SubMeterBalance(int Year, decimal? MainMeter, decimal? SubMeterTotal, decimal? Difference, IReadOnlyList<string> Hints);
 
 public sealed record MeterDetails(

@@ -9,7 +9,7 @@ public enum Furnishing
     Furnished = 2,
 }
 
-/// <summary>Einzeln vermietetes Zimmer einer WG-<see cref="Unit"/>.</summary>
+/// <summary>Individually rented room of a shared-flat <see cref="Unit"/>.</summary>
 public sealed class Room : Entity
 {
     private Room()
@@ -27,7 +27,7 @@ public sealed class Room : Entity
 
     public Guid UnitId { get; private set; }
 
-    /// <summary>z. B. „Zimmer 1“ oder „Zimmer Nord“.</summary>
+    /// <summary>E.g. "Zimmer 1" or "Zimmer Nord".</summary>
     public string Name { get; set; }
 
     public int Order { get; set; }
@@ -38,7 +38,7 @@ public sealed class Room : Entity
 
     public List<RoomArea> Areas { get; private set; } = [];
 
-    /// <summary>Zimmerfläche und anteilige Gemeinschaftsfläche der WG (Küche, Bad, Flur) ab dem Stichtag.</summary>
+    /// <summary>Room area and proportional common area of the shared flat (kitchen, bath, hallway) from the effective date.</summary>
     public RoomArea SetArea(DateOnly from, decimal area, decimal commonAreaShare = 0) =>
         TimeSeries.CarryForward(Areas, from, g => new RoomArea(Id, g, area, commonAreaShare));
 
@@ -67,10 +67,10 @@ public sealed class RoomArea : Entity, ITimeDependent
 
     public decimal Area { get; private set; }
 
-    /// <summary>Auf das Zimmer entfallender Teil der WG-Gemeinschaftsflächen in m².</summary>
+    /// <summary>Share of the shared flat's common areas attributable to the room, in m².</summary>
     public decimal CommonAreaShare { get; private set; }
 
-    /// <summary>Fläche für Umlagen nach Fläche: Zimmer + Anteil an Gemeinschaftsflächen.</summary>
+    /// <summary>Area for allocation by area: room plus share of the common areas.</summary>
     public decimal AllocationArea => Area + CommonAreaShare;
 
     public void EndValidity(DateOnly lastDay) => Validity = Validity.EndOn(lastDay);

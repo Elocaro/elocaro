@@ -1,13 +1,13 @@
 namespace MietHahn.Domain.Common;
 
 /// <summary>
-/// Basis aller persistierten Entitäten. Audit-Felder, Löschkennzeichen und Version setzt ausschließlich die
-/// Infrastruktur beim Speichern (über den EF-Change-Tracker), daher sind die Setter privat.
-/// Gelöscht wird nur logisch (<see cref="Deleted"/>).
+/// Base of all persisted entities. Audit fields, deletion flag and version are set exclusively by the
+/// infrastructure on save (via the EF change tracker), hence the setters are private.
+/// Deletion is logical only (<see cref="Deleted"/>).
 /// </summary>
 public abstract class Entity
 {
-    /// <summary>Zeitlich sortierbare GUID (v7), damit Indizes nicht fragmentieren.</summary>
+    /// <summary>Time-sortable GUID (v7) so that indexes do not fragment.</summary>
     public Guid Id { get; protected set; } = Guid.CreateVersion7();
 
     public DateTimeOffset CreatedAt { get; private set; }
@@ -20,6 +20,6 @@ public abstract class Entity
 
     public bool Deleted { get; private set; }
 
-    /// <summary>Optimistische Nebenläufigkeit (in PostgreSQL auf die Systemspalte <c>xmin</c> abgebildet).</summary>
+    /// <summary>Optimistic concurrency (mapped to the system column <c>xmin</c> in PostgreSQL).</summary>
     public uint Version { get; private set; }
 }

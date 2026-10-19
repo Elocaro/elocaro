@@ -10,7 +10,7 @@ public enum Salutation
     Diverse = 3,
 }
 
-/// <summary>Kontakte mit besonderer Funktion. Mieter und Bürgen ergeben sich aus den Verträgen.</summary>
+/// <summary>Contacts with a special function. Tenants and guarantors are derived from the leases.</summary>
 public enum ContactType
 {
     None = 0,
@@ -24,8 +24,8 @@ public enum ContactType
 }
 
 /// <summary>
-/// Natürliche Person oder Firma: Mieter, Bürge, Hausmeister, Handwerker, Versorger … Anschriften sind zeitabhängig
-/// (Voranschrift, aktuelle Anschrift, neue Anschrift nach Auszug für die Zustellung der Abrechnung).
+/// Natural person or company: tenant, guarantor, caretaker, tradesperson, utility ... Addresses are time-dependent
+/// (previous address, current address, new address after move-out for delivering the statement).
 /// </summary>
 public sealed class Person : Entity
 {
@@ -47,15 +47,15 @@ public sealed class Person : Entity
 
     public string? FirstName { get; set; }
 
-    /// <summary>Nachname bzw. bei Firmen der Firmenname.</summary>
+    /// <summary>Last name or, for companies, the company name.</summary>
     public string LastName { get; set; }
 
-    /// <summary>Firma (bei Kontakten) bzw. Zusatz, z. B. „Stadtwerke Köln GmbH“.</summary>
+    /// <summary>Company (for contacts) or addition, e.g. "Stadtwerke Köln GmbH".</summary>
     public string? Company { get; set; }
 
     public ContactType ContactType { get; set; }
 
-    /// <summary>Gewerk (Handwerker) oder Sparte (Versorger), z. B. „Sanitär“, „Wasser“.</summary>
+    /// <summary>Trade (tradesperson) or sector (utility), e.g. "Sanitär", "Wasser".</summary>
     public string? Occupation { get; set; }
 
     [Confidential]
@@ -69,10 +69,10 @@ public sealed class Person : Entity
 
     public string? Notes { get; set; }
 
-    /// <summary>Verknüpftes Benutzerkonto (Portal, Servicebereich).</summary>
+    /// <summary>Linked user account (portal, service area).</summary>
     public Guid? UserId { get; set; }
 
-    /// <summary>Gesetzt, wenn die personenbezogenen Daten nach Ablauf der Aufbewahrungsfrist entfernt wurden.</summary>
+    /// <summary>Set when the personal data was removed after the retention period expired.</summary>
     public DateTimeOffset? AnonymizedAt { get; private set; }
 
     public List<PersonAddress> Addresses { get; private set; } = [];
@@ -81,7 +81,7 @@ public sealed class Person : Entity
 
     public bool IsAnonymized => AnonymizedAt is not null;
 
-    /// <summary>„Dr. Anna Schmidt“ bzw. „Stadtwerke Köln GmbH (Max Müller)“.</summary>
+    /// <summary>"Dr. Anna Schmidt" or "Stadtwerke Köln GmbH (Max Müller)".</summary>
     public string DisplayName
     {
         get
@@ -91,7 +91,7 @@ public sealed class Person : Entity
         }
     }
 
-    /// <summary>Für sortierte Listen: „Schmidt, Anna“.</summary>
+    /// <summary>For sorted lists: "Schmidt, Anna".</summary>
     public string SortName => FirstName is null ? LastName : $"{LastName}, {FirstName}";
 
     public void Validate()
@@ -103,7 +103,7 @@ public sealed class Person : Entity
         }
     }
 
-    /// <summary>Neue Anschrift ab Stichtag (Umzug); die bisherige endet am Vortag.</summary>
+    /// <summary>New address from the effective date (move); the previous one ends the day before.</summary>
     public PersonAddress SetAddress(DateOnly from, string street, string postalCode, string city, string? supplement = null, string country = "Deutschland")
     {
         Validate();
@@ -132,8 +132,8 @@ public sealed class Person : Entity
     }
 
     /// <summary>
-    /// Entfernt alle personenbezogenen Daten (DSGVO, nach Ablauf der Aufbewahrungsfrist). Die Person bleibt als Datensatz
-    /// erhalten, damit Buchungen und Verträge auswertbar bleiben.
+    /// Removes all personal data (GDPR, after the retention period has expired). The person remains as a record
+    /// so that postings and leases stay analyzable.
     /// </summary>
     public void Anonymize(DateTimeOffset timestamp)
     {
@@ -188,7 +188,7 @@ public sealed class PersonAddress : Entity, ITimeDependent
 
     public Period Validity { get; private set; }
 
-    /// <summary>z. B. „c/o Müller“ oder „Wohnung 4“.</summary>
+    /// <summary>E.g. "c/o Müller" or "Wohnung 4".</summary>
     public string? AddressLine2 { get; private set; }
 
     public string Street { get; private set; }
@@ -204,7 +204,7 @@ public sealed class PersonAddress : Entity, ITimeDependent
     public void EndValidity(DateOnly lastDay) => Validity = Validity.EndOn(lastDay);
 }
 
-/// <summary>Konto einer Person: für Lastschrift/Erstattung und die automatische Zuordnung eingehender Zahlungen.</summary>
+/// <summary>Account of a person: for direct debit/refund and the automatic matching of incoming payments.</summary>
 public sealed class BankDetails : Entity
 {
     private BankDetails()
@@ -222,11 +222,11 @@ public sealed class BankDetails : Entity
 
     public Guid PersonId { get; private set; }
 
-    /// <summary>Formatiert in Vierergruppen.</summary>
+    /// <summary>Formatted in groups of four.</summary>
     [Confidential]
     public string Iban { get; private set; }
 
-    /// <summary>Falls abweichend, z. B. Eltern zahlen die Miete.</summary>
+    /// <summary>If different, e.g. parents pay the rent.</summary>
     public string? AccountHolder { get; private set; }
 
     public string? Bic { get; private set; }

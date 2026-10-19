@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations;
 namespace MietHahn.Application.Common;
 
 /// <summary>
-/// Wie <see cref="EmailAddressAttribute"/>, aber leer ist erlaubt. Formulare liefern für leere Felder <c>""</c>,
-/// das <see cref="EmailAddressAttribute"/> als ungültig ablehnt.
+/// Like <see cref="EmailAddressAttribute"/>, but empty is allowed. Forms submit <c>""</c> for empty fields,
+/// which <see cref="EmailAddressAttribute"/> rejects as invalid.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class OptionalEmailAttribute : ValidationAttribute

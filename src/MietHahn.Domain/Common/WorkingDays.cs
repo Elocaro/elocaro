@@ -1,16 +1,16 @@
 namespace MietHahn.Domain.Common;
 
 /// <summary>
-/// Werktage für Mietfristen: Montag bis Freitag ohne bundesweite Feiertage. Der Samstag zählt bei Miet- und
-/// Kündigungsfristen nicht als Werktag (BGH VIII ZR 291/09 zur Mietzahlung, § 573c BGB analog angewandt).
-/// Landesfeiertage sind nicht berücksichtigt (sicherer Fall: eher ein Tag früher).
+/// Working days for rental deadlines: Monday to Friday excluding nationwide public holidays. Saturday does not count as a
+/// working day for rent and notice periods (BGH VIII ZR 291/09 on rent payment, § 573c BGB applied by analogy).
+/// State holidays are not considered (safe side: rather one day earlier).
 /// </summary>
 public static class WorkingDays
 {
     public static bool IsWorkingDay(DateOnly day) =>
         day.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && !IsNationwideHoliday(day);
 
-    /// <summary>Der n-te Werktag eines Monats, z. B. Fälligkeit der Miete am 3. Werktag (§ 556b BGB).</summary>
+    /// <summary>The n-th working day of a month, e.g. rent due on the 3rd working day (§ 556b BGB).</summary>
     public static DateOnly NthWorkingDay(int year, int month, int n)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(n, 1);
@@ -31,13 +31,13 @@ public static class WorkingDays
     {
         var easter = EasterSunday(day.Year);
         return (day.Month, day.Day) is (1, 1) or (5, 1) or (10, 3) or (12, 25) or (12, 26)
-            || day == easter.AddDays(-2) // Karfreitag
-            || day == easter.AddDays(1) // Ostermontag
-            || day == easter.AddDays(39) // Christi Himmelfahrt
-            || day == easter.AddDays(50); // Pfingstmontag
+            || day == easter.AddDays(-2) // Good Friday
+            || day == easter.AddDays(1) // Easter Monday
+            || day == easter.AddDays(39) // Ascension Day
+            || day == easter.AddDays(50); // Whit Monday
     }
 
-    /// <summary>Ostersonntag nach der Gaußschen Osterformel (gregorianischer Kalender).</summary>
+    /// <summary>Easter Sunday according to the Gauss Easter formula (Gregorian calendar).</summary>
     public static DateOnly EasterSunday(int year)
     {
         var a = year % 19;

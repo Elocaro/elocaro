@@ -4,14 +4,14 @@ using MietHahn.Domain.Receipts;
 
 namespace MietHahn.Application.Receipts;
 
-/// <summary>Eingangsrechnungen mit Dateien und Aufteilung in Kostenpositionen.</summary>
+/// <summary>Incoming invoices with files and split into cost items.</summary>
 public interface IReceiptService
 {
     Task<IReadOnlyList<ReceiptRow>> SearchAsync(ReceiptQuery query, CancellationToken cancellationToken = default);
 
     Task<ReceiptDetails?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Legt den Beleg zu bereits gespeicherten Dateien an, optional gleich mit einer Position über den ganzen Betrag.</summary>
+    /// <summary>Creates the receipt for already stored files, optionally right away with one item for the whole amount.</summary>
     Task<Result> CreateAsync(ReceiptInput data, IReadOnlyList<Guid> fileIds, CostItemInput? position = null, CancellationToken cancellationToken = default);
 
     Task<Result> UpdateAsync(Guid id, ReceiptInput data, CancellationToken cancellationToken = default);
@@ -29,8 +29,8 @@ public interface IReceiptService
     Task<ReceiptOptions> OptionsAsync(CancellationToken cancellationToken = default);
 }
 
-/// <param name="Year">Rechnungsdatum oder Leistungszeitraum im Jahr.</param>
-/// <param name="Unpaid">Weder Zahlungsdatum noch zugeordneter Umsatz.</param>
+/// <param name="Year">Invoice date or service period within the year.</param>
+/// <param name="Unpaid">Neither payment date nor assigned transaction.</param>
 public sealed record ReceiptQuery(
     int? Year = null,
     Guid? PropertyId = null,
@@ -88,7 +88,7 @@ public sealed class CostItemInput
     [Required(ErrorMessage = "Bitte die Kostenart wählen.")]
     public string CostType { get; set; } = "";
 
-    /// <summary>Leer = noch nicht aufgeteilter Rest.</summary>
+    /// <summary>Empty = remaining part not yet split.</summary>
     [Range(typeof(decimal), "-1000000", "1000000", ParseLimitsInInvariantCulture = true)]
     public decimal? Amount { get; set; }
 
@@ -97,12 +97,12 @@ public sealed class CostItemInput
 
     public Guid? UnitId { get; set; }
 
-    /// <summary>Leer = Leistungszeitraum bzw. Kalenderjahr des Rechnungsdatums.</summary>
+    /// <summary>Empty = service period or calendar year of the invoice date.</summary>
     public DateOnly? From { get; set; }
 
     public DateOnly? To { get; set; }
 
-    /// <summary>Leer = laut Kostenart.</summary>
+    /// <summary>Empty = according to the cost type.</summary>
     public bool? Allocable { get; set; }
 
     public Section35a Section35a { get; set; }

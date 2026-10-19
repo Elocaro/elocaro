@@ -25,19 +25,19 @@ public enum ReadingType
     Reading = 0,
     Estimate = 1,
 
-    /// <summary>Zusätzliche Ablesung, z. B. bei Mieterwechsel.</summary>
+    /// <summary>Additional reading, e.g. on tenant change.</summary>
     InterimReading = 2,
 
-    /// <summary>Anfangsstand beim Einbau.</summary>
+    /// <summary>Initial reading at installation.</summary>
     Installation = 3,
 
-    /// <summary>Endstand beim Ausbau (Zählertausch).</summary>
+    /// <summary>Final reading at removal (meter replacement).</summary>
     Removal = 4,
 }
 
 /// <summary>
-/// Physischer Zähler. Beim Tausch wird ein neuer Zähler mit Verweis auf den alten (<see cref="PredecessorId"/>) angelegt;
-/// zusammen bilden sie eine Messstelle, über die der Verbrauch durchgängig berechnet wird.
+/// Physical meter. On replacement a new meter is created that refers to the old one (<see cref="PredecessorId"/>);
+/// together they form a measuring point over which consumption is calculated continuously.
 /// </summary>
 public sealed class Meter : Entity
 {
@@ -63,7 +63,7 @@ public sealed class Meter : Entity
 
     public Guid PropertyId { get; private set; }
 
-    /// <summary>Zugeordnete Einheit (Wohnungszähler); <c>null</c> = Hauszähler (Haupt-, Allgemeinzähler).</summary>
+    /// <summary>Assigned unit (apartment meter); <c>null</c> = house meter (main or common meter).</summary>
     public Guid? UnitId { get; private set; }
 
     public Guid? RoomId { get; private set; }
@@ -72,28 +72,28 @@ public sealed class Meter : Entity
 
     public MeasurementUnit MeasurementUnit { get; set; }
 
-    /// <summary>z. B. „Kaltwasser Bad“ oder „Hauptwasserzähler“.</summary>
+    /// <summary>E.g. "Kaltwasser Bad" or "Hauptwasserzähler".</summary>
     public string Name { get; set; }
 
     public string Number { get; set; }
 
-    /// <summary>Wo der Zähler hängt, z. B. „Keller, Raum 2“.</summary>
+    /// <summary>Where the meter is installed, e.g. "Keller, Raum 2".</summary>
     public string? Location { get; set; }
 
-    /// <summary>Übergeordneter Zähler (z. B. Hauptwasserzähler); Differenz = Allgemeinverbrauch/Schwund.</summary>
+    /// <summary>Parent meter (e.g. main water meter); difference = common consumption/loss.</summary>
     public Guid? MainMeterId { get; set; }
 
-    /// <summary>Alter Zähler derselben Messstelle (Zählertausch).</summary>
+    /// <summary>Old meter of the same measuring point (meter replacement).</summary>
     public Guid? PredecessorId { get; private set; }
 
     public DateOnly InstalledOn { get; private set; }
 
     public DateOnly? RemovedOn { get; private set; }
 
-    /// <summary>Ende der Eichgültigkeit (Wasser 6 J., Warmwasser/Wärme 5 J., Gas/Strom 8 J. ab Einbau).</summary>
+    /// <summary>End of calibration validity (water 6 y, hot water/heat 5 y, gas/electricity 8 y from installation).</summary>
     public DateOnly? CalibrationDueDate { get; set; }
 
-    /// <summary>Reihenfolge in der Ablese-Runde.</summary>
+    /// <summary>Order in the reading round.</summary>
     public int Order { get; set; }
 
     public string? Notes { get; set; }
@@ -114,8 +114,8 @@ public sealed class Meter : Entity
     }
 
     /// <summary>
-    /// Erfasst einen Stand. Fehler (z. B. vor dem Einbau) werfen; Auffälligkeiten (Rückwärtslauf, Ausreißer) liefert
-    /// <see cref="Validate"/> vorab, damit die Oberfläche nachfragen kann.
+    /// Records a reading. Errors (e.g. before installation) throw; anomalies (backward running, outliers) are returned by
+    /// <see cref="Validate"/> beforehand so that the UI can ask for confirmation.
     /// </summary>
     public MeterReading RecordReading(DateOnly date, decimal value, ReadingType kind, string? readBy, Guid? photoFileId = null, string? note = null)
     {
@@ -150,8 +150,8 @@ public sealed class Meter : Entity
         Readings.Remove(entry);
     }
 
-    /// <summary>Plausibilitätsprüfung eines neuen Werts gegen die vorhandenen Stände.</summary>
-    /// <param name="outlierPercent">Ab welcher Abweichung des Tagesverbrauchs vom bisherigen Durchschnitt gewarnt wird.</param>
+    /// <summary>Plausibility check of a new value against the existing readings.</summary>
+    /// <param name="outlierPercent">Deviation of the daily consumption from the previous average above which a warning is raised.</param>
     public IReadOnlyList<string> Validate(DateOnly date, decimal value, int outlierPercent = 50)
     {
         var warnings = new List<string>();
@@ -167,7 +167,7 @@ public sealed class Meter : Entity
             warnings.Add(Text($"Der Wert ist größer als der spätere Stand vom {after.Date:dd.MM.yyyy} ({after.Value:#,##0.###})."));
         }
 
-        // Ausreißer: Tagesverbrauch seit der letzten Ablesung im Vergleich zum Durchschnitt davor
+        // Outlier: daily consumption since the last reading compared to the average before it
         var first = Readings.Where(s => s.Date < date).MinBy(s => s.Date);
         if (before is not null && first is not null && before != first && value >= before.Value && date > before.Date)
         {
@@ -184,7 +184,7 @@ public sealed class Meter : Entity
 
     private static string Text(FormattableString text) => text.ToString(System.Globalization.CultureInfo.GetCultureInfo("de-DE"));
 
-    /// <summary>Baut den Zähler aus (Endstand) und liefert den neuen Zähler der Messstelle mit Anfangsstand.</summary>
+    /// <summary>Removes the meter (final reading) and returns the new meter of the measuring point with its initial reading.</summary>
     public Meter Replace(DateOnly date, decimal finalReading, string newNumber, decimal initialReading, DateOnly? calibrationDue = null)
     {
         if (RemovedOn is not null)
@@ -228,10 +228,10 @@ public sealed class Meter : Entity
     {
         MeterType.Heat or MeterType.Electricity => MeasurementUnit.KilowattHours,
         MeterType.OilTank => MeasurementUnit.Liters,
-        _ => MeasurementUnit.CubicMeters, // Wasser, Gas
+        _ => MeasurementUnit.CubicMeters, // Water, gas
     };
 
-    /// <summary>Eichfristen nach Anlage 7 MessEV (Kaltwasser 6, Warmwasser und Wärme 5, Gas und Strom 8 Jahre).</summary>
+    /// <summary>Calibration periods under Anlage 7 MessEV (cold water 6, hot water and heat 5, gas and electricity 8 years).</summary>
     public static DateOnly? DefaultCalibrationDue(MeterType type, DateOnly installedAt) => type switch
     {
         MeterType.ColdWater => new DateOnly(installedAt.Year + 6, 12, 31),
@@ -273,7 +273,7 @@ public sealed class MeterReading : Entity
 
     public string? ReadBy { get; private set; }
 
-    /// <summary>Foto des Zählerstands als Nachweis.</summary>
+    /// <summary>Photo of the meter reading as proof.</summary>
     public Guid? PhotoFileId { get; private set; }
 
     public string? Note { get; private set; }
