@@ -20,7 +20,14 @@ public sealed class ReceiptExtractionOptions
 {
     public const string Section = "ReceiptExtraction";
 
-    public ExtractionProvider Provider { get; set; } = ExtractionProvider.None;
+    /// <summary>"None" (default), "Claude" or "Ollama"; empty means None.</summary>
+    public string? Provider { get; set; }
+
+    /// <summary>The parsed <see cref="Provider"/>; <c>null</c> if the name is unknown.</summary>
+    public ExtractionProvider? ProviderKind =>
+        string.IsNullOrWhiteSpace(Provider) ? ExtractionProvider.None
+        : Enum.TryParse<ExtractionProvider>(Provider.Trim(), ignoreCase: true, out var kind) && Enum.IsDefined(kind) ? kind
+        : null;
 
     /// <summary>
     /// Explicit consent that documents may be sent to an external provider (Claude). Without it, the Claude provider

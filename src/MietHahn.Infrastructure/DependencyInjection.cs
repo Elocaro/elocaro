@@ -178,8 +178,8 @@ public static class DependencyInjection
         services.Configure<ReceiptExtractionOptions>(configuration.GetSection(ReceiptExtractionOptions.Section));
         services.AddHttpClient<ClaudeReceiptExtractor>().ConfigureHttpClient(http => http.Timeout = Timeout.InfiniteTimeSpan);
         services.AddHttpClient<OllamaReceiptExtractor>().ConfigureHttpClient(http => http.Timeout = Timeout.InfiniteTimeSpan);
-        services.AddSingleton<NoReceiptExtractor>();
-        services.AddScoped<IReceiptExtractor>(sp => sp.GetRequiredService<IOptions<ReceiptExtractionOptions>>().Value.Provider switch
+        services.AddScoped<NoReceiptExtractor>();
+        services.AddScoped<IReceiptExtractor>(sp => sp.GetRequiredService<IOptions<ReceiptExtractionOptions>>().Value.ProviderKind switch
         {
             ExtractionProvider.Claude => sp.GetRequiredService<ClaudeReceiptExtractor>(),
             ExtractionProvider.Ollama => sp.GetRequiredService<OllamaReceiptExtractor>(),

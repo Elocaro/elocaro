@@ -65,7 +65,7 @@ internal sealed class ReceiptExtraction(IFileStore files, IReceiptExtractor extr
             var wanted = SupplierCostTypeRule.Normalize(suggestion.SupplierName.Value);
             var contacts = await db.Set<Person>().AsNoTracking()
                 .Where(p => p.ContactType != ContactType.None && p.AnonymizedAt == null).ToListAsync(cancellationToken);
-            var matches = contacts.Where(p => SupplierCostTypeRule.Normalize(p.DisplayName) == wanted).ToList();
+            var matches = contacts.Where(p => Names(p).Any(n => SupplierCostTypeRule.Normalize(n) == wanted)).ToList();
             if (matches.Count == 1)
             {
                 supplierId = matches[0].Id;
@@ -90,4 +90,9 @@ internal sealed class ReceiptExtraction(IFileStore files, IReceiptExtractor extr
 
         return new ExtractionOutcome(suggestion, usage, null, supplierId);
     }
+
+    /// <summary>A document usually names the company, sometimes the person.</summary>
+    private static IEnumerable<string> Names(Person person) =>
+        new[] { person.Company, string.Join(' ', new[] { person.FirstName, person.LastName }.Where(t => !string.IsNullOrWhiteSpace(t))), person.DisplayName }
+            .Where(n => !string.IsNullOrWhiteSpace(n))!;
 }
