@@ -4,7 +4,7 @@ namespace MietHahn.Infrastructure.Bank.Import;
 
 internal sealed record ParsedFile(BankFormat Format, string? Profile, BankStatement MoveOut);
 
-/// <summary>Erkennt das Format (camt.053, MT940, CSV mit passendem Profil) und liest die Datei.</summary>
+/// <summary>Detects the format (camt.053, MT940, CSV with a matching profile) and reads the file.</summary>
 internal static class BankFileReader
 {
     public static ParsedFile Read(byte[] content, IReadOnlyList<CsvProfile> profiles, string? profileName = null)

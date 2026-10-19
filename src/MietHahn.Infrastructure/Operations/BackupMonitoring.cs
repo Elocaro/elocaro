@@ -12,7 +12,7 @@ using Quartz;
 
 namespace MietHahn.Infrastructure.Operations;
 
-/// <summary>Zeigt ein Problem mit der Sicherung im Dashboard (für Konten mit Systemrecht).</summary>
+/// <summary>Shows a backup problem on the dashboard (for accounts with the system permission).</summary>
 internal sealed class BackupTodos(IBackupStatus status) : ITodoSource
 {
     public const string Link = "/verwaltung/system/datensicherung";
@@ -32,7 +32,7 @@ internal sealed class BackupTodos(IBackupStatus status) : ITodoSource
     }
 }
 
-/// <summary>Meldet „Degraded“, wenn die letzte Sicherung fehlgeschlagen oder zu alt ist (die App bleibt erreichbar).</summary>
+/// <summary>Reports "Degraded" if the last backup failed or is too old (the app remains reachable).</summary>
 internal sealed class BackupHealthCheck(IBackupStatus status) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -42,14 +42,14 @@ internal sealed class BackupHealthCheck(IBackupStatus status) : IHealthCheck
     }
 }
 
-/// <summary>Schickt allen aktiven Admins eine Warnung, solange die Sicherung nicht in Ordnung ist (einmal täglich).</summary>
+/// <summary>Sends a warning to all active admins as long as the backup is not healthy (once a day).</summary>
 internal sealed class BackupWarning(
     IBackupStatus status,
     MietHahnDbContext db,
     IMailSender mailSending,
     IOptions<ApplicationOptions> app)
 {
-    /// <returns>Anzahl der benachrichtigten Admins.</returns>
+    /// <returns>Number of admins notified.</returns>
     public async Task<int> ValidateAsync(CancellationToken cancellationToken = default)
     {
         var state = await status.QueryAsync(cancellationToken);

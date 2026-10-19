@@ -6,7 +6,7 @@ using Quartz;
 
 namespace MietHahn.Infrastructure.Audit;
 
-/// <summary>Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfristen (Änderungen und Zugriffe getrennt).</summary>
+/// <summary>Deletes audit entries after the retention periods expire (changes and access logged separately).</summary>
 [DisallowConcurrentExecution]
 internal sealed class AuditCleanupJob(AuditCleanup cleanup) : IJob
 {

@@ -83,7 +83,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
             var target = new HashSet<(DateOnly, RentComponentType)>();
             foreach (var month in ChargeCalculation.Months(lease, from, toMonth))
             {
-                // Fällig am n-ten Werktag, bei Einzug im Monat frühestens am Einzugstag.
+                // Due on the n-th working day; if the tenant moves in during the month, no earlier than the move-in day.
                 var due = WorkingDays.NthWorkingDay(month.Year, month.Month, lease.DueOnWorkingDay);
                 if (lease.Start > due)
                 {
@@ -105,7 +105,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
                 }
             }
 
-            // Vertrag verkürzt, Bestandteil entfallen oder Buchhaltungsbeginn verschoben.
+            // Lease shortened, component dropped or accounting start moved.
             foreach (var surplus in existing.Where(b => !target.Contains(b.Key)))
             {
                 db.Remove(surplus.Value);
@@ -151,7 +151,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
                 throw new RuleViolationException("Monatsmieten ergeben sich aus dem Vertrag und lassen sich nicht löschen; bei Bedarf eine Gutschrift (Erstattung) anlegen.");
             }
 
-            // Tilgungsbestimmungen auf diese Forderung entfallen (FK ON DELETE SET NULL greift beim logischen Löschen nicht).
+            // Payment allocations to this receivable are dropped (FK ON DELETE SET NULL does not apply to soft deletion).
             await db.Set<Payment>().Where(z => z.ChargeId == chargeId).ExecuteUpdateAsync(u => u.SetProperty(z => z.ChargeId, (Guid?)null), cancellationToken);
             db.Remove(charge);
             await db.SaveChangesAsync(cancellationToken);
@@ -216,7 +216,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
         return items.OrderBy(p => p.Due).ThenBy(p => p.RentalUnit, StringComparer.CurrentCulture).ThenBy(p => RankOrder(charges[p.LeaseId].Single(s => s.Id == p.ChargeId))).ToList();
     }
 
-    /// <summary>Forderungen: positive Sollstellungen und Auszahlungen; Guthaben: Zahlungen und Gutschriften.</summary>
+    /// <summary>Receivables: positive charges and payouts; credits: payments and credit notes.</summary>
     internal static AllocationResult Allocate(IReadOnlyCollection<Charge> charges, IReadOnlyCollection<Payment> payments, AllocationOrder order)
     {
         var claims = charges.Where(s => s.Amount > 0).Select(s => new AllocationItem(s.Id, s.Due, s.Amount, s.Rank, s.Automatic))
@@ -259,7 +259,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
         }
     }
 
-    /// <summary>Am selben Tag: Bestandteile der Monatsmiete in fester Reihenfolge, dann sonstige Forderungen.</summary>
+    /// <summary>On the same day: components of the monthly rent in a fixed order, then other receivables.</summary>
     private static int RankOrder(Charge s) => s.Component is { } b ? (int)b : 100;
 
     private static string PaymentText(Payment z) => (z.Amount < 0 ? "Auszahlung" : "Zahlung") + (z.Purpose is { } purpose ? $": {purpose}" : "");
@@ -301,12 +301,12 @@ internal sealed class FinanceSettingsService(MietHahnDbContext db) : IFinanceSet
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>Der einzige Datensatz oder ein ungespeicherter mit Standardwerten.</summary>
+    /// <summary>The single record, or an unsaved one with default values.</summary>
     internal static async Task<FinanceSettings> GetOrCreateAsync(MietHahnDbContext db, CancellationToken cancellationToken) =>
         await db.Set<FinanceSettings>().OrderBy(f => f.CreatedAt).FirstOrDefaultAsync(cancellationToken) ?? new FinanceSettings();
 }
 
-/// <summary>Erzeugt täglich (idempotent) die Monatsmieten des laufenden Monats und holt fehlende nach.</summary>
+/// <summary>Creates the monthly rents of the current month daily (idempotent) and catches up on missing ones.</summary>
 [DisallowConcurrentExecution]
 internal sealed class ChargeJob(ITenantAccounts accounts) : IJob
 {
@@ -319,7 +319,7 @@ internal sealed class ChargeJob(ITenantAccounts accounts) : IJob
     }
 }
 
-/// <summary>Dashboard: Buchhaltungsbeginn fehlt; fällige Rückstände.</summary>
+/// <summary>Dashboard: accounting start missing; overdue arrears.</summary>
 internal sealed class FinanceTodos(MietHahnDbContext db, ITenantAccounts accounts) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
@@ -352,7 +352,7 @@ internal sealed class FinanceTodos(MietHahnDbContext db, ITenantAccounts account
     }
 }
 
-/// <summary>Mieterkonten der Verträge einer Person für die DSGVO-Auskunft.</summary>
+/// <summary>Tenant accounts of a person's leases for the GDPR access request.</summary>
 internal sealed class TenantAccountPersonalData(MietHahnDbContext db) : IPersonalDataSource
 {
     public string Section => "tenantAccounts";

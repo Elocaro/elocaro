@@ -4,7 +4,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Infrastructure.Common;
 
-/// <summary><see cref="Period"/> als <c>{"von":"2026-01-01","bis":null}</c> (ohne berechnete Eigenschaften).</summary>
+/// <summary><see cref="Period"/> as <c>{"von":"2026-01-01","bis":null}</c> (without computed properties).</summary>
 internal sealed class PeriodJsonConverter : JsonConverter<Period>
 {
     public override Period Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -39,7 +39,7 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.HasOne<BankAccount>().WithMany().HasForeignKey(u => u.BankAccountId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<BankImport>().WithMany().HasForeignKey(u => u.BankImportId).OnDelete(DeleteBehavior.SetNull);
 
-        // Duplikaterkennung auch bei gleichzeitigen Importen; gilt auch für gelöschte Umsätze (sonst kämen sie beim nächsten Import wieder).
+        // Duplicate detection also for concurrent imports; also applies to deleted transactions (otherwise they would reappear on the next import).
         builder.HasIndex(u => new { u.BankAccountId, u.Hash }).IsUnique();
         builder.HasIndex(u => new { u.BankAccountId, u.Status, u.BookingDate });
     }

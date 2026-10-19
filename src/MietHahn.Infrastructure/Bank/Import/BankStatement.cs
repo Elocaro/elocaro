@@ -4,10 +4,10 @@ using MietHahn.Domain.Bank;
 
 namespace MietHahn.Infrastructure.Bank.Import;
 
-/// <summary>Ergebnis eines Parsers: Kontonummer laut Datei (falls enthalten), Umsätze und Hinweise zu übersprungenen Zeilen.</summary>
+/// <summary>Result of a parser: account number according to the file (if present), transactions and notes on skipped lines.</summary>
 internal sealed record BankStatement(string? Iban, IReadOnlyList<ParsedTransaction> Transactions, IReadOnlyList<string> Hints);
 
-/// <summary>Die Datei ist kein lesbarer Kontoauszug; die Meldung ist für Benutzer formuliert.</summary>
+/// <summary>The file is not a readable bank statement; the message is worded for users.</summary>
 internal sealed class BankFileErrorException(string message) : Exception(message);
 
 internal static class TextDecoding
@@ -16,7 +16,7 @@ internal static class TextDecoding
 
     static TextDecoding() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-    /// <summary>„auto“: UTF-8 (mit oder ohne BOM), sonst Windows-1252, wie es deutsche Banken oft liefern.</summary>
+    /// <summary>„auto“: UTF-8 (with or without BOM), otherwise Windows-1252, as German banks often deliver.</summary>
     public static string Read(byte[] content, string encoding = "auto")
     {
         ArgumentNullException.ThrowIfNull(content);
@@ -45,7 +45,7 @@ internal static class TextDecoding
     }
 }
 
-/// <summary>Zerlegt einen SEPA-Verwendungszweck mit Kennungen (EREF+, MREF+, CRED+, SVWZ+, …).</summary>
+/// <summary>Splits a SEPA remittance information field with identifiers (EREF+, MREF+, CRED+, SVWZ+, …).</summary>
 internal static partial class SepaPurpose
 {
     public sealed record Parts(string Purpose, string? EndToEndId, string? MandateReference, string? CreditorId, string? DifferentName);

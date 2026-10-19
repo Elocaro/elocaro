@@ -8,7 +8,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Leases;
 
-/// <summary>Wer ein Mietobjekt an einem Tag gemietet hat (für Objektübersicht und Leerstand).</summary>
+/// <summary>Who rented a rental object on a given day (for the property overview and vacancy).</summary>
 internal sealed class LeaseOccupancy(MietHahnDbContext db) : IOccupancyLookup
 {
     public async Task<IReadOnlyDictionary<Guid, Occupancy>> AtAsync(IReadOnlyCollection<Guid> rentalUnitIds, DateOnly day, CancellationToken cancellationToken = default)
@@ -26,7 +26,7 @@ internal sealed class LeaseOccupancy(MietHahnDbContext db) : IOccupancyLookup
         db.Set<Lease>().AnyAsync(v => v.RentalUnitId == rentalUnitId, cancellationToken);
 }
 
-/// <summary>Mieter und Bürgen aus den Verträgen: Rollenanzeige, Löschsperre und Aufbewahrungsfrist.</summary>
+/// <summary>Tenants and guarantors from the leases: role display, deletion lock and retention period.</summary>
 internal sealed class LeasePersonalReferences(MietHahnDbContext db, TimeProvider clock) : IPersonReference
 {
     public async Task<IReadOnlyList<PersonRelation>> ReferencesAsync(IReadOnlyCollection<Guid> personIds, CancellationToken cancellationToken = default)
@@ -55,7 +55,7 @@ internal sealed class LeasePersonalReferences(MietHahnDbContext db, TimeProvider
     }
 }
 
-/// <summary>Verträge der Person für die DSGVO-Auskunft.</summary>
+/// <summary>Leases of the person for the GDPR access request.</summary>
 internal sealed class LeasePersonalData(MietHahnDbContext db) : IPersonalDataSource
 {
     public string Section => "leases";

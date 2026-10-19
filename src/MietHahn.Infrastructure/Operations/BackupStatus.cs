@@ -6,7 +6,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Infrastructure.Operations;
 
-/// <summary>Liest die Statusdatei, die <c>deploy/backup/miethahn-backup.sh</c> nach jedem Lauf schreibt.</summary>
+/// <summary>Reads the status file that <c>deploy/backup/miethahn-backup.sh</c> writes after every run.</summary>
 internal sealed class BackupStatus(IOptions<BackupOptions> options, TimeProvider clock) : IBackupStatus
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

@@ -7,7 +7,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Mail;
 
-/// <summary>Meldet endgültig fehlgeschlagene E-Mails im Dashboard (für Konten mit Systemrecht).</summary>
+/// <summary>Reports permanently failed emails on the dashboard (for accounts with the system permission).</summary>
 internal sealed class MailTodos(MietHahnDbContext db) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

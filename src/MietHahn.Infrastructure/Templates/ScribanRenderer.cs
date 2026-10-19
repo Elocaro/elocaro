@@ -9,12 +9,12 @@ using Scriban.Runtime;
 namespace MietHahn.Infrastructure.Templates;
 
 /// <summary>
-/// Rendert Scriban-Vorlagen für HTML-Ausgaben (Mails, PDFs).
+/// Renders Scriban templates for HTML output (emails, PDFs).
 /// <list type="bullet">
-/// <item>Alle Ausgaben werden HTML-escaped (Schutz vor eingeschleustem Markup aus Mieterdaten), außer <see cref="RawHtml"/>.</item>
-/// <item>Modell-Eigenschaften sind in snake_case verfügbar (<c>MieterName</c> → <c>mieter_name</c>).</item>
-/// <item>Unbekannte Variablen sind ein Fehler (<see cref="TemplateContext.StrictVariables"/>).</item>
-/// <item>Hilfsfunktionen: <c>geld</c>, <c>datum</c>, <c>zahl</c>, <c>text_zu_html</c> (Zeilenumbrüche erhalten).</item>
+/// <item>All output is HTML-escaped (protection against markup injected via tenant data), except <see cref="RawHtml"/>.</item>
+/// <item>Model properties are available in snake_case (<c>TenantName</c> → <c>tenant_name</c>).</item>
+/// <item>Unknown variables are an error (<see cref="TemplateContext.StrictVariables"/>).</item>
+/// <item>Helper functions: <c>money</c>, <c>date</c>, <c>number</c>, <c>text_to_html</c> (preserves line breaks).</item>
 /// </list>
 /// </summary>
 public sealed class ScribanRenderer
@@ -23,18 +23,18 @@ public sealed class ScribanRenderer
 
     private readonly ConcurrentDictionary<string, Template> cache = new(StringComparer.Ordinal);
 
-    /// <summary>Rendert eine im Infrastructure-Assembly eingebettete Vorlage (Pfad relativ, z. B. <c>Mail/Templates/test.sbn</c>).</summary>
+    /// <summary>Renders a template embedded in the Infrastructure assembly (relative path, e.g. <c>Mail/Templates/test.sbn</c>).</summary>
     public TemplateResult RenderEmbedded(string path, object? model, IReadOnlyDictionary<string, object?>? supplement = null)
     {
         var template = cache.GetOrAdd(path, p => Parse(EmbeddedResource.ReadText(p), p));
         return Render(template, model, supplement);
     }
 
-    /// <summary>Rendert einen Vorlagentext (z. B. aus der Datenbank, vom Benutzer gepflegt).</summary>
+    /// <summary>Renders template text (e.g. from the database, maintained by the user).</summary>
     public static TemplateResult RenderText(string templateText, object? model, IReadOnlyDictionary<string, object?>? supplement = null, string name = "template") =>
         Render(Parse(templateText, name), model, supplement);
 
-    /// <summary>Prüft eine Vorlage auf Syntaxfehler, ohne sie zu rendern.</summary>
+    /// <summary>Checks a template for syntax errors without rendering it.</summary>
     public static IReadOnlyList<string> Validate(string templateText)
     {
         var template = Template.Parse(templateText);
@@ -93,7 +93,7 @@ public sealed class ScribanRenderer
             new RawHtml(Html.Escape(text ?? "").ReplaceLineEndings("<br>"))));
     }
 
-    /// <summary>Escaped jede Ausgabe eines Ausdrucks, außer <see cref="RawHtml"/>.</summary>
+    /// <summary>Escapes every expression output, except <see cref="RawHtml"/>.</summary>
     private sealed class EscapingTemplateContext : TemplateContext
     {
         public override TemplateContext Write(SourceSpan span, object? textAsObject) =>
@@ -106,14 +106,14 @@ public sealed class ScribanRenderer
     }
 }
 
-/// <summary>Ergebnis eines Rendervorgangs inklusive der in der Vorlage per <c>capture</c> gesetzten Variablen.</summary>
+/// <summary>Result of a render, including the variables set in the template via <c>capture</c>.</summary>
 public sealed class TemplateResult(string html, ScriptObject variables)
 {
     public string Html { get; } = html;
 
     /// <summary>
-    /// Liest eine in der Vorlage gesetzte Variable als Klartext (z. B. <c>{{ capture subject }}…{{ end }}</c>).
-    /// Da die Ausgabe escaped wurde, wird hier wieder dekodiert.
+    /// Reads a variable set in the template as plain text (e.g. <c>{{ capture subject }}…{{ end }}</c>).
+    /// Because the output was escaped, it is decoded again here.
     /// </summary>
     public string? Variable(string name) =>
         variables.TryGetValue(name, out var value) && value is not null
@@ -139,8 +139,8 @@ public sealed class TemplateErrorException : Exception
 }
 
 /// <summary>
-/// Escaped nur die in HTML-Text und -Attributen kritischen Zeichen. Umlaute und andere Unicode-Zeichen bleiben
-/// lesbar erhalten (Dokumente sind UTF-8).
+/// Escapes only the characters that are critical in HTML text and attributes. Umlauts and other Unicode characters are
+/// kept readable (documents are UTF-8).
 /// </summary>
 public static class Html
 {
@@ -173,7 +173,7 @@ internal static class EmbeddedResource
 {
     private static readonly Assembly Assembly = typeof(EmbeddedResource).Assembly;
 
-    /// <summary>Liest eine eingebettete Ressource über ihren Pfad im Projekt (mit <c>/</c> getrennt).</summary>
+    /// <summary>Reads an embedded resource by its path in the project (separated by <c>/</c>).</summary>
     public static string ReadText(string path)
     {
         var name = Assembly.GetName().Name + "." + path.Replace('/', '.').Replace('\\', '.');

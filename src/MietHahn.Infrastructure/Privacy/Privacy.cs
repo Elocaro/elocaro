@@ -36,7 +36,7 @@ internal sealed class Privacy(
 
     public async Task<byte[]?> AccessReportAsync(Guid personId, CancellationToken cancellationToken = default)
     {
-        // Die Entitäten selbst serialisieren: neue Eigenschaften sind so automatisch in der Auskunft enthalten.
+        // Serialize the entities themselves: new properties are thus included in the access response automatically.
         var person = await db.Set<Person>().Include(p => p.Addresses).Include(p => p.BankDetails).AsSplitQuery()
             .AsNoTracking().SingleOrDefaultAsync(p => p.Id == personId, cancellationToken);
         if (person is null)
@@ -44,7 +44,7 @@ internal sealed class Privacy(
             return null;
         }
 
-        // Auch logisch gelöschte Einträge (z. B. entfernte IBAN) sind gespeicherte Daten.
+        // Soft-deleted entries (e.g. a removed IBAN) are stored data as well.
         var deletedAddresses = await db.Set<PersonAddress>().IgnoreQueryFilters().AsNoTracking().Where(a => a.PersonId == personId && a.Deleted).ToListAsync(cancellationToken);
         var deletedAccounts = await db.Set<BankDetails>().IgnoreQueryFilters().AsNoTracking().Where(b => b.PersonId == personId && b.Deleted).ToListAsync(cancellationToken);
         var childIds = person.Addresses.Select(a => a.Id).Concat(person.BankDetails.Select(b => b.Id))
@@ -63,7 +63,7 @@ internal sealed class Privacy(
             ["deletedEntries"] = new { Addresses = deletedAddresses, BankDetails = deletedAccounts },
             ["userAccount"] = await AccountAsync(person.UserId),
             ["references"] = await ReferencesAsync([personId], cancellationToken),
-            // Änderungsprotokoll im Klartext (inkl. sonst maskierter Werte wie IBAN): die Person hat Anspruch darauf.
+            // Change log in plain text (including otherwise masked values such as IBAN): the person is entitled to it.
             ["changeLog"] = log.Select(p => new { p.Timestamp, p.User, p.EntityType, p.Action, p.Purpose, Changes = JsonDocument.Parse(p.Changes).RootElement }),
         };
         foreach (var source in dataSources)
@@ -81,7 +81,7 @@ internal sealed class Privacy(
         var today = GermanTime.Today(clock.GetUtcNow());
         var cutoffWithoutReference = clock.GetUtcNow().AddMonths(-options.Value.MonthsWithoutRelation);
 
-        // Geschäftskontakte (Handwerker, Versorger …) werden nicht vorgeschlagen.
+        // Business contacts (tradespeople, utilities …) are not proposed.
         var people = await db.Set<Person>().AsNoTracking()
             .Where(p => p.AnonymizedAt == null && p.ContactType == ContactType.None)
             .Select(p => new { p.Id, p.FirstName, p.LastName, p.Company, p.Title, p.UserId, Entry = p.ModifiedAt ?? p.CreatedAt })
@@ -143,8 +143,8 @@ internal sealed class Privacy(
         person.Anonymize(clock.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
 
-        // Logisch gelöschte Anschriften/Konten enthielten noch die Daten: endgültig entfernen,
-        // ebenso die alten Werte im Änderungsprotokoll (das „Wer hat wann was geändert“ bleibt erhalten).
+        // Soft-deleted addresses/accounts still contained the data: remove them permanently,
+        // as well as the old values in the change log (the "who changed what and when" record is kept).
         var addresses = db.Set<PersonAddress>().IgnoreQueryFilters().Where(a => a.PersonId == personId);
         var accounts = db.Set<BankDetails>().IgnoreQueryFilters().Where(b => b.PersonId == personId);
         var ids = await addresses.Select(a => a.Id).Concat(accounts.Select(b => b.Id)).ToListAsync(cancellationToken);

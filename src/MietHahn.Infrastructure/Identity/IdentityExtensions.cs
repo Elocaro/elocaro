@@ -8,7 +8,7 @@ using MietHahn.Application.Accounts;
 
 namespace MietHahn.Infrastructure.Identity;
 
-/// <summary>Zusätzliche Claims: Anzeigename und ob Zwei-Faktor aktiv ist (für die 2FA-Pflicht).</summary>
+/// <summary>Additional claims: display name and whether two-factor is enabled (for the mandatory 2FA).</summary>
 internal sealed class MietHahnClaimsFactory(UserManager<ApplicationUser> user, RoleManager<Role> roles, IOptions<IdentityOptions> options)
     : UserClaimsPrincipalFactory<ApplicationUser, Role>(user, roles, options)
 {
@@ -26,7 +26,7 @@ public static class AccountClaims
     public const string DisplayName = "miethahn:anzeigename";
     public const string TwoFactorEnabled = "miethahn:2fa";
 
-    /// <summary>Benutzer einer Rolle mit 2FA-Pflicht, der Zwei-Faktor noch nicht eingerichtet hat.</summary>
+    /// <summary>User in a role with mandatory 2FA who has not yet set up two-factor.</summary>
     public static bool MustSetUpTwoFactor(ClaimsPrincipal user)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -36,7 +36,7 @@ public static class AccountClaims
     }
 }
 
-/// <summary>Gesperrte Konten dürfen sich nicht anmelden; erfolgreiche Anmeldungen werden vermerkt.</summary>
+/// <summary>Blocked accounts may not sign in; successful sign-ins are recorded.</summary>
 internal sealed class MietHahnSignInManager(
     UserManager<ApplicationUser> userManager,
     IHttpContextAccessor contextAccessor,
@@ -63,7 +63,7 @@ internal sealed class MietHahnSignInManager(
     }
 }
 
-/// <summary>Token-Anbieter für Einladungen (7 Tage gültig, getrennt vom Passwort-Reset mit 2 Stunden).</summary>
+/// <summary>Token provider for invitations (valid for 7 days, separate from the 2-hour password reset).</summary>
 internal sealed class InvitationTokenProvider(
     Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dataProtectionProvider,
     IOptions<InvitationTokenOptions> options,
@@ -72,10 +72,10 @@ internal sealed class InvitationTokenProvider(
 {
 }
 
-/// <summary>Namen der Token-Anbieter für Identity.</summary>
+/// <summary>Names of the token providers for Identity.</summary>
 public static class TokenProviders
 {
-    /// <summary>Einladungen (Passwort festlegen), 7 Tage gültig.</summary>
+    /// <summary>Invitations (set password), valid for 7 days.</summary>
     public const string Invitation = "Einladung";
 }
 

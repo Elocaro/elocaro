@@ -69,7 +69,7 @@ internal sealed partial class CpiService(MietHahnDbContext db) : ICpiService
         return new CpiImportResult(newItem, changed, equal, errors);
     }
 
-    /// <summary>Liest Monatswerte aus CSV-Zeilen; Kopf- und Fußzeilen ohne erkennbaren Monat werden übersprungen.</summary>
+    /// <summary>Reads monthly values from CSV lines; header and footer lines without a recognizable month are skipped.</summary>
     internal static (List<(DateOnly Month, decimal Value)> Values, List<string> Errors) Read(string csv)
     {
         var values = new Dictionary<DateOnly, decimal>();
@@ -85,7 +85,7 @@ internal sealed partial class CpiService(MietHahnDbContext db) : ICpiService
             var parts = line.Split([';', '\t'], StringSplitOptions.TrimEntries).Select(t => t.Trim('"')).Where(t => t.Length > 0).ToList();
             if (DetectMonth(parts, out var month, out var rest) && rest.Count > 0)
             {
-                // GENESIS kennzeichnet fehlende Werte mit „...“, „.“, „-“ oder „x“.
+                // GENESIS marks missing values with „...“, „.“, „-“ or „x“.
                 var raw = rest[^1];
                 if (raw is "..." or "." or "-" or "x")
                 {
@@ -115,7 +115,7 @@ internal sealed partial class CpiService(MietHahnDbContext db) : ICpiService
             return false;
         }
 
-        // „2026-01“ oder „01.2026“ in einer Spalte
+        // „2026-01“ or „01.2026“ in a single column
         var single = MonthInText().Match(parts[0]);
         if (single.Success)
         {
@@ -129,7 +129,7 @@ internal sealed partial class CpiService(MietHahnDbContext db) : ICpiService
             }
         }
 
-        // „2026;Januar;…“ (GENESIS-Format)
+        // „2026;Januar;…“ (GENESIS format)
         if (parts.Count >= 3 && parts[0].Length == 4 && int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var j))
         {
             var index = Array.IndexOf(MonthNames, parts[1].ToLowerInvariant());

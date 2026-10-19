@@ -4,7 +4,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Leases;
 
-/// <summary>Bezeichnungen der vermietbaren Objekte (Einheit ohne Zimmer oder WG-Zimmer) für Anzeige und Prüfung.</summary>
+/// <summary>Labels of the rentable objects (unit without rooms or shared-flat room) for display and validation.</summary>
 internal sealed record RentalUnit(Guid Id, Guid UnitId, Guid? RoomId, Guid PropertyId, string Name, string Property, bool IsRentable)
 {
     public static async Task<Dictionary<Guid, RentalUnit>> GetAsync(MietHahnDbContext db, CancellationToken cancellationToken)

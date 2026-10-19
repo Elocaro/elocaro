@@ -107,7 +107,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock) : I
         Lease? previous = null;
         foreach (var lease in leases.OrderBy(v => v.Start))
         {
-            // Lücke zwischen zwei Verträgen = Leerstand
+            // Gap between two leases = vacancy
             if (previous?.End is { } end && lease.Start > end.AddDays(1))
             {
                 entries.Add(new(null, new Period(end.AddDays(1), lease.Start.AddDays(-1)), null, null));

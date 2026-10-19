@@ -5,8 +5,8 @@ using MietHahn.Domain.Common;
 namespace MietHahn.Infrastructure.Identity;
 
 /// <summary>
-/// Einmal-Token für die passwortlose Anmeldung. In der Datenbank liegt nur der SHA-256-Hash; das Token selbst
-/// steht ausschließlich im versendeten Link.
+/// One-time token for passwordless sign-in. Only the SHA-256 hash is stored in the database; the token itself
+/// appears only in the link that is sent.
 /// </summary>
 [NoAudit]
 [NoExport]
@@ -32,7 +32,7 @@ public sealed class MagicLink : Entity
 
     public DateTimeOffset? RedeemedAt { get; private set; }
 
-    /// <summary>Erzeugt einen neuen Link und liefert das Klartext-Token (nur zum Versand).</summary>
+    /// <summary>Creates a new link and returns the plaintext token (for sending only).</summary>
     public static (MagicLink Link, string Token) Generate(Guid userId, DateTimeOffset now, TimeSpan validity)
     {
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_');

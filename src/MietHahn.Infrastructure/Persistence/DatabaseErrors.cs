@@ -2,12 +2,12 @@ using Npgsql;
 
 namespace MietHahn.Infrastructure.Persistence;
 
-/// <summary>Erkennt fachlich relevante PostgreSQL-Fehler in einer Ausnahmekette.</summary>
+/// <summary>Detects business-relevant PostgreSQL errors in an exception chain.</summary>
 public static class DatabaseErrors
 {
     /// <summary>
-    /// Verstoß gegen einen Überlappungsschutz (23P01). Je nach Zeitpunkt der Prüfung kommt er als
-    /// <c>DbUpdateException</c> (sofort) oder direkt als <see cref="PostgresException"/> beim Commit.
+    /// Violation of an overlap protection (23P01). Depending on when the check happens, it arrives as
+    /// <c>DbUpdateException</c> (immediately) or directly as <see cref="PostgresException"/> on commit.
     /// </summary>
     public static bool IsOverlap(Exception errors) => SqlState(errors) == PostgresErrorCodes.ExclusionViolation;
 

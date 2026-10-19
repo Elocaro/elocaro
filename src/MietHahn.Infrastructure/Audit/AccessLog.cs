@@ -12,7 +12,7 @@ internal sealed class AccessLog(
     TimeProvider clock,
     IOptions<AuditOptions> options) : IAccessLog
 {
-    /// <summary>Innerhalb dieses Zeitraums wird derselbe Zugriff (Benutzer, Datensatz, Zweck) nur einmal protokolliert.</summary>
+    /// <summary>Within this time span the same access (user, record, purpose) is logged only once.</summary>
     public static readonly TimeSpan TimeWindow = TimeSpan.FromMinutes(30);
 
     public async Task LogAsync(string entityType, Guid entityId, string purpose, CancellationToken cancellationToken = default)
@@ -24,7 +24,7 @@ internal sealed class AccessLog(
             return;
         }
 
-        // Wiederholtes Öffnen (z. B. nach jedem Speichern) nicht jedes Mal protokollieren: ein Eintrag je Zeitfenster genügt als Nachweis.
+        // Do not log repeated opening (e.g. after every save) each time: one entry per time window suffices as evidence.
         var now = clock.GetUtcNow();
         var since = now - TimeWindow;
         var identifier = user.Identifier;

@@ -128,7 +128,7 @@ internal sealed class AccountService(
         link.Redeem(now);
         if (!user.EmailConfirmed)
         {
-            user.EmailConfirmed = true; // Wer den Link aus der Mail nutzt, hat die Adresse bestätigt.
+            user.EmailConfirmed = true; // Using the link from the email confirms the address.
         }
 
         try
@@ -137,7 +137,7 @@ internal sealed class AccountService(
         }
         catch (DbUpdateConcurrencyException)
         {
-            return null; // gleichzeitig eingelöst
+            return null; // redeemed concurrently
         }
 
         return user.Id;
@@ -157,7 +157,7 @@ internal sealed class AccountService(
             new { DisplayName = user.DisplayName, Link = link.ToString() }), cancellationToken);
     }
 
-    /// <summary>Legt fehlende Rollen an (idempotent).</summary>
+    /// <summary>Creates missing roles (idempotent).</summary>
     public static async Task EnsureRolesAsync(RoleManager<Role> roleManager)
     {
         ArgumentNullException.ThrowIfNull(roleManager);

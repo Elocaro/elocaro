@@ -49,7 +49,7 @@ public static class DependencyInjection
 {
     public const string ConnectionName = "MietHahn";
 
-    /// <summary>Registriert Persistenz und Infrastrukturdienste (Mail, Dateiablage, Hintergrundjobs).</summary>
+    /// <summary>Registers persistence and infrastructure services (mail, file store, background jobs).</summary>
     public static IServiceCollection AddMietHahnInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -103,7 +103,7 @@ public static class DependencyInjection
                 o.User.RequireUniqueEmail = true;
                 o.SignIn.RequireConfirmedAccount = false;
 
-                // Länge statt Zeichenklassen (NIST SP 800-63B).
+                // Length instead of character classes (NIST SP 800-63B).
                 o.Password.RequiredLength = 12;
                 o.Password.RequireDigit = false;
                 o.Password.RequireLowercase = false;
@@ -122,7 +122,7 @@ public static class DependencyInjection
             .AddClaimsPrincipalFactory<MietHahnClaimsFactory>()
             .AddErrorDescriber<GermanIdentityErrorDescriber>();
 
-        // Passwort-Reset-Links: 2 Stunden; Einladungen nutzen den eigenen Anbieter (7 Tage).
+        // Password reset links: 2 hours; invitations use their own provider (7 days).
         services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromHours(2));
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IUserManagementService, UserManagement>();

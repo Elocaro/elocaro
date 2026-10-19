@@ -1,13 +1,13 @@
 namespace MietHahn.Infrastructure;
 
-/// <summary>Konfigurationsabschnitt <c>Anwendung</c>.</summary>
+/// <summary>Configuration section <c>Application</c>.</summary>
 public sealed class ApplicationOptions
 {
     public const string Section = "Application";
 
     /// <summary>
-    /// Öffentliche Basis-URL (z. B. <c>https://miethahn.example.de/</c>) für Links in E-Mails.
-    /// Bewusst konfiguriert statt aus dem Host-Header abgeleitet (Schutz vor Host-Header-Injection).
+    /// Public base URL (e.g. <c>https://miethahn.example.de/</c>) for links in emails.
+    /// Deliberately configured rather than derived from the host header (protection against host header injection).
     /// </summary>
     public Uri BaseUrl { get; set; } = new("http://localhost:5080/");
 

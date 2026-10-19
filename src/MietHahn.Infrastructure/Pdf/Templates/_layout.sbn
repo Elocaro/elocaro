@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>{{ title }}</title>
 <style>
-  /* A4, DIN 5008 Form B. Seitenränder links/rechts als Padding, damit Anschriftfeld und Falzmarken
+  /* A4, DIN 5008 Form B. Left/right page margins as padding so that the address field and fold marks
      in Seitenkoordinaten positioniert werden können (Chromium beschneidet am Seitenrand). */
   @page { size: A4; margin: 20mm 0 25mm 0; }
   @page :first { margin-top: {{ if recipient }}0{{ else }}20mm{{ end }}; }
@@ -18,8 +18,8 @@
   h2 { font-size: 11pt; margin: 6mm 0 2mm 0; }
   p { margin: 0 0 3mm 0; }
   table { width: 100%; border-collapse: collapse; page-break-inside: auto; margin: 2mm 0 5mm 0; }
-  thead { display: table-header-group; }   /* Kopf auf jeder Seite wiederholen */
-  tfoot { display: table-row-group; }      /* Summen nur am Ende, nicht auf jeder Seite */
+  thead { display: table-header-group; }   /* Repeat header on every page */
+  tfoot { display: table-row-group; }      /* Totals only at the end, not on every page */
   tr { page-break-inside: avoid; }
   th, td { text-align: left; padding: 1.2mm 1.5mm; border-bottom: 0.3pt solid #999; vertical-align: top; }
   th { font-weight: 600; border-bottom: 0.6pt solid #000; }

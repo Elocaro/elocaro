@@ -1,13 +1,13 @@
 namespace MietHahn.Infrastructure.Operations;
 
-/// <summary>Konfigurationsabschnitt <c>Backup</c>.</summary>
+/// <summary>Configuration section <c>Backup</c>.</summary>
 public sealed class BackupOptions
 {
     public const string Section = "Backup";
 
-    /// <summary>Statusdatei des Backup-Containers (z. B. <c>/backup-status/backup.json</c>); leer = Überwachung aus.</summary>
+    /// <summary>Status file of the backup container (e.g. <c>/backup-status/backup.json</c>); empty = monitoring off.</summary>
     public string? StatusFile { get; set; }
 
-    /// <summary>Ab diesem Alter der letzten erfolgreichen Sicherung wird gewarnt (täglich + Puffer).</summary>
+    /// <summary>A warning is issued once the last successful backup reaches this age (daily + buffer).</summary>
     public int MaxAgeHours { get; set; } = 26;
 }

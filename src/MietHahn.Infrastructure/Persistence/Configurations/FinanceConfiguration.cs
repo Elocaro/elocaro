@@ -17,7 +17,7 @@ internal sealed class ChargeConfiguration : IEntityTypeConfiguration<Charge>
         builder.HasOne<Lease>().WithMany().HasForeignKey(s => s.LeaseId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(s => new { s.LeaseId, s.Due });
 
-        // Der Job darf je Vertrag, Monat und Bestandteil nur eine Monatsmiete anlegen (Idempotenz auch bei parallelen Läufen).
+        // The job may create only one monthly rent per lease, month and component (idempotent even with parallel runs).
         builder.HasIndex(s => new { s.LeaseId, s.ServiceMonth, s.Component }).IsUnique()
             .HasFilter("kind = 'Rent' AND NOT deleted")
             .HasDatabaseName("ix_charges_monthly_rent_unique");

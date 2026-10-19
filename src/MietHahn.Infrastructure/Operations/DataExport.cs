@@ -22,9 +22,9 @@ using MietHahn.Infrastructure.Persistence;
 namespace MietHahn.Infrastructure.Operations;
 
 /// <summary>
-/// Vollexport aus dem EF-Modell: jede Tabelle als JSON und CSV, dazu alle Dateien und ein Manifest. Neue Entitäten
-/// sind damit automatisch enthalten; Geheimnisse werden über <see cref="NoExportAttribute"/> ausgenommen.
-/// Gelesen wird in einer Repeatable-Read-Transaktion, der Export ist also ein konsistenter Stand.
+/// Full export from the EF model: every table as JSON and CSV, plus all files and a manifest. New entities
+/// are therefore included automatically; secrets are excluded via <see cref="NoExportAttribute"/>.
+/// Reading happens in a repeatable-read transaction, so the export is a consistent snapshot.
 /// </summary>
 internal sealed class DataExport(
     MietHahnDbContext db,
@@ -39,7 +39,7 @@ internal sealed class DataExport(
     private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
     private static readonly JsonWriterOptions JsonOptions = new() { Indented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    // Identity-Felder, die nur der Anmeldung dienen; Basisklassen lassen sich nicht mit Attributen versehen.
+    // Identity fields used only for sign-in; base classes cannot be annotated with attributes.
     private static readonly HashSet<string> SecretIdentityFields =
     [
         nameof(IdentityUser<>.PasswordHash),
@@ -57,8 +57,8 @@ internal sealed class DataExport(
         var tables = ExportTables(db.Model);
         var createdAt = clock.GetUtcNow();
 
-        // Die Eintrags-Streams von ZipArchive schreiben beim Schließen synchron, was Kestrel verbietet. Daher erst in eine
-        // temporäre Datei schreiben und dann asynchron kopieren; bei einem Fehler entsteht so auch kein halber Download.
+        // ZipArchive entry streams write synchronously on close, which Kestrel forbids. So write to a
+        // temporary file first and then copy asynchronously; this also avoids a half-finished download on error.
         await using var buffer = new FileStream(
             Path.Combine(Path.GetTempPath(), $"miethahn-export-{Guid.NewGuid():N}.zip"),
             FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.Asynchronous | FileOptions.DeleteOnClose);
@@ -93,12 +93,12 @@ internal sealed class DataExport(
         buffer.Position = 0;
         await buffer.CopyToAsync(destination, cancellationToken);
 
-        // Unabhängig von Audit:ZugriffeProtokollieren: ein Vollexport enthält alle personenbezogenen Daten.
+        // Independent of Audit:LogAccess: a full export contains all personal data.
         db.Add(new AuditEntry(clock.GetUtcNow(), user.Identifier, "Datenexport", Guid.Empty, AuditAction.Read, "[]", "Vollexport aller Daten"));
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>Alle exportierten Tabellen mit ihren Spalten (ohne Geheimnisse und technische Spalten wie <c>xmin</c>).</summary>
+    /// <summary>All exported tables with their columns (without secrets and technical columns such as <c>xmin</c>).</summary>
     internal static IReadOnlyList<ExportTable> ExportTables(IModel model) =>
         model.GetRelationalModel().Tables
             .Where(t => !t.EntityTypeMappings.Any(m => IsSecret(m.TypeBase.ClrType)))
@@ -190,7 +190,7 @@ internal sealed class DataExport(
                 continue;
             }
 
-            // Bilder und PDFs sind bereits komprimiert.
+            // Images and PDFs are already compressed.
             var entry = zip.CreateEntry($"files/{id}/{SafeName(reader.GetString(1))}", CompressionLevel.Fastest);
             await using (var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true))
             await using (var stream = await entry.OpenAsync(cancellationToken))
@@ -261,7 +261,7 @@ internal sealed class DataExport(
         var command = transaction.Connection!.CreateCommand();
         command.Transaction = transaction;
         var order = table.PrimaryKey.Count > 0 ? $" ORDER BY {string.Join(", ", table.PrimaryKey.Select(Identifier))}" : "";
-#pragma warning disable CA2100 // Tabellen- und Spaltennamen stammen aus dem EF-Modell, nicht aus Eingaben.
+#pragma warning disable CA2100 // Table and column names come from the EF model, not from user input.
         command.CommandText = $"SELECT {string.Join(", ", table.Columns.Select(s => Identifier(s.Name)))} FROM {Identifier(table.Name)}{order}";
 #pragma warning restore CA2100
         return command;
@@ -321,7 +321,7 @@ internal sealed class DataExport(
         }
     }
 
-    /// <summary>CSV für deutsches Excel: Dezimalkomma, Zeitpunkte in deutscher Zeit, Listen kommagetrennt.</summary>
+    /// <summary>CSV for German Excel: decimal comma, timestamps in German time, lists comma-separated.</summary>
     internal static string CsvValue(object? value, string type) => value switch
     {
         null or DBNull => "",
@@ -334,7 +334,7 @@ internal sealed class DataExport(
         DateTimeOffset d => TimeZoneInfo.ConvertTime(d, GermanTime.Germany).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
         byte[] bytes => Convert.ToBase64String(bytes),
         string text when type is "jsonb" or "json" => text,
-        // Formel-Injektion verhindern: Excel würde „=…“ ausführen (Daten können von Mietern stammen).
+        // Prevent formula injection: Excel would execute „=…“ (data may originate from tenants).
         string text when text.Length > 0 && text[0] is '=' or '+' or '-' or '@' or '\t' or '\r' => "'" + text,
         string text => text,
         Array list => string.Join(", ", list.Cast<object?>().Select(e => CsvValue(e, ""))),

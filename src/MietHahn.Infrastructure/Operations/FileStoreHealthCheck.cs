@@ -4,7 +4,7 @@ using MietHahn.Infrastructure.Files;
 
 namespace MietHahn.Infrastructure.Operations;
 
-/// <summary>Prüft, ob die Dateiablage existiert und beschreibbar ist (z. B. Rechte des Docker-Volumes).</summary>
+/// <summary>Checks that the file store exists and is writable (e.g. permissions of the Docker volume).</summary>
 internal sealed class FileStoreHealthCheck(IOptions<FileStoreOptions> options) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)

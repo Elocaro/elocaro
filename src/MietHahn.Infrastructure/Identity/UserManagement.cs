@@ -9,8 +9,8 @@ using MietHahn.Infrastructure.Persistence;
 namespace MietHahn.Infrastructure.Identity;
 
 /// <remarks>
-/// Rollen- und Rechteänderungen wirken bei der nächsten Anfrage, weil der Security-Stamp-Validator den Principal
-/// bei jeder Anfrage neu aus der Datenbank aufbaut (Intervall 0). Nur das Sperren erneuert den Stamp und meldet damit ab.
+/// Role and permission changes take effect on the next request because the security stamp validator rebuilds the principal
+/// from the database on every request (interval 0). Only blocking renews the stamp and thereby signs the user out.
 /// </remarks>
 internal sealed class UserManagement(MietHahnDbContext db, UserManager<ApplicationUser> userManager, AuditWriter audit) : IUserManagementService
 {
@@ -63,7 +63,7 @@ internal sealed class UserManagement(MietHahnDbContext db, UserManager<Applicati
         await userManager.RemoveFromRolesAsync(user, previous);
         await userManager.AddToRoleAsync(user, role);
 
-        // Rechte gelten nur für Verwalter; beim Wechsel zum Verwalter gelten die Standardrechte.
+        // Permissions only apply to managers; switching to the manager role applies the default permissions.
         await ReplacePermissionsAsync(user, role == Roles.Manager ? Permissions.ManagerDefault : []);
         await audit.LogAsync(nameof(ApplicationUser), user.Id, AuditAction.Modified,
             [new FieldChange("Role", string.Join(", ", previous), role)], cancellationToken);
@@ -105,7 +105,7 @@ internal sealed class UserManagement(MietHahnDbContext db, UserManager<Applicati
 
         user.Locked = true;
         await userManager.UpdateAsync(user);
-        await userManager.UpdateSecurityStampAsync(user); // bestehende Sitzungen werden ungültig
+        await userManager.UpdateSecurityStampAsync(user); // existing sessions become invalid
         await db.Set<MagicLink>().Where(l => l.UserId == id && l.RedeemedAt == null).ExecuteDeleteAsync(cancellationToken);
         await audit.LogAsync(nameof(ApplicationUser), user.Id, AuditAction.Modified, [new FieldChange("Locked", "false", "true")], cancellationToken);
         return AccountResult.Ok(user.Id);

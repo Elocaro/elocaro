@@ -5,7 +5,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Identity;
 
-/// <summary>E-Mail-Adressen aller aktiven (nicht gesperrten) Administratoren, z. B. für Warnungen und Hinweise.</summary>
+/// <summary>Email addresses of all active (not blocked) administrators, e.g. for warnings and notices.</summary>
 internal static class AdminRecipients
 {
     public static Task<List<string>> GetAsync(MietHahnDbContext db, CancellationToken cancellationToken) =>

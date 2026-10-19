@@ -31,7 +31,7 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
 
         if (search.PropertyId is { } property)
         {
-            // Zum Objekt gehören auch Dokumente seiner Einheiten und Verträge.
+            // A property also includes the documents of its units and leases.
             var units = db.Set<Unit>().Where(e => e.PropertyId == property).Select(e => e.Id);
             var leases = db.Set<Lease>().Where(v => units.Contains(v.UnitId)).Select(v => v.Id);
             query = query.Where(d => d.PropertyId == property || (d.UnitId != null && units.Contains(d.UnitId.Value)) || (d.LeaseId != null && leases.Contains(d.LeaseId.Value)));
@@ -232,8 +232,8 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
 }
 
 /// <summary>
-/// Welche freigegebenen Dokumente ein Mieter bzw. Hausmeister sehen darf. Mieter: Dokumente ihrer Verträge und ihrer
-/// Person sowie der Einheiten/Objekte, in denen sie aktuell wohnen. Hausmeister: Dokumente ihrer zugeordneten Objekte.
+/// Which released documents a tenant or caretaker may see. Tenants: documents of their leases and of their
+/// person, plus those of the units/properties they currently live in. Caretakers: documents of their assigned properties.
 /// </summary>
 internal static class DocumentShares
 {
@@ -282,14 +282,14 @@ internal static class DocumentShares
     }
 }
 
-/// <summary>Gibt Dateien freigegebener Dokumente für Mieter und Hausmeister zum Download frei (<c>/dateien/{id}</c>).</summary>
+/// <summary>Allows tenants and caretakers to download the files of released documents (<c>/dateien/{id}</c>).</summary>
 internal sealed class DocumentFileShare(MietHahnDbContext db, TimeProvider clock) : IFileShare
 {
     public async Task<bool> IsSharedAsync(Guid fileId, ClaimsPrincipal user, CancellationToken cancellationToken = default) =>
         await (await DocumentShares.VisibleAsync(db, user, GermanTime.Today(clock.GetUtcNow()), cancellationToken)).AnyAsync(d => d.FileId == fileId, cancellationToken);
 }
 
-/// <summary>Dashboard: Dokumente, deren Gültigkeit in 60 Tagen endet (z. B. Energieausweis, Versicherung).</summary>
+/// <summary>Dashboard: documents whose validity ends within 60 days (e.g. energy certificate, insurance).</summary>
 internal sealed class DocumentExpiryTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
@@ -313,7 +313,7 @@ internal sealed class DocumentExpiryTodos(MietHahnDbContext db, TimeProvider clo
     }
 }
 
-/// <summary>Dokumente der Person (direkt oder über ihre Verträge) für die DSGVO-Auskunft.</summary>
+/// <summary>Documents of the person (directly or via their leases) for the GDPR access request.</summary>
 internal sealed class DocumentPersonalData(IDocumentLibrary fileStore) : IPersonalDataSource
 {
     public string Section => "documents";

@@ -24,7 +24,7 @@ internal sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         builder.HasOne<StoredFile>().WithMany().HasForeignKey(o => o.ImageFileId).OnDelete(DeleteBehavior.Restrict);
         builder.Ignore(o => o.Address);
 
-        // Kinder des Aggregats: Entfernen aus der Liste löscht (logisch, siehe EntitaetSpeichernInterceptor).
+        // Children of the aggregate: removing from the list deletes (softly, see EntitySaveInterceptor).
         builder.HasMany(o => o.Units).WithOne().HasForeignKey(e => e.PropertyId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(o => o.Areas).WithOne().HasForeignKey(f => f.PropertyId).OnDelete(DeleteBehavior.Cascade);
     }

@@ -150,7 +150,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
                 input.CalibrationDueDate);
             db.Add(newItem);
 
-            // Unterzähler hängen ab jetzt am neuen Hauptzähler.
+            // Sub-meters are attached to the new main meter from now on.
             foreach (var subMeters in await db.Set<ZaehlerEntitaet>().Where(z => z.MainMeterId == id && z.RemovedOn == null).ToListAsync(cancellationToken))
             {
                 subMeters.MainMeterId = newItem.Id;
@@ -182,7 +182,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
         return ConsumptionCalculator.Calculate(MeteringPoint(meter, all), period);
     }
 
-    /// <summary>Alle Zähler der Messstelle (Kette über Vorgänger/Nachfolger), älteste zuerst.</summary>
+    /// <summary>All meters of the metering point (chain via predecessor/successor), oldest first.</summary>
     internal static List<ZaehlerEntitaet> MeteringPoint(ZaehlerEntitaet meter, IReadOnlyList<ZaehlerEntitaet> all)
     {
         var chain = new List<ZaehlerEntitaet> { meter };
@@ -246,7 +246,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
             meter.Order = data.Order;
         }
 
-        // Zuordnung: Einheit oder Zimmer desselben Objekts
+        // Assignment: unit or room of the same property
         Guid? unitId = null, roomId = null;
         if (data.AssignmentId is { } assignment)
         {
@@ -330,7 +330,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
     };
 }
 
-/// <summary>Dashboard: abgelaufene oder bald ablaufende Eichfristen (90 Tage).</summary>
+/// <summary>Dashboard: expired or soon-to-expire calibration periods (90 days).</summary>
 internal sealed class CalibrationDueTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

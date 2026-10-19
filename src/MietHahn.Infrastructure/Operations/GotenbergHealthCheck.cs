@@ -3,7 +3,7 @@ using MietHahn.Infrastructure.Pdf;
 
 namespace MietHahn.Infrastructure.Operations;
 
-/// <summary>Prüft, ob Gotenberg (PDF-Erzeugung) erreichbar ist.</summary>
+/// <summary>Checks that Gotenberg (PDF generation) is reachable.</summary>
 internal sealed class GotenbergHealthCheck(IHttpClientFactory httpFactory) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)

@@ -3,8 +3,8 @@ using MietHahn.Application.Audit;
 namespace MietHahn.Infrastructure.Audit;
 
 /// <summary>
-/// Ein Eintrag im Audit-Log. Bewusst keine <see cref="Domain.Common.Entity"/>: unveränderlich,
-/// nicht logisch löschbar, wird nur durch die Aufbewahrungsregel entfernt.
+/// An entry in the audit log. Deliberately not an <see cref="Domain.Common.Entity"/>: immutable,
+/// not soft-deletable, removed only by the retention rule.
 /// </summary>
 public sealed class AuditEntry
 {
@@ -38,9 +38,9 @@ public sealed class AuditEntry
 
     public AuditAction Action { get; private set; }
 
-    /// <summary>Liste von <see cref="FieldChange"/> als JSON (jsonb).</summary>
+    /// <summary>List of <see cref="FieldChange"/> as JSON (jsonb).</summary>
     public string ChangesJson { get; private set; }
 
-    /// <summary>Bei <see cref="AuditAction.Read"/>: Anlass des Zugriffs.</summary>
+    /// <summary>For <see cref="AuditAction.Read"/>: reason for the access.</summary>
     public string? Purpose { get; private set; }
 }

@@ -5,7 +5,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Common;
 
-/// <summary>Führt einen Befehl aus und übersetzt erwartbare Fehler in ein <see cref="Result"/> für die Oberfläche.</summary>
+/// <summary>Executes a command and translates expected errors into a <see cref="Result"/> for the UI.</summary>
 internal static class Command
 {
     public static Result NotFound => Result.Failed("Der Datensatz wurde nicht gefunden.");
@@ -36,7 +36,7 @@ internal static class Command
     }
 }
 
-/// <summary>Innerhalb von <see cref="Command.ExecuteAsync"/>: der Datensatz existiert nicht.</summary>
+/// <summary>Within <see cref="Command.ExecuteAsync"/>: the record does not exist.</summary>
 internal sealed class NotFoundException : Exception
 {
     public NotFoundException()

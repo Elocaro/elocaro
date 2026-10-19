@@ -1,6 +1,6 @@
--- Quartz.NET 3.22.6: Tabellen für den persistenten Job-Store (PostgreSQL).
--- Quelle: https://github.com/quartznet/quartznet/blob/v3.22.6/database/tables/tables_postgres.sql
--- Lizenz: Apache-2.0 (Quartz.NET). Unverändert bis auf den entfernten DROP-Block am Anfang.
+-- Quartz.NET 3.22.6: tables for the persistent job store (PostgreSQL).
+-- Source: https://github.com/quartznet/quartznet/blob/v3.22.6/database/tables/tables_postgres.sql
+-- License: Apache-2.0 (Quartz.NET). Unchanged except for the removed DROP block at the beginning.
 
 CREATE TABLE qrtz_job_details
   (

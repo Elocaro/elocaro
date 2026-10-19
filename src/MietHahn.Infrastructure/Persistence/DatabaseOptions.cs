@@ -1,10 +1,10 @@
 namespace MietHahn.Infrastructure.Persistence;
 
-/// <summary>Konfigurationsabschnitt <c>Datenbank</c>.</summary>
+/// <summary>Configuration section <c>Database</c>.</summary>
 public sealed class DatabaseOptions
 {
     public const string Section = "Database";
 
-    /// <summary>Ausstehende Migrationen beim Start automatisch anwenden (Standard: ja).</summary>
+    /// <summary>Apply pending migrations automatically on startup (default: yes).</summary>
     public bool AutoMigrate { get; set; } = true;
 }

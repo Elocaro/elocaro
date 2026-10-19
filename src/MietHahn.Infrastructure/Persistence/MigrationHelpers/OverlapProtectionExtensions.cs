@@ -3,13 +3,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MietHahn.Infrastructure.Persistence.MigrationHelpers;
 
 /// <summary>
-/// Migrations-Hilfe für überlappungsfreie Gültigkeitszeiträume (z. B. höchstens ein aktiver Vertrag je Mietobjekt).
-/// Erzeugt einen PostgreSQL-Exclusion-Constraint über <c>daterange(von, bis, '[]')</c>, beide Grenzen inklusive,
-/// <c>bis = NULL</c> bedeutet „unbefristet“. Logisch gelöschte Zeilen werden ignoriert.
-/// Geprüft wird erst beim Commit (<c>DEFERRABLE INITIALLY DEFERRED</c>): Beim Fortschreiben einer Zeitreihe
-/// (alten Stand beenden, neuen einfügen) ist die Reihenfolge der Befehle innerhalb von SaveChanges nicht festgelegt.
-/// Fehler erkennt <see cref="DatabaseErrors.IsOverlap"/>.
-/// Voraussetzung: Extension <c>btree_gist</c> (im Modell aktiviert).
+/// Migration helper for non-overlapping validity periods (e.g. at most one active lease per rental object).
+/// Creates a PostgreSQL exclusion constraint over <c>daterange(from, to, '[]')</c>, both bounds inclusive,
+/// <c>to = NULL</c> means "open-ended". Soft-deleted rows are ignored.
+/// The check happens only on commit (<c>DEFERRABLE INITIALLY DEFERRED</c>): when advancing a time series
+/// (ending the old state, inserting the new one), the order of commands within SaveChanges is not defined.
+/// Errors are detected by <see cref="DatabaseErrors.IsOverlap"/>.
+/// Prerequisite: extension <c>btree_gist</c> (enabled in the model).
 /// </summary>
 public static class OverlapProtectionExtensions
 {

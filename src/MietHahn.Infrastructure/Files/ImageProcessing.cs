@@ -3,9 +3,9 @@ using SkiaSharp;
 namespace MietHahn.Infrastructure.Files;
 
 /// <summary>
-/// Bereitet Fotos für die Ablage auf: EXIF-Ausrichtung anwenden, auf eine Maximalkante verkleinern und neu kodieren.
-/// Durch das Neukodieren werden alle Metadaten (inkl. GPS-Position) entfernt.
-/// HEIC kann SkiaSharp unter Linux nicht dekodieren; solche Dateien werden unverändert abgelegt.
+/// Prepares photos for storage: applies the EXIF orientation, downscales to a maximum edge length and re-encodes.
+/// Re-encoding removes all metadata (including the GPS position).
+/// SkiaSharp cannot decode HEIC on Linux; such files are stored unchanged.
 /// </summary>
 internal static class ImageProcessing
 {
@@ -36,8 +36,8 @@ internal static class ImageProcessing
     }
 
     /// <summary>
-    /// Wendet die EXIF-Ausrichtung (1–8) an. Jede Orientierung ist als Abbildung Quelle → Ziel formuliert,
-    /// mit w/h = Breite/Höhe des Zielbilds: x' = a·x + b·y + c, y' = d·x + e·y + f.
+    /// Applies the EXIF orientation (1–8). Each orientation is expressed as a source → target mapping,
+    /// with w/h = width/height of the target image: x' = a·x + b·y + c, y' = d·x + e·y + f.
     /// </summary>
     private static SKBitmap Orient(SKBitmap source, SKEncodedOrigin orientation)
     {
@@ -48,13 +48,13 @@ internal static class ImageProcessing
 
         SKMatrix? matrix = orientation switch
         {
-            SKEncodedOrigin.TopRight => new SKMatrix(-1, 0, w, 0, 1, 0, 0, 0, 1),     // 2: horizontal gespiegelt
-            SKEncodedOrigin.BottomRight => new SKMatrix(-1, 0, w, 0, -1, h, 0, 0, 1), // 3: 180° gedreht
-            SKEncodedOrigin.BottomLeft => new SKMatrix(1, 0, 0, 0, -1, h, 0, 0, 1),   // 4: vertikal gespiegelt
-            SKEncodedOrigin.LeftTop => new SKMatrix(0, 1, 0, 1, 0, 0, 0, 0, 1),       // 5: transponiert
-            SKEncodedOrigin.RightTop => new SKMatrix(0, -1, w, 1, 0, 0, 0, 0, 1),     // 6: 90° im Uhrzeigersinn
-            SKEncodedOrigin.RightBottom => new SKMatrix(0, -1, w, -1, 0, h, 0, 0, 1), // 7: transversal
-            SKEncodedOrigin.LeftBottom => new SKMatrix(0, 1, 0, -1, 0, h, 0, 0, 1),   // 8: 90° gegen den Uhrzeigersinn
+            SKEncodedOrigin.TopRight => new SKMatrix(-1, 0, w, 0, 1, 0, 0, 0, 1),     // 2: mirrored horizontally
+            SKEncodedOrigin.BottomRight => new SKMatrix(-1, 0, w, 0, -1, h, 0, 0, 1), // 3: rotated 180°
+            SKEncodedOrigin.BottomLeft => new SKMatrix(1, 0, 0, 0, -1, h, 0, 0, 1),   // 4: mirrored vertically
+            SKEncodedOrigin.LeftTop => new SKMatrix(0, 1, 0, 1, 0, 0, 0, 0, 1),       // 5: transposed
+            SKEncodedOrigin.RightTop => new SKMatrix(0, -1, w, 1, 0, 0, 0, 0, 1),     // 6: 90° clockwise
+            SKEncodedOrigin.RightBottom => new SKMatrix(0, -1, w, -1, 0, h, 0, 0, 1), // 7: transverse
+            SKEncodedOrigin.LeftBottom => new SKMatrix(0, 1, 0, -1, 0, h, 0, 0, 1),   // 8: 90° counterclockwise
             _ => null,
         };
 

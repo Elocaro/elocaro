@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace MietHahn.Infrastructure.Identity;
 
-/// <summary>Benutzerkonto (ASP.NET Core Identity). Die E-Mail-Adresse ist zugleich der Benutzername.</summary>
+/// <summary>User account (ASP.NET Core Identity). The email address is also the user name.</summary>
 public sealed class ApplicationUser : IdentityUser<Guid>
 {
     public ApplicationUser()
@@ -17,7 +17,7 @@ public sealed class ApplicationUser : IdentityUser<Guid>
 
     public DateTimeOffset? LastSignInAt { get; set; }
 
-    /// <summary>Gesperrte Konten können sich nicht anmelden (zusätzlich zur temporären Lockout-Sperre).</summary>
+    /// <summary>Blocked accounts cannot sign in (in addition to the temporary lockout).</summary>
     public bool Locked { get; set; }
 }
 

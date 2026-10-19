@@ -29,7 +29,7 @@ internal sealed class PdfGenerator(
         return await fileStore.SaveAsync(content, fileName, cancellationToken);
     }
 
-    /// <summary>Erzeugt das HTML von Dokument und Fußzeile (ohne Gotenberg; auch für Vorschau und Tests).</summary>
+    /// <summary>Generates the HTML of the document and footer (without Gotenberg; also for preview and tests).</summary>
     internal async Task<(string Html, string Footer, LandlordProfile Sender)> GenerateHtmlAsync(PdfRequest job, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(job);

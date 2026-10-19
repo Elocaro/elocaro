@@ -15,7 +15,7 @@ namespace MietHahn.Infrastructure.Bank;
 
 internal sealed class BankService(MietHahnDbContext db) : IBankService
 {
-    /// <summary>Kontoauszüge sind klein; größere Dateien sind fast sicher etwas anderes.</summary>
+    /// <summary>Bank statements are small; larger files are almost certainly something else.</summary>
     internal const int MaxFileSize = 10 * 1024 * 1024;
 
     public async Task<IReadOnlyList<BankAccountRow>> AccountsAsync(CancellationToken cancellationToken = default)
@@ -310,7 +310,7 @@ internal sealed class BankService(MietHahnDbContext db) : IBankService
     {
         account.Bic = TrimToNull(data.Bic)?.ToUpperInvariant();
         account.Bank = TrimToNull(data.Bank);
-        // Ohne angehakte Objekte setzt die Formularbindung die Liste auf null.
+        // Without any checked properties, form binding sets the list to null.
         var propertyIds = (data.PropertyIds ?? []).Distinct().ToList();
         if (await db.Set<Property>().CountAsync(o => propertyIds.Contains(o.Id), cancellationToken) != propertyIds.Count)
         {
@@ -367,7 +367,7 @@ internal sealed class BankService(MietHahnDbContext db) : IBankService
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-/// <summary>Dashboard: offene (nicht zugeordnete) Umsätze.</summary>
+/// <summary>Dashboard: open (unassigned) transactions.</summary>
 internal sealed class BankTodos(MietHahnDbContext db) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

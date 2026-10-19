@@ -14,10 +14,10 @@ using Quartz;
 
 namespace MietHahn.Infrastructure.Leases;
 
-/// <summary>Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins per Mail.</summary>
+/// <summary>Applies due graduated steps as base rent and notifies the admins by email.</summary>
 internal sealed class RentStepApplication(MietHahnDbContext db, IMailSender mail, IOptions<ApplicationOptions> app, TimeProvider clock)
 {
-    /// <returns>Anzahl der übernommenen Staffeln.</returns>
+    /// <returns>Number of graduated steps applied.</returns>
     public async Task<int> ApplyAsync(CancellationToken cancellationToken = default)
     {
         var today = GermanTime.Today(clock.GetUtcNow());
@@ -65,7 +65,7 @@ internal sealed class RentStepJob(RentStepApplication app) : IJob
     }
 }
 
-/// <summary>Dashboard: anstehende Staffeln (60 Tage) und mögliche Indexanpassungen.</summary>
+/// <summary>Dashboard: upcoming graduated steps (60 days) and possible index adjustments.</summary>
 internal sealed class RentModelTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

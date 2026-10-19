@@ -8,7 +8,7 @@ using MimeKit;
 
 namespace MietHahn.Infrastructure.Mail;
 
-/// <summary>Stellt fällige Mails aus der Outbox zu, mit Wiederholung und Backoff bei Fehlern.</summary>
+/// <summary>Delivers due mails from the outbox, with retry and backoff on errors.</summary>
 internal sealed partial class MailOutbox(
     MietHahnDbContext db,
     ISmtpSender smtp,
@@ -17,7 +17,7 @@ internal sealed partial class MailOutbox(
     IOptions<MailOptions> options,
     ILogger<MailOutbox> logger)
 {
-    /// <summary>Verarbeitet einen Stapel fälliger Mails und liefert die Anzahl erfolgreich gesendeter.</summary>
+    /// <summary>Processes a batch of due mails and returns the number sent successfully.</summary>
     public async Task<int> DeliverAsync(CancellationToken cancellationToken = default)
     {
         var now = clock.GetUtcNow();

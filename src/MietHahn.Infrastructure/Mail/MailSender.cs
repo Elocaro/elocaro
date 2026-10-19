@@ -8,8 +8,8 @@ using MietHahn.Infrastructure.Templates;
 namespace MietHahn.Infrastructure.Mail;
 
 /// <summary>
-/// Rendert Mailvorlagen aus <c>Mail/Templates/{name}.sbn</c> in das Layout <c>_layout.sbn</c> und legt sie in die Outbox.
-/// Jede Vorlage muss den Betreff per <c>{{ capture betreff }}…{{ end }}</c> setzen; optional eine Textfassung per <c>capture text</c>.
+/// Renders mail templates from <c>Mail/Templates/{name}.sbn</c> into the layout <c>_layout.sbn</c> and places them in the outbox.
+/// Every template must set the subject via <c>{{ capture subject }}…{{ end }}</c>; optionally a plain-text version via <c>capture text</c>.
 /// </summary>
 internal sealed partial class MailSender(
     MietHahnDbContext db,
@@ -45,7 +45,7 @@ internal sealed partial class MailSender(
         return mail.Id;
     }
 
-    /// <summary>Einfache Textfassung: Absätze/Umbrüche erhalten, Tags entfernen, Entities dekodieren.</summary>
+    /// <summary>Simple plain-text version: preserve paragraphs/line breaks, strip tags, decode entities.</summary>
     internal static string HtmlToText(string html)
     {
         var text = LineBreakTags().Replace(html, "\n");

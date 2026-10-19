@@ -4,10 +4,10 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Infrastructure.Persistence.Conventions;
 
-/// <summary>Gemeinsame Abbildung aller <see cref="Entity"/>-Typen.</summary>
+/// <summary>Shared mapping of all <see cref="Entity"/> types.</summary>
 internal static class EntityConventions
 {
-    /// <summary>Name des globalen Filters, der logisch gelöschte Datensätze ausblendet.</summary>
+    /// <summary>Name of the global filter that hides soft-deleted records.</summary>
     public const string SoftDeleteFilter = "SoftDelete";
 
     public static void Apply(ModelBuilder modelBuilder)

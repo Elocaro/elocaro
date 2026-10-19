@@ -9,16 +9,16 @@ using MietHahn.Infrastructure.Persistence.Conventions;
 namespace MietHahn.Infrastructure.Persistence;
 
 /// <summary>
-/// Zentraler DbContext. Entitäten werden über <see cref="IEntityTypeConfiguration{TEntity}"/> in diesem
-/// Assembly konfiguriert; gemeinsame Regeln (Schlüssel, Version, Soft-Delete) setzt <see cref="EntityConventions"/>.
+/// Central DbContext. Entities are configured through <see cref="IEntityTypeConfiguration{TEntity}"/> in this
+/// assembly; shared rules (key, version, soft delete) are set by <see cref="EntityConventions"/>.
 /// </summary>
 public class MietHahnDbContext(DbContextOptions<MietHahnDbContext> options)
     : IdentityDbContext<ApplicationUser, Role, Guid>(options), IDataProtectionKeyContext
 {
-    /// <summary>ICU-Kollation für deutsche Sortierung von Namen (ä neben a, nicht hinter z).</summary>
+    /// <summary>ICU collation for German sorting of names (ä next to a, not after z).</summary>
     public const string GermanCollation = "german";
 
-    /// <summary>Schlüssel für Cookies und Tokens (ASP.NET Core Data Protection), damit Anmeldungen Neustarts überstehen.</summary>
+    /// <summary>Keys for cookies and tokens (ASP.NET Core Data Protection) so that sign-ins survive restarts.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -55,10 +55,10 @@ public class MietHahnDbContext(DbContextOptions<MietHahnDbContext> options)
     {
         ArgumentNullException.ThrowIfNull(configurationBuilder);
 
-        // Geldbeträge: kaufmännisch auf Cent, Mengen/Faktoren mit eigener Präzision je Property überschreiben.
+        // Monetary amounts: commercial rounding to cents; override per property for quantities/factors with their own precision.
         configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
 
-        // Zeiträume werden als Spaltenpaar <name>_von / <name>_bis abgebildet.
+        // Periods are mapped as a column pair <name>_from / <name>_to.
         configurationBuilder.ComplexProperties<Period>();
     }
 }

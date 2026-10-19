@@ -1,19 +1,19 @@
 namespace MietHahn.Infrastructure.Audit;
 
-/// <summary>Konfigurationsabschnitt <c>Audit</c>.</summary>
+/// <summary>Configuration section <c>Audit</c>.</summary>
 public sealed class AuditOptions
 {
     public const string Section = "Audit";
 
-    /// <summary>Lesende Zugriffe auf personenbezogene Daten protokollieren.</summary>
+    /// <summary>Log read access to personal data.</summary>
     public bool LogAccess { get; set; } = true;
 
     /// <summary>
-    /// Aufbewahrung der Änderungen in Jahren. Standard 10 Jahre, angelehnt an steuerliche Aufbewahrungsfristen
-    /// (Abrechnungen, Belege). Ältere Einträge löscht ein täglicher Job.
+    /// Retention of changes in years. Default 10 years, modeled on tax retention periods
+    /// (statements, receipts). A daily job deletes older entries.
     /// </summary>
     public int RetentionYears { get; set; } = 10;
 
-    /// <summary>Aufbewahrung von Zugriffsprotokollen in Monaten (Datensparsamkeit).</summary>
+    /// <summary>Retention of access logs in months (data minimization).</summary>
     public int AccessLogRetentionMonths { get; set; } = 12;
 }

@@ -6,9 +6,9 @@ using MietHahn.Domain.Bank;
 namespace MietHahn.Infrastructure.Bank.Import;
 
 /// <summary>
-/// ISO 20022 camt.053 (Kontoauszug), getestet mit .001.02 und .001.08. Elemente werden über ihren lokalen Namen
-/// gelesen, damit alle Versionen funktionieren. Vorgemerkte Umsätze (Status PDNG) werden übersprungen; Sammelbuchungen
-/// mit mehreren Transaktionsdetails ergeben je Detail einen Umsatz.
+/// ISO 20022 camt.053 (bank statement), tested with .001.02 and .001.08. Elements are read by their local name
+/// so that all versions work. Pending transactions (status PDNG) are skipped; batch bookings
+/// with several transaction details yield one transaction per detail.
 /// </summary>
 internal static class Camt053Parser
 {
@@ -65,7 +65,7 @@ internal static class Camt053Parser
 
             foreach (var detail in details)
             {
-                // Bei Sammelbuchungen hat jedes Detail seinen eigenen Betrag.
+                // For batch bookings, each detail has its own amount.
                 var amountDetail = details.Count == 1 ? amountEntry : Amount(Path(detail, "AmtDtls", "TxAmt", "Amt") ?? Kind(detail, "Amt"));
                 var incomingDetail = Text(detail, "CdtDbtInd") is { } ind ? ind == "CRDT" : incoming;
                 var counter = incomingDetail ? "Dbtr" : "Cdtr";

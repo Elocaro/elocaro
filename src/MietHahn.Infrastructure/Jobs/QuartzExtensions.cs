@@ -5,7 +5,7 @@ namespace MietHahn.Infrastructure.Jobs;
 
 internal static class QuartzExtensions
 {
-    /// <summary>Plant einen Job, der in festem Abstand läuft.</summary>
+    /// <summary>Schedules a job that runs at a fixed interval.</summary>
     public static void ScheduleInterval<TJob>(this IServiceCollectionQuartzConfigurator q, JobKey key, string description, TimeSpan interval)
         where TJob : IJob
     {
@@ -17,7 +17,7 @@ internal static class QuartzExtensions
             .WithSimpleSchedule(s => s.WithInterval(interval).RepeatForever().WithMisfireHandlingInstructionNextWithRemainingCount()));
     }
 
-    /// <summary>Plant einen Job täglich zur angegebenen deutschen Uhrzeit.</summary>
+    /// <summary>Schedules a job daily at the given German time of day.</summary>
     public static void ScheduleDaily<TJob>(this IServiceCollectionQuartzConfigurator q, JobKey key, string description, int hour, int minute)
         where TJob : IJob
     {

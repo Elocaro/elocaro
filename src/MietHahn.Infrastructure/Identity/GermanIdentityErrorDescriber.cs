@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace MietHahn.Infrastructure.Identity;
 
-/// <summary>Deutsche Fehlermeldungen für ASP.NET Core Identity.</summary>
+/// <summary>German error messages for ASP.NET Core Identity.</summary>
 internal sealed class GermanIdentityErrorDescriber : IdentityErrorDescriber
 {
     public override IdentityError DefaultError() => Errors(nameof(DefaultError), "Ein unbekannter Fehler ist aufgetreten.");

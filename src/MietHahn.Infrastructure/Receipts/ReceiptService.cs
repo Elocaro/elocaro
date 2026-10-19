@@ -211,7 +211,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             throw new RuleViolationException("Die Einheit gehört nicht zum gewählten Objekt.");
         }
 
-        // Standard: Leistungszeitraum, sonst Kalenderjahr der Rechnung.
+        // Default: service period, otherwise the calendar year of the invoice.
         var from = input.From ?? receipt.ServiceFrom ?? new DateOnly(receipt.InvoiceDate.Year, 1, 1);
         var to = input.To ?? (input.From is null ? receipt.ServiceTo : null) ?? new DateOnly(from.Year, 12, 31);
         if (to < from)
@@ -294,7 +294,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-/// <summary>Dashboard: fällige, unbezahlte Belege und nicht aufgeteilte Belege.</summary>
+/// <summary>Dashboard: due, unpaid receipts and receipts that have not been split.</summary>
 internal sealed class ReceiptTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
@@ -323,7 +323,7 @@ internal sealed class ReceiptTodos(MietHahnDbContext db, TimeProvider clock) : I
     }
 }
 
-/// <summary>Belege eines Lieferanten (Kontakt) für die DSGVO-Auskunft.</summary>
+/// <summary>Receipts of a supplier (contact) for the GDPR access request.</summary>
 internal sealed class ReceiptPersonalData(MietHahnDbContext db) : IPersonalDataSource
 {
     public string Section => "receipts";

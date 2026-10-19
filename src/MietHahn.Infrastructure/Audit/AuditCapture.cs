@@ -10,7 +10,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Infrastructure.Audit;
 
-/// <summary>Leitet aus dem Change-Tracker die Audit-Einträge einer Speicherung ab.</summary>
+/// <summary>Derives the audit entries of a save from the change tracker.</summary>
 internal static class AuditCapture
 {
     public const string Masked = "***";
@@ -115,7 +115,7 @@ internal static class AuditCapture
         {
             DateOnly d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             DateTimeOffset dto => dto.ToString("O", CultureInfo.InvariantCulture),
-            decimal m => m.ToString("0.############################", CultureInfo.InvariantCulture), // ohne Nachkomma-Nullen: 650.00 == 650
+            decimal m => m.ToString("0.############################", CultureInfo.InvariantCulture), // without trailing decimal zeros: 650.00 == 650
             IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
             string s => s,
             IEnumerable e => string.Join(", ", e.Cast<object>()),

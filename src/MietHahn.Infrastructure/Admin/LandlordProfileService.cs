@@ -51,7 +51,7 @@ internal sealed class LandlordProfileService(MietHahnDbContext db) : ILandlordPr
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>„de021203…“ → „DE02 1203 0000 …“ (Vierergruppen, wie auf Dokumenten üblich).</summary>
+    /// <summary>„de021203…“ → „DE02 1203 0000 …“ (groups of four, as is usual on documents).</summary>
     internal static string? FormatIban(string? iban) => TrimToNull(iban) is { } value ? Domain.Common.Iban.Format(value) : null;
 
     private Task<LandlordProfile?> ProfileAsync(CancellationToken cancellationToken) =>

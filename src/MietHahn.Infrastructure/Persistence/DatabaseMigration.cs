@@ -10,8 +10,8 @@ namespace MietHahn.Infrastructure.Persistence;
 public static partial class DatabaseMigration
 {
     /// <summary>
-    /// Wendet ausstehende Migrationen an und legt fehlende Rollen an, sofern
-    /// <see cref="DatabaseOptions.AutoMigrate"/> gesetzt ist.
+    /// Applies pending migrations and creates missing roles, provided
+    /// <see cref="DatabaseOptions.AutoMigrate"/> is set.
     /// </summary>
     public static async Task MigrateDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
@@ -25,8 +25,8 @@ public static partial class DatabaseMigration
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(DatabaseMigration));
         var db = scope.ServiceProvider.GetRequiredService<MietHahnDbContext>();
 
-        // Hinweis: Bei einer leeren DB protokolliert EF/Npgsql einmalig einen fehlgeschlagenen SELECT auf die
-        // History-Tabelle (Level "fail"). Das ist erwartetes Verhalten und kein Fehler.
+        // Note: with an empty DB, EF/Npgsql logs a single failed SELECT on the
+        // history table (level "fail"). This is expected behavior and not an error.
         var pending = (await db.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
         if (pending.Count > 0)
         {

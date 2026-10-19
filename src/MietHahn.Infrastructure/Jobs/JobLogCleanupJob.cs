@@ -5,7 +5,7 @@ using Quartz;
 
 namespace MietHahn.Infrastructure.Jobs;
 
-/// <summary>Löscht alte Einträge des Job-Laufprotokolls (täglich). Technische Daten, daher physisch gelöscht.</summary>
+/// <summary>Deletes old entries of the job run log (daily). Technical data, hence physically deleted.</summary>
 [DisallowConcurrentExecution]
 internal sealed class JobLogCleanupJob(MietHahnDbContext db, TimeProvider clock, IOptions<JobsOptions> options) : IJob
 {

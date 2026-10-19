@@ -3,7 +3,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Infrastructure.Templates;
 
-/// <summary>Einheitliche deutsche Formatierung für Dokumente und Mails.</summary>
+/// <summary>Consistent German formatting for documents and emails.</summary>
 public static class Formatting
 {
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
@@ -11,7 +11,7 @@ public static class Formatting
     /// <summary>1234.5 → „1.234,50 €“.</summary>
     public static string Money(decimal? amount) => amount?.ToString("#,##0.00 €", German) ?? "";
 
-    /// <summary>Datum im Format „TT.MM.JJJJ“ (DateOnly, DateTime, DateTimeOffset in deutscher Zeit).</summary>
+    /// <summary>Date in the format "dd.MM.yyyy" (DateOnly, DateTime, DateTimeOffset in German time).</summary>
     public static string Date(object? value) => value switch
     {
         null => "",

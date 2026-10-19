@@ -2,7 +2,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Infrastructure.Jobs;
 
-/// <summary>Protokolleintrag einer Jobausführung (für die Admin-Übersicht).</summary>
+/// <summary>Log entry of a job execution (for the admin overview).</summary>
 [NoAudit]
 public sealed class JobRun : Entity
 {

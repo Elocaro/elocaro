@@ -8,8 +8,8 @@ using MietHahn.Infrastructure.Persistence;
 namespace MietHahn.Infrastructure.Files;
 
 /// <summary>
-/// Inhaltsadressierte Ablage im Dateisystem: <c>{Pfad}/{sha[0..2]}/{sha}</c>. Identische Inhalte werden einmal
-/// gespeichert. Geschrieben wird atomar (temporäre Datei + Umbenennen).
+/// Content-addressed storage on the file system: <c>{Pfad}/{sha[0..2]}/{sha}</c>. Identical content is stored only
+/// once. Writes are atomic (temporary file + rename).
 /// </summary>
 internal sealed class LocalFileStore(MietHahnDbContext db, IOptions<FileStoreOptions> options) : IFileStore
 {
@@ -74,7 +74,7 @@ internal sealed class LocalFileStore(MietHahnDbContext db, IOptions<FileStoreOpt
         }
         catch (IOException) when (File.Exists(destination))
         {
-            // Paralleler Upload desselben Inhalts: bereits vorhanden, gleicher Inhalt.
+            // Parallel upload of the same content: already present, identical content.
             File.Delete(temp);
         }
     }
@@ -102,7 +102,7 @@ internal sealed class LocalFileStore(MietHahnDbContext db, IOptions<FileStoreOpt
         return buffer.ToArray();
     }
 
-    /// <summary>Nur der Dateiname (keine Pfadanteile), Steuerzeichen entfernt, Endung passend zum erkannten Typ.</summary>
+    /// <summary>File name only (no path components), control characters removed, extension matching the detected type.</summary>
     internal static string SanitizeFileName(string? fileName, string extension)
     {
         var name = Path.GetFileName((fileName ?? "").Replace('\\', '/'));
@@ -113,7 +113,7 @@ internal sealed class LocalFileStore(MietHahnDbContext db, IOptions<FileStoreOpt
             baseValue = "datei";
         }
 
-        // HEIC wird unverändert, JPG/PNG neu kodiert: die Endung folgt immer dem tatsächlichen Inhalt.
+        // HEIC is stored unchanged, JPG/PNG are re-encoded: the extension always follows the actual content.
         return baseValue + extension;
     }
 }

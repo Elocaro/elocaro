@@ -15,7 +15,7 @@ internal sealed class OutgoingMailConfiguration : IEntityTypeConfiguration<Outgo
         builder.Property(m => m.LastError).HasMaxLength(OutgoingMail.MaxErrorLength);
         builder.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
 
-        // Für den Outbox-Job: nur ausstehende Mails, sortiert nach Fälligkeit.
+        // For the outbox job: pending mails only, sorted by due date.
         builder.HasIndex(m => m.NextAttemptAt).HasFilter("status = 'Pending'");
         builder.HasIndex(m => m.Reference);
     }

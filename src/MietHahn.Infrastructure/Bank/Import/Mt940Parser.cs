@@ -6,8 +6,8 @@ using MietHahn.Domain.Bank;
 namespace MietHahn.Infrastructure.Bank.Import;
 
 /// <summary>
-/// SWIFT MT940 mit deutschem strukturiertem Feld 86 (GVC, ?00 Buchungstext, ?20–?29 und ?60–?63 Verwendungszweck,
-/// ?30 BLZ/BIC, ?31 Konto/IBAN, ?32/?33 Name). SEPA-Kennungen (EREF+, MREF+, CRED+, SVWZ+) werden ausgewertet.
+/// SWIFT MT940 with the German structured field 86 (GVC, ?00 posting text, ?20–?29 and ?60–?63 remittance information,
+/// ?30 bank code/BIC, ?31 account/IBAN, ?32/?33 name). SEPA identifiers (EREF+, MREF+, CRED+, SVWZ+) are evaluated.
 /// </summary>
 internal static partial class Mt940Parser
 {
@@ -45,7 +45,7 @@ internal static partial class Mt940Parser
         return new BankStatement(account, transactions, hints);
     }
 
-    /// <summary>Felder „:tag:wert“; Folgezeilen gehören zum vorherigen Feld (Zeilenumbrüche entfallen).</summary>
+    /// <summary>Fields „:tag:value“; continuation lines belong to the previous field (line breaks are dropped).</summary>
     private static List<(string Day, string Value)> Fields(string text)
     {
         var fields = new List<(string, StringBuilder)>();
@@ -65,7 +65,7 @@ internal static partial class Mt940Parser
         return fields.Select(f => (f.Item1, f.Item2.ToString())).ToList();
     }
 
-    // „BLZ/Kontonummer“ oder IBAN
+    // "bank code/account number" or IBAN
     private static string? Account(string value)
     {
         var compact = value.Replace(" ", "", StringComparison.Ordinal);
@@ -84,7 +84,7 @@ internal static partial class Mt940Parser
         var booking = valueDate;
         if (match.Groups["buchung"].Success)
         {
-            // Buchungsdatum ohne Jahr: liegt höchstens wenige Tage neben der Valuta, ggf. über den Jahreswechsel.
+            // Booking date without year: lies at most a few days from the value date, possibly across the year boundary.
             var month = int.Parse(match.Groups["buchung"].Value[..2], CultureInfo.InvariantCulture);
             var day = int.Parse(match.Groups["buchung"].Value[2..], CultureInfo.InvariantCulture);
             var candidates = new[] { valueDate.Year - 1, valueDate.Year, valueDate.Year + 1 }
@@ -129,7 +129,7 @@ internal static partial class Mt940Parser
             CreditorId: sepa.CreditorId);
     }
 
-    /// <summary>„166?00GUTSCHRIFT?20EREF+…“: drei Ziffern GVC, danach Trennzeichen + zwei Ziffern je Unterfeld.</summary>
+    /// <summary>„166?00GUTSCHRIFT?20EREF+…“: three digits GVC, then separator + two digits per subfield.</summary>
     private static Dictionary<int, string> SubFields(string field86)
     {
         var result = new Dictionary<int, string>();

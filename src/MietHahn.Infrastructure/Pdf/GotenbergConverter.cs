@@ -6,10 +6,10 @@ using Microsoft.Extensions.Options;
 
 namespace MietHahn.Infrastructure.Pdf;
 
-/// <summary>Wandelt HTML über Gotenberg (Chromium) in PDF um.</summary>
+/// <summary>Converts HTML to PDF via Gotenberg (Chromium).</summary>
 internal sealed class GotenbergConverter(HttpClient http, IOptions<PdfOptions> options)
 {
-    // A4 in Zoll; Ränder links/rechts/oben steuert das CSS (@page), unten Platz für die Fußzeile (25 mm).
+    // A4 in inches; the CSS (@page) controls the left/right/top margins, the bottom leaves room for the footer (25 mm).
     private const string A4Width = "8.27";
     private const string A4Height = "11.69";
     private const decimal FooterInches = 25m / 25.4m;

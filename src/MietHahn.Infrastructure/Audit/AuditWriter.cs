@@ -5,7 +5,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Audit;
 
-/// <summary>Schreibt Audit-Einträge für Daten, die nicht über den Change-Tracker erfasst werden (z. B. Konten).</summary>
+/// <summary>Writes audit entries for data not captured by the change tracker (e.g. accounts).</summary>
 internal sealed class AuditWriter(MietHahnDbContext db, ICurrentUser user, TimeProvider clock)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

@@ -4,13 +4,13 @@ using MimeKit;
 
 namespace MietHahn.Infrastructure.Mail;
 
-/// <summary>Kapselt den SMTP-Versand (austauschbar in Tests).</summary>
+/// <summary>Encapsulates SMTP sending (replaceable in tests).</summary>
 internal interface ISmtpSender
 {
     Task SendAsync(IReadOnlyList<MimeMessage> messages, Func<MimeMessage, Exception?, Task> result, CancellationToken cancellationToken);
 }
 
-/// <summary>Versendet einen Stapel Nachrichten über eine SMTP-Verbindung (MailKit).</summary>
+/// <summary>Sends a batch of messages over one SMTP connection (MailKit).</summary>
 internal sealed class MailKitSmtpSender(IOptions<MailOptions> options) : ISmtpSender
 {
     public async Task SendAsync(IReadOnlyList<MimeMessage> messages, Func<MimeMessage, Exception?, Task> result, CancellationToken cancellationToken)
@@ -33,7 +33,7 @@ internal sealed class MailKitSmtpSender(IOptions<MailOptions> options) : ISmtpSe
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Verbindung oder Anmeldung gescheitert: alle Nachrichten dieses Stapels gelten als Fehlversuch.
+            // Connection or authentication failed: all messages in this batch count as failed attempts.
             foreach (var message in messages)
             {
                 await result(message, ex);

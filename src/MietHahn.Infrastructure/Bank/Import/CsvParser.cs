@@ -5,14 +5,14 @@ using MietHahn.Domain.Bank;
 
 namespace MietHahn.Infrastructure.Bank.Import;
 
-/// <summary>CSV-Umsätze nach einem <see cref="CsvProfile"/>; Vorspann-Zeilen vor der Überschrift werden übersprungen.</summary>
+/// <summary>CSV transactions according to a <see cref="CsvProfile"/>; preamble lines before the header are skipped.</summary>
 internal static class CsvParser
 {
     private static readonly Regex IbanPattern = new(@"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
     /// <summary>
-    /// Anzahl gefundener Spalten, wenn alle Pflichtspalten in einer Überschriftszeile stehen, sonst 0. Mehrere Profile
-    /// können passen (gleiche Spaltennamen); das mit den meisten Treffern beschreibt die Datei am genauesten.
+    /// Number of columns found if all required columns are in one header line, otherwise 0. Several profiles
+    /// may match (same column names); the one with the most hits describes the file most accurately.
     /// </summary>
     public static int Hits(CsvProfile profile, byte[] content)
     {
@@ -33,7 +33,7 @@ internal static class CsvParser
         }
 
         var columns = Columns(profile, lines[header])!;
-        // Im Vorspann steht oft die IBAN des Kontos (ING, DKB).
+        // The preamble often contains the account's IBAN (ING, DKB).
         var iban = lines.Take(header).SelectMany(z => z).Select(f => IbanPattern.Match(f.ToUpperInvariant())).FirstOrDefault(m => m.Success && Domain.Common.Iban.IsValid(m.Value))?.Value;
         var split = profile.ParsePattern is null ? null : new Regex(profile.ParsePattern, RegexOptions.Singleline, TimeSpan.FromSeconds(1));
         var formats = profile.DateFormat.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -52,7 +52,7 @@ internal static class CsvParser
             var dateText = Value(nameof(CsvProfile.BookingDateColumn));
             if (dateText is null || !DateOnly.TryParseExact(dateText, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var booking))
             {
-                // Fußzeilen wie „Kontostand“ oder „Alter Kontostand“
+                // Footer lines such as „Kontostand“ or „Alter Kontostand“
                 hints.Add($"Zeile {number} übersprungen (kein Buchungsdatum).");
                 continue;
             }
@@ -109,7 +109,7 @@ internal static class CsvParser
 
     private static string? NullIfNotProvided(string? value) => value is null or "NOTPROVIDED" ? null : value;
 
-    /// <summary>„-1.234,56“, „1234,56 €“, „+12,00“ bzw. mit Punkt als Dezimaltrennzeichen.</summary>
+    /// <summary>„-1.234,56“, „1234,56 €“, „+12,00“ or with a period as the decimal separator.</summary>
     internal static decimal? Amount(string? text, char decimalSeparator)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -124,7 +124,7 @@ internal static class CsvParser
         return decimal.TryParse(cleaned, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var amount) ? amount : null;
     }
 
-    /// <summary>Spaltenindex je Profileigenschaft oder <c>null</c>, wenn Pflichtspalten fehlen.</summary>
+    /// <summary>Column index per profile property, or <c>null</c>, if required columns are missing.</summary>
     private static Dictionary<string, int>? Columns(CsvProfile profile, List<string> header)
     {
         var names = header.Select(Normalize).ToList();
@@ -172,7 +172,7 @@ internal static class CsvParser
 
     private static string Normalize(string name) => name.Trim().Trim('"').Trim().ToLowerInvariant();
 
-    /// <summary>Zerlegt CSV nach RFC 4180 (Anführungszeichen, Zeilenumbrüche in Feldern).</summary>
+    /// <summary>Parses CSV according to RFC 4180 (quotes, line breaks within fields).</summary>
     internal static IEnumerable<List<string>> Rows(string text, char separator)
     {
         var field = new StringBuilder();
@@ -232,7 +232,7 @@ internal static class CsvParser
     }
 }
 
-/// <summary>Mitgelieferte Profile (Stand der Exporte 2024–2026).</summary>
+/// <summary>Bundled profiles (state of the exports 2024–2026).</summary>
 internal static class CsvDefaults
 {
     public static IReadOnlyList<CsvProfile> All { get; } =

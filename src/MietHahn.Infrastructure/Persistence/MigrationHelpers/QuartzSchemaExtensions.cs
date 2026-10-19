@@ -3,7 +3,7 @@ using MietHahn.Infrastructure.Templates;
 
 namespace MietHahn.Infrastructure.Persistence.MigrationHelpers;
 
-/// <summary>Legt die Tabellen des Quartz-Job-Stores an bzw. entfernt sie (Quartz.NET 3.x, PostgreSQL).</summary>
+/// <summary>Creates or removes the tables of the Quartz job store (Quartz.NET 3.x, PostgreSQL).</summary>
 public static class QuartzSchemaExtensions
 {
     private const string Script = "Persistence/Sql/quartz_3_22_6_postgres.sql";

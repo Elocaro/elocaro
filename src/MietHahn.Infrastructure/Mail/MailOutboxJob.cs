@@ -2,7 +2,7 @@ using Quartz;
 
 namespace MietHahn.Infrastructure.Mail;
 
-/// <summary>Stellt fällige Mails aus der Outbox zu (alle 30 Sekunden, nie parallel).</summary>
+/// <summary>Delivers due mails from the outbox (every 30 seconds, never in parallel).</summary>
 [DisallowConcurrentExecution]
 internal sealed class MailOutboxJob(MailOutbox outbox) : IJob
 {

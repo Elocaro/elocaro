@@ -6,10 +6,10 @@ using Quartz;
 
 namespace MietHahn.Infrastructure.Jobs;
 
-/// <summary>Schreibt Start, Ende und Fehler jeder Jobausführung in <see cref="JobRun"/>.</summary>
+/// <summary>Writes the start, end and errors of every job execution to <see cref="JobRun"/>.</summary>
 internal sealed partial class JobRunLog(IServiceScopeFactory scopes, TimeProvider clock, ILogger<JobRunLog> logger) : IJobListener
 {
-    // Zuordnung Ausführung (FireInstanceId) → Protokolleintrag; der Listener ist ein Singleton.
+    // Mapping of execution (FireInstanceId) → log entry; the listener is a singleton.
     private readonly ConcurrentDictionary<string, Guid> runIds = new(StringComparer.Ordinal);
 
     public string Name => nameof(JobRunLog);

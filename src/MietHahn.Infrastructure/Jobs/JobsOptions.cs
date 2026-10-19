@@ -1,13 +1,13 @@
 namespace MietHahn.Infrastructure.Jobs;
 
-/// <summary>Konfigurationsabschnitt <c>Jobs</c>.</summary>
+/// <summary>Configuration section <c>Jobs</c>.</summary>
 public sealed class JobsOptions
 {
     public const string Section = "Jobs";
 
-    /// <summary>Scheduler starten (in Tests oder für reine Web-Instanzen abschaltbar).</summary>
+    /// <summary>Start the scheduler (can be disabled in tests or for web-only instances).</summary>
     public bool Active { get; set; } = true;
 
-    /// <summary>Wie lange Einträge im Job-Laufprotokoll aufbewahrt werden.</summary>
+    /// <summary>How long entries in the job run log are retained.</summary>
     public int LogRetentionDays { get; set; } = 30;
 }

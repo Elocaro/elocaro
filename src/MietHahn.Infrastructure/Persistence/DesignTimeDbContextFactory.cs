@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace MietHahn.Infrastructure.Persistence;
 
-/// <summary>Nur für <c>dotnet ef</c> (Migrationen erzeugen); zur Laufzeit wird der Context per DI erstellt.</summary>
+/// <summary>Only for <c>dotnet ef</c> (generating migrations); at runtime the context is created via DI.</summary>
 internal sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<MietHahnDbContext>
 {
     public MietHahnDbContext CreateDbContext(string[] args)

@@ -7,8 +7,8 @@ using MietHahn.Infrastructure.Audit;
 namespace MietHahn.Infrastructure.Persistence;
 
 /// <summary>
-/// Setzt beim Speichern die Audit-Felder, wandelt physisches Löschen in logisches Löschen um und schreibt
-/// die Änderungen in derselben Transaktion ins Audit-Log (<see cref="AuditEntry"/>).
+/// Sets the audit fields on save, converts physical deletion into soft deletion and writes
+/// the changes to the audit log in the same transaction (<see cref="AuditEntry"/>).
 /// </summary>
 internal sealed class EntitySaveInterceptor(TimeProvider clock, ICurrentUser user) : SaveChangesInterceptor
 {

@@ -26,7 +26,7 @@ internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
         builder.Ignore(p => p.IsAnonymized);
         builder.HasIndex(p => p.LastName);
 
-        // Ein Konto gehört zu höchstens einer Person.
+        // An account belongs to at most one person.
         builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.SetNull);
         builder.HasIndex(p => p.UserId).IsUnique().HasFilter("user_id IS NOT NULL AND NOT deleted");
 
@@ -58,7 +58,7 @@ internal sealed class BankDetailsConfiguration : IEntityTypeConfiguration<BankDe
         builder.Property(b => b.AccountHolder).HasMaxLength(200);
         builder.Property(b => b.Bic).HasMaxLength(11);
 
-        // Zahlungszuordnung sucht nach IBAN.
+        // Payment matching searches by IBAN.
         builder.HasIndex(b => b.Iban);
     }
 }

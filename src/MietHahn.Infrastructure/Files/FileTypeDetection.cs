@@ -2,7 +2,7 @@ using System.Text;
 
 namespace MietHahn.Infrastructure.Files;
 
-/// <summary>Erlaubte Dateitypen, erkannt am Inhalt (Magic Bytes), nicht an der Endung.</summary>
+/// <summary>Allowed file types, detected by content (magic bytes), not by extension.</summary>
 internal static class FileTypeDetection
 {
     public const int RequiredBytes = 16;
@@ -30,7 +30,7 @@ internal static class FileTypeDetection
             return new DetectedType("image/png", ".png", IsImage: true);
         }
 
-        // ISO-BMFF: Bytes 4–7 "ftyp", danach die Hauptmarke.
+        // ISO-BMFF: bytes 4–7 "ftyp", followed by the major brand.
         if (header.Length >= 12 && header[4..8].SequenceEqual("ftyp"u8))
         {
             var brand = Encoding.ASCII.GetString(header[8..12]);
