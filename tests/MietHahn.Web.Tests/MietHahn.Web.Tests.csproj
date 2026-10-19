@@ -12,4 +12,8 @@
     <ProjectReference Include="..\MietHahn.TestHilfen\MietHahn.TestHilfen.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\MietHahn.Integration.Tests\Bank\Testdateien\**" Link="Bank\Testdateien\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

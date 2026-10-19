@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08">
+  <BkToCstmrStmt>
+    <GrpHdr><MsgId>TEST-08</MsgId><CreDtTm>2026-03-04T06:00:00+01:00</CreDtTm></GrpHdr>
+    <Stmt>
+      <Id>2026-03</Id>
+      <Acct><Id><IBAN>DE89370400440532013000</IBAN></Id></Acct>
+      <Ntry>
+        <Amt Ccy="EUR">770.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><DtTm>2026-03-03T09:15:00+01:00</DtTm></BookgDt>
+        <ValDt><Dt>2026-03-03</Dt></ValDt>
+        <NtryDtls><TxDtls>
+          <Refs><EndToEndId>MIETE-2026-03</EndToEndId></Refs>
+          <RltdPties>
+            <Dbtr><Pty><Nm>Anna Schmidt</Nm></Pty></Dbtr>
+            <DbtrAcct><Id><IBAN>DE93370501981234567890</IBAN></Id></DbtrAcct>
+          </RltdPties>
+          <RltdAgts><DbtrAgt><FinInstnId><BICFI>COLSDE33XXX</BICFI></FinInstnId></DbtrAgt></RltdAgts>
+          <RmtInf><Ustrd>Miete Maerz 2026</Ustrd></RmtInf>
+        </TxDtls></NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">84.50</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts><Cd>BOOK</Cd></Sts>
+        <BookgDt><Dt>2026-03-05</Dt></BookgDt>
+        <NtryDtls><TxDtls>
+          <Refs><MndtId>SW-4711</MndtId></Refs>
+          <RltdPties>
+            <Cdtr><Pty><Nm>Stadtwerke Musterstadt</Nm><Id><PrvtId><Othr><Id>DE98ZZZ09999999999</Id></Othr></PrvtId></Id></Pty></Cdtr>
+          </RltdPties>
+          <RmtInf><Ustrd>Abschlag Strom Allgemein 03/2026</Ustrd></RmtInf>
+        </TxDtls></NtryDtls>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

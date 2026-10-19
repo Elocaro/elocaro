@@ -1,0 +1,146 @@
+@page "/verwaltung/bank/umsaetze"
+@inject IBankverwaltung Bank
+@inject Weiterleitung Weiterleitung
+@inject NavigationManager Navigation
+
+<Seitenkopf Titel="Umsätze" Untertitel="Importierte Kontoumsätze; offene warten auf Zuordnung." Zurueck="/verwaltung/bank/konten" ZurueckText="Bankkonten" />
+
+<StatusMeldung />
+<FehlerListe Fehler="fehler" />
+
+<form method="get" class="formular-zeile suchleiste" role="search">
+    <div class="feld">
+        <label for="konto">Konto</label>
+        <select id="konto" name="konto">
+            <option value="">Alle Konten</option>
+            @foreach (var k in konten)
+            {
+                <option value="@k.Id" selected="@(k.Id == KontoId)">@k.Name</option>
+            }
+        </select>
+    </div>
+    <div class="feld">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="">Alle</option>
+            @foreach (var wert in Enum.GetValues<Umsatzstatus>())
+            {
+                <option value="@wert" selected="@(Status == wert)">@Bezeichnungen.Von(wert)</option>
+            }
+        </select>
+    </div>
+    <div class="feld">
+        <label for="suche">Suche</label>
+        <input id="suche" type="search" name="q" value="@Q" placeholder="Name, IBAN, Verwendungszweck" />
+    </div>
+    <div class="feld feld-aktion">
+        <button type="submit" class="knopf">Anzeigen</button>
+    </div>
+</form>
+
+@if (umsaetze is { Count: 0 })
+{
+    <Leerzustand Text="Keine Umsätze in dieser Auswahl." />
+}
+else if (umsaetze is not null)
+{
+    <p class="klein">@umsaetze.Count Umsätze · Eingänge @Format.Geld(umsaetze.Where(u => u.Betrag > 0).Sum(u => u.Betrag)) · Ausgänge @Format.Geld(umsaetze.Where(u => u.Betrag < 0).Sum(u => u.Betrag))</p>
+    <form method="post" @formname="status" @onsubmit="StatusAsync">
+        <AntiforgeryToken />
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Buchung</th><th>Gegenseite</th><th>Verwendungszweck</th><th class="zahl">Betrag</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var u in umsaetze)
+                    {
+                        <tr>
+                            <td>@Format.Datum(u.Buchungsdatum)</td>
+                            <td>@u.GegenName<span class="klein"> @u.GegenIban</span></td>
+                            <td>
+                                @u.Verwendungszweck
+                                @if (u.Buchungstext is not null)
+                                {
+                                    <span class="klein"> (@u.Buchungstext)</span>
+                                }
+                                @if (u.Notiz is not null)
+                                {
+                                    <br /><span class="klein">Notiz: @u.Notiz</span>
+                                }
+                            </td>
+                            <td class="zahl">@Format.Geld(u.Betrag)</td>
+                            <td><span class="status @Bezeichnungen.StatusKlasse(u.Status)">@Bezeichnungen.Von(u.Status)</span></td>
+                            <td>
+                                @if (u.Status == Umsatzstatus.Offen)
+                                {
+                                    <button type="submit" class="knopf" name="Aktion" value="@($"ignorieren:{u.Id}")" aria-label="Umsatz vom @Format.Datum(u.Buchungsdatum) ignorieren">Ignorieren</button>
+                                }
+                                else if (u.Status == Umsatzstatus.Ignoriert)
+                                {
+                                    <button type="submit" class="knopf" name="Aktion" value="@($"oeffnen:{u.Id}")" aria-label="Umsatz vom @Format.Datum(u.Buchungsdatum) wieder öffnen">Wieder öffnen</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="feld">
+            <label for="notiz">Notiz beim Ignorieren (optional)</label>
+            <input id="notiz" name="Notiz" placeholder="z. B. privat, Umbuchung" />
+        </div>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<BankkontoZeile> konten = [];
+    private IReadOnlyList<UmsatzZeile>? umsaetze;
+    private IReadOnlyList<string>? fehler;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "konto")]
+    private Guid? KontoId { get; set; }
+
+    // Enums lassen sich nicht direkt aus dem Query-String binden.
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? StatusText { get; set; }
+
+    private Umsatzstatus? Status => Enum.TryParse<Umsatzstatus>(StatusText, out var wert) ? wert : null;
+
+    [SupplyParameterFromQuery]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromForm(FormName = "status")]
+    private string? Aktion { get; set; }
+
+    [SupplyParameterFromForm(FormName = "status")]
+    private string? Notiz { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        konten = await Bank.KontenAsync();
+        umsaetze = await Bank.UmsaetzeAsync(new UmsatzSuche(KontoId, Status, Q));
+    }
+
+    private async Task StatusAsync()
+    {
+        var teile = (Aktion ?? "").Split(':');
+        if (teile.Length != 2 || !Guid.TryParse(teile[1], out var id))
+        {
+            fehler = ["Unbekannte Aktion."];
+            return;
+        }
+
+        var ergebnis = teile[0] == "ignorieren" ? await Bank.IgnorierenAsync(id, Notiz) : await Bank.WiederOeffnenAsync(id);
+        if (ergebnis.Erfolgreich)
+        {
+            // Zurück auf dieselbe Auswahl (Konto, Status, Suche)
+            Weiterleitung.ZuMitMeldung("/" + Navigation.ToBaseRelativePath(Navigation.Uri), teile[0] == "ignorieren" ? "Der Umsatz wird ignoriert." : "Der Umsatz ist wieder offen.", HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+}

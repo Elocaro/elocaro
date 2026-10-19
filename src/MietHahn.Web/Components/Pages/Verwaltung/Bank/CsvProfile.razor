@@ -1,0 +1,120 @@
+@page "/verwaltung/bank/csv-profile"
+@inject IBankverwaltung Bank
+@inject Weiterleitung Weiterleitung
+
+<Seitenkopf Titel="CSV-Profile" Untertitel="Wie CSV-Exporte der Banken gelesen werden. Spalten werden über ihre Überschrift gefunden." Zurueck="/verwaltung/bank/konten" ZurueckText="Bankkonten" />
+
+<StatusMeldung />
+<FehlerListe Fehler="fehler" />
+
+<form method="post" @formname="loeschen" @onsubmit="LoeschenAsync">
+    <AntiforgeryToken />
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead><tr><th>Profil</th><th>Trennzeichen</th><th>Datum</th><th>Spalten (Datum · Betrag · Zweck)</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var p in profile)
+                {
+                    <tr>
+                        <td>@p.Name @if (p.Vorgabe) {<span class="status">mitgeliefert</span>}</td>
+                        <td>@(p.Trennzeichen == "\t" ? "Tab" : p.Trennzeichen), Dezimal „@p.Dezimaltrennzeichen“</td>
+                        <td>@p.Datumsformat</td>
+                        <td class="klein">@p.SpalteBuchungsdatum · @(p.SpalteBetrag ?? $"{p.SpalteSoll} / {p.SpalteHaben}") · @p.SpalteVerwendungszweck</td>
+                        <td>
+                            @if (p.Id is { } id)
+                            {
+                                <button type="submit" class="knopf knopf-gefahr" name="LoeschenId" value="@id" aria-label="Profil @p.Name löschen">Löschen</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</form>
+
+<section>
+    <h2>Eigenes Profil anlegen</h2>
+    <p class="klein">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>
+    <EditForm Model="Daten" FormName="profil" OnValidSubmit="SpeichernAsync">
+        <DataAnnotationsValidator />
+        <div class="formular-raster">
+            <FormularFeld Id="p-name" Beschriftung="Name" Fuer="() => Daten!.Name" Pflicht="true">
+                <InputText id="p-name" @bind-Value="Daten!.Name" />
+            </FormularFeld>
+            <FormularFeld Id="p-trenner" Beschriftung="Trennzeichen" Fuer="() => Daten!.Trennzeichen" Hinweis="; , oder \t für Tab">
+                <InputText id="p-trenner" @bind-Value="Daten!.Trennzeichen" maxlength="2" />
+            </FormularFeld>
+            <FormularFeld Id="p-dezimal" Beschriftung="Dezimaltrennzeichen" Fuer="() => Daten!.Dezimaltrennzeichen">
+                <InputSelect id="p-dezimal" @bind-Value="Daten!.Dezimaltrennzeichen">
+                    <option value=",">Komma (1.234,56)</option>
+                    <option value=".">Punkt (1,234.56)</option>
+                </InputSelect>
+            </FormularFeld>
+            <FormularFeld Id="p-zeichensatz" Beschriftung="Zeichensatz" Fuer="() => Daten!.Zeichensatz">
+                <InputSelect id="p-zeichensatz" @bind-Value="Daten!.Zeichensatz">
+                    <option value="auto">automatisch</option>
+                    <option value="utf-8">UTF-8</option>
+                    <option value="windows-1252">Windows-1252 / ISO-8859-1</option>
+                </InputSelect>
+            </FormularFeld>
+            <FormularFeld Id="p-datum" Beschriftung="Datumsformat" Fuer="() => Daten!.Datumsformat" Hinweis="z. B. dd.MM.yyyy|dd.MM.yy oder yyyy-MM-dd">
+                <InputText id="p-datum" @bind-Value="Daten!.Datumsformat" />
+            </FormularFeld>
+        </div>
+        <h3>Spaltenüberschriften</h3>
+        <div class="formular-raster">
+            <FormularFeld Id="p-buchung" Beschriftung="Buchungsdatum" Fuer="() => Daten!.SpalteBuchungsdatum" Pflicht="true"><InputText id="p-buchung" @bind-Value="Daten!.SpalteBuchungsdatum" /></FormularFeld>
+            <FormularFeld Id="p-valuta" Beschriftung="Valutadatum" Fuer="() => Daten!.SpalteValutadatum"><InputText id="p-valuta" @bind-Value="Daten!.SpalteValutadatum" /></FormularFeld>
+            <FormularFeld Id="p-betrag" Beschriftung="Betrag" Fuer="() => Daten!.SpalteBetrag"><InputText id="p-betrag" @bind-Value="Daten!.SpalteBetrag" /></FormularFeld>
+            <FormularFeld Id="p-soll" Beschriftung="Soll (Ausgang)" Fuer="() => Daten!.SpalteSoll"><InputText id="p-soll" @bind-Value="Daten!.SpalteSoll" /></FormularFeld>
+            <FormularFeld Id="p-haben" Beschriftung="Haben (Eingang)" Fuer="() => Daten!.SpalteHaben"><InputText id="p-haben" @bind-Value="Daten!.SpalteHaben" /></FormularFeld>
+            <FormularFeld Id="p-name-gegen" Beschriftung="Name Gegenseite" Fuer="() => Daten!.SpalteName"><InputText id="p-name-gegen" @bind-Value="Daten!.SpalteName" /></FormularFeld>
+            <FormularFeld Id="p-iban" Beschriftung="IBAN Gegenseite" Fuer="() => Daten!.SpalteIban"><InputText id="p-iban" @bind-Value="Daten!.SpalteIban" /></FormularFeld>
+            <FormularFeld Id="p-bic" Beschriftung="BIC Gegenseite" Fuer="() => Daten!.SpalteBic"><InputText id="p-bic" @bind-Value="Daten!.SpalteBic" /></FormularFeld>
+            <FormularFeld Id="p-zweck" Beschriftung="Verwendungszweck" Fuer="() => Daten!.SpalteVerwendungszweck"><InputText id="p-zweck" @bind-Value="Daten!.SpalteVerwendungszweck" /></FormularFeld>
+            <FormularFeld Id="p-text" Beschriftung="Buchungstext" Fuer="() => Daten!.SpalteBuchungstext"><InputText id="p-text" @bind-Value="Daten!.SpalteBuchungstext" /></FormularFeld>
+            <FormularFeld Id="p-eref" Beschriftung="End-to-End-Referenz" Fuer="() => Daten!.SpalteEndToEnd"><InputText id="p-eref" @bind-Value="Daten!.SpalteEndToEnd" /></FormularFeld>
+            <FormularFeld Id="p-mref" Beschriftung="Mandatsreferenz" Fuer="() => Daten!.SpalteMandatsreferenz"><InputText id="p-mref" @bind-Value="Daten!.SpalteMandatsreferenz" /></FormularFeld>
+            <FormularFeld Id="p-cred" Beschriftung="Gläubiger-ID" Fuer="() => Daten!.SpalteGlaeubigerId"><InputText id="p-cred" @bind-Value="Daten!.SpalteGlaeubigerId" /></FormularFeld>
+        </div>
+        <button type="submit" class="knopf knopf-primaer">Profil anlegen</button>
+    </EditForm>
+</section>
+
+@code {
+    private IReadOnlyList<CsvProfilDaten> profile = [];
+    private IReadOnlyList<string>? fehler;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "profil")]
+    private CsvProfilDaten? Daten { get; set; }
+
+    [SupplyParameterFromForm(FormName = "loeschen")]
+    private Guid? LoeschenId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Daten ??= new();
+        profile = await Bank.CsvProfileAsync();
+    }
+
+    private Task SpeichernAsync() => AusfuehrenAsync(Bank.CsvProfilSpeichernAsync(null, Daten!), "Das Profil wurde angelegt.");
+
+    private Task LoeschenAsync() => LoeschenId is { } id ? AusfuehrenAsync(Bank.CsvProfilLoeschenAsync(id), "Das Profil wurde gelöscht.") : Task.CompletedTask;
+
+    private async Task AusfuehrenAsync(Task<Ergebnis> befehl, string erfolg)
+    {
+        var ergebnis = await befehl;
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung("/verwaltung/bank/csv-profile", erfolg, HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+}

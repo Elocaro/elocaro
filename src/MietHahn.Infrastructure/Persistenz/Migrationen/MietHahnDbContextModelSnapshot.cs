@@ -178,6 +178,477 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.ToTable("benutzer_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Bank.Bankimport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BankkontoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bankkonto_id");
+
+                    b.Property<DateOnly?>("Bis")
+                        .HasColumnType("date")
+                        .HasColumnName("bis");
+
+                    b.Property<string>("Dateiname")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("dateiname");
+
+                    b.Property<int>("Duplikate")
+                        .HasColumnType("integer")
+                        .HasColumnName("duplikate");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("format");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<int>("Gelesen")
+                        .HasColumnType("integer")
+                        .HasColumnName("gelesen");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<byte[]>("Inhalt")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("inhalt");
+
+                    b.Property<int>("Neu")
+                        .HasColumnType("integer")
+                        .HasColumnName("neu");
+
+                    b.Property<string>("Profil")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("profil");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<DateOnly?>("Von")
+                        .HasColumnType("date")
+                        .HasColumnName("von");
+
+                    b.HasKey("Id")
+                        .HasName("pk_bankimporte");
+
+                    b.HasIndex("BankkontoId")
+                        .HasDatabaseName("ix_bankimporte_bankkonto_id");
+
+                    b.ToTable("bankimporte", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Bank.Bankkonto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Bank")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("bank");
+
+                    b.Property<string>("Bic")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)")
+                        .HasColumnName("bic");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<string>("Iban")
+                        .IsRequired()
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)")
+                        .HasColumnName("iban");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name")
+                        .UseCollation("german");
+
+                    b.PrimitiveCollection<List<Guid>>("ObjektIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("objekt_ids");
+
+                    b.Property<string>("Typ")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("typ");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_bankkonten");
+
+                    b.HasIndex("Iban")
+                        .IsUnique()
+                        .HasDatabaseName("ix_bankkonten_iban")
+                        .HasFilter("NOT geloescht");
+
+                    b.ToTable("bankkonten", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Bank.CsvProfil", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Datumsformat")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("datumsformat");
+
+                    b.Property<char>("Dezimaltrennzeichen")
+                        .HasColumnType("character(1)")
+                        .HasColumnName("dezimaltrennzeichen");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("SpalteBetrag")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_betrag");
+
+                    b.Property<string>("SpalteBic")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_bic");
+
+                    b.Property<string>("SpalteBuchungsdatum")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_buchungsdatum");
+
+                    b.Property<string>("SpalteBuchungstext")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_buchungstext");
+
+                    b.Property<string>("SpalteEndToEnd")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_end_to_end");
+
+                    b.Property<string>("SpalteGlaeubigerId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_glaeubiger_id");
+
+                    b.Property<string>("SpalteHaben")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_haben");
+
+                    b.Property<string>("SpalteIban")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_iban");
+
+                    b.Property<string>("SpalteMandatsreferenz")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_mandatsreferenz");
+
+                    b.Property<string>("SpalteName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_name");
+
+                    b.Property<string>("SpalteNameAusgang")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_name_ausgang");
+
+                    b.Property<string>("SpalteNameEingang")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_name_eingang");
+
+                    b.Property<string>("SpalteSoll")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_soll");
+
+                    b.Property<string>("SpalteStatus")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_status");
+
+                    b.Property<string>("SpalteValutadatum")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_valutadatum");
+
+                    b.Property<string>("SpalteVerwendungszweck")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_verwendungszweck");
+
+                    b.Property<string>("SpalteWaehrung")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("spalte_waehrung");
+
+                    b.Property<char>("Trennzeichen")
+                        .HasColumnType("character(1)")
+                        .HasColumnName("trennzeichen");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("Zeichensatz")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("zeichensatz");
+
+                    b.Property<string>("Zerlegung")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("zerlegung");
+
+                    b.HasKey("Id")
+                        .HasName("pk_csv_profile");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_csv_profile_name")
+                        .HasFilter("NOT geloescht");
+
+                    b.ToTable("csv_profile", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Bank.Umsatz", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BankimportId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bankimport_id");
+
+                    b.Property<Guid>("BankkontoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bankkonto_id");
+
+                    b.Property<decimal>("Betrag")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("betrag");
+
+                    b.Property<DateOnly>("Buchungsdatum")
+                        .HasColumnType("date")
+                        .HasColumnName("buchungsdatum");
+
+                    b.Property<string>("Buchungstext")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("buchungstext");
+
+                    b.Property<string>("EndToEndId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("end_to_end_id");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<string>("GegenBic")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)")
+                        .HasColumnName("gegen_bic");
+
+                    b.Property<string>("GegenIban")
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)")
+                        .HasColumnName("gegen_iban");
+
+                    b.Property<string>("GegenName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("gegen_name");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<string>("GlaeubigerId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("glaeubiger_id");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("hash");
+
+                    b.Property<string>("Mandatsreferenz")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("mandatsreferenz");
+
+                    b.Property<string>("Notiz")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notiz");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<DateOnly?>("Valutadatum")
+                        .HasColumnType("date")
+                        .HasColumnName("valutadatum");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("Verwendungszweck")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("verwendungszweck");
+
+                    b.Property<string>("Waehrung")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("waehrung");
+
+                    b.HasKey("Id")
+                        .HasName("pk_umsaetze");
+
+                    b.HasIndex("BankimportId")
+                        .HasDatabaseName("ix_umsaetze_bankimport_id");
+
+                    b.HasIndex("BankkontoId", "Hash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_umsaetze_bankkonto_id_hash");
+
+                    b.HasIndex("BankkontoId", "Status", "Buchungsdatum")
+                        .HasDatabaseName("ix_umsaetze_bankkonto_id_status_buchungsdatum");
+
+                    b.ToTable("umsaetze", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Dateien.Datei", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2645,6 +3116,32 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_benutzer_tokens_benutzer_user_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Bank.Bankimport", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Bank.Bankkonto", null)
+                        .WithMany()
+                        .HasForeignKey("BankkontoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_bankimporte_bankkonto_bankkonto_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Bank.Umsatz", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Bank.Bankimport", null)
+                        .WithMany()
+                        .HasForeignKey("BankimportId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_umsaetze_bankimporte_bankimport_id");
+
+                    b.HasOne("MietHahn.Domain.Bank.Bankkonto", null)
+                        .WithMany()
+                        .HasForeignKey("BankkontoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_umsaetze_bankkonten_bankkonto_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Dokumente.Dokument", b =>

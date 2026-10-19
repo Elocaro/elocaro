@@ -12,4 +12,8 @@
     <ProjectReference Include="..\MietHahn.TestHilfen\MietHahn.TestHilfen.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Bank\Testdateien\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

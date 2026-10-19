@@ -1,3 +1,4 @@
+using MietHahn.Domain.Bank;
 using MietHahn.Domain.Dokumente;
 using MietHahn.Domain.Finanzen;
 using MietHahn.Domain.Objekte;
@@ -10,6 +11,35 @@ namespace MietHahn.Web.Anzeige;
 /// <summary>Deutsche Anzeigenamen für fachliche Aufzählungen.</summary>
 public static class Bezeichnungen
 {
+    public static string Von(Kontotyp wert) => wert switch
+    {
+        Kontotyp.Mietkonto => "Mietkonto",
+        Kontotyp.Darlehen => "Darlehenskonto",
+        Kontotyp.Ruecklage => "Rücklage",
+        _ => "Sonstiges",
+    };
+
+    public static string Von(Bankformat wert) => wert switch
+    {
+        Bankformat.Camt053 => "camt.053",
+        Bankformat.Mt940 => "MT940",
+        _ => "CSV",
+    };
+
+    public static string Von(Umsatzstatus wert) => wert switch
+    {
+        Umsatzstatus.Zugeordnet => "zugeordnet",
+        Umsatzstatus.Ignoriert => "ignoriert",
+        _ => "offen",
+    };
+
+    public static string StatusKlasse(Umsatzstatus wert) => wert switch
+    {
+        Umsatzstatus.Zugeordnet => "status-ok",
+        Umsatzstatus.Ignoriert => "",
+        _ => "status-wartend",
+    };
+
     public static string Von(Postenart wert) => wert switch
     {
         Postenart.Miete => "Miete",

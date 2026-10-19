@@ -1,0 +1,45 @@
+@using MietHahn.Application.Objekte
+@* Eingabefelder eines Bankkontos; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormularFeld Id="konto-name" Beschriftung="Name" Fuer="() => Daten.Name" Pflicht="true" Hinweis="z. B. „Mietkonto Lindenweg“">
+        <InputText id="konto-name" @bind-Value="Daten.Name" />
+    </FormularFeld>
+    <FormularFeld Id="konto-iban" Beschriftung="IBAN" Fuer="() => Daten.Iban" Pflicht="true">
+        <InputText id="konto-iban" @bind-Value="Daten.Iban" autocomplete="off" />
+    </FormularFeld>
+    <FormularFeld Id="konto-bic" Beschriftung="BIC" Fuer="() => Daten.Bic">
+        <InputText id="konto-bic" @bind-Value="Daten.Bic" />
+    </FormularFeld>
+    <FormularFeld Id="konto-bank" Beschriftung="Bank" Fuer="() => Daten.Bank">
+        <InputText id="konto-bank" @bind-Value="Daten.Bank" />
+    </FormularFeld>
+    <FormularFeld Id="konto-typ" Beschriftung="Art" Fuer="() => Daten.Typ">
+        <InputSelect id="konto-typ" @bind-Value="Daten.Typ">
+            @foreach (var wert in Enum.GetValues<Kontotyp>())
+            {
+                <option value="@wert">@Bezeichnungen.Von(wert)</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+</div>
+@if (Objekte.Count > 0)
+{
+    <fieldset class="feld">
+        <legend>Objekte (leer = alle)</legend>
+        @foreach (var objekt in Objekte)
+        {
+            <div class="feld feld-checkbox">
+                <input type="checkbox" id="konto-objekt-@objekt.Id" name="Daten.ObjektIds" value="@objekt.Id" checked="@(Daten.ObjektIds?.Contains(objekt.Id) == true)" />
+                <label for="konto-objekt-@objekt.Id">@objekt.Bezeichnung</label>
+            </div>
+        }
+    </fieldset>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public BankkontoDaten Daten { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ObjektUebersicht> Objekte { get; set; } = [];
+}

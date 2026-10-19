@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+  <BkToCstmrStmt>
+    <GrpHdr><MsgId>TEST-02</MsgId><CreDtTm>2026-02-03T06:00:00</CreDtTm></GrpHdr>
+    <Stmt>
+      <Id>2026-02</Id>
+      <Acct><Id><IBAN>DE89370400440532013000</IBAN></Id><Ccy>EUR</Ccy></Acct>
+      <Ntry>
+        <Amt Ccy="EUR">770.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-02-02</Dt></BookgDt>
+        <ValDt><Dt>2026-02-02</Dt></ValDt>
+        <AddtlNtryInf>GUTSCHR. UEBERWEISUNG</AddtlNtryInf>
+        <NtryDtls><TxDtls>
+          <Refs><EndToEndId>MIETE-2026-02</EndToEndId></Refs>
+          <RltdPties>
+            <Dbtr><Nm>Anna Schmidt</Nm></Dbtr>
+            <DbtrAcct><Id><IBAN>DE93370501981234567890</IBAN></Id></DbtrAcct>
+          </RltdPties>
+          <RltdAgts><DbtrAgt><FinInstnId><BIC>COLSDE33XXX</BIC></FinInstnId></DbtrAgt></RltdAgts>
+          <RmtInf><Ustrd>Miete Februar 2026</Ustrd><Ustrd>Wohnung 1 Lindenweg 3</Ustrd></RmtInf>
+        </TxDtls></NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">84.50</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-02-05</Dt></BookgDt>
+        <ValDt><Dt>2026-02-05</Dt></ValDt>
+        <AddtlNtryInf>FOLGELASTSCHRIFT</AddtlNtryInf>
+        <NtryDtls><TxDtls>
+          <Refs><EndToEndId>NOTPROVIDED</EndToEndId><MndtId>SW-4711</MndtId></Refs>
+          <RltdPties>
+            <Cdtr><Nm>Stadtwerke Musterstadt</Nm><Id><PrvtId><Othr><Id>DE98ZZZ09999999999</Id></Othr></PrvtId></Id></Cdtr>
+            <CdtrAcct><Id><IBAN>DE83500105175555555555</IBAN></Id></CdtrAcct>
+          </RltdPties>
+          <RmtInf><Ustrd>Abschlag Strom Allgemein 02/2026</Ustrd></RmtInf>
+        </TxDtls></NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">1540.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-02-06</Dt></BookgDt>
+        <AddtlNtryInf>SAMMLER-GUTSCHRIFT</AddtlNtryInf>
+        <NtryDtls>
+          <TxDtls>
+            <AmtDtls><TxAmt><Amt Ccy="EUR">770.00</Amt></TxAmt></AmtDtls>
+            <RltdPties><Dbtr><Nm>Ben Weber</Nm></Dbtr></RltdPties>
+            <RmtInf><Ustrd>Miete 02/26 Ben</Ustrd></RmtInf>
+          </TxDtls>
+          <TxDtls>
+            <AmtDtls><TxAmt><Amt Ccy="EUR">770.00</Amt></TxAmt></AmtDtls>
+            <RltdPties><Dbtr><Nm>Clara Vogel</Nm></Dbtr></RltdPties>
+            <RmtInf><Ustrd>Miete 02/26 Clara</Ustrd></RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">10.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Sts>PDNG</Sts>
+        <BookgDt><Dt>2026-02-07</Dt></BookgDt>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>
