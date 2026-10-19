@@ -9,7 +9,7 @@ namespace MietHahn.Infrastructure.Jobs;
 [DisallowConcurrentExecution]
 internal sealed class JobLogCleanupJob(MietHahnDbContext db, TimeProvider clock, IOptions<JobsOptions> options) : IJob
 {
-    public static readonly JobKey Key = new("job-protokoll-bereinigung", "system");
+    public static readonly JobKey Key = new("job-log-cleanup", "system");
 
     public async Task Execute(IJobExecutionContext context)
     {

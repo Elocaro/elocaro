@@ -12,7 +12,7 @@
 | PDF | **Scriban**-HTML-Vorlagen → **Gotenberg** (Docker, Chromium) | Vorlagen ohne Code editierbar, ein Mechanismus für alle Dokumente |
 | Jobs | **Quartz.NET 3.x** (persistenter Store in PostgreSQL, Laufprotokoll) | Fristen, Sollstellungen, FinTS-Abruf, Mails. 4.x ist zu neu (Sept. 2026) |
 | Banking | Parser für CSV/CAMT.053/MT940; FinTS via **libfintx** (LGPL-3.0, als NuGet unverändert eingebunden) | Vorgabe: Import und Direktabruf |
-| OCR/KI | Interface `IBelegExtraktor` mit Providern **Claude API**, **Ollama** (lokal), **Keiner** | Konfigurierbar, Datenhoheit wählbar |
+| OCR/KI | Interface `IReceiptExtractor` mit Providern **Claude API**, **Ollama** (lokal), **Keiner** | Konfigurierbar, Datenhoheit wählbar |
 | Mail | **MailKit** (SMTP) mit Outbox-Tabelle und Wiederholungen | Standard, Versandnachweis |
 | Bilder | **SkiaSharp** (EXIF-Drehung, Verkleinern, Metadaten entfernen) | MIT-Lizenz |
 | Dateien | Lokales Volume, Content-Addressed (SHA-256) | Einfach, backupbar |
@@ -23,7 +23,7 @@
 ```
 src/
   MietHahn.Domain/          Entitäten, Value Objects (Geld, Zeitraum, Fläche), Domänenregeln, reine Rechenkerne
-  MietHahn.Application/     Use Cases (Commands/Queries), Interfaces (IBankImporter, IBelegExtraktor, IPdfRenderer, IMailer)
+  MietHahn.Application/     Use Cases (Commands/Queries), Interfaces (IBankImporter, IReceiptExtractor, IPdfRenderer, IMailer)
   MietHahn.Infrastructure/  EF Core (PostgreSQL), Migrations, Banking-Parser, FinTS, OCR-Provider, Gotenberg, MailKit, Quartz
   MietHahn.Web/             Blazor SSR: Areas /verwaltung, /portal (Mieter), /service (Hausmeister/Handwerker)
 tests/
@@ -38,7 +38,7 @@ deploy/
 
 ## Querschnitt
 
-- **Mandantenfähigkeit:** nicht nötig (eine Installation pro Vermieter). Alle Daten hängen aber an `ObjektId`, damit später Eigentümer je Objekt möglich sind.
+- **Mandantenfähigkeit:** nicht nötig (eine Installation pro Vermieter). Alle Daten hängen aber an `PropertyId`, damit später Eigentümer je Objekt möglich sind.
 - **Historisierung:** Gültigkeitszeiträume statt Überschreiben, Audit-Log (wer, wann, was) für alle Änderungen.
 - **Sicherheit:** HTTPS über Caddy, Antiforgery (SSR-Forms), Rate-Limiting für Login/Magic Link, Secrets über Umgebungsvariablen bzw. Docker Secrets, FinTS-PIN wird nie gespeichert, Upload-Validierung (Typ/Größe).
 - **Backups:** nächtlich `pg_dump` + Datei-Volume, verschlüsselt (restic) im eigenen Container, Statusdatei → Dashboard/Warnmail, Restore-Test in der CI (`deploy/backup/`). Vollexport aller Daten als ZIP (JSON/CSV + Dateien) aus dem EF-Modell.

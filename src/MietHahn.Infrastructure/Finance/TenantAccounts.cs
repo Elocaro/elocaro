@@ -310,7 +310,7 @@ internal sealed class FinanceSettingsService(MietHahnDbContext db) : IFinanceSet
 [DisallowConcurrentExecution]
 internal sealed class ChargeJob(ITenantAccounts accounts) : IJob
 {
-    public static readonly JobKey Key = new("charges", "finanzen");
+    public static readonly JobKey Key = new("charges", "finance");
 
     public async Task Execute(IJobExecutionContext context)
     {
@@ -355,7 +355,7 @@ internal sealed class FinanceTodos(MietHahnDbContext db, ITenantAccounts account
 /// <summary>Mieterkonten der Verträge einer Person für die DSGVO-Auskunft.</summary>
 internal sealed class TenantAccountPersonalData(MietHahnDbContext db) : IPersonalDataSource
 {
-    public string Section => "mieterkonten";
+    public string Section => "tenantAccounts";
 
     public async Task<object?> DataAsync(Guid personId, CancellationToken cancellationToken = default)
     {

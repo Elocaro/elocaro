@@ -11,7 +11,7 @@ backup (nachts) ──▶ postgres + Volume dateien ──▶ restic-Repository 
 
 | Dienst | Image | Daten |
 |---|---|---|
-| `app` | `ghcr.io/ther00st3r/miethahn` (chiseled, Non-Root, ohne Shell) | Volume `dateien` → `/daten` (Belege, Fotos, PDFs) |
+| `app` | `ghcr.io/ther00st3r/miethahn` (chiseled, Non-Root, ohne Shell) | Volume `files` → `/data` (Belege, Fotos, PDFs) |
 | `postgres` | `postgres:18-alpine` | Volume `postgres` (Daten inkl. Anmelde-Schlüssel) |
 | `gotenberg` | `gotenberg/gotenberg:8.38.1` | – |
 | `backup` | `ghcr.io/ther00st3r/miethahn-backup` (pg_dump + restic) | Volumes `backup-status`, `backup-cache`; Repository extern bzw. `deploy/backup-repo` |
@@ -94,7 +94,7 @@ Das Datenformat ist zwischen Major-Versionen nicht kompatibel:
 Der Dienst `backup` (Image `ghcr.io/ther00st3r/miethahn-backup`, Quelle `deploy/backup/`) sichert jede Nacht um `BACKUP_TIME` (Standard 02:30):
 
 1. die Datenbank per `pg_dump` (Custom-Format; passt zur PostgreSQL-Version, da das Image auf `postgres:18-alpine` basiert),
-2. das Volume `dateien` (Belege, Fotos, PDFs),
+2. das Volume `files` (Belege, Fotos, PDFs),
 
 verschlüsselt und dedupliziert mit [restic](https://restic.net) in ein Repository. Danach werden alte Stände ausgedünnt (7 tägliche, 4 wöchentliche, 12 monatliche; `BACKUP_BEHALTEN_*`) und das Repository geprüft (`restic check`).
 
@@ -148,7 +148,7 @@ $DC run --rm backup wiederherstellen          # neuester Stand; oder: wiederhers
 $DC start app
 ```
 
-Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP DATABASE … WITH (FORCE)`, `pg_restore`), ersetzt den Inhalt des Volumes `dateien` und setzt die Dateirechte für den App-Benutzer (UID 1654). Es bricht ab, solange die App noch verbunden ist.
+Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP DATABASE … WITH (FORCE)`, `pg_restore`), ersetzt den Inhalt des Volumes `files` und setzt die Dateirechte für den App-Benutzer (UID 1654). Es bricht ab, solange die App noch verbunden ist.
 
 ### Auf einem neuen Server
 
@@ -170,8 +170,8 @@ deploy/backup/restore-test.sh
 
 Unabhängig vom Backup lässt sich unter *Einstellungen → Datensicherung* (Recht *System*) ein **Vollexport** als ZIP herunterladen. Er ist ohne MietHahn lesbar:
 
-- `daten/<tabelle>.json` und `daten/<tabelle>.csv` (Semikolon, UTF-8 mit BOM, Dezimalkomma; für Excel) für jede Tabelle, gelöschte Datensätze eingeschlossen,
-- `dateien/<id>/<originalname>` für alle hochgeladenen Dateien,
+- `data/<table>.json` und `data/<table>.csv` (Semikolon, UTF-8 mit BOM, Dezimalkomma; für Excel) für jede Tabelle, gelöschte Datensätze eingeschlossen,
+- `files/<id>/<originalname>` für alle hochgeladenen Dateien,
 - `manifest.json` (Tabellen, Spalten, Datentypen, Zeilenzahlen) und `LIESMICH.txt` (Formatbeschreibung).
 
 Nicht enthalten sind Passwort-Hashes, Tokens, Anmeldelinks und Cookie-Schlüssel. Jeder Export wird im Audit-Log vermerkt. Zum Wiederherstellen von MietHahn dient das Backup, nicht der Export.

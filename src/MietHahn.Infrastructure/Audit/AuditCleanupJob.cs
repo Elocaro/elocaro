@@ -10,7 +10,7 @@ namespace MietHahn.Infrastructure.Audit;
 [DisallowConcurrentExecution]
 internal sealed class AuditCleanupJob(AuditCleanup cleanup) : IJob
 {
-    public static readonly JobKey Key = new("audit-bereinigung", "system");
+    public static readonly JobKey Key = new("audit-cleanup", "system");
 
     public async Task Execute(IJobExecutionContext context)
     {

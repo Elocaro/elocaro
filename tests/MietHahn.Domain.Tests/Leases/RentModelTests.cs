@@ -72,7 +72,7 @@ public class RentModelTests
     }
 
     [Fact]
-    public void Staffel_zum_1_1_gilt_ab_dem_1_1()
+    public void Rent_step_on_January_1_applies_from_January_1()
     {
         var lease = Lease();
         lease.SetRentModel(RentModel.Graduated);

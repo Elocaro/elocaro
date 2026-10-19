@@ -10,6 +10,9 @@
 3. Pull Request gegen den Default-Branch des Repositorys (derzeit `ccr-9b8ed253-urio73`), Beschreibung mit `Closes #<Issue>`.
 4. Merge erst, wenn die CI grün ist.
 
+**Sprache:** Code ist englisch (Bezeichner, Kommentare, Testnamen, Datenbank, Konfiguration, CSS-Klassen). Deutsch bleiben
+Oberflächentexte, URLs, Dokumentation und Commit-Nachrichten. Details und Glossar: [docs/entwicklung.md](docs/entwicklung.md#sprache-im-code).
+
 Konventionen, Testaufbau und Migrationen: [docs/entwicklung.md](docs/entwicklung.md).
 
 ## Empfohlene Branch-Protection für den Default-Branch

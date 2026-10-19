@@ -46,7 +46,7 @@ internal sealed class RentStepApplication(MietHahnDbContext db, IMailSender mail
         var recipients = await AdminRecipients.GetAsync(db, cancellationToken);
         if (lines.Count > 0 && recipients.Count > 0)
         {
-            await mail.EnqueueAsync(new MailRequest(recipients, "graduated-rent-applied", new { RentSteps = lines, Link = app.Value.Link("/verwaltung/vertraege").ToString() }, Reference: "staffelmiete"), cancellationToken);
+            await mail.EnqueueAsync(new MailRequest(recipients, "graduated-rent-applied", new { RentSteps = lines, Link = app.Value.Link("/verwaltung/vertraege").ToString() }, Reference: "graduated-rent"), cancellationToken);
         }
 
         return lines.Count;
@@ -56,7 +56,7 @@ internal sealed class RentStepApplication(MietHahnDbContext db, IMailSender mail
 [DisallowConcurrentExecution]
 internal sealed class RentStepJob(RentStepApplication app) : IJob
 {
-    public static readonly JobKey Key = new("staffelmiete", "vertraege");
+    public static readonly JobKey Key = new("graduated-rent", "leases");
 
     public async Task Execute(IJobExecutionContext context)
     {

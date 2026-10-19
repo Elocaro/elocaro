@@ -21,7 +21,7 @@ public class QuartzJobsTests(PostgresFixture postgres)
         var overview = await OverviewAsync(environment);
 
         Assert.Contains(overview, j => j.Name == "mail-outbox" && j.NextRun is not null);
-        var cleanup = Assert.Single(overview, j => j.Name == "job-protokoll-bereinigung");
+        var cleanup = Assert.Single(overview, j => j.Name == "job-log-cleanup");
         Assert.Equal("Löscht alte Einträge des Job-Laufprotokolls", cleanup.Description);
         Assert.NotNull(cleanup.NextRun);
     }
@@ -33,12 +33,12 @@ public class QuartzJobsTests(PostgresFixture postgres)
         await using var running = await StartAsync(environment);
         var scheduler = await running.SchedulerAsync();
 
-        await scheduler.TriggerJob(new JobKey("job-protokoll-bereinigung", "system"), Ct);
-        var run = await WaitForRunAsync(environment, "job-protokoll-bereinigung");
+        await scheduler.TriggerJob(new JobKey("job-log-cleanup", "system"), Ct);
+        var run = await WaitForRunAsync(environment, "job-log-cleanup");
 
         Assert.True(run.Succeeded);
         Assert.NotNull(run.EndedAt);
-        var status = Assert.Single(await OverviewAsync(environment), j => j.Name == "job-protokoll-bereinigung");
+        var status = Assert.Single(await OverviewAsync(environment), j => j.Name == "job-log-cleanup");
         Assert.True(status.LastRunSucceeded);
     }
 
@@ -101,8 +101,8 @@ public class QuartzJobsTests(PostgresFixture postgres)
         }
 
         await using var running = await StartAsync(environment);
-        await (await running.SchedulerAsync()).TriggerJob(new JobKey("job-protokoll-bereinigung", "system"), Ct);
-        await WaitForRunAsync(environment, "job-protokoll-bereinigung");
+        await (await running.SchedulerAsync()).TriggerJob(new JobKey("job-log-cleanup", "system"), Ct);
+        await WaitForRunAsync(environment, "job-log-cleanup");
 
         await using var check = environment.Services.CreateAsyncScope();
         var names = await check.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<JobRun>()

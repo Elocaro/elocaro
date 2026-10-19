@@ -39,7 +39,7 @@ public class BankFileParserTests
     }
 
     [Fact]
-    public void Mt940_mit_strukturiertem_Feld_86()
+    public void Mt940_with_structured_field_86()
     {
         var file = Read("mt940.sta");
 
