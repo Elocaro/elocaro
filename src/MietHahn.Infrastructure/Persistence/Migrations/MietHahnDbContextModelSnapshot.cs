@@ -1772,6 +1772,13 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("due_on_working_day");
 
+                    b.PrimitiveCollection<List<string>>("ExcludedCostTypes")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("excluded_cost_types")
+                        .HasDefaultValueSql("'{}'");
+
                     b.Property<DateOnly?>("FixedTermUntil")
                         .HasColumnType("date")
                         .HasColumnName("fixed_term_until");
@@ -2350,6 +2357,157 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasFilter("NOT deleted");
 
                     b.ToTable("meter_readings", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.OperatingCosts.CostAllocationRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CostType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("cost_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("MeterType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("meter_type");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<decimal?>("PreDeductionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("pre_deduction_amount");
+
+                    b.Property<string>("PreDeductionNote")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("pre_deduction_note");
+
+                    b.Property<decimal?>("PreDeductionPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("pre_deduction_percent");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Validity", "MietHahn.Domain.OperatingCosts.CostAllocationRule.Validity#Period", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<DateOnly>("From")
+                                .HasColumnType("date")
+                                .HasColumnName("validity_from");
+
+                            b1.Property<DateOnly?>("To")
+                                .HasColumnType("date")
+                                .HasColumnName("validity_to");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_cost_allocation_rules");
+
+                    b.HasIndex("PropertyId", "CostType")
+                        .HasDatabaseName("ix_cost_allocation_rules_property_id_cost_type");
+
+                    b.ToTable("cost_allocation_rules", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.OperatingCosts.CostAllocationShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<decimal>("Percent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("percent");
+
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rule_id");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("unit_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cost_allocation_shares");
+
+                    b.HasIndex("RuleId")
+                        .HasDatabaseName("ix_cost_allocation_shares_rule_id");
+
+                    b.HasIndex("UnitId")
+                        .HasDatabaseName("ix_cost_allocation_shares_unit_id");
+
+                    b.ToTable("cost_allocation_shares", (string)null);
                 });
 
             modelBuilder.Entity("MietHahn.Domain.People.BankDetails", b =>
@@ -3077,6 +3235,14 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(4,1)")
                         .HasColumnName("room_count");
 
+                    b.Property<string>("SharedFlatBilling")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("FlatRate")
+                        .HasColumnName("shared_flat_billing");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -3235,6 +3401,10 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("section35a");
 
+                    b.Property<Guid?>("SubtypeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subtype_id");
+
                     b.Property<Guid?>("UnitId")
                         .HasColumnType("uuid")
                         .HasColumnName("unit_id");
@@ -3264,6 +3434,9 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.HasIndex("ReceiptId")
                         .HasDatabaseName("ix_cost_items_receipt_id");
 
+                    b.HasIndex("SubtypeId")
+                        .HasDatabaseName("ix_cost_items_subtype_id");
+
                     b.HasIndex("UnitId")
                         .HasDatabaseName("ix_cost_items_unit_id");
 
@@ -3271,6 +3444,64 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_cost_items_property_id_cost_type");
 
                     b.ToTable("cost_items", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Receipts.CostSubtype", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CostType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("cost_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name")
+                        .UseCollation("german");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cost_subtypes");
+
+                    b.HasIndex("CostType", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cost_subtypes_cost_type_name")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("cost_subtypes", (string)null);
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Receipts.Receipt", b =>
@@ -4156,6 +4387,33 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_meter_readings_stored_file_photo_file_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.OperatingCosts.CostAllocationRule", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cost_allocation_rules_property_property_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.OperatingCosts.CostAllocationShare", b =>
+                {
+                    b.HasOne("MietHahn.Domain.OperatingCosts.CostAllocationRule", null)
+                        .WithMany("Shares")
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cost_allocation_shares_cost_allocation_rules_rule_id");
+
+                    b.HasOne("MietHahn.Domain.Properties.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cost_allocation_shares_unit_unit_id");
+                });
+
             modelBuilder.Entity("MietHahn.Domain.People.BankDetails", b =>
                 {
                     b.HasOne("MietHahn.Domain.People.Person", null)
@@ -4277,6 +4535,12 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_cost_items_receipt_receipt_id");
 
+                    b.HasOne("MietHahn.Domain.Receipts.CostSubtype", null)
+                        .WithMany()
+                        .HasForeignKey("SubtypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_cost_items_cost_subtype_subtype_id");
+
                     b.HasOne("MietHahn.Domain.Properties.Unit", null)
                         .WithMany()
                         .HasForeignKey("UnitId")
@@ -4334,6 +4598,11 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("MietHahn.Domain.Metering.Meter", b =>
                 {
                     b.Navigation("Readings");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.OperatingCosts.CostAllocationRule", b =>
+                {
+                    b.Navigation("Shares");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.People.Person", b =>

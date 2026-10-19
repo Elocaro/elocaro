@@ -87,6 +87,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
         var files = await db.Set<StoredFile>().AsNoTracking().Where(d => fileIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, cancellationToken);
         var properties = await db.Set<Property>().AsNoTracking().ToDictionaryAsync(o => o.Id, o => o.Name, cancellationToken);
         var units = await db.Set<Unit>().AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.Name, cancellationToken);
+        var subtypes = await db.Set<CostSubtype>().AsNoTracking().IgnoreQueryFilters().ToDictionaryAsync(a => a.Id, a => a.Name, cancellationToken);
         var names = await SuppliersAsync(receipt.SupplierId is { } l ? [l] : [], cancellationToken);
         return new ReceiptDetails(
             receipt.Id,
@@ -96,7 +97,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             receipt.Items.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id).Select(p => new CostItemView(
                 p.Id, p.CostType, CostTypes.Find(p.CostType)?.Name ?? p.CostType, p.Amount,
                 properties.GetValueOrDefault(p.PropertyId, "?"), p.UnitId is { } e ? units.GetValueOrDefault(e) : null,
-                p.BillingPeriod, p.Allocable, p.Section35a, p.LaborCosts, p.Note)).ToList(),
+                p.SubtypeId is { } t ? subtypes.GetValueOrDefault(t) : null, p.BillingPeriod, p.Allocable, p.Section35a, p.LaborCosts, p.Note)).ToList(),
             receipt.Allocated,
             receipt.Gross - receipt.Allocated);
     }
@@ -194,10 +195,12 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
         var properties = await db.Set<Property>().AsNoTracking().OrderBy(o => o.Name).Select(o => new ReferenceOption(o.Id, o.Name)).ToListAsync(cancellationToken);
         var units = await db.Set<Unit>().AsNoTracking().Join(db.Set<Property>(), e => e.PropertyId, o => o.Id, (e, o) => new { e.Id, e.Name, Property = o.Name })
             .OrderBy(e => e.Property).ThenBy(e => e.Name).ToListAsync(cancellationToken);
+        var subtypes = await db.Set<CostSubtype>().AsNoTracking().OrderBy(a => a.CostType).ThenBy(a => a.Name).ToListAsync(cancellationToken);
         return new ReceiptOptions(
             suppliers.OrderBy(p => p.DisplayName, StringComparer.CurrentCulture).Select(p => new ReferenceOption(p.Id, p.DisplayName)).ToList(),
             properties,
-            units.Select(e => new ReferenceOption(e.Id, $"{e.Name} ({e.Property})")).ToList());
+            units.Select(e => new ReferenceOption(e.Id, $"{e.Name} ({e.Property})")).ToList(),
+            subtypes.Select(a => new SubtypeOption(a.Id, a.CostType, $"{a.Name} ({CostTypes.Find(a.CostType)?.Name ?? a.CostType})")).ToList());
     }
 
     private async Task<CostItem> CreateCostItemAsync(Receipt receipt, CostItemInput input, CancellationToken cancellationToken)
@@ -213,6 +216,16 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             throw new RuleViolationException("Die Einheit gehört nicht zum gewählten Objekt.");
         }
 
+        if (input.SubtypeId is { } subtype)
+        {
+            var found = await db.Set<CostSubtype>().AsNoTracking().SingleOrDefaultAsync(a => a.Id == subtype, cancellationToken)
+                ?? throw new RuleViolationException("Die Unterart wurde nicht gefunden.");
+            if (found.CostType != input.CostType)
+            {
+                throw new RuleViolationException($"Die Unterart „{found.Name}“ gehört nicht zur gewählten Kostenart.");
+            }
+        }
+
         // Default: service period, otherwise the calendar year of the invoice.
         var from = input.From ?? receipt.ServiceFrom ?? new DateOnly(receipt.InvoiceDate.Year, 1, 1);
         var to = input.To ?? (input.From is null ? receipt.ServiceTo : null) ?? new DateOnly(from.Year, 12, 31);
@@ -223,6 +236,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
 
         var position = receipt.AddCostItem(input.CostType, input.Amount ?? receipt.Gross - receipt.Allocated, propertyId, new Period(from, to), input.Allocable);
         position.UnitId = input.UnitId;
+        position.SubtypeId = input.SubtypeId;
         position.Note = TrimToNull(input.Note);
         position.SetSection35a(input.Section35a, input.LaborCosts);
         return position;

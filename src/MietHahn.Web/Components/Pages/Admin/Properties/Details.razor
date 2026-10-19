@@ -11,6 +11,10 @@
 <PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/verwaltung/objekte" BackText="Alle Objekte">
     <Actions>
         <a class="button" href="/verwaltung/objekte/@Id/zaehler">Zähler</a>
+        <AuthorizeView Policy="@Policies.Finance">
+            <a class="button" href="/verwaltung/objekte/@Id/umlageschluessel">Umlageschlüssel</a>
+            <a class="button" href="/verwaltung/objekte/@Id/nebenkosten">Nebenkosten-Vorschau</a>
+        </AuthorizeView>
         <a class="button" href="/verwaltung/objekte/@Id/bearbeiten">Bearbeiten</a>
     </Actions>
 </PageHeader>

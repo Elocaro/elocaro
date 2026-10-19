@@ -47,6 +47,7 @@ internal sealed class CostItemConfiguration : IEntityTypeConfiguration<CostItem>
         builder.Property(p => p.Note).HasMaxLength(500);
         builder.HasOne<Property>().WithMany().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Unit>().WithMany().HasForeignKey(p => p.UnitId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<CostSubtype>().WithMany().HasForeignKey(p => p.SubtypeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(p => new { p.PropertyId, p.CostType });
     }
 }

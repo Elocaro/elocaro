@@ -1,0 +1,71 @@
+@page "/verwaltung/vertraege/{LeaseId:guid}/kostenarten"
+@inject ICostAllocation Allocation
+@inject Redirector Redirector
+
+@if (agreement is null)
+{
+    <PageHeader Title="Vertrag nicht gefunden" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
+    return;
+}
+
+<PageHeader Title="Vereinbarte Kostenarten" Subtitle="@agreement.Description" Back="@($"/verwaltung/vertraege/{LeaseId}")" BackText="Zum Mietvertrag" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<p class="small">
+    Nur Kostenarten, die im Mietvertrag als umlagefähig vereinbart sind, dürfen dem Mieter in Rechnung gestellt werden (§ 556 Abs. 1 BGB, BetrKV).
+    Standard: alle Kostenarten laut Vertragsvorlage. Der Anteil einer nicht vereinbarten Kostenart bleibt beim Vermieter.
+</p>
+
+<form method="post" @formname="agreement" @onsubmit="SaveAsync">
+    <AntiforgeryToken />
+    <div class="table-wrapper">
+        <table class="data-table" id="agreement">
+            <thead><tr><th>Vereinbart</th><th>Kostenart</th></tr></thead>
+            <tbody>
+                @for (var i = 0; i < agreement.Rows.Count; i++)
+                {
+                    var row = agreement.Rows[i];
+                    <tr>
+                        <td><input type="checkbox" id="@($"agreed-{row.CostType}")" name="Agreed" value="@row.CostType" checked="@row.Agreed" aria-label="@($"{row.Name} vereinbart")" /></td>
+                        <td><label for="@($"agreed-{row.CostType}")">@(row.BetrKvNumber is { } n ? $"{n}. " : "")@row.Name</label></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <button type="submit" class="button button-primary">Speichern</button>
+</form>
+
+@code {
+    private LeaseCostAgreement? agreement;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid LeaseId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    /// <summary>Checked boxes = agreed cost types; without a tick (<c>null</c>) no cost type is agreed.</summary>
+    [SupplyParameterFromForm(Name = "Agreed")]
+    private List<string>? Agreed { get; set; }
+
+    protected override async Task OnInitializedAsync() => agreement = await Allocation.GetLeaseAgreementAsync(LeaseId);
+
+    private async Task SaveAsync()
+    {
+        var agreed = Agreed ?? [];
+        var excluded = agreement!.Rows.Select(r => r.CostType).Where(t => !agreed.Contains(t)).ToList();
+        var result = await Allocation.SetLeaseAgreementAsync(LeaseId, excluded);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/vertraege/{LeaseId}/kostenarten", "Die vereinbarten Kostenarten wurden gespeichert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

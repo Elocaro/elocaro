@@ -18,6 +18,7 @@ internal sealed class LeaseConfiguration : IEntityTypeConfiguration<Lease>
         builder.Property(v => v.Notes).HasMaxLength(4000);
         builder.Property(v => v.RentModel).HasConversion<string>().HasMaxLength(20);
         builder.Property(v => v.IndexBaseValue).HasPrecision(6, 1);
+        builder.Property(v => v.ExcludedCostTypes).HasColumnType("text[]").HasDefaultValueSql("'{}'");
         builder.Ignore(v => v.Start);
         builder.Ignore(v => v.End);
         builder.Ignore(v => v.Tenant);

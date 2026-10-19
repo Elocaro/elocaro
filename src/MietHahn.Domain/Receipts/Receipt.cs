@@ -209,6 +209,9 @@ public sealed class CostItem : Entity
     /// <summary>Only for costs of a single unit (direct assignment).</summary>
     public Guid? UnitId { get; set; }
 
+    /// <summary>Own subtype of the cost type (<see cref="CostSubtype"/>), optional.</summary>
+    public Guid? SubtypeId { get; set; }
+
     public Period BillingPeriod { get; private set; }
 
     public bool Allocable { get; set; }

@@ -17,6 +17,7 @@ using MietHahn.Application.Finance;
 using MietHahn.Application.Leases;
 using MietHahn.Application.Metering;
 using MietHahn.Application.Operations;
+using MietHahn.Application.OperatingCosts;
 using MietHahn.Application.People;
 using MietHahn.Application.Privacy;
 using MietHahn.Application.Properties;
@@ -34,6 +35,7 @@ using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Mail;
 using MietHahn.Infrastructure.Metering;
 using MietHahn.Infrastructure.Operations;
+using MietHahn.Infrastructure.OperatingCosts;
 using MietHahn.Infrastructure.Pdf;
 using MietHahn.Infrastructure.People;
 using MietHahn.Infrastructure.Persistence;
@@ -227,6 +229,9 @@ public static class DependencyInjection
         services.AddScoped<IMatchRules, MatchRules>();
         services.AddScoped<ITodoSource, BankTodos>();
         services.AddScoped<IReceiptService, ReceiptService>();
+        services.AddScoped<ICostAllocation, CostAllocationService>();
+        services.AddScoped<ICostSubtypes, CostSubtypeService>();
+        services.AddScoped<IOperatingCosts, OperatingCostService>();
         services.AddScoped<ITodoSource, ReceiptTodos>();
         services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();
     }

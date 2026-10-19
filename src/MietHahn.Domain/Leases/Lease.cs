@@ -1,4 +1,5 @@
 using MietHahn.Domain.Common;
+using MietHahn.Domain.Receipts;
 
 namespace MietHahn.Domain.Leases;
 
@@ -112,6 +113,9 @@ public sealed class Lease : Entity
 
     public string? Notes { get; set; }
 
+    /// <summary>Cost types (keys) that are <b>not</b> agreed as allocable in this lease; by default all allocable types are agreed.</summary>
+    public List<string> ExcludedCostTypes { get; private set; } = [];
+
     public RentModel RentModel { get; private set; }
 
     /// <summary>Index rent: month of the base index (first day of the month).</summary>
@@ -204,6 +208,21 @@ public sealed class Lease : Entity
     public decimal MonthlyRentOn(DateOnly day) => ComponentsAt(day).Sum(b => b.Amount);
 
     public decimal? AmountAt(RentComponentType kind, DateOnly day) => TimeSeries.At(Components.Where(b => b.Kind == kind), day)?.Amount;
+
+    /// <summary>Sets which cost types are not agreed in the lease (all others are allocable).</summary>
+    public void SetExcludedCostTypes(IEnumerable<string> costTypes)
+    {
+        ArgumentNullException.ThrowIfNull(costTypes);
+        var keys = costTypes.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        if (keys.Any(k => CostTypes.Find(k) is not { Allocable: true }))
+        {
+            throw new RuleViolationException("Nur umlagefähige Kostenarten lassen sich im Vertrag ausschließen.");
+        }
+
+        ExcludedCostTypes = keys;
+    }
+
+    public bool IsAgreed(string costType) => !ExcludedCostTypes.Contains(costType);
 
     public int? OccupantCountOn(DateOnly day) => TimeSeries.At(People, day)?.Count;
 

@@ -1,0 +1,362 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/umlageschluessel"
+@inject ICostAllocation Allocation
+@inject ICostSubtypes Subtypes
+@inject Redirector Redirector
+@inject TimeProvider Clock
+
+@if (overview is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+    return;
+}
+
+<PageHeader Title="Umlageschlüssel" Subtitle="@overview.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName">
+    <Actions>
+        <a class="button" href="/verwaltung/objekte/@PropertyId/nebenkosten">Nebenkosten-Vorschau</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<p class="small">
+    Der Schlüssel einer Kostenart gilt ab einem Stichtag; frühere Stände bleiben für die Abrechnung erhalten. Ohne Schlüssel rechnet die Vorschau
+    mit der Wohnfläche und weist darauf hin. Heiz- und Warmwasserkosten werden nach der Heizkostenverordnung abgerechnet (eigener Rechenkern, folgt).
+</p>
+
+<section>
+    <h2>Gültig am @Format.Date(overview.Day)</h2>
+    <div class="table-wrapper">
+        <table class="data-table" id="cost-keys">
+            <thead><tr><th>Kostenart</th><th>Schlüssel</th><th>Gültig ab</th><th>Vorwegabzug</th><th>Verlauf</th></tr></thead>
+            <tbody>
+                @foreach (var row in overview.Rows)
+                {
+                    <tr id="@($"key-{row.CostType}")">
+                        <td>@(row.BetrKvNumber is { } n ? $"{n}. " : "")@row.Name</td>
+                        @if (row.Group == CostGroup.Heating)
+                        {
+                            <td colspan="4" class="small">Abrechnung nach HeizkostenV (folgt)</td>
+                        }
+                        else if (row.Current is { } current)
+                        {
+                            <td>@KeyText(current)</td>
+                            <td>@Format.Date(current.Validity.From)</td>
+                            <td>@PreDeduction(current)</td>
+                            <td class="small">@(row.History.Count > 1 ? $"{row.History.Count} Stände" : "")</td>
+                        }
+                        else
+                        {
+                            <td colspan="2" class="small">@(row.History.Count > 0 ? "beendet / noch nicht gültig" : "kein Schlüssel (Standard: Wohnfläche)")</td>
+                            <td></td>
+                            <td class="small">@(row.History.Count > 0 ? $"{row.History.Count} Stände" : "")</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2>Schlüssel festlegen</h2>
+    <EditForm Model="Rule" FormName="rule" OnValidSubmit="SetAsync">
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <FormField Id="rule-cost-type" Label="Kostenart" For="() => Rule!.CostType" Required="true">
+                <InputSelect id="rule-cost-type" @bind-Value="Rule!.CostType">
+                    <option value="">– bitte wählen –</option>
+                    @foreach (var row in overview.Rows.Where(r => r.Group == CostGroup.Operating))
+                    {
+                        <option value="@row.CostType">@(row.BetrKvNumber is { } n ? $"{n}. " : "")@row.Name</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="rule-from" Label="Gilt ab" For="() => Rule!.From" Required="true" Hint="Der bisherige Schlüssel endet am Vortag.">
+                <InputDate id="rule-from" @bind-Value="Rule!.From" />
+            </FormField>
+            <FormField Id="rule-key" Label="Schlüssel" For="() => Rule!.Key">
+                <InputSelect id="rule-key" @bind-Value="Rule!.Key">
+                    @foreach (var value in Enum.GetValues<AllocationKey>())
+                    {
+                        <option value="@value">@Labels.From(value)</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="rule-meter" Label="Zählertyp (bei Verbrauch)" For="() => Rule!.MeterType" Hint="Die Zähler dieses Typs, die den Einheiten zugeordnet sind, bestimmen den Verbrauch.">
+                <InputSelect id="rule-meter" @bind-Value="Rule!.MeterType">
+                    <option value="">–</option>
+                    @foreach (var value in Enum.GetValues<MeterType>())
+                    {
+                        <option value="@value">@Labels.From(value)</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="rule-pre-percent" Label="Vorwegabzug (%)" For="() => Rule!.PreDeductionPercent" Hint="Anteil, der vor der Umlage abgezogen wird und beim Vermieter bleibt (z. B. Gewerbe, Garten).">
+                <InputNumber id="rule-pre-percent" @bind-Value="Rule!.PreDeductionPercent" step="0.01" />
+            </FormField>
+            <FormField Id="rule-pre-amount" Label="oder Vorwegabzug (€ pro Jahr)" For="() => Rule!.PreDeductionAmount">
+                <InputAmount id="rule-pre-amount" @bind-Value="Rule!.PreDeductionAmount" />
+            </FormField>
+            <FormField Id="rule-pre-note" Label="Begründung Vorwegabzug" For="() => Rule!.PreDeductionNote">
+                <InputText id="rule-pre-note" @bind-Value="Rule!.PreDeductionNote" />
+            </FormField>
+        </div>
+        <fieldset class="field">
+            <legend>Prozentsätze je Einheit (nur bei „Fester Prozentsatz“)</legend>
+            <div class="form-grid">
+                @for (var i = 0; i < overview.Units.Count; i++)
+                {
+                    var index = i;
+                    <div class="field">
+                        <label for="@($"rule-share-{index}")">@overview.Units[index].Name (%)</label>
+                        <input type="hidden" name="@($"Rule.Shares[{index}].UnitId")" value="@overview.Units[index].Id" />
+                        <input id="@($"rule-share-{index}")" type="number" step="0.01" min="0" max="100" name="@($"Rule.Shares[{index}].Percent")" value="@Rule!.Shares[index].Percent" />
+                    </div>
+                }
+            </div>
+            <span class="field-hint">Die Summe darf höchstens 100 % betragen; der Rest bleibt beim Vermieter.</span>
+        </fieldset>
+        <button type="submit" class="button button-primary">Schlüssel speichern</button>
+    </EditForm>
+</section>
+
+<section>
+    <h2>Schlüssel beenden</h2>
+    <EditForm Model="End" FormName="end-rule" OnValidSubmit="EndAsync">
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <FormField Id="end-cost-type" Label="Kostenart" For="() => End!.CostType" Required="true">
+                <InputSelect id="end-cost-type" @bind-Value="End!.CostType">
+                    <option value="">– bitte wählen –</option>
+                    @foreach (var row in overview.Rows.Where(r => r.Current is not null))
+                    {
+                        <option value="@row.CostType">@row.Name</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="end-last-day" Label="Letzter Tag" For="() => End!.LastDay" Required="true">
+                <InputDate id="end-last-day" @bind-Value="End!.LastDay" />
+            </FormField>
+        </div>
+        <button type="submit" class="button">Schlüssel beenden</button>
+    </EditForm>
+</section>
+
+@if (overview.SharedFlats.Count > 0)
+{
+    <section id="shared-flats">
+        <h2>Wohngemeinschaften</h2>
+        <p class="small">
+            Pauschale: Die Zimmer erhalten keine Abrechnung, die Ist-Kosten der Wohnung werden intern den Pauschalzahlungen gegenübergestellt.
+            Verteilen: Die Kosten der Wohnung werden nach Zimmerfläche (inkl. Anteil Gemeinschaftsflächen) auf die Zimmer verteilt.
+            Bei Heizung und Warmwasser ist die Pauschale rechtlich zu prüfen (HeizkostenV, siehe Hinweis in der Fachdokumentation).
+        </p>
+        <form method="post" @formname="flats" @onsubmit="SetFlatsAsync">
+            <AntiforgeryToken />
+            @for (var i = 0; i < overview.SharedFlats.Count; i++)
+            {
+                var index = i;
+                var flat = overview.SharedFlats[index];
+                <fieldset class="field">
+                    <legend>@flat.Name (@string.Join(", ", flat.Rooms))</legend>
+                    <input type="hidden" name="@($"FlatForms[{index}].UnitId")" value="@flat.UnitId" />
+                    @foreach (var value in Enum.GetValues<SharedFlatBilling>())
+                    {
+                        <div class="field-checkbox">
+                            <input type="radio" id="@($"flat-{index}-{value}")" name="@($"FlatForms[{index}].Mode")" value="@value" checked="@(flat.Mode == value)" />
+                            <label for="@($"flat-{index}-{value}")">@Labels.From(value)</label>
+                        </div>
+                    }
+                </fieldset>
+            }
+            <button type="submit" class="button">Abrechnungsmodus speichern</button>
+        </form>
+    </section>
+}
+
+<section id="subtypes">
+    <h2>Eigene Unterarten</h2>
+    <p class="small">Unterarten verfeinern eine Kostenart (z. B. „Gebäudeversicherung“ und „Haftpflicht“ unter Nr. 13). Sie erscheinen am Beleg und im Rechenprotokoll; der Umlageschlüssel gilt für die Kostenart.</p>
+    @if (subtypes.Count > 0)
+    {
+        <form method="post" @formname="remove-subtype" @onsubmit="RemoveSubtypeAsync">
+            <AntiforgeryToken />
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Unterart</th><th>Kostenart</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var subtype in subtypes)
+                        {
+                            <tr>
+                                <td>@subtype.Name</td>
+                                <td>@subtype.CostTypeName</td>
+                                <td><button type="submit" class="button button-danger" name="RemoveId" value="@subtype.Id">Entfernen</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    }
+    <EditForm Model="Subtype" FormName="subtype" OnValidSubmit="AddSubtypeAsync">
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <FormField Id="subtype-cost-type" Label="Kostenart" For="() => Subtype!.CostType" Required="true">
+                <InputSelect id="subtype-cost-type" @bind-Value="Subtype!.CostType">
+                    <option value="">– bitte wählen –</option>
+                    @foreach (var row in overview.Rows)
+                    {
+                        <option value="@row.CostType">@(row.BetrKvNumber is { } n ? $"{n}. " : "")@row.Name</option>
+                    }
+                </InputSelect>
+            </FormField>
+            <FormField Id="subtype-name" Label="Name der Unterart" For="() => Subtype!.Name" Required="true">
+                <InputText id="subtype-name" @bind-Value="Subtype!.Name" />
+            </FormField>
+        </div>
+        <button type="submit" class="button">Unterart anlegen</button>
+    </EditForm>
+</section>
+
+@code {
+    private CostAllocationOverview? overview;
+    private IReadOnlyList<CostSubtypeView> subtypes = [];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "rule")]
+    private CostRuleInput? Rule { get; set; }
+
+    [SupplyParameterFromForm(FormName = "end-rule")]
+    private EndInput? End { get; set; }
+
+    [SupplyParameterFromForm(FormName = "subtype")]
+    private SubtypeInput? Subtype { get; set; }
+
+    [SupplyParameterFromForm]
+    private Guid? RemoveId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "flats")]
+    private List<FlatInput>? FlatForms { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = GermanTime.Today(Clock.GetUtcNow());
+        Rule ??= new() { From = today };
+        End ??= new() { LastDay = today };
+        Subtype ??= new();
+        await LoadAsync();
+        while (Rule.Shares.Count < overview!.Units.Count)
+        {
+            Rule.Shares.Add(new UnitShareInput());
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        overview = await Allocation.GetAsync(PropertyId, GermanTime.Today(Clock.GetUtcNow()));
+        subtypes = await Subtypes.ListAsync();
+    }
+
+    private async Task SetAsync()
+    {
+        for (var i = 0; i < Rule!.Shares.Count && i < overview!.Units.Count; i++)
+        {
+            Rule.Shares[i].UnitId ??= overview.Units[i].Id.ToString();
+        }
+
+        var result = await Allocation.SetRuleAsync(PropertyId, Rule);
+        await DoneAsync(result, "Der Umlageschlüssel wurde gespeichert.");
+    }
+
+    private async Task EndAsync() =>
+        await DoneAsync(await Allocation.EndRuleAsync(PropertyId, End!.CostType, End.LastDay!.Value), "Der Umlageschlüssel wurde beendet.");
+
+    private async Task SetFlatsAsync()
+    {
+        foreach (var form in FlatForms ?? [])
+        {
+            if (Guid.TryParse(form.UnitId, out var unit) && Enum.TryParse<SharedFlatBilling>(form.Mode, out var mode))
+            {
+                var result = await Allocation.SetSharedFlatBillingAsync(unit, mode);
+                if (!result.Succeeded)
+                {
+                    await DoneAsync(result, "");
+                    return;
+                }
+            }
+        }
+
+        await DoneAsync(Result.Ok(), "Der Abrechnungsmodus wurde gespeichert.");
+    }
+
+    private async Task AddSubtypeAsync() =>
+        await DoneAsync(await Subtypes.AddAsync(Subtype!.CostType, Subtype.Name), "Die Unterart wurde angelegt.");
+
+    private async Task RemoveSubtypeAsync()
+    {
+        if (RemoveId is { } id)
+        {
+            await DoneAsync(await Subtypes.RemoveAsync(id), "Die Unterart wurde entfernt.");
+        }
+    }
+
+    private async Task DoneAsync(Result result, string message)
+    {
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/objekte/{PropertyId}/umlageschluessel", message, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            await LoadAsync();
+        }
+    }
+
+    private static string KeyText(CostRuleView rule) => rule.Key switch
+    {
+        AllocationKey.Consumption => $"Verbrauch ({Labels.From(rule.MeterType ?? MeterType.ColdWater)})",
+        AllocationKey.FixedPercent => "Fester Prozentsatz: " + string.Join(", ", rule.Shares.Select(a => $"{a.UnitName} {Format.Number(a.Percent)} %")),
+        _ => Labels.From(rule.Key),
+    };
+
+    private static string PreDeduction(CostRuleView rule) =>
+        rule.PreDeductionPercent is { } percent ? $"{Format.Number(percent)} %{Note(rule)}"
+        : rule.PreDeductionAmount is { } amount ? $"{Format.Money(amount)} / Jahr{Note(rule)}"
+        : "";
+
+    private static string Note(CostRuleView rule) => rule.PreDeductionNote is { } note ? $" ({note})" : "";
+
+    private sealed class EndInput
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte die Kostenart wählen.")]
+        public string CostType { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte den letzten Tag angeben.")]
+        public DateOnly? LastDay { get; set; }
+    }
+
+    private sealed class SubtypeInput
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte die Kostenart wählen.")]
+        public string CostType { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte einen Namen angeben.")]
+        [System.ComponentModel.DataAnnotations.StringLength(100)]
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class FlatInput
+    {
+        public string? UnitId { get; set; }
+
+        public string? Mode { get; set; }
+    }
+}

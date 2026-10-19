@@ -13,6 +13,7 @@
     <Actions>
         <AuthorizeView Policy="@Policies.Finance">
             <a class="button" href="/verwaltung/vertraege/@Id/konto">Mieterkonto</a>
+            <a class="button" href="/verwaltung/vertraege/@Id/kostenarten">Vereinbarte Kostenarten</a>
         </AuthorizeView>
         @if (lease.Status != LeaseStatus.Ended)
         {

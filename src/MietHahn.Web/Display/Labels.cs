@@ -3,6 +3,7 @@ using MietHahn.Domain.Documents;
 using MietHahn.Domain.Finance;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Metering;
+using MietHahn.Domain.OperatingCosts;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;
@@ -215,6 +216,34 @@ public static class Labels
         MeterType.Gas => "Gas",
         MeterType.OilTank => "Öltank",
         _ => "Kaltwasser",
+    };
+
+    public static string From(AllocationKey value) => value switch
+    {
+        AllocationKey.HeatedArea => "Heizfläche",
+        AllocationKey.Persons => "Personen (Personentage)",
+        AllocationKey.Units => "Einheiten",
+        AllocationKey.Consumption => "Verbrauch (Zähler)",
+        AllocationKey.Direct => "Direkte Zuordnung",
+        AllocationKey.FixedPercent => "Fester Prozentsatz",
+        _ => "Wohnfläche",
+    };
+
+    public static string From(SharedFlatBilling value) => value switch
+    {
+        SharedFlatBilling.ByRoom => "Auf die Zimmer verteilen (nach Fläche, je Zimmer eine Abrechnung)",
+        _ => "Pauschale (ausgenommen, intern gegengerechnet)",
+    };
+
+    public static string From(LandlordReason value) => value switch
+    {
+        LandlordReason.Vacancy => "Leerstand",
+        LandlordReason.PreDeduction => "Vorwegabzug",
+        LandlordReason.NotAgreed => "Im Vertrag nicht vereinbart",
+        LandlordReason.FlatRate => "Pauschale / Inklusivmiete",
+        LandlordReason.SharedFlatFlatRate => "WG-Pauschale",
+        LandlordReason.ResidualPercent => "Nicht verteilter Prozentanteil",
+        _ => "Nicht zuordenbar",
     };
 
     public static string From(MeasurementUnit value) => value switch

@@ -97,6 +97,9 @@ public sealed class CostItemInput
 
     public Guid? UnitId { get; set; }
 
+    /// <summary>Own subtype of the cost type (optional, must belong to the cost type).</summary>
+    public Guid? SubtypeId { get; set; }
+
     /// <summary>Empty = service period or calendar year of the invoice date.</summary>
     public DateOnly? From { get; set; }
 
@@ -144,12 +147,15 @@ public sealed record CostItemView(
     decimal Amount,
     string Property,
     string? Unit,
+    string? Subtype,
     Domain.Common.Period BillingPeriod,
     bool Allocable,
     Section35a Section35a,
     decimal? LaborCosts,
     string? Note);
 
-public sealed record ReceiptOptions(IReadOnlyList<ReferenceOption> Suppliers, IReadOnlyList<ReferenceOption> Properties, IReadOnlyList<ReferenceOption> Units);
+public sealed record ReceiptOptions(IReadOnlyList<ReferenceOption> Suppliers, IReadOnlyList<ReferenceOption> Properties, IReadOnlyList<ReferenceOption> Units, IReadOnlyList<SubtypeOption> Subtypes);
+
+public sealed record SubtypeOption(Guid Id, string CostType, string Name);
 
 public sealed record ReferenceOption(Guid Id, string Name);

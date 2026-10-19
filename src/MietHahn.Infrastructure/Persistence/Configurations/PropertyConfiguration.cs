@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MietHahn.Domain.Files;
+using MietHahn.Domain.OperatingCosts;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Identity;
 
@@ -38,6 +39,7 @@ internal sealed class UnitConfiguration : IEntityTypeConfiguration<Unit>
         builder.Property(e => e.Name).HasMaxLength(100).UseCollation(MietHahnDbContext.GermanCollation);
         builder.Property(e => e.Location).HasMaxLength(100);
         builder.Property(e => e.Type).HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.SharedFlatBilling).HasConversion<string>().HasMaxLength(20).HasDefaultValue(SharedFlatBilling.FlatRate);
         builder.Property(e => e.RoomCount).HasPrecision(4, 1);
         builder.Property(e => e.Bathroom).HasMaxLength(100);
         builder.Property(e => e.EnergyStandard).HasMaxLength(50);

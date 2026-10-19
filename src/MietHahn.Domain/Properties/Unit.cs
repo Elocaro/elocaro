@@ -1,4 +1,5 @@
 using MietHahn.Domain.Common;
+using MietHahn.Domain.OperatingCosts;
 
 namespace MietHahn.Domain.Properties;
 
@@ -57,6 +58,9 @@ public sealed class Unit : Entity
     public string? EnergyStandard { get; set; }
 
     public string? Amenities { get; set; }
+
+    /// <summary>Shared flat: flat rate for the rooms (no statement, internal comparison) or distribution of the costs over the rooms.</summary>
+    public SharedFlatBilling SharedFlatBilling { get; set; }
 
     public List<Room> Room { get; private set; } = [];
 

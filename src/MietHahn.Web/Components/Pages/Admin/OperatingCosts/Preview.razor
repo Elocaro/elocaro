@@ -1,0 +1,280 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/nebenkosten"
+@inject IOperatingCosts OperatingCosts
+@inject TimeProvider Clock
+
+<PageHeader Title="Nebenkosten-Vorschau" Subtitle="@(preview?.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
+    <Actions>
+        <a class="button" href="/verwaltung/objekte/@PropertyId/umlageschluessel">Umlageschlüssel</a>
+    </Actions>
+</PageHeader>
+
+<form method="get" class="form-row search-bar" role="search">
+    <div class="field">
+        <label for="year">Abrechnungsjahr</label>
+        <input id="year" type="number" name="jahr" value="@year" min="2000" max="2100" />
+    </div>
+    <div class="field field-action">
+        <button type="submit" class="button">Berechnen</button>
+    </div>
+</form>
+
+@if (errorText is not null)
+{
+    <p class="message message-error" role="alert">@errorText</p>
+    return;
+}
+
+@if (preview is null)
+{
+    <EmptyState Text="Objekt nicht gefunden." />
+    return;
+}
+
+@{
+    var result = preview.Result;
+}
+
+<p class="message message-info" role="note" id="preview-notice">
+    Das ist eine <strong>Vorschau</strong>. Es wird nichts gespeichert oder versendet. Grundlage sind die Belege mit Kostenpositionen des Jahres,
+    die Umlageschlüssel des Objekts, die Mietverträge und die tatsächlich gezahlten Vorauszahlungen im Mieterkonto.
+    Heiz- und Warmwasserkosten (HeizkostenV) und CO₂-Kosten sind noch nicht enthalten.
+</p>
+
+@if (result.Problems.Count > 0 || preview.Hints.Count > 0)
+{
+    <section id="problems">
+        <h2>Hinweise und fehlende Daten</h2>
+        @if (result.HasErrors)
+        {
+            <p class="message message-error" role="alert">Es fehlen Angaben. Das Ergebnis ist <strong>nicht belastbar</strong>, bis sie ergänzt sind.</p>
+        }
+        <ul>
+            @foreach (var problem in result.Problems.OrderByDescending(p => p.Severity))
+            {
+                <li class="@(problem.Severity == ProblemSeverity.Error ? "problem-error" : "problem-warning")">
+                    <strong>@(problem.Severity == ProblemSeverity.Error ? "Fehlt:" : "Hinweis:")</strong> @problem.Text
+                </li>
+            }
+            @foreach (var hint in preview.Hints)
+            {
+                <li><strong>Hinweis:</strong> @hint</li>
+            }
+        </ul>
+    </section>
+}
+
+<section id="cost-types">
+    <h2>Kosten @Format.Period(result.BillingPeriod)</h2>
+    @if (result.CostTypes.Count == 0)
+    {
+        <EmptyState Text="Für diesen Zeitraum gibt es keine umlagefähigen Kostenpositionen. Belege mit Kostenart und Objekt erfassen." />
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Kosten</th><th class="number">Mieter</th><th class="number">Vermieter</th></tr></thead>
+                <tbody>
+                    @foreach (var type in result.CostTypes)
+                    {
+                        <tr id="@($"type-{type.CostType}")">
+                            <td>@type.Name</td>
+                            <td>@type.Key</td>
+                            <td class="number">@Format.Money(type.Total)</td>
+                            <td class="number">@Format.Money(type.TenantTotal)</td>
+                            <td class="number">@Format.Money(type.LandlordTotal)</td>
+                        </tr>
+                        @foreach (var item in type.Items)
+                        {
+                            <tr class="detail-row">
+                                <td colspan="2" class="small">@item.Description (@Format.Period(item.Period))</td>
+                                <td class="number small" colspan="3">@item.Calculation = @Format.Money(item.Prorated)</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><th colspan="2">Summe</th><th class="number">@Format.Money(result.TotalCosts)</th><th class="number">@Format.Money(result.TenantTotal)</th><th class="number">@Format.Money(result.LandlordTotal)</th></tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+    @foreach (var excluded in result.NonAllocable)
+    {
+        <p class="small non-allocable">Nicht umlagefähig, nicht verteilt: @excluded.Description, @Format.Money(excluded.Prorated)</p>
+    }
+    @foreach (var group in result.UncalculatedGroups)
+    {
+        <p class="small" id="uncalculated">@group.Name: @Format.Money(group.Total) in @group.Items.Count Positionen. Wird mit der Heizkostenabrechnung berechnet, nicht hier.</p>
+    }
+</section>
+
+@if (result.Landlord.Count > 0)
+{
+    <section id="landlord">
+        <h2>Anteil des Vermieters</h2>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Grund</th><th>Bezeichnung</th><th>Kostenart</th><th class="number">Betrag</th></tr></thead>
+                <tbody>
+                    @foreach (var position in result.Landlord.OrderBy(p => p.Reason).ThenBy(p => p.Label, StringComparer.CurrentCulture))
+                    {
+                        <tr>
+                            <td>@Labels.From(position.Reason)</td>
+                            <td>@position.Label</td>
+                            <td>@TypeName(position.CostType)</td>
+                            <td class="number">@Format.Money(position.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@foreach (var tenant in result.Tenants.OrderBy(t => t.Rental, StringComparer.CurrentCulture).ThenBy(t => t.Term.From))
+{
+    <section class="statement" id="@($"tenant-{tenant.LeaseId}")" aria-labelledby="@($"heading-{tenant.LeaseId}")">
+        <h2 id="@($"heading-{tenant.LeaseId}")">@tenant.Label · @tenant.Rental</h2>
+        <p class="small">Mietzeit im Abrechnungszeitraum: @Format.Period(tenant.Term.Intersect(result.BillingPeriod) ?? tenant.Term) (@tenant.Days Tage) · <a href="/verwaltung/vertraege/@tenant.LeaseId">Vertrag</a></p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Gesamtkosten</th><th>Ihr Anteil am Schlüssel</th><th class="number">Ihr Betrag</th></tr></thead>
+                <tbody>
+                    @foreach (var line in tenant.Lines)
+                    {
+                        <tr>
+                            <td>@line.Name</td>
+                            <td>@line.Key</td>
+                            <td class="number">@Format.Money(line.CostTotal)</td>
+                            <td class="small">@line.Basis</td>
+                            <td class="number">@Format.Money(line.Share)@(line.NotAgreed != 0 ? " (nicht vereinbart)" : "")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><th colspan="4">Summe Betriebskosten</th><th class="number">@Format.Money(tenant.Share)</th></tr>
+                    @foreach (var group in tenant.Groups)
+                    {
+                        @if (group.Group == CostGroup.Operating)
+                        {
+                            <tr><th colspan="4">abzüglich gezahlter Vorauszahlungen (Soll @Format.Money(group.PrepaymentsDue))</th><th class="number">@Format.Money(group.PrepaymentsPaid)</th></tr>
+                            <tr class="balance"><th colspan="4">@(group.Balance >= 0 ? "Nachzahlung" : "Guthaben")</th><th class="number">@Format.Money(Math.Abs(group.Balance))</th></tr>
+                        }
+                        else if (!group.Calculated)
+                        {
+                            <tr><td colspan="4" class="small">Heizkostenvorauszahlungen gezahlt (Verrechnung mit der Heizkostenabrechnung)</td><td class="number small">@Format.Money(group.PrepaymentsPaid)</td></tr>
+                        }
+                    }
+                </tfoot>
+            </table>
+        </div>
+        @if (tenant.HouseholdLabor != 0 || tenant.TradesmanLabor != 0)
+        {
+            <p class="small">Arbeitskosten nach § 35a EStG: haushaltsnahe Dienstleistungen @Format.Money(tenant.HouseholdLabor), Handwerkerleistungen @Format.Money(tenant.TradesmanLabor).</p>
+        }
+        <details class="disclosure protocol">
+            <summary>Rechenprotokoll</summary>
+            @foreach (var line in tenant.Lines)
+            {
+                <h3>@line.Name</h3>
+                <ol>
+                    @foreach (var entry in line.Protocol)
+                    {
+                        <li>@Entry(entry)</li>
+                    }
+                </ol>
+            }
+            <h3>Zeitraum, Vorauszahlungen und Ergebnis</h3>
+            <ol>
+                @foreach (var entry in tenant.Protocol)
+                {
+                    <li>@Entry(entry)</li>
+                }
+            </ol>
+        </details>
+    </section>
+}
+
+@if (result.FlatRates.Count > 0)
+{
+    <section id="flat-rates">
+        <h2>Pauschale: Ist-Kosten gegen Einnahmen (intern)</h2>
+        <p class="small">Diese Verträge erhalten keine Abrechnung. Die Ist-Kosten ihres Anteils werden nur zur Kontrolle den Pauschalzahlungen gegenübergestellt.</p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Mieter</th><th>Mietobjekt</th><th class="number">Ist-Kosten</th><th class="number">Pauschale gezahlt</th><th class="number">Differenz</th></tr></thead>
+                <tbody>
+                    @foreach (var flat in result.FlatRates)
+                    {
+                        <tr>
+                            <td>@flat.Label</td>
+                            <td>@flat.Rental</td>
+                            <td class="number">@Format.Money(flat.ActualCosts)</td>
+                            <td class="number">@Format.Money(flat.Paid)</td>
+                            <td class="number">@Format.Money(flat.Difference)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@code {
+    private OperatingCostPreview? preview;
+    private string? errorText;
+    private int year;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "jahr")]
+    private int? Year { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        year = Year ?? GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+        if (year is < 2000 or > 2100)
+        {
+            errorText = "Bitte ein Abrechnungsjahr zwischen 2000 und 2100 angeben.";
+            return;
+        }
+
+        preview = await OperatingCosts.PreviewAsync(PropertyId, year);
+    }
+
+    private static string TypeName(string key) => Domain.Receipts.CostTypes.Find(key)?.Name ?? key;
+
+    private static RenderFragment Entry(ProtocolEntry entry) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "protocol-entry");
+        builder.OpenElement(2, "strong");
+        builder.AddContent(3, entry.Title);
+        builder.CloseElement();
+        builder.OpenElement(4, "div");
+        builder.AddAttribute(5, "class", "small");
+        builder.AddContent(6, "Formel: " + entry.Formula);
+        builder.CloseElement();
+        builder.OpenElement(7, "div");
+        builder.AddContent(8, "Werte: " + entry.Values);
+        builder.CloseElement();
+        if (entry.Result is { } value)
+        {
+            builder.OpenElement(9, "div");
+            builder.AddContent(10, "Ergebnis: " + value.ToString("#,##0.####", System.Globalization.CultureInfo.GetCultureInfo("de-DE")));
+            builder.CloseElement();
+        }
+
+        if (entry.Note is not null)
+        {
+            builder.OpenElement(11, "div");
+            builder.AddAttribute(12, "class", "small");
+            builder.AddContent(13, entry.Note);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+    };
+}
