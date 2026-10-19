@@ -9,8 +9,8 @@ using MietHahn.Infrastructure.Persistence;
 namespace MietHahn.Integration.Tests.Infrastructure;
 
 /// <summary>
-/// Vollständig registrierte Infrastruktur gegen eine eigene, migrierte Datenbank, mit temporärer Dateiablage
-/// und steuerbarer Uhr. Jobs (Quartz) sind standardmäßig aus.
+/// Fully registered infrastructure against a dedicated, migrated database, with temporary file storage
+/// and a controllable clock. Jobs (Quartz) are off by default.
 /// </summary>
 public sealed class InfrastructureEnvironment : IAsyncDisposable
 {

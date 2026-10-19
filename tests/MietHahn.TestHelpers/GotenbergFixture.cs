@@ -3,7 +3,7 @@ using DotNet.Testcontainers.Containers;
 
 namespace MietHahn.TestHelpers;
 
-/// <summary>Gotenberg (Chromium) für echte PDF-Erzeugung in Tests.</summary>
+/// <summary>Gotenberg (Chromium) for real PDF generation in tests.</summary>
 public sealed class GotenbergFixture : IAsyncLifetime
 {
     public const string Image = "gotenberg/gotenberg:8.38.1";

@@ -39,10 +39,10 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("920,50 €", lease.Text, StringComparison.Ordinal);
         Assert.Contains("1.950,00 €", lease.Text, StringComparison.Ordinal);
 
-        // Belegung in der Objektübersicht
+        // Occupancy in the property overview
         Assert.Contains("Anna Schmidt, Ben Weber", (await admin.GetAsync($"/verwaltung/objekte/{property}")).Text, StringComparison.Ordinal);
 
-        // Mieterhöhung ab Stichtag: alter Betrag bleibt im Verlauf
+        // Rent increase from the effective date: old amount stays in the history
         var increase = start.AddMonths(2);
         lease = await admin.SubmitAsync(lease, "bestandteil", new Dictionary<string, string>
         {
@@ -55,8 +55,8 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("700,00 €", lease.Text, StringComparison.Ordinal);
         Assert.Contains($"{increase.AddDays(-1):dd.MM.yyyy}", lease.Text, StringComparison.Ordinal);
 
-        // Kündigung durch den Mieter: Termin nach § 573c
-        var incoming = new DateOnly(Today.Year, Today.Month, 1).AddMonths(1).AddDays(14); // nach dem 3. Werktag
+        // Termination by the tenant: date per § 573c BGB
+        var incoming = new DateOnly(Today.Year, Today.Month, 1).AddMonths(1).AddDays(14); // after the 3rd working day
         lease = await admin.SubmitAsync(lease, "kuendigung", new Dictionary<string, string> { ["Termination.ReceivedOn"] = Iso(incoming), ["Termination.By"] = "Tenant" });
         var expected = MietHahn.Domain.Leases.Lease.TerminationDateForTenant(incoming);
         Assert.Contains($"endet am {expected:dd.MM.yyyy}", lease.Text, StringComparison.Ordinal);
@@ -126,7 +126,7 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("Ben Weber", history.Text, StringComparison.Ordinal);
         Assert.Contains("Anna Schmidt", history.Text, StringComparison.Ordinal);
 
-        App.Clock.Advance(TimeSpan.FromDays(5)); // nach dem Auszug gilt die neue Anschrift
+        App.Clock.Advance(TimeSpan.FromDays(5)); // after the move-out the new address applies
         var record = await admin.GetAsync($"/verwaltung/personen/{anna}");
         Assert.Contains("Neue Straße 5, 10115 Berlin", record.Text, StringComparison.Ordinal);
     }
@@ -148,7 +148,7 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
 
         lease = await admin.SubmitAsync(lease, "partei-entfernen", new Dictionary<string, string> { ["RemovePersonId"] = ben.ToString() });
         Assert.Contains("Die Person wurde entfernt.", lease.Text, StringComparison.Ordinal);
-        Assert.Empty(lease.Document.QuerySelectorAll("button[name=RemovePersonId]")); // einziger Mieter ist nicht entfernbar
+        Assert.Empty(lease.Document.QuerySelectorAll("button[name=RemovePersonId]")); // the only tenant cannot be removed
     }
 
     [Fact]

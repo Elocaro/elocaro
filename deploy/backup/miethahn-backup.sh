@@ -1,14 +1,14 @@
 #!/bin/sh
-# MietHahn-Backup: Datenbank (pg_dump) und Dateiablage in ein restic-Repository sichern bzw. daraus wiederherstellen.
+# MietHahn backup: back up the database (pg_dump) and file storage to a restic repository, or restore from it.
 #
-#   miethahn-backup zeitplan                 täglich um BACKUP_TIME sichern (Standard im Container)
-#   miethahn-backup sichern                  sofort sichern
-#   miethahn-backup snapshots                vorhandene Sicherungen anzeigen
-#   miethahn-backup wiederherstellen [ID]    Sicherung einspielen (Standard: latest); die App muss gestoppt sein
-#   miethahn-backup pruefen                  Repository inkl. Stichprobe der Daten prüfen
-#   miethahn-backup restic …                 beliebiger restic-Befehl
+#   miethahn-backup zeitplan                 back up daily at BACKUP_TIME (default in the container)
+#   miethahn-backup sichern                  back up immediately
+#   miethahn-backup snapshots                list existing backups
+#   miethahn-backup wiederherstellen [ID]    restore a backup (default: latest); the app must be stopped
+#   miethahn-backup pruefen                  check the repository including a data sample
+#   miethahn-backup restic …                 any restic command
 #
-# Nach jedem Sicherungslauf steht das Ergebnis in BACKUP_STATUS_DATEI; MietHahn liest sie und warnt den Admin.
+# After each backup run the result is written to BACKUP_STATUS_DATEI; MietHahn reads it and warns the admin.
 set -eu
 
 DATEN="${BACKUP_DATA_PATH:-/data}"
@@ -17,7 +17,7 @@ STATUS_DATEI="${BACKUP_STATUS_DATEI:-/status/backup.json}"
 ZEIT="${BACKUP_TIME:-02:30}"
 DB="${PGDATABASE:-miethahn}"
 APP_UID="${APP_UID:-1654}"
-# Fester Hostname, sonst erzeugt jeder neue Container eine eigene Snapshot-Reihe.
+# Fixed hostname, otherwise every new container creates its own snapshot series.
 RESTIC_HOST="${BACKUP_HOSTNAME:-miethahn}"
 TAG=miethahn
 
@@ -25,7 +25,7 @@ log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 
 fehler() { log "FEHLER: $*" >&2; exit 1; }
 
-status_schreiben() { # erfolgreich meldung snapshot dauer
+status_schreiben() { # success message snapshot duration
     mkdir -p "$(dirname "$STATUS_DATEI")"
     meldung=$(printf '%s' "$2" | tr '\n\r\t"' '    ' | tr -d '\134' | cut -c1-500)
     printf '{"timestamp":"%s","succeeded":%s,"message":"%s","snapshot":"%s","durationSeconds":%s}\n' \
@@ -48,7 +48,7 @@ sichern_intern() {
     mkdir -p "$ARBEIT"
 
     log "Datenbank $DB sichern"
-    # Unkomprimiert: restic dedupliziert und komprimiert selbst (unveränderte Tabellen kosten so kaum Platz).
+    # Uncompressed: restic deduplicates and compresses itself (unchanged tables hardly cost any space).
     pg_dump --format=custom --compress=0 --file="$ARBEIT/$DB.dump" "$DB"
 
     log "Sicherung nach $RESTIC_REPOSITORY"
@@ -72,7 +72,7 @@ sichern() {
     start=$(date +%s)
     protokoll=/tmp/backup.log
     : > /tmp/snapshot-id
-    # Eigener Prozess, damit `set -e` greift (in `if`-Bedingungen wäre es wirkungslos).
+    # Separate process so that `set -e` takes effect (it would be ineffective inside `if` conditions).
     set +e
     "$0" _sichern > "$protokoll" 2>&1
     rc=$?

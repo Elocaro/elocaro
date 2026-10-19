@@ -1,4 +1,4 @@
-# Lokale Entwicklungsdienste. Die App selbst läuft per `dotnet run` auf dem Host.
+# Local development services. The app itself runs on the host via `dotnet run`.
 #   docker compose -f deploy/docker-compose.dev.yml up -d
 name: miethahn-dev
 
@@ -18,7 +18,7 @@ services:
       interval: 5s
       retries: 10
 
-  # Fängt alle Mails ab: Weboberfläche http://localhost:8025, SMTP localhost:1025
+  # Catches all mails: web UI http://localhost:8025, SMTP localhost:1025
   mailpit:
     image: axllent/mailpit:v1.31.6
     ports:

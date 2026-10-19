@@ -33,8 +33,8 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await page.ClickAsync("summary:text('Fläche ändern')");
             await page.FillAsync("#flaeche-ab", "2026-07-01");
             await page.FillAsync("#flaeche-wert", "");
-            // Headless-Chromium formatiert Zahlenfelder unabhängig von der Sprache mit Punkt; ein deutscher Browser zeigt ein Komma.
-            // Gesendet wird in beiden Fällen „112.5“.
+            // Headless Chromium formats number fields with a dot regardless of language; a German browser shows a comma.
+            // In both cases "112.5" is submitted.
             await page.Locator("#flaeche-wert").PressSequentiallyAsync("112.5");
             await page.ClickAsync("button:text('Fläche speichern')");
             await page.WaitForSelectorAsync("text=Die Fläche wurde gespeichert.");
@@ -107,7 +107,7 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             var ct = TestContext.Current.CancellationToken;
             var meter = sp.GetRequiredService<IMeterService>();
             var ids = new List<Guid>();
-            // Hauptwasser, Allgemeinstrom, Gas, je Wohnung Wasser + Wärme (WG: 1×) = 3 + 4 + 1 = 8 Zähler
+            // Main water, common electricity, gas, per apartment water + heat (shared flat: 1×) = 3 + 4 + 1 = 8 meters
             foreach (var (name, type) in new[] { ("Hauptwasserzähler", MietHahn.Domain.Metering.MeterType.ColdWater), ("Allgemeinstrom", MietHahn.Domain.Metering.MeterType.Electricity), ("Gas Heizung", MietHahn.Domain.Metering.MeterType.Gas), ("Wasser Wohnung 1", MietHahn.Domain.Metering.MeterType.ColdWater), ("Wärme Wohnung 1", MietHahn.Domain.Metering.MeterType.Heat), ("Wasser Wohnung 2", MietHahn.Domain.Metering.MeterType.ColdWater), ("Wärme Wohnung 2", MietHahn.Domain.Metering.MeterType.Heat), ("Wasser WG", MietHahn.Domain.Metering.MeterType.ColdWater) })
             {
                 ids.Add((await meter.CreateAsync(property, new MeterCreation

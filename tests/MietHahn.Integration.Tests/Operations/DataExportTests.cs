@@ -107,7 +107,7 @@ public class DataExportTests(PostgresFixture postgres) : IAsyncLifetime
         var all = db.Model.GetRelationalModel().Tables.Select(t => t.Name).ToHashSet();
         var exported = DataExport.ExportTables(db.Model).Select(t => t.Name).ToHashSet();
 
-        // Neue Tabellen landen automatisch im Export. Wer eine ausnimmt ([OhneExport]), muss sie hier eintragen.
+        // New tables are included in the export automatically. Anyone who excludes one ([NoExport]) must list it here.
         Assert.Equal(["data_protection_keys", "magic_links", "user_tokens"], all.Except(exported).Order());
     }
 
@@ -201,7 +201,7 @@ public class DataExportTests(PostgresFixture postgres) : IAsyncLifetime
         var buffer = new MemoryStream();
         await using (var scope = environment.Services.CreateAsyncScope())
         {
-            // Wie der Response-Body: nicht durchsuchbar, nur asynchron beschreibbar.
+            // Like the response body: not seekable, only asynchronously writable.
             await using var destination = new AsyncWriteOnlyStream(buffer);
             await scope.ServiceProvider.GetRequiredService<IDataExport>().ExportAsync(destination, Ct);
         }

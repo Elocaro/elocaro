@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Gemeinsame Testinfrastruktur (Container-Fixtures, Hilfen); selbst kein Testprojekt. -->
+  <!-- Shared test infrastructure (container fixtures, helpers); not a test project itself. -->
   <PropertyGroup>
     <NoWarn>$(NoWarn);CA1707;CA2007;CA1816</NoWarn>
   </PropertyGroup>

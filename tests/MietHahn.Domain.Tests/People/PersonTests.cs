@@ -23,7 +23,7 @@ public class PersonTests
 
         Assert.Equal("Altweg 1, 50667 Köln", tenant.AddressAt(new DateOnly(2026, 2, 28))!.SingleLine);
         Assert.Equal("Wohnung 1, Lindenweg 3, 50667 Köln", tenant.AddressAt(new DateOnly(2026, 3, 1))!.SingleLine);
-        // Abrechnung 2027, versandt 2028: an die neue Anschrift
+        // Statement for 2027, sent in 2028: goes to the new address
         Assert.Equal("Neue Straße 5, 10115 Berlin", tenant.AddressAt(new DateOnly(2028, 5, 1))!.SingleLine);
         Assert.Equal(3, tenant.Addresses.Count);
     }

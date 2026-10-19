@@ -48,7 +48,7 @@ public class BackupMonitoringTests(PostgresFixture postgres) : IAsyncLifetime
     [Fact]
     public async Task Recent_successful_backup_is_ok()
     {
-        // Format wie von deploy/backup/miethahn-backup.sh geschrieben
+        // Format as written by deploy/backup/miethahn-backup.sh
         await File.WriteAllTextAsync(statusFile,
             """{"timestamp":"2026-03-01T01:30:05Z","succeeded":true,"message":"Sicherung erfolgreich","snapshot":"49ccbcd74357a447","durationSeconds":5}""", Ct);
 

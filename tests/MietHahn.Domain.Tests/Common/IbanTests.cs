@@ -13,8 +13,8 @@ public class IbanTests
     public void Valid_IBANs_are_recognized(string iban) => Assert.True(Iban.IsValid(iban));
 
     [Theory]
-    [InlineData("DE02120300000000202052")] // Prüfziffer falsch
-    [InlineData("DE0212030000000020205")] // zu kurz für DE
+    [InlineData("DE02120300000000202052")] // wrong check digits
+    [InlineData("DE0212030000000020205")] // too short for DE
     [InlineData("1234567890")]
     [InlineData("DE02-1203-0000-0000-2020-51")]
     [InlineData("")]

@@ -30,7 +30,7 @@ public class ChargeCalculationTests
         var june = ChargeCalculation.Month(lease, 2026, 6);
         var july = ChargeCalculation.Month(lease, 2026, 7);
 
-        // 15 Tage zu 620 € + 15 Tage zu 680 € im Juni (30 Tage)
+        // 15 days at 620 € + 15 days at 680 € in June (30 days)
         Assert.Equal(650m, june.Single(p => p.Component == RentComponentType.BaseRent).Amount);
         Assert.Equal("Kaltmiete 06/2026", june[0].Name);
         Assert.True(june[0].ProRata);

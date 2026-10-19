@@ -55,9 +55,9 @@ public class PeriodTests
     }
 
     [Theory]
-    [InlineData("2026-01-01", "2026-06-30", "2026-06-30", "2026-12-31", true)]  // gemeinsamer Tag
-    [InlineData("2026-01-01", "2026-06-30", "2026-07-01", "2026-12-31", false)] // direkt anschließend
-    [InlineData("2026-01-01", null, "2030-01-01", "2030-01-31", true)]          // unbefristet
+    [InlineData("2026-01-01", "2026-06-30", "2026-06-30", "2026-12-31", true)]  // shared day
+    [InlineData("2026-01-01", "2026-06-30", "2026-07-01", "2026-12-31", false)] // directly adjacent
+    [InlineData("2026-01-01", null, "2030-01-01", "2030-01-31", true)]          // open-ended
     [InlineData("2026-07-01", null, "2026-01-01", "2026-06-30", false)]
     [InlineData("2026-01-01", null, "2025-01-01", null, true)]
     public void Overlap_is_detected(string from1, string? to1, string from2, string? to2, bool expected)

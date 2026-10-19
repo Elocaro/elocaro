@@ -5,8 +5,8 @@ using AngleSharp.Html.Parser;
 namespace MietHahn.Web.Tests;
 
 /// <summary>
-/// Minimaler „Browser“ für statisch gerenderte Blazor-Seiten: lädt Seiten, folgt Weiterleitungen und schickt
-/// Formulare inklusive Antiforgery-Token ab (Formular wird über seinen Blazor-FormName gefunden).
+/// Minimal "browser" for statically rendered Blazor pages: loads pages, follows redirects and submits
+/// forms including the antiforgery token (a form is found via its Blazor FormName).
 /// </summary>
 public sealed class TestBrowser(HttpClient http) : IDisposable
 {
@@ -29,7 +29,7 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
         return await EvaluateAsync(response, followRedirects);
     }
 
-    /// <summary>Schickt ein Formular als multipart/form-data mit einer Datei ab (z. B. Foto-Upload).</summary>
+    /// <summary>Submits a form as multipart/form-data with a file (e.g. photo upload).</summary>
     public async Task<Page> SubmitWithFileAsync(Page page, string formName, string fileField, byte[] content, string fileName, string mimeType = "image/jpeg", IDictionary<string, string>? fields = null)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -50,7 +50,7 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
     private static Uri Target(Page page, IHtmlFormElement form) =>
         string.IsNullOrEmpty(form.GetAttribute("action")) ? page.Url : new Uri(page.Url, form.GetAttribute("action"));
 
-    /// <summary>Feldwerte wie ein Browser (ohne Dateifelder), überschrieben mit <paramref name="fields"/>.</summary>
+    /// <summary>Field values as a browser would send them (without file fields), overridden with <paramref name="fields"/>.</summary>
     private static List<KeyValuePair<string, string>> Values(IHtmlFormElement form, string formName, IDictionary<string, string>? fields)
     {
         var values = new List<KeyValuePair<string, string>>();
@@ -64,7 +64,7 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
             values.Add(new(element.Name, element.Value));
         }
 
-        // Wie ein Browser: ausgewählte Option bzw. Inhalt von Auswahllisten und Textfeldern mitsenden.
+        // Like a browser: also send the selected option or content of select lists and text fields.
         foreach (var selection in form.Elements.OfType<IHtmlSelectElement>().Where(e => !string.IsNullOrEmpty(e.Name)))
         {
             var option = selection.Options.FirstOrDefault(o => o.IsSelected) ?? (selection.Options.Length > 0 ? selection.Options[0] : null);
@@ -79,7 +79,7 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
             values.Add(new(text.Name!, text.Value));
         }
 
-        // Nur Felder setzen, die das Formular wirklich hat: sonst bestünde ein Test, obwohl der Browser andere Namen sendet.
+        // Only set fields the form really has: otherwise a test would pass although the browser sends different names.
         var existing = form.Elements.OfType<IHtmlElement>().Select(e => e.GetAttribute("name")).Where(n => n is not null).ToHashSet();
         foreach (var (name, value) in fields ?? new Dictionary<string, string>())
         {
@@ -118,7 +118,7 @@ public sealed record Page(HttpStatusCode Status, Uri Url, Uri? RedirectLocation,
 
     public string Text => Document.Body?.TextContent ?? "";
 
-    /// <summary>Text inklusive der per Stream-Rendering nachgelieferten Teile (<c>&lt;blazor-ssr&gt;&lt;template&gt;</c>).</summary>
+    /// <summary>Text including the parts delivered later via stream rendering (<c>&lt;blazor-ssr&gt;&lt;template&gt;</c>).</summary>
     public string TextWithStreaming =>
         Text + string.Concat(Document.QuerySelectorAll("blazor-ssr template").OfType<IHtmlTemplateElement>().Select(t => t.Content.TextContent));
 

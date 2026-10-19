@@ -23,7 +23,7 @@ public class MagicLinkAndInvitationTests(PostgresFixture postgres) : AccountTest
         var page = await browser.GetAsync(link);
         Assert.Contains("Klicken Sie auf „Anmelden“", page.Text, StringComparison.Ordinal);
 
-        // Das bloße Öffnen (z. B. durch einen Mail-Scanner) verbraucht den Link nicht.
+        // Merely opening it (e.g. by a mail scanner) does not consume the link.
         var openedAgain = await browser.GetAsync(link);
         var signedIn = await browser.SubmitAsync(openedAgain, "link-einloesen");
         Assert.Equal("/portal", signedIn.Path);
@@ -84,7 +84,7 @@ public class MagicLinkAndInvitationTests(PostgresFixture postgres) : AccountTest
 
         Assert.Equal("/konto/sicherheit/zwei-faktor", result.Path);
 
-        // Die Einladung lässt sich danach nicht erneut verwenden.
+        // The invitation cannot be used again afterwards.
         using var otherBrowser = App.Browser();
         Assert.Contains("ungültig oder abgelaufen", (await otherBrowser.GetAsync(ExtractLink(mail))).Text, StringComparison.Ordinal);
     }

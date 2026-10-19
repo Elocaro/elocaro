@@ -10,7 +10,7 @@
 		-Server
 	}
 
-	# Uploads bis 30 MB (Belege, Fotos); die App begrenzt zusätzlich selbst.
+	# Uploads up to 30 MB (receipts, photos); the app additionally enforces its own limit.
 	request_body {
 		max_size 30MB
 	}

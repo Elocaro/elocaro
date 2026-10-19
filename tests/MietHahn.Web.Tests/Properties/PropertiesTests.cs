@@ -37,7 +37,7 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("Die Fläche wurde gespeichert.", property.Text, StringComparison.Ordinal);
         Assert.Contains("30,5 m²", property.Text, StringComparison.Ordinal);
 
-        // Zahlenfeld: Browser zeigt deutsch an, Wert im HTML immer mit Punkt (vorbelegt mit dem aktuellen Stand)
+        // Number field: browser displays it German-style, value in the HTML always with a dot (prefilled with the current value)
         var supplement = property.Document.QuerySelector("#flaeche-zusatz")!;
         Assert.Equal("number", supplement.GetAttribute("type"));
         Assert.Equal("0.01", supplement.GetAttribute("step"));
@@ -63,7 +63,7 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
         var overview = await admin.GetAsync(propertyPath);
         Assert.Equal(7, overview.Document.QuerySelectorAll("tbody .status-wartend").Count(e => e.TextContent == "Leerstand"));
         Assert.Contains("WG", overview.Text, StringComparison.Ordinal);
-        // Ohne Wohnfläche für Wohnung 1–3 und Zimmer: Plausibilitätshinweise
+        // Without living area for apartments 1–3 and rooms: plausibility hints
         Assert.Contains("Wohnung 1: Keine Wohnfläche", overview.Text, StringComparison.Ordinal);
 
         var list = await admin.GetAsync("/verwaltung/objekte");
@@ -102,7 +102,7 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("Baujahr zwischen 1500 und 2100", errors.Text, StringComparison.Ordinal);
 
         var property = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "objekt", House);
-        // type="number" sendet immer mit Punkt; fachlich unplausible Werte lehnt die Domäne ab.
+        // type="number" always submits with a dot; the domain rejects implausible values.
         var area = await admin.SubmitAsync(property, "flaeche", new Dictionary<string, string> { ["Input.From"] = "2026-01-01", ["Input.Area"] = "-5" });
         Assert.Contains("Die Gesamtfläche muss größer als 0 sein.", area.Text, StringComparison.Ordinal);
         var withoutValue = await admin.SubmitAsync(property, "flaeche", new Dictionary<string, string> { ["Input.From"] = "2026-01-01", ["Input.Area"] = "" });
@@ -159,7 +159,7 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
         var (caretaker, caretakerId) = await SignedInAsAsync(Roles.Caretaker);
         using var __ = caretaker;
 
-        // Zuordnung über die Benutzerverwaltung
+        // Assignment via user management
         var account = await admin.GetAsync($"/verwaltung/benutzer/{caretakerId}");
         Assert.Contains("Betreute Objekte", account.Text, StringComparison.Ordinal);
         account = await admin.SubmitAsync(account, "objekte", new Dictionary<string, string> { ["PropertiesInput.Options"] = idA.ToString() });
@@ -173,7 +173,7 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
 
         var allowed = await caretaker.GetAsync($"/service/objekte/{idA}");
         Assert.Contains("EG links", allowed.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Leerstand", allowed.Text, StringComparison.Ordinal); // keine Belegung/Mieterdaten
+        Assert.DoesNotContain("Leerstand", allowed.Text, StringComparison.Ordinal); // no occupancy/tenant data
 
         var forbidden = await caretaker.GetAsync($"/service/objekte/{idB}");
         Assert.Contains("Objekt nicht gefunden", forbidden.Text, StringComparison.Ordinal);
@@ -181,7 +181,7 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
 
         Assert.Equal("/konto/zugriff-verweigert", (await caretaker.GetAsync($"/verwaltung/objekte/{idA}", followRedirects: false)).RedirectLocation!.AbsolutePath);
 
-        // Mieter haben keine Objektzuordnung
+        // Tenants have no property assignment
         var (_, tenantId) = await SignedInAsAsync(Roles.Tenant);
         var result = await App.WithScopeAsync(sp => sp.GetRequiredService<IPropertyAssignments>().SetAsync(tenantId, [idA], TestContext.Current.CancellationToken));
         Assert.False(result.Succeeded);

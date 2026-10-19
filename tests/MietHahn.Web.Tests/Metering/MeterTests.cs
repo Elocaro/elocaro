@@ -62,7 +62,7 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var meter = await MeterAsync(property, apartment, "WZ-1", 100m);
         var page = await admin.GetAsync($"/verwaltung/zaehler/{meter}");
 
-        // Formularfelder setzen und Foto anhängen: Testbrowser sendet die Eingaben mit
+        // Set form fields and attach a photo: the test browser submits the inputs along
         page.Form("stand").Elements.OfType<AngleSharp.Html.Dom.IHtmlInputElement>().Single(e => e.Name == "Entry.Value").Value = "150";
         var saved = await admin.SubmitWithFileAsync(page, "stand", "Photo", Jpeg(), "meter.jpg");
 
@@ -135,7 +135,7 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
 
         Assert.Contains("Der Zähler wurde getauscht.", newItem.Text, StringComparison.Ordinal);
         Assert.Contains("Nr. WZ-NEU", newItem.Text, StringComparison.Ordinal);
-        Assert.Contains("WZ-ALT", newItem.Text, StringComparison.Ordinal); // Messstelle
+        Assert.Contains("WZ-ALT", newItem.Text, StringComparison.Ordinal); // metering point
         Assert.DoesNotContain(meter.ToString(), newItem.Path, StringComparison.Ordinal);
     }
 

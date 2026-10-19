@@ -41,7 +41,7 @@ public class PropertyServiceTests(PostgresFixture postgres) : IAsyncLifetime
 
         var overview = Assert.Single(await WithAsync(v => v.ListAsync(null, Ct)));
         Assert.Equal(4, overview.Units);
-        Assert.Equal(7, overview.RentalUnits); // 3 Wohnungen + 4 Zimmer
+        Assert.Equal(7, overview.RentalUnits); // 3 apartments + 4 rooms
         Assert.Equal(7, overview.Vacancy);
         Assert.Equal(75.5m + 68m + 92m + 110m, overview.LivingArea);
     }
@@ -55,7 +55,7 @@ public class PropertyServiceTests(PostgresFixture postgres) : IAsyncLifetime
         Validate(await WithAsync(v => v.SetUnitAreaAsync(unitId, new AreaInput { From = Today.AddDays(10), Area = 80m, SecondaryArea = 78m }, Ct)));
 
         var unit = (await WithAsync(v => v.GetUnitAsync(unitId, Ct)))!;
-        Assert.Equal(75.5m, unit.Area!.Area); // heute noch die alte Fläche
+        Assert.Equal(75.5m, unit.Area!.Area); // still the old area today
         Assert.Equal(2, unit.AreaHistory.Count);
         Assert.Equal(new(80m, 78m), (unit.AreaHistory[0].Area, unit.AreaHistory[0].SecondaryArea));
         Assert.Equal(Today.AddDays(9), unit.AreaHistory[1].Validity.To);
@@ -109,7 +109,7 @@ public class PropertyServiceTests(PostgresFixture postgres) : IAsyncLifetime
         var afterwards = (await WithAsync(v => v.GetAsync(propertyId, Ct)))!;
         Assert.Equal(3, afterwards.Units.Count);
 
-        // Logisch gelöscht: Daten bleiben für Historie/Audit erhalten.
+        // Soft-deleted: data is retained for history/audit.
         await using var scope = environment.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<MietHahnDbContext>();
         Assert.True(await db.Set<Room>().IgnoreQueryFilters().CountAsync(z => z.UnitId == sharedFlat.Id && z.Deleted, Ct) == 4);
@@ -134,7 +134,7 @@ public class PropertyServiceTests(PostgresFixture postgres) : IAsyncLifetime
             Assert.True(await assignments.IsAssignedAsync(caretaker, houseB, Ct));
             Assert.False(await assignments.IsAssignedAsync(caretaker, houseA, Ct));
 
-            // Ersetzen und wieder hinzufügen (eindeutiger Index ignoriert gelöschte Zuordnungen)
+            // Replace and add again (unique index ignores deleted assignments)
             Validate(await assignments.SetAsync(caretaker, [houseA], Ct));
             Validate(await assignments.SetAsync(caretaker, [houseA, houseB], Ct));
             Assert.Equal(2, (await assignments.PropertiesOfAsync(caretaker, Ct)).Count);

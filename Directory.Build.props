@@ -18,8 +18,8 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
-    <!-- Tests: deutsche Namen mit Unterstrichen (CA1707), kein ConfigureAwait (CA2007),
-         IAsyncLifetime ohne Finalizer-Muster (CA1816) -->
+    <!-- Tests: names with underscores (CA1707), no ConfigureAwait (CA2007),
+         IAsyncLifetime without finalizer pattern (CA1816) -->
     <NoWarn>$(NoWarn);CA1707;CA2007;CA1816</NoWarn>
   </PropertyGroup>
 

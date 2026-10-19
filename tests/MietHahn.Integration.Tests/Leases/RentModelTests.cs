@@ -17,7 +17,7 @@ namespace MietHahn.Integration.Tests.Leases;
 
 public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
 {
-    // Startzeit der Testumgebung: 01.03.2026
+    // Start time of the test environment: 1 March 2026
     private static readonly DateOnly Start = new(2026, 3, 1);
     private static readonly ClaimsPrincipal Admin = new(new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.Admin)], "test"));
 
@@ -49,7 +49,7 @@ public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
         var tooEarly = await WithAsync(v => v.AddRentStepAsync(leaseId, new RentStepInput { From = new DateOnly(2027, 9, 1), BaseRent = 720m }, Ct));
         Assert.False(tooEarly.Succeeded);
 
-        environment.Clock.SetUtcNow(new DateTimeOffset(2027, 2, 27, 23, 0, 0, TimeSpan.Zero)); // 28.02. deutsche Zeit
+        environment.Clock.SetUtcNow(new DateTimeOffset(2027, 2, 27, 23, 0, 0, TimeSpan.Zero)); // 28 Feb German time
         Assert.Equal(0, await ApplyAsync());
         Assert.Contains(await TodosAsync(), a => a.Title.StartsWith("Staffel Wohnung 1: 700,00 € ab 01.03.2027", StringComparison.Ordinal));
 
@@ -88,7 +88,7 @@ public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal(new DateOnly(2027, 3, 1), suggestion.EarliestEffective);
         Assert.False(suggestion.PossibleNow);
 
-        // Erklärung zu früh: wirksam ab 01.02.2027 < 01.03.2027
+        // Declaration too early: effective from 1 Feb 2027 < 1 March 2027
         Assert.False((await WithAsync(v => v.AdjustIndexAsync(leaseId, new IndexAdjustmentInput { DeclaredOn = new DateOnly(2026, 12, 10) }, Ct))).Succeeded);
 
         environment.Clock.SetUtcNow(new DateTimeOffset(2027, 1, 10, 10, 0, 0, TimeSpan.Zero));
@@ -99,7 +99,7 @@ public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
         lease = (await WithAsync(v => v.GetAsync(leaseId, Ct)))!;
         Assert.Equal(673.81m, lease.RentModel.BaseRent);
         Assert.Equal(121.7m, lease.RentModel.IndexBaseValue);
-        Assert.Null(lease.RentModel.Index); // kein neuerer VPI als der neue Ausgangsindex
+        Assert.Null(lease.RentModel.Index); // no newer CPI than the new base index
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
         var vpi = scope.ServiceProvider.GetRequiredService<ICpiService>();
 
         Validate(await vpi.SetAsync(new DateOnly(2026, 3, 15), 118.2m, Ct));
-        Validate(await vpi.SetAsync(new DateOnly(2026, 3, 1), 118.3m, Ct)); // korrigiert denselben Monat
+        Validate(await vpi.SetAsync(new DateOnly(2026, 3, 1), 118.3m, Ct)); // corrects the same month
         var import = await vpi.ImportAsync("2026-03;118,3\n03.2026;118,3\n2026-04;118,8\nKaputt;abc\n", Ct);
 
         var list = await vpi.ListAsync(Ct);

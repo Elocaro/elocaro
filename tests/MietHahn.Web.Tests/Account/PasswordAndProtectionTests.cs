@@ -43,7 +43,7 @@ public class PasswordAndProtectionTests(PostgresFixture postgres) : AccountTestB
         Assert.Equal("/konto/gesperrt", page.Path);
         Assert.Equal("/konto/gesperrt", (await SignInAsync(browser, AdminEmail, AdminPassword)).Path);
 
-        // Identity rechnet mit der Systemuhr: Sperrdauer prüfen und das Ablaufen simulieren.
+        // Identity uses the system clock: check the lockout duration and simulate its expiry.
         await App.WithScopeAsync(async sp =>
         {
             var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
@@ -81,7 +81,7 @@ public class PasswordAndProtectionTests(PostgresFixture postgres) : AccountTestB
         Assert.Equal("/konto/anmelden", result.Path);
         Assert.Contains("Ihr Passwort wurde geändert", result.Text, StringComparison.Ordinal);
         Assert.Contains("E-Mail-Adresse oder Passwort ist falsch.", (await SignInAsync(browser, AdminEmail, AdminPassword)).Text, StringComparison.Ordinal);
-        // Admin ohne eingerichtete 2FA landet nach der Anmeldung direkt bei der Pflicht-Einrichtung.
+        // An admin without 2FA set up lands directly on the mandatory setup after signing in.
         Assert.Equal("/konto/sicherheit/zwei-faktor", (await SignInAsync(browser, AdminEmail, "Neues-Passwort-2026!")).Path);
     }
 
@@ -107,7 +107,7 @@ public class PasswordAndProtectionTests(PostgresFixture postgres) : AccountTestB
     [Fact]
     public void Token_lifetimes_are_2_hours_for_reset_and_7_days_for_invitations()
     {
-        // Identity prüft die Laufzeit selbst (mit der Systemuhr); hier wird die Konfiguration abgesichert.
+        // Identity checks the lifetime itself (using the system clock); here the configuration is verified.
         Assert.Equal(TimeSpan.FromHours(2), App.Services.GetRequiredService<IOptions<DataProtectionTokenProviderOptions>>().Value.TokenLifespan);
         Assert.Equal(TimeSpan.FromDays(7), App.Services.GetRequiredService<IOptions<InvitationTokenOptions>>().Value.TokenLifespan);
     }
@@ -177,6 +177,6 @@ public class RateLimitTests(PostgresFixture postgres) : AccountTestBase(postgres
         }
 
         Assert.Equal([HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.TooManyRequests], status);
-        Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/konto/link")).Status); // GET bleibt erlaubt
+        Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/konto/link")).Status); // GET remains allowed
     }
 }

@@ -481,10 +481,10 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
-# Lokale Laufzeitdaten (Dateiablage in der Entwicklung)
+# Local runtime data (file storage during development)
 data/
 
-# Produktionsgeheimnisse
+# Production secrets
 deploy/.env
 deploy/backup-repo/
 deploy/backup-ssh/

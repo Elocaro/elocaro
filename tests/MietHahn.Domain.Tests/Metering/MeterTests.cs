@@ -44,7 +44,7 @@ public class MeterTests
         var fromMoveIn = ConsumptionCalculator.Calculate([meter], new Period(D(2026, 7, 1), D(2026, 12, 31)));
 
         Assert.True(toMoveOut.ContainsInterpolation);
-        Assert.Equal(181m, toMoveOut.Quantity); // 181 von 365 Tagen
+        Assert.Equal(181m, toMoveOut.Quantity); // 181 of 365 days
         Assert.Equal(184m, fromMoveIn.Quantity);
         Assert.Equal(365m, toMoveOut.Quantity + fromMoveIn.Quantity);
     }
@@ -58,11 +58,11 @@ public class MeterTests
 
         var consumption = ConsumptionCalculator.Calculate([old, newItem], Period.CalendarYear(2026));
 
-        Assert.Equal(370m, consumption.Quantity); // 180 alter Zähler + 190 neuer Zähler
+        Assert.Equal(370m, consumption.Quantity); // 180 old meter + 190 new meter
         Assert.Equal(D(2026, 6, 30), old.RemovedOn);
         Assert.Equal(old.Id, newItem.PredecessorId);
         Assert.Equal(ReadingType.Removal, old.Readings.MaxBy(s => s.Date)!.Kind);
-        Assert.Equal(D(2032, 12, 31), newItem.CalibrationDueDate); // 6 Jahre ab Einbau 2026
+        Assert.Equal(D(2032, 12, 31), newItem.CalibrationDueDate); // 6 years from installation in 2026
         Assert.Throws<RuleViolationException>(() => old.RecordReading(D(2026, 8, 1), 300m, ReadingType.Reading, "Andy"));
     }
 
@@ -82,10 +82,10 @@ public class MeterTests
     public void Plausibility_check_reports_backward_reading_and_outliers()
     {
         var meter = WaterMeter(D(2025, 12, 31), 100m);
-        meter.RecordReading(D(2026, 12, 31), 465m, ReadingType.Reading, "Andy"); // 1 m³/Tag
+        meter.RecordReading(D(2026, 12, 31), 465m, ReadingType.Reading, "Andy"); // 1 m³/day
 
         Assert.Contains("Rückwärtslauf", Assert.Single(meter.Validate(D(2027, 3, 1), 400m)), StringComparison.Ordinal);
-        Assert.Empty(meter.Validate(D(2027, 3, 1), 524m)); // 59 Tage × 1 m³
+        Assert.Empty(meter.Validate(D(2027, 3, 1), 524m)); // 59 days × 1 m³
         var outlier = Assert.Single(meter.Validate(D(2027, 3, 1), 700m));
         Assert.StartsWith("Ungewöhnlicher Verbrauch", outlier, StringComparison.Ordinal);
         Assert.Contains("statt bisher 1", outlier, StringComparison.Ordinal);

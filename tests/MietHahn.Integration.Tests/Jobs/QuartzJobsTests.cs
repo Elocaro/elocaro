@@ -75,7 +75,7 @@ public class QuartzJobsTests(PostgresFixture postgres)
                 Ct);
         }
 
-        // Neuer Prozess (neuer ServiceProvider) gegen dieselbe Datenbank.
+        // New process (new ServiceProvider) against the same database.
         await using var newItem = await InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?>
         {
             ["Jobs:Active"] = "true",
@@ -114,7 +114,7 @@ public class QuartzJobsTests(PostgresFixture postgres)
     private Task<InfrastructureEnvironment> WithJobsAsync() =>
         InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?> { ["Jobs:Active"] = "true" });
 
-    /// <summary>Startet den Scheduler wie der QuartzHostedService (der in Tests keinen Host hat).</summary>
+    /// <summary>Starts the scheduler like the QuartzHostedService (which has no host in tests).</summary>
     private static async Task<RunningScheduler> StartAsync(InfrastructureEnvironment environment)
     {
         var scheduler = await environment.Services.GetRequiredService<ISchedulerFactory>().GetScheduler(Ct);
@@ -156,7 +156,7 @@ public class QuartzJobsTests(PostgresFixture postgres)
     }
 }
 
-/// <summary>Testjob, der immer fehlschlägt.</summary>
+/// <summary>Test job that always fails.</summary>
 public sealed class FailingJob : IJob
 {
     public Task Execute(IJobExecutionContext context) => throw new InvalidOperationException("Absichtlicher Testfehler");

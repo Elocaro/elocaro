@@ -2,13 +2,13 @@ using SkiaSharp;
 
 namespace MietHahn.Integration.Tests.Infrastructure;
 
-/// <summary>Erzeugt kleine Testdateien (PDF, Bilder mit EXIF-Ausrichtung).</summary>
+/// <summary>Creates small test files (PDF, images with EXIF orientation).</summary>
 internal static class TestFiles
 {
     public static byte[] Pdf(string content = "Test") =>
         System.Text.Encoding.ASCII.GetBytes($"%PDF-1.4\n% {content}\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
 
-    /// <summary>Bild mit linker Hälfte rot und rechter Hälfte blau.</summary>
+    /// <summary>Image with the left half red and the right half blue.</summary>
     public static byte[] TwoColorImage(int width, int height, SKEncodedImageFormat format = SKEncodedImageFormat.Jpeg)
     {
         using var bitmap = new SKBitmap(width, height);
@@ -25,18 +25,18 @@ internal static class TestFiles
         return data.ToArray();
     }
 
-    /// <summary>Fügt einem JPEG direkt nach SOI ein APP1/Exif-Segment mit dem Orientation-Tag (0x0112) ein.</summary>
+    /// <summary>Inserts an APP1/Exif segment with the Orientation tag (0x0112) into a JPEG directly after SOI.</summary>
     public static byte[] WithExifOrientation(byte[] jpeg, ushort orientation)
     {
         byte[] exif =
         [
-            0xFF, 0xE1, 0x00, 0x22,                          // APP1, Länge 34
+            0xFF, 0xE1, 0x00, 0x22,                          // APP1, length 34
             (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0,
-            (byte)'M', (byte)'M', 0x00, 0x2A, 0, 0, 0, 0x08, // TIFF-Header (Big Endian), IFD0 bei Offset 8
-            0x00, 0x01,                                       // 1 Eintrag
-            0x01, 0x12, 0x00, 0x03, 0, 0, 0, 1,              // Orientation, SHORT, Anzahl 1
+            (byte)'M', (byte)'M', 0x00, 0x2A, 0, 0, 0, 0x08, // TIFF header (big endian), IFD0 at offset 8
+            0x00, 0x01,                                       // 1 entry
+            0x01, 0x12, 0x00, 0x03, 0, 0, 0, 1,              // Orientation, SHORT, count 1
             (byte)(orientation >> 8), (byte)orientation, 0, 0,
-            0, 0, 0, 0,                                       // kein weiteres IFD
+            0, 0, 0, 0,                                       // no further IFD
         ];
 
         return [.. jpeg.AsSpan(0, 2), .. exif, .. jpeg.AsSpan(2)];

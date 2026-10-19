@@ -4,7 +4,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Integration.Tests.Persistence;
 
-/// <summary>Testentität, um die gemeinsamen Konventionen ohne Fachentitäten zu prüfen.</summary>
+/// <summary>Test entity for checking the shared conventions without domain entities.</summary>
 public sealed class TestEntry : Entity
 {
     public required string Name { get; set; }
@@ -21,7 +21,7 @@ public sealed class TestEntry : Entity
     public List<string> Tags { get; set; } = [];
 }
 
-/// <summary>Erweitert das Produktivmodell um <see cref="TestEntry"/>; Schema per EnsureCreated.</summary>
+/// <summary>Extends the production model with <see cref="TestEntry"/>; schema via EnsureCreated.</summary>
 internal sealed class TestDbContext(DbContextOptions<MietHahnDbContext> options) : MietHahnDbContext(options)
 {
     public DbSet<TestEntry> Entries => Set<TestEntry>();

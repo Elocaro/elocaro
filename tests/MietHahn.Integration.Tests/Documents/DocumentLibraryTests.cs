@@ -20,7 +20,7 @@ namespace MietHahn.Integration.Tests.Documents;
 
 public class DocumentLibraryTests(PostgresFixture postgres) : IAsyncLifetime
 {
-    // Startzeit der Testumgebung: 01.03.2026
+    // Start time of the test environment: 1 March 2026
     private static readonly DateOnly Today = new(2026, 3, 1);
 
     private InfrastructureEnvironment environment = null!;
@@ -75,7 +75,7 @@ public class DocumentLibraryTests(PostgresFixture postgres) : IAsyncLifetime
             (await WithAsync(a => a.SharedAsync(annaAccount, null, Ct))).Select(d => d.Title).Order(StringComparer.Ordinal));
         Assert.Equal(["Hausordnung"], (await WithAsync(a => a.SharedAsync(benAccount, null, Ct))).Select(d => d.Title));
 
-        // Gleiche Regel für den Dateiabruf über /dateien/{id}
+        // Same rule for file retrieval via /dateien/{id}
         Assert.True(await IsSharedAsync(lease.FileId, annaAccount));
         Assert.False(await IsSharedAsync(lease.FileId, benAccount));
         Assert.True(await IsSharedAsync(houseRules.FileId, benAccount));
@@ -126,7 +126,7 @@ public class DocumentLibraryTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal(["Mietvertrag"], await TitlesAsync(new DocumentQuery(Category: DocumentCategory.Lease)));
         Assert.Empty(await TitlesAsync(new DocumentQuery("100%")));
 
-        // Dokumente eines Vertrags gehören auch zur Einheit und zum Objekt; Personen sehen die ihrer Verträge.
+        // Documents of a lease also belong to the unit and the property; persons see those of their leases.
         Assert.Equal(2, (await TitlesAsync(new DocumentQuery(PropertyId: house))).Count);
         Assert.Equal(["Mietvertrag"], await TitlesAsync(new DocumentQuery(UnitId: apartment1)));
         Assert.Equal(["Mietvertrag"], await TitlesAsync(new DocumentQuery(PersonId: anna)));

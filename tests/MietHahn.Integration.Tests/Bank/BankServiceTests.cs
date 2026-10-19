@@ -71,7 +71,7 @@ public class BankServiceTests(PostgresFixture postgres) : IAsyncLifetime
 
         var id = Validate(await WithAsync(b => b.CreatePreviewAsync(other, "moveOut.sta", TestFile("mt940.sta"), null, Ct)));
 
-        Assert.Null((await WithAsync(b => b.PreviewAsync(id, Ct)))!.DifferentIban); // MT940 mit BLZ/Konto ohne IBAN
+        Assert.Null((await WithAsync(b => b.PreviewAsync(id, Ct)))!.DifferentIban); // MT940 with bank code/account number but no IBAN
         var camt = Validate(await WithAsync(b => b.CreatePreviewAsync(other, "moveOut.xml", TestFile("camt053_v08.xml"), null, Ct)));
         Assert.Equal("DE89 3704 0044 0532 0130 00", (await WithAsync(b => b.PreviewAsync(camt, Ct)))!.DifferentIban);
         var result = await WithAsync(b => b.ImportAsync(camt, Ct));

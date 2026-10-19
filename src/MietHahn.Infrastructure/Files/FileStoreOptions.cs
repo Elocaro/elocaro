@@ -5,7 +5,7 @@ public sealed class FileStoreOptions
 {
     public const string Section = "FileStore";
 
-    /// <summary>Root directory (a volume in the container, e.g. <c>/daten/dateien</c>).</summary>
+    /// <summary>Root directory (a volume in the container, e.g. <c>/data/files</c>).</summary>
     public string Path { get; set; } = System.IO.Path.Combine("data", "files");
 
     public int MaxSizeMb { get; set; } = 25;

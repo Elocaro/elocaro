@@ -8,8 +8,8 @@ using MietHahn.Infrastructure.Persistence;
 namespace MietHahn.Web.Tests;
 
 /// <summary>
-/// Startet die echte Web-App gegen eine eigene, frische Datenbank. Jobs sind aus (Mails bleiben in der Outbox
-/// und werden dort geprüft), die Uhr ist steuerbar.
+/// Starts the real web app against a dedicated, fresh database. Jobs are off (mails stay in the outbox
+/// and are verified there), the clock is controllable.
 /// </summary>
 public sealed class MietHahnWebFactory(string connection, IDictionary<string, string?>? supplement = null, Action<IServiceCollection>? configureServices = null)
     : WebApplicationFactory<Program>
@@ -23,11 +23,11 @@ public sealed class MietHahnWebFactory(string connection, IDictionary<string, st
     {
         ArgumentNullException.ThrowIfNull(postgres);
         var factory = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), supplement, configureServices);
-        _ = factory.Server; // Host starten (Migrationen laufen dabei)
+        _ = factory.Server; // start the host (migrations run in the process)
         return factory;
     }
 
-    /// <summary>HTTP-Client wie ein Browser: Cookies an, Weiterleitungen manuell (zum Prüfen).</summary>
+    /// <summary>HTTP client like a browser: cookies on, redirects handled manually (for inspection).</summary>
     public TestBrowser Browser() => new(CreateClient(new WebApplicationFactoryClientOptions
     {
         AllowAutoRedirect = false,
@@ -53,7 +53,7 @@ public sealed class MietHahnWebFactory(string connection, IDictionary<string, st
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.UseEnvironment("Testing");
-        builder.UseStaticWebAssets(); // blazor.web.js und app.css wie in der Entwicklung ausliefern
+        builder.UseStaticWebAssets(); // serve blazor.web.js and app.css as in development
         builder.UseSetting("ConnectionStrings:MietHahn", connection);
         builder.UseSetting("Database:AutoMigrate", "true");
         builder.UseSetting("Jobs:Active", "false");

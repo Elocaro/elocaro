@@ -93,7 +93,7 @@ public class PropertyTests
         Assert.Equal(14m + 8.5m, room.AreaOn(Start)!.AllocationArea);
     }
 
-    /// <summary>Das Haus aus dem Interview: MFH mit 4 Wohnungen, Wohnung 4 ist eine WG mit 4 Zimmern.</summary>
+    /// <summary>The house from the interview: multi-family house with 4 apartments, apartment 4 is a shared flat with 4 rooms.</summary>
     internal static Property SampleHouse()
     {
         var house = new Property("Lindenweg 3", "Lindenweg 3", "50667", "Köln") { YearBuilt = 1965, HeatingType = HeatingType.CentralHeating, EnergySource = EnergySource.NaturalGas };

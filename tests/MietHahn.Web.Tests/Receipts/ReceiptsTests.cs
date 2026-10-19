@@ -57,7 +57,7 @@ public class ReceiptsTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("Hauswart", receipt.Text, StringComparison.Ordinal);
         Assert.Contains("Gartenpflege", receipt.Text, StringComparison.Ordinal);
         Assert.Contains("595,00 €", receipt.Document.QuerySelector("tfoot")!.TextContent, StringComparison.Ordinal);
-        Assert.DoesNotContain("Position hinzufügen", receipt.Text, StringComparison.Ordinal); // vollständig aufgeteilt
+        Assert.DoesNotContain("Position hinzufügen", receipt.Text, StringComparison.Ordinal); // fully allocated
 
         var list = await admin.GetAsync("/verwaltung/belege?kostenart=betrkv-10&jahr=2026");
         Assert.Contains("Grünpflege Meier", list.Text, StringComparison.Ordinal);

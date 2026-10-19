@@ -34,7 +34,7 @@ public class TenantAccountsTests(PostgresFixture postgres) : IAsyncLifetime
         apartment = Validate(await properties.CreateUnitAsync(house, new UnitInput { Name = "Wohnung 1" }, Ct));
         var anna = Validate(await scope.ServiceProvider.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt" }, null, Ct));
 
-        // Einzug am 15.03.2026
+        // Move-in on 15 March 2026
         lease = Validate(await scope.ServiceProvider.GetRequiredService<ILeaseService>().CreateAsync(new LeaseCreation
         {
             RentalUnitId = apartment,
@@ -59,10 +59,10 @@ public class TenantAccountsTests(PostgresFixture postgres) : IAsyncLifetime
         var account = (await WithAsync(k => k.GetAsync(lease, Ct)))!;
         var march = account.Entries.Where(b => b.Text.Contains("03/2026", StringComparison.Ordinal)).ToList();
         Assert.Equal([340.00m, 82.26m], march.Select(b => b.Debit)); // 17/31
-        Assert.All(march, b => Assert.Equal(new DateOnly(2026, 3, 15), b.Date)); // fällig frühestens am Einzugstag
+        Assert.All(march, b => Assert.Equal(new DateOnly(2026, 3, 15), b.Date)); // due at the earliest on the move-in day
         Assert.Equal("Kaltmiete 03/2026 (anteilig 17/31)", march[0].Text);
-        Assert.Equal(new DateOnly(2026, 4, 7), account.Entries.First(b => b.Text.StartsWith("Kaltmiete 04", StringComparison.Ordinal)).Date); // 3. Werktag nach Karfreitag und Ostermontag
-        Assert.Equal(new DateOnly(2026, 5, 6), account.Entries[^1].Date); // 1.5. ist Feiertag
+        Assert.Equal(new DateOnly(2026, 4, 7), account.Entries.First(b => b.Text.StartsWith("Kaltmiete 04", StringComparison.Ordinal)).Date); // 3rd working day after Good Friday and Easter Monday
+        Assert.Equal(new DateOnly(2026, 5, 6), account.Entries[^1].Date); // 1 May is a holiday
         Assert.Equal(340m + 82.26m + 2 * 770m, account.Balance);
         Assert.Equal(account.Balance, account.Due);
     }
@@ -74,7 +74,7 @@ public class TenantAccountsTests(PostgresFixture postgres) : IAsyncLifetime
         Now(2026, 7, 10);
         await WithAsync(k => k.GenerateChargesAsync(null, Ct));
 
-        // Rückwirkende Mieterhöhung ab 01.06. und Auszug zum 15.07.
+        // Retroactive rent increase from 1 June and move-out on 15 July
         await using (var scope = environment.Services.CreateAsyncScope())
         {
             var leases = scope.ServiceProvider.GetRequiredService<ILeaseService>();
@@ -82,13 +82,13 @@ public class TenantAccountsTests(PostgresFixture postgres) : IAsyncLifetime
             Validate(await leases.MoveOutAsync(lease, new MoveOutInput { End = new DateOnly(2026, 7, 15) }, Ct));
         }
 
-        Assert.Equal(3, await WithAsync(k => k.GenerateChargesAsync(lease, Ct))); // Kalt 06 und 07, BK 07
+        Assert.Equal(3, await WithAsync(k => k.GenerateChargesAsync(lease, Ct))); // base rent 06 and 07, service charges 07
 
         var account = (await WithAsync(k => k.GetAsync(lease, Ct)))!;
         Assert.Equal(650m, account.Entries.Single(b => b.Text == "Kaltmiete 06/2026").Debit);
         Assert.Equal(decimal.Round(650m * 15 / 31, 2), account.Entries.Single(b => b.Text.StartsWith("Kaltmiete 07/2026", StringComparison.Ordinal)).Debit);
 
-        // Späterer Buchhaltungsbeginn entfernt frühere Monatsmieten.
+        // A later accounting start removes earlier monthly rents.
         await AccountingStartAsync(new DateOnly(2026, 6, 1));
         await WithAsync(k => k.GenerateChargesAsync(null, Ct));
         Assert.DoesNotContain((await WithAsync(k => k.GetAsync(lease, Ct)))!.Entries, b => b.Text.Contains("05/2026", StringComparison.Ordinal));
@@ -112,7 +112,7 @@ public class TenantAccountsTests(PostgresFixture postgres) : IAsyncLifetime
         Now(2027, 2, 10);
         await WithAsync(k => k.GenerateChargesAsync(null, Ct));
 
-        // November pünktlich, Dezember erst im Januar, Januar zur Hälfte, Februar offen
+        // November on time, December only in January, January half paid, February open
         await PaymentAsync(new DateOnly(2026, 11, 3), 770m);
         await PaymentAsync(new DateOnly(2027, 1, 4), 770m);
         await PaymentAsync(new DateOnly(2027, 1, 20), 385m);

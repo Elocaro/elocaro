@@ -75,7 +75,7 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
         var history = await App.WithScopeAsync(sp => sp.GetRequiredService<IChangeHistory>().GetAsync("ApplicationUser", managerId, TestContext.Current.CancellationToken));
         Assert.Contains(history.SelectMany(h => h.Changes), f => f is { Field: "Permissions", Old: "MasterData, Finance", New: "MasterData, UserManagement" });
 
-        // Rollenwechsel zum Mieter: kein Zugriff mehr auf die Verwaltung.
+        // Role change to tenant: no more access to the administration.
         var byRole = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/benutzer/{managerId}"), "rolle", new Dictionary<string, string> { ["RoleInput.Role"] = Roles.Tenant });
         Assert.Contains("Die Rolle wurde geändert.", byRole.Text, StringComparison.Ordinal);
         Assert.Equal("/konto/zugriff-verweigert", (await manager.GetAsync("/verwaltung", followRedirects: false)).RedirectLocation!.AbsolutePath);
@@ -90,7 +90,7 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
         var result = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/benutzer/{adminId}"), "rolle", new Dictionary<string, string> { ["RoleInput.Role"] = Roles.Manager });
 
         Assert.Contains("Der letzte aktive Administrator kann seine Rolle nicht abgeben.", result.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Konto sperren", result.Text, StringComparison.Ordinal); // eigenes Konto: keine Sperre anbieten
+        Assert.DoesNotContain("Konto sperren", result.Text, StringComparison.Ordinal); // own account: do not offer locking
 
         var lockout = await App.WithScopeAsync(sp => sp.GetRequiredService<IUserManagementService>().LockAsync(adminId, TestContext.Current.CancellationToken));
         Assert.False(lockout.Succeeded);

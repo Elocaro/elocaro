@@ -22,7 +22,7 @@ public class ChangeHistoryTests : BunitContext
         Assert.Contains("Änderungshistorie (2)", component.Find("summary").TextContent, StringComparison.Ordinal);
         var entries = component.FindAll("ol.historie-liste > li");
         Assert.Equal(2, entries.Count);
-        Assert.Contains("01.03.2026 10:30", entries[0].TextContent, StringComparison.Ordinal); // MEZ
+        Assert.Contains("01.03.2026 10:30", entries[0].TextContent, StringComparison.Ordinal); // CET
         Assert.Contains("geändert", entries[0].TextContent, StringComparison.Ordinal);
         Assert.Contains("partnerin", entries[0].TextContent, StringComparison.Ordinal);
         var cells = entries[0].QuerySelectorAll("tbody td").Select(z => z.TextContent).ToList();

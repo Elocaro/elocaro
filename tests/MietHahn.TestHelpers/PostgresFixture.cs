@@ -4,21 +4,21 @@ using Testcontainers.PostgreSql;
 namespace MietHahn.TestHelpers;
 
 /// <summary>
-/// Ein PostgreSQL-Container für den gesamten Testlauf. Jeder Test legt sich mit
-/// <see cref="CreateDatabaseAsync"/> eine eigene, leere Datenbank an und ist damit isoliert.
+/// A PostgreSQL container for the entire test run. Each test creates its own empty database with
+/// <see cref="CreateDatabaseAsync"/> and is thereby isolated.
 /// </summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
     public const string Image = "postgres:18-alpine";
 
-    // Viele parallele Tests mit je eigener Datenbank und eigenem Verbindungspool: mehr Verbindungen als der Standard (100).
+    // Many parallel tests, each with its own database and connection pool: more connections than the default (100).
     private readonly PostgreSqlContainer container = new PostgreSqlBuilder(Image).WithCommand("-c", "max_connections=300").Build();
 
     public async ValueTask InitializeAsync() => await container.StartAsync();
 
     public async ValueTask DisposeAsync() => await container.DisposeAsync();
 
-    /// <summary>Erzeugt eine neue Datenbank und liefert deren Verbindungszeichenfolge.</summary>
+    /// <summary>Creates a new database and returns its connection string.</summary>
     public async Task<string> CreateDatabaseAsync(CancellationToken cancellationToken = default)
     {
         var name = "test_" + Guid.NewGuid().ToString("N");
@@ -30,7 +30,7 @@ public sealed class PostgresFixture : IAsyncLifetime
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        // Ungenutzte Verbindungen schnell schließen, damit beendete Tests keine Verbindungen blockieren.
+        // Close unused connections quickly so that finished tests do not hold connections.
         return new NpgsqlConnectionStringBuilder(container.GetConnectionString())
         {
             Database = name,

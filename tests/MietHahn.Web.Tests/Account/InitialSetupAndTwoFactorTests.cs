@@ -35,7 +35,7 @@ public class InitialSetupAndTwoFactorTests(PostgresFixture postgres) : AccountTe
         Assert.Equal("/konto/sicherheit/zwei-faktor", afterSetup.Path);
         Assert.Contains("vorgeschrieben", afterSetup.Text, StringComparison.Ordinal);
 
-        // Andere Seiten sind gesperrt, bis 2FA aktiv ist.
+        // Other pages are blocked until 2FA is active.
         var start = await browser.GetAsync("/", followRedirects: false);
         Assert.Equal("/konto/sicherheit/zwei-faktor", start.RedirectLocation!.ToString());
 

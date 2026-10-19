@@ -4,7 +4,7 @@ using MietHahn.Domain.Common;
 
 namespace MietHahn.Infrastructure.Common;
 
-/// <summary><see cref="Period"/> as <c>{"von":"2026-01-01","bis":null}</c> (without computed properties).</summary>
+/// <summary><see cref="Period"/> as <c>{"from":"2026-01-01","to":null}</c> (without computed properties).</summary>
 internal sealed class PeriodJsonConverter : JsonConverter<Period>
 {
     public override Period Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -15,11 +15,11 @@ internal sealed class PeriodJsonConverter : JsonConverter<Period>
             var name = reader.GetString();
             reader.Read();
             var value = reader.TokenType == JsonTokenType.Null ? (DateOnly?)null : DateOnly.Parse(reader.GetString()!, System.Globalization.CultureInfo.InvariantCulture);
-            if (string.Equals(name, "von", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(name, "from", StringComparison.OrdinalIgnoreCase))
             {
                 from = value;
             }
-            else if (string.Equals(name, "bis", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(name, "to", StringComparison.OrdinalIgnoreCase))
             {
                 to = value;
             }
@@ -32,14 +32,14 @@ internal sealed class PeriodJsonConverter : JsonConverter<Period>
     {
         ArgumentNullException.ThrowIfNull(writer);
         writer.WriteStartObject();
-        writer.WriteString("von", value.From.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+        writer.WriteString("from", value.From.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
         if (value.To is { } to)
         {
-            writer.WriteString("bis", to.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+            writer.WriteString("to", to.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
         }
         else
         {
-            writer.WriteNull("bis");
+            writer.WriteNull("to");
         }
 
         writer.WriteEndObject();

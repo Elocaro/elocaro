@@ -7,7 +7,7 @@ using ArchTestResult = NetArchTest.Rules.TestResult;
 namespace MietHahn.Architecture.Tests;
 
 /// <summary>
-/// Prüft die Abhängigkeitsrichtung laut docs/architektur.md:
+/// Checks the dependency direction as defined in docs/architektur.md:
 /// Web → Application/Infrastructure, Infrastructure → Application → Domain.
 /// </summary>
 public class LayerRulesTests

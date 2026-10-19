@@ -49,7 +49,7 @@ public class FileStoreTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData(new byte[] { 0x4D, 0x5A, 0x90, 0x00 }, "programm.pdf")] // Windows-EXE, als PDF getarnt
+    [InlineData(new byte[] { 0x4D, 0x5A, 0x90, 0x00 }, "programm.pdf")] // Windows EXE disguised as PDF
     [InlineData(new byte[] { 0x3C, 0x68, 0x74, 0x6D, 0x6C, 0x3E }, "page.html")]
     public async Task Disallowed_type_is_detected_by_content_and_rejected(byte[] content, string name)
     {
@@ -126,18 +126,18 @@ public class FileStoreTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Ausgangsbild 80×40: links rot, rechts blau. Erwartet wird, was ein Bildbetrachter nach Anwenden der
-    /// EXIF-Ausrichtung anzeigt (geprüft an der Farbe oben links bzw. oben/unten).
+    /// Source image 80×40: red on the left, blue on the right. Expected is what an image viewer shows after applying the
+    /// EXIF orientation (checked via the color at the top left or top/bottom).
     /// </summary>
     [Theory]
     [InlineData(1, 80, 40, "rot-links")]
-    [InlineData(2, 80, 40, "blau-links")]  // gespiegelt
+    [InlineData(2, 80, 40, "blau-links")]  // mirrored
     [InlineData(3, 80, 40, "blau-links")]  // 180°
-    [InlineData(4, 80, 40, "rot-links")]   // vertikal gespiegelt: links bleibt rot
-    [InlineData(5, 40, 80, "rot-oben")]    // transponiert
-    [InlineData(6, 40, 80, "rot-oben")]    // 90° im Uhrzeigersinn: linke Kante wird oben
-    [InlineData(7, 40, 80, "blau-oben")]   // transversal
-    [InlineData(8, 40, 80, "blau-oben")]   // 90° gegen den Uhrzeigersinn: linke Kante wird unten
+    [InlineData(4, 80, 40, "rot-links")]   // flipped vertically: left stays red
+    [InlineData(5, 40, 80, "rot-oben")]    // transposed
+    [InlineData(6, 40, 80, "rot-oben")]    // 90° clockwise: left edge becomes top
+    [InlineData(7, 40, 80, "blau-oben")]   // transversed
+    [InlineData(8, 40, 80, "blau-oben")]   // 90° counterclockwise: left edge becomes bottom
     public async Task Exif_orientation_is_applied(ushort orientation, int width, int height, string expected)
     {
         var jpeg = TestFiles.WithExifOrientation(TestFiles.TwoColorImage(80, 40), orientation);

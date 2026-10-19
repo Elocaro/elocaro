@@ -66,18 +66,18 @@ public class ReceiptServiceTests(PostgresFixture postgres) : IAsyncLifetime
         }, Ct)));
         var tooMuch = await WithAsync(b => b.AddItemAsync(id, new CostItemInput { CostType = "betrkv-10", Amount = 300m, PropertyId = house }, Ct));
         Assert.Contains("übersteigen den Rechnungsbetrag (offen: 238.00 €)", tooMuch.Errors.Single(), StringComparison.Ordinal);
-        // Ohne Betrag: der Rest
+        // Without an amount: the remainder
         Validate(await WithAsync(b => b.AddItemAsync(id, new CostItemInput { CostType = "betrkv-10", PropertyId = house }, Ct)));
 
         var receipt = (await WithAsync(b => b.GetAsync(id, Ct)))!;
         Assert.Equal((595m, 0m), (receipt.Allocated, receipt.Open));
         Assert.Equal([("Hauswart", 357m), ("Gartenpflege", 238m)], receipt.Items.Select(p => (p.CostTypeText, p.Amount)));
-        Assert.All(receipt.Items, p => Assert.Equal(new DateOnly(2026, 1, 1), p.BillingPeriod.From)); // aus dem Leistungszeitraum
+        Assert.All(receipt.Items, p => Assert.Equal(new DateOnly(2026, 1, 1), p.BillingPeriod.From)); // from the service period
         Assert.All(receipt.Items, p => Assert.True(p.Allocable));
         Assert.Equal("Meier GmbH (Grünpflege Meier)", receipt.Supplier);
         Assert.Single(receipt.Files);
 
-        // Brutto unter die Summe der Positionen ist nicht möglich.
+        // A gross amount below the sum of the items is not possible.
         receipt.Data.Gross = 500m;
         receipt.Data.Net = null;
         receipt.Data.Vat = null;

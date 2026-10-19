@@ -31,7 +31,7 @@ public class BankImportTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("Stadtwerke Musterstadt", transactions.Text, StringComparison.Ordinal);
         Assert.Contains("4 Umsätze ohne Zuordnung", (await admin.GetAsync("/verwaltung")).TextWithStreaming, StringComparison.Ordinal);
 
-        // Zeilenknopf „Ignorieren“ mit Notiz; die Auswahl (Konto) bleibt erhalten.
+        // Row button "Ignorieren" with a note; the selection (account) is preserved.
         var button = transactions.Form("status").QuerySelectorAll("button[name=Action]").First(b => b.GetAttribute("aria-label")!.Contains("05.02.2026", StringComparison.Ordinal));
         transactions = await admin.SubmitAsync(transactions, "status", new Dictionary<string, string> { ["Action"] = button.GetAttribute("value")!, ["Note"] = "über Belege" });
         Assert.Contains("Der Umsatz wird ignoriert.", transactions.Text, StringComparison.Ordinal);
@@ -39,13 +39,13 @@ public class BankImportTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("konto=", transactions.Url.Query, StringComparison.Ordinal);
         Assert.Equal(3, (await admin.GetAsync(transactions.Url.PathAndQuery + "&status=Open")).Document.QuerySelectorAll("tbody tr").Length);
 
-        // Dieselbe Datei noch einmal: nichts Neues, Import gesperrt; verwerfen.
+        // Same file again: nothing new, import blocked; discard.
         preview = await admin.SubmitWithFileAsync(await admin.GetAsync(accountPath), "import", "Upload", TestFile("camt053_v02.xml"), "februar.xml", "application/xml");
         Assert.Contains("0 neue Umsätze, 4 schon vorhanden", preview.Text, StringComparison.Ordinal);
         Assert.True(preview.Form("importieren").QuerySelector("button")!.HasAttribute("disabled"));
         account = await admin.SubmitAsync(preview, "verwerfen");
         Assert.Contains("Der Import wurde verworfen.", account.Text, StringComparison.Ordinal);
-        Assert.Contains("februar.xml", account.Text, StringComparison.Ordinal); // Importprotokoll
+        Assert.Contains("februar.xml", account.Text, StringComparison.Ordinal); // import log
     }
 
     [Fact]

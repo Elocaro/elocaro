@@ -102,14 +102,14 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
         Assert.Contains("Testdokument", page.Text, StringComparison.Ordinal);
         Assert.Contains("Seite 1 von 1", page.Text, StringComparison.Ordinal);
 
-        // DIN 5008 Form B: Empfänger im Bereich 20–105 mm von links, 62,7–90 mm von oben.
+        // DIN 5008 form B: recipient within 20–105 mm from the left, 62.7–90 mm from the top.
         var erika = page.GetWords().First(w => w.Text == "Erika");
         var links = erika.BoundingBox.Left / PointsPerMm;
         var fromTop = A4HeightMm - (erika.BoundingBox.Top / PointsPerMm);
         Assert.InRange(links, 20, 25);
         Assert.InRange(fromTop, 62.7, 90);
 
-        // Rücksendezeile oberhalb des Empfängers (45–50 mm von oben).
+        // Return address line above the recipient (45–50 mm from the top).
         var returnAddress = page.GetWords().Where(w => w.Text == "Musterweg").MinBy(w => w.BoundingBox.Height)!;
         Assert.InRange(A4HeightMm - (returnAddress.BoundingBox.Top / PointsPerMm), 45, 50);
     }
@@ -124,10 +124,10 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
         using var document = PdfDocument.Open(pdf);
         Assert.True(document.NumberOfPages >= 3, $"Erwartet mindestens 3 Seiten, erhalten {document.NumberOfPages}.");
         Assert.Contains($"Seite 2 von {document.NumberOfPages}", document.GetPage(2).Text, StringComparison.Ordinal);
-        Assert.Contains("Position", document.GetPage(2).Text, StringComparison.Ordinal); // Tabellenkopf wiederholt sich
+        Assert.Contains("Position", document.GetPage(2).Text, StringComparison.Ordinal); // table header repeats
         Assert.Contains("Position 120", document.GetPage(document.NumberOfPages).Text, StringComparison.Ordinal);
 
-        // Die Summenzeile steht nur auf der letzten Seite.
+        // The total row appears only on the last page.
         var pagesWithTotal = Enumerable.Range(1, document.NumberOfPages).Where(i => document.GetPage(i).GetWords().Any(w => w.Text == "Summe")).ToList();
         Assert.Equal([document.NumberOfPages], pagesWithTotal);
     }

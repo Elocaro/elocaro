@@ -112,7 +112,7 @@ public class MeterServiceTests(PostgresFixture postgres) : IAsyncLifetime
     {
         var w1 = await CreateAsync("Kaltwasser Bad", "WZ-1", apartment1, main, 10m);
         var w2 = await CreateAsync("Kaltwasser Bad", "WZ-2", apartment2, main, 20m);
-        // Die Bilanz zeigt das Vorjahr: Uhr auf Februar 2027 → Jahr 2026
+        // The balance shows the previous year: clock at February 2027 → year 2026
         environment.Clock.SetUtcNow(new DateTimeOffset(2027, 2, 1, 10, 0, 0, TimeSpan.Zero));
         await ReadingAsync(main, new DateOnly(2026, 12, 31), 1500m);
         await ReadingAsync(w1, new DateOnly(2026, 12, 31), 210m);
@@ -148,7 +148,7 @@ public class MeterServiceTests(PostgresFixture postgres) : IAsyncLifetime
     [Fact]
     public async Task Expiring_calibration_dates_appear_on_the_dashboard()
     {
-        // Einbau Ende 2019 → Eichfrist Kaltwasser bis 31.12.2025, bei Testuhr 01.03.2026 abgelaufen
+        // Installed end of 2019 → cold water calibration deadline 31 Dec 2025, expired at test clock 1 March 2026
         var old = Validate(await WithAsync(v => v.CreateAsync(propertyId, new MeterCreation
         {
             Data = new MeterInput { Type = MeterType.ColdWater, Name = "Alter Zähler", Number = "ALT-1" },

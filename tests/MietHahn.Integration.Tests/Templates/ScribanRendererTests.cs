@@ -77,7 +77,7 @@ public class ScribanRendererTests
         var model = new
         {
             ReferenceDate = new DateOnly(2026, 12, 31),
-            Timestamp = new DateTimeOffset(2026, 12, 31, 23, 30, 0, TimeSpan.Zero), // in Deutschland schon 01.01.2027
+            Timestamp = new DateTimeOffset(2026, 12, 31, 23, 30, 0, TimeSpan.Zero), // already 1 Jan 2027 in Germany
         };
 
         var result = ScribanRenderer.RenderText("{{ date reference_date }}|{{ date timestamp }}", model);

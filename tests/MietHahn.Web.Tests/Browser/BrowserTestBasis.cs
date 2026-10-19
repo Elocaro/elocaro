@@ -9,8 +9,8 @@ using MietHahn.Infrastructure.Identity;
 namespace MietHahn.Web.Tests.Browser;
 
 /// <summary>
-/// Echte Browser-Tests (Chromium über Playwright) gegen die per Kestrel gestartete App.
-/// Ohne installierten Browser werden die Tests übersprungen (lokal: PLAYWRIGHT_BROWSERS_PATH, CI: playwright install).
+/// Real browser tests (Chromium via Playwright) against the app started via Kestrel.
+/// Without an installed browser the tests are skipped (locally: PLAYWRIGHT_BROWSERS_PATH, CI: playwright install).
 /// </summary>
 [Trait("Kategorie", "Browser")]
 public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetime
@@ -54,7 +54,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         await App.DisposeAsync();
     }
 
-    /// <summary>Neue Seite in Handy-Größe (360 × 780) oder Desktop.</summary>
+    /// <summary>New page at phone size (360 × 780) or desktop.</summary>
     protected async Task<IPage> NewPageAsync(bool mobile = true)
     {
         var context = await Browser.NewContextAsync(new()
@@ -66,7 +66,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         return await context.NewPageAsync();
     }
 
-    /// <summary>Legt einen Admin mit aktiver 2FA an und meldet ihn über die Oberfläche an.</summary>
+    /// <summary>Creates an admin with active 2FA and signs in via the UI.</summary>
     protected async Task<IPage> SignedInAsAdminAsync(bool mobile = true)
     {
         const string email = "admin@example.de";
@@ -93,7 +93,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         return page;
     }
 
-    /// <summary>Speichert bei einem Fehlschlag einen Screenshot (Pfad in der Fehlermeldung) zur Diagnose.</summary>
+    /// <summary>Saves a screenshot on failure (path in the error message) for diagnosis.</summary>
     protected static async Task WithScreenshotOnFailureAsync(IPage page, Func<Task> steps)
     {
         ArgumentNullException.ThrowIfNull(page);
@@ -110,7 +110,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         }
     }
 
-    /// <summary>Breite des Dokuments ≤ Breite des Fensters, also kein horizontales Scrollen.</summary>
+    /// <summary>Document width ≤ window width, i.e. no horizontal scrolling.</summary>
     protected static async Task NoHorizontalScrollAsync(IPage page)
     {
         var dimensions = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");

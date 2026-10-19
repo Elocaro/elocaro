@@ -45,7 +45,7 @@ public class AccessLogTests(PostgresFixture postgres)
         await OpenAsync();
         environment.Clock.Advance(AccessLog.TimeWindow - TimeSpan.FromMinutes(1));
         await OpenAsync();
-        await OpenAsync("DSGVO-Auskunft"); // anderer Zweck zählt eigens
+        await OpenAsync("DSGVO-Auskunft"); // a different purpose is counted separately
         environment.Clock.Advance(TimeSpan.FromMinutes(2));
         await OpenAsync();
 

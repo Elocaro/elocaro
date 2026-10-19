@@ -56,8 +56,8 @@ public class LeaseTests
     }
 
     [Theory]
-    [InlineData(2026, 10, 5, 2026, 12, 31)] // Zugang am 3. Werktag → Ablauf des übernächsten Monats
-    [InlineData(2026, 10, 6, 2027, 1, 31)] // einen Tag später → ein Monat mehr
+    [InlineData(2026, 10, 5, 2026, 12, 31)] // notice received on the 3rd working day → ends at the end of the month after next
+    [InlineData(2026, 10, 6, 2027, 1, 31)] // one day later → one more month
     [InlineData(2026, 2, 3, 2026, 4, 30)]
     [InlineData(2026, 2, 28, 2026, 5, 31)]
     public void Termination_date_for_the_tenant(int j, int m, int t, int ej, int em, int et) =>
@@ -65,8 +65,8 @@ public class LeaseTests
 
     [Theory]
     [InlineData(2026, 3)]
-    [InlineData(2021, 6)] // 5 Jahre
-    [InlineData(2018, 9)] // 8 Jahre
+    [InlineData(2021, 6)] // 5 years
+    [InlineData(2018, 9)] // 8 years
     public void Landlord_notice_period_by_lease_duration(int startYear, int months)
     {
         var lease = new Lease(Guid.CreateVersion7(), Guid.CreateVersion7(), null, new DateOnly(startYear, 1, 1));
@@ -102,7 +102,7 @@ public class LeaseTests
         var lease = new Lease(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Start, new DateOnly(2027, 12, 31));
 
         Assert.Equal(new DateOnly(2027, 12, 31), lease.End);
-        Assert.Equal(LeaseStatus.Terminated, lease.StatusAt(Start)); // Ende steht fest
+        Assert.Equal(LeaseStatus.Terminated, lease.StatusAt(Start)); // end date is fixed
         Assert.Equal(LeaseStatus.Future, lease.StatusAt(Start.AddDays(-1)));
         Assert.Throws<RuleViolationException>(() => new Lease(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Start, Start.AddDays(-1)));
     }

@@ -1,9 +1,9 @@
 #!/bin/sh
-# Ende-zu-Ende-Test für Backup und Restore (lokal und in der CI):
-#   1. App gegen leere Datenbank starten (Migrationen), Testdaten und eine Datei anlegen
-#   2. Sicherung mit restic in ein lokales Repository
-#   3. Alle Volumes löschen, PostgreSQL leer neu starten, Sicherung einspielen
-#   4. Datenstand (Schema, Inhalt jeder Tabelle, Dateien inkl. Eigentümer) vergleichen, App muss wieder starten
+# End-to-end test for backup and restore (locally and in CI):
+#   1. Start the app against an empty database (migrations), create test data and a file
+#   2. Back up with restic to a local repository
+#   3. Delete all volumes, restart PostgreSQL empty, restore the backup
+#   4. Compare the data (schema, content of every table, files incl. owner); the app must start again
 #
 #   deploy/backup/restore-test.sh [APP_IMAGE] [BACKUP_IMAGE]
 set -eu
@@ -21,7 +21,7 @@ log() { printf '\n==> %s\n' "$*"; }
 aufraeumen() {
     rc=$?
     dc down -v --remove-orphans > /dev/null 2>&1 || true
-    # Das Repository gehört root (aus dem Container); ohne root-Rechte (CI-Runner) im Container löschen.
+    # The repository is owned by root (from the container); without root privileges (CI runner) delete it inside the container.
     docker run --rm --entrypoint sh -v "$ARBEIT:/aufraeumen" "$MIETHAHN_BACKUP_IMAGE" -c 'rm -rf /aufraeumen/repo /aufraeumen/ssh' > /dev/null 2>&1 || true
     rm -rf "$ARBEIT" || true
     exit "$rc"
@@ -43,7 +43,7 @@ warte_auf_app() {
 sql() { dc run --rm -T --no-deps --entrypoint psql backup -v ON_ERROR_STOP=1 -X -q "$@"; }
 sh_backup() { dc run --rm -T --no-deps --entrypoint sh backup -c "$1"; }
 
-fingerabdruck() { # Ausgabedatei
+fingerabdruck() { # output file
     {
         echo "## Schema"
         dc run --rm -T --no-deps --entrypoint pg_dump backup --schema-only --no-owner | grep -v -e '^--' -e '^\\restrict' -e '^\\unrestrict' -e '^$'

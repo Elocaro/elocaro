@@ -1,5 +1,5 @@
-# MietHahn – Produktion auf einem VPS
-#   cp deploy/.env.example deploy/.env   # Werte anpassen
+# MietHahn – production on a VPS
+#   cp deploy/.env.example deploy/.env   # adjust values
 #   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 name: miethahn
 
@@ -31,7 +31,7 @@ services:
     volumes:
       - files:/data
       - backup-status:/backup-status:ro
-    # intern: Datenbank/Gotenberg; extern: ausgehend für SMTP (später FinTS, KI-API) und für Caddy
+    # internal: database/Gotenberg; external: outbound for SMTP (later FinTS, AI API) and for Caddy
     networks: [intern, extern]
 
   postgres:
@@ -49,14 +49,14 @@ services:
       retries: 10
     networks: [intern]
 
-  # HTML → PDF. Nur im internen Netz erreichbar.
+  # HTML → PDF. Reachable only on the internal network.
   gotenberg:
     image: gotenberg/gotenberg:8.38.1
     restart: unless-stopped
     command: ["gotenberg", "--api-timeout=60s", "--chromium-auto-start=true"]
     networks: [intern]
 
-  # Nächtliche Sicherung (pg_dump + Dateiablage) mit restic; siehe docs/betrieb.md
+  # Nightly backup (pg_dump + file storage) with restic; see docs/betrieb.md
   backup:
     image: ${MIETHAHN_BACKUP_IMAGE:-ghcr.io/ther00st3r/miethahn-backup:latest}
     build:
@@ -73,7 +73,7 @@ services:
       BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-7}
       BACKUP_KEEP_WEEKLY: ${BACKUP_KEEP_WEEKLY:-4}
       BACKUP_KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-12}
-      # S3-kompatible Ziele (z. B. RESTIC_REPOSITORY=s3:https://s3.eu-central-1.amazonaws.com/bucket/miethahn)
+      # S3-compatible targets (e.g. RESTIC_REPOSITORY=s3:https://s3.eu-central-1.amazonaws.com/bucket/miethahn)
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
@@ -81,13 +81,13 @@ services:
       - files:/data
       - backup-status:/status
       - backup-cache:/cache
-      # Lokales Repository (Standard) bzw. SSH-Schlüssel für SFTP-Ziele
+      # Local repository (default) or SSH key for SFTP targets
       - ${BACKUP_LOCAL_PATH:-./backup-repo}:/repo
       - ${BACKUP_SSH_PATH:-./backup-ssh}:/root/.ssh:ro
-    # intern: Datenbank; extern: Upload zum Backup-Ziel
+    # internal: database; external: upload to the backup target
     networks: [intern, extern]
 
-  # TLS (Let's Encrypt) und Reverse-Proxy
+  # TLS (Let's Encrypt) and reverse proxy
   caddy:
     image: caddy:2.10-alpine
     restart: unless-stopped
@@ -107,7 +107,7 @@ services:
 
 networks:
   intern:
-    internal: true   # Datenbank und Gotenberg: kein Internetzugang, nur für die App erreichbar
+    internal: true   # database and Gotenberg: no internet access, reachable only by the app
   extern: {}
 
 volumes:

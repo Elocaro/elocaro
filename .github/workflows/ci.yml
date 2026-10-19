@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    # ccr-*: Entwicklungszweige der Claude-Code-Sitzungen, solange dort direkt gepusht wird.
+    # ccr-*: development branches of Claude Code sessions, as long as they are pushed to directly.
     branches: [main, "ccr-*"]
   pull_request:
   workflow_dispatch:
@@ -49,7 +49,7 @@ jobs:
       - name: Playwright-Browser installieren
         run: pwsh tests/MietHahn.Web.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
 
-      # Integrationstests starten PostgreSQL, Mailpit und Gotenberg per Testcontainers (Docker ist auf dem Runner vorhanden).
+      # Integration tests start PostgreSQL, Mailpit and Gotenberg via Testcontainers (Docker is available on the runner).
       - name: Tests
         run: >-
           dotnet test --no-build -c Release
@@ -90,6 +90,6 @@ jobs:
           cache-from: type=gha,scope=miethahn-backup
           cache-to: type=gha,scope=miethahn-backup,mode=max
 
-      # Sichern → Volumes löschen → in leere Datenbank wiederherstellen → App startet, Datenstand identisch
+      # Back up → delete volumes → restore into an empty database → app starts, data identical
       - name: Restore-Test
         run: deploy/backup/restore-test.sh miethahn:test miethahn-backup:test

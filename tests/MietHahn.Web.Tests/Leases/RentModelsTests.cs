@@ -68,7 +68,7 @@ public class RentModelsTests(PostgresFixture postgres) : AccountTestBase(postgre
 
         lease = await admin.SubmitAsync(lease, "index-anpassung", new Dictionary<string, string> { ["Adjustment.DeclaredOn"] = Iso(Today) });
         Assert.Contains("Die Indexanpassung wurde übernommen.", lease.Text, StringComparison.Ordinal);
-        Assert.Contains("673,81 €", lease.Text, StringComparison.Ordinal); // im Verlauf ab dem übernächsten Monat
+        Assert.Contains("673,81 €", lease.Text, StringComparison.Ordinal); // in the history from the month after next
         Assert.Contains("121,7", lease.Text, StringComparison.Ordinal);
     }
 

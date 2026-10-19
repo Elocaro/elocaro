@@ -11,7 +11,7 @@ namespace MietHahn.Web.Tests.People;
 
 public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
 {
-    // Personen ohne Bezug sofort vorschlagen, sobald sie nicht mehr ganz neu sind (statt nach 12 Monaten).
+    // Suggest unrelated persons immediately once they are no longer brand new (instead of after 12 months).
     protected override IDictionary<string, string?> Configuration => new Dictionary<string, string?> { ["Privacy:MonthsWithoutRelation"] = "0" };
 
     private static readonly Dictionary<string, string> Anna = new()
@@ -37,7 +37,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("Die Person wurde angelegt.", person.Text, StringComparison.Ordinal);
         Assert.Contains("Altweg 1, 50667 Köln", person.Text, StringComparison.Ordinal);
 
-        // Mehrere IBANs, eine ungültige
+        // Multiple IBANs, one invalid
         var wrong = await admin.SubmitAsync(person, "iban", new Dictionary<string, string> { ["Bank.Iban"] = "DE02120300000000202052" });
         Assert.Contains("Bitte eine gültige IBAN angeben", wrong.Text, StringComparison.Ordinal);
         person = await admin.SubmitAsync(person, "iban", new Dictionary<string, string> { ["Bank.Iban"] = "de02120300000000202051" });
@@ -45,13 +45,13 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("DE02 1203 0000 0000 2020 51", person.Text, StringComparison.Ordinal);
         Assert.Contains("Hans Schmidt", person.Text, StringComparison.Ordinal);
 
-        // Jede Zeile hat einen eigenen Knopf im gemeinsamen Formular; der geklickte sendet seine Id.
+        // Each row has its own button in the shared form; the clicked one submits its id.
         var firstIban = person.Document.QuerySelector("button[name=RemoveId]")!.GetAttribute("value")!;
         person = await admin.SubmitAsync(person, "iban-entfernen", new Dictionary<string, string> { ["RemoveId"] = firstIban });
         Assert.Contains("Die IBAN wurde entfernt.", person.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("DE02 1203", person.Text, StringComparison.Ordinal);
 
-        // Einzug: neue Anschrift, Voranschrift bleibt im Verlauf
+        // Move-in: new address, previous address stays in the history
         person = await admin.SubmitAsync(person, "anschrift", new Dictionary<string, string>
         {
             ["Address.From"] = MietHahn.Domain.Common.GermanTime.Today(App.Clock.GetUtcNow()).AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
@@ -62,7 +62,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         });
         Assert.Contains("Die Anschrift wurde gespeichert.", person.Text, StringComparison.Ordinal);
         Assert.Contains("Frühere und künftige Anschriften", person.Text, StringComparison.Ordinal);
-        Assert.Contains("Wohnung 1, Lindenweg 3, 50667 Köln", person.Text, StringComparison.Ordinal); // ab morgen
+        Assert.Contains("Wohnung 1, Lindenweg 3, 50667 Köln", person.Text, StringComparison.Ordinal); // from tomorrow
         App.Clock.Advance(TimeSpan.FromDays(1));
         Assert.Contains("Wohnung 1, Lindenweg 3, 50667 Köln (seit", (await admin.GetAsync(person.Path)).Text, StringComparison.Ordinal);
 

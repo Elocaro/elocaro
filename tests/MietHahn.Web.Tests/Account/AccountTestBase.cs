@@ -8,7 +8,7 @@ using MietHahn.Infrastructure.Identity;
 
 namespace MietHahn.Web.Tests.Account;
 
-/// <summary>Je Test eine frische App mit eigener Datenbank und Hilfen für typische Anmeldeschritte.</summary>
+/// <summary>A fresh app with its own database per test, plus helpers for typical sign-in steps.</summary>
 public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsyncLifetime
 {
     protected const string AdminEmail = "vermieter@example.de";
@@ -25,8 +25,8 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
     public async ValueTask InitializeAsync() => App = await MietHahnWebFactory.WithDatabaseAsync(postgres, Configuration, ConfigureServices);
 
     /// <summary>
-    /// Legt ein Konto der Rolle direkt an (mit Passwort, bei 2FA-Pflicht mit aktivierter 2FA) und meldet es über
-    /// die Oberfläche an. Liefert Browser und Benutzer-Id.
+    /// Creates an account with the given role directly (with password, with 2FA enabled if 2FA is mandatory) and signs it in via
+    /// the UI. Returns the browser and user id.
     /// </summary>
     protected async Task<(TestBrowser Browser, Guid Id)> SignedInAsAsync(string role, IReadOnlyCollection<AccessRight>? permissions = null, string? email = null)
     {
@@ -81,7 +81,7 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
         });
     }
 
-    /// <summary>Liest den Schlüssel von der Einrichtungsseite, aktiviert 2FA und liefert Schlüssel und Wiederherstellungscodes.</summary>
+    /// <summary>Reads the key from the setup page, enables 2FA and returns the key and recovery codes.</summary>
     protected async Task<(string Key, IReadOnlyList<string> Codes, Page Page)> EnableTwoFactorAsync(TestBrowser browser)
     {
         var page = await browser.GetAsync("/konto/sicherheit/zwei-faktor");
@@ -111,13 +111,13 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
         using var response = await browser.Http.PostAsync(new Uri("/konto/abmelden", UriKind.Relative), content, TestContext.Current.CancellationToken);
         Assert.Equal(System.Net.HttpStatusCode.Redirect, response.StatusCode);
 
-        // Die Zielseite muss fehlerfrei laden und die Abmeldung bestätigen.
+        // The target page must load without errors and confirm the sign-out.
         var destination = await browser.GetAsync(response.Headers.Location!.ToString());
         Assert.Equal(System.Net.HttpStatusCode.OK, destination.Status);
         Assert.Contains("Sie wurden abgemeldet.", destination.Text, StringComparison.Ordinal);
     }
 
-    /// <summary>Zuletzt an die Adresse eingereihte Mail (Jobs sind aus, daher aus der Outbox).</summary>
+    /// <summary>Most recent mail queued for the address (jobs are off, hence taken from the outbox).</summary>
     protected async Task<OutgoingMail?> LastMailToAsync(string email)
     {
         OutgoingMail? mail = null;

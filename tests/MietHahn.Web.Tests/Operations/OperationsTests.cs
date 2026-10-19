@@ -6,11 +6,11 @@ namespace MietHahn.Web.Tests.Operations;
 
 public class OperationsTests(PostgresFixture postgres) : AccountTestBase(postgres)
 {
-    // Gotenberg läuft in diesen Tests nicht: die Bereitschaftsprüfung muss das melden.
+    // Gotenberg is not running in these tests: the readiness check must report that.
     protected override IDictionary<string, string?> Configuration => new Dictionary<string, string?>
     {
         ["Pdf:GotenbergUrl"] = "http://127.0.0.1:1/",
-        ["Hosting:HttpsRedirection"] = "false", // wie im Container: TLS endet bei Caddy
+        ["Hosting:HttpsRedirection"] = "false", // as in the container: TLS terminates at Caddy
     };
 
     [Fact]
@@ -66,7 +66,7 @@ public class OperationsTests(PostgresFixture postgres) : AccountTestBase(postgre
 
         using var response = await browser.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
-        // Die Anmelde-Weiterleitung nutzt das vom Proxy gemeldete Schema.
+        // The sign-in redirect uses the scheme reported by the proxy.
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.StartsWith(expected, response.Headers.Location!.ToString(), StringComparison.Ordinal);
     }

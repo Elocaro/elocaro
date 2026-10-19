@@ -15,7 +15,7 @@ public class BuildingBlocksTests : BunitContext
     [InlineData("1234.5", 1234.5)]
     [InlineData("-12 €", -12)]
     [InlineData("812,505", 812.51)]
-    [InlineData("1.234", 1234)] // Tausenderpunkt ohne Nachkommastellen
+    [InlineData("1.234", 1234)] // thousands separator without decimal places
     [InlineData(" 0,5 ", 0.5)]
     public void Amounts_are_parsed_in_German_format(string text, double expected)
     {

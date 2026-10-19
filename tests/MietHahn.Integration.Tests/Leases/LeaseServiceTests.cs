@@ -12,7 +12,7 @@ namespace MietHahn.Integration.Tests.Leases;
 
 public class LeaseServiceTests(PostgresFixture postgres) : IAsyncLifetime
 {
-    // Startzeit der Testumgebung: 01.03.2026
+    // Start time of the test environment: 1 March 2026
     private static readonly DateOnly Today = new(2026, 3, 1);
 
     private InfrastructureEnvironment environment = null!;
@@ -59,7 +59,7 @@ public class LeaseServiceTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal("Hans Schmidt", lease.Parties.Single(p => p.Role == PartyRole.Guarantor).Name);
         Assert.Equal(650m + 180m + 90m, lease.MonthlyRent);
         Assert.Equal(1950m, lease.Data.Deposit);
-        Assert.Equal(new DateOnly(2026, 3, 4), lease.NextDueDate); // 3. Werktag im März 2026 (1.3. ist ein Sonntag)
+        Assert.Equal(new DateOnly(2026, 3, 4), lease.NextDueDate); // 3rd working day in March 2026 (1 March is a Sunday)
 
         var list = Assert.Single(await WithAsync(v => v.ListAsync(true, Ct)));
         Assert.Equal("Anna Schmidt, Ben Weber", list.Tenant);
@@ -92,7 +92,7 @@ public class LeaseServiceTests(PostgresFixture postgres) : IAsyncLifetime
         flatRate.OperatingCostFlatRate = 120m;
         Validate(await WithAsync(v => v.CreateAsync(flatRate, Ct)));
 
-        // weiteres Zimmer in der WG trotz bestehender Zimmerverträge anlegbar
+        // another room in the shared flat can be created despite existing room leases
         await using var scope = environment.Services.CreateAsyncScope();
         Validate(await scope.ServiceProvider.GetRequiredService<IPropertyService>().CreateRoomAsync(sharedFlat, new RoomInput { Name = "Zimmer 3" }, Ct));
     }
@@ -129,7 +129,7 @@ public class LeaseServiceTests(PostgresFixture postgres) : IAsyncLifetime
     {
         var id = await ApartmentLeaseAsync();
 
-        // Zugang vor dem 3. Werktag (04.03.2026) → Ende 31.05.2026
+        // Notice received before the 3rd working day (4 March 2026) → ends 31 May 2026
         Validate(await WithAsync(v => v.TerminateAsync(id, new TerminationInput { ReceivedOn = new DateOnly(2026, 3, 3), By = TerminatingParty.Tenant }, Ct)));
 
         var lease = (await WithAsync(v => v.GetAsync(id, Ct)))!;

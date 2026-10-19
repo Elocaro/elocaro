@@ -92,7 +92,7 @@ public class OverlapProtectionTests(PostgresFixture postgres) : PersistenceTestB
         var old = Entry(Apartment1, new(2025, 1, 1), null);
         await StoreAsync(old);
 
-        // Neuer Stand und Beenden des alten in einem SaveChanges: die Prüfung erfolgt erst beim Commit.
+        // New version and ending of the old one in a single SaveChanges: the check happens only on commit.
         await using var db = NewContext();
         var loaded = await db.Entries.SingleAsync(e => e.Id == old.Id, Ct);
         db.Entries.Add(Entry(Apartment1, new(2026, 1, 1), null));

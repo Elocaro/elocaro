@@ -6,7 +6,7 @@ using MietHahn.Integration.Tests.Infrastructure;
 
 namespace MietHahn.Integration.Tests.Persistence;
 
-/// <summary>Stellt je Test eine eigene Datenbank mit dem <see cref="TestDbContext"/>-Schema bereit.</summary>
+/// <summary>Provides a dedicated database per test with the <see cref="TestDbContext"/> schema.</summary>
 public abstract class PersistenceTestBase(PostgresFixture postgres) : IAsyncLifetime
 {
     protected static readonly DateTimeOffset StartTime = new(2026, 3, 1, 9, 30, 0, TimeSpan.Zero);

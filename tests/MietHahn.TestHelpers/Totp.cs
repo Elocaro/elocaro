@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace MietHahn.TestHelpers;
 
-/// <summary>TOTP nach RFC 6238 (SHA-1, 30 s, 6 Ziffern) – wie Authenticator-Apps, für Tests der Zwei-Faktor-Anmeldung.</summary>
+/// <summary>TOTP per RFC 6238 (SHA-1, 30 s, 6 digits) – like authenticator apps, for testing two-factor sign-in.</summary>
 public static class Totp
 {
     public static string Code(string base32Key, DateTimeOffset timestamp)
@@ -15,7 +15,7 @@ public static class Totp
             Array.Reverse(message);
         }
 
-#pragma warning disable CA5350 // SHA-1 ist für TOTP (RFC 6238) vorgeschrieben
+#pragma warning disable CA5350 // SHA-1 is mandated for TOTP (RFC 6238)
         var hash = HMACSHA1.HashData(key, message);
 #pragma warning restore CA5350
         var offset = hash[^1] & 0x0F;

@@ -13,19 +13,19 @@ public class WorkingDaysTests
     public void EasterSunday(int year, int month, int day) => Assert.Equal(new DateOnly(year, month, day), WorkingDays.EasterSunday(year));
 
     [Theory]
-    [InlineData(2026, 4, 3)] // Karfreitag
-    [InlineData(2026, 4, 6)] // Ostermontag
-    [InlineData(2026, 5, 14)] // Himmelfahrt
-    [InlineData(2026, 5, 25)] // Pfingstmontag
+    [InlineData(2026, 4, 3)] // Good Friday
+    [InlineData(2026, 4, 6)] // Easter Monday
+    [InlineData(2026, 5, 14)] // Ascension Day
+    [InlineData(2026, 5, 25)] // Whit Monday
     [InlineData(2026, 10, 3)]
     [InlineData(2026, 12, 26)]
     public void Nationwide_public_holidays(int year, int month, int day) => Assert.True(WorkingDays.IsNationwideHoliday(new DateOnly(year, month, day)));
 
     [Theory]
-    [InlineData(2026, 10, 5)] // 1.+2.10. Do/Fr, 3.10. Feiertag (Sa), 5.10. Mo
-    [InlineData(2026, 1, 6)] // 1.1. Feiertag, 2.1. Fr, 5.1. Mo, 6.1. Di
-    [InlineData(2026, 3, 4)] // 2., 3., 4.3.
-    [InlineData(2026, 4, 3 + 4)] // 1., 2. April, 3. Karfreitag, 6. Ostermontag → 7.4.
+    [InlineData(2026, 10, 5)] // 1 and 2 Oct Thu/Fri, 3 Oct holiday (Sat), 5 Oct Mon
+    [InlineData(2026, 1, 6)] // 1 Jan holiday, 2 Jan Fri, 5 Jan Mon, 6 Jan Tue
+    [InlineData(2026, 3, 4)] // 2, 3, 4 March
+    [InlineData(2026, 4, 3 + 4)] // 1 and 2 April, 3 Good Friday, 6 Easter Monday → 7 April
     public void Third_working_day(int year, int month, int day) => Assert.Equal(new DateOnly(year, month, day), WorkingDays.NthWorkingDay(year, month, 3));
 
     [Fact]

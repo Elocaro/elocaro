@@ -10,8 +10,8 @@ public class RentModelTests
 
     [Theory]
     [InlineData(650, 117.4, 121.7, 673.81)]
-    [InlineData(650, 121.7, 117.4, 627.03)] // Index gesunken: Miete sinkt
-    [InlineData(10, 100, 100.05, 10.01)] // 10,005 → kaufmännisch aufgerundet
+    [InlineData(650, 121.7, 117.4, 627.03)] // index dropped: rent drops
+    [InlineData(10, 100, 100.05, 10.01)] // 10.005 → rounded up (commercial rounding)
     [InlineData(800, 110.0, 110.0, 800)]
     public void Indexed_rent_new_rent(double rent, double old, double newItem, double expected) =>
         Assert.Equal((decimal)expected, IndexedRent.NewRent((decimal)rent, (decimal)old, (decimal)newItem));
@@ -43,7 +43,7 @@ public class RentModelTests
         Assert.Equal(121.7m, lease.IndexBaseValue);
         Assert.Equal(new DateOnly(2027, 1, 1), lease.LastBaseRentChange());
 
-        // nächste Anpassung erst wieder ein Jahr später
+        // next adjustment only one year later
         Assert.Throws<RuleViolationException>(() => lease.AdjustIndex(new DateOnly(2027, 6, 1), new DateOnly(2027, 3, 1), 123m));
     }
 
@@ -62,7 +62,7 @@ public class RentModelTests
         var lease = Lease();
         lease.SetRentModel(RentModel.Graduated);
 
-        Assert.Throws<RuleViolationException>(() => lease.AddRentStep(new DateOnly(2026, 7, 1), 680m)); // < 1 Jahr nach Beginn
+        Assert.Throws<RuleViolationException>(() => lease.AddRentStep(new DateOnly(2026, 7, 1), 680m)); // < 1 year after start
         lease.AddRentStep(new DateOnly(2027, 1, 1), 680m);
         Assert.Throws<RuleViolationException>(() => lease.AddRentStep(new DateOnly(2027, 6, 1), 700m));
         lease.AddRentStep(new DateOnly(2028, 1, 1), 710m);
@@ -85,9 +85,9 @@ public class RentModelTests
         Assert.Equal(new DateOnly(2027, 1, 1), Assert.Single(applied).From);
         Assert.Equal(650m, lease.AmountAt(RentComponentType.BaseRent, new DateOnly(2026, 12, 31)));
         Assert.Equal(680m, lease.AmountAt(RentComponentType.BaseRent, new DateOnly(2027, 1, 1)));
-        Assert.Empty(lease.ApplyDueSteps(new DateOnly(2027, 1, 2), Now)); // nur einmal
+        Assert.Empty(lease.ApplyDueSteps(new DateOnly(2027, 1, 2), Now)); // only once
         Assert.Throws<RuleViolationException>(() => lease.RemoveRentStep(applied[0].Id));
-        Assert.Throws<RuleViolationException>(() => lease.SetRentModel(RentModel.Standard)); // offene Staffel 2028
+        Assert.Throws<RuleViolationException>(() => lease.SetRentModel(RentModel.Standard)); // pending step in 2028
     }
 
     [Fact]

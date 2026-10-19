@@ -25,7 +25,7 @@ public class FileDownloadTests(PostgresFixture postgres) : AccountTestBase(postg
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/pdf", response.Content.Headers.ContentType!.MediaType);
         Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
-        // PDFs ohne „sandbox“ (sonst zeigt der Browser sie nicht an), aber ohne Skripte und nur in der App einbettbar.
+        // PDFs without "sandbox" (otherwise the browser does not display them), but without scripts and embeddable only within the app.
         Assert.StartsWith("default-src 'none';", response.Headers.GetValues("Content-Security-Policy").Single(), StringComparison.Ordinal);
         Assert.Contains("frame-ancestors 'self'", response.Headers.GetValues("Content-Security-Policy").Single(), StringComparison.Ordinal);
         Assert.StartsWith("%PDF", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);

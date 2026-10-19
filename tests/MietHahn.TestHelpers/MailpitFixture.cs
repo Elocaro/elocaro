@@ -5,7 +5,7 @@ using DotNet.Testcontainers.Containers;
 
 namespace MietHahn.TestHelpers;
 
-/// <summary>Mailpit als echter SMTP-Server mit HTTP-API zum Prüfen zugestellter Mails.</summary>
+/// <summary>Mailpit as a real SMTP server with an HTTP API for inspecting delivered mails.</summary>
 public sealed class MailpitFixture : IAsyncLifetime
 {
     private const int SmtpPort = 1025;
@@ -35,7 +35,7 @@ public sealed class MailpitFixture : IAsyncLifetime
         await container.DisposeAsync();
     }
 
-    /// <summary>Konfigurationswerte für <c>Mail:*</c>, die auf diesen Mailpit zeigen.</summary>
+    /// <summary>Configuration values for <c>Mail:*</c> pointing to this Mailpit.</summary>
     public Dictionary<string, string?> Configuration() => new()
     {
         ["Mail:SenderAddress"] = "verwaltung@miethahn.test",
@@ -46,7 +46,7 @@ public sealed class MailpitFixture : IAsyncLifetime
         ["Mail:Smtp:Security"] = "None",
     };
 
-    /// <summary>Alle zugestellten Nachrichten an die angegebene Adresse.</summary>
+    /// <summary>All delivered messages to the given address.</summary>
     public async Task<IReadOnlyList<MailpitMessage>> MessagesToAsync(string address, CancellationToken cancellationToken)
     {
         var response = await http!.GetFromJsonAsync<MailpitSearch>($"/api/v1/search?query={Uri.EscapeDataString($"to:\"{address}\"")}", cancellationToken);

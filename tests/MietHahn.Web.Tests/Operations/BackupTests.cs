@@ -85,7 +85,7 @@ public class BackupTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var page = await manager.GetAsync(Page, followRedirects: false);
         Assert.Equal("/konto/zugriff-verweigert", page.RedirectLocation!.AbsolutePath);
 
-        // Token von einer erlaubten Seite, damit nur die Autorisierung greift
+        // Token from an allowed page so that only authorization applies
         var start = await manager.GetAsync("/verwaltung");
         using var response = await PostAsync(manager, [new("__RequestVerificationToken", Token(start))]);
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);

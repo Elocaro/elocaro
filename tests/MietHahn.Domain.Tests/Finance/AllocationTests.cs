@@ -64,7 +64,7 @@ public class AllocationTests
     [Fact]
     public void Prepayment_settles_only_when_due_with_payment_date_as_inflow()
     {
-        // Märzmiete schon am 28.2. gezahlt, Aprilmiete erst am 2.5.
+        // March rent already paid on 28 Feb, April rent only on 2 May
         var result = Allocation.Distribute(Rents, [Payment(10, 2, 28, 800m), Payment(11, 5, 2, 800m)], AllocationOrder.Statutory);
 
         Assert.All(result.Shares.Where(a => a.ClaimId == BaseRentMarch || a.ClaimId == OcMarch), a => Assert.Equal(new DateOnly(2026, 2, 28), a.Date));

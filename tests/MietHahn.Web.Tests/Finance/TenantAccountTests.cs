@@ -18,7 +18,7 @@ public class TenantAccountTests(PostgresFixture postgres) : AccountTestBase(post
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        // Einzug am 15. des Vormonats; die Uhr der App läuft in Echtzeit.
+        // Move-in on the 15th of the previous month; the app clock runs in real time.
         var today = GermanTime.Today(App.Clock.GetUtcNow());
         var previousMonth = new DateOnly(today.Year, today.Month, 1).AddMonths(-1);
         var lease = await LeaseAsync(previousMonth.AddDays(14));
@@ -50,7 +50,7 @@ public class TenantAccountTests(PostgresFixture postgres) : AccountTestBase(post
         Assert.Contains(Money(prorated + 650m - 100.50m), account.Document.QuerySelector("dl.angaben")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("offen", account.Text, StringComparison.Ordinal);
 
-        // Monatsmieten haben keinen Löschknopf, die Zahlung schon.
+        // Monthly rents have no delete button, the payment does.
         var buttons = account.Form("loeschen").QuerySelectorAll("button[name=Delete]").ToList();
         var button = Assert.Single(buttons);
         Assert.StartsWith("Payment:", button.GetAttribute("value"), StringComparison.Ordinal);

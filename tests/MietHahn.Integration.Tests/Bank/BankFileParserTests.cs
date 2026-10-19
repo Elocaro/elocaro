@@ -3,7 +3,7 @@ using MietHahn.Infrastructure.Bank.Import;
 
 namespace MietHahn.Integration.Tests.Bank;
 
-/// <summary>Parser gegen anonymisierte Beispieldateien (ohne Datenbank).</summary>
+/// <summary>Parsers against anonymized sample files (no database).</summary>
 public class BankFileParserTests
 {
     private const string Account = "DE89370400440532013000";
@@ -18,7 +18,7 @@ public class BankFileParserTests
         Assert.Equal(BankFormat.Camt053, file.Format);
         Assert.Equal(Account, file.MoveOut.Iban);
         var u = file.MoveOut.Transactions;
-        Assert.Equal(4, u.Count); // vorgemerkter Umsatz übersprungen, Sammler in zwei Umsätze zerlegt
+        Assert.Equal(4, u.Count); // pending transaction skipped, batch entry split into two transactions
         Assert.Single(file.MoveOut.Hints);
 
         Assert.Equal(new ParsedTransaction(new DateOnly(2026, 2, 2), 770m, "Miete Februar 2026 Wohnung 1 Lindenweg 3", new DateOnly(2026, 2, 2), "EUR",
@@ -50,7 +50,7 @@ public class BankFileParserTests
             "Anna Schmidt", AnnaIban, "COLSDE33XXX", "GUTSCHR. UEBERWEISUNG", "MIETE-2026-02"), u[0]);
         Assert.Equal((-84.50m, "Abschlag Strom Allgemein 02/2026", "SW-4711", "DE98ZZZ09999999999", "FOLGELASTSCHRIFT"), (u[1].Amount, u[1].Purpose, u[1].MandateReference, u[1].CreditorId, u[1].BookingText));
         Assert.Null(u[1].EndToEndId);
-        // Valuta 31.12.2025, Buchung 02.01. → im Folgejahr
+        // Value date 31 Dec 2025, booking 2 Jan → in the following year
         Assert.Equal((new DateOnly(2026, 1, 2), new DateOnly(2025, 12, 31), "Kaution Rest", "Ben Weber"), (u[2].BookingDate, u[2].ValueDate, u[2].Purpose, u[2].CounterpartyName));
     }
 
@@ -79,25 +79,25 @@ public class BankFileParserTests
     public void Csv_details_per_bank()
     {
         var sparkasse = Read("sparkasse.csv").MoveOut;
-        Assert.Equal(2, sparkasse.Transactions.Count); // vorgemerkt übersprungen
+        Assert.Equal(2, sparkasse.Transactions.Count); // pending skipped
         Assert.Equal("Stadtwerke Müllerstadt", sparkasse.Transactions[1].CounterpartyName); // Windows-1252
         Assert.Equal(("SW-4711", "DE98ZZZ09999999999", "MIETE-2026-02"), (sparkasse.Transactions[1].MandateReference, sparkasse.Transactions[1].CreditorId, sparkasse.Transactions[0].EndToEndId));
         Assert.Equal(AnnaIban, sparkasse.Transactions[0].CounterpartyIban);
 
         var volksbank = Read("volksbank.csv").MoveOut.Transactions;
-        Assert.Equal(("MIETE-2026-02", "Miete Februar 2026"), (volksbank[0].EndToEndId, volksbank[0].Purpose)); // SEPA-Kennungen zerlegt
+        Assert.Equal(("MIETE-2026-02", "Miete Februar 2026"), (volksbank[0].EndToEndId, volksbank[0].Purpose)); // SEPA references split
 
         var dkb = Read("dkb.csv").MoveOut;
-        Assert.Equal(Account, dkb.Iban); // aus dem Vorspann
+        Assert.Equal(Account, dkb.Iban); // from the header
         Assert.Equal(2, dkb.Transactions.Count);
-        Assert.Equal("Stadtwerke Musterstadt", dkb.Transactions[1].CounterpartyName); // Ausgang: Empfänger
+        Assert.Equal("Stadtwerke Musterstadt", dkb.Transactions[1].CounterpartyName); // outgoing: recipient
 
         var ing = Read("ing.csv").MoveOut;
         Assert.Equal(Account, ing.Iban);
         Assert.Equal(3, ing.Transactions.Count);
 
         var comdirect = Read("comdirect.csv").MoveOut;
-        Assert.Equal(2, comdirect.Transactions.Count); // „offen“ und Kontostände übersprungen
+        Assert.Equal(2, comdirect.Transactions.Count); // "open" entries and balances skipped
     }
 
     [Fact]

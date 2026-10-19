@@ -62,11 +62,11 @@ public class PeopleTests(PostgresFixture postgres) : IAsyncLifetime
     [InlineData("schmidt", 1)]
     [InlineData("anna@", 1)]
     [InlineData("0221", 1)]
-    [InlineData("DE89370400440532013000", 1)] // IBAN ohne Leerzeichen findet die formatierte
+    [InlineData("DE89370400440532013000", 1)] // an IBAN without spaces finds the formatted one
     [InlineData("3704 0044", 1)]
     [InlineData("Sanitär", 1)]
     [InlineData("niemand", 0)]
-    [InlineData("100%", 0)] // Platzhalter werden nicht als Muster verstanden
+    [InlineData("100%", 0)] // wildcards are not interpreted as patterns
     public async Task Search_by_name_contact_IBAN_and_trade(string text, int match)
     {
         var anna = await AnnaAsync();
@@ -120,7 +120,7 @@ public class PeopleTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.False((await WithAsync(v => v.SetUpAccessAsync(anna, Ct))).Succeeded);
         Assert.Equal("Für einen Zugang braucht die Person eine E-Mail-Adresse.", (await WithAsync(v => v.SetUpAccessAsync(withoutMail, Ct))).Errors.Single());
 
-        // Eine zweite Person mit derselben Adresse darf das Konto nicht übernehmen.
+        // A second person with the same address must not take over the account.
         var second = Validate(await WithAsync(v => v.CreateAsync(new PersonInput { LastName = "Doppelt", Email = "anna@example.de" }, null, Ct)));
         Assert.False((await WithAsync(v => v.SetUpAccessAsync(second, Ct))).Succeeded);
     }
@@ -138,7 +138,7 @@ public class PeopleTests(PostgresFixture postgres) : IAsyncLifetime
         var json = await AccessReportAsync(anna);
 
         var person = json.GetProperty("person");
-        // Jede Eigenschaft der Entitäten ist enthalten, damit neue Felder nicht versehentlich fehlen.
+        // Every property of the entities is included so that new fields are not accidentally missing.
         foreach (var name in Properties<Person>().Except(["addresses", "bankDetails"]))
         {
             Assert.True(person.TryGetProperty(name, out _), $"person.{name} fehlt in der Auskunft");
@@ -148,7 +148,7 @@ public class PeopleTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.All(Properties<PersonAddress>(), n => Assert.True(address.TryGetProperty(n, out _), $"anschrift.{n} fehlt"));
         var account = person.GetProperty("bankDetails")[0];
         Assert.All(Properties<BankDetails>(), n => Assert.True(account.TryGetProperty(n, out _), $"bankverbindung.{n} fehlt"));
-        Assert.Equal("DE89 3704 0044 0532 0130 00", account.GetProperty("iban").GetString()); // im Klartext
+        Assert.Equal("DE89 3704 0044 0532 0130 00", account.GetProperty("iban").GetString()); // in plain text
 
         var text = json.GetRawText();
         Assert.Contains("1990-04-12", text, StringComparison.Ordinal);

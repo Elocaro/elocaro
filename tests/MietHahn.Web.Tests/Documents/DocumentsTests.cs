@@ -23,7 +23,7 @@ public class DocumentsTests(PostgresFixture postgres) : AccountTestBase(postgres
         var newItem = await admin.GetAsync(property.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Dokument hochladen").GetAttribute("href")!);
         Assert.True(newItem.Document.QuerySelector($"#dokument-objekt option[value='{propertyId}']")!.HasAttribute("selected"));
 
-        // Ohne Titel gilt der Dateiname.
+        // Without a title the file name is used.
         var details = await admin.SubmitWithFileAsync(newItem, "dokument", "Upload", Pdf, "Energieausweis_2024.pdf", "application/pdf", new Dictionary<string, string>
         {
             ["Data.Category"] = "EnergyCertificate",
@@ -109,7 +109,7 @@ public class DocumentsTests(PostgresFixture postgres) : AccountTestBase(postgres
         Assert.Contains("default-src 'none'", csp, StringComparison.Ordinal);
         Assert.DoesNotContain("sandbox", csp, StringComparison.Ordinal);
 
-        // Bilder (und alles andere) bleiben in der Sandbox.
+        // Images (and everything else) stay in the sandbox.
         var photo = await admin.SubmitWithFileAsync(await admin.GetAsync($"/verwaltung/dokumente/neu?objekt={propertyId}"), "dokument", "Upload", Jpeg(), "keller.jpg");
         var imagePath = photo.Document.QuerySelector("img.dokument-vorschau")!.GetAttribute("src")!;
         using var image = await admin.Http.GetAsync(new Uri(imagePath, UriKind.Relative), TestContext.Current.CancellationToken);

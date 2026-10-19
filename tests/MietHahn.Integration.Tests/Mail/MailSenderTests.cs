@@ -99,7 +99,7 @@ public class MailSenderTests(PostgresFixture postgres, MailpitFixture mailpit) :
     public async Task Unreachable_server_is_retried_with_backoff()
     {
         var configuration = mailpit.Configuration();
-        configuration["Mail:Smtp:Port"] = "1"; // dort lauscht niemand
+        configuration["Mail:Smtp:Port"] = "1"; // nobody is listening there
         await using var withoutServer = await InfrastructureEnvironment.CreateAsync(postgres, configuration);
 
         Guid id;
@@ -115,7 +115,7 @@ public class MailSenderTests(PostgresFixture postgres, MailpitFixture mailpit) :
         Assert.NotNull(mail.LastError);
         Assert.Equal(InfrastructureEnvironment.StartTime.AddMinutes(1), mail.NextAttemptAt);
 
-        // Vor Ablauf der Wartezeit wird nichts versucht, danach erneut.
+        // Nothing is attempted before the wait time has elapsed; afterwards it retries.
         withoutServer.Clock.Advance(TimeSpan.FromSeconds(30));
         await DeliverAsync(withoutServer);
         Assert.Equal(1, (await MailAsync(id, withoutServer)).Attempts);
