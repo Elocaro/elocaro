@@ -124,6 +124,16 @@ public class DokumenteTests(PostgresFixture postgres) : KontoTestBasis(postgres)
         return bild.Encode(SKEncodedImageFormat.Jpeg, 80).ToArray();
     }
 
+    [Fact]
+    public async Task Ohne_Recht_Stammdaten_keine_Dokumentablage()
+    {
+        var (verwalter, _) = await AngemeldetAlsAsync(Rollen.Verwalter, [Recht.Finanzen]);
+        using var _ = verwalter;
+
+        Assert.Equal("/konto/zugriff-verweigert", (await verwalter.LadenAsync("/verwaltung/dokumente", weiterleitungenFolgen: false)).Weiterleitung!.AbsolutePath);
+        Assert.Equal("/konto/zugriff-verweigert", (await verwalter.LadenAsync("/verwaltung/dokumente/neu", weiterleitungenFolgen: false)).Weiterleitung!.AbsolutePath);
+    }
+
     private static async Task<Guid> ObjektAsync(TestBrowser admin)
     {
         var objekt = await admin.AbsendenAsync(await admin.LadenAsync("/verwaltung/objekte/neu"), "objekt", new Dictionary<string, string>
