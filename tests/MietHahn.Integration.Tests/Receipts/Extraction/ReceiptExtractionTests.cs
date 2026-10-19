@@ -25,7 +25,7 @@ public class ReceiptExtractionTests(PostgresFixture postgres)
     {
         supplier_name = new { value = supplier, confidence = 0.97 },
         invoice_number = new { value = "R-117", confidence = 0.99 },
-        invoice_date = new { value = "2026-04-30", confidence = 0.98 },
+        invoice_date = new { value = "2026-02-27", confidence = 0.98 },
         gross = new { value = gross, confidence = 0.99 },
         net = new { value = net, confidence = 0.99 },
         vat = new { value = vat, confidence = 0.99 },
@@ -117,7 +117,7 @@ public class ReceiptExtractionTests(PostgresFixture postgres)
         Assert.Null(outcome.Error);
         Assert.Equal(contact, outcome.SupplierId);
         Assert.Equal(595m, outcome.Suggestion!.Gross.Value);
-        Assert.Equal(new DateOnly(2026, 4, 30), outcome.Suggestion.InvoiceDate.Value);
+        Assert.Equal(new DateOnly(2026, 2, 27), outcome.Suggestion.InvoiceDate.Value);
         Assert.Equal("betrkv-10", outcome.Suggestion.CostType.Value);
         Assert.True(outcome.Suggestion.CostType.IsUncertain);
         Assert.Contains("CostType", outcome.Suggestion.UncertainFields());

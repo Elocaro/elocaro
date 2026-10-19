@@ -54,6 +54,39 @@ Alle Einstellungen kommen über Umgebungsvariablen in `deploy/.env` (eingetragen
 | `MAIL_*`, `SMTP_*` | Absender und SMTP-Zugang (`SMTP_SECURITY`: `StartTls` für Port 587, `SslOnConnect` für 465) |
 | `MIETHAHN_IMAGE` | Image-Tag, Standard `ghcr.io/ther00st3r/miethahn:latest`; empfohlen: feste Version |
 
+## Belegauslesung (optional, KI)
+
+Beim Erfassen eines Belegs kann MietHahn aus dem hochgeladenen PDF bzw. Foto einen **Vorschlag** auslesen (Lieferant, IBAN, Rechnungsnummer und -datum, Leistungszeitraum, Brutto/Netto/USt, Kostenart, § 35a, Brennstoffmenge und CO₂). Der Vorschlag füllt nur das Formular vor; gespeichert wird erst, wenn Sie bestätigen. Unsicher erkannte Felder sind gelb markiert, Unstimmigkeiten (Netto + USt ≠ Brutto, ungewöhnlicher Steuersatz, ungültige IBAN, unmögliche Daten) stehen als Warnung darüber.
+
+**Standard ist „Keiner“: Es verlässt kein Dokument den Server.** Der Anbieter wird ausschließlich über Umgebungsvariablen (`deploy/.env`) gewählt, ein Wechsel braucht keine Codeänderung:
+
+| Variable (`deploy/.env`) | Konfigurationsschlüssel | Bedeutung |
+|---|---|---|
+| `RECEIPT_AI_PROVIDER` | `ReceiptExtraction__Provider` | `None` (Standard), `Claude` oder `Ollama`. Ein unbekannter Wert schaltet die Auslesung ab und wird unter *Einstellungen → Belegauslesung* gemeldet |
+| `RECEIPT_AI_ACCEPT_EXTERNAL` | `ReceiptExtraction__AcceptExternalProcessing` | **Ausdrückliche Einwilligung** (`true`), dass Belege an einen externen Anbieter gehen. Ohne sie tut der Claude-Anbieter nichts, auch nicht mit Schlüssel |
+| `ANTHROPIC_API_KEY` | `ReceiptExtraction__Claude__ApiKey` | API-Schlüssel. Nur hier; er wird nie in der Datenbank gespeichert und nie protokolliert |
+| `RECEIPT_AI_CLAUDE_MODEL` | `ReceiptExtraction__Claude__Model` | Modellname, Standard `claude-sonnet-5-5` |
+| – | `ReceiptExtraction__Claude__BaseUrl` | Standard `https://api.anthropic.com/` (z. B. für einen eigenen Proxy) |
+| `OLLAMA_URL` | `ReceiptExtraction__Ollama__BaseUrl` | Adresse von Ollama, Standard in Compose `http://host.docker.internal:11434/` |
+| `OLLAMA_MODEL` | `ReceiptExtraction__Ollama__Model` | Modell **mit Bildeingabe**, z. B. `qwen2.5vl:7b` oder `llama3.2-vision` (vorher `ollama pull …`) |
+| – | `ReceiptExtraction__TimeoutSeconds` / `__MaxRequestMb` | Zeitlimit je Anfrage (120) und Obergrenze aller Seiten eines Belegs (20 MB) |
+
+**Datenschutz**
+
+- **Claude API:** Die Belege werden zum Auslesen an Anthropic übermittelt. Sie enthalten oft personenbezogene Daten (Mieter, Handwerker, Anschriften, IBANs). Vor dem Einschalten den Auftragsverarbeitungsvertrag des Anbieters abschließen und die Verarbeitung ins Verzeichnis von Verarbeitungstätigkeiten aufnehmen. Hinweis und Status zeigen die Belegseiten und *Einstellungen → Belegauslesung* (Recht *System*).
+- **Ollama:** Läuft Ollama auf dem eigenen Server oder im eigenen Netz, bleiben die Belege dort. Ollama liest **nur Fotos (JPG, PNG), keine PDF-Dateien**; ein PDF muss als Foto/Scan hochgeladen werden. Die App erreicht Ollama über das Netz `extern`; der Compose-Dienst `app` kennt dafür `host.docker.internal`.
+- Gesendet wird nur auf Klick auf **„Vorschlag aus Beleg auslesen“**, nie im Hintergrund. Jede Übergabe steht im Zugriffsprotokoll (Audit-Log, „Beleg zur Auslesung an … übergeben“). Prompts, Dokumentinhalte und der Schlüssel erscheinen in keinem Log.
+- Die Seitenanzeige nennt den Verbrauch der letzten Auslesung (Eingabe-/Ausgabe-Tokens) als Kostenhinweis. Die Preise legt der Anbieter fest.
+- **Lernen:** Wird ein Beleg mit Kostenart gespeichert, merkt sich MietHahn „Lieferant → Kostenart“ (Tabelle `supplier_cost_type_rules`, im Änderungsprotokoll und in der Datensicherung). Beim nächsten Beleg dieses Lieferanten hat die gelernte Kostenart Vorrang vor dem Modell.
+
+Beispiel `deploy/.env` für Claude:
+
+```
+RECEIPT_AI_PROVIDER=Claude
+RECEIPT_AI_ACCEPT_EXTERNAL=true
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
 ## Gesundheit & Logs
 
 ```bash
