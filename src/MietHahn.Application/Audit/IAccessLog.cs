@@ -2,7 +2,7 @@ namespace MietHahn.Application.Audit;
 
 /// <summary>
 /// Logs read access to personal data (GDPR evidence), e.g. when opening a tenant record.
-/// Can be switched off via <c>Audit:ZugriffeProtokollieren</c>.
+/// Can be switched off via <c>Audit:LogAccess</c>.
 /// </summary>
 public interface IAccessLog
 {
