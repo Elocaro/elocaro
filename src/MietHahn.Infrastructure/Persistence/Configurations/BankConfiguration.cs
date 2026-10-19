@@ -1,6 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MietHahn.Domain.Bank;
+using MietHahn.Domain.Finance;
+using MietHahn.Domain.Leases;
+using MietHahn.Domain.Properties;
+using MietHahn.Domain.Receipts;
 
 namespace MietHahn.Infrastructure.Persistence.Configurations;
 
@@ -74,5 +78,37 @@ internal sealed class CsvProfileConfiguration : IEntityTypeConfiguration<CsvProf
         }
 
         builder.HasIndex(p => p.Name).IsUnique().HasFilter("NOT deleted");
+    }
+}
+
+internal sealed class MatchRuleConfiguration : IEntityTypeConfiguration<MatchRule>
+{
+    public void Configure(EntityTypeBuilder<MatchRule> builder)
+    {
+        builder.ToTable("match_rules");
+        builder.Property(r => r.Name).HasMaxLength(100).UseCollation(MietHahnDbContext.GermanCollation);
+        builder.Property(r => r.Direction).HasConversion<string>().HasMaxLength(20);
+        builder.Property(r => r.Action).HasConversion<string>().HasMaxLength(20);
+        builder.Property(r => r.CounterpartyIban).HasMaxLength(34);
+        builder.Property(r => r.CounterpartyContains).HasMaxLength(200);
+        builder.Property(r => r.PurposeContains).HasMaxLength(200);
+        builder.Property(r => r.CostType).HasMaxLength(40);
+        builder.HasOne<Property>().WithMany().HasForeignKey(r => r.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Unit>().WithMany().HasForeignKey(r => r.UnitId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Lease>().WithMany().HasForeignKey(r => r.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(r => r.Priority);
+    }
+}
+
+internal sealed class TransactionAssignmentConfiguration : IEntityTypeConfiguration<TransactionAssignment>
+{
+    public void Configure(EntityTypeBuilder<TransactionAssignment> builder)
+    {
+        builder.ToTable("transaction_assignments");
+        builder.HasOne<Transaction>().WithMany().HasForeignKey(a => a.TransactionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Payment>().WithMany().HasForeignKey(a => a.PaymentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Receipt>().WithMany().HasForeignKey(a => a.ReceiptId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<CostItem>().WithMany().HasForeignKey(a => a.CostItemId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(a => a.TransactionId);
     }
 }

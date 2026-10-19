@@ -7,6 +7,7 @@ using MietHahn.Application.Todos;
 using MietHahn.Domain.Bank;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Properties;
+using MietHahn.Domain.Receipts;
 using MietHahn.Infrastructure.Bank.Import;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
@@ -197,6 +198,15 @@ internal sealed class BankService(MietHahnDbContext db) : IBankService
             query = query.Where(u => u.Status == status);
         }
 
+        if (search.WithoutReceipt)
+        {
+            // Payments whose receipt exists but has no file yet (e.g. created automatically with the assignment).
+            var withoutFile = db.Set<TransactionAssignment>()
+                .Where(a => a.ReceiptId != null && db.Set<Receipt>().Any(b => b.Id == a.ReceiptId) && !db.Set<ReceiptFile>().Any(d => d.ReceiptId == a.ReceiptId))
+                .Select(a => a.TransactionId);
+            query = query.Where(u => u.Status == TransactionStatus.Assigned && withoutFile.Contains(u.Id));
+        }
+
         if (!string.IsNullOrWhiteSpace(search.Text))
         {
             var pattern = "%" + search.Text.Trim().Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal) + "%";
@@ -379,7 +389,7 @@ internal sealed class BankTodos(MietHahnDbContext db) : ITodoSource
         }
 
         var open = await db.Set<Transaction>().CountAsync(u => u.Status == TransactionStatus.Open, cancellationToken);
-        return open == 0 ? [] : [new TodoItem("Bank", $"{open} Umsätze ohne Zuordnung", "/verwaltung/bank/umsaetze?status=Open", Urgency.Soon,
+        return open == 0 ? [] : [new TodoItem("Bank", $"{open} Umsätze ohne Zuordnung", "/verwaltung/bank/zuordnung", Urgency.Soon,
             "Mieteingängen das Mietverhältnis zuordnen, private oder doppelte Umsätze ignorieren.")];
     }
 }

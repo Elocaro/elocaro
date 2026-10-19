@@ -1,0 +1,138 @@
+@page "/verwaltung/bank/zuordnung"
+@inject IPaymentAssignment Assignment
+@inject IBankService Bank
+@inject Redirector Redirector
+@inject NavigationManager Navigation
+
+<PageHeader Title="Umsätze zuordnen" Subtitle="Unzugeordnete Umsätze mit Vorschlag: bestätigen, ändern oder aufteilen, ignorieren." Back="/verwaltung/bank/umsaetze" BackText="Alle Umsätze">
+    <Actions>
+        <a class="button" href="/verwaltung/bank/regeln">Regeln</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<form method="get" class="form-row search-bar" role="search">
+    <div class="field">
+        <label for="account">Konto</label>
+        <select id="account" name="konto">
+            <option value="">Alle Konten</option>
+            @foreach (var k in accounts)
+            {
+                <option value="@k.Id" selected="@(k.Id == AccountId)">@k.Name</option>
+            }
+        </select>
+    </div>
+    <div class="field field-action">
+        <button type="submit" class="button">Anzeigen</button>
+    </div>
+</form>
+
+@if (rows is { Count: 0 })
+{
+    <EmptyState Text="Alle Umsätze sind zugeordnet." />
+}
+else if (rows is not null)
+{
+    <p class="small">@rows.Count offene Umsätze · @rows.Count(r => r.Suggestion is not null) mit Vorschlag</p>
+    <form method="post" @formname="inbox" @onsubmit="ActionAsync">
+        <AntiforgeryToken />
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Buchung</th><th>Gegenseite und Verwendungszweck</th><th class="number">Betrag</th><th>Vorschlag</th><th>Aktion</th></tr></thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        var u = row.Transaction;
+                        <tr>
+                            <td>@Format.Date(u.BookingDate)</td>
+                            <td>
+                                @u.CounterpartyName<span class="small"> @u.CounterpartyIban</span>
+                                <br /><span class="small">@u.Purpose</span>
+                            </td>
+                            <td class="number">@Format.Money(u.Amount)</td>
+                            <td>
+                                @if (row.Suggestion is { } s)
+                                {
+                                    <strong>@s.Target</strong>
+                                    <span class="status @(s.Score >= 70 ? "status-ok" : "status-pending")">@s.Score % (@s.Confidence)</span>
+                                    <br /><span class="small">@string.Join(" · ", s.Reasons)</span>
+                                    @if (s.Parts.Count > 1)
+                                    {
+                                        <br /><span class="small">@s.Parts.Count Teilbeträge</span>
+                                    }
+                                    @if (row.Alternatives > 0)
+                                    {
+                                        <br /><span class="small">+ @row.Alternatives weitere Vorschläge</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="small">kein Vorschlag</span>
+                                }
+                            </td>
+                            <td>
+                                @if (row.Suggestion is not null)
+                                {
+                                    <button type="submit" class="button button-primary" name="Action" value="@($"bestaetigen:{u.Id}")" aria-label="Vorschlag für den Umsatz vom @Format.Date(u.BookingDate) über @Format.Money(u.Amount) bestätigen">Bestätigen</button>
+                                }
+                                <a class="button" href="/verwaltung/bank/umsaetze/@u.Id/zuordnen" aria-label="Umsatz vom @Format.Date(u.BookingDate) über @Format.Money(u.Amount) ändern oder aufteilen">Ändern / Aufteilen</a>
+                                <button type="submit" class="button" name="Action" value="@($"ignorieren:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) über @Format.Money(u.Amount) ignorieren">Ignorieren</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="field">
+            <label for="note">Notiz beim Ignorieren (optional)</label>
+            <input id="note" name="Note" placeholder="z. B. privat, Umbuchung" />
+        </div>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<BankAccountRow> accounts = [];
+    private IReadOnlyList<InboxRow>? rows;
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "konto")]
+    private Guid? AccountId { get; set; }
+
+    [SupplyParameterFromForm(FormName = "inbox")]
+    private string? Action { get; set; }
+
+    [SupplyParameterFromForm(FormName = "inbox")]
+    private string? Note { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        accounts = await Bank.AccountsAsync();
+        rows = await Assignment.InboxAsync(AccountId);
+    }
+
+    private async Task ActionAsync()
+    {
+        var parts = (Action ?? "").Split(':');
+        if (parts.Length != 2 || !Guid.TryParse(parts[1], out var id))
+        {
+            errors = ["Unbekannte Aktion."];
+            return;
+        }
+
+        var ignore = parts[0] == "ignorieren";
+        var result = ignore ? await Bank.IgnoreAsync(id, Note) : await Assignment.AcceptAsync(id, 0);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/" + Navigation.ToBaseRelativePath(Navigation.Uri), ignore ? "Der Umsatz wird ignoriert." : "Der Vorschlag wurde übernommen.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

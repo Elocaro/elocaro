@@ -309,3 +309,6 @@ h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 
 /* Bank import: transactions that already exist */
 .row-dimmed { color: var(--color-text-muted); }
+
+.suggestion { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 0.75rem 1rem; margin-bottom: var(--spacing); }
+.suggestion h3 { margin-top: 0; }

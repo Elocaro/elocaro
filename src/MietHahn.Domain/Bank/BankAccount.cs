@@ -158,7 +158,28 @@ public sealed class Transaction : Entity
         Status = TransactionStatus.Open;
     }
 
-    public void MarkAsAssigned() => Status = TransactionStatus.Assigned;
+    public void MarkAsAssigned()
+    {
+        if (Status != TransactionStatus.Open)
+        {
+            throw new RuleViolationException(Status == TransactionStatus.Assigned
+                ? "Der Umsatz ist bereits zugeordnet."
+                : "Ein ignorierter Umsatz muss erst wieder geöffnet werden.");
+        }
+
+        Status = TransactionStatus.Assigned;
+    }
+
+    /// <summary>Undo of the assignment: the transaction waits in the inbox again.</summary>
+    public void ReleaseAssignment()
+    {
+        if (Status != TransactionStatus.Assigned)
+        {
+            throw new RuleViolationException("Der Umsatz ist nicht zugeordnet.");
+        }
+
+        Status = TransactionStatus.Open;
+    }
 }
 
 /// <summary>A transaction read from a file but not yet saved.</summary>

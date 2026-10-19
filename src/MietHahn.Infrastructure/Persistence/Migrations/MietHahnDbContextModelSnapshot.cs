@@ -596,6 +596,117 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("csv_profiles", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Bank.MatchRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("action");
+
+                    b.Property<bool?>("Allocable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allocable");
+
+                    b.Property<string>("CostType")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("cost_type");
+
+                    b.Property<string>("CounterpartyContains")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("counterparty_contains");
+
+                    b.Property<string>("CounterpartyIban")
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)")
+                        .HasColumnName("counterparty_iban");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("direction");
+
+                    b.Property<Guid?>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name")
+                        .UseCollation("german");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<Guid?>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("PurposeContains")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("purpose_contains");
+
+                    b.Property<Guid?>("UnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("unit_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_match_rules");
+
+                    b.HasIndex("LeaseId")
+                        .HasDatabaseName("ix_match_rules_lease_id");
+
+                    b.HasIndex("Priority")
+                        .HasDatabaseName("ix_match_rules_priority");
+
+                    b.HasIndex("PropertyId")
+                        .HasDatabaseName("ix_match_rules_property_id");
+
+                    b.HasIndex("UnitId")
+                        .HasDatabaseName("ix_match_rules_unit_id");
+
+                    b.ToTable("match_rules", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Bank.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -729,6 +840,87 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_bank_transactions_bank_account_id_status_booking_date");
 
                     b.ToTable("bank_transactions", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Bank.TransactionAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid?>("CostItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cost_item_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<bool>("PaidOnSet")
+                        .HasColumnType("boolean")
+                        .HasColumnName("paid_on_set");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<bool>("ReceiptCreated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("receipt_created");
+
+                    b.Property<Guid?>("ReceiptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("receipt_id");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("transaction_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_transaction_assignments");
+
+                    b.HasIndex("CostItemId")
+                        .HasDatabaseName("ix_transaction_assignments_cost_item_id");
+
+                    b.HasIndex("PaymentId")
+                        .HasDatabaseName("ix_transaction_assignments_payment_id");
+
+                    b.HasIndex("ReceiptId")
+                        .HasDatabaseName("ix_transaction_assignments_receipt_id");
+
+                    b.HasIndex("TransactionId")
+                        .HasDatabaseName("ix_transaction_assignments_transaction_id");
+
+                    b.ToTable("transaction_assignments", (string)null);
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Communication.OutgoingMail", b =>
@@ -3390,6 +3582,27 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_bank_imports_bank_accounts_bank_account_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Bank.MatchRule", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_match_rules_leases_lease_id");
+
+                    b.HasOne("MietHahn.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_match_rules_property_property_id");
+
+                    b.HasOne("MietHahn.Domain.Properties.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_match_rules_unit_unit_id");
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Bank.Transaction", b =>
                 {
                     b.HasOne("MietHahn.Domain.Bank.BankAccount", null)
@@ -3404,6 +3617,34 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasForeignKey("BankImportId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_bank_transactions_bank_imports_bank_import_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Bank.TransactionAssignment", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Receipts.CostItem", null)
+                        .WithMany()
+                        .HasForeignKey("CostItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_transaction_assignments_cost_items_cost_item_id");
+
+                    b.HasOne("MietHahn.Domain.Finance.Payment", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_transaction_assignments_payments_payment_id");
+
+                    b.HasOne("MietHahn.Domain.Receipts.Receipt", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_transaction_assignments_receipts_receipt_id");
+
+                    b.HasOne("MietHahn.Domain.Bank.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_transaction_assignments_transaction_transaction_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Documents.Document", b =>

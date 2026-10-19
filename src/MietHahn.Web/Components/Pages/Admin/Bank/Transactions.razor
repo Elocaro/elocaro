@@ -3,7 +3,11 @@
 @inject Redirector Redirector
 @inject NavigationManager Navigation
 
-<PageHeader Title="Umsätze" Subtitle="Importierte Kontoumsätze; offene warten auf Zuordnung." Back="/verwaltung/bank/konten" BackText="Bankkonten" />
+<PageHeader Title="Umsätze" Subtitle="Importierte Kontoumsätze; offene warten auf Zuordnung." Back="/verwaltung/bank/konten" BackText="Bankkonten">
+    <Actions>
+        <a class="button" href="/verwaltung/bank/zuordnung">Umsätze zuordnen</a>
+    </Actions>
+</PageHeader>
 
 <StatusMessage />
 <ErrorList Errors="errors" />
@@ -32,6 +36,10 @@
     <div class="field">
         <label for="search">Suche</label>
         <input id="search" type="search" name="q" value="@Q" placeholder="Name, IBAN, Verwendungszweck" />
+    </div>
+    <div class="field field-checkbox">
+        <input id="without-receipt" type="checkbox" name="ohneBeleg" value="true" checked="@WithoutReceipt" />
+        <label for="without-receipt">Zahlungen ohne Beleg</label>
     </div>
     <div class="field field-action">
         <button type="submit" class="button">Anzeigen</button>
@@ -74,6 +82,10 @@ else if (transactions is not null)
                                 {
                                     <button type="submit" class="button" name="Action" value="@($"ignorieren:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) ignorieren">Ignorieren</button>
                                 }
+                                else if (u.Status == TransactionStatus.Assigned)
+                                {
+                                    <a class="button" href="/verwaltung/bank/umsaetze/@u.Id/zuordnen" aria-label="Zuordnung des Umsatzes vom @Format.Date(u.BookingDate) ansehen">Zuordnung</a>
+                                }
                                 else if (u.Status == TransactionStatus.Ignored)
                                 {
                                     <button type="submit" class="button" name="Action" value="@($"oeffnen:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) wieder öffnen">Wieder öffnen</button>
@@ -111,6 +123,9 @@ else if (transactions is not null)
     [SupplyParameterFromQuery]
     private string? Q { get; set; }
 
+    [SupplyParameterFromQuery(Name = "ohneBeleg")]
+    private bool WithoutReceipt { get; set; }
+
     [SupplyParameterFromForm(FormName = "status")]
     private string? Action { get; set; }
 
@@ -120,7 +135,7 @@ else if (transactions is not null)
     protected override async Task OnInitializedAsync()
     {
         accounts = await Bank.AccountsAsync();
-        transactions = await Bank.TransactionsAsync(new TransactionQuery(AccountId, Status, Q));
+        transactions = await Bank.TransactionsAsync(new TransactionQuery(AccountId, Status, Q, WithoutReceipt));
     }
 
     private async Task StatusAsync()

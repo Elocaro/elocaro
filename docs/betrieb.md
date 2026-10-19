@@ -81,6 +81,10 @@ Das Datenformat ist zwischen Major-Versionen nicht kompatibel:
 3. Image von `postgres` **und** die Basis in `deploy/backup/Dockerfile` anheben, `up -d postgres`.
 4. `docker compose … run --rm backup restore`, dann `up -d`.
 
+## Bankumsätze zuordnen
+
+Nach dem Import erscheinen offene Umsätze unter **Finanzen → Umsätze zuordnen** (auch als Hinweis auf der Startseite). Dort lässt sich der Vorschlag bestätigen, ändern/aufteilen oder der Umsatz ignorieren. Wiederkehrende Zahlungen (Stadtwerke, Versicherungen, private Abbuchungen) lassen sich unter **Zuordnungsregeln** hinterlegen. Eine Zuordnung kann auf der Seite des Umsatzes rückgängig gemacht werden; sie stehen im Änderungsprotokoll und sind Teil der Datensicherung wie alle Tabellen (`transaction_assignments`, `match_rules`). Es sind keine zusätzlichen Einstellungen oder Dienste nötig; die Migration läuft beim Start.
+
 ## Sicherheit
 
 - TLS und HSTS über Caddy; die App setzt CSP, `X-Frame-Options: DENY`, `nosniff`, Referrer- und Permissions-Policy.

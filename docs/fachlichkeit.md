@@ -87,7 +87,10 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
 
 - **Sollstellungen** monatlich aus den Mietbestandteilen. **Offene Posten** je Mieter.
 - **Bankimport:** CSV (bankspezifische Profile), CAMT.053, MT940 und **FinTS/HBCI** (Abruf mit TAN/Decoupled).
-- **Zuordnung:** Regeln (IBAN, Verwendungszweck, Betrag) → Vorschlag → Bestätigung. Teilzahlungen und Sammelzahlungen.
+- **Zuordnung:** Benutzerregeln (Gegen-IBAN, Name, Verwendungszweck → Kostenart/Objekt, Mietverhältnis oder „privat“) gelten vor der automatischen Bewertung (IBAN, Name, Betrag, Verwendungszweck mit Wohnung und Monat) → Vorschlag mit Begründung → Bestätigung, Änderung oder Aufteilung in der Eingangsliste „Umsätze zuordnen“.
+  - **Eingänge:** Teilzahlungen bleiben offen, Überzahlungen werden Guthaben auf dem Mieterkonto, Sammelzahlungen für mehrere Monate gleichen die Forderungen der Reihe nach aus (oder bestimmte Forderungen gezielt).
+  - **Ausgaben:** Umsatz → Kostenposition (Kostenart, Objekt, Leistungszeitraum, umlagefähig ja/nein) → Beleg (vorhandenen verknüpfen oder neu anlegen; „Zahlungen ohne Beleg“ zeigt, wo die Datei noch fehlt). Ein Umsatz lässt sich auf mehrere Kostenarten aufteilen; die Teile ergeben immer genau den Umsatzbetrag.
+  - **Rückgängig machen** ist jederzeit möglich (Umsatz wird wieder offen, abgeleitete Zahlungen/Positionen entfallen); alles steht im Änderungsprotokoll.
 - **Mahnwesen halbautomatisch:** erkennt Rückstände, schlägt Zahlungserinnerung bzw. Mahnung vor, Versand nach Freigabe. Weist auf eine Kündigungsrelevanz hin (§543 Abs. 2 Nr. 3: 2 Monatsmieten), ohne zu automatisieren.
 - **Belege:** Upload als PDF/Foto, **OCR/KI-Auslesung** (konfigurierbarer Provider: Claude API oder lokal über Ollama/Tesseract), Zuordnung zu Kostenart/Objekt/Zeitraum, Verknüpfung mit dem Bankumsatz. Belege sind unveränderlich archiviert (SHA-256), Löschung nur logisch.
 

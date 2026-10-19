@@ -1,0 +1,71 @@
+@page "/verwaltung/bank/regeln"
+@inject IMatchRules MatchRules
+@inject Redirector Redirector
+
+<PageHeader Title="Zuordnungsregeln" Subtitle="Regeln gelten vor der automatischen Bewertung, die erste passende (niedrigste Priorität zuerst) bestimmt den Vorschlag." Back="/verwaltung/bank/zuordnung" BackText="Zuordnung">
+    <Actions>
+        <a class="button button-primary" href="/verwaltung/bank/regeln/neu">Regel anlegen</a>
+    </Actions>
+</PageHeader>
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+@if (rules is { Count: 0 })
+{
+    <EmptyState Text="Noch keine Regeln. Beispiel: „Gegen-IBAN der Stadtwerke → Kostenart Wasserversorgung, Objekt Lindenweg 3“." />
+}
+else if (rules is not null)
+{
+    <form method="post" @formname="delete" @onsubmit="DeleteAsync">
+        <AntiforgeryToken />
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Regel</th><th>Bedingung</th><th>Ziel</th><th class="number">Priorität</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var r in rules)
+                    {
+                        <tr>
+                            <td><a href="/verwaltung/bank/regeln/@r.Id">@r.Name</a></td>
+                            <td>@r.Condition</td>
+                            <td>@r.Target</td>
+                            <td class="number">@r.Priority</td>
+                            <td><button type="submit" class="button button-danger" name="DeleteId" value="@r.Id" aria-label="Regel @r.Name löschen">Löschen</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<MatchRuleRow>? rules;
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "delete")]
+    private Guid? DeleteId { get; set; }
+
+    protected override async Task OnInitializedAsync() => rules = await MatchRules.ListAsync();
+
+    private async Task DeleteAsync()
+    {
+        if (DeleteId is not { } id)
+        {
+            return;
+        }
+
+        var result = await MatchRules.DeleteAsync(id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/bank/regeln", "Die Regel wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

@@ -48,6 +48,20 @@ public static class Labels
         _ => "status-pending",
     };
 
+    public static string From(RuleDirection value) => value switch
+    {
+        RuleDirection.Income => "nur Eingänge",
+        RuleDirection.Expense => "nur Ausgaben",
+        _ => "Eingänge und Ausgaben",
+    };
+
+    public static string From(RuleAction value) => value switch
+    {
+        RuleAction.Ignore => "Ignorieren (privat)",
+        RuleAction.Lease => "Miete eines Mietverhältnisses",
+        _ => "Ausgabe (Kostenart und Objekt)",
+    };
+
     public static string From(ChargeType value) => value switch
     {
         ChargeType.Rent => "Miete",

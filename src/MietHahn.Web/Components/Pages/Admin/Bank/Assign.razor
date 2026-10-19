@@ -1,0 +1,323 @@
+@page "/verwaltung/bank/umsaetze/{Id:guid}/zuordnen"
+@using System.Globalization
+@using MietHahn.Web.Components.Pages.Admin.Receipts
+@inject IPaymentAssignment Assignment
+@inject IBankService Bank
+@inject Redirector Redirector
+
+@if (proposal is null)
+{
+    <PageHeader Title="Umsatz nicht gefunden" Back="/verwaltung/bank/zuordnung" BackText="Zuordnung" />
+    return;
+}
+
+@{
+    var u = proposal.Transaction;
+    var income = u.Amount > 0;
+}
+
+<PageHeader Title="@($"Umsatz {Format.Money(u.Amount)} vom {Format.Date(u.BookingDate)}")" Subtitle="@proposal.Account" Back="/verwaltung/bank/zuordnung" BackText="Zuordnung" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<section>
+    <h2>Umsatz</h2>
+    <dl class="details">
+        <dt>Status</dt>
+        <dd><span class="status @Labels.StatusClass(u.Status)">@Labels.From(u.Status)</span>@if (u.Note is not null) {<span class="small"> Notiz: @u.Note</span>}</dd>
+        <dt>Gegenseite</dt>
+        <dd>@(u.CounterpartyName ?? "–")<span class="small"> @u.CounterpartyIban</span></dd>
+        <dt>Verwendungszweck</dt>
+        <dd>@u.Purpose</dd>
+        <dt>Betrag</dt>
+        <dd>@Format.Money(u.Amount)</dd>
+    </dl>
+</section>
+
+@if (u.Status == TransactionStatus.Assigned)
+{
+    <section>
+        <h2>Zuordnung</h2>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Art</th><th>Ziel</th><th>Details</th><th class="number">Betrag</th></tr></thead>
+                <tbody>
+                    @foreach (var a in assignments)
+                    {
+                        <tr>
+                            <td>@a.Kind</td>
+                            <td>@if (a.Link is not null) {<a href="@a.Link">@a.Target</a>} else {@a.Target}</td>
+                            <td>@a.Detail @if (a.ReceiptWithoutFile) {<span class="status status-pending">Beleg ohne Datei</span>}</td>
+                            <td class="number">@Format.Money(a.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot><tr><th colspan="3">Summe</th><th class="number">@Format.Money(assignments.Sum(a => a.Amount))</th></tr></tfoot>
+            </table>
+        </div>
+        <DangerAction Text="Zuordnung rückgängig machen" Confirmation="Zahlungen, Kostenpositionen und dafür angelegte Belege werden wieder entfernt; der Umsatz ist danach offen." ConfirmText="Ja, rückgängig machen" FormName="unassign" Confirmed="UnassignAsync" />
+    </section>
+}
+else if (u.Status == TransactionStatus.Ignored)
+{
+    <section>
+        <h2>Ignoriert</h2>
+        <form method="post" @formname="reopen" @onsubmit="ReopenAsync">
+            <AntiforgeryToken />
+            <button type="submit" class="button">Wieder öffnen</button>
+        </form>
+    </section>
+}
+else if (options is not null)
+{
+    <section>
+        <h2>Vorschläge</h2>
+        @if (proposal.Suggestions.Count == 0)
+        {
+            <p class="small">Kein Vorschlag. Bitte unten manuell zuordnen oder eine Regel anlegen.</p>
+        }
+        else
+        {
+            <form method="post" @formname="accept" @onsubmit="AcceptAsync">
+                <AntiforgeryToken />
+                @for (var i = 0; i < proposal.Suggestions.Count; i++)
+                {
+                    var s = proposal.Suggestions[i];
+                    <article class="suggestion">
+                        <h3>@s.Target <span class="status @(s.Score >= 70 ? "status-ok" : "status-pending")">@s.Score % (@s.Confidence)</span></h3>
+                        <ul class="small">
+                            @foreach (var reason in s.Reasons)
+                            {
+                                <li>@reason</li>
+                            }
+                        </ul>
+                        @if (s.Parts.Count > 1)
+                        {
+                            <p class="small">Aufgeteilt auf: @string.Join(", ", s.Parts.Select(p => $"{p.Text} {Format.Money(p.Amount)}"))</p>
+                        }
+                        <button type="submit" class="button @(i == 0 ? "button-primary" : "")" name="Rank" value="@i" aria-label="Vorschlag @(i + 1) übernehmen: @s.Target">Übernehmen</button>
+                    </article>
+                }
+            </form>
+        }
+    </section>
+
+    <section>
+        <h2>Manuell zuordnen oder aufteilen</h2>
+        <p class="small">
+            @(income ? "Ein Umsatz kann auf mehrere Mietverhältnisse oder Forderungen verteilt werden (z. B. Sammelzahlung für mehrere Monate)." : "Ein Umsatz kann auf mehrere Kostenarten oder Objekte verteilt werden.")
+            Die Teilbeträge müssen zusammen genau den Umsatz von @Format.Money(Math.Abs(u.Amount)) ergeben; ein leerer Betrag erhält den Rest.
+            @(income ? "Ohne bestimmte Forderung werden Zahlungen nach der Verrechnungsreihenfolge angerechnet; Teilzahlungen bleiben offen, Überzahlungen werden Guthaben." : "Ohne vorhandenen Beleg wird ein neuer Beleg für den Umsatz angelegt; die Datei kann später ergänzt werden.")
+        </p>
+        <form method="post" @formname="assign" @onsubmit="AssignAsync">
+            <AntiforgeryToken />
+            @for (var i = 0; i < Parts!.Count; i++)
+            {
+                var part = Parts[i];
+                var n = i + 1;
+                <fieldset class="field">
+                    <legend>Teil @n</legend>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="part-@i-amount">Betrag (€)</label>
+                            <input id="part-@i-amount" type="number" step="0.01" min="0.01" name="Parts[@i].Amount" value="@(part.Amount?.ToString(CultureInfo.InvariantCulture))" />
+                            <span class="field-hint">Leer = Rest</span>
+                        </div>
+                        <div class="field">
+                            <label for="part-@i-target">@(income ? "Mietverhältnis oder Forderung" : "Auszahlung an Mieter (optional)")</label>
+                            <select id="part-@i-target" name="Parts[@i].Target">
+                                <option value="">@(income ? "– bitte wählen –" : "– keine, Kostenposition –")</option>
+                                <optgroup label="Mietverhältnis (Verrechnung nach Reihenfolge)">
+                                    @foreach (var lease in options.Leases)
+                                    {
+                                        <option value="@($"L:{lease.Id}")" selected="@(part.Target == $"L:{lease.Id}")">@lease.Text</option>
+                                    }
+                                </optgroup>
+                                @if (income)
+                                {
+                                    <optgroup label="Bestimmte Forderung zuerst begleichen">
+                                        @foreach (var charge in options.Charges)
+                                        {
+                                            <option value="@($"C:{charge.Id}")" selected="@(part.Target == $"C:{charge.Id}")">@charge.Text</option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
+                        @if (!income)
+                        {
+                            <div class="field">
+                                <label for="part-@i-cost-type">Kostenart</label>
+                                <select id="part-@i-cost-type" name="Parts[@i].CostType">
+                                    <option value="">– bitte wählen –</option>
+                                    <CostTypeOptions Selected="@part.CostType" />
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="part-@i-property">Objekt</label>
+                                <select id="part-@i-property" name="Parts[@i].PropertyId">
+                                    <option value="">– bitte wählen –</option>
+                                    @foreach (var o in options.Properties)
+                                    {
+                                        <option value="@o.Id" selected="@(part.PropertyId == o.Id.ToString())">@o.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="part-@i-unit">Nur Einheit</label>
+                                <select id="part-@i-unit" name="Parts[@i].UnitId">
+                                    <option value="">– ganzes Objekt –</option>
+                                    @foreach (var o in options.Units)
+                                    {
+                                        <option value="@o.Id" selected="@(part.UnitId == o.Id.ToString())">@o.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="part-@i-from">Leistungszeitraum von</label>
+                                <input id="part-@i-from" type="date" name="Parts[@i].From" value="@part.From" />
+                                <span class="field-hint">Leer = Kalenderjahr der Buchung</span>
+                            </div>
+                            <div class="field">
+                                <label for="part-@i-to">bis</label>
+                                <input id="part-@i-to" type="date" name="Parts[@i].To" value="@part.To" />
+                            </div>
+                            <div class="field">
+                                <label for="part-@i-allocable">Umlagefähig</label>
+                                <select id="part-@i-allocable" name="Parts[@i].Allocable">
+                                    <option value="" selected="@string.IsNullOrEmpty(part.Allocable)">nach Kostenart</option>
+                                    <option value="true" selected="@(part.Allocable == "true")">ja</option>
+                                    <option value="false" selected="@(part.Allocable == "false")">nein</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="part-@i-receipt">Beleg</label>
+                                <select id="part-@i-receipt" name="Parts[@i].ReceiptId">
+                                    <option value="">Neuen Beleg anlegen</option>
+                                    @foreach (var b in options.Receipts)
+                                    {
+                                        <option value="@b.Id" selected="@(part.ReceiptId == b.Id.ToString())">@b.Text</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        <div class="field">
+                            <label for="part-@i-note">Notiz</label>
+                            <input id="part-@i-note" name="Parts[@i].Note" value="@part.Note" maxlength="500" />
+                        </div>
+                    </div>
+                </fieldset>
+            }
+            <button type="submit" class="button button-primary" name="Action" value="assign">Zuordnen</button>
+            <button type="submit" class="button" name="Action" value="row">Teil hinzufügen</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Ignorieren</h2>
+        <form method="post" @formname="ignore" @onsubmit="IgnoreAsync" class="form-row">
+            <AntiforgeryToken />
+            <div class="field">
+                <label for="ignore-note">Notiz (optional)</label>
+                <input id="ignore-note" name="IgnoreNote" placeholder="z. B. privat, Umbuchung" />
+            </div>
+            <div class="field field-action"><button type="submit" class="button">Als privat ignorieren</button></div>
+        </form>
+        <p><a href="@RuleLink(u)">Regel aus diesem Umsatz anlegen</a></p>
+    </section>
+}
+
+<ChangeHistory EntityType="Transaction" EntityId="Id" />
+
+@code {
+    private AssignmentProposal? proposal;
+    private AssignmentOptions? options;
+    private IReadOnlyList<AssignmentView> assignments = [];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "assign")]
+    private List<AssignmentPartForm>? Parts { get; set; }
+
+    [SupplyParameterFromForm(FormName = "assign")]
+    private string? Action { get; set; }
+
+    [SupplyParameterFromForm(FormName = "accept")]
+    private int? Rank { get; set; }
+
+    [SupplyParameterFromForm(FormName = "ignore")]
+    private string? IgnoreNote { get; set; }
+
+    private string Target => $"/verwaltung/bank/umsaetze/{Id}/zuordnen";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Parts ??= [new()];
+        proposal = await Assignment.ProposalAsync(Id);
+        if (proposal is null)
+        {
+            return;
+        }
+
+        assignments = await Assignment.AssignmentsAsync(Id);
+        if (proposal.Transaction.Status == TransactionStatus.Open)
+        {
+            options = await Assignment.OptionsAsync();
+        }
+    }
+
+    private static string RuleLink(TransactionRow u)
+    {
+        var query = new List<string>();
+        if (!string.IsNullOrWhiteSpace(u.CounterpartyIban))
+        {
+            query.Add("iban=" + Uri.EscapeDataString(u.CounterpartyIban));
+        }
+
+        if (!string.IsNullOrWhiteSpace(u.CounterpartyName))
+        {
+            query.Add("name=" + Uri.EscapeDataString(u.CounterpartyName));
+        }
+
+        query.Add("richtung=" + (u.Amount > 0 ? "Income" : "Expense"));
+        return "/verwaltung/bank/regeln/neu?" + string.Join('&', query);
+    }
+
+    private async Task AssignAsync()
+    {
+        if (Action == "row")
+        {
+            Parts!.Add(new());
+            return;
+        }
+
+        await ExecuteAsync(Assignment.AssignAsync(Id, Parts!.Select(p => p.ToInput()).ToList()), "Der Umsatz wurde zugeordnet.");
+    }
+
+    private Task AcceptAsync() => ExecuteAsync(Assignment.AcceptAsync(Id, Rank ?? 0), "Der Vorschlag wurde übernommen.");
+
+    private Task IgnoreAsync() => ExecuteAsync(Bank.IgnoreAsync(Id, IgnoreNote), "Der Umsatz wird ignoriert.");
+
+    private Task ReopenAsync() => ExecuteAsync(Bank.ReopenAsync(Id), "Der Umsatz ist wieder offen.");
+
+    private Task UnassignAsync() => ExecuteAsync(Assignment.UnassignAsync(Id), "Die Zuordnung wurde rückgängig gemacht.");
+
+    private async Task ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage(Target, success, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

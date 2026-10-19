@@ -199,6 +199,8 @@ public static class DependencyInjection
         services.AddScoped<ITodoSource, FinanceTodos>();
         services.AddScoped<IPersonalDataSource, TenantAccountPersonalData>();
         services.AddScoped<IBankService, BankService>();
+        services.AddScoped<IPaymentAssignment, PaymentAssignment>();
+        services.AddScoped<IMatchRules, MatchRules>();
         services.AddScoped<ITodoSource, BankTodos>();
         services.AddScoped<IReceiptService, ReceiptService>();
         services.AddScoped<ITodoSource, ReceiptTodos>();

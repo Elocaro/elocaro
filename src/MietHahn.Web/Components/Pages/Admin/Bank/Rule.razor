@@ -1,0 +1,195 @@
+@page "/verwaltung/bank/regeln/neu"
+@page "/verwaltung/bank/regeln/{Id:guid}"
+@using MietHahn.Web.Components.Pages.Admin.Receipts
+@inject IMatchRules MatchRules
+@inject IPaymentAssignment Assignment
+@inject Redirector Redirector
+
+<PageHeader Title="@(Id is null ? "Regel anlegen" : "Regel bearbeiten")" Back="/verwaltung/bank/regeln" BackText="Alle Regeln" />
+
+<ErrorList Errors="errors" />
+
+@if (Id is not null && !exists)
+{
+    <EmptyState Text="Die Regel wurde nicht gefunden." />
+    return;
+}
+
+<p class="small">Alle ausgefüllten Bedingungen müssen zutreffen. Bei Namen und Verwendungszweck genügt ein Wort; mehrere Alternativen mit „;“ trennen (z. B. „Stadtwerke; SWK“). Groß- und Kleinschreibung spielt keine Rolle.</p>
+
+<EditForm Model="Data" FormName="rule" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <h2>Bedingungen</h2>
+    <div class="form-grid">
+        <FormField Id="rule-name" Label="Name der Regel" For="() => Data!.Name" Required="true">
+            <InputText id="rule-name" @bind-Value="Data!.Name" />
+        </FormField>
+        <FormField Id="rule-priority" Label="Priorität" For="() => Data!.Priority" Hint="Niedrigere Zahl wird zuerst geprüft">
+            <InputNumber id="rule-priority" @bind-Value="Data!.Priority" />
+        </FormField>
+        <FormField Id="rule-direction" Label="Gilt für" For="() => Data!.Direction">
+            <InputSelect id="rule-direction" @bind-Value="Data!.Direction">
+                @foreach (var value in Enum.GetValues<RuleDirection>())
+                {
+                    <option value="@value">@Labels.From(value)</option>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="rule-iban" Label="Gegen-IBAN" For="() => Data!.CounterpartyIban">
+            <InputText id="rule-iban" @bind-Value="Data!.CounterpartyIban" autocomplete="off" />
+        </FormField>
+        <FormField Id="rule-name-contains" Label="Name der Gegenseite enthält" For="() => Data!.CounterpartyContains">
+            <InputText id="rule-name-contains" @bind-Value="Data!.CounterpartyContains" />
+        </FormField>
+        <FormField Id="rule-purpose-contains" Label="Verwendungszweck enthält" For="() => Data!.PurposeContains">
+            <InputText id="rule-purpose-contains" @bind-Value="Data!.PurposeContains" />
+        </FormField>
+    </div>
+
+    <h2>Ziel</h2>
+    <div class="form-grid">
+        <FormField Id="rule-action" Label="Zuordnen als" For="() => Data!.Action" Hint="Nach einem Wechsel speichern, die Felder passen sich nicht automatisch an; nicht benötigte Angaben werden verworfen.">
+            <InputSelect id="rule-action" @bind-Value="Data!.Action">
+                @foreach (var value in Enum.GetValues<RuleAction>())
+                {
+                    <option value="@value">@Labels.From(value)</option>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="rule-cost-type" Label="Kostenart (Ausgabe)" For="() => Data!.CostType">
+            <InputSelect id="rule-cost-type" @bind-Value="Data!.CostType">
+                <option value="">–</option>
+                <CostTypeOptions />
+            </InputSelect>
+        </FormField>
+        <FormField Id="rule-property" Label="Objekt (Ausgabe)" For="() => Data!.PropertyId">
+            <InputSelect id="rule-property" @bind-Value="Data!.PropertyId">
+                <option value="">–</option>
+                @foreach (var o in options?.Properties ?? [])
+                {
+                    <option value="@o.Id">@o.Name</option>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="rule-unit" Label="Nur Einheit (Ausgabe)" For="() => Data!.UnitId">
+            <InputSelect id="rule-unit" @bind-Value="Data!.UnitId">
+                <option value="">– ganzes Objekt –</option>
+                @foreach (var o in options?.Units ?? [])
+                {
+                    <option value="@o.Id">@o.Name</option>
+                }
+            </InputSelect>
+        </FormField>
+        <FormField Id="rule-allocable" Label="Umlagefähig (Ausgabe)" For="() => AllocableText">
+            <InputSelect id="rule-allocable" @bind-Value="AllocableText">
+                <option value="">nach Kostenart</option>
+                <option value="true">ja</option>
+                <option value="false">nein</option>
+            </InputSelect>
+        </FormField>
+        <FormField Id="rule-lease" Label="Mietverhältnis (Miete)" For="() => Data!.LeaseId">
+            <InputSelect id="rule-lease" @bind-Value="Data!.LeaseId">
+                <option value="">–</option>
+                @foreach (var o in options?.Leases ?? [])
+                {
+                    <option value="@o.Id">@o.Text</option>
+                }
+            </InputSelect>
+        </FormField>
+    </div>
+    <button type="submit" class="button button-primary">Speichern</button>
+</EditForm>
+
+@if (Id is { } existing)
+{
+    <section>
+        <h2>Löschen</h2>
+        <DangerAction Text="Regel löschen" Confirmation="Die Regel wird gelöscht. Bereits zugeordnete Umsätze bleiben unverändert." ConfirmText="Ja, löschen" FormName="delete" Confirmed="DeleteAsync" />
+    </section>
+    <ChangeHistory EntityType="MatchRule" EntityId="existing" />
+}
+
+@code {
+    private AssignmentOptions? options;
+    private IReadOnlyList<string>? errors;
+    private bool exists = true;
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "rule")]
+    private MatchRuleInput? Data { get; set; }
+
+    // Tri-state "allocable" as text, since bool? cannot be bound from a select.
+    [SupplyParameterFromForm(FormName = "rule", Name = "AllocableText")]
+    private string? AllocableText { get; set; }
+
+    [SupplyParameterFromQuery(Name = "iban")]
+    private string? QueryIban { get; set; }
+
+    [SupplyParameterFromQuery(Name = "name")]
+    private string? QueryName { get; set; }
+
+    [SupplyParameterFromQuery(Name = "richtung")]
+    private string? QueryDirection { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var posted = Data is not null;
+        Data ??= new();
+        AllocableText ??= "";
+        options = await Assignment.OptionsAsync();
+        if (posted)
+        {
+            return;
+        }
+
+        if (Id is { } id)
+        {
+            var existing = await MatchRules.GetAsync(id);
+            exists = existing is not null;
+            if (existing is not null)
+            {
+                Data = existing;
+                AllocableText = existing.Allocable is { } value ? (value ? "true" : "false") : "";
+            }
+        }
+        else
+        {
+            Data.CounterpartyIban = QueryIban;
+            Data.CounterpartyContains = QueryName;
+            Data.Name = string.IsNullOrWhiteSpace(QueryName) ? "" : $"Regel für {QueryName}";
+            Data.Direction = Enum.TryParse<RuleDirection>(QueryDirection, out var direction) ? direction : RuleDirection.Any;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        Data!.Allocable = AllocableText switch { "true" => true, "false" => false, _ => null };
+        var result = await MatchRules.SaveAsync(Id, Data);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/bank/regeln", "Die Regel wurde gespeichert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var result = await MatchRules.DeleteAsync(Id!.Value);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/bank/regeln", "Die Regel wurde gelöscht.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

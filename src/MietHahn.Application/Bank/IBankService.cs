@@ -81,7 +81,8 @@ public sealed record PreviewRow(ParsedTransaction Transaction, bool Duplicate);
 
 public sealed record ImportRow(Guid Id, DateTimeOffset Timestamp, string? CreatedBy, string FileName, BankFormat Format, string? Profile, ImportStatus Status, int Read, int Added, int Duplicates, DateOnly? From, DateOnly? To);
 
-public sealed record TransactionQuery(Guid? BankAccountId = null, TransactionStatus? Status = null, string? Text = null);
+/// <param name="WithoutReceipt">Assigned expenses whose receipt has no file yet ("Zahlungen ohne Beleg").</param>
+public sealed record TransactionQuery(Guid? BankAccountId = null, TransactionStatus? Status = null, string? Text = null, bool WithoutReceipt = false);
 
 public sealed record TransactionRow(
     Guid Id,
