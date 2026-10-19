@@ -1,0 +1,19 @@
+@* Optionen für eine Kostenart-Auswahl, gruppiert nach umlagefähig (§ 2 BetrKV) und nicht umlagefähig. *@
+<optgroup label="Betriebskosten (§ 2 BetrKV, umlagefähig)">
+    @foreach (var art in Kostenarten.Alle.Where(k => k.Umlagefaehig))
+    {
+        <option value="@art.Schluessel" selected="@(art.Schluessel == Gewaehlt)">@art.BetrKvNummer. @art.Bezeichnung</option>
+    }
+</optgroup>
+<optgroup label="Nicht umlagefähig">
+    @foreach (var art in Kostenarten.Alle.Where(k => !k.Umlagefaehig))
+    {
+        <option value="@art.Schluessel" selected="@(art.Schluessel == Gewaehlt)">@art.Bezeichnung</option>
+    }
+</optgroup>
+
+@code {
+    /// <summary>Nur für einfache <c>select</c>-Felder; bei <c>InputSelect</c> setzt die Bindung die Auswahl.</summary>
+    [Parameter]
+    public string? Gewaehlt { get; set; }
+}

@@ -1,4 +1,5 @@
 using MietHahn.Domain.Bank;
+using MietHahn.Domain.Belege;
 using MietHahn.Domain.Dokumente;
 using MietHahn.Domain.Finanzen;
 using MietHahn.Domain.Objekte;
@@ -11,6 +12,13 @@ namespace MietHahn.Web.Anzeige;
 /// <summary>Deutsche Anzeigenamen für fachliche Aufzählungen.</summary>
 public static class Bezeichnungen
 {
+    public static string Von(Paragraf35a wert) => wert switch
+    {
+        Paragraf35a.HaushaltsnaheDienstleistung => "Haushaltsnahe Dienstleistung",
+        Paragraf35a.Handwerkerleistung => "Handwerkerleistung",
+        _ => "keine",
+    };
+
     public static string Von(Kontotyp wert) => wert switch
     {
         Kontotyp.Mietkonto => "Mietkonto",

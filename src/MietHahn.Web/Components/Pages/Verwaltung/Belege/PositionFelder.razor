@@ -1,0 +1,64 @@
+@* Eingabefelder einer Kostenposition; Feldnamen „Position.…“ (Seiteneigenschaft Position). *@
+<div class="formular-raster">
+    <FormularFeld Id="position-kostenart" Beschriftung="Kostenart" Fuer="() => Position.Kostenart" Pflicht="@Pflicht">
+        <InputSelect id="position-kostenart" @bind-Value="Position.Kostenart">
+            <option value="">@(Pflicht ? "– bitte wählen –" : "– später aufteilen –")</option>
+            <KostenartAuswahl />
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="position-objekt" Beschriftung="Objekt" Fuer="() => Position.ObjektId" Pflicht="@Pflicht">
+        <InputSelect id="position-objekt" @bind-Value="Position.ObjektId">
+            <option value="">–</option>
+            @foreach (var o in Auswahl.Objekte)
+            {
+                <option value="@o.Id">@o.Bezeichnung</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+    @if (MitDetails)
+    {
+        <FormularFeld Id="position-betrag" Beschriftung="Betrag" Fuer="() => Position.Betrag" Hinweis="Leer = noch nicht aufgeteilter Rest">
+            <InputBetrag id="position-betrag" @bind-Value="Position.Betrag" />
+        </FormularFeld>
+        <FormularFeld Id="position-einheit" Beschriftung="Nur Einheit" Fuer="() => Position.EinheitId" Hinweis="Bei Kosten einer einzelnen Einheit">
+            <InputSelect id="position-einheit" @bind-Value="Position.EinheitId">
+                <option value="">– ganzes Objekt –</option>
+                @foreach (var e in Auswahl.Einheiten)
+                {
+                    <option value="@e.Id">@e.Bezeichnung</option>
+                }
+            </InputSelect>
+        </FormularFeld>
+        <FormularFeld Id="position-von" Beschriftung="Abrechnungszeitraum von" Fuer="() => Position.Von" Hinweis="Leer = Leistungszeitraum bzw. Kalenderjahr">
+            <InputDate id="position-von" @bind-Value="Position.Von" />
+        </FormularFeld>
+        <FormularFeld Id="position-bis" Beschriftung="bis" Fuer="() => Position.Bis">
+            <InputDate id="position-bis" @bind-Value="Position.Bis" />
+        </FormularFeld>
+        <FormularFeld Id="position-35a" Beschriftung="§ 35a EStG" Fuer="() => Position.Paragraf35a">
+            <InputSelect id="position-35a" @bind-Value="Position.Paragraf35a">
+                @foreach (var wert in Enum.GetValues<Paragraf35a>())
+                {
+                    <option value="@wert">@Bezeichnungen.Von(wert)</option>
+                }
+            </InputSelect>
+        </FormularFeld>
+        <FormularFeld Id="position-arbeit" Beschriftung="davon Arbeitskosten" Fuer="() => Position.Arbeitskosten" Hinweis="Lohn-, Maschinen- und Fahrtkosten inkl. USt">
+            <InputBetrag id="position-arbeit" @bind-Value="Position.Arbeitskosten" />
+        </FormularFeld>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PositionEingabe Position { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public BelegAuswahl Auswahl { get; set; } = default!;
+
+    [Parameter]
+    public bool MitDetails { get; set; } = true;
+
+    [Parameter]
+    public bool Pflicht { get; set; } = true;
+}

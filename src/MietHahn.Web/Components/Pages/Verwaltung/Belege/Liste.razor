@@ -1,0 +1,117 @@
+@page "/verwaltung/belege"
+@inject IBelegverwaltung Belege
+
+<Seitenkopf Titel="Belege" Untertitel="Rechnungen und Kostenbelege, aufgeteilt nach Kostenart und Objekt.">
+    <Aktionen>
+        <a class="knopf knopf-primaer" href="/verwaltung/belege/neu">Beleg erfassen</a>
+    </Aktionen>
+</Seitenkopf>
+
+<StatusMeldung />
+
+<form method="get" class="formular-zeile suchleiste" role="search">
+    <div class="feld">
+        <label for="jahr">Jahr</label>
+        <input id="jahr" type="number" name="jahr" value="@Jahr" min="2000" max="2100" />
+    </div>
+    <div class="feld">
+        <label for="objekt">Objekt</label>
+        <select id="objekt" name="objekt">
+            <option value="">Alle</option>
+            @foreach (var o in auswahl?.Objekte ?? [])
+            {
+                <option value="@o.Id" selected="@(o.Id == ObjektId)">@o.Bezeichnung</option>
+            }
+        </select>
+    </div>
+    <div class="feld">
+        <label for="kostenart">Kostenart</label>
+        <select id="kostenart" name="kostenart">
+            <option value="">Alle</option>
+            <KostenartAuswahl Gewaehlt="@Kostenart" />
+        </select>
+    </div>
+    <div class="feld">
+        <label for="suche">Suche</label>
+        <input id="suche" type="search" name="q" value="@Q" placeholder="Lieferant, Rechnungsnr." />
+    </div>
+    <div class="feld feld-checkbox">
+        <input id="ohne-zahlung" type="checkbox" name="ohneZahlung" value="true" checked="@OhneZahlung" />
+        <label for="ohne-zahlung">ohne Zahlung</label>
+    </div>
+    <div class="feld feld-checkbox">
+        <input id="aufteilen" type="checkbox" name="aufteilen" value="true" checked="@Aufteilen" />
+        <label for="aufteilen">nicht aufgeteilt</label>
+    </div>
+    <div class="feld feld-aktion">
+        <button type="submit" class="knopf">Filtern</button>
+    </div>
+</form>
+
+@if (belege is { Count: 0 })
+{
+    <Leerzustand Text="Keine Belege in dieser Auswahl." />
+}
+else if (belege is not null)
+{
+    <p class="klein">@belege.Count Belege · Summe @Format.Geld(belege.Sum(b => b.Brutto))</p>
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead><tr><th>Datum</th><th>Lieferant</th><th>Kostenarten</th><th class="zahl">Betrag</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var b in belege)
+                {
+                    <tr>
+                        <td>@Format.Datum(b.Rechnungsdatum)</td>
+                        <td><a href="/verwaltung/belege/@b.Id">@b.Lieferant</a>@if (b.Rechnungsnummer is not null) {<span class="klein"> @b.Rechnungsnummer</span>}</td>
+                        <td>@string.Join(", ", b.Kostenarten)<span class="klein"> @string.Join(", ", b.Objekte)</span></td>
+                        <td class="zahl">@Format.Geld(b.Brutto)</td>
+                        <td>
+                            @if (b.Aufgeteilt != b.Brutto)
+                            {
+                                <span class="status status-wartend">@Format.Geld(b.Brutto - b.Aufgeteilt) nicht aufgeteilt</span>
+                            }
+                            @if (b.BezahltAm is null)
+                            {
+                                <span class="status status-wartend">unbezahlt</span>
+                            }
+                            @if (b.Dateien == 0)
+                            {
+                                <span class="status">ohne Datei</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<BelegZeile>? belege;
+    private BelegAuswahl? auswahl;
+
+    [SupplyParameterFromQuery]
+    private int? Jahr { get; set; }
+
+    [SupplyParameterFromQuery(Name = "objekt")]
+    private Guid? ObjektId { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Kostenart { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Q { get; set; }
+
+    [SupplyParameterFromQuery]
+    private bool OhneZahlung { get; set; }
+
+    [SupplyParameterFromQuery]
+    private bool Aufteilen { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        auswahl = await Belege.AuswahlAsync();
+        belege = await Belege.SucheAsync(new BelegSuche(Jahr, ObjektId, string.IsNullOrEmpty(Kostenart) ? null : Kostenart, OhneZahlung, Aufteilen, Q));
+    }
+}

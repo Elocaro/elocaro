@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using MietHahn.Application.Audit;
 using MietHahn.Application.Aufgaben;
 using MietHahn.Application.Bank;
+using MietHahn.Application.Belege;
 using MietHahn.Application.Betrieb;
 using MietHahn.Application.Dateien;
 using MietHahn.Application.Datenschutz;
@@ -23,6 +24,7 @@ using MietHahn.Application.Verwaltung;
 using MietHahn.Application.Zaehlerwesen;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Bank;
+using MietHahn.Infrastructure.Belege;
 using MietHahn.Infrastructure.Betrieb;
 using MietHahn.Infrastructure.Dateien;
 using MietHahn.Infrastructure.Datenschutz;
@@ -198,6 +200,9 @@ public static class DependencyInjection
         services.AddScoped<IPersonendatenQuelle, MieterkontoPersonendaten>();
         services.AddScoped<IBankverwaltung, Bankverwaltung>();
         services.AddScoped<IAufgabenQuelle, BankAufgaben>();
+        services.AddScoped<IBelegverwaltung, Belegverwaltung>();
+        services.AddScoped<IAufgabenQuelle, BelegAufgaben>();
+        services.AddScoped<IPersonendatenQuelle, BelegPersonendaten>();
     }
 
     private static void DatenschutzRegistrieren(IServiceCollection services, IConfiguration konfiguration)

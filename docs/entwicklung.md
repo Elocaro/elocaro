@@ -259,6 +259,14 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - **Duplikate** (`Umsatzfingerabdruck`): SHA-256 aus Konto-IBAN, Buchungsdatum, Betrag, Verwendungszweck (ohne Leerraum, Großschreibung), Gegen-IBAN und End-to-End-ID; gleiche Umsätze innerhalb einer Datei werden durchnummeriert. Eindeutiger Index (Konto, Hash) auch über gelöschte Umsätze. Die IBAN eines Kontos mit Umsätzen ist daher nicht änderbar.
 - Testdateien (anonymisiert) für alle Formate liegen unter `tests/MietHahn.Integration.Tests/Bank/Testdateien`; neue Bankformate dort mit einem Beispiel ergänzen.
 
+### Belege & Kostenpositionen
+
+- `Beleg` (Lieferant als Kontakt oder Name, Rechnungsnr./-datum, Leistungszeitraum als zwei Spalten, Brutto/Netto/USt mit Summenprüfung, fällig/bezahlt, Brennstoffmenge, -einheit und CO₂ in kg für das CO2KostAufG) mit Seiten (`BelegDatei`, Dateiablage, SHA-256, unveränderlich) und `Kostenposition`en.
+- **Kostenarten** (`Domain.Belege.Kostenarten`): fester Katalog mit stabilen Schlüsseln, `betrkv-01` … `betrkv-17` nach § 2 BetrKV (mit Hinweis zu Kabel-TV seit 1.7.2024) und nicht umlagefähige Arten (Instandhaltung, Modernisierung, Verwaltung, Bankgebühren, Schuldzinsen, Beratung, Leerstand, Sonstiges). Eigene Unterarten und Umlageschlüssel kommen mit #28.
+- `Kostenposition`: Kostenart, Betrag, Objekt (optional Einheit), Abrechnungszeitraum (Standard: Leistungszeitraum, sonst Kalenderjahr), umlagefähig (Standard laut Kostenart), § 35a EStG (haushaltsnahe Dienstleistung/Handwerkerleistung mit Arbeitskostenanteil). Die Summe der Positionen darf den Rechnungsbetrag nicht übersteigen; ein Beleg ist „aufgeteilt“, wenn sie ihm genau entspricht. Der Bruttobetrag lässt sich nicht unter die Summe senken.
+- Korrekturen: Datenänderungen stehen im Änderungsprotokoll (Versionen der Werte), Dateien werden nie überschrieben, Löschen ist logisch.
+- Oberfläche `/verwaltung/belege` (Filter Jahr, Objekt, Kostenart, ohne Zahlung, nicht aufgeteilt), Erfassen mit mehreren Dateien (`IFormFileCollection`) und optional gleich einer Kostenart. Dashboard: fällige unbezahlte Rechnungen (7 Tage), nicht aufgeteilte Belege. „Zahlungen ohne Beleg“ folgt mit der Zahlungszuordnung (#23).
+
 ### Personen & Datenschutz
 
 - `Person` (Mieter, Bürgen, Kontakte) mit Anschriften als Zeitreihe (Voranschrift → aktuelle → neue Anschrift nach Auszug) und beliebig vielen `Bankverbindung`en (IBAN mit Prüfsumme, `Domain.Gemeinsam.Iban`). Mieter und Bürgen ergeben sich aus Verträgen, nicht aus einem Feld.
