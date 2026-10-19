@@ -71,15 +71,15 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env pull
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 ```
 
-Datenbank-Migrationen laufen beim Start automatisch. Vorher sichern: `docker compose … run --rm backup sichern`. Für reproduzierbare Updates `MIETHAHN_IMAGE` auf eine Version setzen und gezielt hochzählen.
+Datenbank-Migrationen laufen beim Start automatisch. Vorher sichern: `docker compose … run --rm backup backup`. Für reproduzierbare Updates `MIETHAHN_IMAGE` auf eine Version setzen und gezielt hochzählen.
 
 ### PostgreSQL-Major-Upgrade (z. B. 18 → 19)
 
 Das Datenformat ist zwischen Major-Versionen nicht kompatibel:
-1. Sichern: `docker compose … run --rm backup sichern`.
+1. Sichern: `docker compose … run --rm backup backup`.
 2. `docker compose … down`, Volume `miethahn_postgres` umbenennen oder löschen.
 3. Image von `postgres` **und** die Basis in `deploy/backup/Dockerfile` anheben, `up -d postgres`.
-4. `docker compose … run --rm backup wiederherstellen`, dann `up -d`.
+4. `docker compose … run --rm backup restore`, dann `up -d`.
 
 ## Sicherheit
 
@@ -122,10 +122,10 @@ Das Repository wird beim ersten Lauf angelegt. Danach einmal von Hand sichern un
 ```bash
 DC="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
 $DC up -d backup
-$DC run --rm backup sichern      # sofort sichern
+$DC run --rm backup backup      # sofort sichern
 $DC run --rm backup snapshots    # vorhandene Stände
 $DC logs backup                  # Zeitplan und Ergebnisse
-$DC run --rm backup pruefen      # zusätzlich 10 % der Daten lesen und prüfen (z. B. monatlich)
+$DC run --rm backup verify      # zusätzlich 10 % der Daten lesen und prüfen (z. B. monatlich)
 ```
 
 ### Überwachung
@@ -144,7 +144,7 @@ Die Wiederherstellung ersetzt Datenbank **und** Dateiablage vollständig durch d
 DC="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
 $DC stop app                                  # keine Verbindungen während des Einspielens
 $DC run --rm backup snapshots                 # gewünschten Stand wählen
-$DC run --rm backup wiederherstellen          # neuester Stand; oder: wiederherstellen <ID>
+$DC run --rm backup restore          # neuester Stand; oder: restore <ID>
 $DC start app
 ```
 
@@ -154,7 +154,7 @@ Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP D
 
 1. Installation wie oben bis einschließlich `deploy/.env`. Dabei **dasselbe** `RESTIC_PASSWORD`, `RESTIC_REPOSITORY` und die Zugangsdaten eintragen. `POSTGRES_PASSWORD` darf neu sein.
 2. Nur die Datenbank starten: `$DC up -d postgres`
-3. `$DC run --rm backup wiederherstellen`
+3. `$DC run --rm backup restore`
 4. `$DC up -d`. Anmeldungen, Konten und Zwei-Faktor-Einstellungen sind erhalten (die Anmelde-Schlüssel liegen in der Datenbank).
 
 ### Restore-Test

@@ -1,20 +1,20 @@
 #!/bin/sh
 # MietHahn backup: back up the database (pg_dump) and file storage to a restic repository, or restore from it.
 #
-#   miethahn-backup zeitplan                 back up daily at BACKUP_TIME (default in the container)
-#   miethahn-backup sichern                  back up immediately
+#   miethahn-backup schedule                 back up daily at BACKUP_TIME (default in the container)
+#   miethahn-backup backup                    back up immediately
 #   miethahn-backup snapshots                list existing backups
-#   miethahn-backup wiederherstellen [ID]    restore a backup (default: latest); the app must be stopped
-#   miethahn-backup pruefen                  check the repository including a data sample
+#   miethahn-backup restore [ID]      restore a backup (default: latest); the app must be stopped
+#   miethahn-backup verify                  check the repository including a data sample
 #   miethahn-backup restic …                 any restic command
 #
-# After each backup run the result is written to BACKUP_STATUS_DATEI; MietHahn reads it and warns the admin.
+# After each backup run the result is written to BACKUP_STATUS_FILE; MietHahn reads it and warns the admin.
 set -eu
 
-DATEN="${BACKUP_DATA_PATH:-/data}"
-ARBEIT="${BACKUP_ARBEITSVERZEICHNIS:-/arbeit}"
-STATUS_DATEI="${BACKUP_STATUS_DATEI:-/status/backup.json}"
-ZEIT="${BACKUP_TIME:-02:30}"
+DATA_DIR="${BACKUP_DATA_PATH:-/data}"
+WORKDIR="${BACKUP_WORKDIR:-/work}"
+STATUS_FILE="${BACKUP_STATUS_FILE:-/status/backup.json}"
+BACKUP_AT="${BACKUP_TIME:-02:30}"
 DB="${PGDATABASE:-miethahn}"
 APP_UID="${APP_UID:-1654}"
 # Fixed hostname, otherwise every new container creates its own snapshot series.
@@ -23,37 +23,37 @@ TAG=miethahn
 
 log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 
-fehler() { log "FEHLER: $*" >&2; exit 1; }
+fail() { log "FEHLER: $*" >&2; exit 1; }
 
-status_schreiben() { # success message snapshot duration
-    mkdir -p "$(dirname "$STATUS_DATEI")"
-    meldung=$(printf '%s' "$2" | tr '\n\r\t"' '    ' | tr -d '\134' | cut -c1-500)
+write_status() { # success message snapshot duration
+    mkdir -p "$(dirname "$STATUS_FILE")"
+    message=$(printf '%s' "$2" | tr '\n\r\t"' '    ' | tr -d '\134' | cut -c1-500)
     printf '{"timestamp":"%s","succeeded":%s,"message":"%s","snapshot":"%s","durationSeconds":%s}\n' \
-        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$meldung" "$3" "$4" > "$STATUS_DATEI.tmp"
-    mv "$STATUS_DATEI.tmp" "$STATUS_DATEI"
+        "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$message" "$3" "$4" > "$STATUS_FILE.tmp"
+    mv "$STATUS_FILE.tmp" "$STATUS_FILE"
 }
 
-repository_bereit() {
-    [ -n "${RESTIC_REPOSITORY:-}" ] || fehler "RESTIC_REPOSITORY ist nicht gesetzt."
-    [ -n "${RESTIC_PASSWORD:-}${RESTIC_PASSWORD_FILE:-}" ] || fehler "RESTIC_PASSWORD ist nicht gesetzt."
+repository_ready() {
+    [ -n "${RESTIC_REPOSITORY:-}" ] || fail "RESTIC_REPOSITORY ist nicht gesetzt."
+    [ -n "${RESTIC_PASSWORD:-}${RESTIC_PASSWORD_FILE:-}" ] || fail "RESTIC_PASSWORD ist nicht gesetzt."
     if ! restic cat config > /dev/null 2>&1; then
         log "Repository $RESTIC_REPOSITORY wird angelegt"
         restic init
     fi
 }
 
-sichern_intern() {
-    repository_bereit
-    rm -rf "$ARBEIT"
-    mkdir -p "$ARBEIT"
+backup_internal() {
+    repository_ready
+    rm -rf "$WORKDIR"
+    mkdir -p "$WORKDIR"
 
     log "Datenbank $DB sichern"
     # Uncompressed: restic deduplicates and compresses itself (unchanged tables hardly cost any space).
-    pg_dump --format=custom --compress=0 --file="$ARBEIT/$DB.dump" "$DB"
+    pg_dump --format=custom --compress=0 --file="$WORKDIR/$DB.dump" "$DB"
 
     log "Sicherung nach $RESTIC_REPOSITORY"
-    restic backup --host "$RESTIC_HOST" --tag "$TAG" --json --quiet "$ARBEIT" "$DATEN" > "$ARBEIT/ergebnis.json"
-    sed -n 's/.*"snapshot_id":"\([0-9a-f]*\)".*/\1/p' "$ARBEIT/ergebnis.json" | tail -n 1 > /tmp/snapshot-id
+    restic backup --host "$RESTIC_HOST" --tag "$TAG" --json --quiet "$WORKDIR" "$DATA_DIR" > "$WORKDIR/result.json"
+    sed -n 's/.*"snapshot_id":"\([0-9a-f]*\)".*/\1/p' "$WORKDIR/result.json" | tail -n 1 > /tmp/snapshot-id
 
     log "Alte Sicherungen aufräumen"
     restic forget --host "$RESTIC_HOST" --tag "$TAG" --prune \
@@ -64,63 +64,63 @@ sichern_intern() {
     log "Repository prüfen"
     restic check
 
-    rm -rf "$ARBEIT"
+    rm -rf "$WORKDIR"
     log "Sicherung $(cat /tmp/snapshot-id) abgeschlossen"
 }
 
-sichern() {
+run_backup() {
     start=$(date +%s)
-    protokoll=/tmp/backup.log
+    logfile=/tmp/backup.log
     : > /tmp/snapshot-id
     # Separate process so that `set -e` takes effect (it would be ineffective inside `if` conditions).
     set +e
-    "$0" _sichern > "$protokoll" 2>&1
+    "$0" _backup > "$logfile" 2>&1
     rc=$?
     set -e
-    cat "$protokoll"
-    dauer=$(( $(date +%s) - start ))
+    cat "$logfile"
+    duration=$(( $(date +%s) - start ))
     if [ "$rc" -eq 0 ]; then
-        status_schreiben true "Sicherung erfolgreich" "$(cat /tmp/snapshot-id)" "$dauer"
+        write_status true "Sicherung erfolgreich" "$(cat /tmp/snapshot-id)" "$duration"
     else
-        status_schreiben false "$(grep -v '^$' "$protokoll" | tail -n 3)" "" "$dauer"
+        write_status false "$(grep -v '^$' "$logfile" | tail -n 3)" "" "$duration"
     fi
     return "$rc"
 }
 
-sekunden_bis() { # HH:MM
-    jetzt=$(date +%s)
-    ziel=$(date -d "$(date '+%Y-%m-%d') $1" +%s) || fehler "BACKUP_TIME '$1' ist keine Uhrzeit (HH:MM)."
-    [ "$ziel" -gt "$jetzt" ] || ziel=$((ziel + 86400))
-    echo $((ziel - jetzt))
+seconds_until() { # HH:MM
+    now_ts=$(date +%s)
+    target=$(date -d "$(date '+%Y-%m-%d') $1" +%s) || fail "BACKUP_TIME '$1' ist keine Uhrzeit (HH:MM)."
+    [ "$target" -gt "$now_ts" ] || target=$((target + 86400))
+    echo $((target - now_ts))
 }
 
-zeitplan() {
-    sekunden_bis "$ZEIT" > /dev/null
-    log "Tägliche Sicherung um $ZEIT ($TZ), Ziel $RESTIC_REPOSITORY"
+schedule() {
+    seconds_until "$BACKUP_AT" > /dev/null
+    log "Tägliche Sicherung um $BACKUP_AT ($TZ), Ziel $RESTIC_REPOSITORY"
     while true; do
-        warten=$(sekunden_bis "$ZEIT")
-        log "Nächste Sicherung in $((warten / 60)) Minuten"
-        sleep "$warten"
-        sichern || log "Sicherung fehlgeschlagen, nächster Versuch zur nächsten geplanten Zeit"
+        wait_seconds=$(seconds_until "$BACKUP_AT")
+        log "Nächste Sicherung in $((wait_seconds / 60)) Minuten"
+        sleep "$wait_seconds"
+        run_backup || log "Sicherung fehlgeschlagen, nächster Versuch zur nächsten geplanten Zeit"
         sleep 60
     done
 }
 
-wiederherstellen() {
+restore() {
     snapshot="${1:-latest}"
-    repository_bereit
+    repository_ready
 
-    verbunden=$(psql -d postgres -tAc "SELECT count(*) FROM pg_stat_activity WHERE datname = '$DB' AND pid <> pg_backend_pid()")
-    if [ "$verbunden" -gt 0 ] && [ "${ERZWINGEN:-0}" != 1 ]; then
-        fehler "$verbunden Verbindung(en) zur Datenbank $DB offen. Erst die App stoppen: docker compose … stop app"
+    connected=$(psql -d postgres -tAc "SELECT count(*) FROM pg_stat_activity WHERE datname = '$DB' AND pid <> pg_backend_pid()")
+    if [ "$connected" -gt 0 ] && [ "${FORCE:-0}" != 1 ]; then
+        fail "$connected Verbindung(en) zur Datenbank $DB offen. Erst die App stoppen: docker compose … stop app"
     fi
 
-    ziel=/wiederherstellung
-    rm -rf "$ziel"
+    target=/restore-target
+    rm -rf "$target"
     log "Sicherung $snapshot aus $RESTIC_REPOSITORY holen"
-    restic restore "$snapshot" --host "$RESTIC_HOST" --tag "$TAG" --target "$ziel"
-    dump="$ziel$ARBEIT/$DB.dump"
-    [ -f "$dump" ] || fehler "Die Sicherung enthält keinen Datenbank-Dump ($ARBEIT/$DB.dump)."
+    restic restore "$snapshot" --host "$RESTIC_HOST" --tag "$TAG" --target "$target"
+    dump="$target$WORKDIR/$DB.dump"
+    [ -f "$dump" ] || fail "Die Sicherung enthält keinen Datenbank-Dump ($WORKDIR/$DB.dump)."
 
     log "Datenbank $DB neu anlegen und einspielen"
     psql -d postgres -v ON_ERROR_STOP=1 -q \
@@ -128,27 +128,27 @@ wiederherstellen() {
         -c "CREATE DATABASE \"$DB\""
     pg_restore --exit-on-error --no-owner --dbname="$DB" "$dump"
 
-    log "Dateiablage $DATEN ersetzen"
-    mkdir -p "$DATEN"
-    find "$DATEN" -mindepth 1 -delete
-    if [ -d "$ziel$DATEN" ]; then
-        cp -a "$ziel$DATEN/." "$DATEN/"
+    log "Dateiablage $DATA_DIR ersetzen"
+    mkdir -p "$DATA_DIR"
+    find "$DATA_DIR" -mindepth 1 -delete
+    if [ -d "$target$DATA_DIR" ]; then
+        cp -a "$target$DATA_DIR/." "$DATA_DIR/"
     fi
-    chown -R "$APP_UID:$APP_UID" "$DATEN"
+    chown -R "$APP_UID:$APP_UID" "$DATA_DIR"
 
-    rm -rf "$ziel"
+    rm -rf "$target"
     log "Wiederherstellung abgeschlossen. Jetzt die App starten: docker compose … start app"
 }
 
-befehl="${1:-zeitplan}"
+command="${1:-schedule}"
 [ $# -gt 0 ] && shift
-case "$befehl" in
-    zeitplan) zeitplan ;;
-    sichern) sichern ;;
-    _sichern) sichern_intern ;;
-    snapshots) repository_bereit; restic snapshots --host "$RESTIC_HOST" --tag "$TAG" ;;
-    wiederherstellen) wiederherstellen "$@" ;;
-    pruefen) repository_bereit; restic check --read-data-subset="${BACKUP_PRUEFEN_ANTEIL:-10%}" ;;
+case "$command" in
+    schedule) schedule ;;
+    backup) run_backup ;;
+    _backup) backup_internal ;;
+    snapshots) repository_ready; restic snapshots --host "$RESTIC_HOST" --tag "$TAG" ;;
+    restore) restore "$@" ;;
+    verify) repository_ready; restic check --read-data-subset="${BACKUP_VERIFY_SUBSET:-10%}" ;;
     restic) exec restic "$@" ;;
-    *) fehler "Unbekannter Befehl '$befehl' (zeitplan, sichern, snapshots, wiederherstellen, pruefen, restic)" ;;
+    *) fail "Unbekannter Befehl '$command' (schedule, backup, snapshots, restore, verify, restic)" ;;
 esac

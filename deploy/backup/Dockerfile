@@ -15,4 +15,4 @@ ENV TZ=Europe/Berlin \
     RESTIC_CACHE_DIR=/cache
 
 ENTRYPOINT ["miethahn-backup"]
-CMD ["zeitplan"]
+CMD ["schedule"]

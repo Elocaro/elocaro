@@ -29,7 +29,7 @@ public class BackupTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var page = await admin.GetAsync(Page);
         Assert.Contains("Die Sicherung am 01.03.2026 02:30 ist fehlgeschlagen.", page.Text, StringComparison.Ordinal);
         Assert.Contains("Fatal: unable to open repository", page.Text, StringComparison.Ordinal);
-        Assert.Contains("run --rm backup sichern", page.Text, StringComparison.Ordinal);
+        Assert.Contains("run --rm backup backup", page.Text, StringComparison.Ordinal);
 
         var dashboard = await admin.GetAsync("/verwaltung");
         Assert.Contains("Datensicherung prüfen", dashboard.TextWithStreaming, StringComparison.Ordinal);

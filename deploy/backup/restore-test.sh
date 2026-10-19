@@ -13,22 +13,22 @@ export MIETHAHN_IMAGE="${1:-miethahn:lokal}"
 export MIETHAHN_BACKUP_IMAGE="${2:-miethahn-backup:lokal}"
 export MIETHAHN_DOMAIN=localhost ACME_EMAIL=test@example.de POSTGRES_PASSWORD=restoretest
 export MAIL_SENDER=test@example.de SMTP_HOST=localhost RESTIC_PASSWORD=restoretest
-ARBEIT=$(mktemp -d)
-export BACKUP_LOCAL_PATH="$ARBEIT/repo" BACKUP_SSH_PATH="$ARBEIT/ssh"
+WORKDIR=$(mktemp -d)
+export BACKUP_LOCAL_PATH="$WORKDIR/repo" BACKUP_SSH_PATH="$WORKDIR/ssh"
 
 dc() { docker compose -p miethahn-restoretest -f docker-compose.yml "$@"; }
 log() { printf '\n==> %s\n' "$*"; }
-aufraeumen() {
+cleanup_files() {
     rc=$?
     dc down -v --remove-orphans > /dev/null 2>&1 || true
     # The repository is owned by root (from the container); without root privileges (CI runner) delete it inside the container.
-    docker run --rm --entrypoint sh -v "$ARBEIT:/aufraeumen" "$MIETHAHN_BACKUP_IMAGE" -c 'rm -rf /aufraeumen/repo /aufraeumen/ssh' > /dev/null 2>&1 || true
-    rm -rf "$ARBEIT" || true
+    docker run --rm --entrypoint sh -v "$WORKDIR:/cleanup" "$MIETHAHN_BACKUP_IMAGE" -c 'rm -rf /cleanup/repo /cleanup/ssh' > /dev/null 2>&1 || true
+    rm -rf "$WORKDIR" || true
     exit "$rc"
 }
-trap aufraeumen EXIT
+trap cleanup_files EXIT
 
-warte_auf_app() {
+wait_for_app() {
     for _ in $(seq 1 90); do
         if [ "$(docker inspect --format '{{.State.Health.Status}}' "$(dc ps -q app)")" = healthy ]; then
             return 0
@@ -43,7 +43,7 @@ warte_auf_app() {
 sql() { dc run --rm -T --no-deps --entrypoint psql backup -v ON_ERROR_STOP=1 -X -q "$@"; }
 sh_backup() { dc run --rm -T --no-deps --entrypoint sh backup -c "$1"; }
 
-fingerabdruck() { # output file
+fingerprint() { # output file
     {
         echo "## Schema"
         dc run --rm -T --no-deps --entrypoint pg_dump backup --schema-only --no-owner | grep -v -e '^--' -e '^\\restrict' -e '^\\unrestrict' -e '^$'
@@ -63,41 +63,41 @@ SQL
 
 log "App starten (leere Datenbank, Migrationen)"
 dc up -d app
-warte_auf_app
+wait_for_app
 dc stop app
 
 log "Testdaten anlegen"
-inhalt="Mietvertrag Müller – Testdatei"
-sha=$(printf '%s' "$inhalt" | sha256sum | cut -d' ' -f1)
-sh_backup "mkdir -p /data/files/${sha%"${sha#??}"} && printf '%s' '$inhalt' > /data/files/${sha%"${sha#??}"}/$sha && chown -R 1654:1654 /data"
+content="Mietvertrag Müller – Testdatei"
+sha=$(printf '%s' "$content" | sha256sum | cut -d' ' -f1)
+sh_backup "mkdir -p /data/files/${sha%"${sha#??}"} && printf '%s' '$content' > /data/files/${sha%"${sha#??}"}/$sha && chown -R 1654:1654 /data"
 sql <<SQL
 INSERT INTO stored_files (id, name, mime_type, size, sha256, created_at, created_by, deleted)
-VALUES ('0192a000-0000-7000-8000-000000000001', 'Mietvertrag Müller.txt', 'text/plain', $(printf '%s' "$inhalt" | wc -c), '$sha', now(), 'restore-test', false);
+VALUES ('0192a000-0000-7000-8000-000000000001', 'Mietvertrag Müller.txt', 'text/plain', $(printf '%s' "$content" | wc -c), '$sha', now(), 'restore-test', false);
 SQL
 
-fingerabdruck "$ARBEIT/vorher.txt"
-grep -q "public.stored_files|1|" "$ARBEIT/vorher.txt" || { echo "Testdaten fehlen im Fingerabdruck" >&2; exit 1; }
+fingerprint "$WORKDIR/before.txt"
+grep -q "public.stored_files|1|" "$WORKDIR/before.txt" || { echo "Testdaten fehlen im Fingerabdruck" >&2; exit 1; }
 
 log "Sichern"
-dc run --rm -T --no-deps backup sichern
-sh_backup 'cat /status/backup.json' | tee "$ARBEIT/status.json"
-grep -q '"succeeded":true' "$ARBEIT/status.json"
+dc run --rm -T --no-deps backup backup
+sh_backup 'cat /status/backup.json' | tee "$WORKDIR/status.json"
+grep -q '"succeeded":true' "$WORKDIR/status.json"
 
 log "Alles löschen (Volumes), leere Datenbank starten"
 dc down -v
 dc up -d --wait postgres
 
 log "Wiederherstellen"
-dc run --rm -T --no-deps backup wiederherstellen latest
+dc run --rm -T --no-deps backup restore latest
 
-fingerabdruck "$ARBEIT/nachher.txt"
+fingerprint "$WORKDIR/after.txt"
 log "Datenstand vergleichen"
-if ! diff -u "$ARBEIT/vorher.txt" "$ARBEIT/nachher.txt"; then
+if ! diff -u "$WORKDIR/before.txt" "$WORKDIR/after.txt"; then
     echo "Wiederhergestellter Datenstand weicht ab." >&2
     exit 1
 fi
 
 log "App auf wiederhergestellter Datenbank starten"
 dc up -d app
-warte_auf_app
-echo "Restore-Test erfolgreich: $(grep -c '|' "$ARBEIT/vorher.txt") Tabellen identisch."
+wait_for_app
+echo "Restore-Test erfolgreich: $(grep -c '|' "$WORKDIR/before.txt") Tabellen identisch."
