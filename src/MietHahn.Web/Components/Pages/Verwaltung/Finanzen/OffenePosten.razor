@@ -1,0 +1,42 @@
+@page "/verwaltung/finanzen/offene-posten"
+@inject IMieterkonten Konten
+
+<Seitenkopf Titel="Offene Posten" Untertitel="Fällige, nicht vollständig bezahlte Forderungen aller Mietverhältnisse.">
+    <Aktionen>
+        <a class="knopf" href="/verwaltung/finanzen/offene-posten.csv">CSV exportieren</a>
+    </Aktionen>
+</Seitenkopf>
+
+@if (posten is { Count: 0 })
+{
+    <Leerzustand Text="Keine offenen Posten. Alles bezahlt." />
+}
+else if (posten is not null)
+{
+    <p><strong>Summe offen: @Format.Geld(posten.Sum(p => p.Offen))</strong></p>
+    <div class="tabellen-rahmen">
+        <table class="tabelle">
+            <thead>
+                <tr><th>Mietverhältnis</th><th>Forderung</th><th>Fällig</th><th class="zahl">Betrag</th><th class="zahl">Offen</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var p in posten)
+                {
+                    <tr>
+                        <td><a href="/verwaltung/vertraege/@p.MietvertragId/konto">@p.Mieter</a><span class="klein"> @p.Mietobjekt</span></td>
+                        <td>@p.Text</td>
+                        <td>@Format.Datum(p.Faellig) <span class="klein">(@p.TageUeberfaellig Tage)</span></td>
+                        <td class="zahl">@Format.Geld(p.Betrag)</td>
+                        <td class="zahl">@Format.Geld(p.Offen)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<OffenerPosten>? posten;
+
+    protected override async Task OnInitializedAsync() => posten = await Konten.OffenePostenAsync();
+}

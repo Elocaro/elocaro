@@ -1,4 +1,5 @@
 using MietHahn.Domain.Dokumente;
+using MietHahn.Domain.Finanzen;
 using MietHahn.Domain.Objekte;
 using MietHahn.Domain.Personen;
 using MietHahn.Domain.Vertraege;
@@ -9,6 +10,27 @@ namespace MietHahn.Web.Anzeige;
 /// <summary>Deutsche Anzeigenamen für fachliche Aufzählungen.</summary>
 public static class Bezeichnungen
 {
+    public static string Von(Postenart wert) => wert switch
+    {
+        Postenart.Miete => "Miete",
+        Postenart.Nachzahlung => "Nachzahlung (Abrechnung)",
+        Postenart.Erstattung => "Erstattung / Gutschrift",
+        Postenart.Mahngebuehr => "Mahngebühr",
+        Postenart.Ruecklastschriftgebuehr => "Rücklastschriftgebühr",
+        Postenart.Verzugszinsen => "Verzugszinsen",
+        Postenart.Schadensersatz => "Schadensersatz",
+        Postenart.Kaution => "Kaution",
+        Postenart.Saldovortrag => "Saldovortrag",
+        _ => "Sonstige Forderung",
+    };
+
+    public static string Von(Verrechnungsreihenfolge wert) => wert switch
+    {
+        Verrechnungsreihenfolge.AeltesteZuerst => "Nur nach Fälligkeit (älteste zuerst)",
+        Verrechnungsreihenfolge.MieteZuerst => "Erst Mieten, dann übrige Forderungen",
+        _ => "Gesetzlich (§§ 366, 367 BGB): Kosten → Zinsen → älteste Forderung",
+    };
+
     public static string Von(Dokumentkategorie wert) => wert switch
     {
         Dokumentkategorie.Vertrag => "Vertrag",

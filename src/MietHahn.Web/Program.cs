@@ -4,6 +4,7 @@ using MietHahn.Infrastructure.Persistenz;
 using MietHahn.Web.Autorisierung;
 using MietHahn.Web.Betrieb;
 using MietHahn.Web.Components;
+using MietHahn.Web.Finanzen;
 using MietHahn.Web.Konto;
 using MietHahn.Web.Personen;
 
@@ -50,6 +51,7 @@ app.MapDateiEndpunkte();
 app.MapHealthEndpunkte();
 app.MapExportEndpunkt();
 app.MapAuskunftEndpunkt();
+app.MapOffenePostenEndpunkt();
 
 await app.Services.MigriereDatenbankAsync();
 await app.RunAsync();

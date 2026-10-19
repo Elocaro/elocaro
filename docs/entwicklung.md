@@ -238,6 +238,16 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - Oberfläche: `/verwaltung/dokumente` (Suche, Kategorie), Upload `/verwaltung/dokumente/neu?objekt=|einheit=|vertrag=|person=` (vorbelegter Bezug, ohne Titel gilt der Dateiname), Detailseite mit Vorschau (Bild bzw. PDF im `iframe`). `DokumenteBereich` zeigt die Dokumente auf Objekt-, Einheit-, Vertrags- und Personenseite; der Servicebereich zeigt Hausmeister-Freigaben.
 - Dashboard: Dokumente mit „gültig bis“ in 60 Tagen bzw. abgelaufen. DSGVO-Auskunft: Abschnitt `dokumente`.
 
+### Finanzen: Sollstellungen & Mieterkonto
+
+- `Sollstellung` = Forderung an den Mieter (negativ = Gutschrift, z. B. `Erstattung`). Monatsmieten (`Postenart.Miete`) entstehen **je Bestandteil und Leistungsmonat** automatisch, alles andere (Nachzahlung, Mahngebühr, Zinsen, Kaution, Saldovortrag …) von Hand. `Zahlung` = Eingang (positiv) bzw. Auszahlung an den Mieter (negativ), optional mit Tilgungsbestimmung (`SollstellungId`, § 366 Abs. 1 BGB).
+- **Buchhaltungsbeginn** (`Finanzeinstellungen.BuchhaltungAb`, `/verwaltung/finanzen/einstellungen`): Monatsmieten erst ab diesem Monat, damit übernommene Altverträge keine Jahre an „Rückständen“ erzeugen. Ohne Beginn entstehen keine Monatsmieten (Dashboard-Hinweis). Ältere Rückstände als `Saldovortrag` erfassen.
+- `Sollberechnung.Monat` (rein funktional): Bestandteile × Tage/Tage im Monat, ungerundet summiert, auf Cent kaufmännisch gerundet (Einzug 15.3. → 17/31). Fällig am n-ten Werktag, bei Einzug im Monat frühestens am Einzugstag.
+- `IMieterkonten.SollstellungenErzeugenAsync` ist idempotent: legt fehlende Monatsmieten bis zum laufenden Monat an, gleicht geänderte an (rückwirkende Mieterhöhung, Auszug) und entfernt überzählige. Job `sollstellungen` täglich 0:40 (nach der Staffelmiete um 0:30), dazu Knopf im Mieterkonto. Ein eindeutiger Teilindex (`art = 'Miete'`, Vertrag, Monat, Bestandteil) verhindert Duplikate auch bei parallelen Läufen.
+- **Verrechnung** (`Verrechnung.Verteilen`, rein funktional, nicht gespeichert, sondern bei jedem Lesen berechnet): Guthaben chronologisch; zuerst die bestimmte Forderung, dann die fälligen nach `Verrechnungsreihenfolge` (Standard §§ 366, 367 BGB: Kosten → Zinsen → älteste). Gleicher Rang und gleiche Fälligkeit (Bestandteile einer Monatsmiete) werden anteilig getilgt, Cent-Reste nach größtem Rest. Vorauszahlungen tilgen erst bei Fälligkeit, der Zufluss bleibt das Zahlungsdatum.
+- Mieterkonto `/verwaltung/vertraege/{id}/konto`: Buchungen mit Saldo und offenem Betrag, Zahlung/Forderung erfassen, Löschen nur für manuelle Buchungen, **Mieten je Jahr** (Soll nach Leistungsmonat, davon bezahlt → Nebenkostenabrechnung; Zufluss nach Zahlungsjahr → Anlage V).
+- Offene Posten `/verwaltung/finanzen/offene-posten` und als CSV (`…/offene-posten.csv`: Semikolon, deutsche Zahlen, UTF-8 mit BOM, CRLF, Formel-Präfixe entschärft). Recht **Finanzen**.
+
 ### Personen & Datenschutz
 
 - `Person` (Mieter, Bürgen, Kontakte) mit Anschriften als Zeitreihe (Voranschrift → aktuelle → neue Anschrift nach Auszug) und beliebig vielen `Bankverbindung`en (IBAN mit Prüfsumme, `Domain.Gemeinsam.Iban`). Mieter und Bürgen ergeben sich aus Verträgen, nicht aus einem Feld.

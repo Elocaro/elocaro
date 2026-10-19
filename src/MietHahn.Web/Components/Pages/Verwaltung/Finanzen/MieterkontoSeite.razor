@@ -1,0 +1,238 @@
+@page "/verwaltung/vertraege/{Id:guid}/konto"
+@using MietHahn.Domain.Vertraege
+@inject IMieterkonten Konten
+@inject Weiterleitung Weiterleitung
+
+@if (konto is null)
+{
+    <Seitenkopf Titel="Vertrag nicht gefunden" Zurueck="/verwaltung/finanzen/offene-posten" ZurueckText="Offene Posten" />
+    return;
+}
+
+<Seitenkopf Titel="@($"Mieterkonto {konto.Mieter}")" Untertitel="@konto.Mietobjekt" Zurueck="@($"/verwaltung/vertraege/{Id}")" ZurueckText="Zum Vertrag" />
+
+<StatusMeldung />
+<FehlerListe Fehler="fehler" />
+
+@if (konto.BuchhaltungAb is null)
+{
+    <p class="meldung meldung-hinweis" role="status">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></p>
+}
+
+<dl class="angaben">
+    <dt>Saldo</dt>
+    <dd><strong>@Format.Geld(Math.Abs(konto.Saldo))</strong> @(konto.Saldo > 0 ? "Rückstand" : konto.Saldo < 0 ? "Guthaben des Mieters" : "ausgeglichen")</dd>
+    <dt>Davon fällig</dt><dd>@Format.Geld(konto.Faellig)</dd>
+    <dt>Verrechnung</dt><dd>@Bezeichnungen.Von(konto.Verrechnung)</dd>
+</dl>
+
+<form method="post" @formname="aktualisieren" @onsubmit="AktualisierenAsync">
+    <AntiforgeryToken />
+    <button type="submit" class="knopf">Monatsmieten jetzt aktualisieren</button>
+    <span class="feld-hinweis">Passiert sonst jede Nacht automatisch, z. B. nach einer Mieterhöhung.</span>
+</form>
+
+<section>
+    <h2>Buchungen</h2>
+    @if (konto.Buchungen.Count == 0)
+    {
+        <p class="klein">Noch keine Buchungen.</p>
+    }
+    else
+    {
+        <form method="post" @formname="loeschen" @onsubmit="LoeschenAsync">
+            <AntiforgeryToken />
+            <div class="tabellen-rahmen">
+                <table class="tabelle">
+                    <thead>
+                        <tr><th>Datum</th><th>Buchung</th><th class="zahl">Soll</th><th class="zahl">Haben</th><th class="zahl">Saldo</th><th>Offen</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in konto.Buchungen.Reverse())
+                        {
+                            <tr>
+                                <td>@Format.Datum(b.Datum)</td>
+                                <td>@b.Text</td>
+                                <td class="zahl">@(b.Soll == 0 ? "" : Format.Geld(b.Soll))</td>
+                                <td class="zahl">@(b.Haben == 0 ? "" : Format.Geld(b.Haben))</td>
+                                <td class="zahl">@Format.Geld(b.Saldo)</td>
+                                <td>
+                                    @if (b.Offen is 0m)
+                                    {
+                                        <span class="status status-ok">bezahlt</span>
+                                    }
+                                    else if (b.Offen is { } offen && offen == b.Soll)
+                                    {
+                                        <span class="status status-wartend">offen</span>
+                                    }
+                                    else if (b.Offen is { } teil)
+                                    {
+                                        <span class="status status-wartend">@Format.Geld(teil) offen</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!b.Automatisch && b.Herkunft is null or Zahlungsherkunft.Manuell)
+                                    {
+                                        <button type="submit" class="knopf knopf-gefahr" name="Loeschen" value="@($"{b.Buchungsart}:{b.Id}")" aria-label="@($"{b.Text} löschen")">Löschen</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    }
+</section>
+
+<section>
+    <h2>Zahlung erfassen</h2>
+    <EditForm Model="Zahlung" FormName="zahlung" OnValidSubmit="ZahlungAsync">
+        <DataAnnotationsValidator />
+        <div class="formular-raster">
+            <FormularFeld Id="zahlung-datum" Beschriftung="Datum" Fuer="() => Zahlung!.Datum" Pflicht="true">
+                <InputDate id="zahlung-datum" @bind-Value="Zahlung!.Datum" />
+            </FormularFeld>
+            <FormularFeld Id="zahlung-betrag" Beschriftung="Betrag" Fuer="() => Zahlung!.Betrag" Pflicht="true">
+                <InputBetrag id="zahlung-betrag" @bind-Value="Zahlung!.Betrag" />
+            </FormularFeld>
+            <FormularFeld Id="zahlung-zweck" Beschriftung="Verwendungszweck" Fuer="() => Zahlung!.Verwendungszweck">
+                <InputText id="zahlung-zweck" @bind-Value="Zahlung!.Verwendungszweck" />
+            </FormularFeld>
+            <FormularFeld Id="zahlung-bestimmung" Beschriftung="Zahlt auf (optional)" Fuer="() => Zahlung!.SollstellungId" Hinweis="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“).">
+                <InputSelect id="zahlung-bestimmung" @bind-Value="Zahlung!.SollstellungId">
+                    <option value="">– automatisch verrechnen –</option>
+                    @foreach (var b in konto.Buchungen.Where(b => b.Offen > 0))
+                    {
+                        <option value="@b.Id">@b.Text (@Format.Geld(b.Offen))</option>
+                    }
+                </InputSelect>
+            </FormularFeld>
+        </div>
+        <div class="feld feld-checkbox">
+            <InputCheckbox id="zahlung-auszahlung" @bind-Value="Zahlung!.Auszahlung" />
+            <label for="zahlung-auszahlung">Auszahlung an den Mieter (z. B. Guthaben überwiesen)</label>
+        </div>
+        <button type="submit" class="knopf knopf-primaer">Zahlung buchen</button>
+    </EditForm>
+</section>
+
+<section>
+    <h2>Sonstige Forderung oder Gutschrift</h2>
+    <EditForm Model="Sollstellung" FormName="sollstellung" OnValidSubmit="SollstellungAsync">
+        <DataAnnotationsValidator />
+        <div class="formular-raster">
+            <FormularFeld Id="soll-art" Beschriftung="Art" Fuer="() => Sollstellung!.Art">
+                <InputSelect id="soll-art" @bind-Value="Sollstellung!.Art">
+                    @foreach (var wert in Enum.GetValues<Postenart>().Where(a => a != Postenart.Miete))
+                    {
+                        <option value="@wert">@Bezeichnungen.Von(wert)</option>
+                    }
+                </InputSelect>
+            </FormularFeld>
+            <FormularFeld Id="soll-faellig" Beschriftung="Fällig am" Fuer="() => Sollstellung!.Faellig" Pflicht="true">
+                <InputDate id="soll-faellig" @bind-Value="Sollstellung!.Faellig" />
+            </FormularFeld>
+            <FormularFeld Id="soll-betrag" Beschriftung="Betrag" Fuer="() => Sollstellung!.Betrag" Pflicht="true" Hinweis="Immer positiv, eine Erstattung wird als Guthaben gebucht.">
+                <InputBetrag id="soll-betrag" @bind-Value="Sollstellung!.Betrag" />
+            </FormularFeld>
+            <FormularFeld Id="soll-text" Beschriftung="Bezeichnung" Fuer="() => Sollstellung!.Bezeichnung" Hinweis="z. B. „Nachzahlung Betriebskosten 2025“">
+                <InputText id="soll-text" @bind-Value="Sollstellung!.Bezeichnung" />
+            </FormularFeld>
+        </div>
+        <button type="submit" class="knopf">Buchen</button>
+    </EditForm>
+</section>
+
+<section>
+    <h2>Mieten je Jahr</h2>
+    @if (konto.Jahreswerte.Count == 0)
+    {
+        <p class="klein">Noch keine Monatsmieten.</p>
+    }
+    else
+    {
+        <p class="klein">Soll nach Leistungsmonat, davon bezahlt (für die Nebenkostenabrechnung) und im Kalenderjahr zugeflossen (Zahlungsdatum, § 11 EStG).</p>
+        <div class="tabellen-rahmen">
+            <table class="tabelle">
+                <thead><tr><th>Jahr</th><th>Bestandteil</th><th class="zahl">Soll</th><th class="zahl">davon bezahlt</th><th class="zahl">Zufluss im Jahr</th></tr></thead>
+                <tbody>
+                    @foreach (var w in konto.Jahreswerte)
+                    {
+                        <tr>
+                            <td>@w.Jahr</td>
+                            <td>@Bezeichnungen.Von(w.Bestandteil)</td>
+                            <td class="zahl">@Format.Geld(w.Soll)</td>
+                            <td class="zahl">@Format.Geld(w.Getilgt)</td>
+                            <td class="zahl">@Format.Geld(w.Zufluss)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    private Mieterkonto? konto;
+    private IReadOnlyList<string>? fehler;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "zahlung")]
+    private ZahlungEingabe? Zahlung { get; set; }
+
+    [SupplyParameterFromForm(FormName = "sollstellung")]
+    private SollstellungEingabe? Sollstellung { get; set; }
+
+    [SupplyParameterFromForm(FormName = "loeschen")]
+    private string? Loeschen { get; set; }
+
+    private string Ziel => $"/verwaltung/vertraege/{Id}/konto";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Zahlung ??= new();
+        Sollstellung ??= new();
+        konto = await Konten.LadenAsync(Id);
+    }
+
+    private async Task AktualisierenAsync()
+    {
+        var anzahl = await Konten.SollstellungenErzeugenAsync(Id);
+        Weiterleitung.ZuMitMeldung(Ziel, anzahl == 0 ? "Die Monatsmieten sind aktuell." : $"{anzahl} Sollstellungen angelegt oder angeglichen.", HttpContext);
+    }
+
+    private Task ZahlungAsync() => AusfuehrenAsync(Konten.ZahlungErfassenAsync(Id, Zahlung!), "Die Zahlung wurde gebucht.");
+
+    private Task SollstellungAsync() => AusfuehrenAsync(Konten.SollstellungAnlegenAsync(Id, Sollstellung!), "Die Buchung wurde angelegt.");
+
+    private Task LoeschenAsync()
+    {
+        var teile = (Loeschen ?? "").Split(':');
+        if (teile.Length != 2 || !Guid.TryParse(teile[1], out var id) || !Enum.TryParse<Buchungsart>(teile[0], out var art))
+        {
+            fehler = ["Unbekannte Buchung."];
+            return Task.CompletedTask;
+        }
+
+        return AusfuehrenAsync(art == Buchungsart.Zahlung ? Konten.ZahlungLoeschenAsync(id) : Konten.SollstellungLoeschenAsync(id), "Die Buchung wurde gelöscht.");
+    }
+
+    private async Task AusfuehrenAsync(Task<Ergebnis> befehl, string erfolg)
+    {
+        var ergebnis = await befehl;
+        if (ergebnis.Erfolgreich)
+        {
+            Weiterleitung.ZuMitMeldung(Ziel, erfolg, HttpContext);
+        }
+        else
+        {
+            fehler = ergebnis.Fehler;
+        }
+    }
+}

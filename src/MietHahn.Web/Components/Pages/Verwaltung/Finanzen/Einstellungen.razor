@@ -1,0 +1,57 @@
+@page "/verwaltung/finanzen/einstellungen"
+@inject IFinanzeinstellungen Verwaltung
+@inject IMieterkonten Konten
+@inject Weiterleitung Weiterleitung
+
+<Seitenkopf Titel="Einstellungen Finanzen" Untertitel="Buchhaltungsbeginn und Verrechnung von Zahlungen." />
+
+<StatusMeldung />
+
+<EditForm Model="Daten" FormName="finanzen" OnValidSubmit="SpeichernAsync">
+    <DataAnnotationsValidator />
+    <div class="formular-raster">
+        <FormularFeld Id="buchhaltung-ab" Beschriftung="Buchhaltung ab (Monat)" Fuer="() => Daten!.BuchhaltungAb"
+                      Hinweis="Ab diesem Monat entstehen die Monatsmieten automatisch. Rückstände aus der Zeit davor als „Saldovortrag“ im Mieterkonto erfassen.">
+            <InputDate id="buchhaltung-ab" @bind-Value="Daten!.BuchhaltungAb" />
+        </FormularFeld>
+    </div>
+    <fieldset class="feld">
+        <legend>Verrechnung von Teilzahlungen</legend>
+        <InputRadioGroup @bind-Value="Daten!.Verrechnung">
+            @foreach (var wert in Enum.GetValues<Verrechnungsreihenfolge>())
+            {
+                <div class="feld-checkbox">
+                    <InputRadio id="@($"verrechnung-{wert}")" Value="wert" />
+                    <label for="@($"verrechnung-{wert}")">@Bezeichnungen.Von(wert)</label>
+                </div>
+            }
+        </InputRadioGroup>
+        <span class="feld-hinweis">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
+    </fieldset>
+    <button type="submit" class="knopf knopf-primaer">Speichern</button>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "finanzen")]
+    private FinanzeinstellungenDaten? Daten { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var formular = Daten;
+        Daten ??= new();
+        if (formular is null)
+        {
+            Daten = await Verwaltung.LadenAsync();
+        }
+    }
+
+    private async Task SpeichernAsync()
+    {
+        await Verwaltung.SpeichernAsync(Daten!);
+        var anzahl = await Konten.SollstellungenErzeugenAsync();
+        Weiterleitung.ZuMitMeldung("/verwaltung/finanzen/einstellungen", anzahl == 0 ? "Gespeichert." : $"Gespeichert. {anzahl} Sollstellungen angelegt oder angeglichen.", HttpContext);
+    }
+}

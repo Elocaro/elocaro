@@ -11,6 +11,9 @@
 
 <Seitenkopf Titel="@($"Mietvertrag {vertrag.Mietobjekt}")" Untertitel="@($"{vertrag.Objekt} · {MieterText}")" Zurueck="/verwaltung/vertraege" ZurueckText="Alle Verträge">
     <Aktionen>
+        <AuthorizeView Policy="@Richtlinien.Finanzen">
+            <a class="knopf" href="/verwaltung/vertraege/@Id/konto">Mieterkonto</a>
+        </AuthorizeView>
         @if (vertrag.Status != Vertragsstatus.Beendet)
         {
             <a class="knopf" href="/verwaltung/vertraege/@Id/auszug">Mieterwechsel</a>

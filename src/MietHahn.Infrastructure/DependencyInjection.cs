@@ -11,6 +11,7 @@ using MietHahn.Application.Betrieb;
 using MietHahn.Application.Dateien;
 using MietHahn.Application.Datenschutz;
 using MietHahn.Application.Dokumente;
+using MietHahn.Application.Finanzen;
 using MietHahn.Application.Gemeinsam;
 using MietHahn.Application.Kommunikation;
 using MietHahn.Application.Konten;
@@ -24,6 +25,7 @@ using MietHahn.Infrastructure.Betrieb;
 using MietHahn.Infrastructure.Dateien;
 using MietHahn.Infrastructure.Datenschutz;
 using MietHahn.Infrastructure.Dokumente;
+using MietHahn.Infrastructure.Finanzen;
 using MietHahn.Infrastructure.Identitaet;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Mail;
@@ -188,6 +190,10 @@ public static class DependencyInjection
         services.AddScoped<IDateiFreigabe, DokumentDateiFreigabe>();
         services.AddScoped<IAufgabenQuelle, DokumentAblaufAufgaben>();
         services.AddScoped<IPersonendatenQuelle, DokumentPersonendaten>();
+        services.AddScoped<IMieterkonten, Mieterkonten>();
+        services.AddScoped<IFinanzeinstellungen, Finanzeinstellungsverwaltung>();
+        services.AddScoped<IAufgabenQuelle, FinanzAufgaben>();
+        services.AddScoped<IPersonendatenQuelle, MieterkontoPersonendaten>();
     }
 
     private static void DatenschutzRegistrieren(IServiceCollection services, IConfiguration konfiguration)
@@ -232,6 +238,7 @@ public static class DependencyInjection
             q.PlaneTaeglich<JobProtokollBereinigungJob>(JobProtokollBereinigungJob.Schluessel, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);
             q.PlaneTaeglich<AuditBereinigungJob>(AuditBereinigungJob.Schluessel, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
             q.PlaneTaeglich<StaffelJob>(StaffelJob.Schluessel, "Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins", 0, 30);
+            q.PlaneTaeglich<SollstellungJob>(SollstellungJob.Schluessel, "Erzeugt die Monatsmieten (Sollstellungen) und gleicht sie an Vertragsänderungen an", 0, 40);
             q.PlaneTaeglich<BackupWarnungJob>(BackupWarnungJob.Schluessel, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
