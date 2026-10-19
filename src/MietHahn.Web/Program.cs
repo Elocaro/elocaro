@@ -52,6 +52,7 @@ app.MapHealthEndpoints();
 app.MapExportEndpoint();
 app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
+app.MapDunningPreviewEndpoint();
 
 await app.Services.MigrateDatabaseAsync();
 await app.RunAsync();

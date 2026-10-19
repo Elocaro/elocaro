@@ -85,6 +85,17 @@ Das Datenformat ist zwischen Major-Versionen nicht kompatibel:
 
 Nach dem Import erscheinen offene Umsätze unter **Finanzen → Umsätze zuordnen** (auch als Hinweis auf der Startseite). Dort lässt sich der Vorschlag bestätigen, ändern/aufteilen oder der Umsatz ignorieren. Wiederkehrende Zahlungen (Stadtwerke, Versicherungen, private Abbuchungen) lassen sich unter **Zuordnungsregeln** hinterlegen. Eine Zuordnung kann auf der Seite des Umsatzes rückgängig gemacht werden; sie stehen im Änderungsprotokoll und sind Teil der Datensicherung wie alle Tabellen (`transaction_assignments`, `match_rules`). Es sind keine zusätzlichen Einstellungen oder Dienste nötig; die Migration läuft beim Start.
 
+## Mahnwesen
+
+Der Job `dunning` (täglich 6:15, sichtbar unter **System → Hintergrundjobs**) vergleicht die Rückstände mit den Mahnvorschlägen. Er **versendet nichts**: Vorschläge erscheinen auf der Startseite und unter **Finanzen → Mahnwesen**; Brief und E-Mail entstehen erst nach der Freigabe dort. Für die Freigabe sind nötig:
+
+- ein **Vermieterprofil** (Einstellungen → Vermieter) für Briefkopf, Absender und Bankverbindung,
+- erreichbarer **Gotenberg** (PDF) und für den E-Mail-Versand ein funktionierender Mailserver (die Mail geht über die Outbox, siehe E-Mail-Versand).
+
+Unter **Finanzen → Einstellungen Finanzen → Mahnwesen** stehen Karenzzeit, Wartezeiten zwischen den Stufen, Zahlungsfrist, Mindestbetrag, Mahngebühren je Stufe, die Verzugszinsen und der **Basiszinssatz**. Der Basiszinssatz ändert sich zum 1. Januar und 1. Juli und muss dort von Hand nachgetragen werden (Veröffentlichung der Deutschen Bundesbank); ohne Wert werden keine Verzugszinsen berechnet. Voreinstellung: keine Gebühren, keine Zinsen. Die freigegebenen Briefe liegen als PDF in der Dokumentenablage (Kategorie *Schriftverkehr*, nicht für Mieter freigegeben) und sind Teil der Datensicherung; Tabellen `dunnings` und `dunning_holds`.
+
+> Die mitgelieferte Mahnvorlage (`Pdf/Templates/dunning.sbn`, `Mail/Templates/dunning.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte, Fristen, Gebühren und Zinsen vor dem produktiven Einsatz rechtlich prüfen lassen.
+
 ## Sicherheit
 
 - TLS und HSTS über Caddy; die App setzt CSP, `X-Frame-Options: DENY`, `nosniff`, Referrer- und Permissions-Policy.

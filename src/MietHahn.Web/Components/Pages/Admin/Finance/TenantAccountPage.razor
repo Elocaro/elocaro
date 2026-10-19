@@ -1,6 +1,7 @@
 @page "/verwaltung/vertraege/{Id:guid}/konto"
 @using MietHahn.Domain.Leases
 @inject ITenantAccounts Accounts
+@inject IDunning Dunning
 @inject Redirector Redirector
 
 @if (account is null)
@@ -144,6 +145,88 @@
     </EditForm>
 </section>
 
+<section id="mahnwesen" aria-labelledby="dunning-heading">
+    <h2 id="dunning-heading">Mahnwesen</h2>
+    @if (dunning is not null)
+    {
+        @if (dunning.TerminationHint is { } hint)
+        {
+            <p class="message message-info" role="note">
+                <strong>Hinweis Kündigungsrelevanz:</strong> Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
+                (§ 543 Abs. 2 Nr. 3 BGB). Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
+            </p>
+        }
+
+        @if (dunning.Proposal is { } proposal)
+        {
+            <p class="message message-info" role="status">
+                Mahnvorschlag: <strong>@Labels.From(proposal.Level)</strong> über @Format.Money(proposal.Principal).
+                <a href="/verwaltung/finanzen/mahnungen/@proposal.Id">Prüfen und freigeben</a>
+            </p>
+        }
+
+        @if (dunning.Issued.Count > 0)
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Datum</th><th>Stufe</th><th class="number">Gesamt</th><th>Zahlbar bis</th><th>Versand</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var m in dunning.Issued)
+                        {
+                            <tr>
+                                <td>@Format.Date(m.Date)</td>
+                                <td>@Labels.From(m.Level)</td>
+                                <td class="number">@Format.Money(m.Principal + m.Fee + m.Interest)</td>
+                                <td>@Format.Date(m.Deadline)</td>
+                                <td>@(m.SentByMail ? "E-Mail" : "Post (PDF)")</td>
+                                <td><a href="/verwaltung/finanzen/mahnungen/@m.Id">Ansehen</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else if (dunning.Proposal is null)
+        {
+            <p class="small">Bisher wurde nicht gemahnt.</p>
+        }
+
+        <h3>Mahnsperre</h3>
+        @if (dunning.Holds.Count > 0)
+        {
+            <form method="post" @formname="end-hold" @onsubmit="EndHoldAsync">
+                <AntiforgeryToken />
+                <ul>
+                    @foreach (var h in dunning.Holds)
+                    {
+                        <li>
+                            @h.Reason (@(h.Until is { } until ? "bis " + Format.Date(until) : "bis auf Weiteres"))
+                            <button type="submit" class="button" name="EndHold" value="@h.Id">Aufheben</button>
+                        </li>
+                    }
+                </ul>
+            </form>
+        }
+        else
+        {
+            <p class="small">Keine aktive Mahnsperre. Mit einer Sperre (z. B. Ratenvereinbarung) gibt es keine Mahnvorschläge für dieses Mietverhältnis.</p>
+        }
+
+        <EditForm Model="Hold" FormName="hold" OnValidSubmit="HoldAsync">
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <FormField Id="hold-reason" Label="Grund" For="() => Hold!.Reason" Required="true">
+                    <InputText id="hold-reason" @bind-Value="Hold!.Reason" />
+                </FormField>
+                <FormField Id="hold-until" Label="Bis (optional)" For="() => Hold!.Until" Hint="Leer = bis zur Aufhebung.">
+                    <InputDate id="hold-until" @bind-Value="Hold!.Until" />
+                </FormField>
+            </div>
+            <button type="submit" class="button">Mahnsperre setzen</button>
+        </EditForm>
+    }
+</section>
+
 <section>
     <h2>Mieten je Jahr</h2>
     @if (account.AnnualValues.Count == 0)
@@ -192,14 +275,32 @@
     [SupplyParameterFromForm(FormName = "delete")]
     private string? Delete { get; set; }
 
+    [SupplyParameterFromForm(FormName = "hold")]
+    private DunningHoldInput? Hold { get; set; }
+
+    [SupplyParameterFromForm(FormName = "end-hold")]
+    private Guid? EndHold { get; set; }
+
+    private LeaseDunning? dunning;
+
     private string Target => $"/verwaltung/vertraege/{Id}/konto";
 
     protected override async Task OnInitializedAsync()
     {
         Payment ??= new();
         Charge ??= new();
+        Hold ??= new();
         account = await Accounts.GetAsync(Id);
+        if (account is not null)
+        {
+            dunning = await Dunning.ForLeaseAsync(Id);
+        }
     }
+
+    private Task HoldAsync() => ExecuteAsync(Dunning.AddHoldAsync(Id, Hold!), "Die Mahnsperre wurde gesetzt.");
+
+    private Task EndHoldAsync() =>
+        EndHold is { } holdId ? ExecuteAsync(Dunning.EndHoldAsync(holdId), "Die Mahnsperre wurde aufgehoben.") : Task.CompletedTask;
 
     private async Task RefreshAsync()
     {

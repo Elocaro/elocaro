@@ -28,7 +28,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
         }
 
         var settings = await FinanceSettingsService.GetOrCreateAsync(db, cancellationToken);
-        var (rentalUnit, tenant) = (await DescriptionsAsync([lease], cancellationToken))[lease.Id];
+        var (rentalUnit, tenant) = (await DescriptionsAsync(db, [lease], cancellationToken))[lease.Id];
         var charges = await db.Set<Charge>().AsNoTracking().Where(s => s.LeaseId == leaseId).ToListAsync(cancellationToken);
         var payments = await db.Set<Payment>().AsNoTracking().Where(z => z.LeaseId == leaseId).ToListAsync(cancellationToken);
         var result = Allocate(charges, payments, settings.Allocation);
@@ -193,15 +193,27 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
             return payment.Id;
         });
 
-    public async Task<IReadOnlyList<OpenItem>> OpenItemsAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<OpenItem>> OpenItemsAsync(CancellationToken cancellationToken = default) => OpenItemsAsync(null, cancellationToken);
+
+    public Task<IReadOnlyList<OpenItem>> OpenItemsForLeaseAsync(Guid leaseId, CancellationToken cancellationToken = default) => OpenItemsAsync(leaseId, cancellationToken);
+
+    private async Task<IReadOnlyList<OpenItem>> OpenItemsAsync(Guid? onlyLease, CancellationToken cancellationToken)
     {
         var today = GermanTime.Today(clock.GetUtcNow());
         var settings = await FinanceSettingsService.GetOrCreateAsync(db, cancellationToken);
-        var charges = (await db.Set<Charge>().AsNoTracking().ToListAsync(cancellationToken)).ToLookup(s => s.LeaseId);
-        var payments = (await db.Set<Payment>().AsNoTracking().ToListAsync(cancellationToken)).ToLookup(z => z.LeaseId);
+        var chargeQuery = db.Set<Charge>().AsNoTracking();
+        var paymentQuery = db.Set<Payment>().AsNoTracking();
+        if (onlyLease is { } only)
+        {
+            chargeQuery = chargeQuery.Where(s => s.LeaseId == only);
+            paymentQuery = paymentQuery.Where(z => z.LeaseId == only);
+        }
+
+        var charges = (await chargeQuery.ToListAsync(cancellationToken)).ToLookup(s => s.LeaseId);
+        var payments = (await paymentQuery.ToListAsync(cancellationToken)).ToLookup(z => z.LeaseId);
         var leaseIds = charges.Select(g => g.Key).ToList();
         var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Where(v => leaseIds.Contains(v.Id)).ToListAsync(cancellationToken);
-        var descriptions = await DescriptionsAsync(leases, cancellationToken);
+        var descriptions = await DescriptionsAsync(db, leases, cancellationToken);
 
         var items = new List<OpenItem>();
         foreach (var lease in leases)
@@ -239,7 +251,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
             .ToList();
     }
 
-    private async Task<Dictionary<Guid, (string RentalUnit, string Tenant)>> DescriptionsAsync(List<Lease> leases, CancellationToken cancellationToken)
+    internal static async Task<Dictionary<Guid, (string RentalUnit, string Tenant)>> DescriptionsAsync(MietHahnDbContext db, List<Lease> leases, CancellationToken cancellationToken)
     {
         var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
         var personIds = leases.SelectMany(v => v.Parties.Select(p => p.PersonId)).Distinct().ToList();
@@ -284,7 +296,23 @@ internal sealed class FinanceSettingsService(MietHahnDbContext db) : IFinanceSet
     public async Task<FinanceSettingsInput> GetAsync(CancellationToken cancellationToken = default)
     {
         var settings = await GetOrCreateAsync(db, cancellationToken);
-        return new FinanceSettingsInput { AccountingStart = settings.AccountingStart, Allocation = settings.Allocation };
+        return new FinanceSettingsInput
+        {
+            AccountingStart = settings.AccountingStart,
+            Allocation = settings.Allocation,
+            DunningGraceDays = settings.DunningGraceDays,
+            DaysUntilFirstNotice = settings.DaysUntilFirstNotice,
+            DaysUntilSecondNotice = settings.DaysUntilSecondNotice,
+            DunningDeadlineDays = settings.DunningDeadlineDays,
+            DunningMinimumAmount = settings.DunningMinimumAmount,
+            ReminderFee = settings.ReminderFee,
+            FirstNoticeFee = settings.FirstNoticeFee,
+            SecondNoticeFee = settings.SecondNoticeFee,
+            ChargeDefaultInterest = settings.ChargeDefaultInterest,
+            BaseRate = settings.BaseRate,
+            BaseRateAsOf = settings.BaseRateAsOf,
+            InterestMarginPoints = settings.InterestMarginPoints,
+        };
     }
 
     public async Task SaveAsync(FinanceSettingsInput data, CancellationToken cancellationToken = default)
@@ -298,6 +326,18 @@ internal sealed class FinanceSettingsService(MietHahnDbContext db) : IFinanceSet
 
         settings.SetAccountingStart(data.AccountingStart);
         settings.Allocation = data.Allocation;
+        settings.DunningGraceDays = data.DunningGraceDays;
+        settings.DaysUntilFirstNotice = data.DaysUntilFirstNotice;
+        settings.DaysUntilSecondNotice = data.DaysUntilSecondNotice;
+        settings.DunningDeadlineDays = data.DunningDeadlineDays;
+        settings.DunningMinimumAmount = data.DunningMinimumAmount ?? 0m;
+        settings.ReminderFee = data.ReminderFee ?? 0m;
+        settings.FirstNoticeFee = data.FirstNoticeFee ?? 0m;
+        settings.SecondNoticeFee = data.SecondNoticeFee ?? 0m;
+        settings.ChargeDefaultInterest = data.ChargeDefaultInterest;
+        settings.BaseRate = data.BaseRate;
+        settings.BaseRateAsOf = data.BaseRate is null ? null : data.BaseRateAsOf;
+        settings.InterestMarginPoints = data.InterestMarginPoints ?? DunningRules.Default.InterestMarginPoints;
         await db.SaveChangesAsync(cancellationToken);
     }
 

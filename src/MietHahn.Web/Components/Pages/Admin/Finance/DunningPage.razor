@@ -1,0 +1,224 @@
+@page "/verwaltung/finanzen/mahnungen/{Id:guid}"
+@inject IDunning Dunning
+@inject Redirector Redirector
+
+@if (details is null)
+{
+    <PageHeader Title="Mahnung nicht gefunden" Back="/verwaltung/finanzen/mahnungen" BackText="Mahnwesen" />
+    <StatusMessage />
+    <ErrorList Errors="errors" />
+    <p class="message message-info" role="status">Der Vorschlag existiert nicht mehr, zum Beispiel weil der Rückstand inzwischen bezahlt wurde. Es wurde nichts versendet.</p>
+
+    @* A form submitted from an outdated page still finds its handler and gets a clear answer instead of an error page. *@
+    <form method="post" @formname="issue" @onsubmit="OutdatedAsync" hidden>
+        <AntiforgeryToken />
+    </form>
+    <form method="post" @formname="dismiss" @onsubmit="OutdatedAsync" hidden>
+        <AntiforgeryToken />
+    </form>
+    return;
+}
+
+@{
+    var row = details.Row;
+}
+
+<PageHeader Title="@($"{Labels.From(row.Level)}: {row.Tenant}")" Subtitle="@row.RentalUnit" Back="/verwaltung/finanzen/mahnungen" BackText="Mahnwesen" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+@if (row.Status == DunningStatus.Issued)
+{
+    <dl class="details">
+        <dt>Stufe</dt><dd>@Labels.From(row.Level)</dd>
+        <dt>Datum</dt><dd>@Format.Date(row.Date)</dd>
+        <dt>Zahlbar bis</dt><dd>@Format.Date(row.Deadline)</dd>
+        <dt>Rückstand</dt><dd>@Format.Money(row.Principal)</dd>
+        <dt>Mahngebühr</dt><dd>@Format.Money(row.Fee)</dd>
+        <dt>Verzugszinsen</dt><dd>@Format.Money(row.Interest)</dd>
+        <dt>Versand</dt><dd>@(row.SentByMail ? "per E-Mail versendet" : "nicht per E-Mail versendet (Postversand mit dem PDF)")</dd>
+    </dl>
+    @if (row.FileId is { } file)
+    {
+        <p><a class="button button-primary" href="/dateien/@file?download=true">PDF herunterladen</a></p>
+        <iframe class="document-preview" src="/dateien/@file" title="@($"{Labels.From(row.Level)} vom {Format.Date(row.Date)}")"></iframe>
+    }
+    return;
+}
+
+@if (row.Status == DunningStatus.Dismissed)
+{
+    <p class="message message-info" role="status">Dieser Vorschlag wurde am @Format.Date(row.Date) verworfen.</p>
+    return;
+}
+
+<p class="message message-info" role="note">
+    Basisvorlage, keine Rechtsberatung: Bitte Text, Fristen und Beträge vor der Freigabe prüfen. Es wird nichts versendet, bevor Sie „Freigeben“ wählen.
+</p>
+
+@if (details.TerminationHint is { } hint)
+{
+    <p class="message message-info" role="note">
+        <strong>Kündigungsrelevanz:</strong>
+        Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
+        (@(hint.Relevance.TwoMonthlyRents ? "mindestens zwei Monatsmieten" : "mehr als eine Monatsmiete in zwei aufeinanderfolgenden Terminen")),
+        vgl. § 543 Abs. 2 Nr. 3 BGB. Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
+    </p>
+}
+
+@if (details.LandlordProfileMissing)
+{
+    <p class="message message-error" role="alert">Es ist noch kein Vermieterprofil hinterlegt. Es wird für Briefkopf und Absender benötigt. <a href="/verwaltung/einstellungen/vermieter">Jetzt anlegen</a></p>
+}
+
+<dl class="details">
+    <dt>Stufe</dt><dd>@Labels.From(row.Level)</dd>
+    <dt>Rückstand</dt><dd>@Format.Money(row.Principal) (ältester Posten fällig am @Format.Date(row.OldestDue))</dd>
+    <dt>Mahngebühr</dt><dd>@(row.Fee > 0 ? Format.Money(row.Fee) : "keine")</dd>
+    <dt>Verzugszinsen</dt>
+    <dd>
+        @if (row.Interest > 0)
+        {
+            <span>@Format.Money(row.Interest) (@Format.Number(details.InterestRate) % p. a.)</span>
+        }
+        else if (row.Level == DunningLevel.Reminder)
+        {
+            <span>bei der Zahlungserinnerung keine</span>
+        }
+        else if (details.InterestEnabled && details.InterestRate is null)
+        {
+            <span>Basiszinssatz fehlt, <a href="/verwaltung/finanzen/einstellungen#mahnwesen">in den Einstellungen pflegen</a></span>
+        }
+        else
+        {
+            <span>nicht berechnet</span>
+        }
+    </dd>
+    <dt>Zahlungsfrist</dt><dd>bis @Format.Date(details.Deadline) (ab heute)</dd>
+    <dt>Anschrift</dt><dd>@string.Join(", ", details.Address)</dd>
+    <dt>E-Mail</dt><dd>@(details.Recipients.Count == 0 ? "keine hinterlegt" : string.Join(", ", details.Recipients))</dd>
+</dl>
+
+<section>
+    <h2>Offene Posten</h2>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Forderung</th><th>Fällig</th><th class="number">Betrag</th><th class="number">Offen</th></tr></thead>
+            <tbody>
+                @foreach (var c in details.Claims)
+                {
+                    <tr><td>@c.Text</td><td>@Format.Date(c.Due)</td><td class="number">@Format.Money(c.Amount)</td><td class="number">@Format.Money(c.Open)</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2>Freigabe</h2>
+    <EditForm Model="Data" FormName="issue" OnValidSubmit="SubmitAsync">
+        <DataAnnotationsValidator />
+        @if (row.Fee > 0)
+        {
+            <div class="field field-checkbox">
+                <InputCheckbox id="include-fee" @bind-Value="Data!.IncludeFee" />
+                <label for="include-fee">Mahngebühr von @Format.Money(row.Fee) berechnen und im Mieterkonto buchen (nur tatsächlich entstandene Kosten)</label>
+            </div>
+        }
+        @if (row.Interest > 0)
+        {
+            <div class="field field-checkbox">
+                <InputCheckbox id="include-interest" @bind-Value="Data!.IncludeInterest" />
+                <label for="include-interest">Verzugszinsen von @Format.Money(row.Interest) berechnen und im Mieterkonto buchen</label>
+            </div>
+        }
+        <div class="field field-checkbox">
+            <InputCheckbox id="send-by-mail" @bind-Value="Data!.SendByMail" disabled="@(details.Recipients.Count == 0)" />
+            <label for="send-by-mail">Zusätzlich per E-Mail an @(details.Recipients.Count == 0 ? "die Mieter (keine Adresse hinterlegt)" : string.Join(", ", details.Recipients)) senden</label>
+            <span class="field-hint">Ohne E-Mail entsteht nur das PDF zum Herunterladen für den Postversand.</span>
+        </div>
+        <div class="form-row">
+            <button type="submit" class="button button-primary" name="Action" value="issue" disabled="@details.LandlordProfileMissing">Freigeben</button>
+            <button type="submit" class="button" name="Action" value="preview">Vorschau aktualisieren</button>
+        </div>
+    </EditForm>
+    <DangerAction Text="Vorschlag verwerfen" Confirmation="Der Vorschlag wird verworfen. Für dieses Mietverhältnis gibt es danach 14 Tage lang keinen neuen Vorschlag." ConfirmText="Ja, verwerfen" FormName="dismiss" Confirmed="DismissAsync" />
+</section>
+
+@if (!details.LandlordProfileMissing)
+{
+    <section>
+        <h2>Vorschau</h2>
+        <iframe class="document-preview" src="@PreviewUrl" title="Vorschau: @Labels.From(row.Level)"></iframe>
+    </section>
+}
+
+@code {
+    private DunningDetails? details;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "issue")]
+    private DunningIssueInput? Data { get; set; }
+
+    [SupplyParameterFromForm(FormName = "issue")]
+    private string? Action { get; set; }
+
+    private string PreviewUrl => $"/verwaltung/finanzen/mahnungen/{Id}/vorschau.pdf?gebuehr={Data!.IncludeFee.ToString().ToLowerInvariant()}&zinsen={Data.IncludeInterest.ToString().ToLowerInvariant()}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var posted = Data;
+        Data ??= new();
+
+        // A submitted form is processed against the stored proposal; IssueAsync checks the arrears itself
+        // (otherwise the revalidation would remove the proposal and the form would no longer exist).
+        details = posted is null ? await Dunning.GetAsync(Id) : await Dunning.PeekAsync(Id);
+        if (posted is null)
+        {
+            Data.SendByMail = details?.Recipients.Count > 0;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (Action != "issue")
+        {
+            // Preview only: the page is shown again with the chosen options.
+            return;
+        }
+
+        var result = await Dunning.IssueAsync(Id, Data!);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/finanzen/mahnungen/{Id}", Data!.SendByMail ? "Die Mahnung wurde freigegeben und per E-Mail versendet. Das PDF steht zum Download bereit." : "Die Mahnung wurde freigegeben. Das PDF steht zum Download für den Postversand bereit.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+            details = await Dunning.GetAsync(Id);
+        }
+    }
+
+    private void OutdatedAsync() =>
+        errors = ["Der Rückstand besteht nicht mehr (z. B. weil inzwischen gezahlt wurde) oder der Vorschlag wurde bereits entschieden. Es wurde nichts versendet."];
+
+    private async Task DismissAsync()
+    {
+        var result = await Dunning.DismissAsync(Id);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage("/verwaltung/finanzen/mahnungen", "Der Vorschlag wurde verworfen.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

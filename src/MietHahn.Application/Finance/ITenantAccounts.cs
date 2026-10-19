@@ -28,6 +28,9 @@ public interface ITenantAccounts
 
     /// <summary>Due, not (fully) paid claims across all tenancies.</summary>
     Task<IReadOnlyList<OpenItem>> OpenItemsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Due, not (fully) paid claims of one tenancy.</summary>
+    Task<IReadOnlyList<OpenItem>> OpenItemsForLeaseAsync(Guid leaseId, CancellationToken cancellationToken = default);
 }
 
 public interface IFinanceSettings
@@ -43,6 +46,41 @@ public sealed class FinanceSettingsInput
     public DateOnly? AccountingStart { get; set; }
 
     public AllocationOrder Allocation { get; set; }
+
+    [Range(0, 60, ErrorMessage = "Die Karenzzeit liegt zwischen 0 und 60 Tagen.")]
+    public int DunningGraceDays { get; set; } = DunningRules.Default.GraceDays;
+
+    [Range(1, 90, ErrorMessage = "Die Wartezeit liegt zwischen 1 und 90 Tagen.")]
+    public int DaysUntilFirstNotice { get; set; } = DunningRules.Default.DaysUntilFirstNotice;
+
+    [Range(1, 90, ErrorMessage = "Die Wartezeit liegt zwischen 1 und 90 Tagen.")]
+    public int DaysUntilSecondNotice { get; set; } = DunningRules.Default.DaysUntilSecondNotice;
+
+    [Range(1, 60, ErrorMessage = "Die Zahlungsfrist liegt zwischen 1 und 60 Tagen.")]
+    public int DunningDeadlineDays { get; set; } = DunningRules.Default.DeadlineDays;
+
+    [Range(typeof(decimal), "0", "1000", ErrorMessage = "Der Mindestbetrag liegt zwischen 0 und 1.000 €.", ParseLimitsInInvariantCulture = true)]
+    public decimal? DunningMinimumAmount { get; set; } = DunningRules.Default.MinimumAmount;
+
+    [Range(typeof(decimal), "0", "100", ErrorMessage = "Die Mahngebühr liegt zwischen 0 und 100 €.", ParseLimitsInInvariantCulture = true)]
+    public decimal? ReminderFee { get; set; }
+
+    [Range(typeof(decimal), "0", "100", ErrorMessage = "Die Mahngebühr liegt zwischen 0 und 100 €.", ParseLimitsInInvariantCulture = true)]
+    public decimal? FirstNoticeFee { get; set; }
+
+    [Range(typeof(decimal), "0", "100", ErrorMessage = "Die Mahngebühr liegt zwischen 0 und 100 €.", ParseLimitsInInvariantCulture = true)]
+    public decimal? SecondNoticeFee { get; set; }
+
+    public bool ChargeDefaultInterest { get; set; }
+
+    /// <summary>Basiszinssatz in percent p.a. as published by the Bundesbank (may be negative).</summary>
+    [Range(typeof(decimal), "-10", "25", ErrorMessage = "Der Basiszinssatz liegt zwischen -10 % und 25 %.", ParseLimitsInInvariantCulture = true)]
+    public decimal? BaseRate { get; set; }
+
+    public DateOnly? BaseRateAsOf { get; set; }
+
+    [Range(typeof(decimal), "0", "20", ErrorMessage = "Der Aufschlag liegt zwischen 0 und 20 Prozentpunkten.", ParseLimitsInInvariantCulture = true)]
+    public decimal? InterestMarginPoints { get; set; } = DunningRules.Default.InterestMarginPoints;
 }
 
 public sealed class ChargeInput

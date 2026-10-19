@@ -76,7 +76,10 @@ public sealed class Charge : Entity
 
     public bool Automatic => Kind == ChargeType.Rent;
 
-    public AllocationRank Rank => Kind switch
+    public AllocationRank Rank => RankOf(Kind);
+
+    /// <summary>Rank of a claim type under § 367 BGB: costs, interest, otherwise principal claim.</summary>
+    public static AllocationRank RankOf(ChargeType kind) => kind switch
     {
         ChargeType.DunningFee or ChargeType.ReturnedDebitFee => AllocationRank.Costs,
         ChargeType.DefaultInterest => AllocationRank.Interest,
@@ -230,6 +233,44 @@ public sealed class FinanceSettings : Entity
     public DateOnly? AccountingStart { get; private set; }
 
     public AllocationOrder Allocation { get; set; }
+
+    /// <summary>Dunning: days after the due date until a claim counts as arrears (grace period).</summary>
+    public int DunningGraceDays { get; set; } = DunningRules.Default.GraceDays;
+
+    /// <summary>Days after the payment reminder until the first notice is proposed.</summary>
+    public int DaysUntilFirstNotice { get; set; } = DunningRules.Default.DaysUntilFirstNotice;
+
+    /// <summary>Days after the first notice until the second notice is proposed.</summary>
+    public int DaysUntilSecondNotice { get; set; } = DunningRules.Default.DaysUntilSecondNotice;
+
+    /// <summary>Payment period set in the dunning letter, in days from the letter date.</summary>
+    public int DunningDeadlineDays { get; set; } = DunningRules.Default.DeadlineDays;
+
+    /// <summary>Arrears below this amount are not dunned.</summary>
+    public decimal DunningMinimumAmount { get; set; } = DunningRules.Default.MinimumAmount;
+
+    /// <summary>Dunning fee per level (actual costs only); 0 = none.</summary>
+    public decimal ReminderFee { get; set; }
+
+    public decimal FirstNoticeFee { get; set; }
+
+    public decimal SecondNoticeFee { get; set; }
+
+    /// <summary>Whether default interest is calculated and demanded from the first notice on.</summary>
+    public bool ChargeDefaultInterest { get; set; }
+
+    /// <summary>Basiszinssatz (§ 247 BGB) in percent p.a. as currently valid; may be negative. Empty = no interest.</summary>
+    public decimal? BaseRate { get; set; }
+
+    /// <summary>When the base rate was last maintained (it changes on 1 January and 1 July).</summary>
+    public DateOnly? BaseRateAsOf { get; set; }
+
+    /// <summary>Margin over the base rate in percentage points (§ 288 Abs. 1 BGB: 5 for consumers).</summary>
+    public decimal InterestMarginPoints { get; set; } = DunningRules.Default.InterestMarginPoints;
+
+    public DunningRules DunningRules => new(
+        DunningGraceDays, DaysUntilFirstNotice, DaysUntilSecondNotice, DunningDeadlineDays, DunningMinimumAmount,
+        ReminderFee, FirstNoticeFee, SecondNoticeFee, ChargeDefaultInterest, BaseRate, InterestMarginPoints);
 
     public void SetAccountingStart(DateOnly? from) =>
         AccountingStart = from is { } day ? new DateOnly(day.Year, day.Month, 1) : null;

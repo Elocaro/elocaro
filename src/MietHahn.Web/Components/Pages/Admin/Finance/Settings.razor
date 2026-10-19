@@ -3,7 +3,7 @@
 @inject ITenantAccounts Accounts
 @inject Redirector Redirector
 
-<PageHeader Title="Einstellungen Finanzen" Subtitle="Buchhaltungsbeginn und Verrechnung von Zahlungen." />
+<PageHeader Title="Einstellungen Finanzen" Subtitle="Buchhaltungsbeginn, Verrechnung von Zahlungen und Mahnwesen." />
 
 <StatusMessage />
 
@@ -28,6 +28,64 @@
         </InputRadioGroup>
         <span class="field-hint">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
     </fieldset>
+    <section id="mahnwesen" aria-labelledby="dunning-heading">
+        <h2 id="dunning-heading">Mahnwesen</h2>
+        <p class="message message-info" role="note">
+            Die Vorgaben sind Voreinstellungen und <strong>keine Rechtsberatung</strong>. Mahngebühren dürfen nur tatsächlich entstandene Kosten
+            abdecken, die Verzugszinsen und die Mahnvorlage sollten vor dem produktiven Einsatz rechtlich geprüft werden.
+        </p>
+        <div class="form-grid">
+            <FormField Id="dunning-grace-days" Label="Karenzzeit (Tage)" For="() => Data!.DunningGraceDays"
+                       Hint="Ein Posten gilt erst nach so vielen Tagen über der Fälligkeit als Rückstand.">
+                <InputNumber id="dunning-grace-days" @bind-Value="Data!.DunningGraceDays" />
+            </FormField>
+            <FormField Id="dunning-first-notice-days" Label="Tage bis zur 1. Mahnung" For="() => Data!.DaysUntilFirstNotice"
+                       Hint="Wartezeit nach der Zahlungserinnerung.">
+                <InputNumber id="dunning-first-notice-days" @bind-Value="Data!.DaysUntilFirstNotice" />
+            </FormField>
+            <FormField Id="dunning-second-notice-days" Label="Tage bis zur 2. Mahnung" For="() => Data!.DaysUntilSecondNotice"
+                       Hint="Wartezeit nach der 1. Mahnung.">
+                <InputNumber id="dunning-second-notice-days" @bind-Value="Data!.DaysUntilSecondNotice" />
+            </FormField>
+            <FormField Id="dunning-deadline-days" Label="Zahlungsfrist im Schreiben (Tage)" For="() => Data!.DunningDeadlineDays">
+                <InputNumber id="dunning-deadline-days" @bind-Value="Data!.DunningDeadlineDays" />
+            </FormField>
+            <FormField Id="dunning-minimum-amount" Label="Mindestbetrag" For="() => Data!.DunningMinimumAmount"
+                       Hint="Rückstände darunter werden nicht gemahnt.">
+                <InputAmount id="dunning-minimum-amount" @bind-Value="Data!.DunningMinimumAmount" />
+            </FormField>
+            <FormField Id="reminder-fee" Label="Gebühr Zahlungserinnerung" For="() => Data!.ReminderFee" Hint="Üblicherweise 0 €.">
+                <InputAmount id="reminder-fee" @bind-Value="Data!.ReminderFee" />
+            </FormField>
+            <FormField Id="first-notice-fee" Label="Gebühr 1. Mahnung" For="() => Data!.FirstNoticeFee" Hint="Nur tatsächlich entstandene Kosten (z. B. Porto); 0 € = keine.">
+                <InputAmount id="first-notice-fee" @bind-Value="Data!.FirstNoticeFee" />
+            </FormField>
+            <FormField Id="second-notice-fee" Label="Gebühr 2. Mahnung" For="() => Data!.SecondNoticeFee" Hint="Nur tatsächlich entstandene Kosten; 0 € = keine.">
+                <InputAmount id="second-notice-fee" @bind-Value="Data!.SecondNoticeFee" />
+            </FormField>
+        </div>
+        <div class="field field-checkbox">
+            <InputCheckbox id="charge-default-interest" @bind-Value="Data!.ChargeDefaultInterest" />
+            <label for="charge-default-interest">Verzugszinsen ab der 1. Mahnung berechnen (§ 288 Abs. 1 BGB: Basiszinssatz + 5 Prozentpunkte)</label>
+        </div>
+        <div class="form-grid">
+            <FormField Id="base-rate" Label="Basiszinssatz (% p. a.)" For="() => Data!.BaseRate"
+                       Hint="Ändert sich zum 1.1. und 1.7.; den aktuellen Wert veröffentlicht die Deutsche Bundesbank. Ohne Wert werden keine Zinsen berechnet.">
+                <InputNumber id="base-rate" @bind-Value="Data!.BaseRate" step="0.01" />
+            </FormField>
+            <FormField Id="base-rate-as-of" Label="Basiszinssatz gültig seit" For="() => Data!.BaseRateAsOf" Hint="Zur Kontrolle, wann der Wert zuletzt gepflegt wurde.">
+                <InputDate id="base-rate-as-of" @bind-Value="Data!.BaseRateAsOf" />
+            </FormField>
+            <FormField Id="interest-margin" Label="Aufschlag (Prozentpunkte)" For="() => Data!.InterestMarginPoints"
+                       Hint="Gesetzlich 5 Prozentpunkte bei Verbrauchern (§ 288 Abs. 1 BGB).">
+                <InputNumber id="interest-margin" @bind-Value="Data!.InterestMarginPoints" step="0.01" />
+            </FormField>
+        </div>
+        @if (Data!.ChargeDefaultInterest && Data.BaseRate is null)
+        {
+            <p class="message message-info" role="status">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</p>
+        }
+    </section>
     <button type="submit" class="button button-primary">Speichern</button>
 </EditForm>
 

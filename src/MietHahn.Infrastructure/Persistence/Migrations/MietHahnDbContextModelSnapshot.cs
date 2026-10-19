@@ -1300,6 +1300,189 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("charges", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Finance.Dunning", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly?>("Deadline")
+                        .HasColumnType("date")
+                        .HasColumnName("deadline");
+
+                    b.Property<DateOnly?>("DecidedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("decided_on");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<decimal>("Fee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("fee");
+
+                    b.Property<Guid?>("FeeChargeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("fee_charge_id");
+
+                    b.Property<Guid?>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
+                    b.Property<decimal>("Interest")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("interest");
+
+                    b.Property<Guid?>("InterestChargeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("interest_charge_id");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("level");
+
+                    b.Property<Guid?>("MailId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mail_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<DateOnly>("OldestDue")
+                        .HasColumnType("date")
+                        .HasColumnName("oldest_due");
+
+                    b.Property<decimal>("Principal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("principal");
+
+                    b.Property<DateOnly>("ProposedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("proposed_on");
+
+                    b.Property<bool>("SentByMail")
+                        .HasColumnType("boolean")
+                        .HasColumnName("sent_by_mail");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<bool>("TerminationRelevant")
+                        .HasColumnType("boolean")
+                        .HasColumnName("termination_relevant");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_dunnings");
+
+                    b.HasIndex("FileId")
+                        .HasDatabaseName("ix_dunnings_file_id");
+
+                    b.HasIndex("LeaseId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_dunnings_proposal_unique")
+                        .HasFilter("status = 'Proposed' AND NOT deleted");
+
+                    b.HasIndex("LeaseId", "Status")
+                        .HasDatabaseName("ix_dunnings_lease_id_status");
+
+                    b.ToTable("dunnings", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Finance.DunningHold", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateOnly?>("Until")
+                        .HasColumnType("date")
+                        .HasColumnName("until");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_dunning_holds");
+
+                    b.HasIndex("LeaseId")
+                        .HasDatabaseName("ix_dunning_holds_lease_id");
+
+                    b.ToTable("dunning_holds", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Finance.FinanceSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1316,6 +1499,19 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("allocation");
 
+                    b.Property<decimal?>("BaseRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("base_rate");
+
+                    b.Property<DateOnly?>("BaseRateAsOf")
+                        .HasColumnType("date")
+                        .HasColumnName("base_rate_as_of");
+
+                    b.Property<bool>("ChargeDefaultInterest")
+                        .HasColumnType("boolean")
+                        .HasColumnName("charge_default_interest");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1325,9 +1521,52 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("created_by");
 
+                    b.Property<int>("DaysUntilFirstNotice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(14)
+                        .HasColumnName("days_until_first_notice");
+
+                    b.Property<int>("DaysUntilSecondNotice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(14)
+                        .HasColumnName("days_until_second_notice");
+
                     b.Property<bool>("Deleted")
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
+
+                    b.Property<int>("DunningDeadlineDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(7)
+                        .HasColumnName("dunning_deadline_days");
+
+                    b.Property<int>("DunningGraceDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5)
+                        .HasColumnName("dunning_grace_days");
+
+                    b.Property<decimal>("DunningMinimumAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(5m)
+                        .HasColumnName("dunning_minimum_amount");
+
+                    b.Property<decimal>("FirstNoticeFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("first_notice_fee");
+
+                    b.Property<decimal>("InterestMarginPoints")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(5m)
+                        .HasColumnName("interest_margin_points");
 
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1337,6 +1576,16 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("modified_by");
+
+                    b.Property<decimal>("ReminderFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("reminder_fee");
+
+                    b.Property<decimal>("SecondNoticeFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("second_notice_fee");
 
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
@@ -3689,6 +3938,32 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_charges_lease_lease_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Finance.Dunning", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_dunnings_stored_file_file_id");
+
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_dunnings_lease_lease_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Finance.DunningHold", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_dunning_holds_lease_lease_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Finance.Payment", b =>

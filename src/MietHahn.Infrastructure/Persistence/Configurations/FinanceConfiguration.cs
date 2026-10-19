@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MietHahn.Domain.Files;
 using MietHahn.Domain.Finance;
 using MietHahn.Domain.Leases;
 
@@ -43,5 +44,44 @@ internal sealed class FinanceSettingsConfiguration : IEntityTypeConfiguration<Fi
     {
         builder.ToTable("finance_settings");
         builder.Property(f => f.Allocation).HasConversion<string>().HasMaxLength(30);
+
+        // Defaults also apply to the existing record when the columns are added.
+        builder.Property(f => f.DunningGraceDays).HasDefaultValue(DunningRules.Default.GraceDays);
+        builder.Property(f => f.DaysUntilFirstNotice).HasDefaultValue(DunningRules.Default.DaysUntilFirstNotice);
+        builder.Property(f => f.DaysUntilSecondNotice).HasDefaultValue(DunningRules.Default.DaysUntilSecondNotice);
+        builder.Property(f => f.DunningDeadlineDays).HasDefaultValue(DunningRules.Default.DeadlineDays);
+        builder.Property(f => f.DunningMinimumAmount).HasDefaultValue(DunningRules.Default.MinimumAmount);
+        builder.Property(f => f.InterestMarginPoints).HasPrecision(5, 2).HasDefaultValue(DunningRules.Default.InterestMarginPoints);
+        builder.Property(f => f.BaseRate).HasPrecision(5, 2);
+        builder.Ignore(f => f.DunningRules);
+    }
+}
+
+internal sealed class DunningConfiguration : IEntityTypeConfiguration<Dunning>
+{
+    public void Configure(EntityTypeBuilder<Dunning> builder)
+    {
+        builder.ToTable("dunnings");
+        builder.Property(m => m.Level).HasConversion<string>().HasMaxLength(20);
+        builder.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
+        builder.HasOne<Lease>().WithMany().HasForeignKey(m => m.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<StoredFile>().WithMany().HasForeignKey(m => m.FileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(m => new { m.LeaseId, m.Status });
+
+        // At most one open proposal per tenancy (idempotent even with parallel job runs).
+        builder.HasIndex(m => m.LeaseId).IsUnique()
+            .HasFilter("status = 'Proposed' AND NOT deleted")
+            .HasDatabaseName("ix_dunnings_proposal_unique");
+    }
+}
+
+internal sealed class DunningHoldConfiguration : IEntityTypeConfiguration<DunningHold>
+{
+    public void Configure(EntityTypeBuilder<DunningHold> builder)
+    {
+        builder.ToTable("dunning_holds");
+        builder.Property(s => s.Reason).HasMaxLength(500);
+        builder.HasOne<Lease>().WithMany().HasForeignKey(s => s.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(s => s.LeaseId);
     }
 }

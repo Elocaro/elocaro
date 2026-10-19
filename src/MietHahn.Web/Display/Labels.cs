@@ -233,4 +233,13 @@ public static class Labels
         ReadingType.Removal => "Ausbau",
         _ => "Ablesung",
     };
+
+    public static string From(DunningLevel value) => value.Name();
+
+    public static string From(DunningStatus value) => value switch
+    {
+        DunningStatus.Issued => "freigegeben",
+        DunningStatus.Dismissed => "verworfen",
+        _ => "Vorschlag",
+    };
 }

@@ -197,6 +197,9 @@ public static class DependencyInjection
         services.AddScoped<ITenantAccounts, TenantAccounts>();
         services.AddScoped<IFinanceSettings, FinanceSettingsService>();
         services.AddScoped<ITodoSource, FinanceTodos>();
+        services.AddScoped<IDunning, DunningService>();
+        services.AddScoped<ITodoSource, DunningTodos>();
+        services.AddScoped<IPersonalDataSource, DunningPersonalData>();
         services.AddScoped<IPersonalDataSource, TenantAccountPersonalData>();
         services.AddScoped<IBankService, BankService>();
         services.AddScoped<IPaymentAssignment, PaymentAssignment>();
@@ -250,6 +253,7 @@ public static class DependencyInjection
             q.ScheduleDaily<AuditCleanupJob>(AuditCleanupJob.Key, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
             q.ScheduleDaily<RentStepJob>(RentStepJob.Key, "Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins", 0, 30);
             q.ScheduleDaily<ChargeJob>(ChargeJob.Key, "Erzeugt die Monatsmieten (Sollstellungen) und gleicht sie an Vertragsänderungen an", 0, 40);
+            q.ScheduleDaily<DunningJob>(DunningJob.Key, "Erkennt Rückstände und schlägt Mahnungen vor (versendet nichts, Freigabe nötig)", 6, 15);
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
