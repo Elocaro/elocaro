@@ -308,7 +308,7 @@ dotnet test -- --report-trx --results-directory testergebnisse --coverage --cove
 
 | Workflow | Auslöser | Inhalt |
 |---|---|---|
-| `.github/workflows/ci.yml` | Push auf `main`/`ccr-*`, Pull Requests, manuell | Restore, `dotnet format --verify-no-changes`, Release-Build (Warnungen sind Fehler), Playwright-Chromium installieren, alle Tests inkl. Testcontainers und Browser-Tests. TRX und Cobertura als Artefakt `testergebnisse` (14 Tage). Zweiter Job baut App- und Backup-Image (Layer-Cache über `type=gha`) und führt `deploy/backup/restore-test.sh` aus |
+| `.github/workflows/ci.yml` | Push auf den Default-Branch (`ccr-*`, vorsorglich auch `main`), Pull Requests, manuell | Restore, `dotnet format --verify-no-changes`, Release-Build (Warnungen sind Fehler), Playwright-Chromium installieren, alle Tests inkl. Testcontainers und Browser-Tests. TRX und Cobertura als Artefakt `testergebnisse` (14 Tage). Zweiter Job baut App- und Backup-Image (Layer-Cache über `type=gha`) und führt `deploy/backup/restore-test.sh` aus |
 | `.github/workflows/release.yml` | Tag `v*.*.*` | Multi-Arch-Images (`linux/amd64`, `linux/arm64`) `ghcr.io/ther00st3r/miethahn` und `…/miethahn-backup` mit Tags `1.2.3`, `1.2`, `sha-…` und `latest` |
 | `.github/dependabot.yml` | wöchentlich | NuGet (gruppiert: .NET-Plattform, Testpakete; Quartz-Major-Updates ausgeschlossen, siehe Architektur), Docker-Basisimages, Compose-Images, Actions |
 

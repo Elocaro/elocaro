@@ -7,12 +7,12 @@
    ```bash
    dotnet format --verify-no-changes && dotnet build && dotnet test
    ```
-3. Pull Request gegen `main`, Beschreibung mit `Closes #<Issue>`.
+3. Pull Request gegen den Default-Branch des Repositorys (derzeit `ccr-9b8ed253-urio73`), Beschreibung mit `Closes #<Issue>`.
 4. Merge erst, wenn die CI grün ist.
 
 Konventionen, Testaufbau und Migrationen: [docs/entwicklung.md](docs/entwicklung.md).
 
-## Empfohlene Branch-Protection für `main`
+## Empfohlene Branch-Protection für den Default-Branch
 
 In *Settings → Branches → Branch protection rules* (bzw. *Rulesets*):
 
@@ -23,7 +23,7 @@ In *Settings → Branches → Branch protection rules* (bzw. *Rulesets*):
 
 ## Releases
 
-Ein Tag `vX.Y.Z` auf `main` baut das Image für amd64 und arm64 und veröffentlicht es als
+Ein Tag `vX.Y.Z` auf dem Default-Branch baut das Image für amd64 und arm64 und veröffentlicht es als
 `ghcr.io/ther00st3r/miethahn:X.Y.Z` (sowie `X.Y` und `latest`):
 
 ```bash
