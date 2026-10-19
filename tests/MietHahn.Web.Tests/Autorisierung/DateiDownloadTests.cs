@@ -25,7 +25,9 @@ public class DateiDownloadTests(PostgresFixture postgres) : KontoTestBasis(postg
         Assert.Equal(HttpStatusCode.OK, antwort.StatusCode);
         Assert.Equal("application/pdf", antwort.Content.Headers.ContentType!.MediaType);
         Assert.Equal("nosniff", antwort.Headers.GetValues("X-Content-Type-Options").Single());
-        Assert.Contains("sandbox", antwort.Headers.GetValues("Content-Security-Policy").Single(), StringComparison.Ordinal);
+        // PDFs ohne „sandbox“ (sonst zeigt der Browser sie nicht an), aber ohne Skripte und nur in der App einbettbar.
+        Assert.StartsWith("default-src 'none';", antwort.Headers.GetValues("Content-Security-Policy").Single(), StringComparison.Ordinal);
+        Assert.Contains("frame-ancestors 'self'", antwort.Headers.GetValues("Content-Security-Policy").Single(), StringComparison.Ordinal);
         Assert.StartsWith("%PDF", await antwort.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
 
         using var download = await admin.Http.GetAsync(new Uri($"/dateien/{id}?download=true", UriKind.Relative), TestContext.Current.CancellationToken);

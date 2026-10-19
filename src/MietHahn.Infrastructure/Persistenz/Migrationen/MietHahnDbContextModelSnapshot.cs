@@ -244,6 +244,124 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                     b.ToTable("dateien", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Dokumente.Dokument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly?>("AblaufAm")
+                        .HasColumnType("date")
+                        .HasColumnName("ablauf_am");
+
+                    b.Property<Guid>("DateiId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("datei_id");
+
+                    b.Property<DateOnly?>("Datum")
+                        .HasColumnType("date")
+                        .HasColumnName("datum");
+
+                    b.Property<Guid?>("EinheitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("einheit_id");
+
+                    b.Property<DateTimeOffset>("ErstelltAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("erstellt_am");
+
+                    b.Property<string>("ErstelltVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("erstellt_von");
+
+                    b.Property<bool>("FuerHausmeisterFreigegeben")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fuer_hausmeister_freigegeben");
+
+                    b.Property<bool>("FuerMieterFreigegeben")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fuer_mieter_freigegeben");
+
+                    b.Property<DateTimeOffset?>("GeaendertAm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geaendert_am");
+
+                    b.Property<string>("GeaendertVon")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("geaendert_von");
+
+                    b.Property<bool>("Geloescht")
+                        .HasColumnType("boolean")
+                        .HasColumnName("geloescht");
+
+                    b.Property<string>("Kategorie")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("kategorie");
+
+                    b.Property<Guid?>("MietvertragId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mietvertrag_id");
+
+                    b.Property<string>("Notiz")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notiz");
+
+                    b.Property<Guid?>("ObjektId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("objekt_id");
+
+                    b.Property<Guid?>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.PrimitiveCollection<List<string>>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tags");
+
+                    b.Property<string>("Titel")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("titel")
+                        .UseCollation("german");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_dokumente");
+
+                    b.HasIndex("AblaufAm")
+                        .HasDatabaseName("ix_dokumente_ablauf_am")
+                        .HasFilter("ablauf_am IS NOT NULL AND NOT geloescht");
+
+                    b.HasIndex("DateiId")
+                        .HasDatabaseName("ix_dokumente_datei_id");
+
+                    b.HasIndex("EinheitId")
+                        .HasDatabaseName("ix_dokumente_einheit_id");
+
+                    b.HasIndex("MietvertragId")
+                        .HasDatabaseName("ix_dokumente_mietvertrag_id");
+
+                    b.HasIndex("ObjektId")
+                        .HasDatabaseName("ix_dokumente_objekt_id");
+
+                    b.HasIndex("PersonId")
+                        .HasDatabaseName("ix_dokumente_person_id");
+
+                    b.ToTable("dokumente", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Kommunikation.AusgehendeMail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2316,6 +2434,40 @@ namespace MietHahn.Infrastructure.Persistenz.Migrationen
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_benutzer_tokens_benutzer_user_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Dokumente.Dokument", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Dateien.Datei", null)
+                        .WithMany()
+                        .HasForeignKey("DateiId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_dokumente_dateien_datei_id");
+
+                    b.HasOne("MietHahn.Domain.Objekte.Einheit", null)
+                        .WithMany()
+                        .HasForeignKey("EinheitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_dokumente_einheit_einheit_id");
+
+                    b.HasOne("MietHahn.Domain.Vertraege.Mietvertrag", null)
+                        .WithMany()
+                        .HasForeignKey("MietvertragId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_dokumente_mietvertrag_mietvertrag_id");
+
+                    b.HasOne("MietHahn.Domain.Objekte.Objekt", null)
+                        .WithMany()
+                        .HasForeignKey("ObjektId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_dokumente_objekt_objekt_id");
+
+                    b.HasOne("MietHahn.Domain.Personen.Person", null)
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_dokumente_person_person_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Objekte.Einheit", b =>

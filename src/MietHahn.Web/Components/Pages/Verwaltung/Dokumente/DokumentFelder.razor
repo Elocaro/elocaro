@@ -1,0 +1,91 @@
+@* Eingabefelder eines Dokuments; steht innerhalb eines EditForm mit Model = Daten. *@
+<div class="formular-raster">
+    <FormularFeld Id="dokument-titel" Beschriftung="Titel" Fuer="() => Daten.Titel" Pflicht="@TitelPflicht" Hinweis="@(TitelPflicht ? null : "Leer lassen für den Dateinamen.")">
+        <InputText id="dokument-titel" @bind-Value="Daten.Titel" />
+    </FormularFeld>
+    <FormularFeld Id="dokument-kategorie" Beschriftung="Kategorie" Fuer="() => Daten.Kategorie">
+        <InputSelect id="dokument-kategorie" @bind-Value="Daten.Kategorie">
+            @foreach (var wert in Enum.GetValues<Dokumentkategorie>())
+            {
+                <option value="@wert">@Bezeichnungen.Von(wert)</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="dokument-datum" Beschriftung="Datum des Dokuments" Fuer="() => Daten.Datum">
+        <InputDate id="dokument-datum" @bind-Value="Daten.Datum" />
+    </FormularFeld>
+    <FormularFeld Id="dokument-ablauf" Beschriftung="Gültig bis" Fuer="() => Daten.AblaufAm" Hinweis="Erinnerung 60 Tage vorher, z. B. Energieausweis, Versicherung.">
+        <InputDate id="dokument-ablauf" @bind-Value="Daten.AblaufAm" />
+    </FormularFeld>
+    <FormularFeld Id="dokument-tags" Beschriftung="Schlagworte" Fuer="() => Daten.Tags" Hinweis="Kommagetrennt, z. B. „Heizung, Wartung 2026“">
+        <InputText id="dokument-tags" @bind-Value="Daten.Tags" />
+    </FormularFeld>
+</div>
+
+<h3>Bezug</h3>
+<p class="klein">Mindestens ein Bezug. Dokumente eines Vertrags erscheinen auch bei der Einheit und dem Objekt.</p>
+<div class="formular-raster">
+    <FormularFeld Id="dokument-objekt" Beschriftung="Objekt" Fuer="() => Daten.ObjektId">
+        <InputSelect id="dokument-objekt" @bind-Value="Daten.ObjektId">
+            <option value="">–</option>
+            @foreach (var option in Auswahl.Objekte)
+            {
+                <option value="@option.Id">@option.Bezeichnung</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="dokument-einheit" Beschriftung="Einheit" Fuer="() => Daten.EinheitId">
+        <InputSelect id="dokument-einheit" @bind-Value="Daten.EinheitId">
+            <option value="">–</option>
+            @foreach (var option in Auswahl.Einheiten)
+            {
+                <option value="@option.Id">@option.Bezeichnung</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="dokument-vertrag" Beschriftung="Vertrag" Fuer="() => Daten.MietvertragId">
+        <InputSelect id="dokument-vertrag" @bind-Value="Daten.MietvertragId">
+            <option value="">–</option>
+            @foreach (var option in Auswahl.Vertraege)
+            {
+                <option value="@option.Id">@option.Bezeichnung</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+    <FormularFeld Id="dokument-person" Beschriftung="Person" Fuer="() => Daten.PersonId">
+        <InputSelect id="dokument-person" @bind-Value="Daten.PersonId">
+            <option value="">–</option>
+            @foreach (var option in Auswahl.Personen)
+            {
+                <option value="@option.Id">@option.Bezeichnung</option>
+            }
+        </InputSelect>
+    </FormularFeld>
+</div>
+
+<div class="formular-zeile">
+    <div class="feld feld-checkbox">
+        <InputCheckbox id="dokument-mieter" @bind-Value="Daten.FuerMieterFreigegeben" />
+        <label for="dokument-mieter">Für Mieter freigeben</label>
+    </div>
+    <div class="feld feld-checkbox">
+        <InputCheckbox id="dokument-hausmeister" @bind-Value="Daten.FuerHausmeisterFreigegeben" />
+        <label for="dokument-hausmeister">Für Hausmeister freigeben</label>
+    </div>
+</div>
+<p class="klein">Mieter sehen freigegebene Dokumente ihres Vertrags, ihrer Person und des Hauses bzw. der Wohnung, in der sie aktuell wohnen. Hausmeister sehen freigegebene Dokumente ihrer zugeordneten Objekte.</p>
+
+<FormularFeld Id="dokument-notiz" Beschriftung="Notiz" Fuer="() => Daten.Notiz">
+    <InputTextArea id="dokument-notiz" @bind-Value="Daten.Notiz" rows="3" />
+</FormularFeld>
+
+@code {
+    [Parameter, EditorRequired]
+    public DokumentDaten Daten { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public BezugAuswahl Auswahl { get; set; } = default!;
+
+    [Parameter]
+    public bool TitelPflicht { get; set; } = true;
+}

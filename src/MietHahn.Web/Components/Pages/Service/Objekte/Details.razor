@@ -1,7 +1,10 @@
 @page "/service/objekte/{Id:guid}"
+@using MietHahn.Application.Dokumente
 @using MietHahn.Application.Objekte
+@using MietHahn.Web.Components.Pages.Verwaltung.Dokumente
 @using MietHahn.Web.Autorisierung
 @inject IObjektVerwaltung Verwaltung
+@inject IDokumentablage Dokumente
 @inject IAuthorizationService Autorisierung
 
 @if (objekt is null)
@@ -40,8 +43,17 @@
     </div>
 </section>
 
+@if (dokumente is { Count: > 0 })
+{
+    <section>
+        <h2>Dokumente</h2>
+        <DokumentTabelle Zeilen="dokumente" Intern="false" MitBezug="false" />
+    </section>
+}
+
 @code {
     private ObjektDetails? objekt;
+    private IReadOnlyList<DokumentZeile>? dokumente;
 
     [Parameter]
     public Guid Id { get; set; }
@@ -55,6 +67,7 @@
         if ((await Autorisierung.AuthorizeAsync(HttpContext.User, new ObjektRessource(Id), ObjektLesen.Anforderung)).Succeeded)
         {
             objekt = await Verwaltung.LadenAsync(Id);
+            dokumente = await Dokumente.FreigegebeneAsync(HttpContext.User, Id);
         }
     }
 }

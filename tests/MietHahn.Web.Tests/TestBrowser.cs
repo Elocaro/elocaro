@@ -24,10 +24,39 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
     {
         ArgumentNullException.ThrowIfNull(seite);
         var formular = seite.Formular(formName);
+        using var inhalt = new FormUrlEncodedContent(Werte(formular, formName, felder));
+        using var antwort = await http.PostAsync(Ziel(seite, formular), inhalt, TestContext.Current.CancellationToken);
+        return await AuswertenAsync(antwort, weiterleitungenFolgen);
+    }
+
+    /// <summary>Schickt ein Formular als multipart/form-data mit einer Datei ab (z. B. Foto-Upload).</summary>
+    public async Task<Seite> AbsendenMitDateiAsync(Seite seite, string formName, string dateiFeld, byte[] inhalt, string dateiname, string mimeTyp = "image/jpeg", IDictionary<string, string>? felder = null)
+    {
+        ArgumentNullException.ThrowIfNull(seite);
+        var formular = seite.Formular(formName);
+        using var daten = new MultipartFormDataContent();
+        foreach (var (name, wert) in Werte(formular, formName, felder))
+        {
+            daten.Add(new StringContent(wert), name);
+        }
+
+        var datei = new ByteArrayContent(inhalt);
+        datei.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeTyp);
+        daten.Add(datei, dateiFeld, dateiname);
+        using var antwort = await http.PostAsync(Ziel(seite, formular), daten, TestContext.Current.CancellationToken);
+        return await AuswertenAsync(antwort, weiterleitungenFolgen: true);
+    }
+
+    private static Uri Ziel(Seite seite, IHtmlFormElement formular) =>
+        string.IsNullOrEmpty(formular.GetAttribute("action")) ? seite.Url : new Uri(seite.Url, formular.GetAttribute("action"));
+
+    /// <summary>Feldwerte wie ein Browser (ohne Dateifelder), überschrieben mit <paramref name="felder"/>.</summary>
+    private static List<KeyValuePair<string, string>> Werte(IHtmlFormElement formular, string formName, IDictionary<string, string>? felder)
+    {
         var werte = new List<KeyValuePair<string, string>>();
         foreach (var element in formular.Elements.OfType<IHtmlInputElement>())
         {
-            if (string.IsNullOrEmpty(element.Name) || (element.Type is "checkbox" or "radio" && !element.IsChecked))
+            if (string.IsNullOrEmpty(element.Name) || element.Type == "file" || (element.Type is "checkbox" or "radio" && !element.IsChecked))
             {
                 continue;
             }
@@ -63,29 +92,7 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
             werte.Add(new(name, wert));
         }
 
-        var ziel = string.IsNullOrEmpty(formular.GetAttribute("action")) ? seite.Url : new Uri(seite.Url, formular.GetAttribute("action"));
-        using var inhalt = new FormUrlEncodedContent(werte);
-        using var antwort = await http.PostAsync(ziel, inhalt, TestContext.Current.CancellationToken);
-        return await AuswertenAsync(antwort, weiterleitungenFolgen);
-    }
-
-    /// <summary>Schickt ein Formular als multipart/form-data mit einer Datei ab (z. B. Foto-Upload).</summary>
-    public async Task<Seite> AbsendenMitDateiAsync(Seite seite, string formName, string dateiFeld, byte[] inhalt, string dateiname, string mimeTyp = "image/jpeg")
-    {
-        ArgumentNullException.ThrowIfNull(seite);
-        var formular = seite.Formular(formName);
-        using var daten = new MultipartFormDataContent();
-        foreach (var element in formular.Elements.OfType<IHtmlInputElement>().Where(e => !string.IsNullOrEmpty(e.Name) && e.Type != "file"))
-        {
-            daten.Add(new StringContent(element.Value), element.Name!);
-        }
-
-        var datei = new ByteArrayContent(inhalt);
-        datei.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeTyp);
-        daten.Add(datei, dateiFeld, dateiname);
-        var ziel = string.IsNullOrEmpty(formular.GetAttribute("action")) ? seite.Url : new Uri(seite.Url, formular.GetAttribute("action"));
-        using var antwort = await http.PostAsync(ziel, daten, TestContext.Current.CancellationToken);
-        return await AuswertenAsync(antwort, weiterleitungenFolgen: true);
+        return werte;
     }
 
     public void Dispose() => http.Dispose();

@@ -1,3 +1,4 @@
+using MietHahn.Domain.Dokumente;
 using MietHahn.Domain.Objekte;
 using MietHahn.Domain.Personen;
 using MietHahn.Domain.Vertraege;
@@ -8,6 +9,21 @@ namespace MietHahn.Web.Anzeige;
 /// <summary>Deutsche Anzeigenamen für fachliche Aufzählungen.</summary>
 public static class Bezeichnungen
 {
+    public static string Von(Dokumentkategorie wert) => wert switch
+    {
+        Dokumentkategorie.Vertrag => "Vertrag",
+        Dokumentkategorie.Protokoll => "Protokoll",
+        Dokumentkategorie.Abrechnung => "Abrechnung",
+        Dokumentkategorie.Korrespondenz => "Korrespondenz",
+        Dokumentkategorie.Rechnung => "Rechnung",
+        Dokumentkategorie.Versicherung => "Versicherung",
+        Dokumentkategorie.Energieausweis => "Energieausweis",
+        Dokumentkategorie.Grundriss => "Grundriss",
+        Dokumentkategorie.Foto => "Foto",
+        Dokumentkategorie.Hausordnung => "Hausordnung",
+        _ => "Sonstiges",
+    };
+
     public static string Von(Heizungsart wert) => wert switch
     {
         Heizungsart.Zentralheizung => "Zentralheizung",

@@ -199,7 +199,8 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - Erlaubt sind **PDF, JPG, PNG und HEIC**. Erkannt wird am Inhalt (Magic Bytes), nicht an der Endung. Maximalgröße: `Dateiablage:MaxGroesseMb` (Standard 25).
 - Fotos (JPG/PNG) werden gemäß EXIF gedreht, auf `MaxBildKante` (Standard 2560 px) verkleinert und neu kodiert. Dabei fallen **alle Metadaten inklusive GPS** weg. HEIC wird unverändert abgelegt, weil SkiaSharp es unter Linux nicht dekodiert.
 - Ablage inhaltsadressiert: `{Pfad}/{sha[0..2]}/{sha256}`. Gleiche Inhalte liegen nur einmal vor. Metadaten in `dateien`. Der Dateiname wird bereinigt (keine Pfadanteile), die Endung folgt dem erkannten Typ.
-- Abruf nur über `OeffnenAsync(id)`. Der autorisierte Download-Endpoint kommt mit dem Rollenmodell (#7).
+- Abruf nur über `OeffnenAsync(id)`; Auslieferung über `/dateien/{id}` (`?download=true` als Anhang) mit `DateiZugriffHandler`.
+- Header von `/dateien`: `nosniff`, CSP `default-src 'none'` (keine Skripte), `frame-ancestors 'self'` bzw. `X-Frame-Options: SAMEORIGIN` (Vorschau nur in der App). Alles außer PDF zusätzlich mit `sandbox`; bei PDFs fehlt sie, weil Browser PDFs in einer CSP-Sandbox nicht anzeigen.
 
 ### Datensicherung & Vollexport
 
@@ -226,6 +227,16 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - **Plausibilität** (`Zaehler.Pruefen`): Rückwärtslauf und Abweichung des Tagesverbrauchs > 50 % vom bisherigen Durchschnitt. Ohne `Bestaetigt` speichert `StandErfassenAsync` nicht, sondern liefert die Warnungen.
 - **Ablese-Runde** `/verwaltung/objekte/{id}/ablesung?einheit=&datum=&art=`: ein Zähler je Schritt, Kamera-Upload (`capture="environment"`), Überspringen, Zusammenfassung. Der Mieterwechsel verlinkt die Zwischenablesung der Einheit.
 - Dashboard: Eichfrist abgelaufen (dringend) bzw. in 90 Tagen (bald).
+
+### Dokumente
+
+- `Dokument` verweist auf eine Datei der Dateiablage und hat Titel, Kategorie, Datum, „gültig bis“, Schlagworte (`text[]`), Notiz und **mindestens einen Bezug** (Objekt, Einheit, Vertrag, Person).
+- Suche (`IDokumentablage.SucheAsync`) über Titel, Schlagworte, Notiz und Dateiname (`ILIKE`). Bezugsfilter schließen Untergeordnetes ein: Zum Objekt gehören die Dokumente seiner Einheiten und Verträge, zur Person die ihrer Verträge.
+- **Freigaben** (`DokumentFreigaben.SichtbareAsync`, gilt für Portal, Servicebereich und `/dateien` über `DokumentDateiFreigabe : IDateiFreigabe`):
+  - *Für Mieter:* Mieter (Person mit `BenutzerId`, Vertragsrolle Mieter) sehen Dokumente ihrer Person und ihrer Verträge (auch nach dem Auszug) sowie der Einheit und des Objekts, in denen sie **aktuell** wohnen.
+  - *Für Hausmeister:* Dokumente zu zugeordneten Objekten, deren Einheiten und Verträgen.
+- Oberfläche: `/verwaltung/dokumente` (Suche, Kategorie), Upload `/verwaltung/dokumente/neu?objekt=|einheit=|vertrag=|person=` (vorbelegter Bezug, ohne Titel gilt der Dateiname), Detailseite mit Vorschau (Bild bzw. PDF im `iframe`). `DokumenteBereich` zeigt die Dokumente auf Objekt-, Einheit-, Vertrags- und Personenseite; der Servicebereich zeigt Hausmeister-Freigaben.
+- Dashboard: Dokumente mit „gültig bis“ in 60 Tagen bzw. abgelaufen. DSGVO-Auskunft: Abschnitt `dokumente`.
 
 ### Personen & Datenschutz
 

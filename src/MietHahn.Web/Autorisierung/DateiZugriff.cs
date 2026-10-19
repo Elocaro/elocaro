@@ -57,7 +57,11 @@ internal static class DateiEndpunkte
 
             // Hochgeladene Inhalte nie als aktive Inhalte im Kontext der App ausführen.
             kontext.Response.Headers.XContentTypeOptions = "nosniff";
-            kontext.Response.Headers.ContentSecurityPolicy = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
+            // PDFs: der eingebaute PDF-Betrachter des Browsers läuft nicht in einer Sandbox, daher dort ohne „sandbox“;
+            // Skripte bleiben über default-src 'none' gesperrt. Einbetten (Vorschau) nur in Seiten der App selbst.
+            var sandbox = geoeffnet.Datei.MimeTyp == "application/pdf" ? "" : "; sandbox";
+            kontext.Response.Headers.ContentSecurityPolicy = $"default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'self'{sandbox}";
+            kontext.Response.Headers.XFrameOptions = "SAMEORIGIN";
             kontext.Response.Headers.CacheControl = "private, no-store";
 
             return Results.File(

@@ -23,6 +23,7 @@ using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Betrieb;
 using MietHahn.Infrastructure.Dateien;
 using MietHahn.Infrastructure.Datenschutz;
+using MietHahn.Infrastructure.Dokumente;
 using MietHahn.Infrastructure.Identitaet;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Mail;
@@ -183,6 +184,10 @@ public static class DependencyInjection
         services.AddScoped<IAufgabenQuelle, MietmodellAufgaben>();
         services.AddScoped<IZaehlerVerwaltung, ZaehlerVerwaltung>();
         services.AddScoped<IAufgabenQuelle, EichfristAufgaben>();
+        services.AddScoped<IDokumentablage, Dokumentablage>();
+        services.AddScoped<IDateiFreigabe, DokumentDateiFreigabe>();
+        services.AddScoped<IAufgabenQuelle, DokumentAblaufAufgaben>();
+        services.AddScoped<IPersonendatenQuelle, DokumentPersonendaten>();
     }
 
     private static void DatenschutzRegistrieren(IServiceCollection services, IConfiguration konfiguration)
