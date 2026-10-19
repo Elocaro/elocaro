@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.OperatingCosts;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Finance;
+using MietHahn.Domain.Heating;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Metering;
 using MietHahn.Domain.OperatingCosts;
@@ -76,20 +77,24 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
                 [.. lease.People.Select(p => new PersonsState(p.Validity, p.Count))],
                 lease.ReceivesOperatingCostStatement,
                 lease.ExcludedCostTypes.ToHashSet(StringComparer.Ordinal),
-                prepayments));
+                prepayments,
+                lease.ReceivesHeatingCostStatement));
         }
 
         var rules = await db.Set<CostAllocationRule>().AsNoTracking().Include(r => r.Shares)
             .Where(r => r.PropertyId == propertyId).ToListAsync(cancellationToken);
         var meters = await db.Set<Zaehler>().AsNoTracking().Include(z => z.Readings).Where(z => z.PropertyId == propertyId).ToListAsync(cancellationToken);
 
+        var source = new MeterConsumptionSource(meters);
         var input = new BillingInput(
             billingPeriod,
             [.. units.Select(ToBillingUnit)],
             billingLeases,
             await CostsAsync(propertyId, billingPeriod, cancellationToken),
             [.. rules.Select(r => r.ToBillingRule())],
-            new MeterConsumptionSource(meters));
+            source);
+        var heating = await db.Set<HeatingSettings>().AsNoTracking().SingleOrDefaultAsync(h => h.PropertyId == propertyId, cancellationToken)
+            ?? new HeatingSettings(propertyId);
 
         var hints = new List<string>();
         if (billingLeases.Any(v => v.ReceivesStatement) && (settings.AccountingStart is not { } accountingStart || accountingStart > start))
@@ -99,7 +104,51 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
                 : "Es ist kein Buchhaltungsbeginn festgelegt: Das Mieterkonto enthält keine Vorauszahlungen, die Vorschau rechnet ohne.");
         }
 
-        return new OperatingCostPreview(property.Id, property.Name, OperatingCostCalculator.Calculate(input), hints);
+        return new OperatingCostPreview(
+            property.Id,
+            property.Name,
+            OperatingCostCalculator.Calculate(input, [new HeatingCostCalculator(BuildHeatingParameters(heating, meters, source, billingPeriod))]),
+            hints);
+    }
+
+    /// <summary>Settings of the property plus the measured values of the heat meter in the hot water circuit and the oil tank stock.</summary>
+    private static HeatingParameters BuildHeatingParameters(HeatingSettings settings, IReadOnlyList<Zaehler> meters, MeterConsumptionSource source, Period period)
+    {
+        OilStock? oil = null;
+        if (settings.Fuel == HeatingFuel.Oil)
+        {
+            var tank = settings.OilTankMeterId is { } tankId ? meters.FirstOrDefault(m => m.Id == tankId) : null;
+            if (tank is null)
+            {
+                oil = new OilStock(null, null, "Für das Heizöl ist in den Heizungseinstellungen kein Tankzähler gewählt (Bestand zu Beginn und Ende des Zeitraums).");
+            }
+            else
+            {
+                var opening = ConsumptionCalculator.ReadingAt(tank.Readings, period.From.AddDays(-1));
+                var closing = ConsumptionCalculator.ReadingAt(tank.Readings, period.To!.Value);
+                var missing = (opening is null ? $"zum {period.From.AddDays(-1):dd.MM.yyyy}" : null) ?? (closing is null ? $"zum {period.To:dd.MM.yyyy}" : null);
+                oil = new OilStock(
+                    opening?.Value,
+                    closing?.Value,
+                    missing is null ? null : $"Für den Tankzähler {tank.Number} fehlt der Bestand {missing} (Ablesung erfassen). Ersatzweise werden die gelieferten Mengen als Verbrauch angesetzt.");
+            }
+        }
+
+        return new HeatingParameters
+        {
+            ConsumptionPercent = settings.ConsumptionPercent,
+            Fuel = settings.Fuel,
+            JointPlant = settings.JointPlant,
+            HotWaterHeat = settings.HotWaterHeatMeterId is { } meter ? source.MeterQuantity(meter, period) : null,
+            HotWaterFormulaFactor = settings.HotWaterFormulaFactor,
+            HotWaterTemperature = settings.HotWaterTemperature,
+            FuelKwhPerUnit = settings.FuelKwhPerUnit,
+            Oil = oil,
+            OilValuation = settings.OilValuation,
+            OilOpeningPricePerLiter = settings.OilOpeningPricePerLiter,
+            ApplyCarbonCosts = settings.ApplyCarbonCosts,
+            CarbonSpecialCase = settings.CarbonSpecialCase,
+        };
     }
 
     private static BillingUnit ToBillingUnit(Unit unit) =>
@@ -137,7 +186,12 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
                 p.UnitId,
                 p.Section35a,
                 p.LaborCosts,
-                p.SubtypeId is { } subtype ? subtypes.GetValueOrDefault(subtype) : null);
+                p.SubtypeId is { } subtype ? subtypes.GetValueOrDefault(subtype) : null,
+                p.HeatingKind,
+                p.ReceiptId,
+                receipt.FuelQuantity,
+                receipt.FuelUnit,
+                receipt.Co2Kg);
         })];
     }
 }

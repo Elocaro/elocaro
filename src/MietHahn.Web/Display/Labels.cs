@@ -1,6 +1,7 @@
 using MietHahn.Domain.Bank;
 using MietHahn.Domain.Documents;
 using MietHahn.Domain.Finance;
+using MietHahn.Domain.Heating;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Metering;
 using MietHahn.Domain.OperatingCosts;
@@ -243,7 +244,41 @@ public static class Labels
         LandlordReason.FlatRate => "Pauschale / Inklusivmiete",
         LandlordReason.SharedFlatFlatRate => "WG-Pauschale",
         LandlordReason.ResidualPercent => "Nicht verteilter Prozentanteil",
+        LandlordReason.CarbonCostShare => "CO₂-Kostenanteil des Vermieters",
         _ => "Nicht zuordenbar",
+    };
+
+    public static string From(HeatingFuel value) => value switch
+    {
+        HeatingFuel.Oil => "Heizöl (Tankbestand)",
+        HeatingFuel.Other => "Sonstiges / nicht fossil (kWh laut Beleg)",
+        _ => "Gas (kWh laut Versorger)",
+    };
+
+    public static string From(OilValuation value) => value switch
+    {
+        OilValuation.Fifo => "FIFO (älteste Bestände zuerst)",
+        _ => "Gewichteter Durchschnitt",
+    };
+
+    public static string From(CarbonSpecialCase value) => value switch
+    {
+        CarbonSpecialCase.ProtectedBuilding => "Denkmalschutz / Milieuschutz",
+        CarbonSpecialCase.HighlyEfficient => "Sehr energieeffizient (z. B. Passivhaus)",
+        CarbonSpecialCase.NotSubject => "Möglicherweise nicht vom Gesetz erfasst",
+        _ => "kein Sonderfall",
+    };
+
+    public static string From(HeatingCostKind value) => value switch
+    {
+        HeatingCostKind.Fuel => "Brennstoff",
+        HeatingCostKind.OperatingPower => "Betriebsstrom",
+        HeatingCostKind.Maintenance => "Wartung",
+        HeatingCostKind.EmissionMeasurement => "Abgasmessung (Schornsteinfeger)",
+        HeatingCostKind.Cleaning => "Reinigung",
+        HeatingCostKind.MeterService => "Zählermiete / Eichung / Ablesung",
+        HeatingCostKind.CarbonPrice => "CO₂-Kosten laut Lieferant",
+        _ => "Sonstige Kosten der Anlage",
     };
 
     public static string From(MeasurementUnit value) => value switch

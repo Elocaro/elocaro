@@ -5,6 +5,7 @@
 <PageHeader Title="Nebenkosten-Vorschau" Subtitle="@(preview?.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
     <Actions>
         <a class="button" href="/verwaltung/objekte/@PropertyId/umlageschluessel">Umlageschlüssel</a>
+        <a class="button" href="/verwaltung/objekte/@PropertyId/heizung">Heizkosten-Einstellungen</a>
     </Actions>
 </PageHeader>
 
@@ -37,7 +38,9 @@
 <p class="message message-info" role="note" id="preview-notice">
     Das ist eine <strong>Vorschau</strong>. Es wird nichts gespeichert oder versendet. Grundlage sind die Belege mit Kostenpositionen des Jahres,
     die Umlageschlüssel des Objekts, die Mietverträge und die tatsächlich gezahlten Vorauszahlungen im Mieterkonto.
-    Heiz- und Warmwasserkosten (HeizkostenV) und CO₂-Kosten sind noch nicht enthalten.
+    Heiz- und Warmwasserkosten werden nach der HeizkostenV mit der CO₂-Kostenaufteilung (CO2KostAufG) berechnet und mit den Heizkostenvorauszahlungen
+    verrechnet. Die dafür hinterlegten Tabellen (CO₂-Stufen, Gradtagszahlen) sind <strong>Stand/prüfen</strong>: Sie müssen vor dem Versand einer Abrechnung
+    gegen die amtlichen Quellen geprüft werden.
 </p>
 
 @if (result.Problems.Count > 0 || preview.Hints.Count > 0)
@@ -109,6 +112,23 @@
     }
 </section>
 
+@foreach (var block in result.Sections)
+{
+    <section id="@($"section-{block.Id}")">
+        <h2>@block.Title</h2>
+        @if (block.Notice is not null)
+        {
+            <p class="message message-info" role="note"><strong>Stand/prüfen:</strong> @block.Notice</p>
+        }
+        <ol>
+            @foreach (var entry in block.Entries)
+            {
+                <li>@Entry(entry)</li>
+            }
+        </ol>
+    </section>
+}
+
 @if (result.Landlord.Count > 0)
 {
     <section id="landlord">
@@ -141,7 +161,7 @@
             <table class="data-table">
                 <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Gesamtkosten</th><th>Ihr Anteil am Schlüssel</th><th class="number">Ihr Betrag</th></tr></thead>
                 <tbody>
-                    @foreach (var line in tenant.Lines)
+                    @foreach (var line in tenant.Lines.Where(l => l.Group == CostGroup.Operating))
                     {
                         <tr>
                             <td>@line.Name</td>
@@ -169,6 +189,32 @@
                 </tfoot>
             </table>
         </div>
+        @if (tenant.Groups.FirstOrDefault(g => g.Group == CostGroup.Heating) is { Calculated: true } heating)
+        {
+            <h3>Heiz- und Warmwasserkosten</h3>
+            <div class="table-wrapper">
+                <table class="data-table" id="@($"heating-{tenant.LeaseId}")">
+                    <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Gesamtkosten</th><th>Ihr Anteil am Schlüssel</th><th class="number">Ihr Betrag</th></tr></thead>
+                    <tbody>
+                        @foreach (var line in tenant.Lines.Where(l => l.Group == CostGroup.Heating))
+                        {
+                            <tr class="@(line.CostType == HeatingCostCalculator.CarbonKey ? "carbon-row" : "")">
+                                <td>@line.Name</td>
+                                <td>@line.Key</td>
+                                <td class="number">@Format.Money(line.CostTotal)</td>
+                                <td class="small">@line.Basis</td>
+                                <td class="number">@Format.Money(line.Share)@(line.NotAgreed != 0 ? " (nicht vereinbart)" : "")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr><th colspan="4">Summe Heiz- und Warmwasserkosten (nach Abzug des CO₂-Vermieteranteils)</th><th class="number">@Format.Money(heating.Share)</th></tr>
+                        <tr><th colspan="4">abzüglich gezahlter Heizkostenvorauszahlungen (Soll @Format.Money(heating.PrepaymentsDue))</th><th class="number">@Format.Money(heating.PrepaymentsPaid)</th></tr>
+                        <tr class="balance"><th colspan="4">@(heating.Balance >= 0 ? "Nachzahlung Heizkosten" : "Guthaben Heizkosten")</th><th class="number">@Format.Money(Math.Abs(heating.Balance))</th></tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
         @if (tenant.HouseholdLabor != 0 || tenant.TradesmanLabor != 0)
         {
             <p class="small">Arbeitskosten nach § 35a EStG: haushaltsnahe Dienstleistungen @Format.Money(tenant.HouseholdLabor), Handwerkerleistungen @Format.Money(tenant.TradesmanLabor).</p>

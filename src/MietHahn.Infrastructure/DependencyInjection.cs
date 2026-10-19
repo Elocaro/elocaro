@@ -14,6 +14,7 @@ using MietHahn.Application.Communication;
 using MietHahn.Application.Documents;
 using MietHahn.Application.Files;
 using MietHahn.Application.Finance;
+using MietHahn.Application.Heating;
 using MietHahn.Application.Leases;
 using MietHahn.Application.Metering;
 using MietHahn.Application.OperatingCosts;
@@ -29,6 +30,7 @@ using MietHahn.Infrastructure.Bank;
 using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Files;
 using MietHahn.Infrastructure.Finance;
+using MietHahn.Infrastructure.Heating;
 using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Jobs;
 using MietHahn.Infrastructure.Leases;
@@ -232,6 +234,7 @@ public static class DependencyInjection
         services.AddScoped<ICostAllocation, CostAllocationService>();
         services.AddScoped<ICostSubtypes, CostSubtypeService>();
         services.AddScoped<IOperatingCosts, OperatingCostService>();
+        services.AddScoped<IHeatingSettings, HeatingSettingsService>();
         services.AddScoped<ITodoSource, ReceiptTodos>();
         services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();
     }

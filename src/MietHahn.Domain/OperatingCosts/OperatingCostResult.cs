@@ -91,8 +91,12 @@ public sealed record BillingResult(
     IReadOnlyList<LandlordPosition> Landlord,
     IReadOnlyList<CostItemLine> NonAllocable,
     IReadOnlyList<UncalculatedGroup> UncalculatedGroups,
-    IReadOnlyList<CalculationProblem> Problems)
+    IReadOnlyList<CalculationProblem> Problems,
+    IReadOnlyList<GroupSection>? Sections = null)
 {
+    /// <summary>Property-wide explanations of the additional cost groups (heating).</summary>
+    public IReadOnlyList<GroupSection> Sections { get; init; } = Sections ?? [];
+
     public bool HasErrors => Problems.Any(p => p.Severity == ProblemSeverity.Error);
 
     /// <summary>Total costs of the calculated cost types.</summary>

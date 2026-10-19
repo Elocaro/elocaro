@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using MietHahn.Application.Common;
+using MietHahn.Domain.Heating;
 using MietHahn.Domain.Receipts;
 
 namespace MietHahn.Application.Receipts;
@@ -110,6 +111,9 @@ public sealed class CostItemInput
 
     public Section35a Section35a { get; set; }
 
+    /// <summary>Only for heating costs (cost types 4 to 6): fuel, operating power, maintenance ...; empty = automatic.</summary>
+    public HeatingCostKind? HeatingKind { get; set; }
+
     [Range(typeof(decimal), "0", "1000000", ParseLimitsInInvariantCulture = true)]
     public decimal? LaborCosts { get; set; }
 
@@ -152,7 +156,8 @@ public sealed record CostItemView(
     bool Allocable,
     Section35a Section35a,
     decimal? LaborCosts,
-    string? Note);
+    string? Note,
+    HeatingCostKind? HeatingKind = null);
 
 public sealed record ReceiptOptions(IReadOnlyList<ReferenceOption> Suppliers, IReadOnlyList<ReferenceOption> Properties, IReadOnlyList<ReferenceOption> Units, IReadOnlyList<SubtypeOption> Subtypes);
 

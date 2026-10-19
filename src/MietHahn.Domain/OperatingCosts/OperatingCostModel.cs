@@ -1,4 +1,5 @@
 using MietHahn.Domain.Common;
+using MietHahn.Domain.Heating;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Metering;
 using MietHahn.Domain.Receipts;
@@ -15,7 +16,8 @@ public interface IConsumptionSource
 /// <param name="Value">Consumption, <c>null</c> if readings or meters are missing.</param>
 /// <param name="Interpolated">An interpolated reading was used (e.g. interim reading on tenant change missing).</param>
 /// <param name="Note">Proof (readings used) or the reason why <paramref name="Value"/> is missing.</param>
-public sealed record ConsumptionQuantity(decimal? Value, bool Interpolated = false, string? Note = null);
+/// <param name="InterpolatedDays">Days (end-of-day readings) whose reading was interpolated; <c>null</c> = unknown (then <paramref name="Interpolated"/> counts for every boundary).</param>
+public sealed record ConsumptionQuantity(decimal? Value, bool Interpolated = false, string? Note = null, IReadOnlyList<DateOnly>? InterpolatedDays = null);
 
 public sealed record AreaState(Period Validity, decimal LivingArea, decimal HeatedArea);
 
@@ -38,6 +40,7 @@ public sealed record PrepaymentMonth(DateOnly ServiceMonth, RentComponentType Co
 
 /// <param name="ReceivesStatement">Prepayment lease; otherwise (flat rate, inclusive) the share stays with the landlord and is compared internally.</param>
 /// <param name="ExcludedCostTypes">Cost types that are not agreed in the lease.</param>
+/// <param name="ReceivesHeatingStatement">Heating costs are billed by consumption (also with a flat rate if agreed, HeizkostenV takes precedence); <c>null</c> = like <paramref name="ReceivesStatement"/>.</param>
 public sealed record BillingLease(
     Guid Id,
     string Label,
@@ -47,7 +50,8 @@ public sealed record BillingLease(
     IReadOnlyList<PersonsState> Persons,
     bool ReceivesStatement,
     IReadOnlySet<string> ExcludedCostTypes,
-    IReadOnlyList<PrepaymentMonth> Prepayments);
+    IReadOnlyList<PrepaymentMonth> Prepayments,
+    bool? ReceivesHeatingStatement = null);
 
 public sealed record BillingCost(
     Guid Id,
@@ -59,7 +63,12 @@ public sealed record BillingCost(
     Guid? UnitId = null,
     Section35a Section35a = Section35a.None,
     decimal? LaborCosts = null,
-    string? Subtype = null);
+    string? Subtype = null,
+    HeatingCostKind? HeatingKind = null,
+    Guid? ReceiptId = null,
+    decimal? FuelQuantity = null,
+    string? FuelUnit = null,
+    decimal? Co2Kg = null);
 
 public sealed record FixedShare(Guid UnitId, decimal Percent);
 
@@ -95,11 +104,21 @@ public interface ICostGroupCalculator
     GroupResult Calculate(BillingInput input, IReadOnlyList<BillingCost> costs);
 }
 
-/// <summary>Result of an additional cost group; shares of tenants must add up with the landlord shares to the cost totals.</summary>
+/// <summary>
+/// Result of an additional cost group; shares of tenants must add up with the landlord shares to the cost totals.
+/// </summary>
+/// <param name="FlatRateActuals">Actual costs per lease that is not billed (flat rate); they enter the internal flat-rate comparison.</param>
+/// <param name="Sections">Property-wide explanations (e.g. the split of heating and hot water, the CO₂ level) for the preview.</param>
 public sealed record GroupResult(
     IReadOnlyList<CostTypeResult> CostTypes,
     IReadOnlyList<GroupTenantLine> TenantLines,
     IReadOnlyList<LandlordPosition> Landlord,
-    IReadOnlyList<CalculationProblem> Problems);
+    IReadOnlyList<CalculationProblem> Problems,
+    IReadOnlyDictionary<Guid, decimal>? FlatRateActuals = null,
+    IReadOnlyList<GroupSection>? Sections = null);
+
+/// <summary>A titled list of calculation steps that is not tied to a single tenant.</summary>
+/// <param name="Notice">Hint that the data of the section needs verification (versioned legal tables).</param>
+public sealed record GroupSection(string Id, string Title, IReadOnlyList<ProtocolEntry> Entries, string? Notice = null);
 
 public sealed record GroupTenantLine(Guid LeaseId, TenantCostLine Line);

@@ -30,6 +30,7 @@ internal sealed class CalculationRun
     private readonly List<LandlordPosition> landlord = [];
     private readonly Dictionary<Guid, List<TenantCostLine>> linesByLease = [];
     private readonly Dictionary<Guid, decimal> actualByLease = [];
+    private readonly List<GroupSection> sections = [];
 
     public CalculationRun(BillingInput input, List<ICostGroupCalculator> calculators)
     {
@@ -209,7 +210,8 @@ internal sealed class CalculationRun
             {
                 statements.Add(Statement(lease));
             }
-            else
+
+            if (!OperatingStatementFor(lease))
             {
                 flatRates.Add(FlatRate(lease));
             }
@@ -223,7 +225,8 @@ internal sealed class CalculationRun
             landlord,
             nonAllocable,
             uncalculated,
-            problems);
+            problems,
+            sections);
     }
 
     private static string Money(decimal value) => value.ToString("#,##0.00 €", German);
@@ -255,8 +258,14 @@ internal sealed class CalculationRun
         }
     }
 
-    private bool StatementFor(BillingLease lease) =>
+    /// <summary>The lease gets an operating cost statement (prepayment lease, not a flat-rate room).</summary>
+    private bool OperatingStatementFor(BillingLease lease) =>
         lease.ReceivesStatement && !IsFlatRateRoom(lease);
+
+    /// <summary>Operating costs and/or heating costs are billed to the lease (heating by consumption despite a flat rate).</summary>
+    private bool StatementFor(BillingLease lease) =>
+        OperatingStatementFor(lease)
+        || (lease.ReceivesHeatingStatement == true && !IsFlatRateRoom(lease) && (linesByLease.GetValueOrDefault(lease.Id)?.Any(l => l.Group == CostGroup.Heating) ?? false));
 
     private bool IsFlatRateRoom(BillingLease lease) =>
         lease.RoomId is not null && unitsById[lease.UnitId] is { Rooms.Count: > 0, SharedFlat: SharedFlatBilling.FlatRate };
@@ -794,7 +803,7 @@ internal sealed class CalculationRun
                     0m));
                 landlordHere.Add(new LandlordPosition(type, LandlordReason.NotAgreed, lease.Label, share));
             }
-            else if (!StatementFor(lease))
+            else if (!OperatingStatementFor(lease))
             {
                 var reason = IsFlatRateRoom(lease) ? LandlordReason.SharedFlatFlatRate : LandlordReason.FlatRate;
                 builder.Protocol.Add(new ProtocolEntry(
@@ -822,6 +831,12 @@ internal sealed class CalculationRun
     {
         costTypes.AddRange(result.CostTypes);
         landlord.AddRange(result.Landlord);
+        sections.AddRange(result.Sections ?? []);
+        foreach (var (leaseId, amount) in result.FlatRateActuals ?? new Dictionary<Guid, decimal>())
+        {
+            actualByLease[leaseId] = actualByLease.GetValueOrDefault(leaseId) + amount;
+        }
+
         foreach (var problem in result.Problems)
         {
             Problem(problem.Severity, problem.Text, problem.CostType);
@@ -870,7 +885,9 @@ internal sealed class CalculationRun
         var unit = unitsById[lease.UnitId];
         var room = unit.Rooms.FirstOrDefault(r => r.Id == lease.RoomId);
         var rental = room is null ? unit.Name : $"{unit.Name}, {room.Name}";
+        var operatingBilled = OperatingStatementFor(lease);
         var lines = (linesByLease.GetValueOrDefault(lease.Id) ?? [])
+            .Where(l => operatingBilled || l.Group != CostGroup.Operating)
             .OrderBy(l => l.Group)
             .ThenBy(l => CostTypes.All.ToList().FindIndex(t => t.Key == l.CostType) is var i and >= 0 ? i : int.MaxValue)
             .ToList();
@@ -883,25 +900,29 @@ internal sealed class CalculationRun
             Span(intersection),
             days));
 
-        var share = lines.Where(l => l.Group == CostGroup.Operating).Sum(l => l.Share);
-        var (paid, due, months) = Prepayments(lease, RentComponentType.OperatingCostPrepayment);
-        protocol.Add(new ProtocolEntry(
-            "Vorauszahlungen Betriebskosten",
-            "Σ tatsächlich gezahlte Beträge je Leistungsmonat × Anteil des Monats im Abrechnungszeitraum",
-            months.Count == 0 ? "keine Vorauszahlungen im Zeitraum" : string.Join("; ", months),
-            paid));
-        if (paid < due)
+        var groups = new List<GroupBalance>();
+        if (operatingBilled)
         {
-            Problem(ProblemSeverity.Warning, $"{lease.Label}: Von den Vorauszahlungen für Betriebskosten sind {Money(due - paid)} noch offen (Soll {Money(due)}, gezahlt {Money(paid)}). Berücksichtigt wird nur, was gezahlt wurde.");
+            var share = lines.Where(l => l.Group == CostGroup.Operating).Sum(l => l.Share);
+            var (paid, due, months) = Prepayments(lease, RentComponentType.OperatingCostPrepayment);
+            protocol.Add(new ProtocolEntry(
+                "Vorauszahlungen Betriebskosten",
+                "Σ tatsächlich gezahlte Beträge je Leistungsmonat × Anteil des Monats im Abrechnungszeitraum",
+                months.Count == 0 ? "keine Vorauszahlungen im Zeitraum" : string.Join("; ", months),
+                paid));
+            if (paid < due)
+            {
+                Problem(ProblemSeverity.Warning, $"{lease.Label}: Von den Vorauszahlungen für Betriebskosten sind {Money(due - paid)} noch offen (Soll {Money(due)}, gezahlt {Money(paid)}). Berücksichtigt wird nur, was gezahlt wurde.");
+            }
+
+            protocol.Add(new ProtocolEntry(
+                "Ergebnis Betriebskosten",
+                "Summe der Anteile − gezahlte Vorauszahlungen (positiv = Nachzahlung, negativ = Guthaben)",
+                $"{Money(share)} − {Money(paid)}",
+                share - paid));
+            groups.Add(new GroupBalance(CostGroup.Operating, true, share, paid, due, share - paid));
         }
 
-        protocol.Add(new ProtocolEntry(
-            "Ergebnis Betriebskosten",
-            "Summe der Anteile − gezahlte Vorauszahlungen (positiv = Nachzahlung, negativ = Guthaben)",
-            $"{Money(share)} − {Money(paid)}",
-            share - paid));
-
-        var groups = new List<GroupBalance> { new(CostGroup.Operating, true, share, paid, due, share - paid) };
         var heatingLines = lines.Where(l => l.Group == CostGroup.Heating).ToList();
         var heatingCalculated = calculators.Any(c => c.Group == CostGroup.Heating);
         var (heatingPaid, heatingDue, heatingMonths) = Prepayments(lease, RentComponentType.HeatingCostPrepayment);

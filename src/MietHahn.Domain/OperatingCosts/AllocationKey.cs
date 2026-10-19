@@ -74,6 +74,9 @@ public enum LandlordReason
 
     /// <summary>No usable basis for the allocation (see the problems).</summary>
     Unassigned = 6,
+
+    /// <summary>The landlord bears a share of the CO₂ costs (CO2KostAufG) that is deducted from the tenants' heating costs.</summary>
+    CarbonCostShare = 7,
 }
 
 public enum ProblemSeverity

@@ -7,6 +7,7 @@ using MietHahn.Application.Receipts;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Files;
+using MietHahn.Domain.OperatingCosts;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;
@@ -97,7 +98,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             receipt.Items.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id).Select(p => new CostItemView(
                 p.Id, p.CostType, CostTypes.Find(p.CostType)?.Name ?? p.CostType, p.Amount,
                 properties.GetValueOrDefault(p.PropertyId, "?"), p.UnitId is { } e ? units.GetValueOrDefault(e) : null,
-                p.SubtypeId is { } t ? subtypes.GetValueOrDefault(t) : null, p.BillingPeriod, p.Allocable, p.Section35a, p.LaborCosts, p.Note)).ToList(),
+                p.SubtypeId is { } t ? subtypes.GetValueOrDefault(t) : null, p.BillingPeriod, p.Allocable, p.Section35a, p.LaborCosts, p.Note, p.HeatingKind)).ToList(),
             receipt.Allocated,
             receipt.Gross - receipt.Allocated);
     }
@@ -237,6 +238,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
         var position = receipt.AddCostItem(input.CostType, input.Amount ?? receipt.Gross - receipt.Allocated, propertyId, new Period(from, to), input.Allocable);
         position.UnitId = input.UnitId;
         position.SubtypeId = input.SubtypeId;
+        position.HeatingKind = CostGroups.Of(input.CostType) == CostGroup.Heating ? input.HeatingKind : null;
         position.Note = TrimToNull(input.Note);
         position.SetSection35a(input.Section35a, input.LaborCosts);
         return position;

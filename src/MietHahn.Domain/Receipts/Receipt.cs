@@ -1,4 +1,5 @@
 using MietHahn.Domain.Common;
+using MietHahn.Domain.Heating;
 
 namespace MietHahn.Domain.Receipts;
 
@@ -215,6 +216,9 @@ public sealed class CostItem : Entity
     public Period BillingPeriod { get; private set; }
 
     public bool Allocable { get; set; }
+
+    /// <summary>For heating costs (cost types 4 to 6): what the item is; without it fuel receipts count as fuel and everything else as other costs.</summary>
+    public HeatingCostKind? HeatingKind { get; set; }
 
     public Section35a Section35a { get; private set; }
 

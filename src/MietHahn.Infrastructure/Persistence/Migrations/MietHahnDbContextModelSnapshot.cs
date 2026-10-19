@@ -1673,6 +1673,125 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("payments", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Heating.HeatingSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("ApplyCarbonCosts")
+                        .HasColumnType("boolean")
+                        .HasColumnName("apply_carbon_costs");
+
+                    b.Property<string>("CarbonNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("carbon_note");
+
+                    b.Property<string>("CarbonSpecialCase")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("carbon_special_case");
+
+                    b.Property<decimal>("ConsumptionPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("consumption_percent");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<string>("Fuel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("fuel");
+
+                    b.Property<decimal?>("FuelKwhPerUnit")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("numeric(10,4)")
+                        .HasColumnName("fuel_kwh_per_unit");
+
+                    b.Property<decimal>("HotWaterFormulaFactor")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)")
+                        .HasColumnName("hot_water_formula_factor");
+
+                    b.Property<Guid?>("HotWaterHeatMeterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("hot_water_heat_meter_id");
+
+                    b.Property<decimal>("HotWaterTemperature")
+                        .HasPrecision(5, 1)
+                        .HasColumnType("numeric(5,1)")
+                        .HasColumnName("hot_water_temperature");
+
+                    b.Property<bool>("JointPlant")
+                        .HasColumnType("boolean")
+                        .HasColumnName("joint_plant");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<decimal?>("OilOpeningPricePerLiter")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("numeric(10,4)")
+                        .HasColumnName("oil_opening_price_per_liter");
+
+                    b.Property<Guid?>("OilTankMeterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("oil_tank_meter_id");
+
+                    b.Property<string>("OilValuation")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("oil_valuation");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_heating_settings");
+
+                    b.HasIndex("HotWaterHeatMeterId")
+                        .HasDatabaseName("ix_heating_settings_hot_water_heat_meter_id");
+
+                    b.HasIndex("OilTankMeterId")
+                        .HasDatabaseName("ix_heating_settings_oil_tank_meter_id");
+
+                    b.HasIndex("PropertyId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_heating_settings_property_id")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("heating_settings", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Leases.CpiValue", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3368,6 +3487,11 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
 
+                    b.Property<string>("HeatingKind")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("heating_kind");
+
                     b.Property<decimal?>("LaborCosts")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -4272,6 +4396,28 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_payments_leases_lease_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Heating.HeatingSettings", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Metering.Meter", null)
+                        .WithMany()
+                        .HasForeignKey("HotWaterHeatMeterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_heating_settings_meter_hot_water_heat_meter_id");
+
+                    b.HasOne("MietHahn.Domain.Metering.Meter", null)
+                        .WithMany()
+                        .HasForeignKey("OilTankMeterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_heating_settings_meter_oil_tank_meter_id");
+
+                    b.HasOne("MietHahn.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_heating_settings_property_property_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Leases.Lease", b =>

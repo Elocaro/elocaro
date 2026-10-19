@@ -44,6 +44,7 @@ internal sealed class CostItemConfiguration : IEntityTypeConfiguration<CostItem>
         builder.ToTable("cost_items");
         builder.Property(p => p.CostType).HasMaxLength(40);
         builder.Property(p => p.Section35a).HasConversion<string>().HasMaxLength(40);
+        builder.Property(p => p.HeatingKind).HasConversion<string>().HasMaxLength(30);
         builder.Property(p => p.Note).HasMaxLength(500);
         builder.HasOne<Property>().WithMany().HasForeignKey(p => p.PropertyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Unit>().WithMany().HasForeignKey(p => p.UnitId).OnDelete(DeleteBehavior.Restrict);

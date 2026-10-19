@@ -32,6 +32,15 @@
                 </InputSelect>
             </FormField>
         }
+        <FormField Id="item-heating-kind" Label="Art der Heizkosten" For="() => Position.HeatingKind" Hint="Nur bei den Kostenarten 4 bis 6: Brennstoff, Betriebsstrom, Wartung … Die CO₂-Kosten laut Lieferant als eigene Position erfassen.">
+            <InputSelect id="item-heating-kind" @bind-Value="Position.HeatingKind">
+                <option value="">– automatisch –</option>
+                @foreach (var value in Enum.GetValues<HeatingCostKind>())
+                {
+                    <option value="@value">@Labels.From(value)</option>
+                }
+            </InputSelect>
+        </FormField>
         <FormField Id="item-unit" Label="Nur Einheit" For="() => Position.UnitId" Hint="Bei Kosten einer einzelnen Einheit">
             <InputSelect id="item-unit" @bind-Value="Position.UnitId">
                 <option value="">– ganzes Objekt –</option>

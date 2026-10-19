@@ -78,13 +78,28 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
 
 ## Heizkostenabrechnung (HeizkostenV) & CO₂-Kosten (CO₂KostAufG)
 
-- **Verteilung Heizung:** 50–70 % nach Verbrauch (Wärmemengenzähler), Rest nach (Heiz-)Fläche. Satz je Objekt konfigurierbar.
-- **Warmwasser (§9):** Aufteilung des Brennstoffverbrauchs der verbundenen Anlage in Heizung und Warmwasser, vorrangig über einen Wärmezähler im WW-Kreis. Sonst die Formel nach §9 Abs. 2 (2,5 kWh/(m³·K) × V × (t_w − 10 °C)), Verteilung nach WW-Verbrauch (Wasserzähler) und Fläche.
-- **Kosten:** Brennstoff (Anfangsbestand + Lieferungen − Endbestand bei Öl), Betriebsstrom, Wartung, Schornsteinfeger/Immissionsmessung, Zählermiete/Eichung.
-- **CO₂-Stufenmodell:** kg CO₂ pro m² Wohnfläche und Jahr (aus der Brennstoffrechnung) → 10 Stufen → Vermieteranteil 0–95 %. Der Vermieteranteil wird von den Mieter-Heizkosten abgezogen und gesondert ausgewiesen. Stufentabelle versioniert hinterlegen.
+> ⚠️ **Keine Rechtssicherheit.** Die Rechenwege folgen der Heizkostenverordnung und dem CO2KostAufG nach bestem Verständnis. Die hinterlegten Tabellen (CO₂-Stufen, Gradtagszahlen) sind **versionierte Daten mit dem Status „Stand/prüfen“**: Sie wurden nicht gegen die amtlichen Quellen geprüft und müssen es vor dem Versand einer Abrechnung werden. Die Oberfläche weist an jeder Stelle darauf hin (Einstellungen, Vorschau, Warnungen im Rechenprotokoll).
+
+**Festlegungen für dieses Haus** (Antworten auf die offenen Fragen aus Issue #30, zugleich die Standardwerte):
+
+| Frage | Festlegung / Standardwert |
+|---|---|
+| Wärmezähler im Warmwasserkreis? | **Ja** – er bestimmt die Aufteilung Heizung/Warmwasser (§ 9). Je Objekt wählbar; ohne Zähler greift die Formel Q = 2,5 · V · (t_w − 10) mit Faktor und Temperatur (Standard 60 °C) als Einstellung |
+| Warm- und Kaltwasser je Wohnung? | **Getrennt gezählt** (Zählertypen Warmwasser und Kaltwasser). Das Warmwasser (m³) verteilt die Warmwasserkosten |
+| Energieträger | **Gas**, kWh laut Rechnung des Versorgers (Menge und Einheit am Beleg). **Heizöl** als zweite Möglichkeit je Objekt: Verbrauch = Anfangsbestand + Lieferungen − Endbestand (Tankzähler), bewertet mit gewichtetem Durchschnitt oder FIFO |
+| Verteilschlüssel | **70 % nach Verbrauch, 30 % Grundkosten** (Heizfläche; beim Warmwasser Wohnfläche). Je Objekt zwischen **50 und 70 %** wählbar; 100 % Verbrauch ist nicht zulässig und wird abgelehnt (§ 7 Abs. 1, § 8 Abs. 1 HeizkostenV) |
+
+- **Gesamtkosten der Anlage** (§ 7 Abs. 2): Brennstoff, Betriebsstrom, Wartung, Abgasmessung (Schornsteinfeger), Reinigung, Zählermiete/Eichung und die CO₂-Kosten laut Lieferant. Am Beleg ordnet die „Art der Heizkosten“ die Position zu. Kostenart 6 (verbundene Anlage) wird nach § 9 aufgeteilt, Kostenart 4 nur Heizung, Kostenart 5 nur Warmwasser.
+- **Aufteilung Heizung/Warmwasser (§ 9):** Anteil Warmwasser = Wärmemenge des Warmwassers ÷ Brennstoffenergie. Die Wärmemenge kommt vom Wärmezähler im Warmwasserkreis, ersatzweise aus der Formel. Die Brennstoffenergie ist die Menge in kWh am Beleg (Öl: Verbrauch aus dem Tankbestand × 10 kWh/l, Wert einstellbar). Heiz- oder Brennwert von Menge und Formelfaktor müssen zusammenpassen (Hinweis im Rechenprotokoll).
+- **Verteilung Heizung:** x % nach Wärmemenge (kWh je Wohnung), Rest nach Heizfläche × Tage. **Warmwasser:** x % nach Warmwasserverbrauch (m³), Rest nach Wohnfläche × Tage. Leerstand und Wohnungen mit Pauschale trägt der Vermieter; der Verbrauch leerstehender Wohnungen wird mitgemessen.
+- **Mieterwechsel (§ 9b):** Zwischenablesung hat Vorrang. Fehlt sie, wird der Verbrauch der Wohnung beim Heizen nach **Gradtagszahlen** (Tabelle `2026-stub`, **Platzhalter – Stand/prüfen**), beim Warmwasser nach Tagen auf die Nutzer verteilt, jeweils mit Warnung. Die Grundkosten laufen ohnehin tagesgenau.
+- **Kürzungsrecht § 12 (15 %):** Wird ein Mietvertrag nicht verbrauchsabhängig abgerechnet (z. B. WG-Pauschale), warnt die Vorschau mit dem möglichen Kürzungsbetrag. Verträge mit „Heizkosten verbrauchsabhängig“ trotz Pauschale erhalten eine Heizkostenabrechnung ohne Betriebskostenanteile.
+- **CO₂-Stufenmodell:** kg CO₂ ÷ m² Wohnfläche des Gebäudes ÷ Jahr (aus der Brennstoffrechnung, inklusive Warmwasser) → 10 Stufen (unter 12 kg/(m²·a) bis ab 52) → Vermieteranteil 0, 10, 20 … 80, 95 %. Der Vermieteranteil an den CO₂-Kosten wird von den Heizkosten der Mieter abgezogen und als eigene Zeile „CO₂-Kosten: Vermieteranteil (Abzug)“ mit Stufe und Berechnung ausgewiesen; der Vermieter trägt den Betrag (nicht umlagefähig, Übergabe an M4 folgt). Der Ausstoß wird ohne Rundung eingestuft (Grenzwerte gehören zur höheren Stufe). Bei Zeiträumen, die kein Jahr lang sind, wird auf ein Jahr hochgerechnet. Vor 2023 gibt es keine Aufteilung.
+- **Sonderfälle** (Denkmalschutz/Milieuschutz, sehr effizientes Gebäude, möglicherweise nicht erfasstes Gebäude) werden je Objekt gekennzeichnet und nur als **Warnung** ausgewiesen, nicht gerechnet.
+- **Verrechnung:** Die Heizkostenvorauszahlungen aus dem Mieterkonto werden mit den Heizkosten abzüglich CO₂-Abzug verrechnet (Nachzahlung/Guthaben getrennt von den Betriebskosten).
 - **UVI (§6a)** entfällt, da die Zähler nicht fernablesbar sind. Bei Umrüstung auf Funkzähler wird das Pflicht.
 
-> ❓ **Offen:** Gibt es einen separaten Wärmezähler für die Warmwasserbereitung? Werden Warm- und Kaltwasser je Wohnung getrennt gezählt? Das wird in Issue „Heizkostenabrechnung“ geklärt.
+> ❓ **Noch zu prüfen (rechtlich):** Zusammenspiel von CO2KostAufG und gemischt genutzten Gebäuden, Sonderregeln für Denkmalschutz und Milieuschutz, Brennwert- bzw. Heizwertbezug der Formel in § 9 Abs. 2 sowie die amtlichen Gradtagszahlen für den Standort.
 
 ## Finanzen
 

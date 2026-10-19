@@ -21,7 +21,7 @@
 
 <p class="small">
     Der Schlüssel einer Kostenart gilt ab einem Stichtag; frühere Stände bleiben für die Abrechnung erhalten. Ohne Schlüssel rechnet die Vorschau
-    mit der Wohnfläche und weist darauf hin. Heiz- und Warmwasserkosten werden nach der Heizkostenverordnung abgerechnet (eigener Rechenkern, folgt).
+    mit der Wohnfläche und weist darauf hin. Heiz- und Warmwasserkosten werden nach der Heizkostenverordnung abgerechnet (eigener Rechenkern, Einstellungen unter „Heizkosten“).
 </p>
 
 <section>
@@ -36,7 +36,7 @@
                         <td>@(row.BetrKvNumber is { } n ? $"{n}. " : "")@row.Name</td>
                         @if (row.Group == CostGroup.Heating)
                         {
-                            <td colspan="4" class="small">Abrechnung nach HeizkostenV (folgt)</td>
+                            <td colspan="4" class="small">Abrechnung nach HeizkostenV, siehe <a href="/verwaltung/objekte/@PropertyId/heizung">Heizkosten-Einstellungen</a></td>
                         }
                         else if (row.Current is { } current)
                         {
