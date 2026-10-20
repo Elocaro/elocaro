@@ -1,71 +1,63 @@
 @page "/verwaltung/finanzen/darlehen"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject ILoanService Admin
 @inject IPropertyService Properties
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 
-<PageHeader Title="Darlehen" Subtitle="Finanzierung der Objekte: Tilgungsplan, Zinsen als Werbungskosten." />
+<InteractiveShell>
+    <PageHeader Title="Darlehen" Subtitle="Finanzierung der Objekte: Tilgungsplan, Zinsen als Werbungskosten." />
 
-<StatusMessage />
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-@if (loans is { Count: 0 })
-{
-    <EmptyState Text="Noch keine Darlehen erfasst." />
-}
-else if (loans is not null)
-{
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead><tr><th>Bank</th><th>Objekt</th><th class="number">Betrag</th><th class="number">Sollzins</th><th>Zinsbindung bis</th></tr></thead>
-            <tbody>
-                @foreach (var loan in loans)
-                {
-                    <tr>
-                        <td><a href="/verwaltung/finanzen/darlehen/@loan.Id">@loan.Bank</a><span class="small"> @loan.LoanNumber</span></td>
-                        <td>@loan.PropertyName</td>
-                        <td class="number">@Format.Money(loan.Principal)</td>
-                        <td class="number">@Format.Number(loan.InterestRatePercent) %</td>
-                        <td>@(loan.FixedUntil is { } until ? Format.Date(until) : "–")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+    @if (loans is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Darlehen erfasst." />
+    }
+    else if (loans is not null)
+    {
+        <MudTable T="LoanListItem" Items="loans" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true">
+            <HeaderContent>
+                <MudTh>Bank</MudTh><MudTh>Objekt</MudTh><MudTh Style="text-align:right">Betrag</MudTh><MudTh Style="text-align:right">Sollzins</MudTh><MudTh>Zinsbindung bis</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Bank"><a href="/verwaltung/finanzen/darlehen/@context.Id">@context.Bank</a><span class="small"> @context.LoanNumber</span></MudTd>
+                <MudTd DataLabel="Objekt">@context.PropertyName</MudTd>
+                <MudTd DataLabel="Betrag" Style="text-align:right">@Format.Money(context.Principal)</MudTd>
+                <MudTd DataLabel="Sollzins" Style="text-align:right">@Format.Number(context.InterestRatePercent) %</MudTd>
+                <MudTd DataLabel="Zinsbindung bis">@(context.FixedUntil is { } until ? Format.Date(until) : "–")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
 
-<section>
-    <h2>Darlehen anlegen</h2>
-    <EditForm Model="Data" FormName="loan" OnValidSubmit="CreateAsync">
-        <DataAnnotationsValidator />
-        <LoanFields Data="Data" Properties="properties" />
-        <button type="submit" class="button button-primary">Anlegen</button>
-    </EditForm>
-</section>
+    <section>
+        <h2>Darlehen anlegen</h2>
+        <EditForm Model="data" OnValidSubmit="CreateAsync" novalidate>
+            <DataAnnotationsValidator />
+            <LoanEditor Data="data" Properties="properties" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Anlegen</MudButton>
+        </EditForm>
+    </section>
+</InteractiveShell>
 
 @code {
     private IReadOnlyList<LoanListItem>? loans;
     private IReadOnlyList<PropertyOverview> properties = [];
     private IReadOnlyList<string>? errors;
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "loan")]
-    private LoanInput? Data { get; set; }
+    private readonly LoanInput data = new();
 
     protected override async Task OnInitializedAsync()
     {
-        Data ??= new();
         loans = await Admin.ListAsync();
         properties = await Properties.ListAsync();
     }
 
     private async Task CreateAsync()
     {
-        var result = await Admin.CreateAsync(Data!);
+        var result = await Admin.CreateAsync(data);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/finanzen/darlehen/{result.Id}", "Das Darlehen wurde angelegt.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/finanzen/darlehen/{result.Id}?meldung=angelegt");
         }
         else
         {

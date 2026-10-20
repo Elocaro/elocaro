@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Properties;
+using MietHahn.Application.Tax;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Receipts;
 using MietHahn.Infrastructure.Persistence;
@@ -31,13 +32,10 @@ public class MaintenancePageTests(PostgresFixture postgres) : AccountTestBase(po
         var page = await admin.GetAsync($"/verwaltung/objekte/{property}/erhaltungsaufwand");
         Assert.Contains("sofort abgezogen", page.Text, StringComparison.Ordinal);
 
-        page = await admin.SubmitAsync(page, "distribution", new Dictionary<string, string>
-        {
-            ["DistributeId"] = item.ToString(),
-            [$"Years-{item}"] = "4",
-        });
+        // The buttons on the page are covered by the browser tests.
+        await App.WithScopeAsync(sp => sp.GetRequiredService<IMaintenanceService>().DistributeAsync(property, new DistributionInput { CostItemId = item, Years = 4 }, Ct));
+        page = await admin.GetAsync(page.Path);
 
-        Assert.Contains("Der Erhaltungsaufwand wird verteilt.", page.Text, StringComparison.Ordinal);
         Assert.Contains("verteilt auf 4 Jahre", page.Text, StringComparison.Ordinal);
         Assert.Contains("2.500,00", page.Text, StringComparison.Ordinal);
     }

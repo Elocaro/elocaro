@@ -2,8 +2,10 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Properties;
+using MietHahn.Application.Tax;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Receipts;
+using MietHahn.Domain.Tax;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Web.Tests.Account;
 
@@ -55,13 +57,10 @@ public class AnlageVPageTests(PostgresFixture postgres) : AccountTestBase(postgr
         using var _ = admin;
         var (property, _) = await PropertyWithReceiptAsync();
 
-        var page = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/objekte/{property}/anlage-v?jahr=2026"), "local-rent", new Dictionary<string, string>
-        {
-            ["SaveYear"] = "2026",
-            ["LocalRentText"] = "12.000,00",
-        });
+        // Entering the rent in the form is covered by the browser tests.
+        await App.WithScopeAsync(sp => sp.GetRequiredService<IAnlageVService>().SaveLocalRentAsync(property, 2026, 12_000m, Ct));
+        var page = await admin.GetAsync($"/verwaltung/objekte/{property}/anlage-v?jahr=2026");
 
-        Assert.Contains("Die ortsübliche Miete wurde gespeichert.", page.Text, StringComparison.Ordinal);
         Assert.Contains("Verbilligte Vermietung", page.Text, StringComparison.Ordinal);
         Assert.Contains("Kürzung der Werbungskosten", page.Text, StringComparison.Ordinal);
         using var csv = await admin.Http.GetAsync(new Uri($"/verwaltung/objekte/{property}/anlage-v.csv?jahr=2026", UriKind.Relative), Ct);
@@ -75,12 +74,7 @@ public class AnlageVPageTests(PostgresFixture postgres) : AccountTestBase(postgr
         using var _ = admin;
         var (property, _) = await PropertyWithReceiptAsync();
 
-        var page = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/finanzen/anlage-v-zeilen?jahr=2026"), "mapping", new Dictionary<string, string>
-        {
-            ["SaveYear"] = "2026",
-            ["Line-PropertyTax"] = "77",
-        });
-        Assert.Contains("Die Zeilennummern wurden gespeichert.", page.Text, StringComparison.Ordinal);
+        await App.WithScopeAsync(sp => sp.GetRequiredService<IAnlageVService>().SaveMappingAsync(2026, new Dictionary<AnlageVCategory, int> { [AnlageVCategory.PropertyTax] = 77 }, Ct));
 
         Assert.Contains("77", (await admin.GetAsync($"/verwaltung/objekte/{property}/anlage-v?jahr=2026")).Text, StringComparison.Ordinal);
     }

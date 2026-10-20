@@ -1,16 +1,24 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/afa"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IDepreciationService Admin
-@inject Redirector Redirector
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (overview is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (overview is null)
 {
     <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
 }
+else
+{
 
 <PageHeader Title="AfA" Subtitle="@overview.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 @if (overview.Plan is { Warnings.Count: > 0 } warnings)
@@ -32,47 +40,23 @@
         Den Anteil Grund und Boden kannst du mit der <a href="https://www.bundesfinanzministerium.de/Content/DE/Standardartikel/Themen/Steuern/Weitere_Steuerthemen/Einkommensteuer/Arbeitshilfe-Kaufpreisaufteilung.html" rel="noopener noreferrer">Arbeitshilfe des BMF zur Kaufpreisaufteilung</a> ermitteln.
         Nebenkosten werden im selben Verhältnis wie der Kaufpreis auf Gebäude und Grund und Boden verteilt.
     </p>
-    <EditForm Model="Acquisition" FormName="acquisition" OnValidSubmit="SaveAcquisitionAsync">
+    <EditForm Model="Acquisition" OnValidSubmit="SaveAcquisitionAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <FormField Id="purchase-date" Label="Kaufdatum" For="() => Acquisition!.PurchaseDate" Required="true" Hint="Übergang von Nutzen und Lasten">
-                <InputDate id="purchase-date" @bind-Value="Acquisition!.PurchaseDate" />
-            </FormField>
-            <FormField Id="purchase-price" Label="Kaufpreis" For="() => Acquisition!.PurchasePrice" Required="true">
-                <InputAmount id="purchase-price" @bind-Value="Acquisition!.PurchasePrice" />
-            </FormField>
-            <FormField Id="notary" Label="Notar" For="() => Acquisition!.Notary">
-                <InputAmount id="notary" @bind-Value="Acquisition!.Notary" />
-            </FormField>
-            <FormField Id="land-registry" Label="Grundbuch" For="() => Acquisition!.LandRegistry">
-                <InputAmount id="land-registry" @bind-Value="Acquisition!.LandRegistry" />
-            </FormField>
-            <FormField Id="transfer-tax" Label="Grunderwerbsteuer" For="() => Acquisition!.TransferTax">
-                <InputAmount id="transfer-tax" @bind-Value="Acquisition!.TransferTax" />
-            </FormField>
-            <FormField Id="broker" Label="Makler" For="() => Acquisition!.Broker">
-                <InputAmount id="broker" @bind-Value="Acquisition!.Broker" />
-            </FormField>
-            <FormField Id="land-share" Label="Anteil Grund und Boden (%)" For="() => Acquisition!.LandSharePercent" Required="true">
-                <InputArea id="land-share" @bind-Value="Acquisition!.LandSharePercent" />
-            </FormField>
-            <FormField Id="completion-year" Label="Baujahr / Fertigstellung" For="() => Acquisition!.CompletionYear" Required="true" Hint="Bestimmt den Satz: 2,5 % vor 1925, 2 % ab 1925, 3 % ab 2023">
-                <InputNumber id="completion-year" @bind-Value="Acquisition!.CompletionYear" min="1700" max="2100" />
-            </FormField>
-            <FormField Id="rate-override" Label="Abweichender AfA-Satz (%)" For="() => Acquisition!.RateOverridePercent" Hint="z. B. kürzere Restnutzungsdauer per Gutachten; leer = gesetzlicher Satz">
-                <InputArea id="rate-override" @bind-Value="Acquisition!.RateOverridePercent" />
-            </FormField>
-            <FormField Id="special-rate" Label="Sonder-AfA (§ 7b EStG, % p. a.)" For="() => Acquisition!.SpecialRatePercent" Hint="Optional; zusätzlich zur linearen AfA">
-                <InputArea id="special-rate" @bind-Value="Acquisition!.SpecialRatePercent" />
-            </FormField>
-            <FormField Id="special-years" Label="Jahre der Sonder-AfA" For="() => Acquisition!.SpecialYears">
-                <InputNumber id="special-years" @bind-Value="Acquisition!.SpecialYears" min="1" max="20" />
-            </FormField>
+            <AppDateField @bind-Value="Acquisition.PurchaseDate" Label="Kaufdatum" Required="true" Hint="Übergang von Nutzen und Lasten" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.PurchasePrice" Label="Kaufpreis" Suffix="€" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.Notary" Label="Notar" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.LandRegistry" Label="Grundbuch" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.TransferTax" Label="Grunderwerbsteuer" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.Broker" Label="Makler" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.LandSharePercent" Label="Anteil Grund und Boden (%)" Required="true" />
+            <AppNumberField T="int?" @bind-Value="Acquisition.CompletionYear" Label="Baujahr / Fertigstellung" Required="true" Min="1700" Max="2100" Hint="Bestimmt den Satz: 2,5 % vor 1925, 2 % ab 1925, 3 % ab 2023" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.RateOverridePercent" Label="Abweichender AfA-Satz (%)" Hint="z. B. kürzere Restnutzungsdauer per Gutachten; leer = gesetzlicher Satz" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.SpecialRatePercent" Label="Sonder-AfA (§ 7b EStG, % p. a.)" Hint="Optional; zusätzlich zur linearen AfA" />
+            <AppNumberField T="int" @bind-Value="Acquisition.SpecialYears" Label="Jahre der Sonder-AfA" Min="1" Max="20" />
         </div>
-        <FormField Id="acquisition-notes" Label="Notiz" For="() => Acquisition!.Notes">
-            <InputTextArea id="acquisition-notes" @bind-Value="Acquisition!.Notes" rows="2" />
-        </FormField>
-        <button type="submit" class="button button-primary">Speichern</button>
+        <AppTextField @bind-Value="Acquisition.Notes" Label="Notiz" Lines="2" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
     </EditForm>
 </section>
 
@@ -114,8 +98,6 @@
     </p>
     @if (overview.Costs.Count > 0)
     {
-        <form method="post" @formname="cost-remove" @onsubmit="RemoveCostAsync">
-            <AntiforgeryToken />
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead><tr><th>Datum</th><th>Beschreibung</th><th>Art</th><th class="number">Netto</th><th></th></tr></thead>
@@ -127,34 +109,25 @@
                                 <td>@cost.Description</td>
                                 <td>@(cost.IsMaintenance ? "Instandsetzung/Modernisierung" : "Herstellungskosten")</td>
                                 <td class="number">@Format.Money(cost.Amount)</td>
-                                <td><RowConfirm Name="RemoveCostId" Value="@cost.Id" Label="@($"{cost.Description} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
+                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-        </form>
     }
 
     <details class="disclosure">
         <summary>Kosten hinzufügen</summary>
-        <EditForm Model="Cost" FormName="cost" OnValidSubmit="AddCostAsync">
+        <EditForm Model="Cost" OnValidSubmit="AddCostAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
-                <FormField Id="cost-date" Label="Datum" For="() => Cost!.Date" Required="true">
-                    <InputDate id="cost-date" @bind-Value="Cost!.Date" />
-                </FormField>
-                <FormField Id="cost-amount" Label="Betrag (netto)" For="() => Cost!.Amount" Required="true">
-                    <InputAmount id="cost-amount" @bind-Value="Cost!.Amount" />
-                </FormField>
-                <FormField Id="cost-description" Label="Beschreibung" For="() => Cost!.Description" Required="true">
-                    <InputText id="cost-description" @bind-Value="Cost!.Description" />
-                </FormField>
-                <FormField Id="cost-maintenance" Label="Art" For="() => Cost!.IsMaintenance">
-                    <InputCheckbox id="cost-maintenance" @bind-Value="Cost!.IsMaintenance" /> Instandsetzung/Modernisierung (zählt für die 15-%-Grenze)
-                </FormField>
+                <AppDateField @bind-Value="Cost.Date" Label="Datum" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="Cost.Amount" Label="Betrag (netto)" Suffix="€" Required="true" />
+                <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
+                <AppCheckBox @bind-Value="Cost.IsMaintenance" Label="Instandsetzung/Modernisierung (zählt für die 15-%-Grenze)" />
             </div>
-            <button type="submit" class="button button-primary">Hinzufügen</button>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
         </EditForm>
     </details>
 </section>
@@ -164,8 +137,6 @@
     <p class="small">Zum Beispiel die Einbauküche, abgeschrieben über die eigene Nutzungsdauer (üblich: 10 Jahre).</p>
     @if (overview.Assets.Count > 0)
     {
-        <form method="post" @formname="asset-remove" @onsubmit="RemoveAssetAsync">
-            <AntiforgeryToken />
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead><tr><th>Bezeichnung</th><th>Angeschafft</th><th class="number">Kosten</th><th class="number">Nutzungsdauer</th><th></th></tr></thead>
@@ -177,37 +148,30 @@
                                 <td>@Format.Date(asset.AcquisitionDate)</td>
                                 <td class="number">@Format.Money(asset.Cost)</td>
                                 <td class="number">@asset.UsefulLifeYears Jahre</td>
-                                <td><RowConfirm Name="RemoveAssetId" Value="@asset.Id" Label="@($"{asset.Name} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
+                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAssetAsync(asset)" aria-label="@($"{asset.Name} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-        </form>
     }
 
     <details class="disclosure">
         <summary>Wirtschaftsgut hinzufügen</summary>
-        <EditForm Model="Asset" FormName="asset" OnValidSubmit="AddAssetAsync">
+        <EditForm Model="Asset" OnValidSubmit="AddAssetAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
-                <FormField Id="asset-name" Label="Bezeichnung" For="() => Asset!.Name" Required="true">
-                    <InputText id="asset-name" @bind-Value="Asset!.Name" />
-                </FormField>
-                <FormField Id="asset-date" Label="Angeschafft am" For="() => Asset!.AcquisitionDate" Required="true">
-                    <InputDate id="asset-date" @bind-Value="Asset!.AcquisitionDate" />
-                </FormField>
-                <FormField Id="asset-cost" Label="Anschaffungskosten" For="() => Asset!.Cost" Required="true">
-                    <InputAmount id="asset-cost" @bind-Value="Asset!.Cost" />
-                </FormField>
-                <FormField Id="asset-life" Label="Nutzungsdauer (Jahre)" For="() => Asset!.UsefulLifeYears">
-                    <InputNumber id="asset-life" @bind-Value="Asset!.UsefulLifeYears" min="1" max="100" />
-                </FormField>
+                <AppTextField @bind-Value="Asset.Name" Label="Bezeichnung" Required="true" />
+                <AppDateField @bind-Value="Asset.AcquisitionDate" Label="Angeschafft am" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="Asset.Cost" Label="Anschaffungskosten" Suffix="€" Required="true" />
+                <AppNumberField T="int" @bind-Value="Asset.UsefulLifeYears" Label="Nutzungsdauer (Jahre)" Min="1" Max="100" />
             </div>
-            <button type="submit" class="button button-primary">Hinzufügen</button>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
         </EditForm>
     </details>
 </section>
+}
+</InteractiveShell>
 
 @code {
     private DepreciationOverview? overview;
@@ -216,55 +180,64 @@
     [Parameter]
     public Guid PropertyId { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "acquisition")]
-    private AcquisitionInput? Acquisition { get; set; }
-
-    [SupplyParameterFromForm(FormName = "cost")]
-    private CostInput? Cost { get; set; }
-
-    [SupplyParameterFromForm(FormName = "asset")]
-    private AssetInput? Asset { get; set; }
-
-    [SupplyParameterFromForm(FormName = "cost-remove")]
-    private Guid? RemoveCostId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "asset-remove")]
-    private Guid? RemoveAssetId { get; set; }
+    private AcquisitionInput Acquisition { get; set; } = new();
+    private CostInput Cost { get; set; } = new();
+    private AssetInput Asset { get; set; } = new();
+    private bool loaded;
 
     protected override async Task OnInitializedAsync()
     {
-        Cost ??= new();
-        Asset ??= new();
-        overview = await Admin.GetAsync(PropertyId);
-        Acquisition ??= overview?.Acquisition ?? new();
+        await LoadAsync();
+        Acquisition = overview?.Acquisition ?? new();
+        loaded = true;
     }
 
-    private Task SaveAcquisitionAsync() => ExecuteAsync(Admin.SaveAcquisitionAsync(PropertyId, Acquisition!), "Die Anschaffungsdaten wurden gespeichert.");
+    private async Task LoadAsync() => overview = await Admin.GetAsync(PropertyId);
 
-    private Task AddCostAsync() => ExecuteAsync(Admin.AddCostAsync(PropertyId, Cost!), "Die Kosten wurden hinzugefügt.");
+    private Task SaveAcquisitionAsync() => ExecuteAsync(Admin.SaveAcquisitionAsync(PropertyId, Acquisition), "Die Anschaffungsdaten wurden gespeichert.");
 
-    private Task RemoveCostAsync() =>
-        RemoveCostId is { } id ? ExecuteAsync(Admin.RemoveCostAsync(PropertyId, id), "Die Kosten wurden entfernt.") : Task.CompletedTask;
+    private async Task AddCostAsync()
+    {
+        if (await ExecuteAsync(Admin.AddCostAsync(PropertyId, Cost), "Die Kosten wurden hinzugefügt."))
+        {
+            Cost = new();
+        }
+    }
 
-    private Task AddAssetAsync() => ExecuteAsync(Admin.AddAssetAsync(PropertyId, Asset!), "Das Wirtschaftsgut wurde hinzugefügt.");
+    private async Task RemoveCostAsync(CostRow item)
+    {
+        if (await Confirm.AskAsync("Kosten entfernen", $"Sollen die Kosten „{item.Description}“ entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveCostAsync(PropertyId, item.Id), "Die Kosten wurden entfernt.");
+        }
+    }
 
-    private Task RemoveAssetAsync() =>
-        RemoveAssetId is { } id ? ExecuteAsync(Admin.RemoveAssetAsync(PropertyId, id), "Das Wirtschaftsgut wurde entfernt.") : Task.CompletedTask;
+    private async Task AddAssetAsync()
+    {
+        if (await ExecuteAsync(Admin.AddAssetAsync(PropertyId, Asset), "Das Wirtschaftsgut wurde hinzugefügt."))
+        {
+            Asset = new();
+        }
+    }
 
-    private async Task ExecuteAsync(Task<Result> action, string message)
+    private async Task RemoveAssetAsync(AssetRow item)
+    {
+        if (await Confirm.AskAsync("Wirtschaftsgut entfernen", $"Soll das Wirtschaftsgut „{item.Name}“ entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveAssetAsync(PropertyId, item.Id), "Das Wirtschaftsgut wurde entfernt.");
+        }
+    }
+
+    private async Task<bool> ExecuteAsync(Task<Result> action, string message)
     {
         var result = await action;
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/objekte/{PropertyId}/afa", message, HttpContext);
+            Notify.Success(message);
         }
-        else
-        {
-            errors = result.Errors;
-            overview = await Admin.GetAsync(PropertyId);
-        }
+
+        await LoadAsync();
+        return result.Succeeded;
     }
 }

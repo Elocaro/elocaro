@@ -1,16 +1,23 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/erhaltungsaufwand"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IMaintenanceService Admin
-@inject Redirector Redirector
+@inject Notifier Notify
 
-@if (overview is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (overview is null)
 {
     <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
 }
+else
+{
 
 <PageHeader Title="Erhaltungsaufwand" Subtitle="@overview.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 @foreach (var warning in overview.Warnings)
@@ -31,8 +38,6 @@
 }
 else
 {
-    <form method="post" @formname="distribution" @onsubmit="DistributeAsync">
-        <AntiforgeryToken />
         <div class="table-wrapper">
             <table class="data-table">
                 <thead><tr><th>Beleg</th><th>Rechnung</th><th>Bezahlt</th><th class="number">Betrag</th><th>Behandlung</th><th>Verteilen auf</th><th></th></tr></thead>
@@ -48,23 +53,17 @@ else
                             <td>
                                 @if (item.PaidOn is not null)
                                 {
-                                    <label class="visually-hidden" for="years-@item.CostItemId">Jahre für @item.Description</label>
-                                    <select id="years-@item.CostItemId" name="Years-@item.CostItemId">
-                                        @for (var y = 2; y <= 5; y++)
-                                        {
-                                            <option value="@y" selected="@(y == (item.Years ?? 3))">@y Jahre</option>
-                                        }
-                                    </select>
+                                    <AppSelect T="int" Value="YearsOf(item)" ValueChanged="@(v => chosenYears[item.CostItemId] = v)" Label="@($"Jahre für {item.Description}")" Items="yearChoices" Text="@(v => $"{v} Jahre")" />
                                 }
                             </td>
                             <td>
                                 @if (item.PaidOn is not null)
                                 {
-                                    <button type="submit" name="DistributeId" value="@item.CostItemId" class="button">Verteilen</button>
+                                    <MudButton Variant="Variant.Outlined" OnClick="() => DistributeAsync(item)">Verteilen</MudButton>
                                 }
                                 @if (item.Years is not null)
                                 {
-                                    <button type="submit" name="RevokeId" value="@item.CostItemId" class="button">Sofort abziehen</button>
+                                    <MudButton Variant="Variant.Outlined" OnClick="() => RevokeAsync(item)">Sofort abziehen</MudButton>
                                 }
                             </td>
                         </tr>
@@ -72,7 +71,6 @@ else
                 </tbody>
             </table>
         </div>
-    </form>
 
     @if (overview.Items.Any(i => i.Years is not null))
     {
@@ -100,49 +98,43 @@ else
         </section>
     }
 }
+}
+</InteractiveShell>
 
 @code {
+    private static readonly int[] yearChoices = [2, 3, 4, 5];
+
     private MaintenanceOverview? overview;
     private IReadOnlyList<string>? errors;
+    private readonly Dictionary<Guid, int> chosenYears = [];
+    private bool loaded;
 
     [Parameter]
     public Guid PropertyId { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "distribution")]
-    private Guid? DistributeId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "distribution")]
-    private Guid? RevokeId { get; set; }
-
-    protected override async Task OnInitializedAsync() => overview = await Admin.GetAsync(PropertyId);
-
-    private async Task DistributeAsync()
+    protected override async Task OnInitializedAsync()
     {
-        if (DistributeId is { } id)
-        {
-            var years = int.TryParse(HttpContext.Request.Form[$"Years-{id}"], out var parsed) ? parsed : 0;
-            await ExecuteAsync(Admin.DistributeAsync(PropertyId, new DistributionInput { CostItemId = id, Years = years }), "Der Erhaltungsaufwand wird verteilt.");
-        }
-        else if (RevokeId is { } revoke)
-        {
-            await ExecuteAsync(Admin.RevokeAsync(PropertyId, revoke), "Der Erhaltungsaufwand wird wieder sofort abgezogen.");
-        }
+        overview = await Admin.GetAsync(PropertyId);
+        loaded = true;
     }
+
+    private int YearsOf(MaintenanceItem item) => chosenYears.TryGetValue(item.CostItemId, out var chosen) ? chosen : item.Years ?? 3;
+
+    private Task DistributeAsync(MaintenanceItem item) =>
+        ExecuteAsync(Admin.DistributeAsync(PropertyId, new DistributionInput { CostItemId = item.CostItemId, Years = YearsOf(item) }), "Der Erhaltungsaufwand wird verteilt.");
+
+    private Task RevokeAsync(MaintenanceItem item) =>
+        ExecuteAsync(Admin.RevokeAsync(PropertyId, item.CostItemId), "Der Erhaltungsaufwand wird wieder sofort abgezogen.");
 
     private async Task ExecuteAsync(Task<Result> action, string message)
     {
         var result = await action;
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/objekte/{PropertyId}/erhaltungsaufwand", message, HttpContext);
+            Notify.Success(message);
         }
-        else
-        {
-            errors = result.Errors;
-            overview = await Admin.GetAsync(PropertyId);
-        }
+
+        overview = await Admin.GetAsync(PropertyId);
     }
 }

@@ -1,17 +1,24 @@
 @page "/verwaltung/finanzen/darlehen/{LoanId:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject ILoanService Admin
 @inject IPropertyService Properties
-@inject Redirector Redirector
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (detail is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (detail is null)
 {
     <PageHeader Title="Darlehen nicht gefunden" Back="/verwaltung/finanzen/darlehen" BackText="Alle Darlehen" />
-    return;
 }
-
+else
+{
 <PageHeader Title="@detail.Input.Bank" Subtitle="@detail.PropertyName" Back="/verwaltung/finanzen/darlehen" BackText="Alle Darlehen" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 @if (detail.Plan.Warnings.Count > 0)
@@ -51,10 +58,10 @@
 
 <section>
     <h2>Darlehensdaten</h2>
-    <EditForm Model="Data" FormName="loan" OnValidSubmit="UpdateAsync">
+    <EditForm Model="Data" OnValidSubmit="UpdateAsync" novalidate>
         <DataAnnotationsValidator />
-        <LoanFields Data="Data!" Properties="properties" />
-        <button type="submit" class="button button-primary">Speichern</button>
+        <LoanEditor Data="Data!" Properties="properties" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
     </EditForm>
 </section>
 
@@ -62,8 +69,6 @@
     <h2>Jahreszinsbescheinigung</h2>
     @if (detail.Certificates.Count > 0)
     {
-        <form method="post" @formname="certificate-remove" @onsubmit="RemoveCertificateAsync">
-            <AntiforgeryToken />
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead><tr><th>Jahr</th><th class="number">Zinsen</th><th class="number">Restschuld</th><th></th></tr></thead>
@@ -74,29 +79,22 @@
                                 <td>@certificate.Year</td>
                                 <td class="number">@Format.Money(certificate.Interest)</td>
                                 <td class="number">@(certificate.ClosingBalance is { } balance ? Format.Money(balance) : "–")</td>
-                                <td><RowConfirm Name="RemoveCertificateId" Value="@certificate.Id" Label="@($"Bescheinigung {certificate.Year} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
+                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCertificateAsync(certificate)" aria-label="@($"Bescheinigung {certificate.Year} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-        </form>
     }
 
-    <EditForm Model="Certificate" FormName="certificate" OnValidSubmit="SaveCertificateAsync">
+    <EditForm Model="Certificate" OnValidSubmit="SaveCertificateAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <FormField Id="certificate-year" Label="Jahr" For="() => Certificate!.Year" Required="true">
-                <InputNumber id="certificate-year" @bind-Value="Certificate!.Year" />
-            </FormField>
-            <FormField Id="certificate-interest" Label="Zinsen laut Bescheinigung" For="() => Certificate!.Interest" Required="true">
-                <InputAmount id="certificate-interest" @bind-Value="Certificate!.Interest" />
-            </FormField>
-            <FormField Id="certificate-balance" Label="Restschuld zum 31.12." For="() => Certificate!.ClosingBalance">
-                <InputAmount id="certificate-balance" @bind-Value="Certificate!.ClosingBalance" />
-            </FormField>
+            <AppNumberField T="int?" @bind-Value="Certificate.Year" Label="Jahr" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Certificate.Interest" Label="Zinsen laut Bescheinigung" Suffix="€" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Certificate.ClosingBalance" Label="Restschuld zum 31.12." Suffix="€" />
         </div>
-        <button type="submit" class="button button-primary">Speichern</button>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
     </EditForm>
 </section>
 
@@ -105,8 +103,6 @@
     <p class="small">Eine Sondertilgung mindert die Restschuld nach der Rate der Periode, in die sie fällt.</p>
     @if (detail.ExtraPayments.Count > 0)
     {
-        <form method="post" @formname="extra-remove" @onsubmit="RemoveExtraAsync">
-            <AntiforgeryToken />
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead><tr><th>Datum</th><th class="number">Betrag</th><th></th></tr></thead>
@@ -116,26 +112,21 @@
                             <tr>
                                 <td>@Format.Date(extra.Date)</td>
                                 <td class="number">@Format.Money(extra.Amount)</td>
-                                <td><RowConfirm Name="RemoveExtraId" Value="@extra.Id" Label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
+                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveExtraAsync(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-        </form>
     }
 
-    <EditForm Model="Extra" FormName="extra" OnValidSubmit="AddExtraAsync">
+    <EditForm Model="Extra" OnValidSubmit="AddExtraAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <FormField Id="extra-date" Label="Datum" For="() => Extra!.Date" Required="true">
-                <InputDate id="extra-date" @bind-Value="Extra!.Date" />
-            </FormField>
-            <FormField Id="extra-amount" Label="Betrag" For="() => Extra!.Amount" Required="true">
-                <InputAmount id="extra-amount" @bind-Value="Extra!.Amount" />
-            </FormField>
+            <AppDateField @bind-Value="Extra.Date" Label="Datum" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Extra.Amount" Label="Betrag" Suffix="€" Required="true" />
         </div>
-        <button type="submit" class="button button-primary">Hinzufügen</button>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
     </EditForm>
 </section>
 
@@ -144,8 +135,6 @@
     <p class="small">Einmalige Kosten wie Disagio, Bereitstellungszinsen oder Grundschuldbestellung sind im Zahlungsjahr Werbungskosten.</p>
     @if (detail.Costs.Count > 0)
     {
-        <form method="post" @formname="cost-remove" @onsubmit="RemoveCostAsync">
-            <AntiforgeryToken />
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead><tr><th>Datum</th><th>Art</th><th>Beschreibung</th><th class="number">Betrag</th><th></th></tr></thead>
@@ -157,37 +146,23 @@
                                 <td>@KindText(cost.Kind)</td>
                                 <td>@cost.Description</td>
                                 <td class="number">@Format.Money(cost.Amount)</td>
-                                <td><RowConfirm Name="RemoveCostId" Value="@cost.Id" Label="@($"{cost.Description} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
+                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-        </form>
     }
 
-    <EditForm Model="Cost" FormName="cost" OnValidSubmit="AddCostAsync">
+    <EditForm Model="Cost" OnValidSubmit="AddCostAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <FormField Id="cost-date" Label="Datum" For="() => Cost!.Date" Required="true">
-                <InputDate id="cost-date" @bind-Value="Cost!.Date" />
-            </FormField>
-            <FormField Id="cost-kind" Label="Art" For="() => Cost!.Kind">
-                <InputSelect id="cost-kind" @bind-Value="Cost!.Kind">
-                    @foreach (var kind in Enum.GetValues<FinancingCostKind>())
-                    {
-                        <option value="@kind">@KindText(kind)</option>
-                    }
-                </InputSelect>
-            </FormField>
-            <FormField Id="cost-amount" Label="Betrag" For="() => Cost!.Amount" Required="true">
-                <InputAmount id="cost-amount" @bind-Value="Cost!.Amount" />
-            </FormField>
-            <FormField Id="cost-description" Label="Beschreibung" For="() => Cost!.Description" Required="true">
-                <InputText id="cost-description" @bind-Value="Cost!.Description" />
-            </FormField>
+            <AppDateField @bind-Value="Cost.Date" Label="Datum" Required="true" />
+            <AppSelect T="FinancingCostKind" @bind-Value="Cost.Kind" Label="Art" Items="Enum.GetValues<FinancingCostKind>()" Text="KindText" />
+            <AppNumberField T="decimal?" @bind-Value="Cost.Amount" Label="Betrag" Suffix="€" Required="true" />
+            <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
         </div>
-        <button type="submit" class="button button-primary">Hinzufügen</button>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
     </EditForm>
 </section>
 
@@ -214,6 +189,8 @@
         </div>
     </details>
 </section>
+}
+</InteractiveShell>
 
 @code {
     private LoanDetail? detail;
@@ -223,39 +200,21 @@
     [Parameter]
     public Guid LoanId { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "loan")]
     private LoanInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "certificate")]
-    private CertificateInput? Certificate { get; set; }
-
-    [SupplyParameterFromForm(FormName = "extra")]
-    private ExtraPaymentInput? Extra { get; set; }
-
-    [SupplyParameterFromForm(FormName = "cost")]
-    private FinancingCostInput? Cost { get; set; }
-
-    [SupplyParameterFromForm(FormName = "certificate-remove")]
-    private Guid? RemoveCertificateId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "extra-remove")]
-    private Guid? RemoveExtraId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "cost-remove")]
-    private Guid? RemoveCostId { get; set; }
+    private CertificateInput Certificate { get; set; } = new();
+    private ExtraPaymentInput Extra { get; set; } = new();
+    private FinancingCostInput Cost { get; set; } = new();
+    private bool loaded;
 
     protected override async Task OnInitializedAsync()
     {
-        Certificate ??= new();
-        Extra ??= new();
-        Cost ??= new();
-        detail = await Admin.GetAsync(LoanId);
         properties = await Properties.ListAsync();
-        Data ??= detail?.Input;
+        await LoadAsync();
+        Data = detail?.Input;
+        loaded = true;
     }
+
+    private async Task LoadAsync() => detail = await Admin.GetAsync(LoanId);
 
     private static string KindText(FinancingCostKind kind) => kind switch
     {
@@ -267,32 +226,64 @@
 
     private Task UpdateAsync() => ExecuteAsync(Admin.UpdateAsync(LoanId, Data!), "Das Darlehen wurde gespeichert.");
 
-    private Task SaveCertificateAsync() => ExecuteAsync(Admin.SaveCertificateAsync(LoanId, Certificate!), "Die Bescheinigung wurde gespeichert.");
+    private async Task SaveCertificateAsync()
+    {
+        if (await ExecuteAsync(Admin.SaveCertificateAsync(LoanId, Certificate), "Die Bescheinigung wurde gespeichert."))
+        {
+            Certificate = new();
+        }
+    }
 
-    private Task RemoveCertificateAsync() =>
-        RemoveCertificateId is { } id ? ExecuteAsync(Admin.RemoveCertificateAsync(LoanId, id), "Die Bescheinigung wurde entfernt.") : Task.CompletedTask;
+    private async Task RemoveCertificateAsync(CertificateRow item)
+    {
+        if (await Confirm.AskAsync("Bescheinigung entfernen", $"Soll die Bescheinigung {item.Year} entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveCertificateAsync(LoanId, item.Id), "Die Bescheinigung wurde entfernt.");
+        }
+    }
 
-    private Task AddExtraAsync() => ExecuteAsync(Admin.AddExtraPaymentAsync(LoanId, Extra!), "Die Sondertilgung wurde hinzugefügt.");
+    private async Task AddExtraAsync()
+    {
+        if (await ExecuteAsync(Admin.AddExtraPaymentAsync(LoanId, Extra), "Die Sondertilgung wurde hinzugefügt."))
+        {
+            Extra = new();
+        }
+    }
 
-    private Task RemoveExtraAsync() =>
-        RemoveExtraId is { } id ? ExecuteAsync(Admin.RemoveExtraPaymentAsync(LoanId, id), "Die Sondertilgung wurde entfernt.") : Task.CompletedTask;
+    private async Task RemoveExtraAsync(ExtraPaymentRow item)
+    {
+        if (await Confirm.AskAsync("Sondertilgung entfernen", $"Soll die Sondertilgung vom {Format.Date(item.Date)} entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveExtraPaymentAsync(LoanId, item.Id), "Die Sondertilgung wurde entfernt.");
+        }
+    }
 
-    private Task AddCostAsync() => ExecuteAsync(Admin.AddFinancingCostAsync(LoanId, Cost!), "Die Kosten wurden hinzugefügt.");
+    private async Task AddCostAsync()
+    {
+        if (await ExecuteAsync(Admin.AddFinancingCostAsync(LoanId, Cost), "Die Kosten wurden hinzugefügt."))
+        {
+            Cost = new();
+        }
+    }
 
-    private Task RemoveCostAsync() =>
-        RemoveCostId is { } id ? ExecuteAsync(Admin.RemoveFinancingCostAsync(LoanId, id), "Die Kosten wurden entfernt.") : Task.CompletedTask;
+    private async Task RemoveCostAsync(FinancingCostRow item)
+    {
+        if (await Confirm.AskAsync("Kosten entfernen", $"Sollen die Kosten „{item.Description}“ entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveFinancingCostAsync(LoanId, item.Id), "Die Kosten wurden entfernt.");
+        }
+    }
 
-    private async Task ExecuteAsync(Task<Result> action, string message)
+    private async Task<bool> ExecuteAsync(Task<Result> action, string message)
     {
         var result = await action;
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/finanzen/darlehen/{LoanId}", message, HttpContext);
+            Notify.Success(message);
         }
-        else
-        {
-            errors = result.Errors;
-            detail = await Admin.GetAsync(LoanId);
-        }
+
+        await LoadAsync();
+        return result.Succeeded;
     }
 }

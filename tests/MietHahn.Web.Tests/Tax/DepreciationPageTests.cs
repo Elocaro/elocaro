@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Properties;
+using MietHahn.Application.Tax;
 using MietHahn.Web.Tests.Account;
 
 namespace MietHahn.Web.Tests.Tax;
@@ -19,27 +20,27 @@ public class DepreciationPageTests(PostgresFixture postgres) : AccountTestBase(p
         using var _ = admin;
         var property = await PropertyAsync();
 
-        var page = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/objekte/{property}/afa"), "acquisition", new Dictionary<string, string>
+        await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IDepreciationService>().SaveAcquisitionAsync(property, new AcquisitionInput
         {
-            ["Acquisition.PurchaseDate"] = "2024-07-15",
-            ["Acquisition.PurchasePrice"] = "300000",
-            ["Acquisition.Notary"] = "30000",
-            ["Acquisition.LandSharePercent"] = "20",
-            ["Acquisition.CompletionYear"] = "1990",
-            ["Acquisition.SpecialYears"] = "4",
-        });
-        Assert.Contains("Die Anschaffungsdaten wurden gespeichert.", page.Text, StringComparison.Ordinal);
+            PurchaseDate = new DateOnly(2024, 7, 15),
+            PurchasePrice = 300_000m,
+            Notary = 30_000m,
+            LandSharePercent = 20m,
+            CompletionYear = 1990,
+            SpecialYears = 4,
+        }, Ct)).Succeeded);
+        var page = await admin.GetAsync($"/verwaltung/objekte/{property}/afa");
         Assert.Contains("Abschreibungsplan", page.Text, StringComparison.Ordinal);
         Assert.Contains("2.640,00", page.Text, StringComparison.Ordinal);
 
-        page = await admin.SubmitAsync(await admin.GetAsync(page.Path), "cost", new Dictionary<string, string>
+        await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IDepreciationService>().AddCostAsync(property, new CostInput
         {
-            ["Cost.Date"] = "2025-03-01",
-            ["Cost.Amount"] = "45000",
-            ["Cost.Description"] = "Sanierung Bäder",
-            ["Cost.IsMaintenance"] = "true",
-        });
-        Assert.Contains("Die Kosten wurden hinzugefügt.", page.Text, StringComparison.Ordinal);
+            Date = new DateOnly(2025, 3, 1),
+            Amount = 45_000m,
+            Description = "Sanierung Bäder",
+            IsMaintenance = true,
+        }, Ct)).Succeeded);
+        page = await admin.GetAsync(page.Path);
         Assert.Contains("Anschaffungsnahe Herstellungskosten", page.Text, StringComparison.Ordinal);
     }
 

@@ -1,0 +1,26 @@
+@* Fields of a loan for interactive pages; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    <OptionSelect @bind-Value="Data.PropertyId" Label="Objekt" Options="Properties.Select(p => ((Guid?)p.Id, p.Name)).Where(p => p.Item1 is not null).Select(p => (p.Item1!.Value, p.Name)).ToList()" />
+    <AppTextField @bind-Value="Data.Bank" Label="Bank" Required="true" />
+    <AppTextField @bind-Value="Data.LoanNumber" Label="Darlehensnummer" />
+    <AppNumberField T="decimal?" @bind-Value="Data.Principal" Label="Darlehensbetrag" Suffix="€" Required="true" />
+    <AppDateField @bind-Value="Data.DisbursementDate" Label="Auszahlung" Required="true" Hint="Ab hier laufen Zinsen" />
+    <AppDateField @bind-Value="Data.FirstPaymentDate" Label="Erste Rate fällig" Required="true" />
+    <AppNumberField T="decimal?" @bind-Value="Data.InterestRatePercent" Label="Sollzins (% p. a.)" Required="true" />
+    <AppNumberField T="decimal?" @bind-Value="Data.Instalment" Label="Rate (Zins + Tilgung)" Suffix="€" Hint="Alternativ die Anfangstilgung angeben" />
+    <AppNumberField T="decimal?" @bind-Value="Data.InitialRepaymentPercent" Label="Anfangstilgung (% p. a.)" />
+    <AppSelect T="int" @bind-Value="Data.MonthsPerPeriod" Label="Ratenfolge" Items="periods" Text="@(v => v == 1 ? "monatlich" : "vierteljährlich")" />
+    <AppDateField @bind-Value="Data.FixedUntil" Label="Zinsbindung bis" />
+    <AppNumberField T="decimal?" @bind-Value="Data.SharePercent" Label="Anteil Vermietung (%)" Hint="Nur dieser Anteil der Zinsen ist Werbungskosten" />
+</div>
+<AppTextField @bind-Value="Data.Notes" Label="Notiz" Lines="2" />
+
+@code {
+    private static readonly int[] periods = [1, 3];
+
+    [Parameter, EditorRequired]
+    public LoanInput Data { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<PropertyOverview> Properties { get; set; } = [];
+}
