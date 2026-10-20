@@ -1,0 +1,81 @@
+@page "/verwaltung/finanzen/anlage-v-zeilen"
+@inject IAnlageVService Admin
+@inject Redirector Redirector
+@inject TimeProvider Clock
+
+<PageHeader Title="Anlage V: Zeilennummern" Subtitle="@($"Steuerjahr {Year}")" />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+<p class="small">
+    Die Zeilennummern des Vordrucks ändern sich jährlich. Die vorbelegten Werte sind Platzhalter und müssen am amtlichen Vordruck des Steuerjahres geprüft werden.
+</p>
+
+<form method="get" class="form-row search-bar">
+    <label for="year">Steuerjahr</label>
+    <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
+    <button type="submit" class="button">Anzeigen</button>
+</form>
+
+<form method="post" @formname="mapping" @onsubmit="SaveAsync">
+    <AntiforgeryToken />
+    <input type="hidden" name="SaveYear" value="@Year" />
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Bezeichnung</th><th>Art</th><th>Zeile</th><th>Quelle</th></tr></thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td><label for="line-@row.Category">@row.Label</label></td>
+                        <td>@(row.Section == AnlageVSection.Income ? "Einnahme" : "Werbungskosten")</td>
+                        <td><input id="line-@row.Category" type="number" name="Line-@row.Category" value="@row.LineNumber" min="1" max="200" /></td>
+                        <td>@(row.IsDefault ? "Vorbelegung" : "gepflegt")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <button type="submit" class="button button-primary">Speichern</button>
+</form>
+
+@code {
+    private IReadOnlyList<LineMappingRow> rows = [];
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "jahr")]
+    private int? YearQuery { get; set; }
+
+    [SupplyParameterFromForm(Name = "SaveYear")]
+    private int? SaveYear { get; set; }
+
+    private int Year => SaveYear ?? YearQuery ?? MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+
+    protected override async Task OnInitializedAsync() => rows = await Admin.GetMappingAsync(Year);
+
+    private async Task SaveAsync()
+    {
+        var lines = new Dictionary<AnlageVCategory, int>();
+        foreach (var row in rows)
+        {
+            if (int.TryParse(HttpContext.Request.Form[$"Line-{row.Category}"], out var line))
+            {
+                lines[row.Category] = line;
+            }
+        }
+
+        var result = await Admin.SaveMappingAsync(Year, lines);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/finanzen/anlage-v-zeilen?jahr={Year}", "Die Zeilennummern wurden gespeichert.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

@@ -222,6 +222,7 @@ public static class DependencyInjection
         services.AddScoped<IDepreciationService, DepreciationService>();
         services.AddScoped<ILoanService, LoanService>();
         services.AddScoped<IMaintenanceService, MaintenanceService>();
+        services.AddScoped<IAnlageVService, AnlageVService>();
         services.AddScoped<ITodoSource, CalibrationDueTodos>();
         services.AddScoped<IDocumentLibrary, DocumentLibrary>();
         services.AddScoped<IFileShare, DocumentFileShare>();

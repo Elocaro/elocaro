@@ -45,7 +45,7 @@ internal static class OpenItemsEndpoint
     }
 
     /// <summary>Quotes where needed and neutralizes formulas (CSV injection).</summary>
-    private static string Field(string value)
+    internal static string Field(string value)
     {
         if (value.Length > 0 && value[0] is '=' or '+' or '-' or '@' or '\t' or '\r')
         {

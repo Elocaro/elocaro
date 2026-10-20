@@ -1,0 +1,71 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/anlage-v"
+@inject IAnlageVService Admin
+@inject TimeProvider Clock
+
+@if (report is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+    return;
+}
+
+<PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@report.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
+
+<form method="get" class="form-row search-bar">
+    <label for="year">Steuerjahr</label>
+    <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
+    <label for="rent-percent">Miete in % der ortsüblichen Miete</label>
+    <input id="rent-percent" type="number" name="entgelt" value="@RentPercent" min="0" max="1000" step="0.1" />
+    <button type="submit" class="button">Anzeigen</button>
+    <a class="button" href="/verwaltung/objekte/@PropertyId/anlage-v.csv?jahr=@Year">CSV exportieren</a>
+    <a class="button" href="/verwaltung/objekte/@PropertyId/anlage-v.pdf?jahr=@Year">PDF</a>
+    <a class="button" href="/verwaltung/finanzen/anlage-v-zeilen?jahr=@Year">Zeilennummern pflegen</a>
+</form>
+
+@if (report.Warnings.Count > 0)
+{
+    <div class="message message-warning" role="alert">
+        <strong>Bitte prüfen:</strong>
+        <ul>
+            @foreach (var warning in report.Warnings)
+            {
+                <li>@warning</li>
+            }
+        </ul>
+    </div>
+}
+
+<p class="small">
+    Es zählen Zahlungen und Zahlungsabflüsse im Jahr (Zuflussprinzip, § 11 EStG). Regelmäßig wiederkehrende Zahlungen, die innerhalb von zehn Tagen um den Jahreswechsel
+    fällig sind und gezahlt werden, gehören zum Jahr der Fälligkeit. Die Zeilennummern sind je Steuerjahr pflegbar und vor dem Eintragen am amtlichen Vordruck zu prüfen.
+</p>
+
+<section>
+    <h2>Einnahmen</h2>
+    <AnlageVTable Lines="report.Result.Income" Total="report.Result.IncomeTotal" TotalText="Summe der Einnahmen" PropertyId="PropertyId" />
+</section>
+
+<section>
+    <h2>Werbungskosten</h2>
+    <AnlageVTable Lines="report.Result.Expenses" Total="report.Result.ExpenseTotal" TotalText="Summe der Werbungskosten" PropertyId="PropertyId" />
+</section>
+
+<dl class="summary">
+    <dt>Überschuss</dt><dd>@Format.Money(report.Result.Surplus)</dd>
+</dl>
+
+@code {
+    private AnlageVReport? report;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "jahr")]
+    private int? YearQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "entgelt")]
+    private decimal? RentPercent { get; set; }
+
+    private int Year => YearQuery ?? MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+
+    protected override async Task OnInitializedAsync() => report = await Admin.GetAsync(PropertyId, Year, RentPercent);
+}

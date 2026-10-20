@@ -52,6 +52,7 @@ app.MapHealthEndpoints();
 app.MapExportEndpoint();
 app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
+app.MapAnlageVEndpoints();
 app.MapDunningPreviewEndpoint();
 app.MapStatementPreviewEndpoint();
 

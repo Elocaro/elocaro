@@ -36,6 +36,32 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
     public async ValueTask DisposeAsync() => await environment.DisposeAsync();
 
     [Fact]
+    public async Task Anlage_V_template_lists_lines_totals_and_details()
+    {
+        var model = new
+        {
+            property = "Lindenweg 3",
+            year = 2026,
+            warnings = new[] { "Die AfA fehlt." },
+            income = new[] { new { line = 13, label = "Mieteinnahmen (Kaltmiete)", amount = 1240m } },
+            expenses = new[] { new { line = 40, label = "Grundsteuer", amount = 300m } },
+            income_total = 1240m,
+            expense_total = 300m,
+            surplus = 940m,
+            details = new[] { new { line = 13, date = new DateOnly(2026, 11, 5), text = "Kaltmiete 11/2026", amount = 620m } },
+        };
+
+        var (html, _) = await HtmlAsync(new PdfRequest("anlage-v", "Anlage V 2026", model));
+
+        Assert.Contains("Lindenweg 3", html, StringComparison.Ordinal);
+        Assert.Contains("Mieteinnahmen (Kaltmiete)", html, StringComparison.Ordinal);
+        Assert.Contains("1.240,00", html, StringComparison.Ordinal);
+        Assert.Contains("940,00", html, StringComparison.Ordinal);
+        Assert.Contains("Kaltmiete 11/2026", html, StringComparison.Ordinal);
+        Assert.Contains("Die AfA fehlt.", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Letter_HTML_contains_letterhead_address_field_and_footer()
     {
         var (html, footer) = await HtmlAsync(new PdfRequest("test", "Testbrief <1>", TestModel(), Erika, Date: new DateOnly(2026, 10, 18)));

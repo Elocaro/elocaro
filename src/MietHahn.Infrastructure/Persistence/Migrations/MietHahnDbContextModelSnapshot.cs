@@ -4762,6 +4762,65 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("property_costs", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Tax.TaxLineMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("line_number");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<int>("TaxYear")
+                        .HasColumnType("integer")
+                        .HasColumnName("tax_year");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tax_line_mappings");
+
+                    b.HasIndex("TaxYear", "Category")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tax_line_mappings_tax_year_category")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("tax_line_mappings", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Infrastructure.Audit.AuditEntry", b =>
                 {
                     b.Property<Guid>("Id")

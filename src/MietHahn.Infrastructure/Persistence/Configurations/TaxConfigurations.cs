@@ -116,3 +116,13 @@ internal sealed class MaintenanceDistributionConfiguration : IEntityTypeConfigur
         builder.HasIndex(v => new { v.PropertyId, v.StartYear });
     }
 }
+
+internal sealed class TaxLineMappingConfiguration : IEntityTypeConfiguration<TaxLineMapping>
+{
+    public void Configure(EntityTypeBuilder<TaxLineMapping> builder)
+    {
+        builder.ToTable("tax_line_mappings");
+        builder.Property(m => m.Category).HasConversion<string>().HasMaxLength(40);
+        builder.HasIndex(m => new { m.TaxYear, m.Category }).IsUnique().HasFilter("NOT deleted");
+    }
+}

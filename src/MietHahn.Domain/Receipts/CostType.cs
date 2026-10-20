@@ -35,6 +35,7 @@ public static class CostTypes
         new(MaintenanceKey, "Instandhaltung und Reparaturen", false, Hint: "Erhaltungsaufwand: sofort abziehbar oder auf 2–5 Jahre verteilbar (§ 82b EStDV)."),
         new("modernisierung", "Modernisierung / Herstellungskosten", false, Hint: "Steuerlich ggf. über die AfA statt sofort."),
         new("verwaltung", "Verwaltungskosten", false),
+        new("fahrtkosten", "Fahrtkosten", false),
         new("bankgebuehren", "Kontoführung und Bankgebühren", false),
         new("schuldzinsen", "Schuldzinsen", false),
         new("beratung", "Rechts- und Steuerberatung", false),

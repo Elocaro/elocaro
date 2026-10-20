@@ -1,0 +1,40 @@
+{{# Ausfüllhilfe zur Anlage V (keine Steuerberatung): Zeilennummern sind je Steuerjahr in der Verwaltung gepflegt und anhand des amtlichen Vordrucks zu prüfen. }}
+<p>Objekt: <strong>{{ property }}</strong> &middot; Steuerjahr <strong>{{ year }}</strong> &middot; Zuflussprinzip (§ 11 EStG)</p>
+{{~ for w in warnings ~}}
+<p class="small"><strong>Hinweis:</strong> {{ w }}</p>
+{{~ end ~}}
+
+<h2>Einnahmen</h2>
+<table>
+  <thead><tr><th>Zeile</th><th>Bezeichnung</th><th class="number">Betrag</th></tr></thead>
+  <tbody>
+  {{~ for l in income ~}}
+    <tr><td>{{ l.line }}</td><td>{{ l.label }}</td><td class="number">{{ money l.amount }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+  <tfoot><tr><td colspan="2">Summe der Einnahmen</td><td class="number">{{ money income_total }}</td></tr></tfoot>
+</table>
+
+<h2>Werbungskosten</h2>
+<table>
+  <thead><tr><th>Zeile</th><th>Bezeichnung</th><th class="number">Betrag</th></tr></thead>
+  <tbody>
+  {{~ for l in expenses ~}}
+    <tr><td>{{ l.line }}</td><td>{{ l.label }}</td><td class="number">{{ money l.amount }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+  <tfoot>
+    <tr><td colspan="2">Summe der Werbungskosten</td><td class="number">{{ money expense_total }}</td></tr>
+    <tr><td colspan="2">Überschuss (Einnahmen abzüglich Werbungskosten)</td><td class="number">{{ money surplus }}</td></tr>
+  </tfoot>
+</table>
+
+<h2>Einzelnachweis</h2>
+<table>
+  <thead><tr><th>Zeile</th><th>Datum</th><th>Text</th><th class="number">Betrag</th></tr></thead>
+  <tbody>
+  {{~ for l in details ~}}
+    <tr><td>{{ l.line }}</td><td>{{ date l.date }}</td><td>{{ l.text }}</td><td class="number">{{ money l.amount }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+</table>
