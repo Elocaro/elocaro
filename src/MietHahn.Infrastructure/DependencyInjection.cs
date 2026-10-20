@@ -29,6 +29,7 @@ using MietHahn.Application.Todos;
 using MietHahn.Infrastructure.Admin;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Bank;
+using MietHahn.Infrastructure.Bank.FinTs;
 using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Files;
 using MietHahn.Infrastructure.Finance;
@@ -67,6 +68,7 @@ public static class DependencyInjection
         services.TryAddScoped<ICurrentUser, SystemUser>();
 
         services.Configure<ApplicationOptions>(configuration.GetSection(ApplicationOptions.Section));
+        services.Configure<FinTsOptions>(configuration.GetSection(FinTsOptions.Section));
 
         AddPersistence(services, configuration);
         AddIdentity(services);
@@ -236,6 +238,8 @@ public static class DependencyInjection
         services.AddScoped<IPersonalDataSource, DunningPersonalData>();
         services.AddScoped<IPersonalDataSource, TenantAccountPersonalData>();
         services.AddScoped<IBankService, BankService>();
+        services.AddSingleton<FinTsSessions>();
+        services.AddScoped<IFinTsService, FinTsService>();
         services.AddScoped<IPaymentAssignment, PaymentAssignment>();
         services.AddScoped<IMatchRules, MatchRules>();
         services.AddScoped<ITodoSource, BankTodos>();

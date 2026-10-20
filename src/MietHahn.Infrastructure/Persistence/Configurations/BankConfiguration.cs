@@ -18,6 +18,10 @@ internal sealed class BankAccountConfiguration : IEntityTypeConfiguration<BankAc
         builder.Property(k => k.Bic).HasMaxLength(11);
         builder.Property(k => k.Bank).HasMaxLength(100);
         builder.Property(k => k.Type).HasConversion<string>().HasMaxLength(20);
+        builder.Property(k => k.FinTsUrl).HasMaxLength(300);
+        builder.Property(k => k.FinTsBankCode).HasMaxLength(8);
+        builder.Property(k => k.FinTsUserId).HasMaxLength(500);
+        builder.Ignore(k => k.HasFinTs);
         builder.Property(k => k.PropertyIds).HasColumnType("uuid[]");
         builder.HasIndex(k => k.Iban).IsUnique().HasFilter("NOT deleted");
     }

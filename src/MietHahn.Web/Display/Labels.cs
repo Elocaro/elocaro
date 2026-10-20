@@ -35,6 +35,7 @@ public static class Labels
     {
         BankFormat.Camt053 => "camt.053",
         BankFormat.Mt940 => "MT940",
+        BankFormat.FinTs => "FinTS-Abruf",
         _ => "CSV",
     };
 

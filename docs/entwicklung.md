@@ -288,6 +288,17 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - **Duplikate** (`TransactionFingerprint`): SHA-256 aus Konto-IBAN, Buchungsdatum, Betrag, Verwendungszweck (ohne Leerraum, Großschreibung), Gegen-IBAN und End-to-End-ID; gleiche Umsätze innerhalb einer Datei werden durchnummeriert. Eindeutiger Index (Konto, Hash) auch über gelöschte Umsätze. Die IBAN eines Kontos mit Umsätzen ist daher nicht änderbar.
 - Testdateien (anonymisiert) für alle Formate liegen unter `tests/MietHahn.Integration.Tests/Bank/TestFiles`; neue Bankformate dort mit einem Beispiel ergänzen.
 
+### Bank: FinTS-Direktabruf
+
+Bedienung und Registrierung: [banking-fints.md](banking-fints.md). Technik:
+
+- **Konfiguration:** Abschnitt `FinTs` (`FinTsOptions`: `ProductId`, `ProductVersion`, `TanTimeoutSeconds`), in Docker über `FINTS_PRODUCT_ID` und `FINTS_PRODUCT_VERSION`. `IFinTsService.IsConfigured` steuert den Hinweis auf der Kontoseite. libfintx kennt die Nummer nur global (`FinTsGlobals.ProductId`/`Version`); sie wird vor jedem Abruf gesetzt.
+- **Konto:** `BankAccount.FinTsUrl` (nur https), `FinTsBankCode` (8 Ziffern), `FinTsUserId` (mit DataProtection, Zweck `MietHahn.FinTs.UserId`, verschlüsselt; ver- und entschlüsselt wird in `BankService`). `SetFinTs` verlangt alle drei Werte oder keinen. Die PIN wird nie gespeichert.
+- **Ablauf** (`Infrastructure/Bank/FinTs`): `FinTsService.StartAsync` prüft Konto und PIN und startet den Dialog im Hintergrund (`FinTsSession` in `FinTsSessions`, nur im Speicher). Der Hintergrundlauf spricht nur mit der Bank und berührt die Datenbank nicht: Synchronisation → `Accounts` (Konto per IBAN wählen) → `Transactions_camt` (camt.053). Die TAN-Rückfrage von libfintx (`TANDialog`) wartet in `FinTsSession.AskAsync`, bis die Oberfläche `ProvideTan` bzw. `ConfirmApproval` ruft; Phase `TanRequired` oder, bei `IsDecoupled`, `ApprovalRequired`. Die Oberfläche (`FinTsFetch.razor`) fragt `StateAsync` jede Sekunde ab.
+- **Ergebnis:** `StateAsync` legt im Aufrufkontext (also mit dem angemeldeten Benutzer im Änderungsprotokoll) ein `BankImport` mit `BankFormat.FinTs` an. Der Inhalt ist eine JSON-Liste (`FinTsPayload`), `BankFileReader` erkennt sie; Vorschau, Duplikaterkennung und Import laufen wie bei Dateien. `FinTsMapping` übersetzt `CamtTransaction` (vorgemerkte Einträge entfallen).
+- **Sicherheit:** libfintx erhält `NullLoggerFactory`; bei Fehlern wird nur der Ausnahmetyp protokolliert; die PIN wird nach dem Dialog überschrieben; ein Fehlversuch bricht ab, Bankmeldungen 9930/9931/9942 bekommen einen Hinweis.
+- **Offen:** Verfahren mit Bild/Flickercode (photoTAN, chipTAN), MT940-Rückfall für Banken ohne camt (HKCAZ), automatischer Abruf per Job (wegen der Pflicht zur starken Kundenauthentifizierung bewusst nicht), Prüfung gegen echte Bankverbindungen.
+
 ### Belege & Kostenpositionen
 
 - `Receipt` (Lieferant als Kontakt oder Name, Rechnungsnr./-datum, Leistungszeitraum als zwei Spalten, Brutto/Netto/USt mit Summenprüfung, fällig/bezahlt, Brennstoffmenge, -einheit und CO₂ in kg für das CO2KostAufG) mit Seiten (`ReceiptFile`, Dateiablage, SHA-256, unveränderlich) und `CostItem`en.

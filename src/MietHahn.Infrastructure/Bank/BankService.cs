@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Bank;
@@ -8,13 +9,14 @@ using MietHahn.Domain.Bank;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;
+using MietHahn.Infrastructure.Bank.FinTs;
 using MietHahn.Infrastructure.Bank.Import;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Bank;
 
-internal sealed class BankService(MietHahnDbContext db) : IBankService
+internal sealed class BankService(MietHahnDbContext db, IDataProtectionProvider protection) : IBankService
 {
     /// <summary>Bank statements are small; larger files are almost certainly something else.</summary>
     internal const int MaxFileSize = 10 * 1024 * 1024;
@@ -30,7 +32,8 @@ internal sealed class BankService(MietHahnDbContext db) : IBankService
             k.Id, k.Name, Iban.Format(k.Iban), k.Bank, k.Type,
             k.PropertyIds.Select(o => properties.GetValueOrDefault(o, "?")).Order(StringComparer.CurrentCulture).ToList(),
             statistics.GetValueOrDefault(k.Id)?.Open ?? 0,
-            statistics.GetValueOrDefault(k.Id)?.Latest)).ToList();
+            statistics.GetValueOrDefault(k.Id)?.Latest,
+            k.HasFinTs)).ToList();
     }
 
     public async Task<BankAccountInput?> GetAccountAsync(Guid id, CancellationToken cancellationToken = default)
@@ -43,6 +46,9 @@ internal sealed class BankService(MietHahnDbContext db) : IBankService
             Bic = account.Bic,
             Bank = account.Bank,
             Type = account.Type,
+            FinTsUrl = account.FinTsUrl,
+            FinTsBankCode = account.FinTsBankCode,
+            FinTsUserId = account.FinTsUserId is null ? null : protection.CreateProtector(FinTsService.ProtectionPurpose).Unprotect(account.FinTsUserId),
             PropertyIds = account.PropertyIds,
         };
     }
@@ -328,6 +334,8 @@ internal sealed class BankService(MietHahnDbContext db) : IBankService
         }
 
         account.SetProperties(propertyIds);
+        var userId = TrimToNull(data.FinTsUserId);
+        account.SetFinTs(data.FinTsUrl, data.FinTsBankCode, userId is null ? null : protection.CreateProtector(FinTsService.ProtectionPurpose).Protect(userId));
         account.Validate();
     }
 

@@ -9,6 +9,7 @@
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="libfintx.FinTS" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="Quartz.Extensions.Hosting" />
     <PackageReference Include="Quartz.Serialization.SystemTextJson" />

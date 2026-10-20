@@ -9,6 +9,7 @@ MietHahn nutzt folgende Open-Source-Komponenten (als NuGet-Pakete bzw. Container
 | EFCore.NamingConventions | Apache-2.0 | snake_case-Namen |
 | Quartz.NET | Apache-2.0 | Hintergrundjobs. Das Datenbankschema `src/MietHahn.Infrastructure/Persistenz/Sql/quartz_3_22_6_postgres.sql` stammt aus dem Quartz.NET-Repository |
 | MailKit / MimeKit | MIT | SMTP-Versand |
+| libfintx.FinTS | LGPL-3.0 | FinTS-Direktabruf der Kontoumsätze. Unverändert als NuGet-Paket eingebunden (dynamisches Linken); Quellcode: <https://github.com/libfintx/libfintx> |
 | Scriban | BSD-2-Clause | Vorlagen |
 | SkiaSharp | MIT | Bildaufbereitung |
 | QRCoder | MIT | QR-Code für die Zwei-Faktor-Einrichtung |

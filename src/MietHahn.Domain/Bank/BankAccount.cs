@@ -40,6 +40,18 @@ public sealed class BankAccount : Entity
 
     public AccountType Type { get; set; }
 
+    /// <summary>FinTS endpoint of the bank (https only); empty = no direct retrieval.</summary>
+    public string? FinTsUrl { get; private set; }
+
+    /// <summary>Bank code (8 digits) for the FinTS dialog.</summary>
+    public string? FinTsBankCode { get; private set; }
+
+    /// <summary>Login name for FinTS, stored encrypted (DataProtection); never the PIN.</summary>
+    [Confidential]
+    public string? FinTsUserId { get; private set; }
+
+    public bool HasFinTs => FinTsUrl is not null && FinTsBankCode is not null && FinTsUserId is not null;
+
     public List<Guid> PropertyIds { get; private set; } = [];
 
     public void SetIban(string iban)
@@ -50,6 +62,38 @@ public sealed class BankAccount : Entity
         }
 
         Iban = Common.Iban.Compact(iban);
+    }
+
+    /// <summary>All three values or none. <paramref name="protectedUserId"/> is already encrypted.</summary>
+    public void SetFinTs(string? url, string? bankCode, string? protectedUserId)
+    {
+        url = string.IsNullOrWhiteSpace(url) ? null : url.Trim();
+        bankCode = string.IsNullOrWhiteSpace(bankCode) ? null : bankCode.Trim();
+        protectedUserId = string.IsNullOrWhiteSpace(protectedUserId) ? null : protectedUserId;
+        if (url is null && bankCode is null && protectedUserId is null)
+        {
+            FinTsUrl = FinTsBankCode = FinTsUserId = null;
+            return;
+        }
+
+        if (url is null || bankCode is null || protectedUserId is null)
+        {
+            throw new RuleViolationException("Für FinTS bitte URL, Bankleitzahl und Benutzerkennung angeben (oder alle drei leer lassen).");
+        }
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new RuleViolationException("Die FinTS-URL muss mit https:// beginnen.");
+        }
+
+        if (bankCode.Length != 8 || !bankCode.All(char.IsAsciiDigit))
+        {
+            throw new RuleViolationException("Die Bankleitzahl besteht aus 8 Ziffern.");
+        }
+
+        FinTsUrl = uri.ToString();
+        FinTsBankCode = bankCode;
+        FinTsUserId = protectedUserId;
     }
 
     public void SetProperties(IEnumerable<Guid> propertyIds)
@@ -202,6 +246,9 @@ public enum BankFormat
     Camt053 = 0,
     Mt940 = 1,
     Csv = 2,
+
+    /// <summary>Direct FinTS retrieval; the content is a JSON list of the transactions read.</summary>
+    FinTs = 3,
 }
 
 public enum ImportStatus

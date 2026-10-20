@@ -306,6 +306,21 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
 
+                    b.Property<string>("FinTsBankCode")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("fin_ts_bank_code");
+
+                    b.Property<string>("FinTsUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("fin_ts_url");
+
+                    b.Property<string>("FinTsUserId")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("fin_ts_user_id");
+
                     b.Property<string>("Iban")
                         .IsRequired()
                         .HasMaxLength(34)

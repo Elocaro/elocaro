@@ -39,6 +39,8 @@ else
     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UploadAsync">Vorschau anzeigen</MudButton>
 </section>
 
+<FinTsFetch BankAccountId="Id" Enabled="@(account.FinTsUrl is not null && account.FinTsBankCode is not null && account.FinTsUserId is not null)" />
+
 <section>
     <h2>Importprotokoll</h2>
     @if (imports is { Count: 0 })

@@ -59,10 +59,20 @@ public sealed class BankAccountInput
 
     public AccountType Type { get; set; }
 
+    /// <summary>Optional FinTS access for the direct retrieval; all three fields or none.</summary>
+    [StringLength(300)]
+    public string? FinTsUrl { get; set; }
+
+    [StringLength(8)]
+    public string? FinTsBankCode { get; set; }
+
+    [StringLength(100)]
+    public string? FinTsUserId { get; set; }
+
     public List<Guid> PropertyIds { get; set; } = [];
 }
 
-public sealed record BankAccountRow(Guid Id, string Name, string Iban, string? Bank, AccountType Type, IReadOnlyList<string> Properties, int OpenTransactions, DateOnly? LastTransaction);
+public sealed record BankAccountRow(Guid Id, string Name, string Iban, string? Bank, AccountType Type, IReadOnlyList<string> Properties, int OpenTransactions, DateOnly? LastTransaction, bool HasFinTs = false);
 
 /// <param name="DifferentIban">According to its account details, the file belongs to a different IBAN.</param>
 public sealed record ImportPreview(

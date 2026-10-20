@@ -1,4 +1,5 @@
 using MietHahn.Domain.Bank;
+using MietHahn.Infrastructure.Bank.FinTs;
 
 namespace MietHahn.Infrastructure.Bank.Import;
 
@@ -14,6 +15,11 @@ internal static class BankFileReader
         if (content.Length == 0)
         {
             throw new BankFileErrorException("Die Datei ist leer.");
+        }
+
+        if (profileName is null && FinTsPayload.Detects(content))
+        {
+            return new ParsedFile(BankFormat.FinTs, null, FinTsPayload.Read(content));
         }
 
         if (profileName is null && Camt053Parser.Detects(content))

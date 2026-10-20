@@ -34,6 +34,9 @@ services:
       ReceiptExtraction__Claude__Model: ${RECEIPT_AI_CLAUDE_MODEL:-claude-sonnet-5-5}
       ReceiptExtraction__Ollama__BaseUrl: ${OLLAMA_URL:-http://host.docker.internal:11434/}
       ReceiptExtraction__Ollama__Model: ${OLLAMA_MODEL:-qwen2.5vl:7b}
+      # FinTS direct retrieval: registration number of the Deutsche Kreditwirtschaft, see docs/banking-fints.md (empty = off)
+      FinTs__ProductId: ${FINTS_PRODUCT_ID:-}
+      FinTs__ProductVersion: ${FINTS_PRODUCT_VERSION:-}
       Backup__StatusFile: /backup-status/backup.json
     volumes:
       - files:/data
