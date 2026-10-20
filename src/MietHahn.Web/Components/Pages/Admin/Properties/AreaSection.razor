@@ -1,4 +1,7 @@
-@* Current area, "new value from …" form and history. The page processes the form (FormName "flaeche"). *@
+@using MudBlazor
+@inject IDialogService Dialogs
+
+@* Current area, history and the dialog for a new value from a cut-off date. Interactive counterpart of the former form section. *@
 <section>
     <h2>Flächen</h2>
     @if (Current is null)
@@ -14,25 +17,7 @@
         </dl>
     }
 
-    <details class="disclosure" open="@(Current is null)">
-        <summary>@(Current is null ? "Fläche erfassen" : "Fläche ändern (neuer Stand ab Stichtag)")</summary>
-        <EditForm Model="Input" FormName="area" OnValidSubmit="OnSave" class="form-row">
-            <DataAnnotationsValidator />
-            <FormField Id="area-valid-from" Label="Gültig ab" For="() => Input.From" Required="true">
-                <InputDate id="area-valid-from" @bind-Value="Input.From" />
-            </FormField>
-            <FormField Id="area-value" Label="@(AreaText + " (m²)")" For="() => Input.Area" Required="true">
-                <InputArea id="area-value" @bind-Value="Input.Area" />
-            </FormField>
-            <FormField Id="area-supplement" Label="@(AdditionalText + " (m²)")" For="() => Input.SecondaryArea" Hint="@AdditionalHint">
-                <InputArea id="area-supplement" @bind-Value="Input.SecondaryArea" />
-            </FormField>
-            <div class="field field-action">
-                <button type="submit" class="button button-primary">Fläche speichern</button>
-            </div>
-        </EditForm>
-        <p class="small">Der bisherige Stand endet am Tag vor dem Stichtag und bleibt für frühere Abrechnungen erhalten.</p>
-    </details>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="EnterAsync">@(Current is null ? "Fläche erfassen" : "Fläche ändern (neuer Stand ab Stichtag)")</MudButton>
 
     @if (History.Count > 1)
     {
@@ -57,10 +42,11 @@
 
 @code {
     [Parameter, EditorRequired]
-    public AreaInput Input { get; set; } = default!;
+    public Func<AreaInput, Task<Result>> Save { get; set; } = default!;
 
-    [Parameter, EditorRequired]
-    public EventCallback OnSave { get; set; }
+    /// <summary>Called after a new value was saved (the page reloads).</summary>
+    [Parameter]
+    public EventCallback OnSaved { get; set; }
 
     [Parameter]
     public AreaReading? Current { get; set; }
@@ -76,4 +62,17 @@
 
     [Parameter]
     public string? AdditionalHint { get; set; }
+
+    private async Task EnterAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Save"] = Save, ["AreaText"] = AreaText, ["AdditionalText"] = AdditionalText, ["AdditionalHint"] = AdditionalHint, ["Current"] = Current,
+        };
+        var dialog = await Dialogs.ShowAsync<AreaDialog>(Current is null ? "Fläche erfassen" : "Fläche ändern", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await OnSaved.InvokeAsync();
+        }
+    }
 }

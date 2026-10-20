@@ -1,0 +1,21 @@
+@using System.Linq.Expressions
+@using MudBlazor
+@* Yes/no choice. *@
+<MudCheckBox T="bool" Value="Value" ValueChanged="ValueChanged" For="ValueExpression" Label="@Label" Disabled="Disabled" Color="Color.Primary" />
+
+@code {
+    [Parameter]
+    public bool Value { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<bool>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public bool Disabled { get; set; }
+}

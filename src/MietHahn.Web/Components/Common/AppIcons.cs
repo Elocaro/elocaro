@@ -42,5 +42,6 @@ public static class AppIcons
     public static string Warning => Icons.Material.Outlined.Warning;
     public static string Error => Icons.Material.Outlined.Error;
     public static string Delete => Icons.Material.Outlined.Delete;
+    public static string Upload => Icons.Material.Outlined.UploadFile;
     public static string Download => Icons.Material.Outlined.Download;
 }

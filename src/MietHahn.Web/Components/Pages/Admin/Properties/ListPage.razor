@@ -1,46 +1,48 @@
 @page "/verwaltung/objekte"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IPropertyService Admin
 
-<PageHeader Title="Objekte" Subtitle="Häuser mit ihren Wohnungen und WG-Zimmern.">
-    <Actions>
-        <a class="button button-primary" href="/verwaltung/objekte/neu">Objekt anlegen</a>
-    </Actions>
-</PageHeader>
+<InteractiveShell>
+    <PageHeader Title="Objekte" Subtitle="Häuser mit ihren Wohnungen und WG-Zimmern.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/objekte/neu">Objekt anlegen</MudButton>
+        </Actions>
+    </PageHeader>
 
-<StatusMessage />
-
-@if (properties is { Count: 0 })
-{
-    <EmptyState Text="Noch keine Objekte. Lege zuerst ein Haus an, danach die Wohnungen." />
-}
-else if (properties is not null)
-{
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead>
-                <tr><th>Objekt</th><th>Anschrift</th><th class="number">Einheiten</th><th class="number">Wohnfläche</th><th>Belegung</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var property in properties)
-                {
-                    <tr>
-                        <td><a href="/verwaltung/objekte/@property.Id">@property.Name</a></td>
-                        <td>@property.Address</td>
-                        <td class="number">@property.Units</td>
-                        <td class="number">@Format.Area(property.LivingArea)</td>
-                        <td>
-                            @property.Rented von @property.RentalUnits vermietet
-                            @if (property.Vacancy > 0)
-                            {
-                                <StatusChip Level="StatusLevel.Warning">@property.Vacancy leer</StatusChip>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+    @if (properties is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Objekte. Lege zuerst ein Haus an, danach die Wohnungen." />
+    }
+    else if (properties is not null)
+    {
+        <MudTable T="PropertyOverview" Items="properties" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="PropertyOverview" SortBy="@(p => p.Name)" InitialDirection="SortDirection.Ascending">Objekt</MudTableSortLabel></MudTh>
+                <MudTh>Anschrift</MudTh>
+                <MudTh Style="text-align:right"><MudTableSortLabel T="PropertyOverview" SortBy="@(p => p.Units)">Einheiten</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:right">Wohnfläche</MudTh>
+                <MudTh>Belegung</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Objekt"><a href="/verwaltung/objekte/@context.Id">@context.Name</a></MudTd>
+                <MudTd DataLabel="Anschrift">@context.Address</MudTd>
+                <MudTd DataLabel="Einheiten" Style="text-align:right">@context.Units</MudTd>
+                <MudTd DataLabel="Wohnfläche" Style="text-align:right">@Format.Area(context.LivingArea)</MudTd>
+                <MudTd DataLabel="Belegung">
+                    @context.Rented von @context.RentalUnits vermietet
+                    @if (context.Vacancy > 0)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">@context.Vacancy leer</StatusChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+            </PagerContent>
+        </MudTable>
+    }
+</InteractiveShell>
 
 @code {
     private IReadOnlyList<PropertyOverview>? properties;

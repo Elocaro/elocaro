@@ -134,15 +134,11 @@ public class DocumentsTests(PostgresFixture postgres) : AccountTestBase(postgres
         Assert.Equal("/konto/zugriff-verweigert", (await manager.GetAsync("/verwaltung/dokumente/neu", followRedirects: false)).RedirectLocation!.AbsolutePath);
     }
 
-    private static async Task<Guid> PropertyAsync(TestBrowser admin)
+    private async Task<Guid> PropertyAsync(TestBrowser admin)
     {
-        var property = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "property", new Dictionary<string, string>
-        {
-            ["Data.Name"] = "Lindenweg 3",
-            ["Data.Street"] = "Lindenweg 3",
-            ["Data.PostalCode"] = "50667",
-            ["Data.City"] = "Köln",
-        });
-        return Guid.Parse(property.Path.Split('/')[^1]);
+        _ = admin;
+        return await App.WithScopeAsync(async sp => (await sp.GetRequiredService<MietHahn.Application.Properties.IPropertyService>().CreateAsync(
+            new MietHahn.Application.Properties.PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" },
+            TestContext.Current.CancellationToken)).Id!.Value);
     }
 }

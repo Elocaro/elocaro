@@ -9,9 +9,9 @@
         <DialogContent>
             <ErrorList Errors="errors" />
             <div class="form-grid">
-                <MudTextField ShrinkLabel="true" @bind-Value="bank.Iban" For="() => bank.Iban" Label="IBAN" Required="true" Variant="Variant.Outlined" autocomplete="off" />
-                <MudTextField ShrinkLabel="true" @bind-Value="bank.AccountHolder" For="() => bank.AccountHolder" Label="Kontoinhaber" HelperText="Falls abweichend" Variant="Variant.Outlined" autocomplete="off" />
-                <MudTextField ShrinkLabel="true" @bind-Value="bank.Bic" For="() => bank.Bic" Label="BIC" Variant="Variant.Outlined" autocomplete="off" />
+                <AppTextField @bind-Value="bank.Iban" Label="IBAN" Required="true" />
+                <AppTextField @bind-Value="bank.AccountHolder" Label="Kontoinhaber" Hint="Falls abweichend" />
+                <AppTextField @bind-Value="bank.Bic" Label="BIC" />
             </div>
         </DialogContent>
         <DialogActions>

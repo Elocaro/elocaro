@@ -1,30 +1,19 @@
-@using MudBlazor
 @* Fields of a person (and optionally the address) for interactive pages and dialogs; sits inside an EditForm with Model = Data.
-   Address = null: no address section (editing). The interactive counterpart of PersonFields/AddressFields. *@
+   Address = null: no address section (editing). *@
 <div class="form-grid">
-    <MudSelect ShrinkLabel="true" T="Salutation" @bind-Value="Data.Salutation" For="() => Data.Salutation" Label="Anrede" Variant="Variant.Outlined">
-        @foreach (var value in Enum.GetValues<Salutation>())
-        {
-            <MudSelectItem Value="value">@Labels.From(value)</MudSelectItem>
-        }
-    </MudSelect>
-    <MudTextField ShrinkLabel="true" @bind-Value="Data.Title" For="() => Data.Title" Label="Titel" Variant="Variant.Outlined" autocomplete="honorific-prefix" />
-    <MudTextField ShrinkLabel="true" @bind-Value="Data.FirstName" For="() => Data.FirstName" Label="Vorname" Variant="Variant.Outlined" autocomplete="off" />
-    <MudTextField ShrinkLabel="true" @bind-Value="Data.LastName" For="() => Data.LastName" Label="Nachname bzw. Name" Required="true" Variant="Variant.Outlined" autocomplete="off" />
-    <MudTextField ShrinkLabel="true" @bind-Value="Data.Company" For="() => Data.Company" Label="Firma" Variant="Variant.Outlined" autocomplete="off" />
-    <MudSelect ShrinkLabel="true" T="ContactType" @bind-Value="Data.ContactType" For="() => Data.ContactType" Label="Kontaktart" HelperText="Für Mieter und Bürgen „privat“ lassen." Variant="Variant.Outlined">
-        @foreach (var value in Enum.GetValues<ContactType>())
-        {
-            <MudSelectItem Value="value">@Labels.From(value)</MudSelectItem>
-        }
-    </MudSelect>
-    <MudTextField ShrinkLabel="true" @bind-Value="Data.Occupation" For="() => Data.Occupation" Label="Gewerk / Sparte" HelperText="z. B. „Sanitär“ oder „Wasser“" Variant="Variant.Outlined" />
-    <MudTextField ShrinkLabel="true" @bind-Value="Data.Email" For="() => Data.Email" Label="E-Mail" InputType="InputType.Email" Variant="Variant.Outlined" autocomplete="off" />
-    <MudTextField ShrinkLabel="true" @bind-Value="Data.Phone" For="() => Data.Phone" Label="Telefon" InputType="InputType.Telephone" Variant="Variant.Outlined" autocomplete="off" />
-    <MudTextField ShrinkLabel="true" @bind-Value="Data.Mobile" For="() => Data.Mobile" Label="Mobil" InputType="InputType.Telephone" Variant="Variant.Outlined" autocomplete="off" />
-    <MudDatePicker ShrinkLabel="true" @bind-Date="BirthDate" Label="Geburtsdatum" HelperText="Nur wenn nötig (Datensparsamkeit)." Variant="Variant.Outlined" Editable="true" Clearable="true" Culture="@German" />
+    <AppSelect @bind-Value="Data.Salutation" Label="Anrede" Items="Enum.GetValues<Salutation>()" Text="@(v => Labels.From(v))" />
+    <AppTextField @bind-Value="Data.Title" Label="Titel" Autocomplete="honorific-prefix" />
+    <AppTextField @bind-Value="Data.FirstName" Label="Vorname" />
+    <AppTextField @bind-Value="Data.LastName" Label="Nachname bzw. Name" Required="true" />
+    <AppTextField @bind-Value="Data.Company" Label="Firma" />
+    <AppSelect @bind-Value="Data.ContactType" Label="Kontaktart" Hint="Für Mieter und Bürgen „privat“ lassen." Items="Enum.GetValues<ContactType>()" Text="@(v => Labels.From(v))" />
+    <AppTextField @bind-Value="Data.Occupation" Label="Gewerk / Sparte" Hint="z. B. „Sanitär“ oder „Wasser“" />
+    <AppTextField @bind-Value="Data.Email" Label="E-Mail" Type="email" />
+    <AppTextField @bind-Value="Data.Phone" Label="Telefon" Type="tel" />
+    <AppTextField @bind-Value="Data.Mobile" Label="Mobil" Type="tel" />
+    <AppDateField @bind-Value="Data.DateOfBirth" Label="Geburtsdatum" Hint="Nur wenn nötig (Datensparsamkeit)." />
 </div>
-<MudTextField ShrinkLabel="true" @bind-Value="Data.Notes" For="() => Data.Notes" Label="Notizen" Lines="3" Variant="Variant.Outlined" />
+<AppTextField @bind-Value="Data.Notes" Label="Notizen" Lines="3" />
 
 @if (Address is not null)
 {
@@ -34,18 +23,9 @@
 }
 
 @code {
-    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
-
     [Parameter, EditorRequired]
     public PersonInput Data { get; set; } = default!;
 
     [Parameter]
     public AddressInput? Address { get; set; }
-
-    // The date picker works with DateTime; the input model with DateOnly.
-    private DateTime? BirthDate
-    {
-        get => Data.DateOfBirth?.ToDateTime(TimeOnly.MinValue);
-        set => Data.DateOfBirth = value is null ? null : DateOnly.FromDateTime(value.Value);
-    }
 }

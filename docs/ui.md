@@ -94,6 +94,8 @@ Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Co
 - Die Query-Parameter liefern nur den Startwert; danach hält die Seite ihren Zustand. Live-Eingaben mit `DebounceInterval` und `OnDebounceIntervalElapsed`, nicht mit `ValueChanged` allein.
 - Riskante Aktionen auch hier mit Rückfrage (MudBlazor-Dialog).
 
+**Eingabekomponenten** (`Components/Controls`): `AppTextField`, `AppSelect<T>`, `AppDateField`, `AppNumberField<T>`, `AppCheckBox`, `AppFileUpload`. Sie sind der Standard in interaktiven Formularen (einheitlicher Look, Beschriftung im Rahmen, deutsche Zahlen und Datumsangaben) und haben nur einfache Parameter (`@bind-Value`, `Label`, `Hint`, `Required`, `Suffix`), keine MudBlazor-Typen. Einträge eines Auswahlfelds: `Items` und `Text`. Sie validieren über das umgebende `EditForm`. Eine Komponente, die den Wert selbst hält und einen eigenen Handler für `ValueChanged` nutzt, darf den Parameter nicht blind neu lesen (siehe `AppDateField`).
+
 **Formulare und Dialoge** (Muster: `People/PersonEditor`, `PersonDialog`, `Create`, `Edit`):
 - Eingabefelder in einer Komponente (`*Editor`), die in einem `EditForm` mit `DataAnnotationsValidator` sitzt; `For="() => Modell.Eigenschaft"` zeigt die deutschen Validierungsmeldungen. Das `EditForm` bekommt `novalidate` (sonst erscheint die englische Browser-Meldung), die Mud-Felder `ShrinkLabel="true"` (Beschriftung im Rahmen wie bei statischen Feldern).
 - Dialog: `IDialogService.ShowAsync<…Dialog>`, Inhalt im `EditForm class="dialog-form"` (hält Inhalt scrollbar und Aktionen sichtbar), Erfolg → `Notifier.Success`, `MudDialog.Close(DialogResult.Ok(id))`, die Liste lädt neu. Fehler aus Diensten über `ErrorList` im Dialog.

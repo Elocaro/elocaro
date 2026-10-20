@@ -1,16 +1,26 @@
 @page "/verwaltung/einheiten/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IPropertyService Admin
-@inject Redirector Redirector
+@inject IDialogService Dialogs
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (unit is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (unit is null)
 {
     <PageHeader Title="Einheit nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@unit.Data.Name" Subtitle="@Subtitle" Back="@($"/verwaltung/objekte/{unit.PropertyId}")" BackText="@unit.PropertyName" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 @foreach (var hint in unit.ValidationHints)
 {
@@ -52,110 +62,94 @@
     {
         <p class="small">Wird die Wohnung als WG zimmerweise vermietet, hier die Zimmer anlegen. Danach sind nur noch die Zimmer einzeln vermietbar.</p>
     }
-    <details class="disclosure">
-        <summary>Zimmer hinzufügen</summary>
-        <EditForm Model="NewRoom" FormName="room" OnValidSubmit="CreateRoomAsync">
-            <DataAnnotationsValidator />
-            <RoomFields Data="NewRoom!" WithNotes="false" />
-            <button type="submit" class="button button-primary">Zimmer hinzufügen</button>
-        </EditForm>
-    </details>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddRoomAsync">Zimmer hinzufügen</MudButton>
 </section>
 
-<AreaSection Input="Area!" OnSave="SaveAreaAsync" Current="unit.Area" History="unit.AreaHistory"
+<AreaSection Save="input => Admin.SetUnitAreaAsync(Id, input)" OnSaved="LoadAsync" Current="unit.Area" History="unit.AreaHistory"
                  AreaText="Wohnfläche" AdditionalText="Heizfläche" AdditionalHint="Leer lassen, wenn gleich der Wohnfläche." />
 
 <section>
     <h2>Angaben &amp; Ausstattung</h2>
-    <EditForm Model="Data" FormName="unit" OnValidSubmit="SaveAsync">
+    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
         <DataAnnotationsValidator />
-        <UnitFields Data="Data!" />
-        <button type="submit" class="button button-primary">Speichern</button>
+        <UnitEditor Data="data" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
     </EditForm>
 </section>
 
 @if (!unit.IsSharedFlat)
 {
     <section>
-        <DangerAction Text="Einheit löschen" FormName="delete" Confirmed="DeleteAsync"
-                        Confirmation="Die Einheit wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Einheit löschen</MudButton>
     </section>
 }
 
 <DocumentsSection UnitId="Id" />
 
 <ChangeHistory EntityType="@nameof(MietHahn.Domain.Properties.Unit)" EntityId="Id" />
+}
+</InteractiveShell>
 
 @code {
     private UnitDetails? unit;
+    private UnitInput data = new();
     private IReadOnlyList<string>? errors;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "unit")]
-    private UnitInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "room", Name = "Data")] // field names come from RoomFields
-    private RoomInput? NewRoom { get; set; }
-
-    [SupplyParameterFromForm(FormName = "area", Name = "Input")] // field names come from AreaSection
-    private AreaInput? Area { get; set; }
-
     private string Subtitle => $"{Labels.From(unit!.Data.Type)}{(unit.Data.Location is { } level ? ", " + level : "")} · {unit.PropertyName}";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
     {
-        var form = Data;
-        Data ??= new();
-        NewRoom ??= new();
-        Area ??= new();
         unit = await Admin.GetUnitAsync(Id);
         if (unit is not null)
         {
-            Data = form ?? unit.Data;
-            if (Area.From is null)
-            {
-                Area.Area ??= unit.Area?.Area;
-                Area.SecondaryArea ??= unit.Area?.SecondaryArea;
-            }
+            data = unit.Data;
+        }
+
+        loaded = true;
+    }
+
+    private async Task AddRoomAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<RoomDialog>("Zimmer hinzufügen", new DialogParameters { ["UnitId"] = Id }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
         }
     }
 
-    private Task SaveAsync() => ExecuteAsync(Admin.UpdateUnitAsync(Id, Data!), "Die Angaben wurden gespeichert.");
-
-    private Task CreateRoomAsync() => ExecuteAsync(Admin.CreateRoomAsync(Id, NewRoom!), "Das Zimmer wurde hinzugefügt.");
-
-    private Task SaveAreaAsync() => ExecuteAsync(Admin.SetUnitAreaAsync(Id, Area!), "Die Fläche wurde gespeichert.");
+    private async Task SaveAsync()
+    {
+        var result = await Admin.UpdateUnitAsync(Id, data);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Angaben wurden gespeichert.");
+            await LoadAsync();
+        }
+    }
 
     private async Task DeleteAsync()
     {
+        if (!await Confirm.AskAsync("Einheit löschen", "Die Einheit wird gelöscht. Fortfahren?", "Ja, löschen"))
+        {
+            return;
+        }
+
         var propertyId = unit!.PropertyId;
         var result = await Admin.DeleteUnitAsync(Id);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/objekte/{propertyId}", "Die Einheit wurde gelöscht.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/objekte/{propertyId}?meldung=geloescht");
         }
         else
         {
             errors = result.Errors;
-        }
-    }
-
-    private async Task ExecuteAsync(Task<Result> command, string success)
-    {
-        var result = await command;
-        if (result.Succeeded)
-        {
-            Redirector.RedirectWithMessage($"/verwaltung/einheiten/{Id}", success, HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
-            unit = await Admin.GetUnitAsync(Id);
         }
     }
 }

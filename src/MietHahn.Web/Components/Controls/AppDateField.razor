@@ -1,0 +1,57 @@
+@using System.Linq.Expressions
+@using MudBlazor
+@* Date input (day, month, year) with a calendar. Value is a DateOnly?; the validation message of the model is shown below. *@
+<MudDatePicker Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="Clearable"
+               Editable="true" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" />
+@if (ValueExpression is not null)
+{
+    <ValidationMessage For="ValueExpression" />
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+
+    [Parameter]
+    public DateOnly? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<DateOnly?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<DateOnly?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool Clearable { get; set; } = true;
+
+    // The component keeps the chosen date itself: it re-renders when it raises ValueChanged, before the parent has passed the new
+    // Value down; reading the (still old) parameter then would reset the calendar to empty.
+    private DateTime? current;
+    private DateOnly? lastValue;
+
+    protected override void OnParametersSet()
+    {
+        if (Value != lastValue)
+        {
+            lastValue = Value;
+            current = Value?.ToDateTime(TimeOnly.MinValue);
+        }
+    }
+
+    private async Task OnDateChanged(DateTime? date)
+    {
+        current = date;
+        await ValueChanged.InvokeAsync(date is null ? null : DateOnly.FromDateTime(date.Value));
+    }
+}

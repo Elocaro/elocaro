@@ -1,0 +1,41 @@
+@* File selection in the look of a button. The chosen file is handed over as FileSelection (name, size, stream); nothing is uploaded
+   until the page reads the stream. Capture="environment" opens the camera on phones. *@
+<label class="button button-outlined file-upload @(Disabled ? "disabled" : null)">
+    <Icon Path="@AppIcons.Upload" />
+    <span>@Text</span>
+    <InputFile OnChange="OnChange" accept="@Accept" capture="@Capture" disabled="@Disabled" />
+</label>
+@if (selectedName is not null)
+{
+    <span class="small file-upload-name">@selectedName</span>
+}
+
+@code {
+    private string? selectedName;
+
+    [Parameter]
+    public string Text { get; set; } = "Datei auswählen";
+
+    [Parameter]
+    public string? Accept { get; set; }
+
+    [Parameter]
+    public string? Capture { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Largest file that is accepted (default 25 MB).</summary>
+    [Parameter]
+    public long MaxBytes { get; set; } = 25 * 1024 * 1024;
+
+    [Parameter]
+    public EventCallback<FileSelection> OnSelected { get; set; }
+
+    private async Task OnChange(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        selectedName = file.Name;
+        await OnSelected.InvokeAsync(new FileSelection(file.Name, file.Size, file.ContentType, () => file.OpenReadStream(MaxBytes)));
+    }
+}

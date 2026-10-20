@@ -1,0 +1,19 @@
+@* Fields of a property for interactive pages; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Lindenweg 3“" />
+    <AppTextField @bind-Value="Data.Street" Label="Straße und Hausnummer" Required="true" Autocomplete="street-address" />
+    <AppTextField @bind-Value="Data.PostalCode" Label="PLZ" Required="true" Autocomplete="postal-code" />
+    <AppTextField @bind-Value="Data.City" Label="Ort" Required="true" Autocomplete="address-level2" />
+    <AppNumberField T="int?" @bind-Value="Data.YearBuilt" Label="Baujahr" />
+    <AppSelect @bind-Value="Data.HeatingType" Label="Heizungsart" Items="Enum.GetValues<HeatingType>()" Text="@(v => Labels.From(v))" />
+    <AppSelect @bind-Value="Data.EnergySource" Label="Energieträger" Hint="Wichtig für die CO₂-Kostenaufteilung." Items="Enum.GetValues<EnergySource>()" Text="@(v => Labels.From(v))" />
+    <AppTextField @bind-Value="Data.CadastralDistrict" Label="Gemarkung" />
+    <AppTextField @bind-Value="Data.ParcelNumber" Label="Flur/Flurstück" />
+    <AppTextField @bind-Value="Data.PropertyTaxReference" Label="Grundsteuer-Aktenzeichen" />
+</div>
+<AppTextField @bind-Value="Data.Notes" Label="Notizen" Lines="3" />
+
+@code {
+    [Parameter, EditorRequired]
+    public PropertyInput Data { get; set; } = default!;
+}

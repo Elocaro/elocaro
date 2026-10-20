@@ -1,0 +1,45 @@
+@using MudBlazor
+@inject IPropertyService Admin
+@inject Notifier Notify
+
+@* Dialog "add room" to a shared flat. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <RoomEditor Data="data" WithNotes="false" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zimmer hinzufügen</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly RoomInput data = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid UnitId { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.CreateRoomAsync(UnitId, data);
+        if (result.Succeeded)
+        {
+            Notify.Success("Das Zimmer wurde hinzugefügt.");
+            MudDialog.Close(DialogResult.Ok(result.Id));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

@@ -2,134 +2,104 @@ using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Properties;
+using MietHahn.Domain.Properties;
 using MietHahn.Web.Tests.Account;
-using SkiaSharp;
 
 namespace MietHahn.Web.Tests.Properties;
 
 public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgres)
 {
-    private static readonly Dictionary<string, string> House = new()
-    {
-        ["Data.Name"] = "Lindenweg 3",
-        ["Data.Street"] = "Lindenweg 3",
-        ["Data.PostalCode"] = "50667",
-        ["Data.City"] = "Köln",
-        ["Data.YearBuilt"] = "1965",
-        ["Data.EnergySource"] = "NaturalGas",
-    };
+    private static readonly int[] Numbers = [1, 2, 3, 4];
+
+    // The data is created through the services; operating the interactive pages is covered by the browser tests.
+    private async Task<Guid> CreateHouseAsync(string name = "Lindenweg 3", string street = "Lindenweg 3") =>
+        await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IPropertyService>().CreateAsync(
+            new PropertyInput { Name = name, Street = street, PostalCode = "50667", City = "Köln", YearBuilt = 1965, EnergySource = EnergySource.NaturalGas, HeatingType = HeatingType.CentralHeating },
+            TestContext.Current.CancellationToken)).Id!.Value);
 
     [Fact]
-    public async Task Create_building_with_apartments_and_shared_flat_via_the_UI()
+    public async Task Building_with_apartments_and_shared_flat_is_shown_in_overview_and_list()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
         Assert.Contains("Noch keine Objekte", (await admin.GetAsync("/verwaltung/objekte")).Text, StringComparison.Ordinal);
 
-        var property = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "property", House);
-        Assert.Matches("^/verwaltung/objekte/[0-9a-f-]{36}$", property.Path);
-        Assert.Contains("Das Objekt wurde angelegt.", property.Text, StringComparison.Ordinal);
+        var propertyId = await CreateHouseAsync();
+        var sharedFlat = await App.WithScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            var properties = sp.GetRequiredService<IPropertyService>();
+            Assert.True((await properties.SetAreaAsync(propertyId, new AreaInput { From = new DateOnly(2026, 1, 1), Area = 400, SecondaryArea = 30.5m }, ct)).Succeeded);
+            Guid last = default;
+            foreach (var number in Numbers)
+            {
+                last = (await properties.CreateUnitAsync(propertyId, new UnitInput { Name = $"Wohnung {number}", Location = number <= 2 ? "EG" : "OG" }, ct)).Id!.Value;
+            }
+
+            Assert.True((await properties.SetUnitAreaAsync(last, new AreaInput { From = new DateOnly(2026, 1, 1), Area = 110 }, ct)).Succeeded);
+            foreach (var number in Numbers)
+            {
+                Assert.True((await properties.CreateRoomAsync(last, new RoomInput { Name = $"Zimmer {number}", Furnishing = Furnishing.Furnished }, ct)).Succeeded);
+            }
+
+            return last;
+        });
+
+        var property = await admin.GetAsync($"/verwaltung/objekte/{propertyId}");
         Assert.Contains("Lindenweg 3, 50667 Köln", property.Text, StringComparison.Ordinal);
         Assert.Contains("Zentralheizung, Erdgas", property.Text, StringComparison.Ordinal);
-
-        property = await admin.SubmitAsync(property, "area", new Dictionary<string, string> { ["Input.From"] = "2026-01-01", ["Input.Area"] = "400", ["Input.SecondaryArea"] = "30.5" });
-        Assert.Contains("Die Fläche wurde gespeichert.", property.Text, StringComparison.Ordinal);
         Assert.Contains("30,5 m²", property.Text, StringComparison.Ordinal);
-
-        // Number field: browser displays it German-style, value in the HTML always with a dot (prefilled with the current value)
-        var supplement = property.Document.QuerySelector("#area-supplement")!;
-        Assert.Equal("number", supplement.GetAttribute("type"));
-        Assert.Equal("0.01", supplement.GetAttribute("step"));
-        Assert.Equal("30.5", supplement.GetAttribute("value"));
-
-        foreach (var number in new[] { 1, 2, 3, 4 })
-        {
-            property = await admin.SubmitAsync(property, "unit", new Dictionary<string, string> { ["Data.Name"] = $"Wohnung {number}", ["Data.Location"] = number <= 2 ? "EG" : "OG" });
-            Assert.Contains("Die Einheit wurde hinzugefügt.", property.Text, StringComparison.Ordinal);
-        }
-
-        var propertyPath = property.Path;
-        var sharedFlatLink = property.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Wohnung 4").GetAttribute("href")!;
-        var sharedFlat = await admin.GetAsync(sharedFlatLink);
-        sharedFlat = await admin.SubmitAsync(sharedFlat, "area", new Dictionary<string, string> { ["Input.From"] = "2026-01-01", ["Input.Area"] = "110" });
-        Assert.Contains("110 m²", sharedFlat.Text, StringComparison.Ordinal);
-        foreach (var number in new[] { 1, 2, 3, 4 })
-        {
-            sharedFlat = await admin.SubmitAsync(sharedFlat, "room", new Dictionary<string, string> { ["Data.Name"] = $"Zimmer {number}", ["Data.Furnishing"] = "Furnished" });
-            Assert.Contains("Das Zimmer wurde hinzugefügt.", sharedFlat.Text, StringComparison.Ordinal);
-        }
-
-        var overview = await admin.GetAsync(propertyPath);
-        Assert.Equal(7, overview.Document.QuerySelectorAll("tbody .status-pending").Count(e => e.TextContent == "Leerstand"));
-        Assert.Contains("WG", overview.Text, StringComparison.Ordinal);
+        Assert.Equal(7, property.Document.QuerySelectorAll("tbody .status-pending").Count(e => e.TextContent == "Leerstand"));
+        Assert.Contains("WG", property.Text, StringComparison.Ordinal);
         // Without living area for apartments 1–3 and rooms: plausibility hints
-        Assert.Contains("Wohnung 1: Keine Wohnfläche", overview.Text, StringComparison.Ordinal);
+        Assert.Contains("Wohnung 1: Keine Wohnfläche", property.Text, StringComparison.Ordinal);
+        Assert.Contains("110 m²", (await admin.GetAsync($"/verwaltung/einheiten/{sharedFlat}")).Text, StringComparison.Ordinal);
 
-        var list = await admin.GetAsync("/verwaltung/objekte");
-        Assert.Contains("0 von 7 vermietet", list.Text, StringComparison.Ordinal);
+        Assert.Contains("0 von 7 vermietet", (await admin.GetAsync("/verwaltung/objekte")).Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Area_change_from_effective_date_shows_the_history()
+    public async Task Area_change_from_effective_date_keeps_the_history_and_rejects_retroactive_dates()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        var property = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "property", House);
-        property = await admin.SubmitAsync(property, "unit", new Dictionary<string, string> { ["Data.Name"] = "Wohnung 1" });
-        var unit = await admin.GetAsync(property.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Wohnung 1").GetAttribute("href")!);
+        var propertyId = await CreateHouseAsync();
 
-        unit = await admin.SubmitAsync(unit, "area", new Dictionary<string, string> { ["Input.From"] = "2025-01-01", ["Input.Area"] = "75.5" });
-        unit = await admin.SubmitAsync(unit, "area", new Dictionary<string, string> { ["Input.From"] = "2026-02-01", ["Input.Area"] = "82.4", ["Input.SecondaryArea"] = "80" });
+        var (unitId, retroactive) = await App.WithScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            var properties = sp.GetRequiredService<IPropertyService>();
+            var unit = (await properties.CreateUnitAsync(propertyId, new UnitInput { Name = "Wohnung 1" }, ct)).Id!.Value;
+            Assert.True((await properties.SetUnitAreaAsync(unit, new AreaInput { From = new DateOnly(2025, 1, 1), Area = 75.5m }, ct)).Succeeded);
+            Assert.True((await properties.SetUnitAreaAsync(unit, new AreaInput { From = new DateOnly(2026, 2, 1), Area = 82.4m, SecondaryArea = 80 }, ct)).Succeeded);
+            return (unit, await properties.SetUnitAreaAsync(unit, new AreaInput { From = new DateOnly(2025, 6, 1), Area = 70 }, ct));
+        });
 
-        Assert.Contains("Verlauf", unit.Text, StringComparison.Ordinal);
-        Assert.Contains("01.01.2025 – 31.01.2026", unit.Text, StringComparison.Ordinal);
-        Assert.Contains("seit 01.02.2026", unit.Text, StringComparison.Ordinal);
-
-        var retroactive = await admin.SubmitAsync(unit, "area", new Dictionary<string, string> { ["Input.From"] = "2025-06-01", ["Input.Area"] = "70" });
-        Assert.Contains("Der Stichtag muss am oder nach dem 01.02.2026 liegen", retroactive.Text, StringComparison.Ordinal);
+        var unitPage = await admin.GetAsync($"/verwaltung/einheiten/{unitId}");
+        Assert.Contains("Verlauf", unitPage.Text, StringComparison.Ordinal);
+        Assert.Contains("01.01.2025 – 31.01.2026", unitPage.Text, StringComparison.Ordinal);
+        Assert.Contains("seit 01.02.2026", unitPage.Text, StringComparison.Ordinal);
+        Assert.False(retroactive.Succeeded);
+        Assert.Contains("Der Stichtag muss am oder nach dem 01.02.2026 liegen", string.Join(" ", retroactive.Errors), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Invalid_inputs_are_reported()
+    public async Task Implausible_values_and_duplicate_names_are_rejected_by_the_services()
     {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        using var _ = admin;
+        var propertyId = await CreateHouseAsync();
+        await App.WithScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            var properties = sp.GetRequiredService<IPropertyService>();
+            var negative = await properties.SetAreaAsync(propertyId, new AreaInput { From = new DateOnly(2026, 1, 1), Area = -5 }, ct);
+            Assert.Contains("Die Gesamtfläche muss größer als 0 sein.", string.Join(" ", negative.Errors), StringComparison.Ordinal);
 
-        var errors = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "property",
-            new Dictionary<string, string>(House) { ["Data.PostalCode"] = "123", ["Data.YearBuilt"] = "1200" });
-        Assert.Contains("Die Postleitzahl hat 5 Ziffern.", errors.Text, StringComparison.Ordinal);
-        Assert.Contains("Baujahr zwischen 1500 und 2100", errors.Text, StringComparison.Ordinal);
-
-        var property = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "property", House);
-        // type="number" always submits with a dot; the domain rejects implausible values.
-        var area = await admin.SubmitAsync(property, "area", new Dictionary<string, string> { ["Input.From"] = "2026-01-01", ["Input.Area"] = "-5" });
-        Assert.Contains("Die Gesamtfläche muss größer als 0 sein.", area.Text, StringComparison.Ordinal);
-        var withoutValue = await admin.SubmitAsync(property, "area", new Dictionary<string, string> { ["Input.From"] = "2026-01-01", ["Input.Area"] = "" });
-        Assert.Contains("Bitte die Fläche angeben.", withoutValue.Text, StringComparison.Ordinal);
-
-        var duplicate = await admin.SubmitAsync(property, "unit", new Dictionary<string, string> { ["Data.Name"] = "W1" });
-        duplicate = await admin.SubmitAsync(duplicate, "unit", new Dictionary<string, string> { ["Data.Name"] = "w1" });
-        Assert.Contains("Im Objekt gibt es bereits eine Einheit „w1“.", duplicate.Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Upload_and_display_photo()
-    {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        using var _ = admin;
-        var property = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "property", House);
-        var edit = await admin.GetAsync(property.Path + "/bearbeiten");
-
-        var afterUpload = await admin.SubmitWithFileAsync(edit, "image", "Image", Jpeg(), "house.jpg");
-
-        Assert.Contains("Das Foto wurde gespeichert.", afterUpload.Text, StringComparison.Ordinal);
-        var image = afterUpload.Document.QuerySelector("img.property-image")!.GetAttribute("src")!;
-        using var response = await admin.Http.GetAsync(new Uri(image, UriKind.Relative), TestContext.Current.CancellationToken);
-        Assert.Equal("image/jpeg", response.Content.Headers.ContentType!.MediaType);
-
-        var noImage = await admin.SubmitWithFileAsync(edit, "image", "Image", "%PDF-1.4"u8.ToArray(), "plan.pdf", "application/pdf");
-        Assert.Contains("Das Foto muss ein Bild sein.", noImage.Text, StringComparison.Ordinal);
+            Assert.True((await properties.CreateUnitAsync(propertyId, new UnitInput { Name = "W1" }, ct)).Succeeded);
+            var duplicate = await properties.CreateUnitAsync(propertyId, new UnitInput { Name = "w1" }, ct);
+            Assert.Contains("Im Objekt gibt es bereits eine Einheit „w1“.", string.Join(" ", duplicate.Errors), StringComparison.Ordinal);
+            return 0;
+        });
     }
 
     [Fact]
@@ -149,12 +119,9 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        var houseA = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "property", House);
-        houseA = await admin.SubmitAsync(houseA, "unit", new Dictionary<string, string> { ["Data.Name"] = "Wohnung 1", ["Data.Location"] = "EG links" });
-        var houseB = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/objekte/neu"), "property",
-            new Dictionary<string, string>(House) { ["Data.Name"] = "Birkenallee 9", ["Data.Street"] = "Birkenallee 9" });
-        var idA = Guid.Parse(houseA.Path.Split('/')[^1]);
-        var idB = Guid.Parse(houseB.Path.Split('/')[^1]);
+        var idA = await CreateHouseAsync();
+        await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IPropertyService>().CreateUnitAsync(idA, new UnitInput { Name = "Wohnung 1", Location = "EG links" }, TestContext.Current.CancellationToken)).Succeeded);
+        var idB = await CreateHouseAsync("Birkenallee 9", "Birkenallee 9");
 
         var (caretaker, caretakerId) = await SignedInAsAsync(Roles.Caretaker);
         using var __ = caretaker;
@@ -185,13 +152,5 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
         var (_, tenantId) = await SignedInAsAsync(Roles.Tenant);
         var result = await App.WithScopeAsync(sp => sp.GetRequiredService<IPropertyAssignments>().SetAsync(tenantId, [idA], TestContext.Current.CancellationToken));
         Assert.False(result.Succeeded);
-    }
-
-    private static byte[] Jpeg()
-    {
-        using var bitmap = new SKBitmap(40, 30);
-        bitmap.Erase(SKColors.CornflowerBlue);
-        using var image = SKImage.FromBitmap(bitmap);
-        return image.Encode(SKEncodedImageFormat.Jpeg, 80).ToArray();
     }
 }

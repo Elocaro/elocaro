@@ -22,7 +22,7 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
     }
 
     [Fact]
-    public async Task Enter_area_in_number_field_and_save()
+    public async Task Enter_area_in_a_dialog_with_German_notation_and_save()
     {
         var page = await SignedInAsAdminAsync();
         var (_, sharedFlatId, _) = await SampleHouseAsync();
@@ -30,13 +30,12 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await page.GotoAsync(BaseUrl + $"/verwaltung/einheiten/{sharedFlatId}");
-            await page.ClickAsync("summary:text('Fläche ändern')");
-            await page.FillAsync("#area-valid-from", "2026-07-01");
-            await page.FillAsync("#area-value", "");
-            // Headless Chromium formats number fields with a dot regardless of language; a German browser shows a comma.
-            // In both cases "112.5" is submitted.
-            await page.Locator("#area-value").PressSequentiallyAsync("112.5");
-            await page.ClickAsync("button:text('Fläche speichern')");
+            await page.Locator("[data-interactive=true]").WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Attached });
+            await page.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Fläche ändern" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await dialog.GetByLabel("Gültig ab").FillAsync("01.07.2026");
+            await dialog.GetByLabel("Wohnfläche").FillAsync("112,5");
+            await dialog.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Fläche speichern" }).ClickAsync();
             await page.WaitForSelectorAsync("text=Die Fläche wurde gespeichert.");
         });
 

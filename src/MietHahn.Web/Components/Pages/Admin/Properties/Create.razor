@@ -1,34 +1,31 @@
 @page "/verwaltung/objekte/neu"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IPropertyService Admin
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 
-<PageHeader Title="Objekt anlegen" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+<InteractiveShell>
+    <PageHeader Title="Objekt anlegen" Back="/verwaltung/objekte" BackText="Alle Objekte" />
 
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-<EditForm Model="Data" FormName="property" OnValidSubmit="CreateAsync">
-    <DataAnnotationsValidator />
-    <PropertyFields Data="Data!" />
-    <button type="submit" class="button button-primary">Objekt anlegen</button>
-</EditForm>
+    <EditForm Model="data" OnValidSubmit="CreateAsync" novalidate>
+        <DataAnnotationsValidator />
+        <PropertyEditor Data="data" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Objekt anlegen</MudButton>
+    </EditForm>
+</InteractiveShell>
 
 @code {
+    private readonly PropertyInput data = new() { HeatingType = HeatingType.CentralHeating };
     private IReadOnlyList<string>? errors;
-
-    [SupplyParameterFromForm(FormName = "property")]
-    private PropertyInput? Data { get; set; }
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    protected override void OnInitialized() => Data ??= new() { HeatingType = HeatingType.CentralHeating };
 
     private async Task CreateAsync()
     {
-        var result = await Admin.CreateAsync(Data!);
+        var result = await Admin.CreateAsync(data);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/objekte/{result.Id}", "Das Objekt wurde angelegt. Jetzt Flächen und Einheiten erfassen.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/objekte/{result.Id}?meldung=objekt-angelegt");
         }
         else
         {

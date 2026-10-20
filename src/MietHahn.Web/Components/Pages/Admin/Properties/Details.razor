@@ -1,30 +1,40 @@
 @page "/verwaltung/objekte/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IPropertyService Admin
-@inject Redirector Redirector
+@inject IDialogService Dialogs
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (property is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (property is null)
 {
     <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/verwaltung/objekte" BackText="Alle Objekte">
     <Actions>
-        <a class="button" href="/verwaltung/objekte/@Id/zaehler">Zähler</a>
+        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/zaehler")">Zähler</MudButton>
         <AuthorizeView Policy="@Policies.Finance">
-            <a class="button" href="/verwaltung/objekte/@Id/umlageschluessel">Umlageschlüssel</a>
-            <a class="button" href="/verwaltung/objekte/@Id/heizung">Heizkosten</a>
-            <a class="button" href="/verwaltung/objekte/@Id/afa">AfA</a>
-            <a class="button" href="/verwaltung/objekte/@Id/erhaltungsaufwand">Erhaltungsaufwand</a>
-            <a class="button" href="/verwaltung/objekte/@Id/anlage-v">Anlage V</a>
-            <a class="button" href="/verwaltung/objekte/@Id/nebenkosten">Nebenkosten-Vorschau</a>
-            <a class="button" href="/verwaltung/objekte/@Id/abrechnung">Abrechnungs-Assistent</a>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/umlageschluessel")">Umlageschlüssel</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/heizung")">Heizkosten</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/afa")">AfA</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/erhaltungsaufwand")">Erhaltungsaufwand</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/anlage-v")">Anlage V</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/nebenkosten")">Nebenkosten-Vorschau</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/abrechnung")">Abrechnungs-Assistent</MudButton>
         </AuthorizeView>
-        <a class="button" href="/verwaltung/objekte/@Id/bearbeiten">Bearbeiten</a>
+        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/bearbeiten")">Bearbeiten</MudButton>
     </Actions>
 </PageHeader>
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 @if (property.ValidationHints.Count > 0)
 {
@@ -112,87 +122,65 @@
         </div>
     }
 
-    <details class="disclosure" open="@(property.Units.Count == 0)">
-        <summary>Einheit hinzufügen</summary>
-        <EditForm Model="NewUnit" FormName="unit" OnValidSubmit="CreateUnitAsync">
-            <DataAnnotationsValidator />
-            <UnitFields Data="NewUnit!" WithFeatures="false" />
-            <button type="submit" class="button button-primary">Einheit hinzufügen</button>
-        </EditForm>
-    </details>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddUnitAsync">Einheit hinzufügen</MudButton>
 </section>
 
-<AreaSection Input="Area!" OnSave="SaveAreaAsync" Current="property.Area" History="property.AreaHistory"
+<AreaSection Save="input => Admin.SetAreaAsync(Id, input)" OnSaved="LoadAsync" Current="property.Area" History="property.AreaHistory"
                  AreaText="Gesamtfläche" AdditionalText="Gemeinschaftsfläche" AdditionalHint="Treppenhaus, Keller, Waschküche …" />
 
 @if (property.Units.Count == 0)
 {
     <section>
-        <DangerAction Text="Objekt löschen" FormName="delete" Confirmed="DeleteAsync"
-                        Confirmation="Das Objekt wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Objekt löschen</MudButton>
     </section>
 }
 
 <DocumentsSection PropertyId="Id" />
 
 <ChangeHistory EntityType="@nameof(Property)" EntityId="Id" />
+}
+</InteractiveShell>
 
 @code {
     private PropertyDetails? property;
     private IReadOnlyList<string>? errors;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
-    [SupplyParameterFromForm(FormName = "unit", Name = "Data")] // field names come from UnitFields
-    private UnitInput? NewUnit { get; set; }
-
-    [SupplyParameterFromForm(FormName = "area", Name = "Input")] // field names come from AreaSection
-    private AreaInput? Area { get; set; }
-
-    protected override async Task OnInitializedAsync()
+    private async Task LoadAsync()
     {
-        NewUnit ??= new();
-        Area ??= new();
         property = await Admin.GetAsync(Id);
-        if (property is not null && Area.From is null)
-        {
-            Area.Area ??= property.Area?.Area;
-            Area.SecondaryArea ??= property.Area?.SecondaryArea;
-        }
+        loaded = true;
     }
 
-    private Task CreateUnitAsync() => ExecuteAsync(Admin.CreateUnitAsync(Id, NewUnit!), "Die Einheit wurde hinzugefügt.");
-
-    private Task SaveAreaAsync() => ExecuteAsync(Admin.SetAreaAsync(Id, Area!), "Die Fläche wurde gespeichert.");
+    private async Task AddUnitAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<UnitDialog>("Einheit hinzufügen", new DialogParameters { ["PropertyId"] = Id }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
 
     private async Task DeleteAsync()
     {
+        if (!await Confirm.AskAsync("Objekt löschen", "Das Objekt wird gelöscht. Fortfahren?", "Ja, löschen"))
+        {
+            return;
+        }
+
         var result = await Admin.DeleteAsync(Id);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage("/verwaltung/objekte", "Das Objekt wurde gelöscht.", HttpContext);
+            Navigation.NavigateTo("/verwaltung/objekte?meldung=geloescht");
         }
         else
         {
             errors = result.Errors;
-        }
-    }
-
-    private async Task ExecuteAsync(Task<Result> command, string success)
-    {
-        var result = await command;
-        if (result.Succeeded)
-        {
-            Redirector.RedirectWithMessage($"/verwaltung/objekte/{Id}", success, HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
-            property = await Admin.GetAsync(Id);
         }
     }
 }

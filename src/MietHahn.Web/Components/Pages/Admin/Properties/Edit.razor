@@ -1,90 +1,84 @@
 @page "/verwaltung/objekte/{Id:guid}/bearbeiten"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Files
 @inject IPropertyService Admin
 @inject IFileStore Storage
-@inject Redirector Redirector
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (property is null)
-{
-    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
-}
-
-<PageHeader Title="@($"{property.Data.Name} bearbeiten")" Back="@($"/verwaltung/objekte/{Id}")" BackText="Zum Objekt" />
-
-<ErrorList Errors="errors" />
-
-<EditForm Model="Data" FormName="property" OnValidSubmit="SaveAsync">
-    <DataAnnotationsValidator />
-    <PropertyFields Data="Data!" />
-    <button type="submit" class="button button-primary">Speichern</button>
-</EditForm>
-
-<section>
-    <h2>Foto</h2>
-    @if (property.ImageFileId is { } image)
+<InteractiveShell>
+    @if (loaded && property is null)
     {
-        <img class="property-image" src="/dateien/@image" alt="Aktuelles Foto" />
+        <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
     }
-    <form method="post" enctype="multipart/form-data" @formname="image" @onsubmit="UploadImageAsync" class="form-row">
-        <AntiforgeryToken />
-        <div class="field">
-            <label for="image">@(property.ImageFileId is null ? "Foto hochladen" : "Foto ersetzen")</label>
-            <input type="file" id="image" name="Image" accept="image/jpeg,image/png,image/webp,image/heic" capture="environment" required />
-            <span class="field-hint">Fotos werden verkleinert, gedreht und ohne Metadaten (GPS) gespeichert.</span>
-        </div>
-        <div class="field field-action">
-            <button type="submit" class="button button-primary">Hochladen</button>
-        </div>
-    </form>
-    @if (property.ImageFileId is not null)
+    else if (property is not null && data is not null)
     {
-        <DangerAction Text="Foto entfernen" Confirmation="Soll das Foto des Objekts entfernt werden?" ConfirmText="Ja, Foto entfernen" FormName="image-remove" Confirmed="RemoveImageAsync" />
+        <PageHeader Title="@($"{property.Data.Name} bearbeiten")" Back="@($"/verwaltung/objekte/{Id}")" BackText="Zum Objekt" />
+
+        <ErrorList Errors="errors" />
+
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <PropertyEditor Data="data" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+
+        <section>
+            <h2>Foto</h2>
+            @if (property.ImageFileId is { } image)
+            {
+                <img class="property-image" src="/dateien/@image" alt="Aktuelles Foto" />
+            }
+            <div class="form-row">
+                <AppFileUpload Text="@(property.ImageFileId is null ? "Foto hochladen" : "Foto ersetzen")" Accept="image/jpeg,image/png,image/webp,image/heic" Capture="environment" OnSelected="UploadImageAsync" />
+                @if (property.ImageFileId is not null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="RemoveImageAsync">Foto entfernen</MudButton>
+                }
+            </div>
+            <p class="small">Fotos werden verkleinert, gedreht und ohne Metadaten (GPS) gespeichert.</p>
+        </section>
     }
-</section>
+</InteractiveShell>
 
 @code {
     private PropertyDetails? property;
+    private PropertyInput? data;
     private IReadOnlyList<string>? errors;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "property")]
-    private PropertyInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "image")]
-    private IFormFile? Image { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
-        var form = Data;
-        Data ??= new();
         property = await Admin.GetAsync(Id);
-        if (form is null && property is not null)
+        data = property?.Data;
+        loaded = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.UpdateAsync(Id, data!);
+        if (result.Succeeded)
         {
-            Data = property.Data;
+            Navigation.NavigateTo($"/verwaltung/objekte/{Id}?meldung=gespeichert");
+        }
+        else
+        {
+            errors = result.Errors;
         }
     }
 
-    private Task SaveAsync() => ExecuteAsync(Admin.UpdateAsync(Id, Data!), $"/verwaltung/objekte/{Id}", "Die Angaben wurden gespeichert.");
-
-    private async Task UploadImageAsync()
+    private async Task UploadImageAsync(FileSelection selection)
     {
-        if (Image is null || Image.Length == 0)
-        {
-            errors = ["Bitte ein Foto auswählen."];
-            return;
-        }
-
         try
         {
-            await using var content = Image.OpenReadStream();
-            var file = await Storage.SaveAsync(content, Image.FileName);
-            await ExecuteAsync(Admin.SetImageAsync(Id, file.Id), $"/verwaltung/objekte/{Id}", "Das Foto wurde gespeichert.");
+            await using var content = selection.Open();
+            var file = await Storage.SaveAsync(content, selection.Name);
+            await ApplyImageAsync(file.Id, "Das Foto wurde gespeichert.");
         }
         catch (FileRejectedException ex)
         {
@@ -92,18 +86,22 @@
         }
     }
 
-    private Task RemoveImageAsync() => ExecuteAsync(Admin.SetImageAsync(Id, null), $"/verwaltung/objekte/{Id}/bearbeiten", "Das Foto wurde entfernt.");
-
-    private async Task ExecuteAsync(Task<Result> command, string destination, string success)
+    private async Task RemoveImageAsync()
     {
-        var result = await command;
+        if (await Confirm.AskAsync("Foto entfernen", "Soll das Foto des Objekts entfernt werden?", "Ja, Foto entfernen"))
+        {
+            await ApplyImageAsync(null, "Das Foto wurde entfernt.");
+        }
+    }
+
+    private async Task ApplyImageAsync(Guid? fileId, string success)
+    {
+        var result = await Admin.SetImageAsync(Id, fileId);
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage(destination, success, HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            Notify.Success(success);
+            property = await Admin.GetAsync(Id);
         }
     }
 }

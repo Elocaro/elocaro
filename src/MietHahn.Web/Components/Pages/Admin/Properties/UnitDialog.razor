@@ -1,0 +1,45 @@
+@using MudBlazor
+@inject IPropertyService Admin
+@inject Notifier Notify
+
+@* Dialog "add unit" (name, location, type); the details are entered on the unit page afterwards. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <UnitEditor Data="data" WithFeatures="false" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Einheit hinzufügen</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly UnitInput data = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid PropertyId { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.CreateUnitAsync(PropertyId, data);
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Einheit wurde hinzugefügt.");
+            MudDialog.Close(DialogResult.Ok(result.Id));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

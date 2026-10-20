@@ -1,0 +1,28 @@
+@* Fields of a unit; sits inside an EditForm with Model = Data. WithFeatures = false: only name, location and type (quick creation). *@
+<div class="form-grid">
+    <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Wohnung 1“" />
+    <AppTextField @bind-Value="Data.Location" Label="Lage" Hint="z. B. „EG links“" />
+    <AppSelect @bind-Value="Data.Type" Label="Art" Items="Enum.GetValues<UnitType>()" Text="@(v => Labels.From(v))" />
+    @if (WithFeatures)
+    {
+        <AppNumberField T="decimal?" @bind-Value="Data.RoomCount" Label="Zimmeranzahl" Hint="z. B. 2,5" />
+        <AppTextField @bind-Value="Data.Bathroom" Label="Bad" Hint="z. B. „Wanne und Dusche, Fenster“" />
+        <AppTextField @bind-Value="Data.EnergyStandard" Label="Energiestandard" />
+    }
+</div>
+@if (WithFeatures)
+{
+    <div class="form-row">
+        <AppCheckBox @bind-Value="Data.Balcony" Label="Balkon/Terrasse" />
+        <AppCheckBox @bind-Value="Data.FittedKitchen" Label="Einbauküche" />
+    </div>
+    <AppTextField @bind-Value="Data.Amenities" Label="Weitere Ausstattung" Lines="2" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public UnitInput Data { get; set; } = default!;
+
+    [Parameter]
+    public bool WithFeatures { get; set; } = true;
+}

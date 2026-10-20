@@ -1,17 +1,26 @@
 @page "/verwaltung/zimmer/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IPropertyService Admin
-@inject Redirector Redirector
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (room is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (room is null)
 {
     <PageHeader Title="Zimmer nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@room.Data.Name" Subtitle="@($"{room.UnitName} · {room.PropertyName}")"
             Back="@($"/verwaltung/einheiten/{room.UnitId}")" BackText="@room.UnitName" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 <section>
@@ -21,87 +30,75 @@
 
 <LeaseHistory RentalUnitId="Id" />
 
-<AreaSection Input="Area!" OnSave="SaveAreaAsync" Current="room.Area" History="room.AreaHistory"
+<AreaSection Save="input => Admin.SetRoomAreaAsync(Id, input)" OnSaved="LoadAsync" Current="room.Area" History="room.AreaHistory"
                  AreaText="Zimmerfläche" AdditionalText="Anteil Gemeinschaftsfläche" AdditionalHint="Anteil an Küche, Bad, Flur der WG (für Umlagen nach Fläche)." />
 
 <section>
     <h2>Angaben</h2>
-    <EditForm Model="Data" FormName="room" OnValidSubmit="SaveAsync">
+    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
         <DataAnnotationsValidator />
-        <RoomFields Data="Data!" />
-        <button type="submit" class="button button-primary">Speichern</button>
+        <RoomEditor Data="data" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
     </EditForm>
 </section>
 
 <section>
-    <DangerAction Text="Zimmer löschen" FormName="delete" Confirmed="DeleteAsync"
-                    Confirmation="Das Zimmer wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
+    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Zimmer löschen</MudButton>
 </section>
 
 <ChangeHistory EntityType="@nameof(MietHahn.Domain.Properties.Room)" EntityId="Id" />
+}
+</InteractiveShell>
 
 @code {
     private RoomDetails? room;
+    private RoomInput data = new();
     private IReadOnlyList<string>? errors;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
-    [SupplyParameterFromForm(FormName = "room")]
-    private RoomInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "area", Name = "Input")] // field names come from AreaSection
-    private AreaInput? Area { get; set; }
-
-    protected override async Task OnInitializedAsync()
+    private async Task LoadAsync()
     {
-        var form = Data;
-        Data ??= new();
-        Area ??= new();
         room = await Admin.GetRoomAsync(Id);
         if (room is not null)
         {
-            Data = form ?? room.Data;
-            if (Area.From is null)
-            {
-                Area.Area ??= room.Area?.Area;
-                Area.SecondaryArea ??= room.Area?.SecondaryArea;
-            }
+            data = room.Data;
+        }
+
+        loaded = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.UpdateRoomAsync(Id, data);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Angaben wurden gespeichert.");
+            await LoadAsync();
         }
     }
 
-    private Task SaveAsync() => ExecuteAsync(Admin.UpdateRoomAsync(Id, Data!), "Die Angaben wurden gespeichert.");
-
-    private Task SaveAreaAsync() => ExecuteAsync(Admin.SetRoomAreaAsync(Id, Area!), "Die Fläche wurde gespeichert.");
-
     private async Task DeleteAsync()
     {
+        if (!await Confirm.AskAsync("Zimmer löschen", "Das Zimmer wird gelöscht. Fortfahren?", "Ja, löschen"))
+        {
+            return;
+        }
+
         var unitId = room!.UnitId;
         var result = await Admin.DeleteRoomAsync(Id);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/einheiten/{unitId}", "Das Zimmer wurde gelöscht.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/einheiten/{unitId}?meldung=geloescht");
         }
         else
         {
             errors = result.Errors;
-        }
-    }
-
-    private async Task ExecuteAsync(Task<Result> command, string success)
-    {
-        var result = await command;
-        if (result.Succeeded)
-        {
-            Redirector.RedirectWithMessage($"/verwaltung/zimmer/{Id}", success, HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
-            room = await Admin.GetRoomAsync(Id);
         }
     }
 }
