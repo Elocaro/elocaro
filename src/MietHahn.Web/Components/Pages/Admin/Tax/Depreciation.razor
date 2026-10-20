@@ -127,7 +127,7 @@
                                 <td>@cost.Description</td>
                                 <td>@(cost.IsMaintenance ? "Instandsetzung/Modernisierung" : "Herstellungskosten")</td>
                                 <td class="number">@Format.Money(cost.Amount)</td>
-                                <td><button type="submit" name="RemoveCostId" value="@cost.Id" class="button button-danger" aria-label="@cost.Description entfernen">Entfernen</button></td>
+                                <td><RowConfirm Name="RemoveCostId" Value="@cost.Id" Label="@($"{cost.Description} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
                             </tr>
                         }
                     </tbody>
@@ -177,7 +177,7 @@
                                 <td>@Format.Date(asset.AcquisitionDate)</td>
                                 <td class="number">@Format.Money(asset.Cost)</td>
                                 <td class="number">@asset.UsefulLifeYears Jahre</td>
-                                <td><button type="submit" name="RemoveAssetId" value="@asset.Id" class="button button-danger" aria-label="@asset.Name entfernen">Entfernen</button></td>
+                                <td><RowConfirm Name="RemoveAssetId" Value="@asset.Id" Label="@($"{asset.Name} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
                             </tr>
                         }
                     </tbody>

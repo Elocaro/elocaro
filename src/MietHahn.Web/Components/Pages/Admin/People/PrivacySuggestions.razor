@@ -30,7 +30,7 @@ else if (suggestions is not null)
                         <tr>
                             <td><a href="/verwaltung/personen/@suggestion.PersonId">@suggestion.DisplayName</a></td>
                             <td>@suggestion.Reason</td>
-                            <td><button type="submit" name="PersonId" value="@suggestion.PersonId" class="button button-danger" aria-label="@suggestion.DisplayName anonymisieren">Anonymisieren</button></td>
+                            <td><RowConfirm Name="PersonId" Value="@suggestion.PersonId" Label="@($"{suggestion.DisplayName} anonymisieren")" Text="Anonymisieren" ConfirmText="Ja, anonymisieren" /></td>
                         </tr>
                     }
                 </tbody>

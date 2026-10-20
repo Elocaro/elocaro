@@ -74,7 +74,7 @@
                                 <td>@certificate.Year</td>
                                 <td class="number">@Format.Money(certificate.Interest)</td>
                                 <td class="number">@(certificate.ClosingBalance is { } balance ? Format.Money(balance) : "–")</td>
-                                <td><button type="submit" name="RemoveCertificateId" value="@certificate.Id" class="button button-danger" aria-label="Bescheinigung @certificate.Year entfernen">Entfernen</button></td>
+                                <td><RowConfirm Name="RemoveCertificateId" Value="@certificate.Id" Label="@($"Bescheinigung {certificate.Year} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
                             </tr>
                         }
                     </tbody>
@@ -116,7 +116,7 @@
                             <tr>
                                 <td>@Format.Date(extra.Date)</td>
                                 <td class="number">@Format.Money(extra.Amount)</td>
-                                <td><button type="submit" name="RemoveExtraId" value="@extra.Id" class="button button-danger" aria-label="Sondertilgung vom @Format.Date(extra.Date) entfernen">Entfernen</button></td>
+                                <td><RowConfirm Name="RemoveExtraId" Value="@extra.Id" Label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
                             </tr>
                         }
                     </tbody>
@@ -157,7 +157,7 @@
                                 <td>@KindText(cost.Kind)</td>
                                 <td>@cost.Description</td>
                                 <td class="number">@Format.Money(cost.Amount)</td>
-                                <td><button type="submit" name="RemoveCostId" value="@cost.Id" class="button button-danger" aria-label="@cost.Description entfernen">Entfernen</button></td>
+                                <td><RowConfirm Name="RemoveCostId" Value="@cost.Id" Label="@($"{cost.Description} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
                             </tr>
                         }
                     </tbody>

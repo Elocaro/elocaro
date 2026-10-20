@@ -38,7 +38,7 @@
                                 <td>@Format.Period(p.BillingPeriod)</td>
                                 <td class="number">@Format.Money(p.Amount)</td>
                                 <td>@(p.Section35a == Section35a.None ? "–" : $"{Labels.From(p.Section35a)}: {Format.Money(p.LaborCosts)}")</td>
-                                <td><button type="submit" class="button button-danger" name="PositionId" value="@p.Id" aria-label="Position @p.CostTypeText entfernen">Entfernen</button></td>
+                                <td><RowConfirm Name="PositionId" Value="@p.Id" Label="@($"Position {p.CostTypeText} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
                             </tr>
                         }
                     </tbody>
@@ -75,7 +75,7 @@
                     <li>
                         Seite @d.Page: <a href="/dateien/@d.FileId" target="_blank" rel="noopener">@d.Name</a>
                         (<a href="/dateien/@d.FileId?download=true">herunterladen</a>)
-                        <button type="submit" class="button button-danger" name="FileId" value="@d.FileId" aria-label="Seite @d.Page entfernen">Entfernen</button>
+                        <RowConfirm Name="FileId" Value="@d.FileId" Label="@($"Seite {d.Page} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" />
                     </li>
                 }
             </ul>

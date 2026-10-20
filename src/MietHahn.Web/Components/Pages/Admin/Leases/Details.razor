@@ -153,7 +153,7 @@
                     <p class="small">@party.Email @party.Phone</p>
                     @if (lease.Parties.Count(p => p.Role == PartyRole.Tenant) > 1 || party.Role == PartyRole.Guarantor)
                     {
-                        <button type="submit" name="RemovePersonId" value="@party.PersonId" class="button button-danger" aria-label="@party.Name entfernen">Entfernen</button>
+                        <RowConfirm Name="RemovePersonId" Value="@party.PersonId" Label="@($"{party.Name} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" />
                     }
                 </li>
             }

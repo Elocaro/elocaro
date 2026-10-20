@@ -389,3 +389,9 @@ h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 
 .empty-state-compact { padding: 0.75rem 1rem; text-align: left; margin-bottom: var(--spacing); }
 .empty-state-compact p { margin: 0; }
+
+/* Confirmation for actions in table rows (<RowConfirm>), without JavaScript */
+.row-confirm > summary { list-style: none; width: max-content; color: var(--md-error); }
+.row-confirm > summary::-webkit-details-marker { display: none; }
+.row-confirm-content { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.25rem; padding: 0.5rem 0.75rem; border: 1px solid var(--md-error); border-radius: var(--shape-md); background: var(--md-error-container); color: var(--md-on-error-container); }
+.row-confirm-content .button-danger { background: var(--md-error); color: var(--md-on-error); }

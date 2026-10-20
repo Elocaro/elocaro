@@ -23,7 +23,7 @@
                         <td>
                             @if (p.Id is { } id)
                             {
-                                <button type="submit" class="button button-danger" name="DeleteId" value="@id" aria-label="Profil @p.Name löschen">Löschen</button>
+                                <RowConfirm Name="DeleteId" Value="@id" Label="@($"Profil {p.Name} löschen")" Text="Löschen" ConfirmText="Ja, löschen" />
                             }
                         </td>
                     </tr>

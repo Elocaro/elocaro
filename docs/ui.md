@@ -36,7 +36,7 @@ Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gil
 | Tabelle | `.table-wrapper > .data-table` | Immer im Wrapper; Zahlen in `td.number`; Sortieren mit `SortHeader`, Blättern mit `Pagination` |
 | Hinweis | `Notice` (Level Info/Success/Warning/Error), `StatusMessage` (nach Weiterleitung), `ErrorList` (Fehler aus Diensten) | Kein eigenes `class="message …"`; `role` setzt `Notice` selbst |
 | Leerer Zustand | `EmptyState` | Unterscheiden: „Keine Treffer für …“ (Filter aktiv) und „Noch keine …“ |
-| Riskante Aktion | `DangerAction` | Siehe „Riskante Aktionen“ |
+| Riskante Aktion | `DangerAction` (eigenes Formular), `RowConfirm` (Zeile in Tabelle/Liste, im umgebenden Formular) | Siehe „Riskante Aktionen“ |
 | Verlauf | `ChangeHistory` | Auf Detailseiten von Stammdaten |
 | Datum, Geld, Zahl | `Format.*`, Enum-Texte `Labels.*` | Nie `ToString("dd.MM.yyyy")` o. ä. in Seiten |
 
@@ -67,7 +67,7 @@ Vier Stufen über `<Notice Level="NoticeLevel.…">`; Farbe allein trägt keine 
 
 ### Riskante Aktionen
 
-Alles, was löscht, sperrt, storniert oder sich nicht einfach zurücknehmen lässt, läuft **immer** über `DangerAction` mit Rückfrage, auch in Tabellenzeilen. Ausgenommen ist nur das Entfernen einer noch nicht gespeicherten Entwurfszeile.
+Alles, was löscht, sperrt, storniert oder sich nicht einfach zurücknehmen lässt, läuft **immer** mit Rückfrage: als eigene Aktion über `DangerAction`, in Tabellenzeilen und Listen über `RowConfirm` (`Name`/`Value` wie beim bisherigen Zeilenknopf, `Label` nennt das Betroffene für Screenreader). `button-danger` außerhalb dieser Bausteine meldet ein Architekturtest. Ausgenommen ist nur das Entfernen einer noch nicht gespeicherten Entwurfszeile.
 
 ### Filter
 

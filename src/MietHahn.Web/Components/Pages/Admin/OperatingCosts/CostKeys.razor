@@ -191,7 +191,7 @@
                             <tr>
                                 <td>@subtype.Name</td>
                                 <td>@subtype.CostTypeName</td>
-                                <td><button type="submit" class="button button-danger" name="RemoveId" value="@subtype.Id">Entfernen</button></td>
+                                <td><RowConfirm Name="RemoveId" Value="@subtype.Id" Label="@($"{subtype.Name} entfernen")" /></td>
                             </tr>
                         }
                     </tbody>

@@ -30,7 +30,7 @@ else if (rules is not null)
                             <td>@r.Condition</td>
                             <td>@r.Target</td>
                             <td class="number">@r.Priority</td>
-                            <td><button type="submit" class="button button-danger" name="DeleteId" value="@r.Id" aria-label="Regel @r.Name löschen">Löschen</button></td>
+                            <td><RowConfirm Name="DeleteId" Value="@r.Id" Label="@($"Regel {r.Name} löschen")" Text="Löschen" ConfirmText="Ja, löschen" /></td>
                         </tr>
                     }
                 </tbody>

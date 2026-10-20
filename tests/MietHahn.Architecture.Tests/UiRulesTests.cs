@@ -28,16 +28,22 @@ public class UiRulesTests
     }
 
     [Fact]
+    public void Destructive_actions_ask_for_confirmation()
+    {
+        AssertNoMatch(@"button-danger", "Use <DangerAction> or <RowConfirm> instead of a bare danger button", except: "Common/DangerAction.razor", exceptAlso: "Common/RowConfirm.razor");
+    }
+
+    [Fact]
     public void Colors_come_from_tokens_not_from_inline_styles()
     {
         AssertNoMatch(@"style=""[^""]*#[0-9a-fA-F]{3,8}", "Use the --md-* color roles in app.css");
     }
 
-    private static void AssertNoMatch(string pattern, string advice, string? except = null)
+    private static void AssertNoMatch(string pattern, string advice, string? except = null, string? exceptAlso = null)
     {
         var regex = new Regex(pattern, RegexOptions.CultureInvariant);
         var violations = Directory.EnumerateFiles(Components, "*.razor", SearchOption.AllDirectories)
-            .Where(f => except is null || !f.Replace('\\', '/').EndsWith(except, StringComparison.Ordinal))
+            .Where(f => !IsExcluded(f, except) && !IsExcluded(f, exceptAlso))
             .SelectMany(f => File.ReadLines(f).Select((line, index) => (f, line, number: index + 1)))
             .Where(x => regex.IsMatch(x.line))
             .Select(x => $"{Path.GetRelativePath(Components, x.f)}:{x.number}")
@@ -45,6 +51,9 @@ public class UiRulesTests
 
         Assert.True(violations.Count == 0, $"{advice} (docs/ui.md):\n{string.Join("\n", violations)}");
     }
+
+    private static bool IsExcluded(string path, string? except) =>
+        except is not null && path.Replace('\\', '/').EndsWith(except, StringComparison.Ordinal);
 
     private static string RepositoryRoot()
     {

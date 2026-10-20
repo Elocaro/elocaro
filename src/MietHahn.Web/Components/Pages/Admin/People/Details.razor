@@ -129,7 +129,7 @@
                                     <td><code>@bank.Iban</code></td>
                                     <td>@bank.AccountHolder</td>
                                     <td>@bank.Bic</td>
-                                    <td><button type="submit" name="RemoveId" value="@bank.Id" class="button button-danger" aria-label="IBAN @bank.Iban entfernen">Entfernen</button></td>
+                                    <td><RowConfirm Name="RemoveId" Value="@bank.Id" Label="@($"IBAN {bank.Iban} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
                                 </tr>
                             }
                         </tbody>

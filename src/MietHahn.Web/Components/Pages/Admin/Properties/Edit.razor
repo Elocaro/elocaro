@@ -39,10 +39,7 @@
     </form>
     @if (property.ImageFileId is not null)
     {
-        <form method="post" @formname="image-remove" @onsubmit="RemoveImageAsync">
-            <AntiforgeryToken />
-            <button type="submit" class="button button-danger">Foto entfernen</button>
-        </form>
+        <DangerAction Text="Foto entfernen" Confirmation="Soll das Foto des Objekts entfernt werden?" ConfirmText="Ja, Foto entfernen" FormName="image-remove" Confirmed="RemoveImageAsync" />
     }
 </section>
 

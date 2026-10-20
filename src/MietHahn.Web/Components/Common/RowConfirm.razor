@@ -1,0 +1,31 @@
+@* Destructive action inside a table row or list item with confirmation without JavaScript.
+   Sits inside the surrounding form; the confirm button submits Name/Value like a plain row button. *@
+<details class="row-confirm">
+    <summary class="button button-text" aria-label="@Label">@Text</summary>
+    <div class="row-confirm-content" role="alertdialog" aria-label="@Label">
+        <span>@Question</span>
+        <button type="submit" class="button button-danger" name="@Name" value="@Value" aria-label="@Label (bestätigen)">@ConfirmText</button>
+    </div>
+</details>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public object? Value { get; set; }
+
+    /// <summary>Visible action text, e.g. "Entfernen".</summary>
+    [Parameter]
+    public string Text { get; set; } = "Entfernen";
+
+    [Parameter]
+    public string ConfirmText { get; set; } = "Ja, entfernen";
+
+    [Parameter]
+    public string Question { get; set; } = "Wirklich?";
+
+    /// <summary>Accessible name that says what is affected, e.g. "Staffel 01.01.2026 entfernen".</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+}

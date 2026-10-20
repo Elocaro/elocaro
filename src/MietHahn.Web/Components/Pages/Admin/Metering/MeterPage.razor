@@ -170,7 +170,7 @@
                             <td>
                                 @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
                                 {
-                                    <button type="submit" name="RemoveReadingId" value="@entry.Id" class="button button-danger" aria-label="Stand vom @Format.Date(entry.Date) entfernen">Entfernen</button>
+                                    <RowConfirm Name="RemoveReadingId" Value="@entry.Id" Label="@($"Stand vom {Format.Date(entry.Date)} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" />
                                 }
                             </td>
                         </tr>

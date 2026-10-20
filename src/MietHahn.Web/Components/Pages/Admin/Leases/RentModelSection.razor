@@ -46,7 +46,7 @@
                                         <td>
                                             @if (rentStep.AppliedAt is null)
                                             {
-                                                <button type="submit" name="RemoveStepId" value="@rentStep.Id" class="button button-danger" aria-label="Staffel @Format.Date(rentStep.From) entfernen">Entfernen</button>
+                                                <RowConfirm Name="RemoveStepId" Value="@rentStep.Id" Label="@($"Staffel {Format.Date(rentStep.From)} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" />
                                             }
                                         </td>
                                     </tr>

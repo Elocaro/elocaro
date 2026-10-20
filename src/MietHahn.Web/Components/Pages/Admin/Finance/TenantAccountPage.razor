@@ -74,7 +74,7 @@
                                 <td>
                                     @if (!b.Automatic && b.Origin is null or PaymentOrigin.Manual)
                                     {
-                                        <button type="submit" class="button button-danger" name="Delete" value="@($"{b.EntryType}:{b.Id}")" aria-label="@($"{b.Text} löschen")">Löschen</button>
+                                        <RowConfirm Name="Delete" Value="@($"{b.EntryType}:{b.Id}")" Label="@($"{b.Text} löschen")" Text="Löschen" ConfirmText="Ja, löschen" />
                                     }
                                 </td>
                             </tr>
