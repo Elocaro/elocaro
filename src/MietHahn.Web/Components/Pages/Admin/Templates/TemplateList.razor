@@ -1,0 +1,37 @@
+@page "/verwaltung/einstellungen/vorlagen"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDocumentTemplates Library
+
+<InteractiveShell>
+    <PageHeader Title="Vorlagen" Subtitle="Texte für Schreiben an Mieter. Platzhalter wie {{ tenant_name }} werden beim Erzeugen ersetzt.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/einstellungen/vorlagen/neu">Vorlage anlegen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (rows is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Vorlagen." />
+    }
+    else if (rows is not null)
+    {
+        <MudTable T="TemplateRow" Items="rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Name</MudTh><MudTh>Art</MudTh><MudTh>Fassung</MudTh><MudTh>Geändert</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name"><a href="/verwaltung/einstellungen/vorlagen/@context.Id">@context.Name</a>@if (context.Description is not null) {<span class="small"> @context.Description</span>}</MudTd>
+                <MudTd DataLabel="Art">@Labels.From(context.Kind)</MudTd>
+                <MudTd DataLabel="Fassung">@context.Revision</MudTd>
+                <MudTd DataLabel="Geändert">@(context.ChangedAt is { } at ? Format.Timestamp(at) : "–")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<TemplateRow>? rows;
+
+    protected override async Task OnInitializedAsync() => rows = await Library.ListAsync();
+}

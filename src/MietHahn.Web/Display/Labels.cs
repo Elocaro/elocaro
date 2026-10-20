@@ -31,6 +31,12 @@ public static class Labels
         _ => "Sonstiges",
     };
 
+    public static string From(TemplateKind value) => value switch
+    {
+        TemplateKind.Letter => "Schreiben",
+        _ => value.ToString(),
+    };
+
     public static string From(BankFormat value) => value switch
     {
         BankFormat.Camt053 => "camt.053",

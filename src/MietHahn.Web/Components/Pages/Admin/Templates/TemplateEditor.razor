@@ -1,0 +1,188 @@
+@page "/verwaltung/einstellungen/vorlagen/neu"
+@page "/verwaltung/einstellungen/vorlagen/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDocumentTemplates Templates
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject TemplatePreviews Previews
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (data is null)
+{
+    <PageHeader Title="Vorlage nicht gefunden" Back="/verwaltung/einstellungen/vorlagen" BackText="Alle Vorlagen" />
+}
+else
+{
+    <PageHeader Title="@(Id is null ? "Vorlage anlegen" : data.Name)" Subtitle="@(Id is null ? null : $"{Labels.From(data.Kind)} · Fassung {data.Revision}")"
+                Back="/verwaltung/einstellungen/vorlagen" BackText="Alle Vorlagen" />
+
+    <ErrorList Errors="errors" />
+
+    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <AppTextField @bind-Value="data.Name" Label="Name" Required="true" Hint="z. B. „Ankündigung Bauarbeiten“" />
+            <AppTextField @bind-Value="data.Description" Label="Beschreibung" />
+            <AppTextField @bind-Value="data.Subject" Label="Betreff" Required="true" Hint="Titel des Schreibens; darf Platzhalter enthalten" />
+        </div>
+        <AppTextField @bind-Value="data.Body" Label="Text" Required="true" Lines="18" Hint="HTML mit Platzhaltern, z. B. <p>{{ salutation }}</p>. Absätze mit <p>, Zeilenumbruch mit <br>." />
+        <div class="form-row">
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">Vorschau</MudButton>
+        </div>
+    </EditForm>
+
+    @if (previewId is not null)
+    {
+        <section>
+            <h2>Vorschau mit Beispieldaten</h2>
+            <iframe class="document-preview" src="/verwaltung/einstellungen/vorlagen/vorschau/@(previewId).pdf" title="Vorschau der Vorlage"></iframe>
+        </section>
+    }
+
+    <section>
+        <h2>Platzhalter</h2>
+        <p class="small">Fehlende oder falsch geschriebene Platzhalter werden beim Speichern gemeldet.</p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Platzhalter</th><th>Bedeutung</th><th>Beispiel</th></tr></thead>
+                <tbody>
+                    @foreach (var placeholder in TemplateCatalog.Placeholders(data.Kind))
+                    {
+                        <tr><td><code>@("{{ " + placeholder.Name + " }}")</code></td><td>@placeholder.Description</td><td>@placeholder.Example</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <h3>Hilfsfunktionen</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Aufruf</th><th>Bedeutung</th><th>Beispiel</th></tr></thead>
+                <tbody>
+                    @foreach (var function in TemplateCatalog.Functions)
+                    {
+                        <tr><td><code>@("{{ " + function.Name + " }}")</code></td><td>@function.Description</td><td><code>@function.Example</code></td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="small">Bedingungen und Schleifen: <code>@("{{ if lease_end }} … {{ end }}")</code>.</p>
+    </section>
+
+    @if (Id is not null)
+    {
+        <section>
+            <h2>Fassungen</h2>
+            <p class="small">Jede Änderung des Textes bleibt als Fassung erhalten. Erzeugte Dokumente ändern sich dadurch nie nachträglich.</p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Fassung</th><th>Gespeichert</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var revision in revisions)
+                        {
+                            <tr>
+                                <td>@revision.Number @if (revision.IsCurrent) {<StatusChip>aktuell</StatusChip>}</td>
+                                <td>@Format.Timestamp(revision.Timestamp)<span class="small"> @revision.CreatedBy</span></td>
+                                <td>@if (!revision.IsCurrent) {<MudButton Variant="Variant.Text" OnClick="() => LoadAsync(revision.Id)">In den Editor laden</MudButton>}</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section>
+            <h2>Löschen</h2>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Vorlage löschen</MudButton>
+        </section>
+    }
+}
+</InteractiveShell>
+
+@code {
+    private TemplateInput? data;
+    private IReadOnlyList<TemplateRevisionRow> revisions = [];
+    private IReadOnlyList<string>? errors;
+    private Guid? previewId;
+    private bool loaded;
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is { } id)
+        {
+            data = await Templates.GetAsync(id);
+            revisions = await Templates.RevisionsAsync(id);
+        }
+        else
+        {
+            data = new TemplateInput();
+        }
+
+        loaded = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Templates.SaveAsync(Id, data!);
+        if (!result.Succeeded)
+        {
+            errors = result.Errors;
+            return;
+        }
+
+        errors = null;
+        if (Id is null)
+        {
+            Navigation.NavigateTo($"/verwaltung/einstellungen/vorlagen/{result.Id}");
+            return;
+        }
+
+        data = await Templates.GetAsync(Id.Value);
+        revisions = await Templates.RevisionsAsync(Id.Value);
+        Notify.Success("Die Vorlage wurde gespeichert.");
+    }
+
+    private async Task PreviewAsync()
+    {
+        var preview = await Templates.PreviewAsync(data!.Kind, data.Subject ?? "", data.Body ?? "");
+        errors = preview.Errors.Count > 0 ? preview.Errors : null;
+        previewId = preview.Pdf is { } pdf ? Previews.Add(pdf) : null;
+    }
+
+    private async Task LoadAsync(Guid revisionId)
+    {
+        if (await Templates.RevisionAsync(revisionId) is { } revision)
+        {
+            data!.Subject = revision.Subject;
+            data.Body = revision.Body;
+            Notify.Success($"Fassung {revision.Number} ist im Editor. Zum Übernehmen speichern.");
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await Confirm.AskAsync("Vorlage löschen", $"Soll die Vorlage „{data!.Name}“ gelöscht werden? Bereits erzeugte Dokumente bleiben unverändert.", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var result = await Templates.DeleteAsync(Id!.Value);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/einstellungen/vorlagen");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

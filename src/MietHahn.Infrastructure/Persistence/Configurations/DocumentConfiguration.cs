@@ -25,3 +25,29 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.HasIndex(d => d.ExpiresOn).HasFilter("expires_on IS NOT NULL AND NOT deleted");
     }
 }
+
+internal sealed class DocumentTemplateConfiguration : IEntityTypeConfiguration<DocumentTemplate>
+{
+    public void Configure(EntityTypeBuilder<DocumentTemplate> builder)
+    {
+        builder.ToTable("document_templates");
+        builder.Property(t => t.Name).HasMaxLength(100).UseCollation(MietHahnDbContext.GermanCollation);
+        builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(30);
+        builder.Property(t => t.Description).HasMaxLength(500);
+        builder.Property(t => t.Subject).HasMaxLength(200);
+        builder.Property(t => t.Body).HasMaxLength(DocumentTemplate.MaxBodyLength);
+        builder.HasIndex(t => t.Name).IsUnique().HasFilter("NOT deleted");
+    }
+}
+
+internal sealed class DocumentTemplateRevisionConfiguration : IEntityTypeConfiguration<DocumentTemplateRevision>
+{
+    public void Configure(EntityTypeBuilder<DocumentTemplateRevision> builder)
+    {
+        builder.ToTable("document_template_revisions");
+        builder.Property(r => r.Subject).HasMaxLength(200);
+        builder.Property(r => r.Body).HasMaxLength(DocumentTemplate.MaxBodyLength);
+        builder.HasOne<DocumentTemplate>().WithMany().HasForeignKey(r => r.TemplateId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(r => new { r.TemplateId, r.Number }).IsUnique();
+    }
+}

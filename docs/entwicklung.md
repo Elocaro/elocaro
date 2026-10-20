@@ -299,6 +299,16 @@ Bedienung und Registrierung: [banking-fints.md](banking-fints.md). Technik:
 - **Sicherheit:** libfintx erhält `NullLoggerFactory`; bei Fehlern wird nur der Ausnahmetyp protokolliert; die PIN wird nach dem Dialog überschrieben; ein Fehlversuch bricht ab, Bankmeldungen 9930/9931/9942 bekommen einen Hinweis.
 - **Offen:** Verfahren mit Bild/Flickercode (photoTAN, chipTAN), MT940-Rückfall für Banken ohne camt (HKCAZ), automatischer Abruf per Job (wegen der Pflicht zur starken Kundenauthentifizierung bewusst nicht), Prüfung gegen echte Bankverbindungen.
 
+### Vorlagen-Verwaltung
+
+Stand: erster Schnitt von #42 (Editor, Platzhalter-Katalog, Fassungen, Vorschau). Offen: Bausteine/Partials, mitgelieferte Standardvorlagen mit Import/Export, Serienbrief, Verweis erzeugter Dokumente auf die Fassung.
+
+- **Entitäten:** `DocumentTemplate` (Name eindeutig, `TemplateKind`, Betreff, Text, `Revision`) und `DocumentTemplateRevision` (unveränderlicher Schnappschuss je Fassung). `Edit` zählt `Revision` nur hoch, wenn sich Betreff oder Text ändern; `DocumentTemplates.SaveAsync` legt dann die Fassung an. Umbenennen erzeugt keine Fassung.
+- **Prüfung beim Speichern:** Syntax (`ScribanRenderer.Validate`) und ein Probe-Rendern mit den Beispieldaten des Katalogs. Das Rendern läuft mit `StrictVariables`, unbekannte oder falsch geschriebene Platzhalter werden also schon beim Speichern gemeldet.
+- **Katalog:** `TemplateCatalog` (Application) beschreibt je Art die Platzhalter, die Hilfsfunktionen (`money`, `date`, `number`, `text_to_html`) und liefert die Beispieldaten (`LetterModel` für `Letter`). Neue Arten: Enum-Wert, Modell, `Placeholders` und `Sample` ergänzen.
+- **Vorschau:** `PreviewAsync` rendert den ungespeicherten Text über `IPdfGenerator` (`PdfRequest.TemplateText`) mit Beispielanschrift. Die Seite legt das PDF kurz im Speicher ab (`TemplatePreviews`, 10 Minuten) und zeigt es über `/verwaltung/einstellungen/vorlagen/vorschau/{id}.pdf` (Recht **System**) im Rahmen.
+- **Seiten:** `/verwaltung/einstellungen/vorlagen` (Liste) und `…/neu` bzw. `…/{id}` (Editor mit Platzhaltern, Fassungen und Löschen); Recht **System**. Gelöscht wird logisch, erzeugte Dokumente sind gespeicherte Dateien und ändern sich nie.
+
 ### Belege & Kostenpositionen
 
 - `Receipt` (Lieferant als Kontakt oder Name, Rechnungsnr./-datum, Leistungszeitraum als zwei Spalten, Brutto/Netto/USt mit Summenprüfung, fällig/bezahlt, Brennstoffmenge, -einheit und CO₂ in kg für das CO2KostAufG) mit Seiten (`ReceiptFile`, Dateiablage, SHA-256, unveränderlich) und `CostItem`en.

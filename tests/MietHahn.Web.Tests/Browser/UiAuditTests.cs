@@ -112,7 +112,7 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         string[] more =
         [
             "/verwaltung/vpi", "/verwaltung/datenschutz", "/verwaltung/bank/zuordnung", "/verwaltung/bank/regeln", "/verwaltung/bank/csv-profile",
-            "/verwaltung/finanzen/darlehen", "/verwaltung/finanzen/anlage-v-zeilen", "/verwaltung/finanzen/einstellungen", "/verwaltung/einstellungen/vermieter",
+            "/verwaltung/finanzen/darlehen", "/verwaltung/finanzen/anlage-v-zeilen", "/verwaltung/finanzen/einstellungen", "/verwaltung/einstellungen/vermieter", "/verwaltung/einstellungen/vorlagen", "/verwaltung/einstellungen/vorlagen/neu",
             "/verwaltung/system/mails", "/verwaltung/system/belegauslesung", "/verwaltung/belege/neu", "/verwaltung/dokumente/neu",
             $"/verwaltung/objekte/{property}", $"/verwaltung/objekte/{property}/anlage-v", $"/verwaltung/objekte/{property}/afa",
             $"/verwaltung/objekte/{property}/erhaltungsaufwand", $"/verwaltung/objekte/{property}/abrechnungen",

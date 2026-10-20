@@ -4,6 +4,7 @@ using MietHahn.Infrastructure.Persistence;
 using MietHahn.Web.AccessControl;
 using MietHahn.Web.Account;
 using MietHahn.Web.Components;
+using MietHahn.Web.Documents;
 using MietHahn.Web.Finance;
 using MietHahn.Web.Operations;
 using MietHahn.Web.People;
@@ -23,6 +24,7 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddMietHahnInfrastructure(builder.Configuration);
 builder.Services.AddMietHahnSignIn(builder.Configuration);
 builder.Services.AddMietHahnOperations();
+builder.Services.AddTemplatePreviews();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, RevalidatingAuthenticationStateProvider>();
 builder.Services.AddCascadingAuthenticationState(); // AuthorizeView in interactive pages
@@ -63,6 +65,7 @@ app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
 app.MapAnlageVEndpoints();
 app.MapDunningPreviewEndpoint();
+app.MapTemplatePreviewEndpoint();
 app.MapStatementPreviewEndpoint();
 
 await app.Services.MigrateDatabaseAsync();

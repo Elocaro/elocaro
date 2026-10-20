@@ -149,7 +149,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             $"/verwaltung/objekte/{p}/abrechnungen", $"/verwaltung/objekte/{p}/umlageschluessel", $"/verwaltung/objekte/{p}/heizung", $"/verwaltung/objekte/{p}/nebenkosten?jahr={year}",
             $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=2", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=5",
             "/verwaltung/benutzer", $"/verwaltung/benutzer/{ids["user"]}",
-            "/verwaltung/einstellungen/vermieter", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/verwaltung/system/datensicherung", "/verwaltung/system/belegauslesung",
+            "/verwaltung/einstellungen/vermieter", "/verwaltung/einstellungen/vorlagen", "/verwaltung/einstellungen/vorlagen/neu", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/verwaltung/system/datensicherung", "/verwaltung/system/belegauslesung",
             "/konto/sicherheit",
         ];
     }
