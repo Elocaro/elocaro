@@ -14,9 +14,9 @@ internal static class AnlageVEndpoints
     /// <summary>Filling aid for the Anlage V as CSV (line, designation, amount) and PDF.</summary>
     public static IEndpointRouteBuilder MapAnlageVEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/verwaltung/objekte/{propertyId:guid}/anlage-v.csv", async (Guid propertyId, int jahr, IAnlageVService service, HttpContext context) =>
+        endpoints.MapGet("/verwaltung/objekte/{propertyId:guid}/anlage-v.csv", async (Guid propertyId, int jahr, bool? prognose, IAnlageVService service, HttpContext context) =>
         {
-            if (await service.GetAsync(propertyId, jahr, null, context.RequestAborted) is not { } report)
+            if (await service.GetAsync(propertyId, jahr, prognose ?? false, context.RequestAborted) is not { } report)
             {
                 return Results.NotFound();
             }
@@ -25,9 +25,9 @@ internal static class AnlageVEndpoints
             return Results.File(Csv(report), "text/csv; charset=utf-8", $"anlage-v-{jahr}.csv");
         }).RequireAuthorization(Policies.Finance);
 
-        endpoints.MapGet("/verwaltung/objekte/{propertyId:guid}/anlage-v.pdf", async (Guid propertyId, int jahr, IAnlageVService service, IPdfGenerator pdf, HttpContext context) =>
+        endpoints.MapGet("/verwaltung/objekte/{propertyId:guid}/anlage-v.pdf", async (Guid propertyId, int jahr, bool? prognose, IAnlageVService service, IPdfGenerator pdf, HttpContext context) =>
         {
-            if (await service.GetAsync(propertyId, jahr, null, context.RequestAborted) is not { } report)
+            if (await service.GetAsync(propertyId, jahr, prognose ?? false, context.RequestAborted) is not { } report)
             {
                 return Results.NotFound();
             }
@@ -59,6 +59,11 @@ internal static class AnlageVEndpoints
         }
 
         Append("", "Summe der Werbungskosten", report.Result.ExpenseTotal);
+        if (report.Result.Reduction != 0)
+        {
+            Append("", "Kürzung wegen verbilligter Vermietung", -report.Result.Reduction);
+        }
+
         Append("", "Überschuss", report.Result.Surplus);
         return [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(text.ToString())];
     }
@@ -75,6 +80,8 @@ internal static class AnlageVEndpoints
             expenses = report.Result.Expenses.Select(Line).ToList(),
             income_total = report.Result.IncomeTotal,
             expense_total = report.Result.ExpenseTotal,
+            reduction = report.Result.Reduction,
+            deductible_expenses = report.Result.DeductibleExpenses,
             surplus = report.Result.Surplus,
             details = report.Result.Income.Concat(report.Result.Expenses)
                 .SelectMany(l => l.Postings.Select(p => new { line = l.LineNumber, date = p.Date, text = p.Text, amount = p.Amount }))

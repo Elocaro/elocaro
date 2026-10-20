@@ -1,5 +1,6 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/anlage-v"
 @inject IAnlageVService Admin
+@inject Redirector Redirector
 @inject TimeProvider Clock
 
 @if (report is null)
@@ -10,14 +11,15 @@
 
 <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@report.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
 
+<StatusMessage />
+
 <form method="get" class="form-row search-bar">
     <label for="year">Steuerjahr</label>
     <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
-    <label for="rent-percent">Miete in % der ortsüblichen Miete</label>
-    <input id="rent-percent" type="number" name="entgelt" value="@RentPercent" min="0" max="1000" step="0.1" />
+    <label><input type="checkbox" name="prognose" value="true" checked="@Forecast" /> Totalüberschussprognose positiv</label>
     <button type="submit" class="button">Anzeigen</button>
-    <a class="button" href="/verwaltung/objekte/@PropertyId/anlage-v.csv?jahr=@Year">CSV exportieren</a>
-    <a class="button" href="/verwaltung/objekte/@PropertyId/anlage-v.pdf?jahr=@Year">PDF</a>
+    <a class="button" href="/verwaltung/objekte/@PropertyId/anlage-v.csv?jahr=@Year&prognose=@Forecast.ToString().ToLowerInvariant()">CSV exportieren</a>
+    <a class="button" href="/verwaltung/objekte/@PropertyId/anlage-v.pdf?jahr=@Year&prognose=@Forecast.ToString().ToLowerInvariant()">PDF</a>
     <a class="button" href="/verwaltung/finanzen/anlage-v-zeilen?jahr=@Year">Zeilennummern pflegen</a>
 </form>
 
@@ -50,8 +52,32 @@
 </section>
 
 <dl class="summary">
+    @if (report.Result.Reduction != 0)
+    {
+        <dt>Kürzung der Werbungskosten (verbilligte Vermietung, @Format.Number(report.RentPercent ?? 0) % der ortsüblichen Miete)</dt><dd>@Format.Money(-report.Result.Reduction)</dd>
+        <dt>Abziehbare Werbungskosten</dt><dd>@Format.Money(report.Result.DeductibleExpenses)</dd>
+    }
     <dt>Überschuss</dt><dd>@Format.Money(report.Result.Surplus)</dd>
 </dl>
+
+<section>
+    <h2>Verbilligte Vermietung</h2>
+    <p class="small">
+        Liegt die Miete (Kaltmiete und Umlagen) unter 66 % der ortsüblichen Miete, sind die Werbungskosten nur anteilig abziehbar (§ 21 Abs. 2 EStG).
+        Trage dafür die ortsübliche Jahresmiete einschließlich Umlagen für den vermieteten Zeitraum ein, zum Beispiel aus dem Mietspiegel.
+        @if (report.RentPercent is { } percent)
+        {
+            <text>Aktuell: @Format.Number(percent) % der ortsüblichen Miete.</text>
+        }
+    </p>
+    <form method="post" @formname="local-rent" @onsubmit="SaveLocalRentAsync">
+        <AntiforgeryToken />
+        <input type="hidden" name="SaveYear" value="@Year" />
+        <label for="local-rent">Ortsübliche Jahresmiete (€)</label>
+        <input id="local-rent" type="text" inputmode="decimal" name="LocalRentText" value="@(report.LocalRent is { } rent ? rent.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) : "")" />
+        <button type="submit" class="button">Speichern</button>
+    </form>
+</section>
 
 @code {
     private AnlageVReport? report;
@@ -62,10 +88,42 @@
     [SupplyParameterFromQuery(Name = "jahr")]
     private int? YearQuery { get; set; }
 
-    [SupplyParameterFromQuery(Name = "entgelt")]
-    private decimal? RentPercent { get; set; }
+    [SupplyParameterFromQuery(Name = "prognose")]
+    private bool? ForecastQuery { get; set; }
 
-    private int Year => YearQuery ?? MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+    [SupplyParameterFromForm(Name = "SaveYear")]
+    private int? SaveYear { get; set; }
 
-    protected override async Task OnInitializedAsync() => report = await Admin.GetAsync(PropertyId, Year, RentPercent);
+    [SupplyParameterFromForm(Name = "LocalRentText")]
+    private string? LocalRentText { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private bool Forecast => ForecastQuery ?? false;
+
+    private int Year => SaveYear ?? YearQuery ?? MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+
+    protected override async Task OnInitializedAsync() => report = await Admin.GetAsync(PropertyId, Year, Forecast);
+
+    private async Task SaveLocalRentAsync()
+    {
+        decimal? rent = null;
+        if (!string.IsNullOrWhiteSpace(LocalRentText))
+        {
+            if (!decimal.TryParse(LocalRentText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("de-DE"), out var parsed))
+            {
+                report = await Admin.GetAsync(PropertyId, Year, Forecast);
+                return;
+            }
+
+            rent = parsed;
+        }
+
+        var result = await Admin.SaveLocalRentAsync(PropertyId, Year, rent);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/objekte/{PropertyId}/anlage-v?jahr={Year}", "Die ortsübliche Miete wurde gespeichert.", HttpContext);
+        }
+    }
 }

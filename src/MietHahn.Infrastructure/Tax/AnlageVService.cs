@@ -19,7 +19,7 @@ internal sealed class AnlageVService(
     ILoanService loans,
     IMaintenanceService maintenance) : IAnlageVService
 {
-    public async Task<AnlageVReport?> GetAsync(Guid propertyId, int year, decimal? rentPercentOfLocal = null, CancellationToken cancellationToken = default)
+    public async Task<AnlageVReport?> GetAsync(Guid propertyId, int year, bool surplusForecastPositive = false, CancellationToken cancellationToken = default)
     {
         var name = await db.Set<Property>().AsNoTracking().Where(o => o.Id == propertyId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
         if (name is null)
@@ -65,14 +65,47 @@ internal sealed class AnlageVService(
             postings.Add(new AnlageVPosting(AnlageVCategory.FinancingCosts, yearEnd, "Finanzierungskosten (Einmalkosten)", financing.OneOffCosts, AnlageVSource.Loan, propertyId));
         }
 
-        if (AnlageVCalculator.ReducedRentHint(rentPercentOfLocal) is { } hint)
+        var lines = (await GetMappingAsync(year, cancellationToken)).ToDictionary(m => m.Category, m => m.LineNumber);
+        var localRent = await db.Set<LocalRent>().AsNoTracking().Where(m => m.PropertyId == propertyId && m.TaxYear == year).Select(m => (decimal?)m.AnnualRent).SingleOrDefaultAsync(cancellationToken);
+        var rent = postings.Where(p => p.Category is AnlageVCategory.BaseRent or AnlageVCategory.AllocatedCosts).Sum(p => p.Amount);
+        decimal? percent = localRent is { } reference ? Math.Round(rent / reference * 100m, 1, MidpointRounding.AwayFromZero) : null;
+        if (AnlageVCalculator.ReducedRentHint(percent, surplusForecastPositive) is { } hint)
         {
             warnings.Add(hint);
         }
 
-        var lines = (await GetMappingAsync(year, cancellationToken)).ToDictionary(m => m.Category, m => m.LineNumber);
-        return new AnlageVReport(propertyId, name, year, AnlageVCalculator.Calculate(postings, lines), warnings);
+        var share = AnlageVCalculator.DeductibleShare(percent, surplusForecastPositive);
+        return new AnlageVReport(propertyId, name, year, AnlageVCalculator.Calculate(postings, lines, share), warnings, localRent, percent);
     }
+
+    public Task<Result> SaveLocalRentAsync(Guid propertyId, int year, decimal? annualRent, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            if (!await db.Set<Property>().AnyAsync(o => o.Id == propertyId, cancellationToken))
+            {
+                throw new NotFoundException();
+            }
+
+            var stored = await db.Set<LocalRent>().SingleOrDefaultAsync(m => m.PropertyId == propertyId && m.TaxYear == year, cancellationToken);
+            if (annualRent is null)
+            {
+                if (stored is not null)
+                {
+                    db.Remove(stored);
+                }
+            }
+            else if (stored is null)
+            {
+                db.Add(new LocalRent(propertyId, year, annualRent.Value));
+            }
+            else
+            {
+                stored.SetRent(annualRent.Value);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+            return propertyId;
+        });
 
     public async Task<IReadOnlyList<LineMappingRow>> GetMappingAsync(int year, CancellationToken cancellationToken = default)
     {

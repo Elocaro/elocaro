@@ -72,4 +72,31 @@ public class AnlageVTests
 
     [Fact]
     public void No_rent_percentage_gives_no_hint() => Assert.Null(AnlageVCalculator.ReducedRentHint(null));
+
+    [Theory]
+    [InlineData(40, false, 0.4)]
+    [InlineData(40, true, 0.4)] // below 50 % the forecast does not help
+    [InlineData(60, false, 0.6)]
+    [InlineData(60, true, null)]
+    [InlineData(66, false, null)]
+    [InlineData(100, false, null)]
+    public void Deductible_share_depends_on_rent_percentage_and_forecast(int percent, bool forecast, double? expected) =>
+        Assert.Equal((decimal?)expected, AnlageVCalculator.DeductibleShare(percent, forecast));
+
+    [Fact]
+    public void Expenses_are_reduced_proportionally_for_a_cheap_letting()
+    {
+        var postings = new[]
+        {
+            new AnlageVPosting(AnlageVCategory.BaseRent, new DateOnly(2026, 1, 1), "Miete", 5_000m, AnlageVSource.Payment),
+            new AnlageVPosting(AnlageVCategory.PropertyTax, new DateOnly(2026, 3, 1), "Grundsteuer", 1_000m, AnlageVSource.Receipt),
+        };
+
+        var result = AnlageVCalculator.Calculate(postings, new Dictionary<AnlageVCategory, int>(), AnlageVCalculator.DeductibleShare(40, false));
+
+        Assert.Equal(600m, result.Reduction);
+        Assert.Equal(400m, result.DeductibleExpenses);
+        Assert.Equal(4_600m, result.Surplus);
+        Assert.Equal(1_000m, result.ExpenseTotal); // the lines still show the full amounts
+    }
 }

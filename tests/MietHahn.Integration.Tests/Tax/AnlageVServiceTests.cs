@@ -64,7 +64,7 @@ public class AnlageVServiceTests(PostgresFixture postgres) : IAsyncLifetime
     private async Task<AnlageVReport> ReportAsync(int year)
     {
         await using var scope = environment.Services.CreateAsyncScope();
-        return (await scope.ServiceProvider.GetRequiredService<IAnlageVService>().GetAsync(propertyId, year, null, Ct))!;
+        return (await scope.ServiceProvider.GetRequiredService<IAnlageVService>().GetAsync(propertyId, year, false, Ct))!;
     }
 
     private static Guid Validate(Result result)
@@ -118,9 +118,42 @@ public class AnlageVServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Cheap_letting_reduces_the_expenses_and_the_forecast_keeps_them_between_50_and_66_percent()
+    {
+        await AddReceiptAsync("betrkv-01", 300m, new DateOnly(2026, 3, 1));
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            // Rent 2026: 2 x 770 = 1,540; 1,540 / 2,800 = 55 %
+            Validate(await scope.ServiceProvider.GetRequiredService<IAnlageVService>().SaveLocalRentAsync(propertyId, 2026, 2_800m, Ct));
+        }
+
+        var without = await ReportAsync(2026);
+        Assert.Equal(55m, without.RentPercent);
+        Assert.Equal(135m, without.Result.Reduction);
+        Assert.Equal(165m, without.Result.DeductibleExpenses);
+
+        await using var other = environment.Services.CreateAsyncScope();
+        var withForecast = (await other.ServiceProvider.GetRequiredService<IAnlageVService>().GetAsync(propertyId, 2026, true, Ct))!;
+        Assert.Equal(0m, withForecast.Result.Reduction);
+        Assert.Contains(withForecast.Warnings, w => w.Contains("Totalüberschussprognose", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Local_rent_can_be_removed_again()
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IAnlageVService>();
+        Validate(await service.SaveLocalRentAsync(propertyId, 2026, 1_000m, Ct));
+        Validate(await service.SaveLocalRentAsync(propertyId, 2026, null, Ct));
+
+        Assert.Null((await service.GetAsync(propertyId, 2026, false, Ct))!.LocalRent);
+        Assert.False((await service.SaveLocalRentAsync(propertyId, 2026, -5m, Ct)).Succeeded);
+    }
+
+    [Fact]
     public async Task Unknown_property_has_no_report()
     {
         await using var scope = environment.Services.CreateAsyncScope();
-        Assert.Null(await scope.ServiceProvider.GetRequiredService<IAnlageVService>().GetAsync(Guid.NewGuid(), 2026, null, Ct));
+        Assert.Null(await scope.ServiceProvider.GetRequiredService<IAnlageVService>().GetAsync(Guid.NewGuid(), 2026, false, Ct));
     }
 }

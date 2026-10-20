@@ -25,6 +25,10 @@
   </tbody>
   <tfoot>
     <tr><td colspan="2">Summe der Werbungskosten</td><td class="number">{{ money expense_total }}</td></tr>
+    {{~ if reduction != 0 ~}}
+    <tr><td colspan="2">Kürzung wegen verbilligter Vermietung (§ 21 Abs. 2 EStG)</td><td class="number">{{ money (0 - reduction) }}</td></tr>
+    <tr><td colspan="2">Abziehbare Werbungskosten</td><td class="number">{{ money deductible_expenses }}</td></tr>
+    {{~ end ~}}
     <tr><td colspan="2">Überschuss (Einnahmen abzüglich Werbungskosten)</td><td class="number">{{ money surplus }}</td></tr>
   </tfoot>
 </table>

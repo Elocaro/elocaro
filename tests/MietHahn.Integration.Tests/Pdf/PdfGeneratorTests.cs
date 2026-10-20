@@ -47,6 +47,8 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
             expenses = new[] { new { line = 40, label = "Grundsteuer", amount = 300m } },
             income_total = 1240m,
             expense_total = 300m,
+            reduction = 0m,
+            deductible_expenses = 300m,
             surplus = 940m,
             details = new[] { new { line = 13, date = new DateOnly(2026, 11, 5), text = "Kaltmiete 11/2026", amount = 620m } },
         };

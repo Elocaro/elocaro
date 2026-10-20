@@ -126,3 +126,14 @@ internal sealed class TaxLineMappingConfiguration : IEntityTypeConfiguration<Tax
         builder.HasIndex(m => new { m.TaxYear, m.Category }).IsUnique().HasFilter("NOT deleted");
     }
 }
+
+internal sealed class LocalRentConfiguration : IEntityTypeConfiguration<LocalRent>
+{
+    public void Configure(EntityTypeBuilder<LocalRent> builder)
+    {
+        builder.ToTable("local_rents");
+        builder.Property(m => m.AnnualRent).HasPrecision(18, 2);
+        builder.HasOne<Property>().WithMany().HasForeignKey(m => m.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(m => new { m.PropertyId, m.TaxYear }).IsUnique().HasFilter("NOT deleted");
+    }
+}

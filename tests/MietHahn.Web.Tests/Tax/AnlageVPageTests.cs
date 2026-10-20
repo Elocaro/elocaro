@@ -49,15 +49,23 @@ public class AnlageVPageTests(PostgresFixture postgres) : AccountTestBase(postgr
     }
 
     [Fact]
-    public async Task Reduced_rent_shows_a_hint()
+    public async Task Cheap_letting_reduces_the_expenses_after_the_local_rent_was_entered()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var (property, _) = await PropertyWithReceiptAsync();
 
-        var page = await admin.GetAsync($"/verwaltung/objekte/{property}/anlage-v?jahr=2026&entgelt=40");
+        var page = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/objekte/{property}/anlage-v?jahr=2026"), "local-rent", new Dictionary<string, string>
+        {
+            ["SaveYear"] = "2026",
+            ["LocalRentText"] = "12.000,00",
+        });
 
+        Assert.Contains("Die ortsübliche Miete wurde gespeichert.", page.Text, StringComparison.Ordinal);
         Assert.Contains("Verbilligte Vermietung", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Kürzung der Werbungskosten", page.Text, StringComparison.Ordinal);
+        using var csv = await admin.Http.GetAsync(new Uri($"/verwaltung/objekte/{property}/anlage-v.csv?jahr=2026", UriKind.Relative), Ct);
+        Assert.Contains("Kürzung wegen verbilligter Vermietung;-300,00", Encoding.UTF8.GetString(await csv.Content.ReadAsByteArrayAsync(Ct)), StringComparison.Ordinal);
     }
 
     [Fact]
