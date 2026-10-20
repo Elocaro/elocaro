@@ -1,114 +1,144 @@
 @page "/verwaltung/belege"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IReceiptService Receipts
 
-<PageHeader Title="Belege" Subtitle="Rechnungen und Kostenbelege, aufgeteilt nach Kostenart und Objekt.">
-    <Actions>
-        <a class="button button-primary" href="/verwaltung/belege/neu">Beleg erfassen</a>
-    </Actions>
-</PageHeader>
+<InteractiveShell>
+    <PageHeader Title="Belege" Subtitle="Rechnungen und Kostenbelege, aufgeteilt nach Kostenart und Objekt.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/belege/neu">Beleg erfassen</MudButton>
+        </Actions>
+    </PageHeader>
 
-<StatusMessage />
+    <div class="form-row search-bar" role="search">
+        <AppNumberField T="int?" Value="year" ValueChanged="OnYearChanged" Label="Jahr" Min="2000" Max="2100" />
+        @if (selection is not null)
+        {
+            <OptionSelect Value="propertyId" ValueChanged="OnPropertyChanged" Label="Objekt" Options="selection.Properties.Select(o => (o.Id, o.Name)).ToList()" />
+        }
+        <CostTypeSelect Value="costType" ValueChanged="OnCostTypeChanged" Label="Kostenart" EmptyText="Alle" />
+        <AppTextField Value="search" Label="Suche" Type="search" Placeholder="Lieferant, Rechnungsnr." Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
+        <AppCheckBox Value="unpaid" ValueChanged="OnUnpaidChanged" Label="ohne Zahlung" />
+        <AppCheckBox Value="split" ValueChanged="OnSplitChanged" Label="nicht aufgeteilt" />
+    </div>
 
-<FilterBar>
-    <div class="field">
-        <label for="year">Jahr</label>
-        <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
-    </div>
-    <div class="field">
-        <label for="property">Objekt</label>
-        <select id="property" name="objekt">
-            <option value="">Alle</option>
-            @foreach (var o in selection?.Properties ?? [])
-            {
-                <option value="@o.Id" selected="@(o.Id == PropertyId)">@o.Name</option>
-            }
-        </select>
-    </div>
-    <div class="field">
-        <label for="cost-type">Kostenart</label>
-        <select id="cost-type" name="kostenart">
-            <option value="">Alle</option>
-            <CostTypeOptions Selected="@CostType" />
-        </select>
-    </div>
-    <div class="field">
-        <label for="search">Suche</label>
-        <input id="search" type="search" name="q" value="@Q" placeholder="Lieferant, Rechnungsnr." />
-    </div>
-    <div class="field field-checkbox">
-        <input id="without-payment" type="checkbox" name="ohneZahlung" value="true" checked="@Unpaid" />
-        <label for="without-payment">ohne Zahlung</label>
-    </div>
-    <div class="field field-checkbox">
-        <input id="split" type="checkbox" name="aufteilen" value="true" checked="@Split" />
-        <label for="split">nicht aufgeteilt</label>
-    </div>
-</FilterBar>
-
-@if (receipts is { Count: 0 })
-{
-    <EmptyState Text="Keine Belege in dieser Auswahl." />
-}
-else if (receipts is not null)
-{
-    <p class="small">@receipts.Count Belege · Summe @Format.Money(receipts.Sum(b => b.Gross))</p>
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead><tr><th>Datum</th><th>Lieferant</th><th>Kostenarten</th><th class="number">Betrag</th><th>Status</th></tr></thead>
-            <tbody>
-                @foreach (var b in receipts)
-                {
-                    <tr>
-                        <td>@Format.Date(b.InvoiceDate)</td>
-                        <td><a href="/verwaltung/belege/@b.Id">@b.Supplier</a>@if (b.InvoiceNumber is not null) {<span class="small"> @b.InvoiceNumber</span>}</td>
-                        <td>@string.Join(", ", b.CostTypes)<span class="small"> @string.Join(", ", b.Properties)</span></td>
-                        <td class="number">@Format.Money(b.Gross)</td>
-                        <td>
-                            @if (b.Allocated != b.Gross)
-                            {
-                                <StatusChip Level="StatusLevel.Warning">@Format.Money(b.Gross - b.Allocated) nicht aufgeteilt</StatusChip>
-                            }
-                            @if (b.PaidOn is null)
-                            {
-                                <StatusChip Level="StatusLevel.Warning">unbezahlt</StatusChip>
-                            }
-                            @if (b.Files == 0)
-                            {
-                                <StatusChip>ohne Datei</StatusChip>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+    @if (receipts is { Count: 0 })
+    {
+        <EmptyState Text="Keine Belege in dieser Auswahl." />
+    }
+    else if (receipts is not null)
+    {
+        <p class="small">@receipts.Count Belege · Summe @Format.Money(receipts.Sum(b => b.Gross))</p>
+        <MudTable T="ReceiptRow" Items="receipts" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="50">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="ReceiptRow" SortBy="@(b => b.InvoiceDate)" InitialDirection="SortDirection.Descending">Datum</MudTableSortLabel></MudTh>
+                <MudTh>Lieferant</MudTh><MudTh>Kostenarten</MudTh>
+                <MudTh Style="text-align:right"><MudTableSortLabel T="ReceiptRow" SortBy="@(b => b.Gross)">Betrag</MudTableSortLabel></MudTh>
+                <MudTh>Status</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Datum">@Format.Date(context.InvoiceDate)</MudTd>
+                <MudTd DataLabel="Lieferant"><a href="/verwaltung/belege/@context.Id">@context.Supplier</a>@if (context.InvoiceNumber is not null) {<span class="small"> @context.InvoiceNumber</span>}</MudTd>
+                <MudTd DataLabel="Kostenarten">@string.Join(", ", context.CostTypes)<span class="small"> @string.Join(", ", context.Properties)</span></MudTd>
+                <MudTd DataLabel="Betrag" Style="text-align:right">@Format.Money(context.Gross)</MudTd>
+                <MudTd DataLabel="Status">
+                    @if (context.Allocated != context.Gross)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">@Format.Money(context.Gross - context.Allocated) nicht aufgeteilt</StatusChip>
+                    }
+                    @if (context.PaidOn is null)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">unbezahlt</StatusChip>
+                    }
+                    @if (context.Files == 0)
+                    {
+                        <StatusChip>ohne Datei</StatusChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 50, 100, 250 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+            </PagerContent>
+        </MudTable>
+    }
+</InteractiveShell>
 
 @code {
     private IReadOnlyList<ReceiptRow>? receipts;
     private ReceiptOptions? selection;
+    private int? year;
+    private Guid? propertyId;
+    private string? costType;
+    private string? search;
+    private bool unpaid;
+    private bool split;
 
+    // The query string only provides the start values (see ADR 0005).
     [SupplyParameterFromQuery(Name = "jahr")]
-    private int? Year { get; set; }
+    private int? InitialYear { get; set; }
 
     [SupplyParameterFromQuery(Name = "objekt")]
-    private Guid? PropertyId { get; set; }
+    private Guid? InitialProperty { get; set; }
 
     [SupplyParameterFromQuery(Name = "kostenart")]
-    private string? CostType { get; set; }
+    private string? InitialCostType { get; set; }
 
-    [SupplyParameterFromQuery]
-    private string? Q { get; set; }
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? InitialSearch { get; set; }
 
     [SupplyParameterFromQuery(Name = "ohneZahlung")]
-    private bool Unpaid { get; set; }
+    private bool InitialUnpaid { get; set; }
 
     [SupplyParameterFromQuery(Name = "aufteilen")]
-    private bool Split { get; set; }
+    private bool InitialSplit { get; set; }
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
+        year = InitialYear;
+        propertyId = InitialProperty;
+        costType = string.IsNullOrEmpty(InitialCostType) ? null : InitialCostType;
+        search = InitialSearch;
+        unpaid = InitialUnpaid;
+        split = InitialSplit;
         selection = await Receipts.OptionsAsync();
-        receipts = await Receipts.SearchAsync(new ReceiptQuery(Year, PropertyId, string.IsNullOrEmpty(CostType) ? null : CostType, Unpaid, Split, Q));
+        await LoadAsync();
     }
+
+    private async Task OnYearChanged(int? value)
+    {
+        year = value;
+        await LoadAsync();
+    }
+
+    private async Task OnPropertyChanged(Guid? value)
+    {
+        propertyId = value;
+        await LoadAsync();
+    }
+
+    private async Task OnCostTypeChanged(string? value)
+    {
+        costType = string.IsNullOrEmpty(value) ? null : value;
+        await LoadAsync();
+    }
+
+    private async Task OnSearchChanged(string? text)
+    {
+        search = text;
+        await LoadAsync();
+    }
+
+    private async Task OnUnpaidChanged(bool value)
+    {
+        unpaid = value;
+        await LoadAsync();
+    }
+
+    private async Task OnSplitChanged(bool value)
+    {
+        split = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => receipts = await Receipts.SearchAsync(new ReceiptQuery(year, propertyId, costType, unpaid, split, search));
 }

@@ -40,6 +40,8 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         App.StartServer();
         BaseUrl = App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First().Replace("127.0.0.1", "localhost", StringComparison.Ordinal);
 
+        // Many browser tests run in parallel, each with its own app and database; allow for the load.
+        Assertions.SetDefaultExpectTimeout(15_000);
         playwright = await Playwright.CreateAsync();
         try
         {
@@ -118,13 +120,16 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
     }
 
     /// <summary>Chooses an entry in a selection field of an interactive page (opens the list, clicks the entry).</summary>
-    protected static async Task SelectAsync(IPage page, string label, string option, ILocator? scope = null)
+    protected static async Task SelectAsync(IPage page, string label, string option, ILocator? scope = null, bool exact = true)
     {
         ArgumentNullException.ThrowIfNull(page);
         // The labelled input of a MudSelect is hidden; the visible control around it takes the click.
         var control = (scope ?? page.Locator("body")).Locator(".mud-select", new() { Has = page.Locator($"[aria-label='{label}']") }).First;
         await control.Locator(".mud-input").First.ClickAsync();
-        await page.Locator(".mud-popover-open .mud-list-item", new() { HasTextRegex = new System.Text.RegularExpressions.Regex("^\\s*" + System.Text.RegularExpressions.Regex.Escape(option) + "\\s*$") }).First.ClickAsync();
+        var entry = exact
+            ? new PageLocatorOptions { HasTextRegex = new System.Text.RegularExpressions.Regex("^\\s*" + System.Text.RegularExpressions.Regex.Escape(option) + "\\s*$") }
+            : new PageLocatorOptions { HasText = option };
+        await page.Locator(".mud-popover-open .mud-list-item", entry).First.ClickAsync();
     }
 
     /// <summary>Saves a screenshot on failure (path in the error message) for diagnosis.</summary>

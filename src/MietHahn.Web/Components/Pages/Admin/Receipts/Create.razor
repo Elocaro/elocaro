@@ -1,165 +1,133 @@
 @page "/verwaltung/belege/neu"
-@using Microsoft.AspNetCore.DataProtection
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Files
 @inject IReceiptService Receipts
 @inject IReceiptExtraction Extraction
 @inject IFileStore Storage
-@inject IDataProtectionProvider Protection
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 
-<PageHeader Title="Beleg erfassen" Back="/verwaltung/belege" BackText="Alle Belege" />
+<InteractiveShell>
+    <PageHeader Title="Beleg erfassen" Back="/verwaltung/belege" BackText="Alle Belege" />
 
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-@if (selection is not null)
-{
-    @if (Extraction.Info.Enabled)
+    @if (selection is not null)
     {
-        <section>
-            <h2>Beleg automatisch auslesen</h2>
-            <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
-            @if (Extraction.Info.Ready)
-            {
-                <form method="post" enctype="multipart/form-data" @formname="extract" @onsubmit="ExtractAsync" class="form-row">
-                    <AntiforgeryToken />
-                    <input type="hidden" name="StoredFileIds" value="@uploadToken" />
-                    <div class="field">
-                        <label for="extract-files">Rechnung (PDF oder Fotos)</label>
-                        <input type="file" id="extract-files" name="ExtractFiles" accept="application/pdf,image/*" multiple />
-                    </div>
-                    <div class="field field-action"><button type="submit" class="button button-primary">Vorschlag aus Beleg auslesen</button></div>
-                </form>
-            }
-            else
-            {
-                <p class="small" id="extraction-problem">@Extraction.Info.Problem</p>
-            }
-        </section>
-        <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
-    }
-
-    <EditForm Model="Data" FormName="receipt" OnValidSubmit="SaveAsync" enctype="multipart/form-data">
-        <DataAnnotationsValidator />
-        <input type="hidden" name="StoredFileIds" value="@uploadToken" />
-        <div class="field">
-            <label for="files">Rechnung (PDF oder Fotos)</label>
-            @if (storedCount > 0)
-            {
-                <span class="field-hint" id="stored-files">@storedCount @(storedCount == 1 ? "Datei ist" : "Dateien sind") bereits hochgeladen und wird dem Beleg zugeordnet.</span>
-            }
-            <input type="file" id="files" name="Files" accept="application/pdf,image/*" multiple />
-            <span class="field-hint">Mehrere Seiten auf einmal möglich; auf dem Handy öffnet sich die Kamera zur Auswahl.</span>
+        <div class="form-row">
+            <AppFileUpload Multiple="true" Text="@(selected.Count == 0 ? "Rechnung (PDF oder Fotos)" : "Seiten ändern")" Accept="application/pdf,image/*" OnSelectedMany="OnFilesSelected" />
         </div>
-        <ReceiptFields Data="Data!" Options="selection" Uncertain="uncertain" />
-        <h2>Kostenart</h2>
-        <p class="small">Für eine Rechnung mit einer Kostenart. Aufteilen auf mehrere Kostenarten oder Objekte geht danach.</p>
-        <CostItemFields Position="Position!" Options="selection" WithDetails="@(Position!.Section35a != Section35a.None)" Required="false" Uncertain="uncertain" />
-        <button type="submit" class="button button-primary">Speichern</button>
-    </EditForm>
-}
+        <p class="small">Mehrere Seiten auf einmal möglich; auf dem Handy öffnet sich die Kamera zur Auswahl.</p>
+
+        @if (Extraction.Info.Enabled)
+        {
+            <section>
+                <h2>Beleg automatisch auslesen</h2>
+                <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
+                @if (Extraction.Info.Ready)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExtractAsync" Disabled="@(selected.Count == 0)">Vorschlag aus Beleg auslesen</MudButton>
+                }
+                else
+                {
+                    <p class="small" id="extraction-problem">@Extraction.Info.Problem</p>
+                }
+            </section>
+            <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
+        }
+
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <ReceiptEditor Data="data" Options="selection" Uncertain="uncertain" />
+            <h2>Kostenart</h2>
+            <p class="small">Für eine Rechnung mit einer Kostenart. Aufteilen auf mehrere Kostenarten oder Objekte geht danach.</p>
+            <CostItemEditor Position="position" Options="selection" WithDetails="@(position.Section35a != Section35a.None)" Required="false" Uncertain="uncertain" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
 
 @code {
     private ReceiptOptions? selection;
     private IReadOnlyList<string>? errors;
     private ExtractionOutcome? outcome;
     private IReadOnlySet<string>? uncertain;
-    private string? uploadToken;
-    private int storedCount;
+    private ReceiptInput data = new();
+    private CostItemInput position = new();
+    private IReadOnlyList<FileSelection> selected = [];
+    private List<Guid> storedIds = [];
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    protected override async Task OnInitializedAsync() => selection = await Receipts.OptionsAsync();
 
-    [SupplyParameterFromForm(FormName = "receipt")]
-    private ReceiptInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "receipt")]
-    private CostItemInput? Position { get; set; }
-
-    [SupplyParameterFromForm(FormName = "receipt")]
-    private IFormFileCollection? Files { get; set; }
-
-    [SupplyParameterFromForm(FormName = "receipt", Name = "StoredFileIds")]
-    private string? ReceiptStoredFileIds { get; set; }
-
-    [SupplyParameterFromForm(FormName = "extract", Name = "StoredFileIds")]
-    private string? ExtractStoredFileIds { get; set; }
-
-    [SupplyParameterFromForm(FormName = "extract")]
-    private IFormFileCollection? ExtractFiles { get; set; }
-
-    protected override async Task OnInitializedAsync()
+    private void OnFilesSelected(IReadOnlyList<FileSelection> files)
     {
-        Data ??= new();
-        Position ??= new();
-        selection = await Receipts.OptionsAsync();
-
-        // Re-render after a failed save: keep the already uploaded files.
-        var stored = UploadToken.Unprotect(Protection, ReceiptStoredFileIds);
-        storedCount = stored.Count;
-        uploadToken = stored.Count > 0 ? UploadToken.Protect(Protection, stored) : null;
+        selected = files;
+        storedIds = []; // a new selection replaces files stored for an earlier attempt
     }
 
-    private async Task ExtractAsync()
+    /// <summary>Stores the chosen files once (an extraction and the save share them).</summary>
+    private async Task<bool> StoreAsync()
     {
+        if (storedIds.Count > 0 || selected.Count == 0)
+        {
+            return true;
+        }
+
         try
         {
-            var ids = new List<Guid>(UploadToken.Unprotect(Protection, ExtractStoredFileIds));
-            ids.AddRange(await StoreAsync(ExtractFiles));
-            storedCount = ids.Count;
-            uploadToken = ids.Count > 0 ? UploadToken.Protect(Protection, ids) : null;
+            foreach (var file in selected.Where(f => f.Length > 0))
+            {
+                await using var content = file.Open();
+                storedIds.Add((await Storage.SaveAsync(content, file.Name)).Id);
+            }
 
-            outcome = await Extraction.SuggestAsync(ids);
-            if (outcome.Suggestion is { } suggestion)
-            {
-                Data = SuggestionMapping.Apply(new ReceiptInput(), suggestion, outcome.SupplierId);
-                Position = SuggestionMapping.ToPosition(suggestion, selection!);
-                uncertain = suggestion.UncertainFields();
-            }
-            else
-            {
-                errors = [outcome.Error ?? "Die Belegauslesung hat kein Ergebnis geliefert."];
-            }
+            return true;
         }
         catch (FileRejectedException ex)
         {
             errors = [ex.Message];
+            storedIds = [];
+            return false;
+        }
+    }
+
+    private async Task ExtractAsync()
+    {
+        errors = null;
+        if (!await StoreAsync())
+        {
+            return;
+        }
+
+        outcome = await Extraction.SuggestAsync(storedIds);
+        if (outcome.Suggestion is { } suggestion)
+        {
+            data = SuggestionMapping.Apply(new ReceiptInput(), suggestion, outcome.SupplierId);
+            position = SuggestionMapping.ToPosition(suggestion, selection!);
+            uncertain = suggestion.UncertainFields();
+        }
+        else
+        {
+            errors = [outcome.Error ?? "Die Belegauslesung hat kein Ergebnis geliefert."];
         }
     }
 
     private async Task SaveAsync()
     {
-        try
+        errors = null;
+        if (!await StoreAsync())
         {
-            var fileIds = new List<Guid>(UploadToken.Unprotect(Protection, ReceiptStoredFileIds));
-            fileIds.AddRange(await StoreAsync(Files));
-
-            var result = await Receipts.CreateAsync(Data!, fileIds, Position);
-            if (result.Succeeded)
-            {
-                Redirector.RedirectWithMessage($"/verwaltung/belege/{result.Id}", "Der Beleg wurde gespeichert.", HttpContext);
-            }
-            else
-            {
-                errors = result.Errors;
-                storedCount = fileIds.Count;
-                uploadToken = fileIds.Count > 0 ? UploadToken.Protect(Protection, fileIds) : null;
-            }
-        }
-        catch (FileRejectedException ex)
-        {
-            errors = [ex.Message];
-        }
-    }
-
-    private async Task<List<Guid>> StoreAsync(IFormFileCollection? files)
-    {
-        var ids = new List<Guid>();
-        foreach (var file in files?.Where(d => d.Length > 0) ?? [])
-        {
-            await using var content = file.OpenReadStream();
-            ids.Add((await Storage.SaveAsync(content, file.FileName)).Id);
+            return;
         }
 
-        return ids;
+        var result = await Receipts.CreateAsync(data, storedIds, position);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/verwaltung/belege/{result.Id}?meldung=gespeichert");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
     }
 }

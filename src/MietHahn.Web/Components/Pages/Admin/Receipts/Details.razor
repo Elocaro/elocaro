@@ -1,19 +1,28 @@
 @page "/verwaltung/belege/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Files
 @inject IReceiptService Receipts
 @inject IReceiptExtraction Extraction
 @inject IFileStore Storage
-@inject Redirector Redirector
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (receipt is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (receipt is null)
 {
     <PageHeader Title="Beleg nicht gefunden" Back="/verwaltung/belege" BackText="Alle Belege" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@($"{receipt.Supplier} {Format.Money(receipt.Data.Gross)}")" Subtitle="@($"Rechnung {receipt.Data.InvoiceNumber} vom {Format.Date(receipt.Data.InvoiceDate)}")" Back="/verwaltung/belege" BackText="Alle Belege" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 <section>
@@ -24,8 +33,6 @@
     }
     @if (receipt.Items.Count > 0)
     {
-        <form method="post" @formname="items" @onsubmit="RemoveCostItemAsync">
-            <AntiforgeryToken />
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead><tr><th>Kostenart</th><th>Objekt</th><th>Zeitraum</th><th class="number">Betrag</th><th>§ 35a</th><th></th></tr></thead>
@@ -38,23 +45,21 @@
                                 <td>@Format.Period(p.BillingPeriod)</td>
                                 <td class="number">@Format.Money(p.Amount)</td>
                                 <td>@(p.Section35a == Section35a.None ? "–" : $"{Labels.From(p.Section35a)}: {Format.Money(p.LaborCosts)}")</td>
-                                <td><RowConfirm Name="PositionId" Value="@p.Id" Label="@($"Position {p.CostTypeText} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
+                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostItemAsync(p)" aria-label="@($"Position {p.CostTypeText} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
                     <tfoot><tr><th colspan="3">Summe</th><th class="number">@Format.Money(receipt.Allocated)</th><th colspan="2"></th></tr></tfoot>
                 </table>
             </div>
-        </form>
     }
-    @* During static rendering an intermediate state may be rendered before the option lists are loaded. *@
     @if (receipt.Open != 0 && selection is not null)
     {
         <h3>Position hinzufügen</h3>
-        <EditForm Model="Position" FormName="item" OnValidSubmit="AddItemAsync">
+        <EditForm Model="position" OnValidSubmit="AddItemAsync" novalidate>
             <DataAnnotationsValidator />
-            <CostItemFields Position="Position!" Options="selection" />
-            <button type="submit" class="button button-primary">Position hinzufügen</button>
+            <CostItemEditor Position="position" Options="selection" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Position hinzufügen</MudButton>
         </EditForm>
     }
 </section>
@@ -67,19 +72,16 @@
     }
     else
     {
-        <form method="post" @formname="files" @onsubmit="RemoveFileAsync">
-            <AntiforgeryToken />
             <ul>
                 @foreach (var d in receipt.Files)
                 {
                     <li>
                         Seite @d.Page: <a href="/dateien/@d.FileId" target="_blank" rel="noopener">@d.Name</a>
                         (<a href="/dateien/@d.FileId?download=true">herunterladen</a>)
-                        <RowConfirm Name="FileId" Value="@d.FileId" Label="@($"Seite {d.Page} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" />
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveFileAsync(d)" aria-label="@($"Seite {d.Page} entfernen")">Entfernen</MudButton>
                     </li>
                 }
             </ul>
-        </form>
         var first = receipt.Files[0];
         @if (first.MimeType.StartsWith("image/", StringComparison.Ordinal))
         {
@@ -90,14 +92,9 @@
             <iframe class="document-preview" src="/dateien/@first.FileId" title="Seite 1"></iframe>
         }
     }
-    <form method="post" enctype="multipart/form-data" @formname="upload" @onsubmit="UploadAsync" class="form-row">
-        <AntiforgeryToken />
-        <div class="field">
-            <label for="more">Seiten hinzufügen</label>
-            <input type="file" id="more" name="Additional" accept="application/pdf,image/*" multiple required />
-        </div>
-        <div class="field field-action"><button type="submit" class="button button-primary">Hochladen</button></div>
-    </form>
+    <div class="form-row">
+        <AppFileUpload Multiple="true" Text="Seiten hinzufügen" Accept="application/pdf,image/*" OnSelectedMany="UploadAsync" />
+    </div>
 </section>
 
 @if (selection is not null)
@@ -107,68 +104,54 @@
         @if (Extraction.Info.Ready && receipt.Files.Count > 0)
         {
             <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
-            <form method="post" @formname="extract" @onsubmit="ExtractAsync">
-                <AntiforgeryToken />
-                <button type="submit" class="button button-primary">Vorschlag aus Beleg auslesen</button>
-            </form>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExtractAsync">Vorschlag aus Beleg auslesen</MudButton>
             <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
         }
-        <EditForm Model="Data" FormName="receipt" OnValidSubmit="SaveAsync">
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />
-            <ReceiptFields Data="Data!" Options="selection" Uncertain="uncertain" />
-            <button type="submit" class="button button-primary">Speichern</button>
+            <ReceiptEditor Data="data" Options="selection" Uncertain="uncertain" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
     </section>
 }
 
 <section>
     <h2>Löschen</h2>
-    <DangerAction Text="Beleg löschen" Confirmation="Der Beleg wird logisch gelöscht; die Dateien bleiben im Archiv." ConfirmText="Ja, löschen" FormName="delete" Confirmed="DeleteAsync" />
+    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Beleg löschen</MudButton>
 </section>
 
 <ChangeHistory EntityType="@nameof(Receipt)" EntityId="Id" />
+}
+</InteractiveShell>
 
 @code {
     private ReceiptDetails? receipt;
     private ReceiptOptions? selection;
+    private ReceiptInput data = new();
+    private CostItemInput position = new();
     private IReadOnlyList<string>? errors;
     private ExtractionOutcome? outcome;
     private IReadOnlySet<string>? uncertain;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "receipt")]
-    private ReceiptInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "item")]
-    private CostItemInput? Position { get; set; }
-
-    [SupplyParameterFromForm(FormName = "items")]
-    private Guid? PositionId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "files")]
-    private Guid? FileId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "upload")]
-    private IFormFileCollection? Additional { get; set; }
-
-    private string Target => $"/verwaltung/belege/{Id}";
-
     protected override async Task OnInitializedAsync()
     {
-        var form = Data;
-        Data ??= new();
-        Position ??= new();
-        receipt = await Receipts.GetAsync(Id);
         selection = await Receipts.OptionsAsync();
-        if (form is null && receipt is not null)
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        receipt = await Receipts.GetAsync(Id);
+        if (receipt is not null)
         {
-            Data = receipt.Data;
+            data = receipt.Data;
         }
+
+        loaded = true;
     }
 
     /// <summary>Reads a suggestion from the existing pages and pre-fills the form (not saved until the user confirms).</summary>
@@ -182,8 +165,9 @@
         outcome = await Extraction.SuggestAsync(receipt.Files.Select(d => d.FileId).ToList());
         if (outcome.Suggestion is { } suggestion)
         {
-            Data = SuggestionMapping.Apply(SuggestionMapping.Copy(receipt.Data), suggestion, outcome.SupplierId);
+            data = SuggestionMapping.Apply(SuggestionMapping.Copy(receipt.Data), suggestion, outcome.SupplierId);
             uncertain = suggestion.UncertainFields();
+            errors = null;
         }
         else
         {
@@ -191,25 +175,53 @@
         }
     }
 
-    private Task SaveAsync() => ExecuteAsync(Receipts.UpdateAsync(Id, Data!), "Die Angaben wurden gespeichert.");
+    private Task SaveAsync() => ExecuteAsync(Receipts.UpdateAsync(Id, data), "Die Angaben wurden gespeichert.");
 
-    private Task AddItemAsync() => ExecuteAsync(Receipts.AddItemAsync(Id, Position!), "Die Position wurde hinzugefügt.");
+    private Task AddItemAsync() => ExecuteAsync(Receipts.AddItemAsync(Id, position), "Die Position wurde hinzugefügt.", () => position = new());
 
-    private Task RemoveCostItemAsync() => PositionId is { } id ? ExecuteAsync(Receipts.RemoveCostItemAsync(Id, id), "Die Position wurde entfernt.") : Task.CompletedTask;
+    private async Task RemoveCostItemAsync(CostItemView item)
+    {
+        if (await Confirm.AskAsync("Position entfernen", $"Soll die Position „{item.CostTypeText}“ entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Receipts.RemoveCostItemAsync(Id, item.Id), "Die Position wurde entfernt.");
+        }
+    }
 
-    private Task RemoveFileAsync() => FileId is { } id ? ExecuteAsync(Receipts.RemoveFileAsync(Id, id), "Die Seite wurde entfernt.") : Task.CompletedTask;
+    private async Task RemoveFileAsync(ReceiptFileView file)
+    {
+        if (await Confirm.AskAsync("Seite entfernen", $"Soll Seite {file.Page} entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Receipts.RemoveFileAsync(Id, file.FileId), "Die Seite wurde entfernt.");
+        }
+    }
 
-    private Task DeleteAsync() => ExecuteAsync(Receipts.DeleteAsync(Id), "Der Beleg wurde gelöscht.", "/verwaltung/belege");
+    private async Task DeleteAsync()
+    {
+        if (!await Confirm.AskAsync("Beleg löschen", "Der Beleg wird logisch gelöscht; die Dateien bleiben im Archiv.", "Ja, löschen"))
+        {
+            return;
+        }
 
-    private async Task UploadAsync()
+        var result = await Receipts.DeleteAsync(Id);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/belege?meldung=geloescht");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task UploadAsync(IReadOnlyList<FileSelection> files)
     {
         try
         {
             var ids = new List<Guid>();
-            foreach (var file in Additional?.Where(d => d.Length > 0) ?? [])
+            foreach (var file in files.Where(d => d.Length > 0))
             {
-                await using var content = file.OpenReadStream();
-                ids.Add((await Storage.SaveAsync(content, file.FileName)).Id);
+                await using var content = file.Open();
+                ids.Add((await Storage.SaveAsync(content, file.Name)).Id);
             }
 
             await ExecuteAsync(Receipts.AddFilesAsync(Id, ids), ids.Count == 1 ? "Die Seite wurde hinzugefügt." : $"{ids.Count} Seiten wurden hinzugefügt.");
@@ -220,16 +232,15 @@
         }
     }
 
-    private async Task ExecuteAsync(Task<Result> command, string success, string? destination = null)
+    private async Task ExecuteAsync(Task<Result> command, string success, Action? reset = null)
     {
         var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage(destination ?? Target, success, HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            reset?.Invoke();
+            Notify.Success(success);
+            await LoadAsync();
         }
     }
 }

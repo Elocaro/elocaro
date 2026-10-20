@@ -527,3 +527,6 @@ p + .form-grid, p + .form-row, .small + .form-grid { margin-top: 1rem; }
 .file-upload-name { margin-left: 0.75rem; }
 .app-field { flex: 1 1 14rem; min-width: 0; } .form-grid > .app-field { margin-bottom: 1rem; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+/* Uncertain automatic value: warning-colored outline around Mud fields */
+.uncertain .mud-input-outlined .mud-input-outlined-border { border-color: var(--md-warning) !important; border-width: 2px !important; }

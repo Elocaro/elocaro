@@ -1,15 +1,13 @@
 using System.Net;
 using System.Text;
-using AngleSharp.Html.Dom;
 using Microsoft.Extensions.DependencyInjection;
-using MietHahn.Application.Accounts;
+using Microsoft.Playwright;
 using MietHahn.Infrastructure.Receipts.Extraction;
-using MietHahn.Web.Tests.Account;
 
-namespace MietHahn.Web.Tests.Receipts;
+namespace MietHahn.Web.Tests.Browser;
 
 /// <summary>The real Claude provider (configuration only) against a fake HTTP handler: no real network traffic.</summary>
-public class ReceiptExtractionClaudeFlowTests(PostgresFixture postgres) : AccountTestBase(postgres)
+public class ReceiptClaudeBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
 {
     private static readonly byte[] Pdf = "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n"u8.ToArray();
 
@@ -29,26 +27,30 @@ public class ReceiptExtractionClaudeFlowTests(PostgresFixture postgres) : Accoun
     [Fact]
     public async Task Upload_extract_and_confirm_with_the_claude_provider()
     {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        using var _ = admin;
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await GotoInteractiveAsync(page, "/verwaltung/belege/neu");
 
-        var page = await admin.GetAsync("/verwaltung/belege/neu");
-        Assert.Contains("an einen Dritten übermittelt", page.Document.QuerySelector("#extraction-notice")!.TextContent, StringComparison.Ordinal);
-        page = await admin.SubmitWithFileAsync(page, "extract", "ExtractFiles", Pdf, "rechnung.pdf", "application/pdf");
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await Assertions.Expect(page.Locator("#extraction-notice")).ToContainTextAsync("an einen Dritten übermittelt");
+            await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "rechnung.pdf", MimeType = "application/pdf", Buffer = Pdf });
+            await page.GetByRole(AriaRole.Button, new() { Name = "Vorschlag aus Beleg auslesen" }).ClickAsync();
 
-        Assert.Equal("Stadtwerke Beispielstadt", ((IHtmlInputElement)page.Document.QuerySelector("#receipt-supplier-name")!).Value);
-        Assert.Equal("2026-03-15", ((IHtmlInputElement)page.Document.QuerySelector("#receipt-date")!).Value);
-        Assert.Contains("640 Eingabe- und 120 Ausgabe-Tokens", page.Document.QuerySelector("#suggestion-usage")!.TextContent, StringComparison.Ordinal);
-        Assert.Contains("IBAN laut Beleg", page.Text, StringComparison.Ordinal);
+            await Assertions.Expect(page.GetByLabel("oder Name")).ToHaveValueAsync("Stadtwerke Beispielstadt");
+            await Assertions.Expect(page.GetByLabel("Rechnungsdatum")).ToHaveValueAsync("15.03.2026");
+            await Assertions.Expect(page.Locator("#suggestion-usage")).ToContainTextAsync("640 Eingabe- und 120 Ausgabe-Tokens");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("IBAN laut Beleg");
+            Assert.DoesNotContain("sk-ant-web-test", await page.ContentAsync(), StringComparison.Ordinal);
+        });
+
         var body = Assert.Single(bodies);
         Assert.Contains("\"claude-sonnet-5-5\"", body, StringComparison.Ordinal);
         Assert.Contains("\"media_type\":\"application/pdf\"", body, StringComparison.Ordinal);
         Assert.Contains("\"type\":\"document\"", body, StringComparison.Ordinal);
 
-        var settings = await admin.GetAsync("/verwaltung/system/belegauslesung");
-        Assert.Contains("externer Dienst", settings.Document.QuerySelector("#third-party-notice")!.TextContent, StringComparison.Ordinal);
-        Assert.DoesNotContain("sk-ant-web-test", settings.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("sk-ant-web-test", page.Html, StringComparison.Ordinal);
+        await page.GotoAsync(BaseUrl + "/verwaltung/system/belegauslesung");
+        await Assertions.Expect(page.Locator("#third-party-notice")).ToContainTextAsync("externer Dienst");
+        Assert.DoesNotContain("sk-ant-web-test", await page.ContentAsync(), StringComparison.Ordinal);
     }
 
     private sealed class Handler(List<string> bodies) : HttpMessageHandler

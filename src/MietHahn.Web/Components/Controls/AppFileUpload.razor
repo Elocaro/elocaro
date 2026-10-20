@@ -3,7 +3,7 @@
 <label class="button button-outlined file-upload @(Disabled ? "disabled" : null)">
     <Icon Path="@AppIcons.Upload" />
     <span>@Text</span>
-    <InputFile OnChange="OnChange" accept="@Accept" capture="@Capture" disabled="@Disabled" />
+    <InputFile OnChange="OnChange" accept="@Accept" capture="@Capture" disabled="@Disabled" multiple="@Multiple" />
 </label>
 @if (selectedName is not null)
 {
@@ -29,13 +29,29 @@
     [Parameter]
     public long MaxBytes { get; set; } = 25 * 1024 * 1024;
 
+    /// <summary>Allow choosing several files at once (pages of one document); use <see cref="OnSelectedMany"/>.</summary>
+    [Parameter]
+    public bool Multiple { get; set; }
+
     [Parameter]
     public EventCallback<FileSelection> OnSelected { get; set; }
 
+    [Parameter]
+    public EventCallback<IReadOnlyList<FileSelection>> OnSelectedMany { get; set; }
+
     private async Task OnChange(InputFileChangeEventArgs args)
     {
-        var file = args.File;
-        selectedName = file.Name;
-        await OnSelected.InvokeAsync(new FileSelection(file.Name, file.Size, file.ContentType, () => file.OpenReadStream(MaxBytes)));
+        var files = args.GetMultipleFiles(Multiple ? 50 : 1)
+            .Select(file => new FileSelection(file.Name, file.Size, file.ContentType, () => file.OpenReadStream(MaxBytes)))
+            .ToList();
+        selectedName = files.Count == 1 ? files[0].Name : $"{files.Count} Dateien";
+        if (Multiple)
+        {
+            await OnSelectedMany.InvokeAsync(files);
+        }
+        else if (files.Count > 0)
+        {
+            await OnSelected.InvokeAsync(files[0]);
+        }
     }
 }

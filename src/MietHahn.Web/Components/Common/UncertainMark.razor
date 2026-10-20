@@ -1,0 +1,16 @@
+@* Marks a field whose value was recognized automatically and is uncertain (highlighted, with a hint). *@
+<div class="@(Active ? "uncertain" : null)">
+    @ChildContent
+    @if (Active)
+    {
+        <span class="field-hint field-hint-uncertain">Unsicher erkannt, bitte prüfen.</span>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public bool Active { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
