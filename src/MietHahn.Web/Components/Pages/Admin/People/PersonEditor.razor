@@ -30,13 +30,7 @@
 {
     <h2>Anschrift</h2>
     <p class="small">Optional. Für Mieter die bisherige Anschrift (Voranschrift); beim Einzug wird sie fortgeschrieben.</p>
-    <div class="form-grid">
-        <MudTextField ShrinkLabel="true" @bind-Value="Address.Street" Label="Straße und Hausnummer" Variant="Variant.Outlined" autocomplete="off" />
-        <MudTextField ShrinkLabel="true" @bind-Value="Address.PostalCode" Label="PLZ" InputMode="InputMode.numeric" Variant="Variant.Outlined" autocomplete="off" />
-        <MudTextField ShrinkLabel="true" @bind-Value="Address.City" Label="Ort" Variant="Variant.Outlined" autocomplete="off" />
-        <MudTextField ShrinkLabel="true" @bind-Value="Address.AddressLine2" Label="Zusatz" HelperText="z. B. „c/o Müller“" Variant="Variant.Outlined" autocomplete="off" />
-        <MudTextField ShrinkLabel="true" @bind-Value="Address.Country" Label="Land" HelperText="Leer = Deutschland" Variant="Variant.Outlined" autocomplete="off" />
-    </div>
+    <AddressEditor Address="Address" />
 }
 
 @code {

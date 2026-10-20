@@ -1,4 +1,7 @@
 @using MudBlazor
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+@inject Notifier Notify
 @* Frame of an interactive page: the providers MudBlazor needs (theme, dialogs, snackbars) and the light/dark mode of the site.
    Use as the outermost element of every page with @rendermode InteractiveServer. The parameters contain no MudBlazor types. *@
 <MudThemeProvider @ref="provider" Theme="M3Theme.Theme" @bind-IsDarkMode="dark" ObserveSystemDarkModeChange="@(Preference is null)" />
@@ -44,6 +47,12 @@
         if (Preference is null && provider is not null)
         {
             dark = await provider.GetSystemDarkModeAsync();
+        }
+
+        // Message after a redirect from another page (?meldung=gespeichert); fixed keys only, see StatusMessage.Keys.
+        if (QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query).TryGetValue("meldung", out var key) && StatusMessage.Keys.TryGetValue(key.ToString(), out var text))
+        {
+            Notify.Success(text);
         }
 
         interactive = true;

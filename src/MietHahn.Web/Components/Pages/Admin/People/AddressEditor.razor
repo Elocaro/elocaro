@@ -1,0 +1,29 @@
+@using MudBlazor
+@* Address fields for interactive pages and dialogs (counterpart of AddressFields). WithReferenceDate: asks "valid from" (move date). *@
+<div class="form-grid">
+    @if (WithReferenceDate)
+    {
+        <MudDatePicker ShrinkLabel="true" @bind-Date="ValidFrom" Label="Gültig ab" HelperText="Umzugsdatum" Required="true" Variant="Variant.Outlined" Editable="true" Culture="@German" />
+    }
+    <MudTextField ShrinkLabel="true" @bind-Value="Address.Street" For="() => Address.Street" Label="Straße und Hausnummer" Required="@WithReferenceDate" Variant="Variant.Outlined" autocomplete="off" />
+    <MudTextField ShrinkLabel="true" @bind-Value="Address.PostalCode" For="() => Address.PostalCode" Label="PLZ" Required="@WithReferenceDate" InputMode="InputMode.numeric" Variant="Variant.Outlined" autocomplete="off" />
+    <MudTextField ShrinkLabel="true" @bind-Value="Address.City" For="() => Address.City" Label="Ort" Required="@WithReferenceDate" Variant="Variant.Outlined" autocomplete="off" />
+    <MudTextField ShrinkLabel="true" @bind-Value="Address.AddressLine2" For="() => Address.AddressLine2" Label="Zusatz" HelperText="z. B. „c/o Müller“" Variant="Variant.Outlined" autocomplete="off" />
+    <MudTextField ShrinkLabel="true" @bind-Value="Address.Country" For="() => Address.Country" Label="Land" HelperText="Leer = Deutschland" Variant="Variant.Outlined" autocomplete="off" />
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+
+    [Parameter, EditorRequired]
+    public AddressInput Address { get; set; } = default!;
+
+    [Parameter]
+    public bool WithReferenceDate { get; set; }
+
+    private DateTime? ValidFrom
+    {
+        get => Address.From?.ToDateTime(TimeOnly.MinValue);
+        set => Address.From = value is null ? null : DateOnly.FromDateTime(value.Value);
+    }
+}

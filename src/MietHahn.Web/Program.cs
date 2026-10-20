@@ -27,6 +27,7 @@ builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, RevalidatingAuthenticationStateProvider>();
 builder.Services.AddMudServices();
 builder.Services.AddScoped<MietHahn.Web.Components.Shell.Notifier>();
+builder.Services.AddScoped<MietHahn.Web.Components.Shell.Confirmations>();
 
 var app = builder.Build();
 

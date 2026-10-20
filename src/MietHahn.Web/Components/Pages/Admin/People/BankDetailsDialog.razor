@@ -1,0 +1,49 @@
+@using MudBlazor
+@inject IPersonService Admin
+@inject Notifier Notify
+
+@* Dialog "add IBAN": all accounts a person pays from; incoming payments are assigned via the IBAN. *@
+<EditForm Model="bank" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <div class="form-grid">
+                <MudTextField ShrinkLabel="true" @bind-Value="bank.Iban" For="() => bank.Iban" Label="IBAN" Required="true" Variant="Variant.Outlined" autocomplete="off" />
+                <MudTextField ShrinkLabel="true" @bind-Value="bank.AccountHolder" For="() => bank.AccountHolder" Label="Kontoinhaber" HelperText="Falls abweichend" Variant="Variant.Outlined" autocomplete="off" />
+                <MudTextField ShrinkLabel="true" @bind-Value="bank.Bic" For="() => bank.Bic" Label="BIC" Variant="Variant.Outlined" autocomplete="off" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">IBAN hinzufügen</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly BankDetailsInput bank = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid PersonId { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.AddBankDetailsAsync(PersonId, bank);
+        if (result.Succeeded)
+        {
+            Notify.Success("Die IBAN wurde hinzugefügt.");
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

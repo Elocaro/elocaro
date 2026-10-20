@@ -113,7 +113,7 @@ public class InteractiveBrowserTests(PostgresFixture postgres) : BrowserTestBasi
             await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/personen/" + id + "?meldung=gespeichert");
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Die Angaben wurden gespeichert.");
+            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Die Angaben wurden gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("anna@example.de");
         });
 
@@ -132,7 +132,9 @@ public class InteractiveBrowserTests(PostgresFixture postgres) : BrowserTestBasi
         var page = await SignedInAsAdminAsync(mobile: false);
 
         await page.GotoAsync(BaseUrl + $"/verwaltung/personen/{id}?meldung=%3Cb%3Efrei%3C%2Fb%3E");
+        await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
-        Assert.DoesNotContain("frei", await page.Locator("main .message").AllTextContentsAsync() is { Count: > 0 } texts ? string.Join(" ", texts) : "", StringComparison.Ordinal);
+        await Assertions.Expect(page.Locator(".mud-snackbar")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("frei");
     }
 }

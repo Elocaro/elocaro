@@ -30,38 +30,32 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
             new AddressInput { From = MietHahn.Domain.Common.GermanTime.Today(App.Clock.GetUtcNow()), Street = "Altweg 1", PostalCode = "50667", City = "Köln" });
 
     [Fact]
-    public async Task Create_search_and_edit_tenant()
+    public async Task Search_finds_by_iban_and_filter_and_the_address_history_is_shown()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-
         var person = await CreateAnnaAsync(admin);
+        var id = Guid.Parse(person.Path[(person.Path.LastIndexOf('/') + 1)..]);
         Assert.Contains("Altweg 1, 50667 Köln", person.Text, StringComparison.Ordinal);
 
-        // Multiple IBANs, one invalid
-        var wrong = await admin.SubmitAsync(person, "iban", new Dictionary<string, string> { ["Bank.Iban"] = "DE02120300000000202052" });
-        Assert.Contains("Bitte eine gültige IBAN angeben", wrong.Text, StringComparison.Ordinal);
-        person = await admin.SubmitAsync(person, "iban", new Dictionary<string, string> { ["Bank.Iban"] = "de02120300000000202051" });
-        person = await admin.SubmitAsync(person, "iban", new Dictionary<string, string> { ["Bank.Iban"] = "DE89370400440532013000", ["Bank.AccountHolder"] = "Hans Schmidt" });
+        // Several IBANs, one invalid (the dialogs themselves are covered by the browser tests)
+        await App.WithScopeAsync(async sp =>
+        {
+            var people = sp.GetRequiredService<IPersonService>();
+            var ct = TestContext.Current.CancellationToken;
+            Assert.False((await people.AddBankDetailsAsync(id, new BankDetailsInput { Iban = "DE02120300000000202052" }, ct)).Succeeded);
+            Assert.True((await people.AddBankDetailsAsync(id, new BankDetailsInput { Iban = "de02120300000000202051" }, ct)).Succeeded);
+            Assert.True((await people.AddBankDetailsAsync(id, new BankDetailsInput { Iban = "DE89370400440532013000", AccountHolder = "Hans Schmidt" }, ct)).Succeeded);
+
+            // Move-in tomorrow: previous address stays in the history
+            var tomorrow = MietHahn.Domain.Common.GermanTime.Today(App.Clock.GetUtcNow()).AddDays(1);
+            Assert.True((await people.SetAddressAsync(id, new AddressInput { From = tomorrow, Street = "Lindenweg 3", PostalCode = "50667", City = "Köln", AddressLine2 = "Wohnung 1" }, ct)).Succeeded);
+            return 0;
+        });
+
+        person = await admin.GetAsync(person.Path);
         Assert.Contains("DE02 1203 0000 0000 2020 51", person.Text, StringComparison.Ordinal);
         Assert.Contains("Hans Schmidt", person.Text, StringComparison.Ordinal);
-
-        // Each row has its own button in the shared form; the clicked one submits its id.
-        var firstIban = person.Document.QuerySelector("button[name=RemoveId]")!.GetAttribute("value")!;
-        person = await admin.SubmitAsync(person, "iban-remove", new Dictionary<string, string> { ["RemoveId"] = firstIban });
-        Assert.Contains("Die IBAN wurde entfernt.", person.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("DE02 1203", person.Text, StringComparison.Ordinal);
-
-        // Move-in: new address, previous address stays in the history
-        person = await admin.SubmitAsync(person, "address", new Dictionary<string, string>
-        {
-            ["Address.From"] = MietHahn.Domain.Common.GermanTime.Today(App.Clock.GetUtcNow()).AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-            ["Address.Street"] = "Lindenweg 3",
-            ["Address.PostalCode"] = "50667",
-            ["Address.City"] = "Köln",
-            ["Address.AddressLine2"] = "Wohnung 1",
-        });
-        Assert.Contains("Die Anschrift wurde gespeichert.", person.Text, StringComparison.Ordinal);
         Assert.Contains("Frühere und künftige Anschriften", person.Text, StringComparison.Ordinal);
         Assert.Contains("Wohnung 1, Lindenweg 3, 50667 Köln", person.Text, StringComparison.Ordinal); // from tomorrow
         App.Clock.Advance(TimeSpan.FromDays(1));
@@ -81,9 +75,10 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var person = await CreatePersonAsync(admin, new PersonInput { LastName = "Klempner", Company = "Rohr & Co.", ContactType = ContactType.Tradesperson, Occupation = "Sanitär", Email = "rohr@example.de" });
         Assert.Contains("Handwerker (Sanitär)", person.Text, StringComparison.Ordinal);
 
-        person = await admin.SubmitAsync(person, "access");
+        var id = Guid.Parse(person.Path[(person.Path.LastIndexOf('/') + 1)..]);
+        await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IPersonService>().SetUpAccessAsync(id, TestContext.Current.CancellationToken)).Succeeded);
+        person = await admin.GetAsync(person.Path);
 
-        Assert.Contains("Der Zugang wurde eingerichtet.", person.Text, StringComparison.Ordinal);
         Assert.Contains("rohr@example.de (Handwerker)", person.Text, StringComparison.Ordinal);
         var mail = await App.WithScopeAsync(sp => sp.GetRequiredService<MietHahnDbContext>().Set<OutgoingMail>().SingleAsync(TestContext.Current.CancellationToken));
         Assert.Equal(["rohr@example.de"], mail.To);
@@ -114,17 +109,16 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var person = await CreateAnnaAsync(admin);
-        var path = person.Path;
+        var id = Guid.Parse(person.Path[(person.Path.LastIndexOf('/') + 1)..]);
 
         App.Clock.Advance(TimeSpan.FromMinutes(1));
         var suggestions = await admin.GetAsync("/verwaltung/datenschutz");
         Assert.True(suggestions.Text.Contains("Anna Schmidt", StringComparison.Ordinal), suggestions.Text);
 
-        var button = suggestions.Document.QuerySelector("button[name=PersonId]")!.GetAttribute("value")!;
-        var afterwards = await admin.SubmitAsync(suggestions, "anonymize", new Dictionary<string, string> { ["PersonId"] = button });
-        Assert.Contains("Die Person wurde anonymisiert.", afterwards.Text, StringComparison.Ordinal);
+        // The confirmation dialog is covered by the browser tests.
+        await App.WithScopeAsync(async sp => (await sp.GetRequiredService<MietHahn.Application.Privacy.IPrivacyService>().AnonymizeAsync(id, TestContext.Current.CancellationToken)).Succeeded);
 
-        var record = await admin.GetAsync(path);
+        var record = await admin.GetAsync(person.Path);
         Assert.DoesNotContain("Schmidt", record.Text, StringComparison.Ordinal);
         Assert.Contains("wurden am", record.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Bearbeiten", record.Text, StringComparison.Ordinal);

@@ -1,0 +1,46 @@
+@using MudBlazor
+@inject IPersonService Admin
+@inject Notifier Notify
+
+@* Dialog "new address" (move, move-in, move-out): the previous address ends the day before and stays in the history. *@
+<EditForm Model="address" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <AddressEditor Address="address" WithReferenceDate="true" />
+            <p class="small">Die bisherige Anschrift endet am Vortag und bleibt erhalten (z. B. für die Zustellung früherer Abrechnungen an die neue Anschrift).</p>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Anschrift speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly AddressInput address = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid PersonId { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.SetAddressAsync(PersonId, address);
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Anschrift wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

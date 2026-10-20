@@ -1,14 +1,25 @@
 @page "/verwaltung/personen/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Privacy
 @inject IPersonService Admin
 @inject IPrivacyService Privacy
-@inject Redirector Redirector
+@inject IDialogService Dialogs
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject NavigationManager Navigation
 
-@if (person is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (person is null)
 {
     <PageHeader Title="Person nicht gefunden" Back="/verwaltung/personen" BackText="Alle Personen" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@person.DisplayName" Subtitle="@Subtitle" Back="/verwaltung/personen" BackText="Alle Personen">
     <Actions>
@@ -20,7 +31,6 @@
     </Actions>
 </PageHeader>
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 @if (person.AnonymizedAt is { } anonymized)
@@ -90,15 +100,7 @@
         {
             <p>@person.Address.SingleLine <span class="small">(@Format.Period(person.Address.Validity))</span></p>
         }
-        <details class="disclosure" open="@(person.Address is null)">
-            <summary>Neue Anschrift (Umzug, Einzug, Auszug)</summary>
-            <EditForm Model="Address" FormName="address" OnValidSubmit="SaveAddressAsync">
-                <DataAnnotationsValidator />
-                <AddressFields Address="Address!" />
-                <button type="submit" class="button button-primary">Anschrift speichern</button>
-            </EditForm>
-            <p class="small">Die bisherige Anschrift endet am Vortag und bleibt erhalten (z. B. für die Zustellung früherer Abrechnungen an die neue Anschrift).</p>
-        </details>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="NewAddressAsync">Neue Anschrift (Umzug, Einzug, Auszug)</MudButton>
         @if (person.Addresses.Count > 1)
         {
             <h3>Frühere und künftige Anschriften</h3>
@@ -116,45 +118,24 @@
         <p class="small">Alle Konten, von denen die Person zahlt: eingehende Zahlungen werden über die IBAN zugeordnet.</p>
         @if (person.BankDetails.Count > 0)
         {
-            @* One form for all rows: the clicked button submits its id (form names must be unique). *@
-            <form method="post" @formname="iban-remove" @onsubmit="RemoveBankDetailsAsync">
-                <AntiforgeryToken />
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead><tr><th>IBAN</th><th>Kontoinhaber</th><th>BIC</th><th></th></tr></thead>
-                        <tbody>
-                            @foreach (var bank in person.BankDetails)
-                            {
-                                <tr>
-                                    <td><code>@bank.Iban</code></td>
-                                    <td>@bank.AccountHolder</td>
-                                    <td>@bank.Bic</td>
-                                    <td><RowConfirm Name="RemoveId" Value="@bank.Id" Label="@($"IBAN {bank.Iban} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" /></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </form>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>IBAN</th><th>Kontoinhaber</th><th>BIC</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var bank in person.BankDetails)
+                        {
+                            <tr>
+                                <td><code>@bank.Iban</code></td>
+                                <td>@bank.AccountHolder</td>
+                                <td>@bank.Bic</td>
+                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveBankDetailsAsync(bank)" aria-label="@($"IBAN {bank.Iban} entfernen")">Entfernen</MudButton></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
-        <details class="disclosure" open="@(person.BankDetails.Count == 0)">
-            <summary>IBAN hinzufügen</summary>
-            <EditForm Model="Bank" FormName="iban" OnValidSubmit="AddBankDetailsAsync" class="form-grid">
-                <DataAnnotationsValidator />
-                <FormField Id="iban" Label="IBAN" For="() => Bank!.Iban" Required="true">
-                    <InputText id="iban" @bind-Value="Bank!.Iban" autocomplete="off" />
-                </FormField>
-                <FormField Id="account-holder" Label="Kontoinhaber" For="() => Bank!.AccountHolder" Hint="Falls abweichend">
-                    <InputText id="account-holder" @bind-Value="Bank!.AccountHolder" autocomplete="off" />
-                </FormField>
-                <FormField Id="bic" Label="BIC" For="() => Bank!.Bic">
-                    <InputText id="bic" @bind-Value="Bank!.Bic" autocomplete="off" />
-                </FormField>
-                <div class="field field-action">
-                    <button type="submit" class="button button-primary">IBAN hinzufügen</button>
-                </div>
-            </EditForm>
-        </details>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddBankDetailsAsync" Class="mt-3">IBAN hinzufügen</MudButton>
     </section>
 
     <section>
@@ -172,10 +153,7 @@
         else
         {
             <p class="small">Mit einem Zugang sieht die Person ihre Verträge, Dokumente und Tickets im Portal (Mieter) bzw. im Servicebereich.</p>
-            <form method="post" @formname="access" @onsubmit="SetUpAccessAsync">
-                <AntiforgeryToken />
-                <button type="submit" class="button button-primary" disabled="@(person.Data.Email is null)">Zugang einrichten und einladen</button>
-            </form>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(person.Data.Email is null)" OnClick="SetUpAccessAsync">Zugang einrichten und einladen</MudButton>
             @if (person.Data.Email is null)
             {
                 <p class="small">Dafür zuerst eine E-Mail-Adresse hinterlegen.</p>
@@ -187,8 +165,7 @@
         <h2>Löschen &amp; Datenschutz</h2>
         @if (person.References.Count == 0)
         {
-            <DangerAction Text="Person löschen" FormName="delete" Confirmed="DeleteAsync"
-                            Confirmation="Die Person wird gelöscht. Fortfahren?" ConfirmText="Ja, löschen" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Person löschen</MudButton>
         }
         else if (person.References.Any(b => b.Active))
         {
@@ -197,9 +174,7 @@
         else
         {
             <p class="small">Nach Ablauf der Aufbewahrungsfrist erscheint die Person unter <a href="/verwaltung/datenschutz">Datenschutz</a> zur Anonymisierung.</p>
-            <DangerAction Text="Jetzt anonymisieren" FormName="anonymize" Confirmed="AnonymizeAsync"
-                            Confirmation="Name, Kontaktdaten, Anschriften, IBANs und die Werte im Änderungsprotokoll werden endgültig entfernt. Das lässt sich nicht rückgängig machen. Aufbewahrungspflichten beachten!"
-                            ConfirmText="Ja, endgültig anonymisieren" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="AnonymizeAsync">Jetzt anonymisieren</MudButton>
         }
     </section>
 }
@@ -207,25 +182,16 @@
 <DocumentsSection PersonId="Id" />
 
 <ChangeHistory EntityType="@nameof(Person)" EntityId="Id" />
+}
+</InteractiveShell>
 
 @code {
     private PersonDetails? person;
     private IReadOnlyList<string>? errors;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "address")]
-    private AddressInput? Address { get; set; }
-
-    [SupplyParameterFromForm(FormName = "iban")]
-    private BankDetailsInput? Bank { get; set; }
-
-    [SupplyParameterFromForm(FormName = "iban-remove")]
-    private Guid? RemoveId { get; set; }
 
     private string Subtitle
     {
@@ -241,30 +207,61 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
     {
-        Address ??= new();
-        Bank ??= new();
         person = await Admin.GetAsync(Id);
+        loaded = true;
     }
 
-    private Task SaveAddressAsync() => ExecuteAsync(Admin.SetAddressAsync(Id, Address!), "Die Anschrift wurde gespeichert.");
+    private async Task NewAddressAsync() => await ShowDialogAsync<AddressDialog>("Neue Anschrift");
 
-    private Task AddBankDetailsAsync() => ExecuteAsync(Admin.AddBankDetailsAsync(Id, Bank!), "Die IBAN wurde hinzugefügt.");
+    private async Task AddBankDetailsAsync() => await ShowDialogAsync<BankDetailsDialog>("IBAN hinzufügen");
 
-    private Task RemoveBankDetailsAsync() =>
-        RemoveId is { } bank ? ExecuteAsync(Admin.RemoveBankDetailsAsync(Id, bank), "Die IBAN wurde entfernt.") : Task.CompletedTask;
+    private async Task ShowDialogAsync<TDialog>(string title)
+        where TDialog : Microsoft.AspNetCore.Components.IComponent
+    {
+        var parameters = new DialogParameters { ["PersonId"] = Id };
+        var dialog = await Dialogs.ShowAsync<TDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveBankDetailsAsync(BankDetailsView bank)
+    {
+        if (await Confirm.AskAsync("IBAN entfernen", $"Soll die IBAN {bank.Iban} entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveBankDetailsAsync(Id, bank.Id), "Die IBAN wurde entfernt.");
+        }
+    }
 
     private Task SetUpAccessAsync() => ExecuteAsync(Admin.SetUpAccessAsync(Id), "Der Zugang wurde eingerichtet.");
 
-    private Task AnonymizeAsync() => ExecuteAsync(Privacy.AnonymizeAsync(Id), "Die Person wurde anonymisiert.");
+    private async Task AnonymizeAsync()
+    {
+        if (await Confirm.AskAsync(
+            "Person anonymisieren",
+            "Name, Kontaktdaten, Anschriften, IBANs und die Werte im Änderungsprotokoll werden endgültig entfernt. Das lässt sich nicht rückgängig machen. Aufbewahrungspflichten beachten!",
+            "Ja, endgültig anonymisieren"))
+        {
+            await ExecuteAsync(Privacy.AnonymizeAsync(Id), "Die Person wurde anonymisiert.");
+        }
+    }
 
     private async Task DeleteAsync()
     {
+        if (!await Confirm.AskAsync("Person löschen", "Die Person wird gelöscht. Fortfahren?", "Ja, löschen"))
+        {
+            return;
+        }
+
         var result = await Admin.DeleteAsync(Id);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage("/verwaltung/personen", "Die Person wurde gelöscht.", HttpContext);
+            Navigation.NavigateTo("/verwaltung/personen?meldung=geloescht");
         }
         else
         {
@@ -275,14 +272,12 @@
     private async Task ExecuteAsync(Task<Result> command, string success)
     {
         var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/personen/{Id}", success, HttpContext);
+            Notify.Success(success);
         }
-        else
-        {
-            errors = result.Errors;
-            person = await Admin.GetAsync(Id);
-        }
+
+        await LoadAsync();
     }
 }
