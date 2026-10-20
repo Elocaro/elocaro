@@ -50,7 +50,7 @@
                     @foreach (var value in values)
                     {
                         <tr>
-                            <td>@value.Month.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("de-DE"))</td>
+                            <td>@Format.Month(value.Month)</td>
                             <td class="number">@Format.Number(value.Value)</td>
                             <td>@value.Source</td>
                         </tr>

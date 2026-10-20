@@ -5,7 +5,7 @@
     <h2>Dokumente</h2>
     @if (lines is { Count: 0 })
     {
-        <p class="small">Noch keine Dokumente.</p>
+        <EmptyState Compact="true" Text="Noch keine Dokumente." />
     }
     else if (lines is not null)
     {

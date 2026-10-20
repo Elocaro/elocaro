@@ -25,7 +25,7 @@
                 <tr>
                     <td><a href="/verwaltung/abrechnungen/@statement.Id">@Format.Period(statement.BillingPeriod)</a></td>
                     <td>@statement.Revision@(statement.Current ? "" : " (ersetzt)")</td>
-                    <td>@statement.ReleasedAt.ToString("dd.MM.yyyy")</td>
+                    <td>@Format.Day(statement.ReleasedAt)</td>
                     <td class="number">@Format.Money(statement.TotalCosts)</td>
                     <td class="number">@Format.Money(statement.LandlordTotal)</td>
                     <td>@statement.Note</td>

@@ -48,11 +48,11 @@
     <Notice Level="@(deadline.Level >= DeadlineLevel.Warning ? NoticeLevel.Error : NoticeLevel.Info)" id="deadline">
         @if (deadline.Level == DeadlineLevel.Expired)
         {
-            <text><strong>Frist verstrichen:</strong> Die Abrechnung hätte spätestens am @deadline.Deadline.ToString("dd.MM.yyyy") bei den Mietern sein müssen (§ 556 Abs. 3 BGB). Nachforderungen sind ausgeschlossen, Guthaben bleiben fällig.</text>
+            <text><strong>Frist verstrichen:</strong> Die Abrechnung hätte spätestens am @Format.Date(deadline.Deadline) bei den Mietern sein müssen (§ 556 Abs. 3 BGB). Nachforderungen sind ausgeschlossen, Guthaben bleiben fällig.</text>
         }
         else
         {
-            <text><strong>Frist:</strong> Die Abrechnung muss spätestens am @deadline.Deadline.ToString("dd.MM.yyyy") bei den Mietern sein (§ 556 Abs. 3 BGB), noch @deadline.Days Tage.</text>
+            <text><strong>Frist:</strong> Die Abrechnung muss spätestens am @Format.Date(deadline.Deadline) bei den Mietern sein (§ 556 Abs. 3 BGB), noch @deadline.Days Tage.</text>
         }
     </Notice>
 }
@@ -60,7 +60,7 @@
 @if (w.Released is { } released)
 {
     <Notice Level="NoticeLevel.Info" id="released-notice">
-        Für diesen Zeitraum ist bereits eine Abrechnung freigegeben (Fassung @released.Revision vom @released.ReleasedAt.ToString("dd.MM.yyyy")):
+        Für diesen Zeitraum ist bereits eine Abrechnung freigegeben (Fassung @released.Revision vom @Format.Day(released.ReleasedAt)):
         <a href="/verwaltung/abrechnungen/@released.Id">ansehen</a>. Änderungen erzeugen eine neue Fassung.
     </Notice>
 }
@@ -87,7 +87,7 @@
             <dl class="summary">
                 <dt>Objekt</dt><dd>@w.Preview.PropertyName</dd>
                 <dt>Abrechnungszeitraum</dt><dd>@Format.Period(result.BillingPeriod)</dd>
-                <dt>Frist für den Zugang (§ 556 Abs. 3 BGB)</dt><dd>@w.DeadlineDate.ToString("dd.MM.yyyy")</dd>
+                <dt>Frist für den Zugang (§ 556 Abs. 3 BGB)</dt><dd>@Format.Date(w.DeadlineDate)</dd>
                 <dt>Mietverträge im Zeitraum</dt><dd>@result.Tenants.Count mit Abrechnung, @result.FlatRates.Count mit Pauschale</dd>
             </dl>
         </section>

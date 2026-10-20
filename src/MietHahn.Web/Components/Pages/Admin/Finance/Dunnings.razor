@@ -84,7 +84,7 @@
         <h2 id="issued-heading">Freigegebene Mahnungen</h2>
         @if (overview.Issued.Count == 0)
         {
-            <p class="small">Noch keine Mahnung freigegeben.</p>
+            <EmptyState Compact="true" Text="Noch keine Mahnung freigegeben." />
         }
         else
         {

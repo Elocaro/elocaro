@@ -48,7 +48,7 @@
     <h2>Importprotokoll</h2>
     @if (imports is { Count: 0 })
     {
-        <p class="small">Noch keine Importe.</p>
+        <EmptyState Compact="true" Text="Noch keine Importe." />
     }
     else if (imports is not null)
     {

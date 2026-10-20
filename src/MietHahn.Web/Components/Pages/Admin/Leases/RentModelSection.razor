@@ -18,7 +18,7 @@
         case RentModel.Graduated:
             @if (Model.RentSteps.Count == 0)
             {
-                <p class="small">Noch keine Staffeln erfasst.</p>
+                <EmptyState Compact="true" Text="Noch keine Staffeln erfasst." />
             }
             else
             {
@@ -74,13 +74,13 @@
 
         case RentModel.Index:
             <dl class="details">
-                <dt>Ausgangsindex</dt><dd>@Format.Number(Model.IndexBaseValue) (@Month(Model.IndexBaseMonth))</dd>
+                <dt>Ausgangsindex</dt><dd>@Format.Number(Model.IndexBaseValue) (@Format.Month(Model.IndexBaseMonth))</dd>
                 <dt>Letzte Änderung</dt><dd>@(Model.LastIncrease is { } lastChange ? Format.Date(lastChange) : "seit Mietbeginn unverändert")</dd>
             </dl>
             @if (Model.Index is { } suggestion)
             {
                 <Notice Level="@(suggestion.PossibleNow ? NoticeLevel.Success : NoticeLevel.Info)">
-                    <p>VPI @Month(suggestion.CpiMonth): @Format.Number(suggestion.CpiValue) (@(suggestion.ChangePercent >= 0 ? "+" : "")@Format.Number(suggestion.ChangePercent) %) → neue Kaltmiete <strong>@Format.Money(suggestion.NewBaseRent)</strong> statt @Format.Money(Model.BaseRent).</p>
+                    <p>VPI @Format.Month(suggestion.CpiMonth): @Format.Number(suggestion.CpiValue) (@(suggestion.ChangePercent >= 0 ? "+" : "")@Format.Number(suggestion.ChangePercent) %) → neue Kaltmiete <strong>@Format.Money(suggestion.NewBaseRent)</strong> statt @Format.Money(Model.BaseRent).</p>
                     <p class="small">Frühestens wirksam ab @Format.Date(suggestion.EarliestEffective) (ein Jahr nach der letzten Änderung).</p>
                 </Notice>
                 <EditForm Model="Adjustment" FormName="index-adjustment" OnValidSubmit="OnAdjustIndex" class="form-row">
@@ -146,5 +146,4 @@
     [Parameter]
     public EventCallback OnAdjustIndex { get; set; }
 
-    private static string Month(DateOnly? month) => month?.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) ?? "–";
 }

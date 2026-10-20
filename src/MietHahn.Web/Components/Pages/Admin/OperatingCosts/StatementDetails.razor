@@ -86,7 +86,7 @@
         <Notice Level="NoticeLevel.Error">Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.</Notice>
     }
     <p class="small">
-        Frist für den Zugang: @overview.Deadline.ToString("dd.MM.yyyy") (§ 556 Abs. 3 BGB). Der Versand legt das Schreiben in der Dateiablage und im Mieterportal ab,
+        Frist für den Zugang: @Format.Date(overview.Deadline) (§ 556 Abs. 3 BGB). Der Versand legt das Schreiben in der Dateiablage und im Mieterportal ab,
         bucht Nachzahlung bzw. Guthaben im Mieterkonto und schlägt eine Anpassung der Vorauszahlungen vor.
     </p>
     <EditForm Model="Send" FormName="dispatch" OnValidSubmit="DispatchAsync">
@@ -131,7 +131,7 @@
                             <td>
                                 @if (tenancy.Dispatch is { } sent)
                                 {
-                                    <span>@(sent.Channel == DispatchChannel.Email ? "per E-Mail" : "per Post") am @sent.SentOn.ToString("dd.MM.yyyy")</span>
+                                    <span>@(sent.Channel == DispatchChannel.Email ? "per E-Mail" : "per Post") am @Format.Date(sent.SentOn)</span>
                                     @if (sent.MailStatus is not null)
                                     {
                                         <br /><span class="small">Mail: @sent.MailStatus@(sent.MailSentAt is { } at ? $" ({at.ToLocalTime():dd.MM.yyyy HH:mm})" : "")</span>
@@ -200,7 +200,7 @@
                                     <td>@Labels.From(proposal.Component)</td>
                                     <td class="number">@Format.Money(proposal.Current)</td>
                                     <td class="number">@Format.Money(proposal.Proposed)</td>
-                                    <td>@proposal.EffectiveFrom.ToString("dd.MM.yyyy")</td>
+                                    <td>@Format.Date(proposal.EffectiveFrom)</td>
                                     <td>
                                         @if (proposal.Status == ProposalStatus.Open)
                                         {

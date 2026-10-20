@@ -63,7 +63,7 @@
     <h2>Dateien</h2>
     @if (receipt.Files.Count == 0)
     {
-        <p class="small">Noch keine Datei.</p>
+        <EmptyState Compact="true" Text="Noch keine Datei." />
     }
     else
     {

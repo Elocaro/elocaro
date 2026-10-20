@@ -1,5 +1,5 @@
 @* Notice when a list is empty, optionally with a next action. *@
-<div class="empty-state">
+<div class="empty-state@(Compact ? " empty-state-compact" : "")">
     <p>@Text</p>
     @ChildContent
 </div>
@@ -7,6 +7,10 @@
 @code {
     [Parameter, EditorRequired]
     public string Text { get; set; } = "";
+
+    /// <summary>Smaller variant for sections inside a detail page.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }

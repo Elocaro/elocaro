@@ -6,7 +6,7 @@
     <summary>Änderungshistorie (@(entries?.Count ?? 0))</summary>
     @if (entries is { Count: 0 })
     {
-        <p>Keine Einträge.</p>
+        <EmptyState Compact="true" Text="Keine Einträge." />
     }
     else if (entries is not null)
     {

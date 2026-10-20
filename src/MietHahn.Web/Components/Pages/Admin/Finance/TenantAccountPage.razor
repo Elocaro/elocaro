@@ -37,7 +37,7 @@
     <h2>Buchungen</h2>
     @if (account.Entries.Count == 0)
     {
-        <p class="small">Noch keine Buchungen.</p>
+        <EmptyState Compact="true" Text="Noch keine Buchungen." />
     }
     else
     {
@@ -231,7 +231,7 @@
     <h2>Mieten je Jahr</h2>
     @if (account.AnnualValues.Count == 0)
     {
-        <p class="small">Noch keine Monatsmieten.</p>
+        <EmptyState Compact="true" Text="Noch keine Monatsmieten." />
     }
     else
     {

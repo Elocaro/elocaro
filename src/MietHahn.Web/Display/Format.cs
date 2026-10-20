@@ -11,7 +11,14 @@ public static class Format
     public static string Timestamp(DateTimeOffset? value) =>
         value is null ? "–" : TimeZoneInfo.ConvertTime(value.Value, GermanTime.Germany).ToString("dd.MM.yyyy HH:mm", German);
 
+    /// <summary>Date of a point in time in German local time (without the time of day).</summary>
+    public static string Day(DateTimeOffset? value) =>
+        value is null ? "–" : TimeZoneInfo.ConvertTime(value.Value, GermanTime.Germany).ToString("dd.MM.yyyy", German);
+
     public static string Date(DateOnly? value) => value?.ToString("dd.MM.yyyy", German) ?? "–";
+
+    /// <summary>Month and year in words, e.g. "Januar 2026".</summary>
+    public static string Month(DateOnly? value) => value?.ToString("MMMM yyyy", German) ?? "–";
 
     public static string Money(decimal? value) => value?.ToString("#,##0.00 €", German) ?? "–";
 

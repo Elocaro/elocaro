@@ -84,7 +84,7 @@
         <h2>Anschrift</h2>
         @if (person.Address is null)
         {
-            <p class="small">Keine aktuelle Anschrift hinterlegt.</p>
+            <EmptyState Compact="true" Text="Keine aktuelle Anschrift hinterlegt." />
         }
         else
         {
