@@ -54,8 +54,8 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte den Mieter wählen.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte die Kaltmiete angeben.");
 
-            await SelectAsync(page, "Mieter", "Schmidt");
-            await SelectAsync(page, "Weiterer Mieter", "Weber");
+            await SelectAsync(page, "Mieter", "Anna Schmidt");
+            await SelectAsync(page, "Weiterer Mieter", "Ben Weber");
             await page.GetByLabel("Kaltmiete (€/Monat)").FillAsync("650");
             await page.GetByLabel("Betriebskosten-Vorauszahlung").FillAsync("180");
             await page.GetByLabel("Heizkosten-Vorauszahlung").FillAsync("90,5");
@@ -63,7 +63,7 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await page.GetByRole(AriaRole.Button, new() { Name = "Vertrag anlegen" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/vertraege/*?meldung=angelegt");
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Der Eintrag wurde angelegt.");
+            await ExpectSnackbarAsync(page, "Der Eintrag wurde angelegt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Anna Schmidt, Ben Weber");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("920,50 €");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("1.950,00 €");
@@ -87,14 +87,14 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await page.GetByLabel("Gültig ab").First.FillAsync(German(increase));
             await page.GetByLabel("Betrag (€/Monat)").FillAsync("700");
             await page.GetByRole(AriaRole.Button, new() { Name = "Betrag speichern" }).ClickAsync();
-            await Assertions.Expect(page.Locator(".mud-snackbar", new() { HasText = "Der Betrag wurde gespeichert." })).ToBeVisibleAsync();
+            await ExpectSnackbarAsync(page, "Der Betrag wurde gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Verlauf");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("700,00 €");
 
             // Guarantor: add, remove after confirmation; the only tenant cannot be removed.
             await Assertions.Expect(page.Locator("button[aria-label$='entfernen']")).ToHaveCountAsync(0);
             await page.Locator("summary", new() { HasText = "Mieter oder Bürgen hinzufügen" }).ClickAsync();
-            await SelectAsync(page, "Person", "Weber");
+            await SelectAsync(page, "Person", "Ben Weber");
             await SelectAsync(page, "Rolle", "Bürge");
             await page.GetByRole(AriaRole.Button, new() { Name = "Hinzufügen", Exact = true }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bürge");
@@ -165,20 +165,20 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await page.GetByLabel("Monat").First.FillAsync("09.2026");
             await page.GetByLabel("Indexwert").FillAsync("122,1");
             await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Der Indexwert wurde gespeichert.");
+            await ExpectSnackbarAsync(page, "Der Indexwert wurde gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("September 2026");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("122,1");
 
             await page.GetByLabel("CSV-Inhalt").FillAsync($"Jahr;Monat;Index\n{baseMonth:yyyy-MM};117,4\n{newMonth:yyyy-MM};121,7\n");
             await page.GetByRole(AriaRole.Button, new() { Name = "Importieren" }).ClickAsync();
-            await Assertions.Expect(page.Locator(".mud-snackbar", new() { HasText = "Import: 2 neu" })).ToBeVisibleAsync();
+            await ExpectSnackbarAsync(page, "Import: 2 neu");
 
             await GotoInteractiveAsync(page, $"/verwaltung/vertraege/{id}");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("neue Kaltmiete 676,02 €"); // 650 × 122,1 / 117,4 (the September value entered by hand is the newest)
             await page.GetByLabel("Erklärung geht zu am").FillAsync(German(Today));
             await page.GetByLabel("Erklärung geht zu am").PressAsync("Tab");
             await page.GetByRole(AriaRole.Button, new() { Name = "Anpassung übernehmen" }).ClickAsync();
-            await Assertions.Expect(page.Locator(".mud-snackbar", new() { HasText = "Die Indexanpassung wurde übernommen." })).ToBeVisibleAsync();
+            await ExpectSnackbarAsync(page, "Die Indexanpassung wurde übernommen.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("676,02 €");
         });
     }

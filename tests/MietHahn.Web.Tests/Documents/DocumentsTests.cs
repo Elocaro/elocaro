@@ -1,7 +1,10 @@
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Documents;
+using MietHahn.Application.Files;
 using MietHahn.Application.Properties;
+using MietHahn.Domain.Documents;
 using MietHahn.Web.Tests.Account;
 using SkiaSharp;
 
@@ -11,8 +14,22 @@ public class DocumentsTests(PostgresFixture postgres) : AccountTestBase(postgres
 {
     private static readonly byte[] Pdf = "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n"u8.ToArray();
 
+    // Documents are stored through the services; uploading, validation and deleting in the UI are covered by DocumentsBrowserTests.
+    private async Task<Guid> StoreAsync(Guid propertyId, string fileName, byte[] content, Action<DocumentInput>? more = null) =>
+        await App.WithScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            await using var stream = new MemoryStream(content);
+            var file = await sp.GetRequiredService<IFileStore>().SaveAsync(stream, fileName, ct);
+            var data = new DocumentInput { Title = Path.GetFileNameWithoutExtension(fileName), PropertyId = propertyId };
+            more?.Invoke(data);
+            var result = await sp.GetRequiredService<IDocumentLibrary>().CreateAsync(file.Id, data, ct);
+            Assert.True(result.Succeeded, string.Join(" ", result.Errors));
+            return result.Id!.Value;
+        });
+
     [Fact]
-    public async Task Upload_search_edit_and_delete_property_document()
+    public async Task Stored_document_is_listed_searchable_and_shown_with_preview()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
@@ -20,49 +37,25 @@ public class DocumentsTests(PostgresFixture postgres) : AccountTestBase(postgres
 
         var property = await admin.GetAsync($"/verwaltung/objekte/{propertyId}");
         Assert.Contains("Noch keine Dokumente.", property.Text, StringComparison.Ordinal);
-        var newItem = await admin.GetAsync(property.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Dokument hochladen").GetAttribute("href")!);
-        Assert.True(newItem.Document.QuerySelector($"#document-property option[value='{propertyId}']")!.HasAttribute("selected"));
+        var upload = property.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Dokument hochladen").GetAttribute("href")!;
+        Assert.Contains($"objekt={propertyId}", upload, StringComparison.Ordinal);
 
-        // Without a title the file name is used.
-        var details = await admin.SubmitWithFileAsync(newItem, "document", "Upload", Pdf, "Energieausweis_2024.pdf", "application/pdf", new Dictionary<string, string>
+        var id = await StoreAsync(propertyId, "Energieausweis_2024.pdf", Pdf, d =>
         {
-            ["Data.Category"] = "EnergyCertificate",
-            ["Data.ExpiresOn"] = "2034-05-31",
-            ["Data.Tags"] = "Energie, Pflicht",
+            d.Category = DocumentCategory.EnergyCertificate;
+            d.ExpiresOn = new DateOnly(2034, 5, 31);
+            d.Tags = "Energie, Pflicht";
         });
-        Assert.Contains("Das Dokument wurde abgelegt.", details.Text, StringComparison.Ordinal);
+
+        var details = await admin.GetAsync($"/verwaltung/dokumente/{id}");
         Assert.Equal("Energieausweis_2024", details.Document.QuerySelector("h1")!.TextContent.Trim());
         Assert.NotNull(details.Document.QuerySelector("iframe.document-preview"));
-        var documentPath = details.Path;
 
         var list = await admin.GetAsync("/verwaltung/dokumente?q=pflicht");
         Assert.Contains("Energieausweis_2024", list.Text, StringComparison.Ordinal);
         Assert.Contains("gültig bis 31.05.2034", list.Text, StringComparison.Ordinal);
         Assert.Contains("Keine passenden Dokumente.", (await admin.GetAsync("/verwaltung/dokumente?kategorie=Invoice")).Text, StringComparison.Ordinal);
         Assert.Contains("Energieausweis_2024", (await admin.GetAsync($"/verwaltung/objekte/{propertyId}")).Text, StringComparison.Ordinal);
-
-        details = await admin.SubmitAsync(details, "document", new Dictionary<string, string> { ["Data.Title"] = "Energieausweis (Bedarf)", ["Data.SharedWithCaretakers"] = "true" });
-        Assert.Contains("Die Angaben wurden gespeichert.", details.Text, StringComparison.Ordinal);
-        Assert.Contains("Hausmeister", details.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
-
-        var deleted = await admin.SubmitAsync(await admin.GetAsync(documentPath), "delete");
-        Assert.Contains("Das Dokument wurde gelöscht.", deleted.Text, StringComparison.Ordinal);
-        Assert.Contains("Noch keine Dokumente.", deleted.Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Without_reference_or_file_nothing_is_stored()
-    {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        using var _ = admin;
-        await PropertyAsync(admin);
-
-        var withoutReference = await admin.SubmitWithFileAsync(await admin.GetAsync("/verwaltung/dokumente/neu"), "document", "Upload", Pdf, "lose.pdf", "application/pdf");
-        Assert.Contains("mindestens einen Bezug", withoutReference.Text, StringComparison.Ordinal);
-
-        var executable = await admin.SubmitWithFileAsync(await admin.GetAsync("/verwaltung/dokumente/neu"), "document", "Upload", "MZ"u8.ToArray(), "tool.exe", "application/octet-stream");
-        Assert.NotNull(executable.Document.QuerySelector(".message-error"));
-        Assert.Contains("Noch keine Dokumente.", (await admin.GetAsync("/verwaltung/dokumente")).Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -71,14 +64,15 @@ public class DocumentsTests(PostgresFixture postgres) : AccountTestBase(postgres
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var propertyId = await PropertyAsync(admin);
-        var newItem = await admin.GetAsync($"/verwaltung/dokumente/neu?objekt={propertyId}");
-        var shared = await admin.SubmitWithFileAsync(newItem, "document", "Upload", Pdf, "maintenance.pdf", "application/pdf",
-            new Dictionary<string, string> { ["Data.Title"] = "Wartungsplan Heizung", ["Data.SharedWithCaretakers"] = "true" });
-        await admin.SubmitWithFileAsync(newItem, "document", "Upload", Pdf, "kalkulation.pdf", "application/pdf",
-            new Dictionary<string, string> { ["Data.Title"] = "Interne Kalkulation" });
-        var fileLink = shared.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Herunterladen").GetAttribute("href")!;
-        var internalFile = (await admin.GetAsync("/verwaltung/dokumente?q=Kalkulation")).Document.QuerySelectorAll("a").Single(a => a.TextContent == "Interne Kalkulation").GetAttribute("href")!;
-        internalFile = (await admin.GetAsync(internalFile)).Document.QuerySelectorAll("a").Single(a => a.TextContent == "Herunterladen").GetAttribute("href")!;
+        var sharedId = await StoreAsync(propertyId, "maintenance.pdf", Pdf, d =>
+        {
+            d.Title = "Wartungsplan Heizung";
+            d.SharedWithCaretakers = true;
+        });
+        var internalId = await StoreAsync(propertyId, "kalkulation.pdf", Pdf, d => d.Title = "Interne Kalkulation");
+        static string FileLink(Page page) => page.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Herunterladen").GetAttribute("href")!;
+        var fileLink = FileLink(await admin.GetAsync($"/verwaltung/dokumente/{sharedId}"));
+        var internalFile = FileLink(await admin.GetAsync($"/verwaltung/dokumente/{internalId}"));
 
         var (caretaker, caretakerId) = await SignedInAsAsync(Roles.Caretaker);
         using var __ = caretaker;
@@ -98,7 +92,7 @@ public class DocumentsTests(PostgresFixture postgres) : AccountTestBase(postgres
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var propertyId = await PropertyAsync(admin);
-        var details = await admin.SubmitWithFileAsync(await admin.GetAsync($"/verwaltung/dokumente/neu?objekt={propertyId}"), "document", "Upload", Pdf, "plan.pdf", "application/pdf");
+        var details = await admin.GetAsync($"/verwaltung/dokumente/{await StoreAsync(propertyId, "plan.pdf", Pdf)}");
         var filePath = details.Document.QuerySelector("iframe.document-preview")!.GetAttribute("src")!;
 
         using var response = await admin.Http.GetAsync(new Uri(filePath, UriKind.Relative), TestContext.Current.CancellationToken);
@@ -110,7 +104,7 @@ public class DocumentsTests(PostgresFixture postgres) : AccountTestBase(postgres
         Assert.DoesNotContain("sandbox", csp, StringComparison.Ordinal);
 
         // Images (and everything else) stay in the sandbox.
-        var photo = await admin.SubmitWithFileAsync(await admin.GetAsync($"/verwaltung/dokumente/neu?objekt={propertyId}"), "document", "Upload", Jpeg(), "keller.jpg");
+        var photo = await admin.GetAsync($"/verwaltung/dokumente/{await StoreAsync(propertyId, "keller.jpg", Jpeg())}");
         var imagePath = photo.Document.QuerySelector("img.document-preview")!.GetAttribute("src")!;
         using var image = await admin.Http.GetAsync(new Uri(imagePath, UriKind.Relative), TestContext.Current.CancellationToken);
         Assert.EndsWith("; sandbox", image.Headers.GetValues("Content-Security-Policy").Single(), StringComparison.Ordinal);

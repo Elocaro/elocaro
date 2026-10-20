@@ -40,7 +40,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await dialog.GetByLabel("Kontoinhaber").FillAsync("Hans Schmidt");
             await dialog.GetByRole(AriaRole.Button, new() { Name = "IBAN hinzufügen" }).ClickAsync();
             await Assertions.Expect(dialog).ToHaveCountAsync(0);
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Die IBAN wurde hinzugefügt.");
+            await ExpectSnackbarAsync(page, "Die IBAN wurde hinzugefügt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("DE02 1203 0000 0000 2020 51");
 
             // Removing asks first; "Abbrechen" keeps the entry, confirming removes it.
@@ -77,7 +77,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await dialog.GetByLabel("Ort").FillAsync("Köln");
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Anschrift speichern" }).ClickAsync();
 
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Die Anschrift wurde gespeichert.");
+            await ExpectSnackbarAsync(page, "Die Anschrift wurde gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Lindenweg 3, 50667 Köln");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Frühere und künftige Anschriften");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Altweg 1");
@@ -93,7 +93,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await page.GetByRole(AriaRole.Button, new() { Name = "Zugang einrichten und einladen" }).ClickAsync();
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Der Zugang wurde eingerichtet.");
+            await ExpectSnackbarAsync(page, "Der Zugang wurde eingerichtet.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("rohr@example.de (Handwerker)");
         });
 
@@ -116,7 +116,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, löschen" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/personen?meldung=geloescht");
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Der Eintrag wurde gelöscht.");
+            await ExpectSnackbarAsync(page, "Der Eintrag wurde gelöscht.");
             await Assertions.Expect(page.Locator("tbody")).Not.ToContainTextAsync("Schmidt, Anna");
         });
     }
@@ -139,7 +139,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await page.Locator("button[aria-label$='anonymisieren']").ClickAsync();
             await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, anonymisieren" }).ClickAsync();
 
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Die Person wurde anonymisiert.");
+            await ExpectSnackbarAsync(page, "Die Person wurde anonymisiert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("keine Personen, deren Aufbewahrungsfrist abgelaufen ist");
         });
     }

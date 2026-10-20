@@ -94,6 +94,13 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         return page;
     }
 
+    /// <summary>A snackbar with this text is visible (the animation may briefly show two).</summary>
+    protected static Task ExpectSnackbarAsync(IPage page, string text)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        return Assertions.Expect(page.Locator(".mud-snackbar", new() { HasText = text }).First).ToBeVisibleAsync();
+    }
+
     /// <summary>Opens a page and waits until it is interactive (before that, the prerendered page ignores input).</summary>
     protected async Task GotoInteractiveAsync(IPage page, string path)
     {
@@ -109,7 +116,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         // The labelled input of a MudSelect is hidden; the visible control around it takes the click.
         var control = (scope ?? page.Locator("body")).Locator(".mud-select", new() { Has = page.Locator($"[aria-label='{label}']") }).First;
         await control.Locator(".mud-input").First.ClickAsync();
-        await page.Locator(".mud-popover-open .mud-list-item", new() { HasText = option }).First.ClickAsync();
+        await page.Locator(".mud-popover-open .mud-list-item", new() { HasTextRegex = new System.Text.RegularExpressions.Regex("^\\s*" + System.Text.RegularExpressions.Regex.Escape(option) + "\\s*$") }).First.ClickAsync();
     }
 
     /// <summary>Saves a screenshot on failure (path in the error message) for diagnosis.</summary>

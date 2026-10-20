@@ -85,7 +85,7 @@ public class InteractiveBrowserTests(PostgresFixture postgres) : BrowserTestBasi
 
             // Dialog closes, snackbar confirms, the list shows the person; no page change.
             await Assertions.Expect(dialog).ToHaveCountAsync(0);
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Die Person wurde angelegt.");
+            await ExpectSnackbarAsync(page, "Die Person wurde angelegt.");
             await Assertions.Expect(page.Locator("tbody")).ToContainTextAsync("Neumann, Clara");
             Assert.EndsWith("/verwaltung/personen", page.Url, StringComparison.Ordinal);
         });
@@ -113,7 +113,7 @@ public class InteractiveBrowserTests(PostgresFixture postgres) : BrowserTestBasi
             await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/personen/" + id + "?meldung=gespeichert");
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Die Angaben wurden gespeichert.");
+            await ExpectSnackbarAsync(page, "Die Angaben wurden gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("anna@example.de");
         });
 

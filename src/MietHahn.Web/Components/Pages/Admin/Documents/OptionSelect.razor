@@ -1,0 +1,26 @@
+@using System.Linq.Expressions
+@* Selection of one entry (property, unit, lease, person) from a list of reference options; "–" = no reference. *@
+<AppSelect T="Guid?" Value="Value" ValueChanged="ValueChanged" ValueExpression="ValueExpression" Label="@Label" Items="ids" Text="TextOf" EmptyText="–" />
+
+@code {
+    private IReadOnlyList<Guid?> ids = [];
+
+    [Parameter]
+    public Guid? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<Guid?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ReferenceOption> Options { get; set; } = [];
+
+    protected override void OnParametersSet() => ids = Options.Select(o => (Guid?)o.Id).ToList();
+
+    private string TextOf(Guid? id) => Options.FirstOrDefault(o => o.Id == id)?.Name ?? "";
+}

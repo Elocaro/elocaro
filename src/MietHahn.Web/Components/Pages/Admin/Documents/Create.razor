@@ -1,40 +1,36 @@
 @page "/verwaltung/dokumente/neu"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Files
 @inject IDocumentLibrary Storage
 @inject IFileStore Files
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 
-<PageHeader Title="Dokument hochladen" Back="/verwaltung/dokumente" BackText="Alle Dokumente" />
+<InteractiveShell>
+    <PageHeader Title="Dokument hochladen" Back="/verwaltung/dokumente" BackText="Alle Dokumente" />
 
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-@if (selection is not null)
-{
-    <EditForm EditContext="context" FormName="document" OnSubmit="UploadAsync" enctype="multipart/form-data">
-        <DataAnnotationsValidator />
-        <div class="field">
-            <label for="file">Datei *</label>
-            <input type="file" id="file" name="Upload" accept="application/pdf,image/*" required />
-            <span class="field-hint">PDF oder Foto. Fotos werden verkleinert und ohne Metadaten (GPS) gespeichert.</span>
-        </div>
-        <DocumentFields Data="Data!" Options="selection" TitleRequired="false" />
-        <button type="submit" class="button button-primary">Hochladen</button>
-    </EditForm>
-}
+    @if (selection is not null)
+    {
+        <EditForm EditContext="context" OnSubmit="UploadAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-row">
+                <AppFileUpload Text="Datei auswählen *" Accept="application/pdf,image/*" OnSelected="OnFileSelected" />
+            </div>
+            <p class="small">PDF oder Foto. Fotos werden verkleinert und ohne Metadaten (GPS) gespeichert.</p>
+            <DocumentEditor Data="data" Options="selection" TitleRequired="false" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hochladen</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
 
 @code {
     private ReferenceOptions? selection;
     private EditContext? context;
+    private DocumentInput data = new();
+    private FileSelection? file;
     private IReadOnlyList<string>? errors;
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "document")]
-    private DocumentInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "document")]
-    private IFormFile? Upload { get; set; }
 
     [SupplyParameterFromQuery(Name = "objekt")]
     private Guid? PropertyId { get; set; }
@@ -50,23 +46,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Data ??= new() { PropertyId = PropertyId, UnitId = UnitId, LeaseId = LeaseId, PersonId = PersonId };
-        context = new EditContext(Data);
+        data = new DocumentInput { PropertyId = PropertyId, UnitId = UnitId, LeaseId = LeaseId, PersonId = PersonId };
+        context = new EditContext(data);
         selection = await Storage.ReferenceOptionsAsync();
     }
 
+    private void OnFileSelected(FileSelection selected) => file = selected;
+
     private async Task UploadAsync()
     {
-        if (Upload is null || Upload.Length == 0)
+        if (file is null || file.Length == 0)
         {
             errors = ["Bitte eine Datei auswählen."];
             return;
         }
 
         // Without a title the file name is used.
-        if (string.IsNullOrWhiteSpace(Data!.Title))
+        if (string.IsNullOrWhiteSpace(data.Title))
         {
-            Data.Title = Path.GetFileNameWithoutExtension(Upload.FileName);
+            data.Title = Path.GetFileNameWithoutExtension(file.Name);
         }
 
         if (!context!.Validate())
@@ -76,12 +74,12 @@
 
         try
         {
-            await using var content = Upload.OpenReadStream();
-            var file = await Files.SaveAsync(content, Upload.FileName);
-            var result = await Storage.CreateAsync(file.Id, Data);
+            await using var content = file.Open();
+            var saved = await Files.SaveAsync(content, file.Name);
+            var result = await Storage.CreateAsync(saved.Id, data);
             if (result.Succeeded)
             {
-                Redirector.RedirectWithMessage($"/verwaltung/dokumente/{result.Id}", "Das Dokument wurde abgelegt.", HttpContext);
+                Navigation.NavigateTo($"/verwaltung/dokumente/{result.Id}?meldung=angelegt");
             }
             else
             {

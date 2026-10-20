@@ -42,7 +42,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await page.GetByRole(AriaRole.Button, new() { Name = "Objekt anlegen" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/objekte/*?meldung=objekt-angelegt");
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Das Objekt wurde angelegt.");
+            await ExpectSnackbarAsync(page, "Das Objekt wurde angelegt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Lindenweg 3, 50667 Köln");
         });
     }
@@ -77,7 +77,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await dialog.GetByLabel("Bezeichnung").FillAsync("Wohnung 4");
             await dialog.GetByLabel("Lage").FillAsync("OG");
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen" }).ClickAsync();
-            await Assertions.Expect(page.Locator(".mud-snackbar", new() { HasText = "Die Einheit wurde hinzugefügt." })).ToBeVisibleAsync();
+            await ExpectSnackbarAsync(page, "Die Einheit wurde hinzugefügt.");
             await page.GetByRole(AriaRole.Link, new() { Name = "Wohnung 4" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/einheiten/*");
@@ -102,7 +102,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Das Foto muss ein Bild sein.");
 
             await input.SetInputFilesAsync(new FilePayload { Name = "house.jpg", MimeType = "image/jpeg", Buffer = Jpeg() });
-            await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Das Foto wurde gespeichert.");
+            await ExpectSnackbarAsync(page, "Das Foto wurde gespeichert.");
             await Assertions.Expect(page.Locator("img.property-image")).ToBeVisibleAsync();
             var source = await page.Locator("img.property-image").GetAttributeAsync("src");
             await using var response = await page.APIRequest.GetAsync(BaseUrl + source);
@@ -124,7 +124,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, löschen" }).ClickAsync();
 
         await page.WaitForURLAsync("**/verwaltung/objekte?meldung=geloescht");
-        await Assertions.Expect(page.Locator(".mud-snackbar")).ToContainTextAsync("Der Eintrag wurde gelöscht.");
+        await ExpectSnackbarAsync(page, "Der Eintrag wurde gelöscht.");
         await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Noch keine Objekte");
     }
 

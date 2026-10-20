@@ -1,52 +1,62 @@
 @page "/verwaltung/dokumente"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IDocumentLibrary Storage
 
-<PageHeader Title="Dokumente" Subtitle="Verträge, Protokolle, Rechnungen, Versicherungen und mehr, je Objekt, Einheit, Vertrag oder Person.">
-    <Actions>
-        <a class="button button-primary" href="/verwaltung/dokumente/neu">Dokument hochladen</a>
-    </Actions>
-</PageHeader>
+<InteractiveShell>
+    <PageHeader Title="Dokumente" Subtitle="Verträge, Protokolle, Rechnungen, Versicherungen und mehr, je Objekt, Einheit, Vertrag oder Person.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile" Href="/verwaltung/dokumente/neu">Dokument hochladen</MudButton>
+        </Actions>
+    </PageHeader>
 
-<StatusMessage />
-
-<FilterBar SubmitText="Suchen">
-    <div class="field">
-        <label for="search">Suche</label>
-        <input id="search" type="search" name="q" value="@Q" placeholder="Titel, Schlagwort, Dateiname" />
+    <div class="form-row search-bar" role="search">
+        <AppTextField Value="search" Label="Suche" Type="search" Placeholder="Titel, Schlagwort, Dateiname" Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
+        <AppSelect T="DocumentCategory?" Value="category" ValueChanged="OnCategoryChanged" Label="Kategorie" Items="categories" Text="@(v => v is { } c ? Labels.From(c) : "")" EmptyText="Alle" />
     </div>
-    <div class="field">
-        <label for="category">Kategorie</label>
-        <select id="category" name="kategorie">
-            <option value="" selected="@(Category is null)">Alle</option>
-            @foreach (var value in Enum.GetValues<DocumentCategory>())
-            {
-                <option value="@value" selected="@(Category == value)">@Labels.From(value)</option>
-            }
-        </select>
-    </div>
-</FilterBar>
 
-@if (lines is { Count: 0 })
-{
-    <EmptyState Text="@(!string.IsNullOrWhiteSpace(Q) || Category is not null ? "Keine passenden Dokumente." : "Noch keine Dokumente.")" />
-}
-else if (lines is not null)
-{
-    <DocumentTable Rows="lines" />
-}
+    @if (lines is { Count: 0 })
+    {
+        <EmptyState Text="@(!string.IsNullOrWhiteSpace(search) || category is not null ? "Keine passenden Dokumente." : "Noch keine Dokumente.")" />
+    }
+    else if (lines is not null)
+    {
+        <DocumentTable Rows="lines" />
+    }
+</InteractiveShell>
 
 @code {
+    private static readonly IReadOnlyList<DocumentCategory?> categories = Enum.GetValues<DocumentCategory>().Select(c => (DocumentCategory?)c).ToList();
+
     private IReadOnlyList<DocumentRow>? lines;
+    private string? search;
+    private DocumentCategory? category;
 
-    [SupplyParameterFromQuery]
-    private string? Q { get; set; }
+    // The query string only provides the start values (see ADR 0005).
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? InitialSearch { get; set; }
 
-    // Enums cannot be bound directly from the query string.
     [SupplyParameterFromQuery(Name = "kategorie")]
-    private string? CategoryText { get; set; }
+    private string? InitialCategory { get; set; }
 
-    private DocumentCategory? Category => Enum.TryParse<DocumentCategory>(CategoryText, out var value) ? value : null;
+    protected override async Task OnInitializedAsync()
+    {
+        search = InitialSearch;
+        category = Enum.TryParse<DocumentCategory>(InitialCategory, out var initial) ? initial : null;
+        await LoadAsync();
+    }
 
-    protected override async Task OnParametersSetAsync() =>
-        lines = await Storage.SearchAsync(new DocumentQuery(Q, Category));
+    private async Task OnSearchChanged(string? text)
+    {
+        search = text;
+        await LoadAsync();
+    }
+
+    private async Task OnCategoryChanged(DocumentCategory? value)
+    {
+        category = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => lines = await Storage.SearchAsync(new DocumentQuery(search, category));
 }

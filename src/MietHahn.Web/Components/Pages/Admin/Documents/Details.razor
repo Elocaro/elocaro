@@ -1,20 +1,29 @@
 @page "/verwaltung/dokumente/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IDocumentLibrary Storage
-@inject Redirector Redirector
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (document is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (document is null)
 {
     <PageHeader Title="Dokument nicht gefunden" Back="/verwaltung/dokumente" BackText="Alle Dokumente" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@document.Document.Title" Subtitle="@($"{Labels.From(document.Document.Category)} · {document.Document.Reference}")" Back="/verwaltung/dokumente" BackText="Alle Dokumente">
     <Actions>
-        <a class="button" href="/dateien/@document.Document.FileId?download=true">Herunterladen</a>
+        <MudButton Variant="Variant.Outlined" Href="@($"/dateien/{document.Document.FileId}?download=true")">Herunterladen</MudButton>
     </Actions>
 </PageHeader>
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 <dl class="details">
@@ -32,71 +41,67 @@ else if (document.Document.MimeType == "application/pdf")
     <iframe class="document-preview" src="/dateien/@document.Document.FileId" title="Vorschau: @document.Document.Title"></iframe>
 }
 
-@* During static rendering an intermediate state may be rendered before the option lists are loaded. *@
-@if (selection is not null)
+@if (selection is not null && data is not null)
 {
     <section>
         <h2>Angaben</h2>
-        <EditForm Model="Data" FormName="document" OnValidSubmit="SaveAsync">
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />
-            <DocumentFields Data="Data!" Options="selection" />
-            <button type="submit" class="button button-primary">Speichern</button>
+            <DocumentEditor Data="data" Options="selection" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
     </section>
 }
 
 <section>
     <h2>Löschen</h2>
-    <DangerAction Text="Dokument löschen" Confirmation="Das Dokument wird aus der Ablage entfernt und ist für Mieter und Hausmeister nicht mehr sichtbar." ConfirmText="Ja, löschen" FormName="delete" Confirmed="DeleteAsync" />
+    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Dokument löschen</MudButton>
 </section>
 
 <ChangeHistory EntityType="@nameof(Document)" EntityId="Id" />
+}
+</InteractiveShell>
 
 @code {
     private DocumentDetails? document;
+    private DocumentInput? data;
     private ReferenceOptions? selection;
     private IReadOnlyList<string>? errors;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "document")]
-    private DocumentInput? Data { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
-        var form = Data;
-        Data ??= new();
         document = await Storage.GetAsync(Id);
+        data = document?.Data;
         selection = await Storage.ReferenceOptionsAsync();
-        if (form is null && document is not null)
-        {
-            Data = document.Data;
-        }
+        loaded = true;
     }
 
     private async Task SaveAsync()
     {
-        var result = await Storage.UpdateAsync(Id, Data!);
+        var result = await Storage.UpdateAsync(Id, data!);
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/dokumente/{Id}", "Die Angaben wurden gespeichert.", HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            Notify.Success("Die Angaben wurden gespeichert.");
+            document = await Storage.GetAsync(Id);
         }
     }
 
     private async Task DeleteAsync()
     {
+        if (!await Confirm.AskAsync("Dokument löschen", "Das Dokument wird aus der Ablage entfernt und ist für Mieter und Hausmeister nicht mehr sichtbar.", "Ja, löschen"))
+        {
+            return;
+        }
+
         var result = await Storage.DeleteAsync(Id);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage("/verwaltung/dokumente", "Das Dokument wurde gelöscht.", HttpContext);
+            Navigation.NavigateTo("/verwaltung/dokumente?meldung=geloescht");
         }
         else
         {

@@ -1,0 +1,36 @@
+@* Fields of a document for interactive pages; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    <AppTextField @bind-Value="Data.Title" Label="Titel" Required="@TitleRequired" Hint="@(TitleRequired ? null : "Leer lassen für den Dateinamen.")" />
+    <AppSelect @bind-Value="Data.Category" Label="Kategorie" Items="Enum.GetValues<DocumentCategory>()" Text="@(v => Labels.From(v))" />
+    <AppDateField @bind-Value="Data.Date" Label="Datum des Dokuments" />
+    <AppDateField @bind-Value="Data.ExpiresOn" Label="Gültig bis" Hint="Erinnerung 60 Tage vorher, z. B. Energieausweis, Versicherung." />
+    <AppTextField @bind-Value="Data.Tags" Label="Schlagworte" Hint="Kommagetrennt, z. B. „Heizung, Wartung 2026“" />
+</div>
+
+<h3>Bezug</h3>
+<p class="small">Mindestens ein Bezug. Dokumente eines Vertrags erscheinen auch bei der Einheit und dem Objekt.</p>
+<div class="form-grid">
+    <OptionSelect @bind-Value="Data.PropertyId" Label="Objekt" Options="Options.Properties" />
+    <OptionSelect @bind-Value="Data.UnitId" Label="Einheit" Options="Options.Units" />
+    <OptionSelect @bind-Value="Data.LeaseId" Label="Vertrag" Options="Options.Leases" />
+    <OptionSelect @bind-Value="Data.PersonId" Label="Person" Options="Options.People" />
+</div>
+
+<div class="form-row">
+    <AppCheckBox @bind-Value="Data.SharedWithTenants" Label="Für Mieter freigeben" />
+    <AppCheckBox @bind-Value="Data.SharedWithCaretakers" Label="Für Hausmeister freigeben" />
+</div>
+<p class="small">Mieter sehen freigegebene Dokumente ihres Vertrags, ihrer Person und des Hauses bzw. der Wohnung, in der sie aktuell wohnen. Hausmeister sehen freigegebene Dokumente ihrer zugeordneten Objekte.</p>
+
+<AppTextField @bind-Value="Data.Note" Label="Notiz" Lines="3" />
+
+@code {
+    [Parameter, EditorRequired]
+    public DocumentInput Data { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ReferenceOptions Options { get; set; } = default!;
+
+    [Parameter]
+    public bool TitleRequired { get; set; } = true;
+}
