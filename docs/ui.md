@@ -4,7 +4,7 @@ Verbindlich für alle neuen und geänderten Seiten. Grundlage: ADR 0003 (eigenes
 
 ## Prinzipien
 
-1. **Zwei Arten von Seiten.** Statische Seiten (Standard, ohne eigenes JavaScript: Links, GET-/POST-Formulare, `<details>`) und interaktive Seiten (`@rendermode InteractiveServer`, MudBlazor, siehe [Interaktive Seiten](#interaktive-seiten)). Neue Seiten mit Live-Suche, Dialogen oder Assistenten werden interaktiv gebaut, alles andere bleibt statisch, bis es umgestellt wird.
+1. **Zwei Arten von Seiten.** Statische Seiten (Standard, ohne eigenes JavaScript: Links, GET-/POST-Formulare, `<details>`) und interaktive Seiten (`@rendermode InteractiveServer`, MudBlazor, siehe [Interaktive Seiten](#interaktive-seiten)). Seiten mit Eingaben, Live-Suche, Dialogen oder Assistenten sind interaktiv (alle Bereiche der Verwaltung sind umgestellt); reine Anzeigeseiten bleiben statisch: Start, Hintergrundjobs, Datensicherung, Belegauslesung, Offene Posten sowie Anmeldung, Konto und Portale.
 2. **Mobil zuerst.** Jede Seite funktioniert bei 360 px ohne horizontales Scrollen; Touch-Ziele ≥ 44 px.
 3. **Bausteine statt Rohmarkup.** Gibt es für etwas einen Baustein (siehe unten), wird er benutzt. Fehlt einer, wird er im Design-System ergänzt und hier dokumentiert, nicht in der Seite gebaut.
 4. **Farben nur über Rollen.** Keine Hex-Werte in Seiten oder Komponenten. Hell und Dunkel müssen beide lesbar sein.
@@ -92,14 +92,17 @@ Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Co
 - Eigene Komponenten haben **keine MudBlazor-Typen in der Schnittstelle**, damit sie ersetzbar bleiben.
 - Rückmeldung nach einer Aktion über `Notifier` (`Success`, `Info`, `Warning`, `Error`), nicht über `StatusMessage`/Redirect-Cookie.
 - Die Query-Parameter liefern nur den Startwert; danach hält die Seite ihren Zustand. Live-Eingaben mit `DebounceInterval` und `OnDebounceIntervalElapsed`, nicht mit `ValueChanged` allein.
-- Riskante Aktionen auch hier mit Rückfrage (MudBlazor-Dialog).
+- Riskante Aktionen auch hier mit Rückfrage über den Dienst `Confirmations` (`AskAsync`), Zeilenaktionen als `MudButton` mit `aria-label`.
+- Assistenten halten ihre Schritte als Zustand der Seite (Weiter/Zurück ohne Seitenwechsel); der Startschritt kommt aus dem Query-Parameter.
+- Keine `return;` im Markup innerhalb von `<InteractiveShell>`: Lade-, Nicht-gefunden- und Inhaltszustand als `if / else if / else`.
+- Steuerelemente mit `ValueExpression` brauchen ein umgebendes `EditForm`; ohne Validierung genügt `Value`/`ValueChanged`.
 
-**Eingabekomponenten** (`Components/Controls`): `AppTextField`, `AppSelect<T>`, `AppDateField`, `AppNumberField<T>`, `AppCheckBox`, `AppFileUpload`. Sie sind der Standard in interaktiven Formularen (einheitlicher Look, Beschriftung im Rahmen, deutsche Zahlen und Datumsangaben) und haben nur einfache Parameter (`@bind-Value`, `Label`, `Hint`, `Required`, `Suffix`), keine MudBlazor-Typen. Einträge eines Auswahlfelds: `Items` und `Text`. Sie validieren über das umgebende `EditForm`. Eine Komponente, die den Wert selbst hält und einen eigenen Handler für `ValueChanged` nutzt, darf den Parameter nicht blind neu lesen (siehe `AppDateField`).
+**Eingabekomponenten** (`Components/Controls`): `AppTextField`, `AppSelect<T>`, `AppDateField`, `AppNumberField<T>`, `AppMonthField` (Monat als `yyyy-MM`), `AppCheckBox`, `AppRadioGroup<T>`, `AppFileUpload` (auch mehrere Dateien). Dazu `OptionSelect` (Auswahl aus `(Id, Name)`-Listen, z. B. Objekt, Zähler). Sie sind der Standard in interaktiven Formularen (einheitlicher Look, Beschriftung im Rahmen, deutsche Zahlen und Datumsangaben) und haben nur einfache Parameter (`@bind-Value`, `Label`, `Hint`, `Required`, `Suffix`), keine MudBlazor-Typen. Einträge eines Auswahlfelds: `Items` und `Text`. Sie validieren über das umgebende `EditForm`. Eine Komponente, die den Wert selbst hält und einen eigenen Handler für `ValueChanged` nutzt, darf den Parameter nicht blind neu lesen (siehe `AppDateField`).
 
 **Formulare und Dialoge** (Muster: `People/PersonEditor`, `PersonDialog`, `Create`, `Edit`):
 - Eingabefelder in einer Komponente (`*Editor`), die in einem `EditForm` mit `DataAnnotationsValidator` sitzt; `For="() => Modell.Eigenschaft"` zeigt die deutschen Validierungsmeldungen. Das `EditForm` bekommt `novalidate` (sonst erscheint die englische Browser-Meldung), die Mud-Felder `ShrinkLabel="true"` (Beschriftung im Rahmen wie bei statischen Feldern).
 - Dialog: `IDialogService.ShowAsync<…Dialog>`, Inhalt im `EditForm class="dialog-form"` (hält Inhalt scrollbar und Aktionen sichtbar), Erfolg → `Notifier.Success`, `MudDialog.Close(DialogResult.Ok(id))`, die Liste lädt neu. Fehler aus Diensten über `ErrorList` im Dialog.
-- Nach dem Speichern auf einer Seite weiterleiten: `Navigation.NavigateTo("…?meldung=gespeichert")`; `StatusMessage` der Zielseite zeigt den festen Text (`StatusMessage.Keys`: `gespeichert`, `angelegt`, `geloescht`). Freitext in der URL gibt es nicht.
+- Nach dem Speichern auf einer Seite weiterleiten: `Navigation.NavigateTo("…?meldung=gespeichert")`; `StatusMessage` der Zielseite zeigt den festen Text (`StatusMessage.Keys`: `gespeichert`, `angelegt`, `geloescht`, `importiert`, `verworfen`, `auszug-erfasst`, `objekt-angelegt`, `freigegeben`; neue Texte dort ergänzen). Freitext in der URL gibt es nicht.
 - Testen: Anlegen und Bearbeiten im Browser-Test (Dialog, Validierung, Snackbar, Audit-Benutzer); HTTP-Tests legen Daten über Dienste an.
 - Tests: Browser-Test auf `[data-interactive=true]` warten, dann bedienen; Debounce-Timer brauchen die vorgestellte Testuhr (`App.Clock`).
 

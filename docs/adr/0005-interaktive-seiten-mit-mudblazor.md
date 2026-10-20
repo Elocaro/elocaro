@@ -31,3 +31,7 @@ ADR 0001 sah Interactive Server nur für Einzelfälle vor. Das Frontend soll abe
 
 - Für jede umgestellte Seite sind die Formulare auf `OnValidSubmit` ohne `[SupplyParameterFromForm]` umzustellen, Meldungen auf `Notifier`, und ihre HTTP-Tests auf Browser-Tests.
 - Die Architekturregeln gegen Rohmarkup (`UiRulesTests`) gelten weiter für statische Seiten; für interaktive Seiten kommen eigene Regeln hinzu, sobald die Muster feststehen.
+
+## Stand der Umstellung (2026-10-20)
+
+Alle Bereiche der Verwaltung sind interaktiv: Personen, Objekte, Verträge, Dokumente, Benutzer, Einstellungen, Betrieb (Mail), Zähler, Bank, Finanzen, Belege, Steuer und Betriebskosten. Statisch bleiben die reinen Anzeigeseiten (Start, Hintergrundjobs, Datensicherung, Belegauslesung, Offene Posten), die Anmeldung und die Konto-Seiten sowie Service und Portale. Deren Layouts wurden nicht mit der interaktiven Oberfläche zusammen geprüft.
