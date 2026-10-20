@@ -129,6 +129,24 @@ Unter **Finanzen → Einstellungen Finanzen → Mahnwesen** stehen Karenzzeit, W
 
 > Die mitgelieferte Mahnvorlage (`Pdf/Templates/dunning.sbn`, `Mail/Templates/dunning.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte, Fristen, Gebühren und Zinsen vor dem produktiven Einsatz rechtlich prüfen lassen.
 
+## Nebenkostenabrechnung
+
+Der **Abrechnungs-Assistent** (Objekt → Abrechnungs-Assistent) führt in sechs Schritten durch die Abrechnung und friert sie bei der Freigabe ein. Auf der Detailseite der freigegebenen Abrechnung (`/verwaltung/abrechnungen/{id}`) wird das Schreiben je Mietvertrag geprüft (Vorschau als PDF), versendet und der Zugang protokolliert. Der Versand legt das Schreiben in der Dateiablage und im Mieterportal ab und bucht Nachzahlung bzw. Guthaben im Mieterkonto. Dafür sind nötig:
+
+- ein **Vermieterprofil** (Einstellungen → Vermieter) für Briefkopf, Absender und Bankverbindung,
+- erreichbarer **Gotenberg** (PDF) und für den E-Mail-Versand ein funktionierender Mailserver.
+
+Konfiguration (Abschnitt `Statements`, Umgebungsvariablen `Statements__…`):
+
+| Schlüssel | Standard | Bedeutung |
+|---|---|---|
+| `Statements__PaymentDays` | 30 | Tage ab Versand bis zur Fälligkeit einer Nachzahlung bzw. Auszahlung eines Guthabens |
+| `Statements__PrepaymentSafetyPercent` | 5 | Sicherheitszuschlag auf den Vorschlag für die neue Vorauszahlung (im Versanddialog überschreibbar) |
+
+Auf der Startseite erinnert ab Oktober des Folgejahres eine Aufgabe an die Abrechnung des Vorjahres, 6, 4 und 2 Wochen vor dem 31.12. wird sie dringlicher (§ 556 Abs. 3 BGB).
+
+> Die mitgelieferte Abrechnungsvorlage (`Pdf/Templates/statement.sbn`, `Mail/Templates/statement.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte vor dem produktiven Einsatz rechtlich prüfen lassen. Die CO₂- und Gradtagstabellen der Heizkostenabrechnung sind „Stand/prüfen“ (siehe Entwicklung).
+
 ## Sicherheit
 
 - TLS und HSTS über Caddy; die App setzt CSP, `X-Frame-Options: DENY`, `nosniff`, Referrer- und Permissions-Policy.

@@ -53,6 +53,7 @@ app.MapExportEndpoint();
 app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
 app.MapDunningPreviewEndpoint();
+app.MapStatementPreviewEndpoint();
 
 await app.Services.MigrateDatabaseAsync();
 await app.RunAsync();

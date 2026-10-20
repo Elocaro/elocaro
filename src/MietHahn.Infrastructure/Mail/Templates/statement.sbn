@@ -1,0 +1,10 @@
+{{ capture subject }}Betriebskostenabrechnung {{ period_label }}{{ end }}
+<p>{{ salutation }}</p>
+<p>im Anhang finden Sie die {{ if correction }}korrigierte {{ end }}Betriebskostenabrechnung {{ period_label }} für {{ rental_unit }}.</p>
+{{~ if to_book > 0 ~}}
+<p>Es ergibt sich eine <strong>Nachzahlung von {{ money to_book }}</strong>, zahlbar bis zum <strong>{{ date due }}</strong>.</p>
+{{~ else if to_book < 0 ~}}
+<p>Es ergibt sich ein <strong>Guthaben von {{ money to_book_abs }}</strong>, das wir Ihnen erstatten.</p>
+{{~ end ~}}
+<p>Die Belege können Sie nach Terminabsprache bei uns einsehen. Die Abrechnung finden Sie außerdem in Ihrem Mieterportal.</p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

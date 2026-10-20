@@ -196,6 +196,7 @@ public static class DependencyInjection
 
     private static void AddOperations(IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<StatementOptions>(configuration.GetSection(StatementOptions.Section));
         services.Configure<BackupOptions>(configuration.GetSection(BackupOptions.Section));
         services.AddScoped<IBackupStatus, BackupStatus>();
         services.AddScoped<ITodoSource, BackupTodos>();
@@ -238,6 +239,7 @@ public static class DependencyInjection
         services.AddScoped<IOperatingCosts, OperatingCostService>();
         services.AddScoped<IHeatingSettings, HeatingSettingsService>();
         services.AddScoped<IStatements, StatementService>();
+        services.AddScoped<IStatementDispatch, StatementDispatchService>();
         services.AddScoped<ITodoSource, StatementDeadlineTodos>();
         services.AddScoped<ITodoSource, ReceiptTodos>();
         services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();

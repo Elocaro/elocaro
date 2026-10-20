@@ -1,14 +1,18 @@
 @page "/verwaltung/abrechnungen/{Id:guid}"
 @using MietHahn.Application.Statements
-@inject IStatements Statements
+@inject IStatementDispatch Dispatching
+@inject TimeProvider Clock
+@using MietHahn.Domain.Statements
+@inject Redirector Redirector
 
-@if (statement is null)
+@if (overview is null)
 {
     <PageHeader Title="Abrechnung nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
     return;
 }
 
 @{
+    var statement = overview.Statement;
     var summary = statement.Summary;
     var result = statement.Result;
 }
@@ -23,6 +27,7 @@
 </PageHeader>
 
 <StatusMessage />
+<ErrorList Errors="errors" />
 
 <p class="message message-info" role="status" id="frozen">
     Freigegeben am @summary.ReleasedAt.ToString("dd.MM.yyyy HH:mm")@(summary.ReleasedBy is null ? "" : $" von {summary.ReleasedBy}"). Diese Fassung ist unveränderlich.
@@ -74,6 +79,189 @@
     </section>
 }
 
+<section id="dispatch">
+    <h2>Versand an die Mieter</h2>
+    @if (overview.LandlordProfileMissing)
+    {
+        <p class="message message-error" role="alert">Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.</p>
+    }
+    <p class="small">
+        Frist für den Zugang: @overview.Deadline.ToString("dd.MM.yyyy") (§ 556 Abs. 3 BGB). Der Versand legt das Schreiben in der Dateiablage und im Mieterportal ab,
+        bucht Nachzahlung bzw. Guthaben im Mieterkonto und schlägt eine Anpassung der Vorauszahlungen vor.
+    </p>
+    <EditForm Model="Send" FormName="dispatch" OnValidSubmit="DispatchAsync">
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <FormField Id="send-channel" Label="Versandart" For="() => Send!.Channel">
+                <InputSelect id="send-channel" @bind-Value="Send!.Channel">
+                    <option value="@DispatchChannel.Email">E-Mail mit PDF im Anhang</option>
+                    <option value="@DispatchChannel.Post">Postversand (PDF herunterladen und ausdrucken)</option>
+                </InputSelect>
+            </FormField>
+            <div class="field field-checkbox">
+                <InputCheckbox id="send-propose" @bind-Value="Send!.ProposePrepayments" />
+                <label for="send-propose">Anpassung der Vorauszahlungen vorschlagen (§ 560 Abs. 4 BGB)</label>
+            </div>
+            <FormField Id="send-safety" Label="Sicherheitszuschlag (%)" For="() => Send!.SafetyPercent" Hint="Leer = Standard aus der Konfiguration (Statements:PrepaymentSafetyPercent).">
+                <InputNumber id="send-safety" @bind-Value="Send!.SafetyPercent" step="0.1" min="0" max="100" />
+            </FormField>
+            <FormField Id="send-from" Label="Neue Vorauszahlung ab" For="() => Send!.PrepaymentFrom" Hint="Leer = erster Tag des übernächsten Monats.">
+                <InputDate id="send-from" @bind-Value="Send!.PrepaymentFrom" />
+            </FormField>
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table" id="dispatches">
+                <thead><tr><th>Mieter</th><th class="number">Saldo</th><th class="number">Zu buchen</th><th>Status</th><th>Aktion</th></tr></thead>
+                <tbody>
+                    @foreach (var tenancy in overview.Tenancies)
+                    {
+                        <tr>
+                            <td>@tenancy.Label<br /><span class="small">@tenancy.Rental@(tenancy.Emails.Count == 0 ? " · keine E-Mail-Adresse" : "")</span></td>
+                            <td class="number">@Format.Money(Math.Abs(tenancy.Balance)) @(tenancy.Balance >= 0 ? "Nachzahlung" : "Guthaben")</td>
+                            <td class="number">
+                                @if (tenancy.ClaimExcluded)
+                                {
+                                    <span title="Frist abgelaufen">nicht geltend gemacht</span>
+                                }
+                                else
+                                {
+                                    @Format.Money(tenancy.ToBook)
+                                }
+                            </td>
+                            <td>
+                                @if (tenancy.Dispatch is { } sent)
+                                {
+                                    <span>@(sent.Channel == DispatchChannel.Email ? "per E-Mail" : "per Post") am @sent.SentOn.ToString("dd.MM.yyyy")</span>
+                                    @if (sent.MailStatus is not null)
+                                    {
+                                        <br /><span class="small">Mail: @sent.MailStatus@(sent.MailSentAt is { } at ? $" ({at.ToLocalTime():dd.MM.yyyy HH:mm})" : "")</span>
+                                    }
+
+                                    <br /><span class="small">@(sent.ReceivedOn is { } received ? $"Zugang am {received:dd.MM.yyyy}{(sent.ReceiptNote is null ? "" : $" ({sent.ReceiptNote})")}" : "Zugang nicht bestätigt")</span>
+                                }
+                                else
+                                {
+                                    <span>nicht versendet</span>
+                                }
+                            </td>
+                            <td>
+                                <a href="/verwaltung/abrechnungen/@Id/mieter/@tenancy.LeaseId/vorschau.pdf" target="_blank" rel="noopener">Vorschau (PDF)</a>
+                                @if (tenancy.Dispatch is { } done)
+                                {
+                                    <br /><a href="/dateien/@done.FileId?download=true">Schreiben herunterladen</a>
+                                }
+                                else if (summary.Current)
+                                {
+                                    <br /><button type="submit" class="button" name="Send.LeaseId" value="@tenancy.LeaseId">Versenden</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </EditForm>
+
+    @if (overview.Tenancies.Any(t => t.Dispatch is { ReceivedOn: null }))
+    {
+        <EditForm Model="Confirmation" FormName="receipt" OnValidSubmit="ConfirmAsync">
+            <DataAnnotationsValidator />
+            <h3>Zugang bestätigen</h3>
+            <div class="form-grid">
+                <FormField Id="receipt-date" Label="Zugangsdatum" For="() => Confirmation!.ReceivedOn" Required="true">
+                    <InputDate id="receipt-date" @bind-Value="Confirmation!.ReceivedOn" />
+                </FormField>
+                <FormField Id="receipt-note" Label="Nachweis" For="() => Confirmation!.Note" Hint="z. B. Einwurf-Einschreiben, Lesebestätigung.">
+                    <InputText id="receipt-note" @bind-Value="Confirmation!.Note" />
+                </FormField>
+            </div>
+            @foreach (var tenancy in overview.Tenancies.Where(t => t.Dispatch is { ReceivedOn: null }))
+            {
+                <button type="submit" class="button" name="Confirmation.DispatchId" value="@tenancy.Dispatch!.Id">Zugang bestätigen: @tenancy.Label</button>
+            }
+        </EditForm>
+    }
+
+    @if (overview.Tenancies.Any(t => t.Dispatch is not null && t.Dispatch.Proposals.Count > 0))
+    {
+        <h3>Vorschläge zur Anpassung der Vorauszahlungen</h3>
+        <form method="post" @formname="proposal" @onsubmit="DecideAsync">
+            <AntiforgeryToken />
+            <div class="table-wrapper">
+                <table class="data-table" id="proposals">
+                    <thead><tr><th>Mieter</th><th>Vorauszahlung</th><th class="number">bisher</th><th class="number">Vorschlag</th><th>ab</th><th>Entscheidung</th></tr></thead>
+                    <tbody>
+                        @foreach (var tenancy in overview.Tenancies.Where(t => t.Dispatch is not null))
+                        {
+                            @foreach (var proposal in tenancy.Dispatch!.Proposals)
+                            {
+                                <tr>
+                                    <td>@tenancy.Label</td>
+                                    <td>@Labels.From(proposal.Component)</td>
+                                    <td class="number">@Format.Money(proposal.Current)</td>
+                                    <td class="number">@Format.Money(proposal.Proposed)</td>
+                                    <td>@proposal.EffectiveFrom.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if (proposal.Status == ProposalStatus.Open)
+                                        {
+                                            <button type="submit" class="button button-primary" name="Decision.ApplyId" value="@proposal.Id">Übernehmen</button>
+                                            <button type="submit" class="button" name="Decision.DeclineId" value="@proposal.Id">Verwerfen</button>
+                                        }
+                                        else
+                                        {
+                                            @(proposal.Status == ProposalStatus.Applied ? "übernommen" : "verworfen")@($" am {proposal.DecidedOn:dd.MM.yyyy}")
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    }
+</section>
+
+<section id="landlord-overview">
+    <h2>Gesamtübersicht für den Vermieter</h2>
+    <dl class="summary">
+        <dt>Gesamtkosten</dt><dd>@Format.Money(result.TotalCosts)</dd>
+        <dt>Auf die Mieter umgelegt</dt><dd>@Format.Money(result.TenantTotal)</dd>
+        <dt>Anteil des Vermieters (inkl. Leerstand)</dt><dd>@Format.Money(result.LandlordTotal)</dd>
+        <dt>Nachzahlungen der Mieter</dt><dd>@Format.Money(result.Tenants.Where(t => t.Balance > 0).Sum(t => t.Balance))</dd>
+        <dt>Guthaben der Mieter</dt><dd>@Format.Money(-result.Tenants.Where(t => t.Balance < 0).Sum(t => t.Balance))</dd>
+    </dl>
+    @if (result.Landlord.Count > 0)
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Grund</th><th>Bezeichnung</th><th class="number">Betrag</th></tr></thead>
+                <tbody>
+                    @foreach (var position in result.Landlord.OrderBy(p => p.Reason).ThenBy(p => p.Label, StringComparer.CurrentCulture))
+                    {
+                        <tr><td>@Labels.From(position.Reason)</td><td>@position.Label</td><td class="number">@Format.Money(position.Amount)</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    @if (result.FlatRates.Count > 0)
+    {
+        <h3>Pauschale: Ist-Kosten gegen Einnahmen (intern)</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Mieter</th><th class="number">Ist-Kosten</th><th class="number">Pauschale gezahlt</th><th class="number">Differenz</th></tr></thead>
+                <tbody>
+                    @foreach (var flat in result.FlatRates)
+                    {
+                        <tr><td>@flat.Label (@flat.Rental)</td><td class="number">@Format.Money(flat.ActualCosts)</td><td class="number">@Format.Money(flat.Paid)</td><td class="number">@Format.Money(flat.Difference)</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
 <section id="cost-types">
     <h2>Kosten</h2>
     <div class="table-wrapper">
@@ -113,10 +301,97 @@
 </section>
 
 @code {
-    private StoredStatement? statement;
+    private DispatchOverview? overview;
+    private IReadOnlyList<string>? errors;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    protected override async Task OnInitializedAsync() => statement = await Statements.GetAsync(Id);
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "dispatch")]
+    private SendForm? Send { get; set; }
+
+    [SupplyParameterFromForm(FormName = "receipt")]
+    private ReceiptForm? Confirmation { get; set; }
+
+    [SupplyParameterFromForm(FormName = "proposal")]
+    private ProposalForm? Decision { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Send ??= new();
+        Confirmation ??= new() { ReceivedOn = GermanTime.Today(Clock.GetUtcNow()) };
+        Decision ??= new();
+        overview = await Dispatching.OverviewAsync(Id);
+    }
+
+    private async Task DispatchAsync()
+    {
+        var result = await Dispatching.DispatchAsync(Id, Send!.LeaseId, new DispatchInput
+        {
+            Channel = Send.Channel,
+            ProposePrepayments = Send.ProposePrepayments,
+            SafetyPercent = Send.SafetyPercent,
+            PrepaymentFrom = Send.PrepaymentFrom,
+        });
+        Finish(result, "Die Abrechnung wurde versendet bzw. für den Postversand abgelegt.");
+    }
+
+    private async Task ConfirmAsync()
+    {
+        var result = await Dispatching.ConfirmReceiptAsync(Confirmation!.DispatchId, new DeliveryConfirmation { ReceivedOn = Confirmation.ReceivedOn, Note = Confirmation.Note });
+        Finish(result, "Der Zugang wurde vermerkt.");
+    }
+
+    private async Task DecideAsync()
+    {
+        var result = Decision!.ApplyId is { } apply
+            ? await Dispatching.ApplyProposalAsync(apply, null)
+            : Decision.DeclineId is { } decline ? await Dispatching.DeclineProposalAsync(decline) : Result.Failed("Bitte einen Vorschlag auswählen.");
+        Finish(result, Decision.ApplyId is not null ? "Die neue Vorauszahlung wurde übernommen." : "Der Vorschlag wurde verworfen.");
+    }
+
+    private void Finish(Result result, string message)
+    {
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/abrechnungen/{Id}", message, HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private sealed class SendForm
+    {
+        public Guid LeaseId { get; set; }
+
+        public DispatchChannel Channel { get; set; }
+
+        public bool ProposePrepayments { get; set; } = true;
+
+        public decimal? SafetyPercent { get; set; }
+
+        public DateOnly? PrepaymentFrom { get; set; }
+    }
+
+    private sealed class ReceiptForm
+    {
+        public Guid DispatchId { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte das Zugangsdatum angeben.")]
+        public DateOnly? ReceivedOn { get; set; }
+
+        public string? Note { get; set; }
+    }
+
+    private sealed class ProposalForm
+    {
+        public Guid? ApplyId { get; set; }
+
+        public Guid? DeclineId { get; set; }
+    }
 }

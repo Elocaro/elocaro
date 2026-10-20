@@ -3958,6 +3958,208 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("billing_statements", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Statements.PrepaymentProposal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Component")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("component");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<decimal>("Current")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("current");
+
+                    b.Property<DateOnly?>("DecidedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("decided_on");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("DispatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("dispatch_id");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_from");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<decimal>("Proposed")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("proposed");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_prepayment_proposals");
+
+                    b.HasIndex("DispatchId")
+                        .HasDatabaseName("ix_prepayment_proposals_dispatch_id");
+
+                    b.HasIndex("LeaseId")
+                        .HasDatabaseName("ix_prepayment_proposals_lease_id");
+
+                    b.ToTable("prepayment_proposals", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Statements.StatementDispatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Balance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("balance");
+
+                    b.Property<decimal>("BookedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("booked_amount");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("channel");
+
+                    b.Property<Guid?>("ChargeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("charge_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<Guid?>("MailId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mail_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<string>("ReceiptNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("receipt_note");
+
+                    b.Property<DateOnly?>("ReceivedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("received_on");
+
+                    b.Property<DateOnly>("SentOn")
+                        .HasColumnType("date")
+                        .HasColumnName("sent_on");
+
+                    b.Property<Guid>("StatementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("statement_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_statement_dispatches");
+
+                    b.HasIndex("ChargeId")
+                        .HasDatabaseName("ix_statement_dispatches_charge_id");
+
+                    b.HasIndex("DocumentId")
+                        .HasDatabaseName("ix_statement_dispatches_document_id");
+
+                    b.HasIndex("FileId")
+                        .HasDatabaseName("ix_statement_dispatches_file_id");
+
+                    b.HasIndex("LeaseId")
+                        .HasDatabaseName("ix_statement_dispatches_lease_id");
+
+                    b.HasIndex("MailId")
+                        .HasDatabaseName("ix_statement_dispatches_mail_id");
+
+                    b.HasIndex("StatementId", "LeaseId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_statement_dispatches_statement_id_lease_id")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("statement_dispatches", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Infrastructure.Audit.AuditEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4829,6 +5031,65 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasForeignKey("SupersedesId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_billing_statements_billing_statements_supersedes_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Statements.PrepaymentProposal", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Statements.StatementDispatch", null)
+                        .WithMany()
+                        .HasForeignKey("DispatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_prepayment_proposals_statement_dispatch_dispatch_id");
+
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_prepayment_proposals_leases_lease_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Statements.StatementDispatch", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Finance.Charge", null)
+                        .WithMany()
+                        .HasForeignKey("ChargeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_statement_dispatches_charges_charge_id");
+
+                    b.HasOne("MietHahn.Domain.Documents.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_statement_dispatches_documents_document_id");
+
+                    b.HasOne("MietHahn.Domain.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_statement_dispatches_stored_file_file_id");
+
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_statement_dispatches_leases_lease_id");
+
+                    b.HasOne("MietHahn.Domain.Communication.OutgoingMail", null)
+                        .WithMany()
+                        .HasForeignKey("MailId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_statement_dispatches_outgoing_mails_mail_id");
+
+                    b.HasOne("MietHahn.Domain.Statements.BillingStatement", null)
+                        .WithMany()
+                        .HasForeignKey("StatementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_statement_dispatches_billing_statements_statement_id");
                 });
 
             modelBuilder.Entity("MietHahn.Infrastructure.Identity.MagicLink", b =>

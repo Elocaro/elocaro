@@ -436,56 +436,12 @@ internal sealed class DunningService(
         return new Prepared(
             rules, plan, interest, demandedBefore, others,
             people.Select(p => p.Email).Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e!.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
-            AddressOf(people, rentalUnit?.Name, property, today),
-            SalutationOf(people),
+            LetterParts.AddressOf(people, rentalUnit?.Name, property, today),
+            LetterParts.SalutationOf(people),
             rentalUnit is null ? "" : $"{rentalUnit.Property}, {rentalUnit.Name}",
             landlord,
             past.Where(m => m.Status == DunningStatus.Issued).OrderByDescending(m => m.DecidedOn).FirstOrDefault());
     }
-
-    private static PostalAddress AddressOf(IReadOnlyList<Person> people, string? unitName, Property? property, DateOnly today)
-    {
-        var names = people.Select(p => p.DisplayName).ToList();
-        if (names.Count > 3)
-        {
-            names = [names[0], names[1], "und weitere"];
-        }
-
-        var address = people.Select(p => p.AddressAt(today)).FirstOrDefault(a => a is not null);
-        var rows = new List<string>(names);
-        if (address is not null)
-        {
-            if (!string.IsNullOrWhiteSpace(address.AddressLine2))
-            {
-                rows.Add(address.AddressLine2);
-            }
-
-            rows.Add(address.Street);
-            rows.Add($"{address.PostalCode} {address.City}");
-            if (address.Country != "Deutschland")
-            {
-                rows.Add(address.Country);
-            }
-        }
-        else if (property is not null)
-        {
-            // Without an address of the person: the rented property itself.
-            if (!string.IsNullOrWhiteSpace(unitName))
-            {
-                rows.Add(unitName);
-            }
-
-            rows.Add(property.Street);
-            rows.Add($"{property.PostalCode} {property.City}");
-        }
-
-        return new PostalAddress(rows.Take(6).ToList());
-    }
-
-    private static string SalutationOf(IReadOnlyList<Person> people) =>
-        people is [{ Company: null, Salutation: var salutation } person] && salutation is Salutation.Mrs or Salutation.Mr
-            ? (salutation == Salutation.Mrs ? "Sehr geehrte Frau " : "Sehr geehrter Herr ") + person.LastName + ","
-            : "Sehr geehrte Damen und Herren,";
 
     private static Amounts AmountsOf(Prepared p, DunningIssueInput options)
     {
