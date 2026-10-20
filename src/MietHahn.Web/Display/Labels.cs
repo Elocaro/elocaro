@@ -125,6 +125,23 @@ public static class Labels
         _ => "unbekannt",
     };
 
+    /// <summary>Heating type and energy source in one line; known parts only, "–" if both are unknown.</summary>
+    public static string Heating(HeatingType type, EnergySource source)
+    {
+        var parts = new List<string>();
+        if (type != HeatingType.Unknown)
+        {
+            parts.Add(From(type));
+        }
+
+        if (source != EnergySource.Unknown)
+        {
+            parts.Add(From(source));
+        }
+
+        return parts.Count == 0 ? "–" : string.Join(", ", parts);
+    }
+
     public static string From(UnitType value) => value switch
     {
         UnitType.Apartment => "Wohnung",

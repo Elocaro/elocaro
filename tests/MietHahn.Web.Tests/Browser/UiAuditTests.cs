@@ -23,7 +23,7 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     ];
 
     // Collects text whose contrast to its effective background is below AA (4.5:1, large text 3:1).
-    private const string ContrastScript = """
+    internal const string ContrastScript = """
         () => {
           const parse = s => {
             let m = s.match(/^rgba?\(([^)]+)\)/);
@@ -160,18 +160,31 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     }
 
     [Theory]
-    [InlineData(Roles.Caretaker, new[] { "/service", "/service/objekte" })]
-    [InlineData(Roles.Tenant, new[] { "/portal" })]
-    public async Task Service_and_portal_pages_meet_contrast_fit_360_pixels_and_can_be_photographed(string role, string[] paths)
+    [InlineData(Roles.Caretaker)]
+    [InlineData(Roles.Tenant)]
+    public async Task Service_and_portal_pages_meet_contrast_fit_360_pixels_and_can_be_photographed(string role)
     {
         var email = $"{role.ToLowerInvariant()}@example.de";
-        await App.WithScopeAsync(async sp =>
+        string[] paths = role == Roles.Tenant ? ["/portal"] : ["/service", "/service/objekte"];
+        paths = await App.WithScopeAsync(async sp =>
         {
+            var ct = TestContext.Current.CancellationToken;
             var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
             var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, DisplayName = role + " Test" };
             Assert.True((await manager.CreateAsync(user, Password)).Succeeded);
             await manager.AddToRoleAsync(user, role);
-            return 0;
+            if (role != Roles.Caretaker)
+            {
+                return paths;
+            }
+
+            var properties = sp.GetRequiredService<IPropertyService>();
+            var property = (await properties.CreateAsync(new PropertyInput { Name = "Lindenweg 3 mit einem langen Namen", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, ct)).Id!.Value;
+            var unit = (await properties.CreateUnitAsync(property, new UnitInput { Name = "Wohnung 1", Location = "EG links" }, ct)).Id!.Value;
+            await properties.SetUnitAreaAsync(unit, new AreaInput { From = new DateOnly(2020, 1, 1), Area = 60m }, ct);
+            await properties.CreateUnitAsync(property, new UnitInput { Name = "Wohnung 2" }, ct);
+            Assert.True((await sp.GetRequiredService<IPropertyAssignments>().SetAsync(user.Id, [property], ct)).Succeeded);
+            return [.. paths, $"/service/objekte/{property}"];
         });
         await SignedInAsAdminAsync(); // makes sure the app is set up
         var page = await NewPageAsync();

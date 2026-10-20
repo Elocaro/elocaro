@@ -243,4 +243,87 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
 
         Assert.True(problems.Count == 0, string.Join("\n", problems.Distinct()));
     }
+
+    [Fact]
+    public async Task Pages_with_data_meet_contrast_in_light_and_dark()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await SeedAsync();
+        var problems = new List<string>();
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await page.EmulateMediaAsync(new() { ColorScheme = scheme });
+            foreach (var path in Routes().Concat(OptionalRoutes()))
+            {
+                await page.GotoAsync(BaseUrl + path);
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                problems.AddRange((await page.EvaluateAsync<string[]>(UiAuditTests.ContrastScript)).Select(f => $"[{scheme}] {path}: {f}"));
+            }
+        }
+
+        Assert.True(problems.Count == 0, "Kontrast unter WCAG AA:\n" + string.Join("\n", problems.Distinct()));
+    }
+
+    /// <summary>Opens the dialogs behind the "add" buttons of the detail pages: each must show a dialog without script errors.</summary>
+    [Fact]
+    public async Task Add_buttons_on_detail_pages_open_dialogs_without_errors()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await SeedAsync();
+        var problems = new List<string>();
+        var current = "";
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+            {
+                problems.Add($"{current}: Konsole: {message.Text}");
+            }
+        };
+        page.PageError += (_, error) => problems.Add($"{current}: Skriptfehler: {error}");
+
+        string[] paths =
+        [
+            $"/verwaltung/personen/{ids["person"]}", $"/verwaltung/objekte/{ids["property"]}", $"/verwaltung/einheiten/{ids["unit"]}", $"/verwaltung/zimmer/{ids["room"]}",
+            $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/objekte/{ids["property"]}/zaehler", $"/verwaltung/zaehler/{ids["meter"]}", "/verwaltung/personen", "/verwaltung/bank/konten",
+            $"/verwaltung/vertraege/{ids["lease"]}/konto", "/verwaltung/finanzen/mahnungen",
+        ];
+        var opened = 0;
+        foreach (var path in paths)
+        {
+            current = path;
+            await GotoInteractiveAsync(page, path);
+            var buttons = page.Locator("main button.mud-button-root:not([type=submit])").Filter(new() { HasTextRegex = new System.Text.RegularExpressions.Regex("anlegen|hinzufügen|erfassen|Neu|Ändern|Bearbeiten", System.Text.RegularExpressions.RegexOptions.IgnoreCase) });
+            var count = await buttons.CountAsync();
+            for (var i = 0; i < count; i++)
+            {
+                var button = buttons.Nth(i);
+                var label = (await button.InnerTextAsync()).Trim();
+                await button.ClickAsync();
+                try
+                {
+                    await page.Locator(".mud-dialog").First.WaitForAsync(new() { Timeout = 4000 });
+                }
+                catch (TimeoutException)
+                {
+                    problems.Add($"{path}: „{label}“ öffnet keinen Dialog");
+                    await GotoInteractiveAsync(page, path);
+                    continue;
+                }
+
+                opened++;
+                await page.WaitForTimeoutAsync(400);
+                var width = await page.EvaluateAsync<int[]>("() => { const d = document.querySelector('.mud-dialog').getBoundingClientRect(); return [Math.round(d.right), window.innerWidth, Math.round(d.bottom), window.innerHeight]; }");
+                if (width[0] > width[1] || width[2] > width[3])
+                {
+                    problems.Add($"{path}: Dialog „{label}“ ragt aus dem Fenster ({width[0]}/{width[1]}, {width[2]}/{width[3]})");
+                }
+
+                await page.Keyboard.PressAsync("Escape");
+                await page.Locator(".mud-dialog").First.WaitForAsync(new() { State = WaitForSelectorState.Detached });
+            }
+        }
+
+        Assert.True(opened > 0, "Es wurde kein Dialog geöffnet.");
+        Assert.True(problems.Count == 0, string.Join("\n", problems.Distinct()));
+    }
 }

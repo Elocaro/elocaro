@@ -56,7 +56,7 @@ else
     }
     <dl class="details">
         <dt>Baujahr</dt><dd>@(property.Data.YearBuilt?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</dd>
-        <dt>Heizung</dt><dd>@Labels.From(property.Data.HeatingType), @Labels.From(property.Data.EnergySource)</dd>
+        <dt>Heizung</dt><dd>@Labels.Heating(property.Data.HeatingType, property.Data.EnergySource)</dd>
         @if (property.Data.CadastralDistrict is not null || property.Data.ParcelNumber is not null)
         {
             <dt>Grundbuch</dt><dd>@property.Data.CadastralDistrict @property.Data.ParcelNumber</dd>

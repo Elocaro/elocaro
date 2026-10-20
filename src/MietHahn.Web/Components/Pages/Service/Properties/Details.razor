@@ -17,7 +17,7 @@
 <PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/service/objekte" BackText="Meine Objekte" />
 
 <dl class="details">
-    <dt>Heizung</dt><dd>@Labels.From(property.Data.HeatingType), @Labels.From(property.Data.EnergySource)</dd>
+    <dt>Heizung</dt><dd>@Labels.Heating(property.Data.HeatingType, property.Data.EnergySource)</dd>
     @if (property.Data.Notes is not null)
     {
         <dt>Notizen</dt><dd>@property.Data.Notes</dd>
