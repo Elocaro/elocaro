@@ -30,10 +30,10 @@
     </fieldset>
     <section id="mahnwesen" aria-labelledby="dunning-heading">
         <h2 id="dunning-heading">Mahnwesen</h2>
-        <p class="message message-info" role="note">
+        <Notice Level="NoticeLevel.Info">
             Die Vorgaben sind Voreinstellungen und <strong>keine Rechtsberatung</strong>. Mahngebühren dürfen nur tatsächlich entstandene Kosten
             abdecken, die Verzugszinsen und die Mahnvorlage sollten vor dem produktiven Einsatz rechtlich geprüft werden.
-        </p>
+        </Notice>
         <div class="form-grid">
             <FormField Id="dunning-grace-days" Label="Karenzzeit (Tage)" For="() => Data!.DunningGraceDays"
                        Hint="Ein Posten gilt erst nach so vielen Tagen über der Fälligkeit als Rückstand.">
@@ -83,7 +83,7 @@
         </div>
         @if (Data!.ChargeDefaultInterest && Data.BaseRate is null)
         {
-            <p class="message message-info" role="status">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</p>
+            <Notice Level="NoticeLevel.Info">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</Notice>
         }
     </section>
     <button type="submit" class="button button-primary">Speichern</button>

@@ -1,6 +1,6 @@
 @if (Errors is { Count: > 0 })
 {
-    <div class="message message-error" role="alert">
+    <Notice Level="NoticeLevel.Error">
         @if (Errors.Count == 1)
         {
             @Errors[0]
@@ -14,7 +14,7 @@
                 }
             </ul>
         }
-    </div>
+    </Notice>
 }
 
 @code {

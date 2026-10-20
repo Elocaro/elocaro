@@ -20,7 +20,7 @@
     <h2>Kostenaufteilung</h2>
     @if (receipt.Open != 0)
     {
-        <p class="message message-info" role="status">Noch @Format.Money(receipt.Open) nicht aufgeteilt (aufgeteilt @Format.Money(receipt.Allocated) von @Format.Money(receipt.Data.Gross)).</p>
+        <Notice Level="NoticeLevel.Info">Noch @Format.Money(receipt.Open) nicht aufgeteilt (aufgeteilt @Format.Money(receipt.Allocated) von @Format.Money(receipt.Data.Gross)).</Notice>
     }
     @if (receipt.Items.Count > 0)
     {
@@ -106,7 +106,7 @@
         <h2>Angaben</h2>
         @if (Extraction.Info.Ready && receipt.Files.Count > 0)
         {
-            <p class="message message-info" id="extraction-notice">@Extraction.Info.Notice</p>
+            <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
             <form method="post" @formname="extract" @onsubmit="ExtractAsync">
                 <AntiforgeryToken />
                 <button type="submit" class="button">Vorschlag aus Beleg auslesen</button>

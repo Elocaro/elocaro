@@ -9,9 +9,9 @@
 
 @if (rentalUnits.Count == 0 || people.Count == 0)
 {
-    <p class="message message-info">
+    <Notice Level="NoticeLevel.Info">
         Für einen Vertrag braucht es ein vermietbares <a href="/verwaltung/objekte">Objekt</a> und mindestens eine <a href="/verwaltung/personen/neu">Person</a>.
-    </p>
+    </Notice>
 }
 
 <EditForm Model="Form" FormName="lease" OnValidSubmit="CreateAsync">

@@ -14,7 +14,7 @@
 <ErrorList Errors="errors" />
 @foreach (var hint in unit.ValidationHints)
 {
-    <p class="message message-info" role="status">@hint</p>
+    <Notice Level="NoticeLevel.Info">@hint</Notice>
 }
 
 @if (!unit.IsSharedFlat)

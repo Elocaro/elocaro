@@ -79,10 +79,10 @@
             </dl>
             @if (Model.Index is { } suggestion)
             {
-                <div class="message @(suggestion.PossibleNow ? "message-info" : "")">
+                <Notice Level="@(suggestion.PossibleNow ? NoticeLevel.Success : NoticeLevel.Info)">
                     <p>VPI @Month(suggestion.CpiMonth): @Format.Number(suggestion.CpiValue) (@(suggestion.ChangePercent >= 0 ? "+" : "")@Format.Number(suggestion.ChangePercent) %) → neue Kaltmiete <strong>@Format.Money(suggestion.NewBaseRent)</strong> statt @Format.Money(Model.BaseRent).</p>
                     <p class="small">Frühestens wirksam ab @Format.Date(suggestion.EarliestEffective) (ein Jahr nach der letzten Änderung).</p>
-                </div>
+                </Notice>
                 <EditForm Model="Adjustment" FormName="index-adjustment" OnValidSubmit="OnAdjustIndex" class="form-row">
                     <DataAnnotationsValidator />
                     <FormField Id="declaration" Label="Erklärung geht zu am" For="() => Adjustment.DeclaredOn" Required="true" Hint="Die neue Miete gilt ab dem übernächsten Monat (§ 557b Abs. 3 BGB).">

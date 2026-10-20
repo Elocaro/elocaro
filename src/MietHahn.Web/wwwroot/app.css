@@ -172,13 +172,13 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 .button-text { color: var(--md-primary); background: transparent; box-shadow: none; padding-inline: 0.75rem; }
 .button-text:hover { background: color-mix(in srgb, var(--md-primary) 10%, transparent); box-shadow: none; }
 
-/* Messages: four levels (info, success, warning, error). .message-ok is the legacy name of success. */
+/* Messages: four levels (info, success, warning, error), rendered by <Notice>. .message-ok is the legacy name of success. */
 .message { padding: 0.75rem 1rem; border-radius: var(--shape-lg); margin: 0 0 var(--spacing); border: 1px solid transparent; background: var(--md-surface-container); color: var(--md-on-surface); }
 .message ul { margin: 0; padding-left: 1.2rem; }
 .message-success, .message-ok { background: var(--md-success-container); color: var(--md-on-success-container); }
 .message-error { background: var(--md-error-container); color: var(--md-on-error-container); }
 .message-warning { background: var(--md-warning-container); color: var(--md-on-warning-container); }
-.message-info { background: var(--md-warning-container); color: var(--md-on-warning-container); } /* legacy: yellow; migrated to the blue info level together with the Message component */
+.message-info { background: var(--md-info-container); color: var(--md-on-info-container); }
 
 /* Tables: scroll horizontally on narrow screens instead of scrolling the page */
 .data-table { width: 100%; border-collapse: collapse; background: var(--color-surface); }

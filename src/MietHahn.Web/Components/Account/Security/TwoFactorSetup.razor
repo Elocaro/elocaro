@@ -9,7 +9,7 @@
 
 @if (codes is not null)
 {
-    <p class="message message-ok" role="status">Die Zwei-Faktor-Anmeldung ist jetzt aktiv.</p>
+    <Notice Level="NoticeLevel.Success">Die Zwei-Faktor-Anmeldung ist jetzt aktiv.</Notice>
     <RecoveryCodes Codes="codes" />
     <div class="account-links"><a href="/">Weiter zu MietHahn</a></div>
 }
@@ -25,7 +25,7 @@ else if (user is not null)
 {
     @if (required)
     {
-        <p class="message message-info" role="status">Für Ihre Rolle ist die Zwei-Faktor-Anmeldung vorgeschrieben. Bitte richten Sie sie jetzt ein.</p>
+        <Notice Level="NoticeLevel.Info">Für Ihre Rolle ist die Zwei-Faktor-Anmeldung vorgeschrieben. Bitte richten Sie sie jetzt ein.</Notice>
     }
 
     <ol class="steps">

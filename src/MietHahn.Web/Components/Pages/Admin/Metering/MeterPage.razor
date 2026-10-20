@@ -50,7 +50,7 @@
         <h2>Stand erfassen</h2>
         @if (warnings is { Count: > 0 })
         {
-            <div class="message message-info" role="alert">
+            <Notice Level="NoticeLevel.Info">
                 <strong>Bitte prüfen:</strong>
                 <ul>
                     @foreach (var w in warnings)
@@ -58,7 +58,7 @@
                         <li>@w</li>
                     }
                 </ul>
-            </div>
+            </Notice>
         }
         <EditForm Model="Entry" FormName="entry" OnValidSubmit="RecordReadingAsync" enctype="multipart/form-data">
             <DataAnnotationsValidator />

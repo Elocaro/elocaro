@@ -10,11 +10,11 @@
 
 @if (info.SendsToThirdParty)
 {
-    <p class="message message-error" role="alert" id="third-party-notice">
+    <Notice Level="NoticeLevel.Error" id="third-party-notice">
         Datenschutz: Dieser Anbieter ist ein externer Dienst. Belege enthalten häufig personenbezogene Daten (Mieter, Handwerker, Anschriften).
         Sie werden zum Auslesen an den Anbieter übermittelt. Prüfen Sie vorab den Auftragsverarbeitungsvertrag des Anbieters und
         nehmen Sie die Verarbeitung ins Verzeichnis von Verarbeitungstätigkeiten auf.
-    </p>
+    </Notice>
 }
 
 <section>

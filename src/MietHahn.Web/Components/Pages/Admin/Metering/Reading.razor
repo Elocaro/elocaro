@@ -26,7 +26,7 @@
 
 @if (Step >= round.Count)
 {
-    <p class="message message-ok" role="status">Runde abgeschlossen: @round.Count(z => z.LastReading?.Date == ReferenceDate) von @round.Count Zählern erfasst.</p>
+    <Notice Level="NoticeLevel.Success">Runde abgeschlossen: @round.Count(z => z.LastReading?.Date == ReferenceDate) von @round.Count Zählern erfasst.</Notice>
     <ul class="todos">
         @foreach (var z in round)
         {
@@ -60,21 +60,21 @@
 
 @if (recorded)
 {
-    <p class="message message-ok">Für diesen Tag bereits erfasst.</p>
+    <Notice Level="NoticeLevel.Success">Für diesen Tag bereits erfasst.</Notice>
     <a class="button button-primary" href="@Link(Step + 1)">Weiter</a>
     return;
 }
 
 @if (warnings is { Count: > 0 })
 {
-    <div class="message message-info" role="alert">
+    <Notice Level="NoticeLevel.Info">
         <ul>
             @foreach (var w in warnings)
             {
                 <li>@w</li>
             }
         </ul>
-    </div>
+    </Notice>
 }
 
 <EditForm Model="Entry" FormName="reading" OnValidSubmit="SaveAsync" enctype="multipart/form-data">

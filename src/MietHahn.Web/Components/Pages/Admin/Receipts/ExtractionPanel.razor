@@ -3,20 +3,20 @@
 {
     <section class="suggestion-panel" aria-labelledby="suggestion-title">
         <h2 id="suggestion-title">Vorschlag aus dem Beleg</h2>
-        <p class="message message-info" role="status">
+        <Notice Level="NoticeLevel.Info">
             Das ist nur ein Vorschlag von @Info.Name@(Info.Model is null ? "" : $" ({Info.Model})"). Die Felder unten sind vorausgefüllt,
             nichts ist gespeichert. Bitte alle Werte mit dem Beleg vergleichen; unsicher erkannte Felder sind hervorgehoben.
-        </p>
+        </Notice>
         @if (s.Warnings.Count > 0)
         {
-            <div class="message message-error" role="alert" id="suggestion-warnings">
+            <Notice Level="NoticeLevel.Error" id="suggestion-warnings">
                 <ul>
                     @foreach (var w in s.Warnings)
                     {
                         <li>@w</li>
                     }
                 </ul>
-            </div>
+            </Notice>
         }
         <dl class="details">
             @if (s.CostTypeReason is not null && s.CostType.HasValue)

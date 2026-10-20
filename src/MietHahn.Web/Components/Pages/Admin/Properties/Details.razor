@@ -28,7 +28,7 @@
 <ErrorList Errors="errors" />
 @if (property.ValidationHints.Count > 0)
 {
-    <div class="message message-info" role="status">
+    <Notice Level="NoticeLevel.Info">
         <strong>Bitte prüfen:</strong>
         <ul>
             @foreach (var hint in property.ValidationHints)
@@ -36,7 +36,7 @@
                 <li>@hint</li>
             }
         </ul>
-    </div>
+    </Notice>
 }
 
 <div class="property-header">

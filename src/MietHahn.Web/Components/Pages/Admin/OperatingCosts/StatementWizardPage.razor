@@ -22,7 +22,7 @@
 
 @if (errorText is not null)
 {
-    <p class="message message-error" role="alert">@errorText</p>
+    <Notice Level="NoticeLevel.Error">@errorText</Notice>
     return;
 }
 
@@ -45,7 +45,7 @@
 
 @if (w.Deadline is { } deadline)
 {
-    <p class="message @(deadline.Level >= DeadlineLevel.Warning ? "message-error" : "message-info")" role="@(deadline.Level >= DeadlineLevel.Warning ? "alert" : "status")" id="deadline">
+    <Notice Level="@(deadline.Level >= DeadlineLevel.Warning ? NoticeLevel.Error : NoticeLevel.Info)" id="deadline">
         @if (deadline.Level == DeadlineLevel.Expired)
         {
             <text><strong>Frist verstrichen:</strong> Die Abrechnung hätte spätestens am @deadline.Deadline.ToString("dd.MM.yyyy") bei den Mietern sein müssen (§ 556 Abs. 3 BGB). Nachforderungen sind ausgeschlossen, Guthaben bleiben fällig.</text>
@@ -54,15 +54,15 @@
         {
             <text><strong>Frist:</strong> Die Abrechnung muss spätestens am @deadline.Deadline.ToString("dd.MM.yyyy") bei den Mietern sein (§ 556 Abs. 3 BGB), noch @deadline.Days Tage.</text>
         }
-    </p>
+    </Notice>
 }
 
 @if (w.Released is { } released)
 {
-    <p class="message message-info" role="status" id="released-notice">
+    <Notice Level="NoticeLevel.Info" id="released-notice">
         Für diesen Zeitraum ist bereits eine Abrechnung freigegeben (Fassung @released.Revision vom @released.ReleasedAt.ToString("dd.MM.yyyy")):
         <a href="/verwaltung/abrechnungen/@released.Id">ansehen</a>. Änderungen erzeugen eine neue Fassung.
-    </p>
+    </Notice>
 }
 
 @switch (step)
@@ -125,7 +125,7 @@
             @Findings(WizardStep.Meters)
             @if (!w.Findings.Any(f => f.Step == WizardStep.Meters))
             {
-                <p class="message message-info" role="status">Für alle Zähler liegen Anfangs- und Endstand vor.</p>
+                <Notice Level="NoticeLevel.Info">Für alle Zähler liegen Anfangs- und Endstand vor.</Notice>
             }
             <p class="small"><a href="/verwaltung/objekte/@PropertyId/zaehler">Zähler und Ablesungen</a></p>
         </section>
@@ -137,7 +137,7 @@
             @Findings(WizardStep.Occupancy)
             @if (!w.Findings.Any(f => f.Step == WizardStep.Occupancy))
             {
-                <p class="message message-info" role="status">Alle Mietobjekte sind im ganzen Zeitraum vermietet.</p>
+                <Notice Level="NoticeLevel.Info">Alle Mietobjekte sind im ganzen Zeitraum vermietet.</Notice>
             }
             <div class="table-wrapper">
                 <table class="data-table" id="occupancy">
@@ -212,7 +212,7 @@
             <h2>6. Freigabe</h2>
             @if (w.HasErrors)
             {
-                <p class="message message-error" role="alert">Die Abrechnung kann nicht freigegeben werden, solange Angaben fehlen:</p>
+                <Notice Level="NoticeLevel.Error">Die Abrechnung kann nicht freigegeben werden, solange Angaben fehlen:</Notice>
                 <ul>
                     @foreach (var finding in w.Findings.Where(f => f.Severity == FindingSeverity.Error))
                     {
@@ -224,7 +224,7 @@
             {
                 @if (w.HasWarnings)
                 {
-                    <p class="message message-info" role="status">Es gibt @w.Findings.Count(f => f.Severity == FindingSeverity.Warning) Hinweise. Prüfen Sie sie in den Schritten oben.</p>
+                    <Notice Level="NoticeLevel.Info">Es gibt @w.Findings.Count(f => f.Severity == FindingSeverity.Warning) Hinweise. Prüfen Sie sie in den Schritten oben.</Notice>
                 }
                 <p>
                     Mit der Freigabe wird die Abrechnung @Format.Period(result.BillingPeriod) eingefroren (Gesamtkosten @Format.Money(result.TotalCosts), davon Mieter @Format.Money(result.TenantTotal)).

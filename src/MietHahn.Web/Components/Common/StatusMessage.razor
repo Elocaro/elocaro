@@ -1,7 +1,7 @@
 @* Shows a message from the parameter or from the status cookie of the previous page. *@
 @if (!string.IsNullOrEmpty(DisplayText))
 {
-    <p class="message @(IsError ? "message-error" : "message-ok")" role="@(IsError ? "alert" : "status")">@DisplayText</p>
+    <Notice Level="@(IsError ? NoticeLevel.Error : NoticeLevel.Success)">@DisplayText</Notice>
 }
 
 @code {

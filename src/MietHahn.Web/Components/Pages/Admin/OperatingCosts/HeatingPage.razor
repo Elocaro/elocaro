@@ -21,10 +21,10 @@
 
 @if (!view.Saved)
 {
-    <p class="message message-info" role="status" id="defaults-notice">
+    <Notice Level="NoticeLevel.Info" id="defaults-notice">
         Es sind noch keine Einstellungen gespeichert. Die Vorschau rechnet mit den Standardwerten: 70 % nach Verbrauch, 30 % nach Fläche,
         Gas mit kWh laut Beleg, gemeinsame Anlage für Heizung und Warmwasser.
-    </p>
+    </Notice>
 }
 
 <p class="small">
@@ -112,11 +112,11 @@
 
     <section id="carbon-settings">
         <h2>CO₂-Kostenaufteilung (CO2KostAufG)</h2>
-        <p class="message message-warning" role="note" id="legal-notice">
+        <Notice Level="NoticeLevel.Warning" id="legal-notice">
             <strong>Stand/prüfen:</strong> Die Stufentabelle (@view.CarbonTableVersion: @view.CarbonTableStatus) und die Gradtagszahlen
             (@view.DegreeDayTableVersion: @view.DegreeDayTableStatus) sind versionierte Daten, die vor dem Versand einer Abrechnung gegen die
             amtlichen Quellen geprüft werden müssen. MietHahn gibt keine Rechtssicherheit.
-        </p>
+        </Notice>
         <div class="form-grid">
             <div class="field field-checkbox">
                 <InputCheckbox id="heating-carbon" @bind-Value="Data!.ApplyCarbonCosts" />

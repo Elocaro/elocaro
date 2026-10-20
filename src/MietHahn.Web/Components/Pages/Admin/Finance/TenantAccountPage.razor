@@ -17,7 +17,7 @@
 
 @if (account.AccountingStart is null)
 {
-    <p class="message message-info" role="status">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></p>
+    <Notice Level="NoticeLevel.Info">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></Notice>
 }
 
 <dl class="details">
@@ -151,18 +151,18 @@
     {
         @if (dunning.TerminationHint is { } hint)
         {
-            <p class="message message-info" role="note">
+            <Notice Level="NoticeLevel.Info">
                 <strong>Hinweis Kündigungsrelevanz:</strong> Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
                 (§ 543 Abs. 2 Nr. 3 BGB). Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
-            </p>
+            </Notice>
         }
 
         @if (dunning.Proposal is { } proposal)
         {
-            <p class="message message-info" role="status">
+            <Notice Level="NoticeLevel.Info">
                 Mahnvorschlag: <strong>@Labels.From(proposal.Level)</strong> über @Format.Money(proposal.Principal).
                 <a href="/verwaltung/finanzen/mahnungen/@proposal.Id">Prüfen und freigeben</a>
-            </p>
+            </Notice>
         }
 
         @if (dunning.Issued.Count > 0)

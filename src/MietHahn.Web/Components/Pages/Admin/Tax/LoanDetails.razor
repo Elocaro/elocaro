@@ -16,7 +16,7 @@
 
 @if (detail.Plan.Warnings.Count > 0)
 {
-    <div class="message message-warning" role="alert">
+    <Notice Level="NoticeLevel.Warning">
         <strong>Bitte prüfen:</strong>
         <ul>
             @foreach (var warning in detail.Plan.Warnings)
@@ -24,7 +24,7 @@
                 <li>@warning</li>
             }
         </ul>
-    </div>
+    </Notice>
 }
 
 <section>

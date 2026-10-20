@@ -9,7 +9,7 @@
     <h2>Letzte Sicherung</h2>
     @if (state is not null)
     {
-        <p class="message @MessageClass(state.State)" role="status">@state.Description</p>
+        <Notice Level="Level(state.State)">@state.Description</Notice>
         @if (state.Timestamp is not null)
         {
             <dl class="details">
@@ -82,10 +82,10 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
     protected override async Task OnInitializedAsync() => state = await BackupStatus.QueryAsync();
 
-    private static string MessageClass(BackupState level) => level switch
+    private static NoticeLevel Level(BackupState level) => level switch
     {
-        BackupState.Ok => "message-ok",
-        BackupState.NotConfigured => "message-info",
-        _ => "message-error",
+        BackupState.Ok => NoticeLevel.Success,
+        BackupState.NotConfigured => NoticeLevel.Info,
+        _ => NoticeLevel.Error,
     };
 }

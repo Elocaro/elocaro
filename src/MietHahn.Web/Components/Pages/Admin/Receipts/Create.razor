@@ -17,7 +17,7 @@
     {
         <section>
             <h2>Beleg automatisch auslesen</h2>
-            <p class="message message-info" id="extraction-notice">@Extraction.Info.Notice</p>
+            <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
             @if (Extraction.Info.Ready)
             {
                 <form method="post" enctype="multipart/form-data" @formname="extract" @onsubmit="ExtractAsync" class="form-row">

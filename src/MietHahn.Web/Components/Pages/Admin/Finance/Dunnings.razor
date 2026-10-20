@@ -12,10 +12,10 @@
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<p class="message message-info" role="note">
+<Notice Level="NoticeLevel.Info">
     Die mitgelieferte Mahnvorlage ist eine <strong>Basisvorlage</strong> und keine Rechtsberatung. Bitte lassen Sie Text, Fristen,
     Gebühren und Verzugszinsen vor dem produktiven Einsatz rechtlich prüfen.
-</p>
+</Notice>
 
 @if (overview is not null)
 {
@@ -25,7 +25,7 @@
             <h2 id="hints-heading">Hinweis Kündigungsrelevanz</h2>
             @foreach (var hint in overview.TerminationHints)
             {
-                <p class="message message-info" role="note">
+                <Notice Level="NoticeLevel.Info">
                     <a href="/verwaltung/vertraege/@hint.LeaseId/konto">@hint.Tenant</a> <span class="small">(@hint.RentalUnit)</span>:
                     Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent).
                     @if (hint.Relevance.TwoConsecutiveTerms)
@@ -37,7 +37,7 @@
                         <span>Der Rückstand erreicht zwei Monatsmieten.</span>
                     }
                     Das kann eine fristlose Kündigung nach § 543 Abs. 2 Nr. 3 BGB ermöglichen. Dies ist nur ein Hinweis, MietHahn kündigt nie automatisch; bitte rechtlich prüfen lassen.
-                </p>
+                </Notice>
             }
         </section>
     }

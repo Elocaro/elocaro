@@ -14,7 +14,7 @@
 
 @if (Done)
 {
-    <p class="message message-ok" role="status">Das Mietverhältnis endet am @Format.Date(lease.Term.To).</p>
+    <Notice Level="NoticeLevel.Success">Das Mietverhältnis endet am @Format.Date(lease.Term.To).</Notice>
     <ol class="steps">
         <li class="done">Auszug erfasst</li>
         <li><a href="/verwaltung/objekte/@lease.PropertyId/ablesung?einheit=@lease.UnitId&datum=@(lease.Term.To?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))&art=Zwischenablesung">Zählerstände zum Auszug ablesen</a> (Zwischenablesung für die Abrechnung)</li>

@@ -34,7 +34,7 @@ Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gil
 | Formularfeld | `FormField` + `Input*` | Beschriftung immer sichtbar; Pflicht und Hinweis über Parameter |
 | Geld, Fläche | `InputAmount`, `InputArea` | Nie `type="text"` für Zahlen |
 | Tabelle | `.table-wrapper > .data-table` | Immer im Wrapper; Zahlen in `td.number`; Sortieren mit `SortHeader`, Blättern mit `Pagination` |
-| Hinweis | `StatusMessage` (nach Weiterleitung), `ErrorList` (Fehler aus Diensten) | Kein eigenes `class="message …"` |
+| Hinweis | `Notice` (Level Info/Success/Warning/Error), `StatusMessage` (nach Weiterleitung), `ErrorList` (Fehler aus Diensten) | Kein eigenes `class="message …"`; `role` setzt `Notice` selbst |
 | Leerer Zustand | `EmptyState` | Unterscheiden: „Keine Treffer für …“ (Filter aktiv) und „Noch keine …“ |
 | Riskante Aktion | `DangerAction` | Siehe „Riskante Aktionen“ |
 | Verlauf | `ChangeHistory` | Auf Detailseiten von Stammdaten |
@@ -54,16 +54,16 @@ Pro Seite gibt es **höchstens eine** hervorgehobene Aktion (`button-primary`, g
 
 ### Meldungen
 
-Vier Stufen, jeweils mit Text; Farbe allein trägt keine Bedeutung.
+Vier Stufen über `<Notice Level="NoticeLevel.…">`; Farbe allein trägt keine Bedeutung, der Text sagt es auch.
 
-| Stufe | Klasse | Zweck | `role` |
+| Stufe | `NoticeLevel` | Zweck | `role` |
 |---|---|---|---|
-| Information | `message-info` | Neutrale Hinweise | `status` oder keine |
-| Erfolg | `message-success` (alt: `message-ok`) | Aktion erfolgreich | `status` |
-| Warnung | `message-warning` | Fachlicher Hinweis, Handlung empfohlen (z. B. anschaffungsnahe Herstellungskosten) | `status` |
-| Fehler | `message-error` | Aktion fehlgeschlagen, Eingabe unzulässig | `alert` |
+| Information | `Info` (blau) | Neutrale Hinweise, Zustände („Dieser Vorschlag wurde verworfen“) | `status` |
+| Erfolg | `Success` (grün) | Aktion erfolgreich | `status` |
+| Warnung | `Warning` (gelb) | Fachlicher Hinweis, Handlung empfohlen (z. B. anschaffungsnahe Herstellungskosten) | `status` |
+| Fehler | `Error` (rot) | Aktion fehlgeschlagen, Eingabe unzulässig, Abrechnung nicht belastbar | `alert` |
 
-Hinweis: Das heutige `message-info` ist noch gelb. Im Zuge des Bausteins `Message` wird es auf Blau umgestellt und bisherige Warnhinweise werden `message-warning`.
+`id` und weitere Attribute werden an das Element durchgereicht (`<Notice Level="…" id="deadline">`).
 
 ### Riskante Aktionen
 

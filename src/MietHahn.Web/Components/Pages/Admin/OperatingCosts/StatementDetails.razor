@@ -29,7 +29,7 @@
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<p class="message message-info" role="status" id="frozen">
+<Notice Level="NoticeLevel.Info" id="frozen">
     Freigegeben am @summary.ReleasedAt.ToString("dd.MM.yyyy HH:mm")@(summary.ReleasedBy is null ? "" : $" von {summary.ReleasedBy}"). Diese Fassung ist unveränderlich.
     @if (!summary.Current)
     {
@@ -39,7 +39,7 @@
     {
         <text> Bemerkung: @summary.Note</text>
     }
-</p>
+</Notice>
 
 @if (statement.Difference is { } difference)
 {
@@ -47,10 +47,10 @@
         <h2>Differenz zur vorherigen Fassung</h2>
         @if (statement.ClaimsExcluded)
         {
-            <p class="message message-error" role="alert">
+            <Notice Level="NoticeLevel.Error">
                 Die Frist nach § 556 Abs. 3 BGB ist abgelaufen: Nachforderungen von @Format.Money(difference.AdditionalClaims) sind gegenüber den Mietern ausgeschlossen
                 (außer der Vermieter hat die verspätete Geltendmachung nicht zu vertreten). Guthaben von @Format.Money(difference.Credits) müssen erstattet werden.
-            </p>
+            </Notice>
         }
 
         @if (difference.Leases.Count == 0)
@@ -83,7 +83,7 @@
     <h2>Versand an die Mieter</h2>
     @if (overview.LandlordProfileMissing)
     {
-        <p class="message message-error" role="alert">Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.</p>
+        <Notice Level="NoticeLevel.Error">Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.</Notice>
     }
     <p class="small">
         Frist für den Zugang: @overview.Deadline.ToString("dd.MM.yyyy") (§ 556 Abs. 3 BGB). Der Versand legt das Schreiben in der Dateiablage und im Mieterportal ab,

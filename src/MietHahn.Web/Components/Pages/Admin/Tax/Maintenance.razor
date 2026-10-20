@@ -15,7 +15,7 @@
 
 @foreach (var warning in overview.Warnings)
 {
-    <div class="message message-warning" role="alert">@warning</div>
+    <Notice Level="NoticeLevel.Warning">@warning</Notice>
 }
 
 <p class="small">

@@ -16,13 +16,13 @@
 
 @if (preview.Status == ImportStatus.Imported)
 {
-    <p class="message message-info" role="status">Diese Datei wurde bereits importiert. <a href="/verwaltung/bank/umsaetze?konto=@preview.BankAccountId">Zu den Umsätzen</a></p>
+    <Notice Level="NoticeLevel.Info">Diese Datei wurde bereits importiert. <a href="/verwaltung/bank/umsaetze?konto=@preview.BankAccountId">Zu den Umsätzen</a></Notice>
     return;
 }
 
 @if (preview.DifferentIban is not null)
 {
-    <p class="message message-error" role="alert">Die Datei gehört zum Konto @preview.DifferentIban, nicht zu „@preview.Account“. Bitte beim richtigen Konto importieren.</p>
+    <Notice Level="NoticeLevel.Error">Die Datei gehört zum Konto @preview.DifferentIban, nicht zu „@preview.Account“. Bitte beim richtigen Konto importieren.</Notice>
 }
 
 <p>

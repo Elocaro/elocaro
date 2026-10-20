@@ -8,7 +8,7 @@
 <StatusMessage />
 @if (newItem)
 {
-    <p class="message message-info" role="status">Noch kein Vermieterprofil hinterlegt – ohne diese Angaben können keine Dokumente erzeugt werden.</p>
+    <Notice Level="NoticeLevel.Info">Noch kein Vermieterprofil hinterlegt – ohne diese Angaben können keine Dokumente erzeugt werden.</Notice>
 }
 
 <EditForm Model="Data" FormName="landlord" OnValidSubmit="SaveAsync">

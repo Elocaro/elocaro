@@ -7,7 +7,7 @@
     <PageHeader Title="Mahnung nicht gefunden" Back="/verwaltung/finanzen/mahnungen" BackText="Mahnwesen" />
     <StatusMessage />
     <ErrorList Errors="errors" />
-    <p class="message message-info" role="status">Der Vorschlag existiert nicht mehr, zum Beispiel weil der Rückstand inzwischen bezahlt wurde. Es wurde nichts versendet.</p>
+    <Notice Level="NoticeLevel.Info">Der Vorschlag existiert nicht mehr, zum Beispiel weil der Rückstand inzwischen bezahlt wurde. Es wurde nichts versendet.</Notice>
 
     @* A form submitted from an outdated page still finds its handler and gets a clear answer instead of an error page. *@
     <form method="post" @formname="issue" @onsubmit="OutdatedAsync" hidden>
@@ -49,27 +49,27 @@
 
 @if (row.Status == DunningStatus.Dismissed)
 {
-    <p class="message message-info" role="status">Dieser Vorschlag wurde am @Format.Date(row.Date) verworfen.</p>
+    <Notice Level="NoticeLevel.Info">Dieser Vorschlag wurde am @Format.Date(row.Date) verworfen.</Notice>
     return;
 }
 
-<p class="message message-info" role="note">
+<Notice Level="NoticeLevel.Info">
     Basisvorlage, keine Rechtsberatung: Bitte Text, Fristen und Beträge vor der Freigabe prüfen. Es wird nichts versendet, bevor Sie „Freigeben“ wählen.
-</p>
+</Notice>
 
 @if (details.TerminationHint is { } hint)
 {
-    <p class="message message-info" role="note">
+    <Notice Level="NoticeLevel.Info">
         <strong>Kündigungsrelevanz:</strong>
         Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
         (@(hint.Relevance.TwoMonthlyRents ? "mindestens zwei Monatsmieten" : "mehr als eine Monatsmiete in zwei aufeinanderfolgenden Terminen")),
         vgl. § 543 Abs. 2 Nr. 3 BGB. Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
-    </p>
+    </Notice>
 }
 
 @if (details.LandlordProfileMissing)
 {
-    <p class="message message-error" role="alert">Es ist noch kein Vermieterprofil hinterlegt. Es wird für Briefkopf und Absender benötigt. <a href="/verwaltung/einstellungen/vermieter">Jetzt anlegen</a></p>
+    <Notice Level="NoticeLevel.Error">Es ist noch kein Vermieterprofil hinterlegt. Es wird für Briefkopf und Absender benötigt. <a href="/verwaltung/einstellungen/vermieter">Jetzt anlegen</a></Notice>
 }
 
 <dl class="details">
