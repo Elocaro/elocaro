@@ -1,4 +1,3 @@
-using AngleSharp.Html.Dom;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Leases;
@@ -46,8 +45,6 @@ public class OperatingCostPagesTests(PostgresFixture postgres) : AccountTestBase
         });
     }
 
-    private static IHtmlInputElement Input(Page page, string selector) => (IHtmlInputElement)page.Document.QuerySelector(selector)!;
-
     [Fact]
     public async Task Preview_shows_cost_types_tenant_statement_vacancy_and_the_calculation_protocol()
     {
@@ -56,13 +53,10 @@ public class OperatingCostPagesTests(PostgresFixture postgres) : AccountTestBase
         using var _ = admin;
         var keys = await admin.GetAsync($"/verwaltung/objekte/{house}/umlageschluessel");
         Assert.Contains("kein Schlüssel (Standard: Wohnfläche)", keys.Document.QuerySelector("#key-betrkv-01")!.TextContent, StringComparison.Ordinal);
-        keys = await admin.SubmitAsync(keys, "rule", new Dictionary<string, string>
-        {
-            ["Rule.CostType"] = "betrkv-01",
-            ["Rule.From"] = "2020-01-01",
-            ["Rule.Key"] = "LivingArea",
-        });
-        Assert.Contains("Der Umlageschlüssel wurde gespeichert.", keys.Text, StringComparison.Ordinal);
+        // Entering a key in the form is covered by the browser tests.
+        var set = await App.WithScopeAsync(sp => sp.GetRequiredService<ICostAllocation>().SetRuleAsync(house, new CostRuleInput { CostType = "betrkv-01", From = new DateOnly(2020, 1, 1), Key = AllocationKey.LivingArea }, Ct));
+        Assert.True(set.Succeeded);
+        keys = await admin.GetAsync(keys.Path);
         Assert.Contains("Wohnfläche", keys.Document.QuerySelector("#key-betrkv-01")!.TextContent, StringComparison.Ordinal);
 
         var page = await admin.GetAsync($"/verwaltung/objekte/{house}/nebenkosten?jahr=2025");
@@ -90,31 +84,39 @@ public class OperatingCostPagesTests(PostgresFixture postgres) : AccountTestBase
     }
 
     [Fact]
-    public async Task Keys_form_validates_keeps_history_and_ends_keys()
+    public async Task Keys_are_validated_keep_their_history_and_can_be_ended()
     {
         await SeedAsync();
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
+        var (missingMeter, fixedPercent, units, ended) = await App.WithScopeAsync(async sp =>
+        {
+            var allocation = sp.GetRequiredService<ICostAllocation>();
+            return (
+                await allocation.SetRuleAsync(house, new CostRuleInput { CostType = "betrkv-02", From = new DateOnly(2020, 1, 1), Key = AllocationKey.Consumption }, Ct),
+                await allocation.SetRuleAsync(house, new CostRuleInput
+                {
+                    CostType = "betrkv-14",
+                    From = new DateOnly(2020, 1, 1),
+                    Key = AllocationKey.FixedPercent,
+                    Shares = [new UnitShareInput { UnitId = apartment1.ToString(), Percent = "40" }, new UnitShareInput { UnitId = apartment2.ToString(), Percent = "35" }],
+                }, Ct),
+                await allocation.SetRuleAsync(house, new CostRuleInput { CostType = "betrkv-14", From = new DateOnly(2026, 1, 1), Key = AllocationKey.Units, PreDeductionPercent = 10m, PreDeductionNote = "Garten" }, Ct),
+                await allocation.EndRuleAsync(house, "betrkv-14", new DateOnly(2026, 6, 30), Ct));
+        });
+        Assert.False(missingMeter.Succeeded);
+        Assert.Contains("Zählertyp", string.Join(" ", missingMeter.Errors), StringComparison.Ordinal);
+        Assert.True(fixedPercent.Succeeded);
+        Assert.True(units.Succeeded);
+        Assert.True(ended.Succeeded);
+
         var page = await admin.GetAsync($"/verwaltung/objekte/{house}/umlageschluessel");
-
-        var missingMeter = await admin.SubmitAsync(page, "rule", new Dictionary<string, string> { ["Rule.CostType"] = "betrkv-02", ["Rule.From"] = "2020-01-01", ["Rule.Key"] = "Consumption" });
-        Assert.Contains("Zählertyp", missingMeter.Text, StringComparison.Ordinal);
-
-        page = await admin.SubmitAsync(page, "rule", new Dictionary<string, string> { ["Rule.CostType"] = "betrkv-14", ["Rule.From"] = "2020-01-01", ["Rule.Key"] = "FixedPercent", ["Rule.Shares[0].Percent"] = "40", ["Rule.Shares[1].Percent"] = "35" });
-        Assert.Contains("Fester Prozentsatz: Wohnung 1 40 %, Wohnung 2 35 %", page.Document.QuerySelector("#key-betrkv-14")!.TextContent, StringComparison.Ordinal);
-
-        page = await admin.SubmitAsync(page, "rule", new Dictionary<string, string> { ["Rule.CostType"] = "betrkv-14", ["Rule.From"] = "2026-01-01", ["Rule.Key"] = "Units", ["Rule.PreDeductionPercent"] = "10", ["Rule.PreDeductionNote"] = "Garten" });
         var row = page.Document.QuerySelector("#key-betrkv-14")!.TextContent;
-        Assert.Contains("Einheiten", row, StringComparison.Ordinal);
-        Assert.Contains("10 % (Garten)", row, StringComparison.Ordinal);
         Assert.Contains("2 Stände", row, StringComparison.Ordinal);
-
-        page = await admin.SubmitAsync(page, "end-rule", new Dictionary<string, string> { ["End.CostType"] = "betrkv-14", ["End.LastDay"] = "2026-06-30" });
-        Assert.Contains("Der Umlageschlüssel wurde beendet.", page.Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Shared_flat_mode_and_subtypes_are_maintained_on_the_keys_page()
+    public async Task Shared_flat_mode_and_subtypes_are_shown_on_the_keys_page()
     {
         await SeedAsync();
         Guid flat = Guid.Empty;
@@ -128,43 +130,29 @@ public class OperatingCostPagesTests(PostgresFixture postgres) : AccountTestBase
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
+        await App.WithScopeAsync(async sp =>
+        {
+            Assert.True((await sp.GetRequiredService<ICostAllocation>().SetSharedFlatBillingAsync(flat, SharedFlatBilling.ByRoom, Ct)).Succeeded);
+            Assert.True((await sp.GetRequiredService<ICostSubtypes>().AddAsync("betrkv-13", "Gebäudeversicherung", Ct)).Succeeded);
+            return 0;
+        });
+
         var page = await admin.GetAsync($"/verwaltung/objekte/{house}/umlageschluessel");
-        var flatForm = page.Form("flats");
-        Assert.True(flatForm.Elements.OfType<IHtmlInputElement>().Single(i => i.Type == "radio" && i.Value == "FlatRate").IsChecked);
-        page = await admin.SubmitAsync(page, "flats", new Dictionary<string, string> { ["FlatForms[0].Mode"] = "ByRoom" });
-        Assert.Contains("Der Abrechnungsmodus wurde gespeichert.", page.Text, StringComparison.Ordinal);
-        Assert.True(page.Form("flats").Elements.OfType<IHtmlInputElement>().Single(i => i.Type == "radio" && i.Value == "ByRoom").IsChecked);
-
-        page = await admin.SubmitAsync(page, "subtype", new Dictionary<string, string> { ["Subtype.CostType"] = "betrkv-13", ["Subtype.Name"] = "Gebäudeversicherung" });
-        Assert.Contains("Die Unterart wurde angelegt.", page.Text, StringComparison.Ordinal);
+        Assert.Contains("WG", page.Document.QuerySelector("#shared-flats")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("Gebäudeversicherung", page.Document.QuerySelector("#subtypes")!.TextContent, StringComparison.Ordinal);
-
-        // The subtype is offered when adding a cost item
-        var receiptId = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IReceiptService>().CreateAsync(
-            new ReceiptInput { SupplierName = "Versicherung AG", InvoiceDate = new DateOnly(2025, 3, 1), Gross = 500m }, [], null, Ct)).Id!.Value);
-        var receipt = await admin.GetAsync($"/verwaltung/belege/{receiptId}");
-        Assert.Contains("Gebäudeversicherung", receipt.Document.QuerySelector("#item-subtype")!.TextContent, StringComparison.Ordinal);
-
-        var removeId = page.Document.QuerySelector("#subtypes button[name=RemoveId]")!.GetAttribute("value")!;
-        page = await admin.SubmitAsync(page, "remove-subtype", new Dictionary<string, string> { ["RemoveId"] = removeId });
-        Assert.Contains("Die Unterart wurde entfernt.", page.Text, StringComparison.Ordinal);
-        Assert.Null(page.Document.QuerySelector("#subtypes table"));
     }
 
     [Fact]
-    public async Task Agreed_cost_types_of_a_lease_are_saved_and_change_the_preview()
+    public async Task Agreed_cost_types_of_a_lease_change_the_preview()
     {
         await SeedAsync();
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var page = await admin.GetAsync($"/verwaltung/vertraege/{leaseAnna}/kostenarten");
-        Assert.All(page.Document.QuerySelectorAll("#agreement input[type=checkbox]").Cast<IHtmlInputElement>(), c => Assert.True(c.IsChecked));
+        Assert.NotEmpty(page.Document.QuerySelectorAll("#agreement tbody tr"));
 
-        Input(page, "#agreed-betrkv-01").IsChecked = false;
-        page = await admin.SubmitAsync(page, "agreement");
-        Assert.Contains("Die vereinbarten Kostenarten wurden gespeichert.", page.Text, StringComparison.Ordinal);
-        Assert.False(Input(page, "#agreed-betrkv-01").IsChecked);
-        Assert.True(Input(page, "#agreed-betrkv-02").IsChecked);
+        // Unticking a cost type in the table is covered by the browser tests.
+        Assert.True((await App.WithScopeAsync(sp => sp.GetRequiredService<ICostAllocation>().SetLeaseAgreementAsync(leaseAnna, ["betrkv-01"], Ct))).Succeeded);
 
         var preview = await admin.GetAsync($"/verwaltung/objekte/{house}/nebenkosten?jahr=2025");
         Assert.Contains("nicht vereinbart", preview.Document.QuerySelector($"#tenant-{leaseAnna}")!.TextContent, StringComparison.Ordinal);

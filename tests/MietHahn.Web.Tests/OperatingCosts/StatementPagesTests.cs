@@ -5,6 +5,9 @@ using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
 using MietHahn.Application.Receipts;
+using MietHahn.Application.Statements;
+using MietHahn.Domain.Common;
+using MietHahn.Domain.Statements;
 using MietHahn.Web.Tests.Account;
 
 namespace MietHahn.Web.Tests.OperatingCosts;
@@ -63,7 +66,6 @@ public class StatementPagesTests(PostgresFixture postgres) : AccountTestBase(pos
         Assert.Contains("Lindenweg 3", first.Document.QuerySelector("#step-1")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("31.12.2027", first.Document.QuerySelector("#step-1")!.TextContent, StringComparison.Ordinal);
         Assert.Equal(6, first.Document.QuerySelectorAll(".wizard-steps li").Length);
-        Assert.Contains("schritt=2", first.Document.QuerySelector("#next")!.GetAttribute("href"), StringComparison.Ordinal);
 
         var costs = await admin.GetAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026&schritt=2");
         var checklist = costs.Document.QuerySelector("#cost-checklist")!.TextContent;
@@ -88,11 +90,15 @@ public class StatementPagesTests(PostgresFixture postgres) : AccountTestBase(pos
         var release = await admin.GetAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026&schritt=6");
         Assert.Contains("Ich habe die Hinweise geprüft", release.Text, StringComparison.Ordinal);
 
-        var notConfirmed = await admin.SubmitAsync(release, "release", new Dictionary<string, string>());
-        Assert.Contains("Hinweise geprüft", notConfirmed.Document.QuerySelector("[role=alert], .message-error, .error-list")?.TextContent ?? notConfirmed.Text, StringComparison.Ordinal);
+        // The release form itself is covered by the browser tests.
+        var period = Period.CalendarYear(2026);
+        var notConfirmed = await App.WithScopeAsync(sp => sp.GetRequiredService<IStatements>().ReleaseAsync(house, period, false, null, Ct));
+        Assert.False(notConfirmed.Succeeded);
+        Assert.Contains("Hinweise geprüft", string.Join(" ", notConfirmed.Errors), StringComparison.Ordinal);
 
-        var done = await admin.SubmitAsync(release, "release", new Dictionary<string, string> { ["Release.Acknowledge"] = "true", ["Release.Note"] = "Erstfassung" });
-        Assert.Contains("Die Abrechnung wurde freigegeben.", done.Text, StringComparison.Ordinal);
+        var first = await App.WithScopeAsync(sp => sp.GetRequiredService<IStatements>().ReleaseAsync(house, period, true, "Erstfassung", Ct));
+        Assert.True(first.Succeeded);
+        var done = await admin.GetAsync($"/verwaltung/abrechnungen/{first.Id}");
         Assert.Contains("Diese Fassung ist unveränderlich", done.Document.QuerySelector("#frozen")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("1.500,00 €", done.Document.QuerySelector("#cost-types")!.TextContent, StringComparison.Ordinal);
         Assert.Null(done.Document.QuerySelector("#difference"));
@@ -112,10 +118,12 @@ public class StatementPagesTests(PostgresFixture postgres) : AccountTestBase(pos
         });
         var correction = await admin.GetAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026&schritt=6");
         Assert.NotNull(correction.Document.QuerySelector("#released-notice"));
-        var withoutReason = await admin.SubmitAsync(correction, "release", new Dictionary<string, string> { ["Release.Acknowledge"] = "true" });
-        Assert.Contains("Begründung", withoutReason.Text, StringComparison.Ordinal);
+        var withoutReason = await App.WithScopeAsync(sp => sp.GetRequiredService<IStatements>().ReleaseAsync(house, period, true, null, Ct));
+        Assert.False(withoutReason.Succeeded);
+        Assert.Contains("Begründung", string.Join(" ", withoutReason.Errors), StringComparison.Ordinal);
 
-        var second = await admin.SubmitAsync(correction, "release", new Dictionary<string, string> { ["Release.Acknowledge"] = "true", ["Release.Note"] = "Nachträgliche Rechnung" });
+        var secondRelease = await App.WithScopeAsync(sp => sp.GetRequiredService<IStatements>().ReleaseAsync(house, period, true, "Nachträgliche Rechnung", Ct));
+        var second = await admin.GetAsync($"/verwaltung/abrechnungen/{secondRelease.Id}");
         Assert.Contains("Fassung 2", second.Text, StringComparison.Ordinal);
         Assert.Contains("1.800,00 €", second.Document.QuerySelector("#cost-types")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("300,00 € zusätzlich zu zahlen", second.Document.QuerySelector("#difference")!.TextContent, StringComparison.Ordinal);
@@ -127,8 +135,9 @@ public class StatementPagesTests(PostgresFixture postgres) : AccountTestBase(pos
         await SeedAsync();
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        var release = await admin.GetAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026&schritt=6");
-        var detail = await admin.SubmitAsync(release, "release", new Dictionary<string, string> { ["Release.Acknowledge"] = "true" });
+        var period = Period.CalendarYear(2026);
+        var statementId = (await App.WithScopeAsync(sp => sp.GetRequiredService<IStatements>().ReleaseAsync(house, period, true, null, Ct))).Id!.Value;
+        var detail = await admin.GetAsync($"/verwaltung/abrechnungen/{statementId}");
 
         var table = detail.Document.QuerySelector("#dispatches")!.TextContent;
         Assert.Contains("Anna Schmidt", table, StringComparison.Ordinal);
@@ -142,25 +151,30 @@ public class StatementPagesTests(PostgresFixture postgres) : AccountTestBase(pos
             Assert.Contains("no-store", pdf.Headers.CacheControl!.ToString(), StringComparison.Ordinal);
         }
 
-        var leaseId = previewLink.Split('/')[^2];
-        var sent = await admin.SubmitAsync(detail, "dispatch", new Dictionary<string, string> { ["Send.Channel"] = "Email", ["Send.ProposePrepayments"] = "true", ["Send.LeaseId"] = leaseId });
-        Assert.Contains("Die Abrechnung wurde versendet", sent.Text, StringComparison.Ordinal);
+        // Sending, confirming receipt and deciding on proposals are covered by the browser tests; here the pages only show the result.
+        var leaseId = Guid.Parse(previewLink.Split('/')[^2]);
+        var dispatchId = await App.WithScopeAsync(async sp =>
+        {
+            var dispatching = sp.GetRequiredService<IStatementDispatch>();
+            Assert.True((await dispatching.DispatchAsync(statementId, leaseId, new DispatchInput { Channel = DispatchChannel.Email, ProposePrepayments = true }, Ct)).Succeeded);
+            return (await dispatching.OverviewAsync(statementId, Ct))!.Tenancies.Single().Dispatch!.Id;
+        });
+        var sent = await admin.GetAsync(detail.Path);
         var status = sent.Document.QuerySelector("#dispatches")!.TextContent;
         Assert.Contains("per E-Mail am", status, StringComparison.Ordinal);
         Assert.Contains("Zugang nicht bestätigt", status, StringComparison.Ordinal);
         Assert.Contains("Schreiben herunterladen", status, StringComparison.Ordinal);
         Assert.Contains("Betriebskosten-Vorauszahlung", sent.Document.QuerySelector("#proposals")!.TextContent, StringComparison.Ordinal);
 
-        Assert.Null(sent.Document.QuerySelector("#dispatches button[name='Send.LeaseId']")); // sent once: no second dispatch offered
+        var proposalId = await App.WithScopeAsync(async sp =>
+        {
+            var dispatching = sp.GetRequiredService<IStatementDispatch>();
+            Assert.True((await dispatching.ConfirmReceiptAsync(dispatchId, new DeliveryConfirmation { ReceivedOn = GermanTime.Today(App.Clock.GetUtcNow()), Note = "Lesebestätigung" }, Ct)).Succeeded);
+            return (await dispatching.OverviewAsync(statementId, Ct))!.Tenancies.Single().Dispatch!.Proposals[0].Id;
+        });
+        Assert.Contains("Lesebestätigung", (await admin.GetAsync(detail.Path)).Document.QuerySelector("#dispatches")!.TextContent, StringComparison.Ordinal);
 
-        var dispatchId = sent.Document.QuerySelector("button[name='Confirmation.DispatchId']")!.GetAttribute("value")!;
-        var received = await admin.SubmitAsync(sent, "receipt", new Dictionary<string, string> { ["Confirmation.DispatchId"] = dispatchId, ["Confirmation.ReceivedOn"] = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), ["Confirmation.Note"] = "Lesebestätigung" });
-        Assert.Contains("Der Zugang wurde vermerkt.", received.Text, StringComparison.Ordinal);
-        Assert.Contains("Lesebestätigung", received.Document.QuerySelector("#dispatches")!.TextContent, StringComparison.Ordinal);
-
-        var applyId = received.Document.QuerySelector("button[name='Decision.ApplyId']")!.GetAttribute("value")!;
-        var applied = await admin.SubmitAsync(received, "proposal", new Dictionary<string, string> { ["Decision.ApplyId"] = applyId });
-        Assert.Contains("Die neue Vorauszahlung wurde übernommen.", applied.Text, StringComparison.Ordinal);
-        Assert.Contains("übernommen am", applied.Document.QuerySelector("#proposals")!.TextContent, StringComparison.Ordinal);
+        Assert.True((await App.WithScopeAsync(sp => sp.GetRequiredService<IStatementDispatch>().ApplyProposalAsync(proposalId, null, Ct))).Succeeded);
+        Assert.Contains("übernommen am", (await admin.GetAsync(detail.Path)).Document.QuerySelector("#proposals")!.TextContent, StringComparison.Ordinal);
     }
 }

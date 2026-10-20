@@ -1,6 +1,6 @@
-using AngleSharp.Html.Dom;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Heating;
 using MietHahn.Application.Leases;
 using MietHahn.Application.Metering;
 using MietHahn.Application.People;
@@ -66,12 +66,8 @@ public class HeatingPagesTests(PostgresFixture postgres) : AccountTestBase(postg
         });
     }
 
-    private static IHtmlInputElement Input(Page page, string selector) => (IHtmlInputElement)page.Document.QuerySelector(selector)!;
-
-    private static decimal Number(Page page, string selector) => decimal.Parse(Input(page, selector).Value, System.Globalization.CultureInfo.InvariantCulture);
-
     [Fact]
-    public async Task Settings_page_shows_defaults_validates_the_range_and_saves()
+    public async Task Settings_page_shows_defaults_and_the_range_is_validated_by_the_service()
     {
         await SeedAsync();
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
@@ -80,21 +76,27 @@ public class HeatingPagesTests(PostgresFixture postgres) : AccountTestBase(postg
         var page = await admin.GetAsync($"/verwaltung/objekte/{house}/heizung");
         Assert.Contains("Standardwerten", page.Document.QuerySelector("#defaults-notice")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("Stand/prüfen", page.Document.QuerySelector("#legal-notice")!.TextContent, StringComparison.Ordinal);
-        Assert.Equal(70m, Number(page, "#heating-percent"));
-        Assert.True(Input(page, "#heating-joint").IsChecked);
 
-        // 100 % consumption is not allowed (§ 7 para. 1 HeizkostenV)
-        var invalid = await admin.SubmitAsync(page, "heating", new Dictionary<string, string> { ["Data.ConsumptionPercent"] = "100" });
-        Assert.Contains("zwischen 50 und 70", invalid.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("wurden gespeichert", invalid.Text, StringComparison.Ordinal);
-
-        Input(page, "#heating-joint").IsChecked = false;
-        var saved = await admin.SubmitAsync(page, "heating", new Dictionary<string, string> { ["Data.ConsumptionPercent"] = "60", ["Data.HotWaterTemperature"] = "55" });
-        Assert.Contains("Die Heizungseinstellungen wurden gespeichert.", saved.Text, StringComparison.Ordinal);
-        Assert.Null(saved.Document.QuerySelector("#defaults-notice"));
-        Assert.Equal(60m, Number(saved, "#heating-percent"));
-        Assert.Equal(55m, Number(saved, "#heating-temperature"));
-        Assert.False(Input(saved, "#heating-joint").IsChecked);
+        // 100 % consumption is not allowed (§ 7 para. 1 HeizkostenV); the form itself is covered by the browser tests.
+        var invalid = await App.WithScopeAsync(async sp =>
+        {
+            var settings = sp.GetRequiredService<IHeatingSettings>();
+            var input = (await settings.GetAsync(house, Ct))!.Input;
+            input.ConsumptionPercent = 100m;
+            return await settings.SaveAsync(house, input, Ct);
+        });
+        var saved = await App.WithScopeAsync(async sp =>
+        {
+            var settings = sp.GetRequiredService<IHeatingSettings>();
+            var input = (await settings.GetAsync(house, Ct))!.Input;
+            input.ConsumptionPercent = 60m;
+            input.JointPlant = false;
+            return await settings.SaveAsync(house, input, Ct);
+        });
+        Assert.False(invalid.Succeeded);
+        Assert.Contains("zwischen 50 und 70", string.Join(" ", invalid.Errors), StringComparison.Ordinal);
+        Assert.True(saved.Succeeded);
+        Assert.Null((await admin.GetAsync(page.Path)).Document.QuerySelector("#defaults-notice"));
 
         Assert.Contains("Objekt nicht gefunden", (await admin.GetAsync($"/verwaltung/objekte/{Guid.NewGuid()}/heizung")).Text, StringComparison.Ordinal);
     }
@@ -133,21 +135,11 @@ public class HeatingPagesTests(PostgresFixture postgres) : AccountTestBase(postg
     }
 
     [Fact]
-    public async Task Cost_item_form_offers_the_heating_kind_and_pages_require_the_finance_right()
+    public async Task Heating_settings_require_the_finance_right()
     {
         await SeedAsync();
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        using var _ = admin;
-        var receiptId = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IReceiptService>().CreateAsync(
-            new ReceiptInput { SupplierName = "Wartung GmbH", InvoiceDate = new DateOnly(2025, 3, 1), Gross = 500m }, [], null, Ct)).Id!.Value);
-
-        var receipt = await admin.GetAsync($"/verwaltung/belege/{receiptId}");
-        var options = receipt.Document.QuerySelector("#item-heating-kind")!.TextContent;
-        Assert.Contains("Brennstoff", options, StringComparison.Ordinal);
-        Assert.Contains("CO₂-Kosten laut Lieferant", options, StringComparison.Ordinal);
-
         var (manager, _) = await SignedInAsAsync(Roles.Manager, [AccessRight.MasterData]);
-        using var _2 = manager;
+        using var _ = manager;
         Assert.Equal("/konto/zugriff-verweigert", (await manager.GetAsync($"/verwaltung/objekte/{house}/heizung", followRedirects: false)).RedirectLocation!.AbsolutePath);
     }
 }

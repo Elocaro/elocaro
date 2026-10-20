@@ -1,42 +1,44 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/abrechnungen"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Statements
 @inject IStatements Statements
 
-<PageHeader Title="Freigegebene Abrechnungen" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
-    <Actions>
-        <a class="button button-primary" href="/verwaltung/objekte/@PropertyId/abrechnung">Abrechnungs-Assistent</a>
-    </Actions>
-</PageHeader>
+<InteractiveShell>
+    <PageHeader Title="Freigegebene Abrechnungen" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung")">Abrechnungs-Assistent</MudButton>
+        </Actions>
+    </PageHeader>
 
-<StatusMessage />
-
-@if (statements.Count == 0)
-{
-    <EmptyState Text="Es ist noch keine Abrechnung freigegeben. Der Abrechnungs-Assistent führt durch die Erstellung." />
-    return;
-}
-
-<div class="table-wrapper">
-    <table class="data-table" id="statements">
-        <thead><tr><th>Zeitraum</th><th>Fassung</th><th>Freigegeben</th><th class="number">Gesamtkosten</th><th class="number">Vermieteranteil</th><th>Bemerkung</th></tr></thead>
-        <tbody>
-            @foreach (var statement in statements)
-            {
-                <tr>
-                    <td><a href="/verwaltung/abrechnungen/@statement.Id">@Format.Period(statement.BillingPeriod)</a></td>
-                    <td>@statement.Revision@(statement.Current ? "" : " (ersetzt)")</td>
-                    <td>@Format.Day(statement.ReleasedAt)</td>
-                    <td class="number">@Format.Money(statement.TotalCosts)</td>
-                    <td class="number">@Format.Money(statement.LandlordTotal)</td>
-                    <td>@statement.Note</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
+    @if (statements is null)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else if (statements.Count == 0)
+    {
+        <EmptyState Text="Es ist noch keine Abrechnung freigegeben. Der Abrechnungs-Assistent führt durch die Erstellung." />
+    }
+    else
+    {
+        <MudTable T="StatementSummary" Items="statements" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" id="statements">
+            <HeaderContent>
+                <MudTh>Zeitraum</MudTh><MudTh>Fassung</MudTh><MudTh>Freigegeben</MudTh><MudTh Style="text-align:right">Gesamtkosten</MudTh><MudTh Style="text-align:right">Vermieteranteil</MudTh><MudTh>Bemerkung</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Zeitraum"><a href="/verwaltung/abrechnungen/@context.Id">@Format.Period(context.BillingPeriod)</a></MudTd>
+                <MudTd DataLabel="Fassung">@context.Revision@(context.Current ? "" : " (ersetzt)")</MudTd>
+                <MudTd DataLabel="Freigegeben">@Format.Day(context.ReleasedAt)</MudTd>
+                <MudTd DataLabel="Gesamtkosten" Style="text-align:right">@Format.Money(context.TotalCosts)</MudTd>
+                <MudTd DataLabel="Vermieteranteil" Style="text-align:right">@Format.Money(context.LandlordTotal)</MudTd>
+                <MudTd DataLabel="Bemerkung">@context.Note</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
 
 @code {
-    private IReadOnlyList<StatementSummary> statements = [];
+    private IReadOnlyList<StatementSummary>? statements;
 
     [Parameter]
     public Guid PropertyId { get; set; }

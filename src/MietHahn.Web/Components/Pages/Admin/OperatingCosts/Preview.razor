@@ -1,37 +1,37 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/nebenkosten"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IOperatingCosts OperatingCosts
 @inject TimeProvider Clock
 
+<InteractiveShell>
 <PageHeader Title="Nebenkosten-Vorschau" Subtitle="@(preview?.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
     <Actions>
-        <a class="button button-primary" href="/verwaltung/objekte/@PropertyId/abrechnung?jahr=@year">Abrechnungs-Assistent</a>
-        <a class="button" href="/verwaltung/objekte/@PropertyId/umlageschluessel">Umlageschlüssel</a>
-        <a class="button" href="/verwaltung/objekte/@PropertyId/heizung">Heizkosten-Einstellungen</a>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung?jahr={year}")">Abrechnungs-Assistent</MudButton>
+        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/umlageschluessel")">Umlageschlüssel</MudButton>
+        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/heizung")">Heizkosten-Einstellungen</MudButton>
     </Actions>
 </PageHeader>
 
-<FilterBar SubmitText="Berechnen">
-    <div class="field">
-        <label for="year">Abrechnungsjahr</label>
-        <input id="year" type="number" name="jahr" value="@year" min="2000" max="2100" />
-    </div>
-</FilterBar>
+<div class="form-row search-bar" role="search">
+    <AppNumberField T="int" Value="year" ValueChanged="OnYearChanged" Label="Abrechnungsjahr" Min="2000" Max="2100" />
+</div>
 
-@if (errorText is not null)
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (errorText is not null)
 {
     <Notice Level="NoticeLevel.Error">@errorText</Notice>
-    return;
 }
-
-@if (preview is null)
+else if (preview is null)
 {
     <EmptyState Text="Objekt nicht gefunden." />
-    return;
 }
-
-@{
-    var result = preview.Result;
-}
+else
+{
+var result = preview.Result;
 
 <Notice Level="NoticeLevel.Info" id="preview-notice">
     Das ist eine <strong>Vorschau</strong>. Es wird nichts gespeichert oder versendet. Grundlage sind die Belege mit Kostenpositionen des Jahres,
@@ -264,11 +264,14 @@
         </div>
     </section>
 }
+}
+</InteractiveShell>
 
 @code {
     private OperatingCostPreview? preview;
     private string? errorText;
     private int year;
+    private bool loaded;
 
     [Parameter]
     public Guid PropertyId { get; set; }
@@ -276,9 +279,24 @@
     [SupplyParameterFromQuery(Name = "jahr")]
     private int? Year { get; set; }
 
+    // The query string only provides the start value (see ADR 0005).
     protected override async Task OnInitializedAsync()
     {
         year = Year ?? GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+        await LoadAsync();
+        loaded = true;
+    }
+
+    private async Task OnYearChanged(int value)
+    {
+        year = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        errorText = null;
+        preview = null;
         if (year is < 2000 or > 2100)
         {
             errorText = "Bitte ein Abrechnungsjahr zwischen 2000 und 2100 angeben.";

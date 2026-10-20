@@ -1,32 +1,37 @@
 @page "/verwaltung/abrechnungen/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Statements
+@using MietHahn.Domain.Statements
 @inject IStatementDispatch Dispatching
 @inject TimeProvider Clock
-@using MietHahn.Domain.Statements
-@inject Redirector Redirector
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (overview is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (overview is null)
 {
     <PageHeader Title="Abrechnung nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
 }
-
-@{
-    var statement = overview.Statement;
-    var summary = statement.Summary;
-    var result = statement.Result;
-}
+else
+{
+var statement = overview.Statement;
+var summary = statement.Summary;
+var result = statement.Result;
 
 <PageHeader Title="@($"Abrechnung {Format.Period(summary.BillingPeriod)}")" Subtitle="@($"{statement.PropertyName} · Fassung {summary.Revision}")" Back="@($"/verwaltung/objekte/{summary.PropertyId}/abrechnungen")" BackText="Alle Abrechnungen">
     <Actions>
         @if (summary.Current)
         {
-            <a class="button" href="/verwaltung/objekte/@summary.PropertyId/abrechnung?jahr=@summary.BillingPeriod.From.Year&schritt=6">Korrigieren (neue Fassung)</a>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{summary.PropertyId}/abrechnung?jahr={summary.BillingPeriod.From.Year}&schritt=6")">Korrigieren (neue Fassung)</MudButton>
         }
     </Actions>
 </PageHeader>
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 <Notice Level="NoticeLevel.Info" id="frozen">
@@ -89,25 +94,12 @@
         Frist für den Zugang: @Format.Date(overview.Deadline) (§ 556 Abs. 3 BGB). Der Versand legt das Schreiben in der Dateiablage und im Mieterportal ab,
         bucht Nachzahlung bzw. Guthaben im Mieterkonto und schlägt eine Anpassung der Vorauszahlungen vor.
     </p>
-    <EditForm Model="Send" FormName="dispatch" OnValidSubmit="DispatchAsync">
-        <DataAnnotationsValidator />
+    <EditForm Model="Send" class="dialog-form">
         <div class="form-grid">
-            <FormField Id="send-channel" Label="Versandart" For="() => Send!.Channel">
-                <InputSelect id="send-channel" @bind-Value="Send!.Channel">
-                    <option value="@DispatchChannel.Email">E-Mail mit PDF im Anhang</option>
-                    <option value="@DispatchChannel.Post">Postversand (PDF herunterladen und ausdrucken)</option>
-                </InputSelect>
-            </FormField>
-            <div class="field field-checkbox">
-                <InputCheckbox id="send-propose" @bind-Value="Send!.ProposePrepayments" />
-                <label for="send-propose">Anpassung der Vorauszahlungen vorschlagen (§ 560 Abs. 4 BGB)</label>
-            </div>
-            <FormField Id="send-safety" Label="Sicherheitszuschlag (%)" For="() => Send!.SafetyPercent" Hint="Leer = Standard aus der Konfiguration (Statements:PrepaymentSafetyPercent).">
-                <InputNumber id="send-safety" @bind-Value="Send!.SafetyPercent" step="0.1" min="0" max="100" />
-            </FormField>
-            <FormField Id="send-from" Label="Neue Vorauszahlung ab" For="() => Send!.PrepaymentFrom" Hint="Leer = erster Tag des übernächsten Monats.">
-                <InputDate id="send-from" @bind-Value="Send!.PrepaymentFrom" />
-            </FormField>
+            <AppSelect T="DispatchChannel" @bind-Value="Send.Channel" Label="Versandart" Items="Enum.GetValues<DispatchChannel>()" Text="@(c => c == DispatchChannel.Email ? "E-Mail mit PDF im Anhang" : "Postversand (PDF herunterladen und ausdrucken)")" />
+            <AppCheckBox @bind-Value="Send.ProposePrepayments" Label="Anpassung der Vorauszahlungen vorschlagen (§ 560 Abs. 4 BGB)" />
+            <AppNumberField T="decimal?" @bind-Value="Send.SafetyPercent" Label="Sicherheitszuschlag (%)" Min="0" Max="100" Hint="Leer = Standard aus der Konfiguration (Statements:PrepaymentSafetyPercent)." />
+            <AppDateField @bind-Value="Send.PrepaymentFrom" Label="Neue Vorauszahlung ab" Hint="Leer = erster Tag des übernächsten Monats." />
         </div>
         <div class="table-wrapper">
             <table class="data-table" id="dispatches">
@@ -152,7 +144,7 @@
                                 }
                                 else if (summary.Current)
                                 {
-                                    <br /><button type="submit" class="button" name="Send.LeaseId" value="@tenancy.LeaseId">Versenden</button>
+                                    <br /><MudButton Variant="Variant.Outlined" OnClick="() => DispatchAsync(tenancy.LeaseId)" aria-label="@($"Versenden: {tenancy.Label}")">Versenden</MudButton>
                                 }
                             </td>
                         </tr>
@@ -164,20 +156,15 @@
 
     @if (overview.Tenancies.Any(t => t.Dispatch is { ReceivedOn: null }))
     {
-        <EditForm Model="Confirmation" FormName="receipt" OnValidSubmit="ConfirmAsync">
-            <DataAnnotationsValidator />
+        <EditForm Model="Confirmation" class="dialog-form">
             <h3>Zugang bestätigen</h3>
             <div class="form-grid">
-                <FormField Id="receipt-date" Label="Zugangsdatum" For="() => Confirmation!.ReceivedOn" Required="true">
-                    <InputDate id="receipt-date" @bind-Value="Confirmation!.ReceivedOn" />
-                </FormField>
-                <FormField Id="receipt-note" Label="Nachweis" For="() => Confirmation!.Note" Hint="z. B. Einwurf-Einschreiben, Lesebestätigung.">
-                    <InputText id="receipt-note" @bind-Value="Confirmation!.Note" />
-                </FormField>
+                <AppDateField @bind-Value="Confirmation.ReceivedOn" Label="Zugangsdatum" Required="true" />
+                <AppTextField @bind-Value="Confirmation.Note" Label="Nachweis" Hint="z. B. Einwurf-Einschreiben, Lesebestätigung." />
             </div>
             @foreach (var tenancy in overview.Tenancies.Where(t => t.Dispatch is { ReceivedOn: null }))
             {
-                <button type="submit" class="button button-primary" name="Confirmation.DispatchId" value="@tenancy.Dispatch!.Id">Zugang bestätigen: @tenancy.Label</button>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ConfirmAsync(tenancy.Dispatch!.Id)">Zugang bestätigen: @tenancy.Label</MudButton>
             }
         </EditForm>
     }
@@ -185,8 +172,6 @@
     @if (overview.Tenancies.Any(t => t.Dispatch is not null && t.Dispatch.Proposals.Count > 0))
     {
         <h3>Vorschläge zur Anpassung der Vorauszahlungen</h3>
-        <form method="post" @formname="proposal" @onsubmit="DecideAsync">
-            <AntiforgeryToken />
             <div class="table-wrapper">
                 <table class="data-table" id="proposals">
                     <thead><tr><th>Mieter</th><th>Vorauszahlung</th><th class="number">bisher</th><th class="number">Vorschlag</th><th>ab</th><th>Entscheidung</th></tr></thead>
@@ -204,8 +189,8 @@
                                     <td>
                                         @if (proposal.Status == ProposalStatus.Open)
                                         {
-                                            <button type="submit" class="button button-primary" name="Decision.ApplyId" value="@proposal.Id">Übernehmen</button>
-                                            <button type="submit" class="button" name="Decision.DeclineId" value="@proposal.Id">Verwerfen</button>
+                                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApplyAsync(proposal)">Übernehmen</MudButton>
+                                            <MudButton Variant="Variant.Outlined" OnClick="() => DeclineAsync(proposal)">Verwerfen</MudButton>
                                         }
                                         else
                                         {
@@ -218,7 +203,6 @@
                     </tbody>
                 </table>
             </div>
-        </form>
     }
 </section>
 
@@ -299,6 +283,8 @@
         </table>
     </div>
 </section>
+}
+</InteractiveShell>
 
 @code {
     private DispatchOverview? overview;
@@ -307,68 +293,65 @@
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "dispatch")]
-    private SendForm? Send { get; set; }
-
-    [SupplyParameterFromForm(FormName = "receipt")]
-    private ReceiptForm? Confirmation { get; set; }
-
-    [SupplyParameterFromForm(FormName = "proposal")]
-    private ProposalForm? Decision { get; set; }
+    private SendForm Send { get; set; } = new();
+    private ReceiptForm Confirmation { get; set; } = new();
+    private bool loaded;
 
     protected override async Task OnInitializedAsync()
     {
-        Send ??= new();
-        Confirmation ??= new() { ReceivedOn = GermanTime.Today(Clock.GetUtcNow()) };
-        Decision ??= new();
+        Confirmation = new() { ReceivedOn = GermanTime.Today(Clock.GetUtcNow()) };
         overview = await Dispatching.OverviewAsync(Id);
+        loaded = true;
     }
 
-    private async Task DispatchAsync()
+    private async Task DispatchAsync(Guid leaseId)
     {
-        var result = await Dispatching.DispatchAsync(Id, Send!.LeaseId, new DispatchInput
+        var result = await Dispatching.DispatchAsync(Id, leaseId, new DispatchInput
         {
             Channel = Send.Channel,
             ProposePrepayments = Send.ProposePrepayments,
             SafetyPercent = Send.SafetyPercent,
             PrepaymentFrom = Send.PrepaymentFrom,
         });
-        Finish(result, "Die Abrechnung wurde versendet bzw. für den Postversand abgelegt.");
+        await FinishAsync(result, "Die Abrechnung wurde versendet bzw. für den Postversand abgelegt.");
     }
 
-    private async Task ConfirmAsync()
+    private async Task ConfirmAsync(Guid dispatchId)
     {
-        var result = await Dispatching.ConfirmReceiptAsync(Confirmation!.DispatchId, new DeliveryConfirmation { ReceivedOn = Confirmation.ReceivedOn, Note = Confirmation.Note });
-        Finish(result, "Der Zugang wurde vermerkt.");
+        if (Confirmation.ReceivedOn is null)
+        {
+            errors = ["Bitte das Zugangsdatum angeben."];
+            return;
+        }
+
+        var result = await Dispatching.ConfirmReceiptAsync(dispatchId, new DeliveryConfirmation { ReceivedOn = Confirmation.ReceivedOn, Note = Confirmation.Note });
+        await FinishAsync(result, "Der Zugang wurde vermerkt.");
     }
 
-    private async Task DecideAsync()
+    private async Task ApplyAsync(ProposalRow proposal) =>
+        await FinishAsync(await Dispatching.ApplyProposalAsync(proposal.Id, null), "Die neue Vorauszahlung wurde übernommen.");
+
+    private async Task DeclineAsync(ProposalRow proposal)
     {
-        var result = Decision!.ApplyId is { } apply
-            ? await Dispatching.ApplyProposalAsync(apply, null)
-            : Decision.DeclineId is { } decline ? await Dispatching.DeclineProposalAsync(decline) : Result.Failed("Bitte einen Vorschlag auswählen.");
-        Finish(result, Decision.ApplyId is not null ? "Die neue Vorauszahlung wurde übernommen." : "Der Vorschlag wurde verworfen.");
+        if (await Confirm.AskAsync("Vorschlag verwerfen", "Soll der Vorschlag zur Anpassung der Vorauszahlung verworfen werden?", "Ja, verwerfen"))
+        {
+            await FinishAsync(await Dispatching.DeclineProposalAsync(proposal.Id), "Der Vorschlag wurde verworfen.");
+        }
     }
 
-    private void Finish(Result result, string message)
+    private async Task FinishAsync(Result result, string message)
     {
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/abrechnungen/{Id}", message, HttpContext);
+            Notify.Success(message);
         }
-        else
-        {
-            errors = result.Errors;
-        }
+
+        overview = await Dispatching.OverviewAsync(Id);
     }
 
     private sealed class SendForm
     {
-        public Guid LeaseId { get; set; }
-
         public DispatchChannel Channel { get; set; }
 
         public bool ProposePrepayments { get; set; } = true;
@@ -380,18 +363,9 @@
 
     private sealed class ReceiptForm
     {
-        public Guid DispatchId { get; set; }
-
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte das Zugangsdatum angeben.")]
         public DateOnly? ReceivedOn { get; set; }
 
         public string? Note { get; set; }
-    }
-
-    private sealed class ProposalForm
-    {
-        public Guid? ApplyId { get; set; }
-
-        public Guid? DeclineId { get; set; }
     }
 }

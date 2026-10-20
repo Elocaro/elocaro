@@ -1,35 +1,39 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/abrechnung"
 @using MietHahn.Application.Statements
 @using MietHahn.Domain.Statements
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IStatements Statements
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 @inject TimeProvider Clock
 
-@if (wizard is null && errorText is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (wizard is null && errorText is null)
 {
     <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
 }
-
+else
+{
 <PageHeader Title="Abrechnungs-Assistent" Subtitle="@(wizard?.Preview.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
     <Actions>
-        <a class="button" href="/verwaltung/objekte/@PropertyId/abrechnungen">Freigegebene Abrechnungen</a>
+        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnungen")">Freigegebene Abrechnungen</MudButton>
     </Actions>
 </PageHeader>
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 @if (errorText is not null)
 {
     <Notice Level="NoticeLevel.Error">@errorText</Notice>
-    return;
 }
-
-@{
-    var w = wizard!;
-    var result = w.Preview.Result;
-}
+else
+{
+var w = wizard!;
+var result = w.Preview.Result;
 
 <nav aria-label="Schritte">
     <ol class="wizard-steps">
@@ -37,7 +41,7 @@
         {
             var count = w.Findings.Count(f => f.Step == item.Step && f.Severity != FindingSeverity.Info);
             <li class="@(item.Step == step ? "wizard-step-current" : "")">
-                <a href="@StepLink(item.Step)" aria-current="@(item.Step == step ? "step" : null)">@((int)item.Step). @item.Title@(count > 0 ? $" ({count})" : "")</a>
+                <MudButton Variant="Variant.Text" Color="@(item.Step == step ? Color.Primary : Color.Default)" OnClick="() => GoTo(item.Step)" aria-current="@(item.Step == step ? "step" : null)">@((int)item.Step). @item.Title@(count > 0 ? $" ({count})" : "")</MudButton>
             </li>
         }
     </ol>
@@ -70,17 +74,10 @@
     case WizardStep.PeriodAndProperty:
         <section id="step-1">
             <h2>1. Zeitraum und Objekt</h2>
-            <FilterBar SubmitText="Übernehmen" AllowReset="false">
-                <input type="hidden" name="schritt" value="1" />
-                <div class="field">
-                    <label for="year">Abrechnungsjahr</label>
-                    <input id="year" type="number" name="jahr" value="@year" min="2000" max="2100" />
-                </div>
-                <div class="field">
-                    <label for="threshold">Abweichung zum Vorjahr (±&nbsp;%)</label>
-                    <input id="threshold" type="number" name="abweichung" value="@Num(w.ThresholdPercent)" min="1" max="500" step="1" />
-                </div>
-</FilterBar>
+            <div class="form-row search-bar" role="search">
+                <AppNumberField T="int" Value="year" ValueChanged="OnYearChanged" Label="Abrechnungsjahr" Min="2000" Max="2100" />
+                <AppNumberField T="decimal" Value="threshold" ValueChanged="OnThresholdChanged" Label="Abweichung zum Vorjahr (± %)" Min="1" Max="500" />
+            </div>
             <dl class="summary">
                 <dt>Objekt</dt><dd>@w.Preview.PropertyName</dd>
                 <dt>Abrechnungszeitraum</dt><dd>@Format.Period(result.BillingPeriod)</dd>
@@ -227,18 +224,13 @@
                     Mit der Freigabe wird die Abrechnung @Format.Period(result.BillingPeriod) eingefroren (Gesamtkosten @Format.Money(result.TotalCosts), davon Mieter @Format.Money(result.TenantTotal)).
                     Sie lässt sich danach nicht mehr ändern; spätere Korrekturen erzeugen eine neue Fassung mit Differenz-Abrechnung.
                 </p>
-                <EditForm Model="Release" FormName="release" OnValidSubmit="ReleaseAsync">
+                <EditForm Model="Release" OnValidSubmit="ReleaseAsync" novalidate>
                     @if (w.HasWarnings)
                     {
-                        <div class="field field-checkbox">
-                            <InputCheckbox id="acknowledge" @bind-Value="Release!.Acknowledge" />
-                            <label for="acknowledge">Ich habe die Hinweise geprüft.</label>
-                        </div>
+                        <AppCheckBox @bind-Value="Release.Acknowledge" Label="Ich habe die Hinweise geprüft." />
                     }
-                    <FormField Id="note" Label="@(w.Released is null ? "Bemerkung (optional)" : "Begründung der Korrektur")" For="() => Release!.Note" Required="@(w.Released is not null)">
-                        <InputText id="note" @bind-Value="Release!.Note" />
-                    </FormField>
-                    <button type="submit" class="button button-primary">@(w.Released is null ? "Abrechnung freigeben" : "Neue Fassung freigeben")</button>
+                    <AppTextField @bind-Value="Release.Note" Label="@(w.Released is null ? "Bemerkung (optional)" : "Begründung der Korrektur")" Required="@(w.Released is not null)" />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(w.Released is null ? "Abrechnung freigeben" : "Neue Fassung freigeben")</MudButton>
                 </EditForm>
             }
         </section>
@@ -248,13 +240,16 @@
 <p class="wizard-nav">
     @if (step > WizardStep.PeriodAndProperty)
     {
-        <a class="button" id="back" href="@StepLink(step - 1)">Zurück</a>
+        <MudButton Variant="Variant.Outlined" id="back" OnClick="() => GoTo(step - 1)">Zurück</MudButton>
     }
     @if (step < WizardStep.Release)
     {
-        <a class="button button-primary" id="next" href="@StepLink(step + 1)">Weiter</a>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" id="next" OnClick="() => GoTo(step + 1)">Weiter</MudButton>
     }
 </p>
+}
+}
+</InteractiveShell>
 
 @code {
     private sealed record StepInfo(WizardStep Step, string Title);
@@ -283,13 +278,12 @@
     private IReadOnlyList<string>? errors;
     private string? errorText;
     private int year;
+    private decimal threshold;
+    private bool loaded;
     private WizardStep step;
 
     [Parameter]
     public Guid PropertyId { get; set; }
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromQuery(Name = "jahr")]
     private int? Year { get; set; }
@@ -300,25 +294,43 @@
     [SupplyParameterFromQuery(Name = "abweichung")]
     private decimal? Threshold { get; set; }
 
-    [SupplyParameterFromForm(FormName = "release")]
-    private ReleaseInput? Release { get; set; }
+    private ReleaseInput Release { get; set; } = new();
 
+    // The query string only provides the start values (see ADR 0005).
     protected override async Task OnInitializedAsync()
     {
-        Release ??= new();
         year = Year ?? GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+        threshold = Threshold is > 0 and <= 500 ? Threshold.Value : PlausibilityChecker.DefaultThresholdPercent;
         step = StepNumber is >= 1 and <= 6 ? (WizardStep)StepNumber.Value : WizardStep.PeriodAndProperty;
+        await LoadAsync();
+        loaded = true;
+    }
+
+    private async Task LoadAsync()
+    {
+        errorText = null;
         if (year is < 2000 or > 2100)
         {
             errorText = "Bitte ein Abrechnungsjahr zwischen 2000 und 2100 angeben.";
             return;
         }
 
-        wizard = await Statements.PrepareAsync(PropertyId, Period.CalendarYear(year), Threshold is > 0 and <= 500 ? Threshold.Value : PlausibilityChecker.DefaultThresholdPercent);
+        wizard = await Statements.PrepareAsync(PropertyId, Period.CalendarYear(year), threshold is > 0 and <= 500 ? threshold : PlausibilityChecker.DefaultThresholdPercent);
     }
 
-    private string StepLink(WizardStep target) =>
-        $"/verwaltung/objekte/{PropertyId}/abrechnung?jahr={year}&schritt={(int)target}&abweichung={Num(wizard?.ThresholdPercent ?? PlausibilityChecker.DefaultThresholdPercent)}";
+    private void GoTo(WizardStep target) => step = target;
+
+    private async Task OnYearChanged(int value)
+    {
+        year = value;
+        await LoadAsync();
+    }
+
+    private async Task OnThresholdChanged(decimal value)
+    {
+        threshold = value;
+        await LoadAsync();
+    }
 
     private static string Num(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
@@ -326,10 +338,10 @@
 
     private async Task ReleaseAsync()
     {
-        var result = await Statements.ReleaseAsync(PropertyId, Period.CalendarYear(year), Release!.Acknowledge, Release.Note);
+        var result = await Statements.ReleaseAsync(PropertyId, Period.CalendarYear(year), Release.Acknowledge, Release.Note);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/abrechnungen/{result.Id}", "Die Abrechnung wurde freigegeben.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/abrechnungen/{result.Id}?meldung=freigegeben");
         }
         else
         {
