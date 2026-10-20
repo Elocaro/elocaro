@@ -402,6 +402,14 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Tests:** Domain (`HeatingGoldenMasterTests`: Musterbeispiel im Stil der Fachliteratur mit erfundenen Zahlen, von Hand gerechnet; `HeatingTenantChangeTests`: Mieterwechsel mit Zwischenablesung bzw. Gradtagszahlen, Warmwasser nach Tagen; `CarbonCostTests`: jede Stufengrenze, Sonderfälle, Jahresumrechnung; `HeatingRulesTests`: Öl (Durchschnitt/FIFO), § 12, Leerstand, WG, Einstellungen, Zufallstest), Integration (`OperatingCosts/HeatingCostServiceTests`), Web (`HeatingPagesTests`).
 - **Tests:** Domain (`OperatingCostGoldenMasterTests`: Haus mit vier Einheiten, Mieterwechsel 15.6., zwei Monate Leerstand, WG mit drei Zimmern als Pauschale, Schlüsselwechsel zum 1.7., jahresübergreifende Versicherung, direkte Kosten, nicht umlagefähige Kosten und Heizung ausgenommen, alles von Hand gerechnet mit den Rechenschritten als Kommentar; `OperatingCostCalculatorTests`, `CostAllocationRuleTests`, Zufallstests), Integration (`OperatingCosts/OperatingCostServiceTests`), Web (`OperatingCostPagesTests`).
 
+### AfA & Abschreibungsplan (#36)
+
+- **Rechenkern:** `Domain.Tax.DepreciationCalculator` ist eine reine Funktion (`BuildingAcquisition`, `SubsequentCost`, `MovableAsset` → `DepreciationPlan` mit AfA und Restbuchwert je Jahr und Warnungen). Der Satz kommt aus `StandardRate(Baujahr)` oder dem Überschreibwert; Monate im Anschaffungsjahr: `13 − Monat`.
+- **Daten:** `PropertyAcquisition` (eine je Objekt, Tabelle `property_acquisitions`), `PropertyCost` (nachträgliche Kosten, `IsMaintenance` = zählt für die 15-%-Grenze) und `PropertyAsset` (bewegliche Wirtschaftsgüter).
+- **Dienst:** `IDepreciationService` liefert Daten und Plan (bis zum laufenden Jahr, mindestens fünf Jahre nach dem Kauf).
+- **Oberfläche:** `/verwaltung/objekte/{id}/afa` (Recht Finanzen), erreichbar über „AfA“ in den Objektdetails.
+- Die Anlage-V-Auswertung (#39) übernimmt die AfA je Jahr aus diesem Plan.
+
 ### Personen & Datenschutz
 
 - `Person` (Mieter, Bürgen, Kontakte) mit Anschriften als Zeitreihe (Voranschrift → aktuelle → neue Anschrift nach Auszug) und beliebig vielen `BankDetails`en (IBAN mit Prüfsumme, `Domain.Common.Iban`). Mieter und Bürgen ergeben sich aus Verträgen, nicht aus einem Feld.
