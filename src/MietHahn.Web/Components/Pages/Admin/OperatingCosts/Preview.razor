@@ -4,6 +4,7 @@
 
 <PageHeader Title="Nebenkosten-Vorschau" Subtitle="@(preview?.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
     <Actions>
+        <a class="button button-primary" href="/verwaltung/objekte/@PropertyId/abrechnung?jahr=@year">Abrechnungs-Assistent</a>
         <a class="button" href="/verwaltung/objekte/@PropertyId/umlageschluessel">Umlageschlüssel</a>
         <a class="button" href="/verwaltung/objekte/@PropertyId/heizung">Heizkosten-Einstellungen</a>
     </Actions>

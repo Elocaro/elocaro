@@ -72,9 +72,11 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
 - **Zeitanteilig** nach Tagen bei Mieterwechsel. **Leerstand trägt der Vermieter.**
 - **Nicht umlagefähige Kosten** (Verwaltung, Instandhaltung) werden erfasst, aber nicht umgelegt (sie gehen in die Steuer).
 - **Abrechnungsinhalt:** Gesamtkosten je Kostenart, Verteilerschlüssel mit Erläuterung, Anteil des Mieters, Vorauszahlungen, Saldo. Dazu der **§35a-EStG-Ausweis** (Arbeitskostenanteile haushaltsnaher Dienstleistungen/Handwerker).
-- **Frist:** 12 Monate nach Ende des Abrechnungszeitraums (§556 Abs. 3). Danach sind Nachforderungen ausgeschlossen, daher Erinnerungen.
+- **Frist:** 12 Monate nach Ende des Abrechnungszeitraums (§556 Abs. 3). Danach sind Nachforderungen ausgeschlossen, daher Erinnerungen: ab Oktober des Folgejahres im Dashboard, dringlicher 6, 4 und 2 Wochen vor dem 31.12., nach Ablauf als verstrichen markiert. Guthaben der Mieter bleiben auch nach der Frist fällig.
 - Nach der Abrechnung: **Vorschlag zur Anpassung der Vorauszahlung** (§560 Abs. 4).
-- **Plausibilitätsprüfung** vor dem Versand: Summe der Anteile plus Leerstand = Gesamtkosten, Zähler vollständig, Zeiträume lückenlos.
+- **Plausibilitätsprüfung** vor der Freigabe (Abrechnungs-Assistent): Summe der Anteile plus Leerstand = Gesamtkosten, Zähler vollständig, Zeiträume lückenlos, Kostenvergleich zum Vorjahr (Grenze einstellbar, Standard ±20 %), fehlende wiederkehrende Kostenarten, nicht vereinbarte Kostenarten, Vorauszahlungen gegen Soll. Fehler verhindern die Freigabe, Warnungen müssen bestätigt werden.
+- **Freigabe und Korrektur:** Eine freigegebene Abrechnung ist unveränderlich. Änderungen erzeugen eine neue Fassung mit Begründung und Differenz-Abrechnung je Mieter; nach Ablauf der Frist sind zusätzliche Forderungen daraus ausgeschlossen (außer bei unverschuldeter Verspätung).
+- **Pauschale (WG):** Ist-Kosten gegen Pauschale sind eine interne Auswertung; die Differenz je Monat ist der Vorschlag für eine Erhöhung nach §560 Abs. 1.
 
 ## Heizkostenabrechnung (HeizkostenV) & CO₂-Kosten (CO₂KostAufG)
 

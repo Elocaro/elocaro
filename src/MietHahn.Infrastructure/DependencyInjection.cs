@@ -23,6 +23,7 @@ using MietHahn.Application.People;
 using MietHahn.Application.Privacy;
 using MietHahn.Application.Properties;
 using MietHahn.Application.Receipts;
+using MietHahn.Application.Statements;
 using MietHahn.Application.Todos;
 using MietHahn.Infrastructure.Admin;
 using MietHahn.Infrastructure.Audit;
@@ -45,6 +46,7 @@ using MietHahn.Infrastructure.Privacy;
 using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Receipts;
 using MietHahn.Infrastructure.Receipts.Extraction;
+using MietHahn.Infrastructure.Statements;
 using MietHahn.Infrastructure.Templates;
 using Quartz;
 
@@ -235,6 +237,8 @@ public static class DependencyInjection
         services.AddScoped<ICostSubtypes, CostSubtypeService>();
         services.AddScoped<IOperatingCosts, OperatingCostService>();
         services.AddScoped<IHeatingSettings, HeatingSettingsService>();
+        services.AddScoped<IStatements, StatementService>();
+        services.AddScoped<ITodoSource, StatementDeadlineTodos>();
         services.AddScoped<ITodoSource, ReceiptTodos>();
         services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();
     }

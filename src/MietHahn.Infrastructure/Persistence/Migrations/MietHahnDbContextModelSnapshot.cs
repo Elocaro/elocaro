@@ -3863,6 +3863,101 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("supplier_cost_type_rules", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Statements.BillingStatement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<decimal>("LandlordTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("landlord_total");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("note");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<DateTimeOffset>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("released_at");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.Property<string>("Snapshot")
+                        .IsRequired()
+                        .HasColumnType("json")
+                        .HasColumnName("snapshot");
+
+                    b.Property<Guid?>("SupersedesId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supersedes_id");
+
+                    b.Property<decimal>("TotalCosts")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_costs");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "BillingPeriod", "MietHahn.Domain.Statements.BillingStatement.BillingPeriod#Period", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<DateOnly>("From")
+                                .HasColumnType("date")
+                                .HasColumnName("billing_period_from");
+
+                            b1.Property<DateOnly?>("To")
+                                .HasColumnType("date")
+                                .HasColumnName("billing_period_to");
+                        });
+
+                    b.HasKey("Id")
+                        .HasName("pk_billing_statements");
+
+                    b.HasIndex("PropertyId")
+                        .HasDatabaseName("ix_billing_statements_property_id");
+
+                    b.HasIndex("SupersedesId")
+                        .HasDatabaseName("ix_billing_statements_supersedes_id");
+
+                    b.ToTable("billing_statements", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Infrastructure.Audit.AuditEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4718,6 +4813,22 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_receipt_files_receipts_receipt_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Statements.BillingStatement", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_billing_statements_property_property_id");
+
+                    b.HasOne("MietHahn.Domain.Statements.BillingStatement", null)
+                        .WithMany()
+                        .HasForeignKey("SupersedesId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_billing_statements_billing_statements_supersedes_id");
                 });
 
             modelBuilder.Entity("MietHahn.Infrastructure.Identity.MagicLink", b =>
