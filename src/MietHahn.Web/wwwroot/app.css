@@ -510,3 +510,6 @@ img.document-preview, iframe.document-preview, .property-image { border-radius: 
 .form-row .field-checkbox { flex: 0 0 auto; align-self: center; margin-top: 0.7rem; min-height: 3.25rem; align-items: center; }
 .disclosure > summary { margin-left: -0.75rem; padding: 0 0.75rem; }
 .details dt { font-size: 0.9rem; }
+
+/* Text above a field grid keeps its distance from the floating labels */
+p + .form-grid, p + .form-row, .small + .form-grid { margin-top: 1rem; }
