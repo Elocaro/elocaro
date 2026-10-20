@@ -83,7 +83,7 @@
         <input type="hidden" name="SaveYear" value="@Year" />
         <label for="local-rent">Ortsübliche Jahresmiete (€)</label>
         <input id="local-rent" type="text" inputmode="decimal" name="LocalRentText" value="@(report.LocalRent is { } rent ? rent.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) : "")" />
-        <button type="submit" class="button">Speichern</button>
+        <button type="submit" class="button button-primary">Speichern</button>
     </form>
 </section>
 

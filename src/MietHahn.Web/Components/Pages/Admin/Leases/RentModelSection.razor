@@ -36,11 +36,11 @@
                                         <td>
                                             @if (rentStep.AppliedAt is not null)
                                             {
-                                                <span class="status status-ok">übernommen</span>
+                                                <StatusChip Level="StatusLevel.Success">übernommen</StatusChip>
                                             }
                                             else
                                             {
-                                                <span class="status status-pending">geplant</span>
+                                                <StatusChip Level="StatusLevel.Warning">geplant</StatusChip>
                                             }
                                         </td>
                                         <td>
@@ -66,7 +66,7 @@
                     <FormField Id="graduated-rent" Label="Neue Kaltmiete (€)" For="() => Graduated.BaseRent" Required="true">
                         <InputAmount id="graduated-rent" @bind-Value="Graduated.BaseRent" />
                     </FormField>
-                    <div class="field field-action"><button type="submit" class="button">Staffel speichern</button></div>
+                    <div class="field field-action"><button type="submit" class="button button-primary">Staffel speichern</button></div>
                 </EditForm>
                 <p class="small">§ 557a BGB: Die Miete muss jeweils mindestens ein Jahr unverändert bleiben. Am Stichtag übernimmt MietHahn die Staffel automatisch als Kaltmiete.</p>
             </details>
@@ -88,7 +88,7 @@
                     <FormField Id="declaration" Label="Erklärung geht zu am" For="() => Adjustment.DeclaredOn" Required="true" Hint="Die neue Miete gilt ab dem übernächsten Monat (§ 557b Abs. 3 BGB).">
                         <InputDate id="declaration" @bind-Value="Adjustment.DeclaredOn" />
                     </FormField>
-                    <div class="field field-action"><button type="submit" class="button">Anpassung übernehmen</button></div>
+                    <div class="field field-action"><button type="submit" class="button button-primary">Anpassung übernehmen</button></div>
                 </EditForm>
             }
             else
@@ -116,7 +116,7 @@
             <FormField Id="index-value" Label="Indexmiete: Ausgangswert" For="() => Input.BaseValue" Hint="VPI (2020 = 100), z. B. 117,4">
                 <InputArea id="index-value" @bind-Value="Input.BaseValue" step="0.1" />
             </FormField>
-            <div class="field field-action"><button type="submit" class="button">Mietmodell speichern</button></div>
+            <div class="field field-action"><button type="submit" class="button button-primary">Mietmodell speichern</button></div>
         </EditForm>
     </details>
 </section>

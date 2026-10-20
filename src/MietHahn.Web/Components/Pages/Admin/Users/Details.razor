@@ -37,7 +37,7 @@
                 <option value="@role">@Roles.DisplayName(role)</option>
             }
         </InputSelect>
-        <button type="submit" class="button">Rolle ändern</button>
+        <button type="submit" class="button button-primary">Rolle ändern</button>
     </EditForm>
 </section>
 
@@ -53,7 +53,7 @@
                     <label for="permission-@permission">@Permissions.DisplayName(permission)</label>
                 </div>
             }
-            <button type="submit" class="button">Rechte speichern</button>
+            <button type="submit" class="button button-primary">Rechte speichern</button>
         </EditForm>
     </section>
 }
@@ -76,7 +76,7 @@
                         <label for="property-@property.Id">@property.Name <span class="small">@property.Address</span></label>
                     </div>
                 }
-                <button type="submit" class="button">Objekte speichern</button>
+                <button type="submit" class="button button-primary">Objekte speichern</button>
             </EditForm>
             <p class="small">Hausmeister sehen nur diese Objekte (ohne Mieterdaten).</p>
         }
@@ -91,7 +91,7 @@
         {
             <form method="post" @formname="lock" @onsubmit="ToggleLockAsync">
                 <AntiforgeryToken />
-                <button type="submit" class="button">Konto entsperren</button>
+                <button type="submit" class="button button-primary">Konto entsperren</button>
             </form>
         }
         else

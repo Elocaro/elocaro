@@ -29,7 +29,7 @@
 
 <form method="post" @formname="refresh" @onsubmit="RefreshAsync">
     <AntiforgeryToken />
-    <button type="submit" class="button">Monatsmieten jetzt aktualisieren</button>
+    <button type="submit" class="button button-primary">Monatsmieten jetzt aktualisieren</button>
     <span class="field-hint">Passiert sonst jede Nacht automatisch, z. B. nach einer Mieterhöhung.</span>
 </form>
 
@@ -60,15 +60,15 @@
                                 <td>
                                     @if (b.Open is 0m)
                                     {
-                                        <span class="status status-ok">bezahlt</span>
+                                        <StatusChip Level="StatusLevel.Success">bezahlt</StatusChip>
                                     }
                                     else if (b.Open is { } open && open == b.Debit)
                                     {
-                                        <span class="status status-pending">offen</span>
+                                        <StatusChip Level="StatusLevel.Warning">offen</StatusChip>
                                     }
                                     else if (b.Open is { } part)
                                     {
-                                        <span class="status status-pending">@Format.Money(part) offen</span>
+                                        <StatusChip Level="StatusLevel.Warning">@Format.Money(part) offen</StatusChip>
                                     }
                                 </td>
                                 <td>
@@ -141,7 +141,7 @@
                 <InputText id="charge-text" @bind-Value="Charge!.Name" />
             </FormField>
         </div>
-        <button type="submit" class="button">Buchen</button>
+        <button type="submit" class="button button-primary">Buchen</button>
     </EditForm>
 </section>
 
@@ -222,7 +222,7 @@
                     <InputDate id="hold-until" @bind-Value="Hold!.Until" />
                 </FormField>
             </div>
-            <button type="submit" class="button">Mahnsperre setzen</button>
+            <button type="submit" class="button button-primary">Mahnsperre setzen</button>
         </EditForm>
     }
 </section>

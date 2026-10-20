@@ -9,6 +9,8 @@ using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;
 
+using MietHahn.Web.Components.Common;
+
 namespace MietHahn.Web.Display;
 
 /// <summary>German display names for domain enumerations.</summary>
@@ -43,11 +45,11 @@ public static class Labels
         _ => "offen",
     };
 
-    public static string StatusClass(TransactionStatus value) => value switch
+    public static StatusLevel Level(TransactionStatus value) => value switch
     {
-        TransactionStatus.Assigned => "status-ok",
-        TransactionStatus.Ignored => "",
-        _ => "status-pending",
+        TransactionStatus.Assigned => StatusLevel.Success,
+        TransactionStatus.Ignored => StatusLevel.Neutral,
+        _ => StatusLevel.Warning,
     };
 
     public static string From(RuleDirection value) => value switch
@@ -195,11 +197,11 @@ public static class Labels
         _ => "läuft",
     };
 
-    public static string StatusClass(LeaseStatus value) => value switch
+    public static StatusLevel Level(LeaseStatus value) => value switch
     {
-        LeaseStatus.Active => "status-ok",
-        LeaseStatus.Terminated or LeaseStatus.Future => "status-pending",
-        _ => "",
+        LeaseStatus.Active => StatusLevel.Success,
+        LeaseStatus.Terminated or LeaseStatus.Future => StatusLevel.Warning,
+        _ => StatusLevel.Neutral,
     };
 
     public static string From(RentModel value) => value switch

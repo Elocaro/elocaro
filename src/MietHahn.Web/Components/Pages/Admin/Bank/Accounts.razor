@@ -31,7 +31,7 @@ else if (accounts is not null)
                             <a href="/verwaltung/bank/umsaetze?konto=@account.Id">@(account.LastTransaction is { } lastReading ? $"bis {Format.Date(lastReading)}" : "keine")</a>
                             @if (account.OpenTransactions > 0)
                             {
-                                <span class="status status-pending">@account.OpenTransactions offen</span>
+                                <StatusChip Level="StatusLevel.Warning">@account.OpenTransactions offen</StatusChip>
                             }
                         </td>
                     </tr>

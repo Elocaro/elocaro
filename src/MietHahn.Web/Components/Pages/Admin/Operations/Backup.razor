@@ -19,11 +19,11 @@
                 <dd>
                     @if (state.State == BackupState.Failed)
                     {
-                        <span class="status status-error">fehlgeschlagen</span>
+                        <StatusChip Level="StatusLevel.Error">fehlgeschlagen</StatusChip>
                     }
                     else
                     {
-                        <span class="status status-ok">erfolgreich</span>
+                        <StatusChip Level="StatusLevel.Success">erfolgreich</StatusChip>
                     }
                 </dd>
                 @if (state.Snapshot is not null)

@@ -50,19 +50,19 @@
                         <td>
                             @if (b.Locked)
                             {
-                                <span class="status status-error">gesperrt</span>
+                                <StatusChip Level="StatusLevel.Error">gesperrt</StatusChip>
                             }
                             else if (!b.InvitationAccepted)
                             {
-                                <span class="status status-pending">eingeladen</span>
+                                <StatusChip Level="StatusLevel.Warning">eingeladen</StatusChip>
                             }
                             else
                             {
-                                <span class="status status-ok">aktiv</span>
+                                <StatusChip Level="StatusLevel.Success">aktiv</StatusChip>
                             }
                             @if (b.TwoFactorEnabled)
                             {
-                                <span class="status" title="Zwei-Faktor-Anmeldung aktiv">2FA</span>
+                                <StatusChip title="Zwei-Faktor-Anmeldung aktiv">2FA</StatusChip>
                             }
                         </td>
                         <td>@Format.Timestamp(b.LastSignInAt)</td>

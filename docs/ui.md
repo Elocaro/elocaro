@@ -26,6 +26,12 @@ Die älteren Namen `--color-*` und `--radius` sind Aliase und nur für vorhanden
 
 Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gilt die Systemeinstellung; der Benutzer kann sie im Benutzermenü auf *Hell* oder *Dunkel* festlegen. Das speichert das Cookie `miethahn.theme` (`ThemePreference`) und setzt `data-theme` am `<html>`-Element.
 
+## Schrift, Icons, Felder
+
+- **Schrift:** Roboto Flex (Variable Font, OFL), lokal in `wwwroot/fonts/` mit Lizenztext; kein CDN.
+- **Icons:** Inline-SVG über `Icon`, Pfade in `AppIcons` (aktuell die Material-Icons aus MudBlazor).
+- **Felder:** Outlined, Beschriftung im Rahmen (`FormField` und `div.field`). Der Hintergrund der Beschriftung kommt aus `--field-surface`; Container mit anderer Fläche setzen sie (siehe `.account-card`).
+
 ## Bausteine
 
 | Bedarf | Baustein | Regel |
@@ -38,12 +44,15 @@ Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gil
 | Leerer Zustand | `EmptyState` | Unterscheiden: „Keine Treffer für …“ (Filter aktiv) und „Noch keine …“ |
 | Riskante Aktion | `DangerAction` (eigenes Formular), `RowConfirm` (Zeile in Tabelle/Liste, im umgebenden Formular) | Siehe „Riskante Aktionen“ |
 | Filter, Suche | `FilterBar` | Siehe „Filter“ |
+| Status in Tabelle/Detail | `StatusChip` (`StatusLevel`: Neutral, Success, Warning, Error) | Kein eigenes `class="status …"`; Zuordnung Enum → Stufe in `Labels.Level(…)` |
+| Icon | `Icon` mit `AppIcons.*` | Nur Icons aus `AppIcons` (eine Stelle kennt die Quelle); dekorativ, außer mit `Label` |
+| Marke, Sprunglink | `BrandMark`, `SkipLink` | In jedem Layout |
 | Verlauf | `ChangeHistory` | Auf Detailseiten von Stammdaten |
 | Datum, Geld, Zahl | `Format.*`, Enum-Texte `Labels.*` | Nie `ToString("dd.MM.yyyy")` o. ä. in Seiten |
 
 ### Buttons
 
-Pro Seite gibt es **höchstens eine** hervorgehobene Aktion (`button-primary`, gefüllt): die, die der Benutzer an dieser Stelle am wahrscheinlichsten will.
+Je Abschnitt (Formular, Dialog, Karte) gibt es **höchstens eine** hervorgehobene Aktion (`button-primary`, gefüllt): die, die der Benutzer an dieser Stelle am wahrscheinlichsten will. Abschließende Aktionen eines Formulars sind primär, Nebenaktionen (Verwerfen, Zurücksetzen) nicht.
 
 | Klasse | Zweck |
 |---|---|
@@ -104,9 +113,15 @@ Deutsch, Sie-Form, sachlich. Buttons mit Verb („Speichern“, „Vertrag anleg
 
 - [ ] Layout über `_Imports.razor` des Ordners, `PageHeader` vorhanden
 - [ ] Nur Bausteine und Token-Farben, kein Hex, keine Inline-Styles
-- [ ] Höchstens eine `button-primary`
+- [ ] Höchstens eine `button-primary` je Abschnitt
 - [ ] Leerer Zustand und Fehlerfall gestaltet
 - [ ] Riskante Aktionen mit `DangerAction`
 - [ ] Formatierung über `Format`/`Labels`
 - [ ] Bei 360 px ohne horizontales Scrollen, hell und dunkel geprüft
 - [ ] Neuer Baustein oder neue Klasse? Dann hier dokumentieren
+
+## Prüfen
+
+- `UiRulesTests` (Architektur): Bausteine statt Rohmarkup.
+- `UiAuditTests` (Browser): Textkontrast nach WCAG AA in Hell und Dunkel auf den Hauptseiten, alle Bereiche bei 360 px ohne horizontales Scrollen (nennt die überstehenden Elemente).
+- Screenshot-Tour zum Ansehen: `MIETHAHN_TOUR=1 MIETHAHN_HEADED=1 MIETHAHN_TOUR_DIR=/pfad dotnet test --filter Screenshot_tour` (sichtbarer Browser: `MIETHAHN_HEADED=1`, braucht ein Display).

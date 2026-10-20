@@ -16,7 +16,7 @@
                 @foreach (var p in profile)
                 {
                     <tr>
-                        <td>@p.Name @if (p.IsDefault) {<span class="status">mitgeliefert</span>}</td>
+                        <td>@p.Name @if (p.IsDefault) {<StatusChip>mitgeliefert</StatusChip>}</td>
                         <td>@(p.Delimiter == "\t" ? "Tab" : p.Delimiter), Dezimal „@p.DecimalSeparator“</td>
                         <td>@p.DateFormat</td>
                         <td class="small">@p.BookingDateColumn · @(p.AmountColumn ?? $"{p.DebitColumn} / {p.CreditColumn}") · @p.PurposeColumn</td>

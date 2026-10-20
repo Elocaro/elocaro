@@ -53,7 +53,7 @@ else if (rows is not null)
                                 @if (row.Suggestion is { } s)
                                 {
                                     <strong>@s.Target</strong>
-                                    <span class="status @(s.Score >= 70 ? "status-ok" : "status-pending")">@s.Score % (@s.Confidence)</span>
+                                    <StatusChip Level="@(s.Score >= 70 ? StatusLevel.Success : StatusLevel.Warning)">@s.Score % (@s.Confidence)</StatusChip>
                                     <br /><span class="small">@string.Join(" · ", s.Reasons)</span>
                                     @if (s.Parts.Count > 1)
                                     {

@@ -1,5 +1,5 @@
 @* A hint box in one of four levels. Use instead of hand-written class="message …"; errors announce themselves (role=alert). *@
-<div class="message @LevelClass" role="@(Level == NoticeLevel.Error ? "alert" : "status")" @attributes="AdditionalAttributes">@ChildContent</div>
+<div class="message @LevelClass" role="@(Level == NoticeLevel.Error ? "alert" : "status")" @attributes="AdditionalAttributes"><Icon Path="@IconPath" /><div class="message-body">@ChildContent</div></div>
 
 @code {
     [Parameter]
@@ -10,6 +10,14 @@
 
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string IconPath => Level switch
+    {
+        NoticeLevel.Success => AppIcons.Success,
+        NoticeLevel.Warning => AppIcons.Warning,
+        NoticeLevel.Error => AppIcons.Error,
+        _ => AppIcons.Info,
+    };
 
     private string LevelClass => Level switch
     {

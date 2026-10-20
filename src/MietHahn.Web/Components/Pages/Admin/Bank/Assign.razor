@@ -25,7 +25,7 @@
     <h2>Umsatz</h2>
     <dl class="details">
         <dt>Status</dt>
-        <dd><span class="status @Labels.StatusClass(u.Status)">@Labels.From(u.Status)</span>@if (u.Note is not null) {<span class="small"> Notiz: @u.Note</span>}</dd>
+        <dd><StatusChip Level="Labels.Level(u.Status)">@Labels.From(u.Status)</StatusChip>@if (u.Note is not null) {<span class="small"> Notiz: @u.Note</span>}</dd>
         <dt>Gegenseite</dt>
         <dd>@(u.CounterpartyName ?? "–")<span class="small"> @u.CounterpartyIban</span></dd>
         <dt>Verwendungszweck</dt>
@@ -48,7 +48,7 @@
                         <tr>
                             <td>@a.Kind</td>
                             <td>@if (a.Link is not null) {<a href="@a.Link">@a.Target</a>} else {@a.Target}</td>
-                            <td>@a.Detail @if (a.ReceiptWithoutFile) {<span class="status status-pending">Beleg ohne Datei</span>}</td>
+                            <td>@a.Detail @if (a.ReceiptWithoutFile) {<StatusChip Level="StatusLevel.Warning">Beleg ohne Datei</StatusChip>}</td>
                             <td class="number">@Format.Money(a.Amount)</td>
                         </tr>
                     }
@@ -85,7 +85,7 @@ else if (options is not null)
                 {
                     var s = proposal.Suggestions[i];
                     <article class="suggestion">
-                        <h3>@s.Target <span class="status @(s.Score >= 70 ? "status-ok" : "status-pending")">@s.Score % (@s.Confidence)</span></h3>
+                        <h3>@s.Target <StatusChip Level="@(s.Score >= 70 ? StatusLevel.Success : StatusLevel.Warning)">@s.Score % (@s.Confidence)</StatusChip></h3>
                         <ul class="small">
                             @foreach (var reason in s.Reasons)
                             {

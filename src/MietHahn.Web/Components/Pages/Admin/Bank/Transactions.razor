@@ -73,7 +73,7 @@ else if (transactions is not null)
                                 }
                             </td>
                             <td class="number">@Format.Money(u.Amount)</td>
-                            <td><span class="status @Labels.StatusClass(u.Status)">@Labels.From(u.Status)</span></td>
+                            <td><StatusChip Level="Labels.Level(u.Status)">@Labels.From(u.Status)</StatusChip></td>
                             <td>
                                 @if (u.Status == TransactionStatus.Open)
                                 {

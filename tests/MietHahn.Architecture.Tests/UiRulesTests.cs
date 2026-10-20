@@ -28,6 +28,18 @@ public class UiRulesTests
     }
 
     [Fact]
+    public void Status_labels_use_StatusChip()
+    {
+        AssertNoMatch(@"class=""status[ ""-]", "Use <StatusChip Level=\"…\"> instead of a hand-written status span", except: "Common/StatusChip.razor");
+    }
+
+    [Fact]
+    public void Layouts_use_BrandMark_and_SkipLink()
+    {
+        AssertNoMatch(@"class=""(skip-link|brand|account-brand)""", "Use <BrandMark> and <SkipLink> in layouts", except: "Common/BrandMark.razor", exceptAlso: "Common/SkipLink.razor");
+    }
+
+    [Fact]
     public void Filters_use_FilterBar()
     {
         AssertNoMatch(@"<form method=""get""", "Use <FilterBar> for filter and search forms", except: "Common/FilterBar.razor");

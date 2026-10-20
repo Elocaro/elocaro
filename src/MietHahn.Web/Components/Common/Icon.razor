@@ -1,0 +1,14 @@
+@* Inline SVG icon (Material Symbols style). Path: the SVG content, see AppIcons. Decorative unless Label is set. *@
+<svg class="icon @CssClass" viewBox="0 0 24 24" fill="currentColor" focusable="false" role="@(Label is null ? null : "img")" aria-label="@Label" aria-hidden="@(Label is null ? "true" : null)">@((MarkupString)Path)</svg>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Path { get; set; } = "";
+
+    /// <summary>Accessible name; without it the icon is hidden from screen readers.</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+}

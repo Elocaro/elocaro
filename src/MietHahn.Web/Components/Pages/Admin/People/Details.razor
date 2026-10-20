@@ -70,7 +70,7 @@
                     }
                     @if (!reference.Active)
                     {
-                        <span class="status">beendet</span>
+                        <StatusChip>beendet</StatusChip>
                     }
                 </li>
             }
@@ -95,7 +95,7 @@
             <EditForm Model="Address" FormName="address" OnValidSubmit="SaveAddressAsync">
                 <DataAnnotationsValidator />
                 <AddressFields Address="Address!" />
-                <button type="submit" class="button">Anschrift speichern</button>
+                <button type="submit" class="button button-primary">Anschrift speichern</button>
             </EditForm>
             <p class="small">Die bisherige Anschrift endet am Vortag und bleibt erhalten (z. B. für die Zustellung früherer Abrechnungen an die neue Anschrift).</p>
         </details>
@@ -151,7 +151,7 @@
                     <InputText id="bic" @bind-Value="Bank!.Bic" autocomplete="off" />
                 </FormField>
                 <div class="field field-action">
-                    <button type="submit" class="button">IBAN hinzufügen</button>
+                    <button type="submit" class="button button-primary">IBAN hinzufügen</button>
                 </div>
             </EditForm>
         </details>
@@ -165,7 +165,7 @@
                 Konto <a href="/verwaltung/benutzer/@access.UserId">@access.Email</a> (@MietHahn.Application.Accounts.Roles.DisplayName(access.Role))
                 @if (access.Locked)
                 {
-                    <span class="status status-error">gesperrt</span>
+                    <StatusChip Level="StatusLevel.Error">gesperrt</StatusChip>
                 }
             </p>
         }
@@ -174,7 +174,7 @@
             <p class="small">Mit einem Zugang sieht die Person ihre Verträge, Dokumente und Tickets im Portal (Mieter) bzw. im Servicebereich.</p>
             <form method="post" @formname="access" @onsubmit="SetUpAccessAsync">
                 <AntiforgeryToken />
-                <button type="submit" class="button" disabled="@(person.Data.Email is null)">Zugang einrichten und einladen</button>
+                <button type="submit" class="button button-primary" disabled="@(person.Data.Email is null)">Zugang einrichten und einladen</button>
             </form>
             @if (person.Data.Email is null)
             {

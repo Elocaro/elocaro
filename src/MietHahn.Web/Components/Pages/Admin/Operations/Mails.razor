@@ -22,7 +22,7 @@
         <FormField Id="recipient" Label="Empfänger" For="() => Test!.Recipient">
             <InputText id="recipient" @bind-Value="Test!.Recipient" type="email" autocomplete="email" />
         </FormField>
-        <button type="submit" class="button">Testnachricht einreihen</button>
+        <button type="submit" class="button button-primary">Testnachricht einreihen</button>
     </EditForm>
 </section>
 
@@ -49,7 +49,7 @@
                         <td>@Format.Timestamp(mail.CreatedAt)</td>
                         <td>@string.Join(", ", mail.To)</td>
                         <td>@mail.Subject</td>
-                        <td><span class="status @StatusClass(mail.Status)" title="@mail.LastError">@StatusText(mail.Status)</span></td>
+                        <td><StatusChip Level="Level(mail.Status)" title="@mail.LastError">@StatusText(mail.Status)</StatusChip></td>
                         <td>@mail.Attempts</td>
                         <td>@(mail.Status == MailStatus.Sent ? Format.Timestamp(mail.SentAt) : Format.Timestamp(mail.NextAttemptAt))</td>
                         <td>
@@ -111,11 +111,11 @@
         _ => "ausstehend",
     };
 
-    private static string StatusClass(MailStatus status) => status switch
+    private static StatusLevel Level(MailStatus status) => status switch
     {
-        MailStatus.Sent => "status-ok",
-        MailStatus.Failed => "status-error",
-        _ => "status-pending",
+        MailStatus.Sent => StatusLevel.Success,
+        MailStatus.Failed => StatusLevel.Error,
+        _ => StatusLevel.Warning,
     };
 
     private sealed class TestModel

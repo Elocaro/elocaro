@@ -31,15 +31,15 @@
         <dd>
             @if (info.Ready)
             {
-                <span class="status status-ok">bereit</span>
+                <StatusChip Level="StatusLevel.Success">bereit</StatusChip>
             }
             else if (info.Enabled)
             {
-                <span class="status status-error">nicht einsatzbereit</span>
+                <StatusChip Level="StatusLevel.Error">nicht einsatzbereit</StatusChip>
             }
             else
             {
-                <span class="status">ausgeschaltet</span>
+                <StatusChip>ausgeschaltet</StatusChip>
             }
         </dd>
         @if (info.Problem is not null && info.Enabled)

@@ -33,7 +33,7 @@
                         @foreach (var p in receipt.Items)
                         {
                             <tr>
-                                <td>@p.CostTypeText@(p.Subtype is { } sub ? $" – {sub}" : "")@(p.HeatingKind is { } kind ? $" ({Labels.From(kind)})" : "") @if (!p.Allocable) {<span class="status">nicht umlagefähig</span>}</td>
+                                <td>@p.CostTypeText@(p.Subtype is { } sub ? $" – {sub}" : "")@(p.HeatingKind is { } kind ? $" ({Labels.From(kind)})" : "") @if (!p.Allocable) {<StatusChip>nicht umlagefähig</StatusChip>}</td>
                                 <td>@p.Property@(p.Unit is null ? "" : $", {p.Unit}")</td>
                                 <td>@Format.Period(p.BillingPeriod)</td>
                                 <td class="number">@Format.Money(p.Amount)</td>
@@ -54,7 +54,7 @@
         <EditForm Model="Position" FormName="item" OnValidSubmit="AddItemAsync">
             <DataAnnotationsValidator />
             <CostItemFields Position="Position!" Options="selection" />
-            <button type="submit" class="button">Position hinzufügen</button>
+            <button type="submit" class="button button-primary">Position hinzufügen</button>
         </EditForm>
     }
 </section>
@@ -96,7 +96,7 @@
             <label for="more">Seiten hinzufügen</label>
             <input type="file" id="more" name="Additional" accept="application/pdf,image/*" multiple required />
         </div>
-        <div class="field field-action"><button type="submit" class="button">Hochladen</button></div>
+        <div class="field field-action"><button type="submit" class="button button-primary">Hochladen</button></div>
     </form>
 </section>
 
@@ -109,7 +109,7 @@
             <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
             <form method="post" @formname="extract" @onsubmit="ExtractAsync">
                 <AntiforgeryToken />
-                <button type="submit" class="button">Vorschlag aus Beleg auslesen</button>
+                <button type="submit" class="button button-primary">Vorschlag aus Beleg auslesen</button>
             </form>
             <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
         }

@@ -26,7 +26,7 @@
 <ErrorList Errors="errors" />
 
 <dl class="details">
-    <dt>Status</dt><dd><span class="status @Labels.StatusClass(lease.Status)">@Labels.From(lease.Status)</span></dd>
+    <dt>Status</dt><dd><StatusChip Level="Labels.Level(lease.Status)">@Labels.From(lease.Status)</StatusChip></dd>
     <dt>Laufzeit</dt>
     <dd>
         @Format.Date(lease.Term.From) – @(lease.Term.To is null ? "unbefristet" : Format.Date(lease.Term.To))
@@ -92,7 +92,7 @@
                 <FormField Id="designation" Label="Bezeichnung" For="() => Component!.Name" Hint="Für „Sonstiges“">
                     <InputText id="designation" @bind-Value="Component!.Name" />
                 </FormField>
-                <div class="field field-action"><button type="submit" class="button">Betrag speichern</button></div>
+                <div class="field field-action"><button type="submit" class="button button-primary">Betrag speichern</button></div>
             </EditForm>
             <p class="small">Der bisherige Betrag gilt bis zum Vortag weiter. Für Mieterhöhungen nach § 558 BGB folgt ein Assistent mit Schreiben.</p>
         </details>
@@ -149,7 +149,7 @@
             @foreach (var party in lease.Parties)
             {
                 <li class="todo">
-                    <a href="/verwaltung/personen/@party.PersonId">@party.Name</a> <span class="status">@Labels.From(party.Role)</span>
+                    <a href="/verwaltung/personen/@party.PersonId">@party.Name</a> <StatusChip>@Labels.From(party.Role)</StatusChip>
                     <p class="small">@party.Email @party.Phone</p>
                     @if (lease.Parties.Count(p => p.Role == PartyRole.Tenant) > 1 || party.Role == PartyRole.Guarantor)
                     {
@@ -174,7 +174,7 @@
                     }
                 </InputSelect>
             </FormField>
-            <div class="field field-action"><button type="submit" class="button">Hinzufügen</button></div>
+            <div class="field field-action"><button type="submit" class="button button-primary">Hinzufügen</button></div>
         </EditForm>
     </details>
 </section>
@@ -197,7 +197,7 @@
                 <FormField Id="persons-count" Label="Anzahl" For="() => OccupantCount!.Count">
                     <InputNumber id="persons-count" @bind-Value="OccupantCount!.Count" min="1" max="20" />
                 </FormField>
-                <div class="field field-action"><button type="submit" class="button">Speichern</button></div>
+                <div class="field field-action"><button type="submit" class="button button-primary">Speichern</button></div>
             </EditForm>
         </details>
     }
@@ -219,7 +219,7 @@
         <p>Das Mietverhältnis endet am <strong>@Format.Date(lease.Term.To)</strong>.</p>
         <form method="post" @formname="termination-revoke" @onsubmit="RevokeTerminationAsync">
             <AntiforgeryToken />
-            <button type="submit" class="button">Kündigung aufheben (zurückgenommen)</button>
+            <button type="submit" class="button button-primary">Kündigung aufheben (zurückgenommen)</button>
         </form>
     }
     else if (lease.Status != LeaseStatus.Ended)
@@ -240,7 +240,7 @@
             <FormField Id="termination-on" Label="Zum" For="() => Termination!.EffectiveDate" Hint="@($"Leer = gesetzliche Frist (Mieter {lease.Data.NoticePeriodMonths}, Vermieter derzeit {lease.LandlordNoticePeriodMonths} Monate).")">
                 <InputDate id="termination-on" @bind-Value="Termination!.EffectiveDate" />
             </FormField>
-            <div class="field field-action"><button type="submit" class="button">Kündigung erfassen</button></div>
+            <div class="field field-action"><button type="submit" class="button button-primary">Kündigung erfassen</button></div>
         </EditForm>
         <p class="small">Frist nach § 573c BGB: Geht die Kündigung bis zum 3. Werktag eines Monats zu, zählt dieser Monat mit. Vermieter brauchen zudem einen Kündigungsgrund (§ 573 BGB).</p>
     }

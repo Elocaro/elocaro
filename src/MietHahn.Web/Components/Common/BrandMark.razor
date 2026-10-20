@@ -1,0 +1,17 @@
+@* Logo and name of the application in the top bar (link) or on sign-in pages (no link). *@
+@if (Href is null)
+{
+    <div class="account-brand">MietHahn</div>
+}
+else
+{
+    <a class="brand" href="@Href">MietHahn@(Section is null ? null : " ")@if (Section is not null){<span class="section">@Section</span>}</a>
+}
+
+@code {
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public string? Section { get; set; }
+}

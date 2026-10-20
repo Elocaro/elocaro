@@ -55,7 +55,7 @@
                     <td>@line.Transaction.CounterpartyName<span class="small"> @line.Transaction.CounterpartyIban</span></td>
                     <td>@line.Transaction.Purpose</td>
                     <td class="number">@Format.Money(line.Transaction.Amount)</td>
-                    <td>@if (line.Duplicate) {<span class="status">schon vorhanden</span>}</td>
+                    <td>@if (line.Duplicate) {<StatusChip>schon vorhanden</StatusChip>}</td>
                 </tr>
             }
         </tbody>

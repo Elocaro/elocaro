@@ -66,15 +66,15 @@ else if (receipts is not null)
                         <td>
                             @if (b.Allocated != b.Gross)
                             {
-                                <span class="status status-pending">@Format.Money(b.Gross - b.Allocated) nicht aufgeteilt</span>
+                                <StatusChip Level="StatusLevel.Warning">@Format.Money(b.Gross - b.Allocated) nicht aufgeteilt</StatusChip>
                             }
                             @if (b.PaidOn is null)
                             {
-                                <span class="status status-pending">unbezahlt</span>
+                                <StatusChip Level="StatusLevel.Warning">unbezahlt</StatusChip>
                             }
                             @if (b.Files == 0)
                             {
-                                <span class="status">ohne Datei</span>
+                                <StatusChip>ohne Datei</StatusChip>
                             }
                         </td>
                     </tr>

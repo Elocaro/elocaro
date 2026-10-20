@@ -63,7 +63,7 @@
                             <td>
                                 @if (import.Status == ImportStatus.Preview)
                                 {
-                                    <a href="/verwaltung/bank/importe/@import.Id">@import.FileName</a> <span class="status status-pending">Vorschau</span>
+                                    <a href="/verwaltung/bank/importe/@import.Id">@import.FileName</a> <StatusChip Level="StatusLevel.Warning">Vorschau</StatusChip>
                                 }
                                 else
                                 {
@@ -88,7 +88,7 @@
     <EditForm Model="Data" FormName="account" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <AccountFields Data="Data!" Properties="properties" />
-        <button type="submit" class="button">Speichern</button>
+        <button type="submit" class="button button-primary">Speichern</button>
     </EditForm>
 </section>
 

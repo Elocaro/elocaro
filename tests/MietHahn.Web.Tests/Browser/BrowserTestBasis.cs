@@ -35,7 +35,8 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         playwright = await Playwright.CreateAsync();
         try
         {
-            Browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+            // MIETHAHN_HEADED=1 shows the browser window (for watching a test while developing).
+            Browser = await playwright.Chromium.LaunchAsync(new() { Headless = Environment.GetEnvironmentVariable("MIETHAHN_HEADED") is null });
         }
         catch (PlaywrightException ex) when (ex.Message.Contains("Executable doesn't exist", StringComparison.Ordinal))
         {

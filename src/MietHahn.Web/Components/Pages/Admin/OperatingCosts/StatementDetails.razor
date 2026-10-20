@@ -177,7 +177,7 @@
             </div>
             @foreach (var tenancy in overview.Tenancies.Where(t => t.Dispatch is { ReceivedOn: null }))
             {
-                <button type="submit" class="button" name="Confirmation.DispatchId" value="@tenancy.Dispatch!.Id">Zugang bestätigen: @tenancy.Label</button>
+                <button type="submit" class="button button-primary" name="Confirmation.DispatchId" value="@tenancy.Dispatch!.Id">Zugang bestätigen: @tenancy.Label</button>
             }
         </EditForm>
     }

@@ -64,7 +64,7 @@
                                     @Labels.From(m.Level)
                                     @if (m.TerminationRelevant)
                                     {
-                                        <span class="status status-error">Kündigungsrelevanz</span>
+                                        <StatusChip Level="StatusLevel.Error">Kündigungsrelevanz</StatusChip>
                                     }
                                 </td>
                                 <td class="number">@Format.Money(m.Principal)</td>

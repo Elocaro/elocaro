@@ -30,9 +30,9 @@ else
                     <td>
                         @switch (job.LastRunSucceeded)
                         {
-                            case true: <span class="status status-ok">erfolgreich</span> break;
-                            case false: <span class="status status-error" title="@job.LastError">fehlgeschlagen</span> break;
-                            default: <span class="status">–</span> break;
+                            case true: <StatusChip Level="StatusLevel.Success">erfolgreich</StatusChip> break;
+                            case false: <StatusChip Level="StatusLevel.Error" title="@job.LastError">fehlgeschlagen</StatusChip> break;
+                            default: <StatusChip>–</StatusChip> break;
                         }
                     </td>
                 </tr>

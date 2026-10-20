@@ -1,14 +1,14 @@
 @inherits LayoutComponentBase
 @using MietHahn.Application.Accounts
 
-<a class="skip-link" href="#content">Zum Inhalt springen</a>
+<SkipLink />
 <div class="app app-admin">
     <header class="top-bar">
         <details class="mobile-navigation">
-            <summary aria-label="Menü öffnen">☰</summary>
+            <summary aria-label="Menü öffnen"><Icon Path="@AppIcons.Menu" /></summary>
             <AdminNavigation />
         </details>
-        <a class="brand" href="/verwaltung">🐓 MietHahn</a>
+        <BrandMark Href="/verwaltung" />
         <UserMenu />
     </header>
     <nav class="sidebar" aria-label="Hauptnavigation">

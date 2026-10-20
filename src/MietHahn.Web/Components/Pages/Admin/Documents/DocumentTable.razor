@@ -24,7 +24,7 @@
                         <a href="@(Internal ? $"/verwaltung/dokumente/{document.Id}" : $"/dateien/{document.FileId}")">@document.Title</a>
                         @foreach (var day in document.Tags)
                         {
-                            <span class="status">@day</span>
+                            <StatusChip>@day</StatusChip>
                         }
                         @if (document.ExpiresOn is { } expiry)
                         {

@@ -67,7 +67,7 @@ internal static class M3Theme
         LayoutProperties = new LayoutProperties { DefaultBorderRadius = "12px" },
         Typography = new Typography
         {
-            Default = new DefaultTypography { FontFamily = ["Roboto", "system-ui", "Segoe UI", "sans-serif"] },
+            Default = new DefaultTypography { FontFamily = ["Roboto Flex", "Roboto", "system-ui", "Segoe UI", "sans-serif"] },
             Button = new ButtonTypography { TextTransform = "none", FontWeight = "600" },
         },
     };

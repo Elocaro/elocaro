@@ -17,7 +17,7 @@
         <FormField Id="cpi-value" Label="Indexwert" For="() => Input!.Value" Required="true">
             <InputArea id="cpi-value" @bind-Value="Input!.Value" step="0.1" />
         </FormField>
-        <div class="field field-action"><button type="submit" class="button">Speichern</button></div>
+        <div class="field field-action"><button type="submit" class="button button-primary">Speichern</button></div>
     </EditForm>
 </section>
 
@@ -31,7 +31,7 @@
         <FormField Id="cpi-csv" Label="CSV-Inhalt" For="() => Import!.Csv">
             <InputTextArea id="cpi-csv" @bind-Value="Import!.Csv" rows="6" placeholder="2026;Januar;121,2&#10;2026;Februar;121,9" />
         </FormField>
-        <button type="submit" class="button">Importieren</button>
+        <button type="submit" class="button button-primary">Importieren</button>
     </EditForm>
 </section>
 

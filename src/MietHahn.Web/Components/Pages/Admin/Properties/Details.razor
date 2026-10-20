@@ -86,7 +86,7 @@
                                         <a href="/verwaltung/einheiten/@unit.Id">@unit.Name</a>
                                         @if (unit.IsSharedFlat)
                                         {
-                                            <span class="status">WG</span>
+                                            <StatusChip>WG</StatusChip>
                                         }
                                     </td>
                                     <td rowspan="@unit.RentalUnits.Count">@unit.Location</td>
@@ -117,7 +117,7 @@
         <EditForm Model="NewUnit" FormName="unit" OnValidSubmit="CreateUnitAsync">
             <DataAnnotationsValidator />
             <UnitFields Data="NewUnit!" WithFeatures="false" />
-            <button type="submit" class="button">Einheit hinzufügen</button>
+            <button type="submit" class="button button-primary">Einheit hinzufügen</button>
         </EditForm>
     </details>
 </section>

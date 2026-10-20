@@ -2,38 +2,38 @@
 
 @* Main navigation of the administration; entries only appear with the matching permission. *@
 <ul class="navigation">
-    <li><NavLink href="/verwaltung" Match="NavLinkMatch.All">Was ist zu tun?</NavLink></li>
+    <li><NavLink href="/verwaltung" Match="NavLinkMatch.All"><Icon Path="@AppIcons.Todo" /><span>Was ist zu tun?</span></NavLink></li>
     <AuthorizeView Policy="@Policies.MasterData">
         <li class="navigation-group">Stammdaten</li>
-        <li><NavLink href="/verwaltung/objekte">Objekte</NavLink></li>
-        <li><NavLink href="/verwaltung/personen">Personen</NavLink></li>
-        <li><NavLink href="/verwaltung/vertraege" Match="NavLinkMatch.All">Verträge</NavLink></li>
-        <li><NavLink href="/verwaltung/dokumente">Dokumente</NavLink></li>
-        <li><NavLink href="/verwaltung/vpi">Verbraucherpreisindex</NavLink></li>
-        <li><NavLink href="/verwaltung/datenschutz">Datenschutz</NavLink></li>
+        <li><NavLink href="/verwaltung/objekte"><Icon Path="@AppIcons.Property" /><span>Objekte</span></NavLink></li>
+        <li><NavLink href="/verwaltung/personen"><Icon Path="@AppIcons.People" /><span>Personen</span></NavLink></li>
+        <li><NavLink href="/verwaltung/vertraege" Match="NavLinkMatch.All"><Icon Path="@AppIcons.Lease" /><span>Verträge</span></NavLink></li>
+        <li><NavLink href="/verwaltung/dokumente"><Icon Path="@AppIcons.Documents" /><span>Dokumente</span></NavLink></li>
+        <li><NavLink href="/verwaltung/vpi"><Icon Path="@AppIcons.Cpi" /><span>Verbraucherpreisindex</span></NavLink></li>
+        <li><NavLink href="/verwaltung/datenschutz"><Icon Path="@AppIcons.Privacy" /><span>Datenschutz</span></NavLink></li>
     </AuthorizeView>
     <AuthorizeView Policy="@Policies.Finance">
         <li class="navigation-group">Finanzen</li>
-        <li><NavLink href="/verwaltung/bank/konten">Bankkonten</NavLink></li>
-        <li><NavLink href="/verwaltung/bank/umsaetze" Match="NavLinkMatch.All">Umsätze</NavLink></li>
-        <li><NavLink href="/verwaltung/bank/zuordnung">Umsätze zuordnen</NavLink></li>
-        <li><NavLink href="/verwaltung/bank/regeln">Zuordnungsregeln</NavLink></li>
-        <li><NavLink href="/verwaltung/finanzen/offene-posten">Offene Posten</NavLink></li>
-        <li><NavLink href="/verwaltung/finanzen/mahnungen">Mahnwesen</NavLink></li>
-        <li><NavLink href="/verwaltung/finanzen/darlehen">Darlehen</NavLink></li>
-        <li><NavLink href="/verwaltung/finanzen/anlage-v-zeilen">Anlage-V-Zeilen</NavLink></li>
-        <li><NavLink href="/verwaltung/belege">Belege</NavLink></li>
-        <li><NavLink href="/verwaltung/finanzen/einstellungen">Einstellungen Finanzen</NavLink></li>
+        <li><NavLink href="/verwaltung/bank/konten"><Icon Path="@AppIcons.Bank" /><span>Bankkonten</span></NavLink></li>
+        <li><NavLink href="/verwaltung/bank/umsaetze" Match="NavLinkMatch.All"><Icon Path="@AppIcons.Transactions" /><span>Umsätze</span></NavLink></li>
+        <li><NavLink href="/verwaltung/bank/zuordnung"><Icon Path="@AppIcons.Assign" /><span>Umsätze zuordnen</span></NavLink></li>
+        <li><NavLink href="/verwaltung/bank/regeln"><Icon Path="@AppIcons.Rules" /><span>Zuordnungsregeln</span></NavLink></li>
+        <li><NavLink href="/verwaltung/finanzen/offene-posten"><Icon Path="@AppIcons.OpenItems" /><span>Offene Posten</span></NavLink></li>
+        <li><NavLink href="/verwaltung/finanzen/mahnungen"><Icon Path="@AppIcons.Dunning" /><span>Mahnwesen</span></NavLink></li>
+        <li><NavLink href="/verwaltung/finanzen/darlehen"><Icon Path="@AppIcons.Loan" /><span>Darlehen</span></NavLink></li>
+        <li><NavLink href="/verwaltung/finanzen/anlage-v-zeilen"><Icon Path="@AppIcons.TaxLines" /><span>Anlage-V-Zeilen</span></NavLink></li>
+        <li><NavLink href="/verwaltung/belege"><Icon Path="@AppIcons.Receipts" /><span>Belege</span></NavLink></li>
+        <li><NavLink href="/verwaltung/finanzen/einstellungen"><Icon Path="@AppIcons.Finance" /><span>Einstellungen Finanzen</span></NavLink></li>
     </AuthorizeView>
     <AuthorizeView Policy="@Policies.UserManagement">
-        <li><NavLink href="/verwaltung/benutzer">Benutzer</NavLink></li>
+        <li><NavLink href="/verwaltung/benutzer"><Icon Path="@AppIcons.Users" /><span>Benutzer</span></NavLink></li>
     </AuthorizeView>
     <AuthorizeView Policy="@Policies.System">
         <li class="navigation-group">Einstellungen</li>
-        <li><NavLink href="/verwaltung/einstellungen/vermieter">Vermieter</NavLink></li>
-        <li><NavLink href="/verwaltung/system/mails">E-Mail-Versand</NavLink></li>
-        <li><NavLink href="/verwaltung/system/jobs">Hintergrundjobs</NavLink></li>
-        <li><NavLink href="/verwaltung/system/datensicherung">Datensicherung</NavLink></li>
-        <li><NavLink href="/verwaltung/system/belegauslesung">Belegauslesung</NavLink></li>
+        <li><NavLink href="/verwaltung/einstellungen/vermieter"><Icon Path="@AppIcons.Landlord" /><span>Vermieter</span></NavLink></li>
+        <li><NavLink href="/verwaltung/system/mails"><Icon Path="@AppIcons.Mail" /><span>E-Mail-Versand</span></NavLink></li>
+        <li><NavLink href="/verwaltung/system/jobs"><Icon Path="@AppIcons.Jobs" /><span>Hintergrundjobs</span></NavLink></li>
+        <li><NavLink href="/verwaltung/system/datensicherung"><Icon Path="@AppIcons.Backup" /><span>Datensicherung</span></NavLink></li>
+        <li><NavLink href="/verwaltung/system/belegauslesung"><Icon Path="@AppIcons.Scan" /><span>Belegauslesung</span></NavLink></li>
     </AuthorizeView>
 </ul>

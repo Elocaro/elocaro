@@ -32,7 +32,7 @@ else if (properties is not null)
                             @property.Rented von @property.RentalUnits vermietet
                             @if (property.Vacancy > 0)
                             {
-                                <span class="status status-pending">@property.Vacancy leer</span>
+                                <StatusChip Level="StatusLevel.Warning">@property.Vacancy leer</StatusChip>
                             }
                         </td>
                     </tr>

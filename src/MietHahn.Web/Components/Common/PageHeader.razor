@@ -4,7 +4,7 @@
     <div>
         @if (Back is not null)
         {
-            <a class="back" href="@Back">← @(BackText ?? "Zurück")</a>
+            <a class="back" href="@Back"><Icon Path="@AppIcons.Back" />@(BackText ?? "Zurück")</a>
         }
         <h1>@Title</h1>
         @if (Subtitle is not null)
