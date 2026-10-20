@@ -1,0 +1,246 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Playwright;
+using MietHahn.Application.Bank;
+using MietHahn.Application.Documents;
+using MietHahn.Application.Finance;
+using MietHahn.Application.Leases;
+using MietHahn.Application.Metering;
+using MietHahn.Application.People;
+using MietHahn.Application.Properties;
+using MietHahn.Application.Receipts;
+using MietHahn.Application.Statements;
+using MietHahn.Application.Tax;
+using MietHahn.Domain.Admin;
+using MietHahn.Domain.Bank;
+using MietHahn.Domain.Common;
+using MietHahn.Domain.Metering;
+using MietHahn.Infrastructure.Identity;
+using MietHahn.Infrastructure.Persistence;
+
+namespace MietHahn.Web.Tests.Browser;
+
+/// <summary>
+/// Opens every page of the administration with realistic data (desktop and 360 px) and reports server errors, error pages,
+/// console and script errors, failed requests and horizontal scrolling.
+/// </summary>
+public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private Dictionary<string, string> ids = [];
+
+    protected override void ConfigureServices(IServiceCollection services) =>
+        services.AddScoped<IPdfGenerator, FakePdfGenerator>();
+
+    private async Task SeedAsync()
+    {
+        var today = GermanTime.Today(App.Clock.GetUtcNow());
+        var start = new DateOnly(today.Year - 1, 1, 1);
+        ids = await App.WithScopeAsync(async sp =>
+        {
+            var result = new Dictionary<string, string>();
+            var properties = sp.GetRequiredService<IPropertyService>();
+            var property = (await properties.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, Ct)).Id!.Value;
+            var unit = (await properties.CreateUnitAsync(property, new UnitInput { Name = "Wohnung 1", Location = "EG links" }, Ct)).Id!.Value;
+            var shared = (await properties.CreateUnitAsync(property, new UnitInput { Name = "WG" }, Ct)).Id!.Value;
+            var room = (await properties.CreateRoomAsync(shared, new RoomInput { Name = "Zimmer 1" }, Ct)).Id!.Value;
+            await properties.SetUnitAreaAsync(unit, new AreaInput { From = start, Area = 60m }, Ct);
+            await properties.SetUnitAreaAsync(shared, new AreaInput { From = start, Area = 40m }, Ct);
+
+            var people = sp.GetRequiredService<IPersonService>();
+            var person = (await people.CreateAsync(new PersonInput { Salutation = Domain.People.Salutation.Mrs, FirstName = "Anna", LastName = "Schmidt", Email = "anna@example.de", Phone = "0221 123456" },
+                new AddressInput { From = start, Street = "Altweg 1", PostalCode = "50667", City = "Köln" }, Ct)).Id!.Value;
+            await people.AddBankDetailsAsync(person, new BankDetailsInput { Iban = "DE89370400440532013000" }, Ct);
+            await people.CreateAsync(new PersonInput { LastName = "Klempner", Company = "Rohr & Co.", ContactType = Domain.People.ContactType.Tradesperson, Occupation = "Sanitär" }, null, Ct);
+
+            var lease = (await sp.GetRequiredService<ILeaseService>().CreateAsync(
+                new LeaseCreation { RentalUnitId = unit, Start = start, TenantIds = [person], BaseRent = 650m, OperatingCostPrepayment = 120m, HeatingCostPrepayment = 40m }, Ct)).Id!.Value;
+            await sp.GetRequiredService<IFinanceSettings>().SaveAsync(new FinanceSettingsInput { AccountingStart = start }, Ct);
+            await sp.GetRequiredService<ITenantAccounts>().GenerateChargesAsync(null, Ct);
+
+            var meters = sp.GetRequiredService<IMeterService>();
+            var meter = (await meters.CreateAsync(property,
+                new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser", Number = "KW-1", AssignmentId = unit }, InstalledOn = start, InitialReading = 0m }, Ct)).Id!.Value;
+            await meters.RecordReadingAsync(meter, new ReadingInput { Date = new DateOnly(today.Year - 1, 12, 31), Value = 85m, Confirmed = true }, null, Ct);
+
+            var receipts = sp.GetRequiredService<IReceiptService>();
+            var receipt = (await receipts.CreateAsync(
+                new ReceiptInput { SupplierName = "Stadt Köln", InvoiceNumber = "G-1", InvoiceDate = new DateOnly(today.Year - 1, 2, 1), Gross = 1000m, PaidOn = new DateOnly(today.Year - 1, 2, 10) },
+                [],
+                new CostItemInput { CostType = "betrkv-01", PropertyId = property, From = start, To = new DateOnly(today.Year - 1, 12, 31) },
+                Ct)).Id!.Value;
+
+            var loans = sp.GetRequiredService<ILoanService>();
+            await loans.CreateAsync(new LoanInput
+            {
+                PropertyId = property,
+                Bank = "Sparkasse",
+                Principal = 200_000m,
+                DisbursementDate = start,
+                FirstPaymentDate = start.AddMonths(1),
+                InterestRatePercent = 3.6m,
+                Instalment = 1000m,
+                MonthsPerPeriod = 1,
+                SharePercent = 100m,
+            }, Ct);
+            result["loan"] = (await loans.ListAsync(Ct)).Single().Id.ToString();
+
+            var bank = sp.GetRequiredService<IBankService>();
+            var account = (await bank.CreateAccountAsync(new BankAccountInput { Name = "Mietkonto", Iban = "DE12500105170648489890", PropertyIds = [property] }, Ct)).Id!.Value;
+            await sp.GetRequiredService<IMatchRules>().SaveAsync(null, new MatchRuleInput { Name = "Stadt Köln", CounterpartyContains = "Stadt Köln", CostType = "betrkv-01", PropertyId = property }, Ct);
+            result["rule"] = (await sp.GetRequiredService<IMatchRules>().ListAsync(Ct)).Single().Id.ToString();
+
+            var db = sp.GetRequiredService<MietHahnDbContext>();
+            db.Add(new LandlordProfile("Andy Hahn", "Musterweg 1", "12345", "Musterstadt") { Iban = "DE02 1203 0000 0000 2020 51" });
+            var open = new Transaction(account, null, new ParsedTransaction(today.AddDays(-5), 650m, "Miete Anna Schmidt", CounterpartyName: "Anna Schmidt", CounterpartyIban: "DE89370400440532013000"), Guid.NewGuid().ToString("N"));
+            var expense = new Transaction(account, null, new ParsedTransaction(today.AddDays(-9), -1000m, "Grundsteuer", CounterpartyName: "Stadt Köln"), Guid.NewGuid().ToString("N"));
+            db.AddRange(open, expense);
+            await db.SaveChangesAsync(Ct);
+            result["transaction"] = open.Id.ToString();
+            result["account"] = account.ToString();
+
+            var statement = await sp.GetRequiredService<IStatements>().ReleaseAsync(property, Period.CalendarYear(today.Year - 1), true, "Test", Ct);
+            if (statement.Succeeded)
+            {
+                result["statement"] = statement.Id!.Value.ToString();
+            }
+
+            await sp.GetRequiredService<IDunning>().RefreshAsync(null, Ct);
+            var dunnings = await sp.GetRequiredService<IDunning>().OverviewAsync(Ct);
+            if (dunnings.Proposals.Count > 0)
+            {
+                result["dunning"] = dunnings.Proposals[0].Id.ToString();
+            }
+
+            result["property"] = property.ToString();
+            result["unit"] = unit.ToString();
+            result["room"] = room.ToString();
+            result["person"] = person.ToString();
+            result["lease"] = lease.ToString();
+            result["meter"] = meter.ToString();
+            result["receipt"] = receipt.ToString();
+            result["year"] = (today.Year - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return result;
+        });
+
+        ids["user"] = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<UserManager<ApplicationUser>>().Users.FirstAsync(Ct)).Id.ToString());
+        ids["import"] = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IBankService>().ImportsAsync(Guid.Parse(ids["account"]), Ct)) is { Count: > 0 } imports ? imports[0].Id.ToString() : "");
+    }
+
+    private IEnumerable<string> Routes()
+    {
+        string p = ids["property"], year = ids["year"];
+        return
+        [
+            "/verwaltung", "/verwaltung/personen", "/verwaltung/personen?q=Schmidt", "/verwaltung/personen/neu", $"/verwaltung/personen/{ids["person"]}", $"/verwaltung/personen/{ids["person"]}/bearbeiten",
+            "/verwaltung/datenschutz",
+            "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{p}", $"/verwaltung/objekte/{p}/bearbeiten", $"/verwaltung/einheiten/{ids["unit"]}", $"/verwaltung/zimmer/{ids["room"]}",
+            "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/vertraege/{ids["lease"]}/konto", $"/verwaltung/vertraege/{ids["lease"]}/auszug",
+            $"/verwaltung/vertraege/{ids["lease"]}/kostenarten", "/verwaltung/vpi",
+            "/verwaltung/dokumente", "/verwaltung/dokumente/neu",
+            $"/verwaltung/objekte/{p}/zaehler", $"/verwaltung/objekte/{p}/ablesung", $"/verwaltung/zaehler/{ids["meter"]}",
+            "/verwaltung/bank/konten", "/verwaltung/bank/konten/neu", $"/verwaltung/bank/konten/{ids["account"]}", "/verwaltung/bank/umsaetze", "/verwaltung/bank/zuordnung",
+            $"/verwaltung/bank/umsaetze/{ids["transaction"]}/zuordnen", "/verwaltung/bank/regeln", "/verwaltung/bank/regeln/neu", $"/verwaltung/bank/regeln/{ids["rule"]}", "/verwaltung/bank/csv-profile",
+            "/verwaltung/finanzen/offene-posten", "/verwaltung/finanzen/mahnungen", "/verwaltung/finanzen/einstellungen", "/verwaltung/finanzen/darlehen", $"/verwaltung/finanzen/darlehen/{ids["loan"]}",
+            "/verwaltung/belege", "/verwaltung/belege/neu", $"/verwaltung/belege/{ids["receipt"]}",
+            $"/verwaltung/objekte/{p}/anlage-v?jahr={year}", "/verwaltung/finanzen/anlage-v-zeilen?jahr=" + year, $"/verwaltung/objekte/{p}/afa", $"/verwaltung/objekte/{p}/erhaltungsaufwand",
+            $"/verwaltung/objekte/{p}/abrechnungen", $"/verwaltung/objekte/{p}/umlageschluessel", $"/verwaltung/objekte/{p}/heizung", $"/verwaltung/objekte/{p}/nebenkosten?jahr={year}",
+            $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=2", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=5",
+            "/verwaltung/benutzer", $"/verwaltung/benutzer/{ids["user"]}",
+            "/verwaltung/einstellungen/vermieter", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/verwaltung/system/datensicherung", "/verwaltung/system/belegauslesung",
+            "/konto/sicherheit",
+        ];
+    }
+
+    private IEnumerable<string> OptionalRoutes()
+    {
+        if (ids.TryGetValue("statement", out var statement))
+        {
+            yield return $"/verwaltung/abrechnungen/{statement}";
+        }
+
+        if (ids.TryGetValue("dunning", out var dunning))
+        {
+            yield return $"/verwaltung/finanzen/mahnungen/{dunning}";
+        }
+
+        if (ids["import"].Length > 0)
+        {
+            yield return $"/verwaltung/bank/importe/{ids["import"]}";
+        }
+    }
+
+    [Fact]
+    public async Task Every_page_loads_with_data_without_errors_on_desktop_and_at_360_pixels()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await SeedAsync();
+        var problems = new List<string>();
+        var current = "";
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+            {
+                problems.Add($"{current}: Konsole: {message.Text}");
+            }
+        };
+        page.PageError += (_, error) => problems.Add($"{current}: Skriptfehler: {error}");
+        page.RequestFailed += (_, request) =>
+        {
+            // Chromium does not show PDFs inline in an automated run and aborts those requests.
+            if (!request.Url.Contains("/_blazor", StringComparison.Ordinal) && !request.Url.Contains(".pdf", StringComparison.Ordinal))
+            {
+                problems.Add($"{current}: Anfrage fehlgeschlagen: {request.Url} {request.Failure}");
+            }
+        };
+
+        foreach (var mobile in new[] { false, true })
+        {
+            await page.SetViewportSizeAsync(mobile ? 360 : 1280, mobile ? 780 : 900);
+            foreach (var path in Routes().Concat(OptionalRoutes()))
+            {
+                current = (mobile ? "[360] " : "[Desktop] ") + path;
+                var response = await page.GotoAsync(BaseUrl + path);
+                if (response?.Status != 200)
+                {
+                    problems.Add($"{current}: Status {response?.Status}");
+                    continue;
+                }
+
+                // Interactive pages: wait for the circuit; then look at the final state.
+                var interactive = await page.Locator("[data-interactive=true], .mud-main-content, main").First.CountAsync() > 0;
+                try
+                {
+                    await page.Locator("[data-interactive=true]").WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 3000 });
+                }
+                catch (TimeoutException)
+                {
+                    interactive = false; // static page
+                }
+
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                var body = await page.InnerTextAsync("body");
+                if (body.Contains("Es ist ein Fehler aufgetreten", StringComparison.Ordinal) || body.Contains("Wird geladen …", StringComparison.Ordinal))
+                {
+                    problems.Add($"{current}: Fehlerseite oder hängt im Ladezustand{(interactive ? "" : " (statisch)")}");
+                }
+
+                if (await page.Locator("main h1").CountAsync() == 0)
+                {
+                    problems.Add($"{current}: keine Überschrift");
+                }
+
+                var width = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+                if (width[0] > width[1])
+                {
+                    var culprits = await page.EvaluateAsync<string[]>("() => [...document.body.querySelectorAll('*')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 1 && !e.closest('.table-wrapper,.mud-table-container')).slice(0, 3).map(e => e.tagName.toLowerCase() + (typeof e.className === 'string' && e.className ? '.' + e.className.split(' ').join('.') : '') + ' ' + Math.round(e.getBoundingClientRect().right))");
+                    problems.Add($"{current}: {width[0]}px breit bei {width[1]}px; {string.Join(", ", culprits)}");
+                }
+            }
+        }
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems.Distinct()));
+    }
+}
