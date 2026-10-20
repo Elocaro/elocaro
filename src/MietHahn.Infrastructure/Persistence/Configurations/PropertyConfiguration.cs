@@ -21,6 +21,7 @@ internal sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         builder.Property(o => o.PropertyTaxReference).HasMaxLength(50);
         builder.Property(o => o.Notes).HasMaxLength(4000);
         builder.Property(o => o.HeatingType).HasConversion<string>().HasMaxLength(30);
+        builder.Property(o => o.RentCapPercent).HasDefaultValue(20);
         builder.Property(o => o.EnergySource).HasConversion<string>().HasMaxLength(30);
         builder.HasOne<StoredFile>().WithMany().HasForeignKey(o => o.ImageFileId).OnDelete(DeleteBehavior.Restrict);
         builder.Ignore(o => o.Address);

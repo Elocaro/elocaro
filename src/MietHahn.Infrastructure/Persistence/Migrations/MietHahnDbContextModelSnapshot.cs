@@ -2455,6 +2455,157 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("rent_components", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Leases.RentIncrease", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Basis")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("basis");
+
+                    b.Property<decimal?>("CapLimit")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("cap_limit");
+
+                    b.Property<int?>("CapPercent")
+                        .HasColumnType("integer")
+                        .HasColumnName("cap_percent");
+
+                    b.Property<decimal?>("ComparativeRentAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("comparative_rent_amount");
+
+                    b.Property<DateOnly?>("ConsentDeadline")
+                        .HasColumnType("date")
+                        .HasColumnName("consent_deadline");
+
+                    b.Property<DateOnly?>("ConsentOn")
+                        .HasColumnType("date")
+                        .HasColumnName("consent_on");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<decimal>("CurrentAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("current_amount");
+
+                    b.Property<DateOnly?>("DeclaredOn")
+                        .HasColumnType("date")
+                        .HasColumnName("declared_on");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_from");
+
+                    b.Property<DateOnly?>("IndexNewMonth")
+                        .HasColumnType("date")
+                        .HasColumnName("index_new_month");
+
+                    b.Property<decimal?>("IndexNewValue")
+                        .HasPrecision(8, 1)
+                        .HasColumnType("numeric(8,1)")
+                        .HasColumnName("index_new_value");
+
+                    b.Property<DateOnly?>("IndexOldMonth")
+                        .HasColumnType("date")
+                        .HasColumnName("index_old_month");
+
+                    b.Property<decimal?>("IndexOldValue")
+                        .HasPrecision(8, 1)
+                        .HasColumnType("numeric(8,1)")
+                        .HasColumnName("index_old_value");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<decimal>("NewAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("new_amount");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("note");
+
+                    b.Property<DateOnly>("PlannedDeclaration")
+                        .HasColumnType("date")
+                        .HasColumnName("planned_declaration");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("summary");
+
+                    b.Property<Guid?>("TemplateRevisionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_revision_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_rent_increases");
+
+                    b.HasIndex("DocumentId")
+                        .HasDatabaseName("ix_rent_increases_document_id");
+
+                    b.HasIndex("TemplateRevisionId")
+                        .HasDatabaseName("ix_rent_increases_template_revision_id");
+
+                    b.HasIndex("LeaseId", "Status")
+                        .HasDatabaseName("ix_rent_increases_lease_id_status");
+
+                    b.ToTable("rent_increases", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Leases.RentStep", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3236,6 +3387,12 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("property_tax_reference");
+
+                    b.Property<int>("RentCapPercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(20)
+                        .HasColumnName("rent_cap_percent");
 
                     b.Property<string>("Street")
                         .IsRequired()
@@ -5787,6 +5944,28 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_rent_components_leases_lease_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Leases.RentIncrease", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Documents.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_rent_increases_documents_document_id");
+
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_rent_increases_leases_lease_id");
+
+                    b.HasOne("MietHahn.Domain.Documents.DocumentTemplateRevision", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_rent_increases_document_template_revisions_template_revisio");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Leases.RentStep", b =>

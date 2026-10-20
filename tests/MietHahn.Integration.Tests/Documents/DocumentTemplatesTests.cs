@@ -126,11 +126,15 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
         var first = await WithAsync(t => t.InstallDefaultsAsync(Ct));
         var second = await WithAsync(t => t.InstallDefaultsAsync(Ct));
 
-        Assert.Equal((10, 0, 0, 10), (first.Created, first.Existing, second.Created, second.Existing));
+        Assert.Equal((14, 0, 0, 14), (first.Created, first.Existing, second.Created, second.Existing));
         var rows = await WithAsync(t => t.ListAsync(Ct));
-        Assert.Equal(
-            ["Allgemeines Schreiben", "Ankündigung von Arbeiten", "Anlage Datenschutzinformation", "Anlage Energieausweis", "Anlage Hausordnung", "Anlage Übergabeprotokoll", "Bankverbindung", "Grußformel", "Mietvertrag Wohnraum", "Zimmervertrag WG"],
-            rows.Select(r => r.Name));
+        string[] expected =
+        [
+            "Allgemeines Schreiben", "Ankündigung von Arbeiten", "Anlage Datenschutzinformation", "Anlage Energieausweis", "Anlage Hausordnung", "Anlage Übergabeprotokoll",
+            "Anpassung Betriebskostenpauschale (§ 560 BGB)", "Bankverbindung", "Grußformel", "Information Staffelmiete (§ 557a BGB)", "Mieterhöhung Indexmiete (§ 557b BGB)",
+            "Mieterhöhung Vergleichsmiete (§ 558 BGB)", "Mietvertrag Wohnraum", "Zimmervertrag WG",
+        ];
+        Assert.Equal(expected.Order(StringComparer.Ordinal), rows.Select(r => r.Name).Order(StringComparer.Ordinal));
         Assert.All(rows, r => Assert.Equal(1, r.Revision));
 
         // Every bundled text must pass the check that saving applies (syntax, placeholders, snippets) for all samples.

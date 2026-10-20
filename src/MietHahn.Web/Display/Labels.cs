@@ -36,6 +36,7 @@ public static class Labels
         TemplateKind.Letter => "Schreiben",
         TemplateKind.Snippet => "Baustein",
         TemplateKind.Contract => "Mietvertrag",
+        TemplateKind.RentIncrease => "Mieterhöhung",
         _ => value.ToString(),
     };
 
@@ -45,6 +46,39 @@ public static class Labels
         BankFormat.Mt940 => "MT940",
         BankFormat.FinTs => "FinTS-Abruf",
         _ => "CSV",
+    };
+
+    public static string From(RentIncreaseKind value) => value switch
+    {
+        RentIncreaseKind.Index => "Indexanpassung (§ 557b)",
+        RentIncreaseKind.Graduated => "Staffel-Information (§ 557a)",
+        RentIncreaseKind.FlatRate => "Pauschale (§ 560)",
+        _ => "Vergleichsmiete (§ 558)",
+    };
+
+    public static string From(ComparativeBasis value) => value switch
+    {
+        ComparativeBasis.Comparables => "Vergleichswohnungen (mindestens 3)",
+        ComparativeBasis.Appraisal => "Gutachten eines Sachverständigen",
+        _ => "Mietspiegel",
+    };
+
+    public static string From(RentIncreaseStatus value) => value switch
+    {
+        RentIncreaseStatus.Declared => "zugegangen",
+        RentIncreaseStatus.Agreed => "zugestimmt",
+        RentIncreaseStatus.Refused => "abgelehnt",
+        RentIncreaseStatus.InForce => "wirksam",
+        RentIncreaseStatus.Withdrawn => "verworfen",
+        _ => "Entwurf",
+    };
+
+    public static StatusLevel Level(RentIncreaseStatus value) => value switch
+    {
+        RentIncreaseStatus.Agreed or RentIncreaseStatus.InForce => StatusLevel.Success,
+        RentIncreaseStatus.Draft or RentIncreaseStatus.Declared => StatusLevel.Warning,
+        RentIncreaseStatus.Refused => StatusLevel.Error,
+        _ => StatusLevel.Neutral,
     };
 
     public static string From(ContractStatus value) => value switch

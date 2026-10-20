@@ -21,6 +21,10 @@ internal static class TemplateDefaults
         new("Anlage Übergabeprotokoll", TemplateKind.Snippet, "Leeres Übergabeprotokoll zum Ausfüllen bei Einzug", "", Read("annex-handover")),
         new("Mietvertrag Wohnraum", TemplateKind.Contract, "Wohnraummietvertrag mit Staffel-/Indexmiete, Betriebskosten, Kaution und Anlagen", "Mietvertrag {{ unit_name }}, {{ property_name }}", Read("contract-lease")),
         new("Zimmervertrag WG", TemplateKind.Contract, "Mietvertrag über ein WG-Zimmer mit Gemeinschaftsflächen, Pauschale und Möblierungsliste", "Zimmervertrag {{ room_name }}, {{ unit_name }}", Read("contract-room")),
+        new("Mieterhöhung Vergleichsmiete (§ 558 BGB)", TemplateKind.RentIncrease, "Zustimmungsverlangen mit Begründung (Mietspiegel, Vergleichswohnungen oder Gutachten), Kappungsgrenze, Fristen und Zustimmungserklärung", "Mieterhöhungsverlangen nach § 558 BGB", Read("rent-comparative")),
+        new("Mieterhöhung Indexmiete (§ 557b BGB)", TemplateKind.RentIncrease, "Erklärung der Indexanpassung mit Indexständen und neuer Miete", "Mieterhöhung nach § 557b BGB (Indexmiete)", Read("rent-index")),
+        new("Information Staffelmiete (§ 557a BGB)", TemplateKind.RentIncrease, "Freiwillige Information über die nächste Staffel", "Information zur Staffelmiete", Read("rent-graduated")),
+        new("Anpassung Betriebskostenpauschale (§ 560 BGB)", TemplateKind.RentIncrease, "Erhöhung der Pauschale bei vertraglichem Vorbehalt, mit Begründung", "Anpassung der Betriebskostenpauschale nach § 560 BGB", Read("rent-flat-rate")),
         new("Ankündigung von Arbeiten", TemplateKind.Letter, "Serienbrief an die Mieter eines Objekts; Art und Zeitraum ergänzen", "Ankündigung von Arbeiten am Haus {{ property_name }}", Read("letter-announcement")),
         new("Allgemeines Schreiben", TemplateKind.Letter, "Leerer Brief mit Anrede und Grußformel", "Mitteilung zu Ihrem Mietverhältnis", Read("letter-general")),
     ];

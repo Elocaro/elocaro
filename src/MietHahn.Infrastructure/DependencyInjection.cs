@@ -230,6 +230,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentTemplates, DocumentTemplates>();
         services.AddScoped<ILetters, Letters>();
         services.AddScoped<ILeaseContracts, LeaseContracts>();
+        services.AddScoped<IRentIncreases, RentIncreases>();
         services.AddScoped<IFileShare, DocumentFileShare>();
         services.AddScoped<ITodoSource, DocumentExpiryTodos>();
         services.AddScoped<IPersonalDataSource, DocumentPersonalData>();

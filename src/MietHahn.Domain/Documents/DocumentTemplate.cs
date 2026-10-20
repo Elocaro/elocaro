@@ -12,6 +12,9 @@ public enum TemplateKind
 
     /// <summary>Lease or shared-flat room contract, rendered from the data of a lease (see <c>ContractModel</c>).</summary>
     Contract = 2,
+
+    /// <summary>Letter about a rent increase, rendered from a <c>RentIncreaseModel</c>.</summary>
+    RentIncrease = 3,
 }
 
 /// <summary>

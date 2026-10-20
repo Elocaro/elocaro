@@ -73,6 +73,12 @@ public sealed class Property : Entity
     /// <summary>Photo of the house from the file store.</summary>
     public Guid? ImageFileId { get; set; }
 
+    /// <summary>
+    /// Cap limit of rent increases to the comparative rent in percent over three years (§ 558 Abs. 3 BGB): 20, or 15 where the
+    /// housing market is tight (municipal ordinance).
+    /// </summary>
+    public int RentCapPercent { get; set; } = 20;
+
     public string? Notes { get; set; }
 
     public List<Unit> Units { get; private set; } = [];

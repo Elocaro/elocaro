@@ -323,6 +323,7 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
         PropertyTaxReference = o.PropertyTaxReference,
         HeatingType = o.HeatingType,
         EnergySource = o.EnergySource,
+        RentCapPercent = o.RentCapPercent,
         Notes = o.Notes,
     };
 
@@ -351,6 +352,7 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
         o.PropertyTaxReference = TrimToNull(d.PropertyTaxReference);
         o.HeatingType = d.HeatingType;
         o.EnergySource = d.EnergySource;
+        o.RentCapPercent = d.RentCapPercent is 15 ? 15 : 20;
         o.Notes = TrimToNull(d.Notes);
     }
 

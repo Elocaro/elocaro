@@ -99,7 +99,8 @@ public static class TemplateCatalog
     {
         TemplateKind.Letter => LetterPlaceholders,
         TemplateKind.Contract => ContractPlaceholders,
-        TemplateKind.Snippet => [.. LetterPlaceholders, .. ContractPlaceholders],
+        TemplateKind.RentIncrease => RentIncreasePlaceholders,
+        TemplateKind.Snippet => [.. LetterPlaceholders, .. ContractPlaceholders, .. RentIncreasePlaceholders],
         _ => [],
     };
 
@@ -117,7 +118,8 @@ public static class TemplateCatalog
     {
         TemplateKind.Letter => [LetterSample],
         TemplateKind.Contract => ContractSamples,
-        TemplateKind.Snippet => [LetterSample, .. ContractSamples],
+        TemplateKind.RentIncrease => RentIncreaseSamples,
+        TemplateKind.Snippet => [LetterSample, .. ContractSamples, .. RentIncreaseSamples],
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -139,6 +141,53 @@ public static class TemplateCatalog
         new("sender_bank", "Bank des Vermieters (leer, wenn nicht hinterlegt)", "Sparkasse KölnBonn"),
         new("sender_iban", "IBAN des Vermieters (leer, wenn nicht hinterlegt)", "DE89 3704 0044 0532 0130 00"),
         new("sender_bic", "BIC des Vermieters (leer, wenn nicht hinterlegt)", "COLSDE33XXX"),
+    ];
+
+    private static readonly IReadOnlyList<Placeholder> RentIncreasePlaceholders =
+    [
+        new("today, salutation, tenant_names, rental_unit", "Datum, Anrede, Mieter, Mietsache", "Sehr geehrte Frau Muster,"),
+        new("property_name, property_street, property_postal_code, property_city", "Das Mietobjekt", "Lindenweg 3"),
+        new("sender_name, sender_address, sender_iban, sender_bank", "Vermieter und Bankverbindung", "Hans Vermieter"),
+        new("is_comparative, is_index, is_graduated, is_flat_rate", "Art der Mieterhöhung (Vergleichsmiete, Index, Staffel, Pauschale)", ""),
+        new("current_amount, new_amount, increase_amount, increase_percent", "Bisheriger und neuer Betrag (Grundmiete bzw. Pauschale), Erhöhung in € und %", "500,00 € → 560,00 €"),
+        new("effective_from, consent_deadline, lease_start, last_increase", "Wirksamkeit, Ende der Zustimmungsfrist, Mietbeginn, letzte Erhöhung", "01.06.2026, 31.05.2026"),
+        new("basis_rent_index, basis_comparables, basis_appraisal", "Begründungsmittel der Vergleichsmiete", ""),
+        new("rent_index_name, per_square_metre_from, per_square_metre_to, per_square_metre, living_area, feature_text", "Mietspiegel mit Spanne, Einordnung (€/m²), Wohnfläche und Merkmale", "Mietspiegel Köln 2025"),
+        new("comparables", "Vergleichswohnungen (Liste: address, area, rent, per_square_metre)", ""),
+        new("appraiser_name, appraisal_date", "Sachverständiger und Datum des Gutachtens", ""),
+        new("comparative_rent, cap_percent, cap_limit, rent_three_years_ago", "Vergleichsmiete, Kappungsgrenze in %, höchste Miete nach der Kappungsgrenze, Miete vor drei Jahren", "560,00 €"),
+        new("old_index, new_index, old_index_month, new_index_month, index_change_percent", "Indexmiete: Indexstände, Monate und Veränderung in %", "116,3 → 121,0"),
+        new("next_steps", "Staffelmiete: kommende Stufen (Liste: from, base_rent)", ""),
+        new("cost_reason", "Pauschale: Erläuterung der gestiegenen Kosten", ""),
+    ];
+
+    private static readonly IReadOnlyList<RentIncreaseModel> RentIncreaseSamples =
+    [
+        new(new DateOnly(2026, 3, 10), "Sehr geehrte Frau Muster,", "Erika Muster", "Wohnung 1, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
+            "Hans Vermieter", "Musterweg 1, 12345 Musterstadt", "DE89 3704 0044 0532 0130 00", "Sparkasse KölnBonn",
+            true, false, false, false, 500m, 560m, 60m, 12m, new DateOnly(2026, 6, 1), new DateOnly(2026, 5, 31), null, new DateOnly(2022, 4, 1),
+            true, false, false, "Mietspiegel Köln 2025", 7.5m, 10.5m, 9.3m, 60m, "Baujahr 1965, einfache Lage", [], null, null, 560m, 20, 600m, 500m,
+            null, null, null, null, null, [], null),
+        new(new DateOnly(2026, 3, 10), "Sehr geehrter Herr Muster,", "Max Muster", "Zimmer 1, WG Nord", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
+            "Hans Vermieter", "Musterweg 1, 12345 Musterstadt", null, null,
+            true, false, false, false, 400m, 440m, 40m, 10m, new DateOnly(2026, 6, 1), new DateOnly(2026, 5, 31), new DateOnly(2024, 11, 1), new DateOnly(2022, 4, 1),
+            false, true, false, null, null, null, null, 14m, null, [new("Hauptstraße 1, Köln", 55m, 520m, 9.45m), new("Hauptstraße 5, Köln", 60m, 560m, 9.33m), new("Nebenweg 2, Köln", 58m, 540m, 9.31m)], null, null, 520m, 15, 460m, 400m,
+            null, null, null, null, null, [], null),
+        new(new DateOnly(2026, 3, 10), "Sehr geehrte Damen und Herren,", "Erika Muster und Max Muster", "Wohnung 2, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
+            "Hans Vermieter", "Musterweg 1, 12345 Musterstadt", null, null,
+            false, true, false, false, 500m, 521m, 21m, 4.2m, new DateOnly(2026, 6, 1), null, null, new DateOnly(2022, 4, 1),
+            false, false, true, null, null, null, null, 60m, null, [], "Dr. Muster", new DateOnly(2026, 2, 1), 560m, 20, 600m, 500m,
+            116.3m, 121.2m, new DateOnly(2024, 1, 1), new DateOnly(2026, 1, 1), 4.2m, [], null),
+        new(new DateOnly(2026, 3, 10), "Sehr geehrte Frau Muster,", "Erika Muster", "Wohnung 1, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
+            "Hans Vermieter", "Musterweg 1, 12345 Musterstadt", null, null,
+            false, false, true, false, 500m, 540m, 40m, 8m, new DateOnly(2027, 1, 1), null, null, new DateOnly(2022, 4, 1),
+            false, false, false, null, null, null, null, null, null, [], null, null, null, 20, 0m, 0m,
+            null, null, null, null, null, [new(new DateOnly(2027, 1, 1), 540m), new(new DateOnly(2028, 1, 1), 580m)], null),
+        new(new DateOnly(2026, 3, 10), "Sehr geehrte Frau Muster,", "Erika Muster", "Zimmer 1, WG Nord", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
+            "Hans Vermieter", "Musterweg 1, 12345 Musterstadt", null, null,
+            false, false, false, true, 80m, 95m, 15m, 18.8m, new DateOnly(2026, 5, 1), null, null, new DateOnly(2022, 4, 1),
+            false, false, false, null, null, null, null, null, null, [], null, null, null, 20, 0m, 0m,
+            null, null, null, null, null, [], "Die Energiekosten der Wohnung sind seit Mietbeginn gestiegen."),
     ];
 
     private static readonly IReadOnlyList<Placeholder> ContractPlaceholders =

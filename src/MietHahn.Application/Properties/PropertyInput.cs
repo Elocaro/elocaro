@@ -38,6 +38,10 @@ public sealed class PropertyInput
 
     public EnergySource EnergySource { get; set; }
 
+    /// <summary>Cap limit of rent increases in three years in percent: 20, or 15 in areas with a tight housing market (§ 558 Abs. 3 BGB).</summary>
+    [Range(15, 20, ErrorMessage = "Die Kappungsgrenze beträgt 15 oder 20 Prozent.")]
+    public int RentCapPercent { get; set; } = 20;
+
     [StringLength(4000)]
     public string? Notes { get; set; }
 }

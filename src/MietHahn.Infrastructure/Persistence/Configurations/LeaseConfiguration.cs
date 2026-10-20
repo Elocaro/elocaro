@@ -97,3 +97,26 @@ internal sealed class LeaseContractConfiguration : IEntityTypeConfiguration<Leas
         builder.HasIndex(c => c.LeaseId).IsUnique().HasFilter("status = 'Draft' AND NOT deleted").HasDatabaseName("ux_lease_contracts_open_draft");
     }
 }
+
+internal sealed class RentIncreaseConfiguration : IEntityTypeConfiguration<RentIncrease>
+{
+    public void Configure(EntityTypeBuilder<RentIncrease> builder)
+    {
+        builder.ToTable("rent_increases");
+        builder.Property(r => r.Kind).HasConversion<string>().HasMaxLength(20);
+        builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(r => r.Basis).HasConversion<string>().HasMaxLength(20);
+        builder.Property(r => r.Summary).HasMaxLength(500);
+        builder.Property(r => r.Note).HasMaxLength(2000);
+        builder.Property(r => r.CurrentAmount).HasPrecision(12, 2);
+        builder.Property(r => r.NewAmount).HasPrecision(12, 2);
+        builder.Property(r => r.ComparativeRentAmount).HasPrecision(12, 2);
+        builder.Property(r => r.CapLimit).HasPrecision(12, 2);
+        builder.Property(r => r.IndexOldValue).HasPrecision(8, 1);
+        builder.Property(r => r.IndexNewValue).HasPrecision(8, 1);
+        builder.HasOne<Lease>().WithMany().HasForeignKey(r => r.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Documents.DocumentTemplateRevision>().WithMany().HasForeignKey(r => r.TemplateRevisionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Documents.Document>().WithMany().HasForeignKey(r => r.DocumentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(r => new { r.LeaseId, r.Status });
+    }
+}

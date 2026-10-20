@@ -1,0 +1,46 @@
+{{# BASISVORLAGE Mieterhöhungsverlangen nach § 558 BGB. Kein Rechtsrat: vor dem produktiven Einsatz rechtlich prüfen lassen. Das Schreiben muss dem Mieter in Textform zugehen und begründet sein (§ 558a BGB). Die Angaben kommen aus dem Mieterhöhungs-Assistenten. }}
+<p>{{ salutation }}</p>
+<p>hiermit bitten wir Sie um Zustimmung zur Erhöhung der Nettokaltmiete für die von Ihnen gemietete Wohnung ({{ rental_unit }}) nach § 558 des Bürgerlichen Gesetzbuches (BGB).</p>
+
+<table>
+  <tbody>
+    <tr><td>Bisherige Nettokaltmiete</td><td class="number">{{ money current_amount }}</td></tr>
+    <tr><td>Erhöhung</td><td class="number">{{ money increase_amount }} ({{ number increase_percent 1 }} %)</td></tr>
+    <tr><td><strong>Neue Nettokaltmiete</strong></td><td class="number"><strong>{{ money new_amount }}</strong></td></tr>
+  </tbody>
+</table>
+<p>Die neue Miete soll ab dem <strong>{{ date effective_from }}</strong> gelten. Die Betriebskostenvorauszahlungen bzw. -pauschalen ändern sich nicht.</p>
+
+<h3>Begründung</h3>
+{{~ if basis_rent_index ~}}
+<p>Die Erhöhung begründen wir mit dem qualifizierten Mietspiegel bzw. Mietspiegel „{{ rent_index_name }}“ (§ 558a Abs. 2 Nr. 1 BGB). Danach ergibt sich für Wohnungen vergleichbarer Art, Größe, Ausstattung, Beschaffenheit und Lage eine Spanne von {{ money per_square_metre_from }} bis {{ money per_square_metre_to }} je Quadratmeter Wohnfläche und Monat. Ihre Wohnung ordnen wir mit {{ money per_square_metre }} je m² in diese Spanne ein{{ if feature_text }}, und zwar aus folgenden Gründen: {{ feature_text }}{{ end }}.</p>
+<p>Bei einer Wohnfläche von {{ number living_area 2 }} m² ergibt sich eine ortsübliche Vergleichsmiete von <strong>{{ money comparative_rent }}</strong> im Monat.</p>
+{{~ else if basis_comparables ~}}
+<p>Die Erhöhung begründen wir mit den Mieten vergleichbarer Wohnungen (§ 558a Abs. 2 Nr. 4 BGB):</p>
+<table>
+  <thead><tr><th>Anschrift</th><th class="number">Fläche</th><th class="number">Miete</th><th class="number">je m²</th></tr></thead>
+  <tbody>
+  {{~ for c in comparables ~}}
+    <tr><td>{{ c.address }}</td><td class="number">{{ number c.area 2 }} m²</td><td class="number">{{ money c.rent }}</td><td class="number">{{ money c.per_square_metre }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+</table>
+<p>Bei einer Wohnfläche von {{ number living_area 2 }} m² ergibt sich daraus für Ihre Wohnung eine Vergleichsmiete von mindestens <strong>{{ money comparative_rent }}</strong> im Monat.</p>
+{{~ else ~}}
+<p>Die Erhöhung begründen wir mit dem Gutachten des öffentlich bestellten und vereidigten Sachverständigen {{ appraiser_name }}{{ if appraisal_date }} vom {{ date appraisal_date }}{{ end }} (§ 558a Abs. 2 Nr. 3 BGB). Danach beträgt die ortsübliche Vergleichsmiete für Ihre Wohnung <strong>{{ money comparative_rent }}</strong> im Monat. Das Gutachten ist diesem Schreiben beigefügt.</p>
+{{~ end ~}}
+
+<h3>Wartefrist und Kappungsgrenze</h3>
+<p>Ihre Nettokaltmiete ist seit {{ if last_increase }}der letzten Mieterhöhung zum {{ date last_increase }}{{ else }}dem Beginn des Mietverhältnisses am {{ date lease_start }}{{ end }} unverändert; zum Zeitpunkt der Erhöhung sind damit mindestens 15 Monate vergangen (§ 558 Abs. 1 BGB). Dieses Schreiben ist frühestens ein Jahr nach der letzten Erhöhung zugegangen.</p>
+<p>Die Erhöhung hält die Kappungsgrenze ein (§ 558 Abs. 3 BGB): Drei Jahre vor Wirksamwerden der Erhöhung betrug die Nettokaltmiete {{ money rent_three_years_ago }}; sie darf innerhalb von drei Jahren um höchstens {{ cap_percent }} % steigen, das sind {{ money cap_limit }}. Die neue Miete von {{ money new_amount }} liegt darunter bzw. entspricht dem Höchstbetrag.</p>
+
+<h3>Zustimmung und Fristen</h3>
+<p>Wir bitten Sie, der Erhöhung bis zum Ablauf des <strong>{{ date consent_deadline }}</strong> (Ende des zweiten Kalendermonats nach Zugang dieses Schreibens, § 558b Abs. 2 BGB) zuzustimmen. Stimmen Sie zu, schulden Sie die erhöhte Miete ab dem {{ date effective_from }} (Beginn des dritten Kalendermonats nach Zugang). Stimmen Sie nicht oder nicht rechtzeitig zu, können wir innerhalb von drei weiteren Monaten Klage auf Erteilung der Zustimmung erheben.</p>
+<p>Sie haben das Recht, bis zum Ablauf des zweiten Monats nach Zugang dieses Schreibens das Mietverhältnis außerordentlich zum Ablauf des übernächsten Monats zu kündigen (§ 561 BGB). In diesem Fall tritt die Erhöhung nicht ein.</p>
+
+{{ include 'Grußformel' }}
+
+<p>&nbsp;</p>
+<h3>Zustimmungserklärung</h3>
+<p>Ich/Wir stimme(n) der Erhöhung der Nettokaltmiete für {{ rental_unit }} auf <strong>{{ money new_amount }}</strong> monatlich ab dem {{ date effective_from }} zu.</p>
+<p><br>______________________________<br>Ort, Datum, Unterschrift {{ tenant_names }}</p>

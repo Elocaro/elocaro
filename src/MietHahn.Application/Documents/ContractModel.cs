@@ -77,3 +77,59 @@ public sealed record ContractModel(
     string? Notes,
     string? SenderIban = null,
     string? SenderBank = null);
+
+/// <summary>Comparable flat for the justification of a rent increase.</summary>
+public sealed record ComparableFlat(string Address, decimal Area, decimal Rent, decimal PerSquareMetre);
+
+/// <summary>
+/// Data of a letter about a rent increase. The amounts are base rent (comparative, index, graduated) or flat rate. Fields that do not
+/// belong to the kind of increase are empty.
+/// </summary>
+public sealed record RentIncreaseModel(
+    DateOnly Today,
+    string Salutation,
+    string TenantNames,
+    string RentalUnit,
+    string PropertyName,
+    string PropertyStreet,
+    string PropertyPostalCode,
+    string PropertyCity,
+    string SenderName,
+    string SenderAddress,
+    string? SenderIban,
+    string? SenderBank,
+    bool IsComparative,
+    bool IsIndex,
+    bool IsGraduated,
+    bool IsFlatRate,
+    decimal CurrentAmount,
+    decimal NewAmount,
+    decimal IncreaseAmount,
+    decimal IncreasePercent,
+    DateOnly EffectiveFrom,
+    DateOnly? ConsentDeadline,
+    DateOnly? LastIncrease,
+    DateOnly LeaseStart,
+    bool BasisRentIndex,
+    bool BasisComparables,
+    bool BasisAppraisal,
+    string? RentIndexName,
+    decimal? PerSquareMetreFrom,
+    decimal? PerSquareMetreTo,
+    decimal? PerSquareMetre,
+    decimal? LivingArea,
+    string? FeatureText,
+    IReadOnlyList<ComparableFlat> Comparables,
+    string? AppraiserName,
+    DateOnly? AppraisalDate,
+    decimal? ComparativeRent,
+    int CapPercent,
+    decimal CapLimit,
+    decimal RentThreeYearsAgo,
+    decimal? OldIndex,
+    decimal? NewIndex,
+    DateOnly? OldIndexMonth,
+    DateOnly? NewIndexMonth,
+    decimal? IndexChangePercent,
+    IReadOnlyList<ContractStep> NextSteps,
+    string? CostReason);

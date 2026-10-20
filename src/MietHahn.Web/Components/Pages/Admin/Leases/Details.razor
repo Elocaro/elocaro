@@ -24,6 +24,7 @@ else
             <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/kostenarten")">Vereinbarte Kostenarten</MudButton>
         </AuthorizeView>
         <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/vertragsdokument")">Vertragsdokument</MudButton>
+        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/mieterhoehung")">Mieterhöhung</MudButton>
         @if (lease.Status != LeaseStatus.Ended)
         {
             <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/auszug")">Mieterwechsel</MudButton>
