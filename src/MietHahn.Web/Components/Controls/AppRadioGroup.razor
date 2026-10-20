@@ -1,0 +1,27 @@
+@typeparam T
+@using System.Linq.Expressions
+@using MudBlazor
+@* Choice of exactly one option, all visible (few options). *@
+<MudRadioGroup T="T" Value="Value" ValueChanged="ValueChanged" For="ValueExpression">
+    @foreach (var item in Items)
+    {
+        <MudRadio T="T" Value="item" Color="Color.Primary">@Text(item)</MudRadio>
+    }
+</MudRadioGroup>
+
+@code {
+    [Parameter]
+    public T? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<T?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<T?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public IEnumerable<T> Items { get; set; } = [];
+
+    [Parameter]
+    public Func<T, string> Text { get; set; } = item => item?.ToString() ?? "";
+}

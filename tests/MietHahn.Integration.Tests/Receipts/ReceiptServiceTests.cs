@@ -65,7 +65,7 @@ public class ReceiptServiceTests(PostgresFixture postgres) : IAsyncLifetime
             LaborCosts = 357m,
         }, Ct)));
         var tooMuch = await WithAsync(b => b.AddItemAsync(id, new CostItemInput { CostType = "betrkv-10", Amount = 300m, PropertyId = house }, Ct));
-        Assert.Contains("übersteigen den Rechnungsbetrag (offen: 238.00 €)", tooMuch.Errors.Single(), StringComparison.Ordinal);
+        Assert.Contains("übersteigen den Rechnungsbetrag (offen: 238,00 €)", tooMuch.Errors.Single(), StringComparison.Ordinal);
         // Without an amount: the remainder
         Validate(await WithAsync(b => b.AddItemAsync(id, new CostItemInput { CostType = "betrkv-10", PropertyId = house }, Ct)));
 
@@ -152,7 +152,7 @@ public class ReceiptServiceTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Empty((await WithAsync(b => b.GetAsync(id, Ct)))!.Items);
 
         var todos = await TodosAsync();
-        Assert.Contains(todos, a => a.Title == "Rechnung zahlen: Stadtwerke 120.00 €" && a.Urgency == Urgency.Soon);
+        Assert.Contains(todos, a => a.Title == "Rechnung zahlen: Stadtwerke 120,00 €" && a.Urgency == Urgency.Soon);
         Assert.Contains(todos, a => a.Title == "1 Belege ohne vollständige Kostenaufteilung");
 
         Validate(await WithAsync(b => b.DeleteAsync(id, Ct)));

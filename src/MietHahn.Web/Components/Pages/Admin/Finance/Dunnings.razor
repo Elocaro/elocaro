@@ -1,15 +1,18 @@
 @page "/verwaltung/finanzen/mahnungen"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IDunning Dunning
-@inject Redirector Redirector
+@inject Notifier Notify
+@inject Confirmations Confirm
 
+<InteractiveShell>
 <PageHeader Title="Mahnwesen" Subtitle="Rückstände werden erkannt und Mahnungen vorgeschlagen. Versendet wird erst nach Ihrer Freigabe.">
     <Actions>
-        <a class="button" href="/verwaltung/finanzen/offene-posten">Offene Posten</a>
-        <a class="button" href="/verwaltung/finanzen/einstellungen#mahnwesen">Einstellungen</a>
+        <MudButton Variant="Variant.Outlined" Href="/verwaltung/finanzen/offene-posten">Offene Posten</MudButton>
+        <MudButton Variant="Variant.Outlined" Href="/verwaltung/finanzen/einstellungen#mahnwesen">Einstellungen</MudButton>
     </Actions>
 </PageHeader>
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 <Notice Level="NoticeLevel.Info">
@@ -71,7 +74,7 @@
                                 <td>@Format.Date(m.OldestDue)</td>
                                 <td class="number">@(m.Fee > 0 ? Format.Money(m.Fee) : "–")</td>
                                 <td class="number">@(m.Interest > 0 ? Format.Money(m.Interest) : "–")</td>
-                                <td><a class="button button-primary" href="/verwaltung/finanzen/mahnungen/@m.Id" aria-label="@($"{Labels.From(m.Level)} für {m.Tenant} prüfen und freigeben")">Prüfen und freigeben</a></td>
+                                <td><MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/finanzen/mahnungen/{m.Id}")" aria-label="@($"{Labels.From(m.Level)} für {m.Tenant} prüfen und freigeben")">Prüfen und freigeben</MudButton></td>
                             </tr>
                         }
                     </tbody>
@@ -127,8 +130,6 @@
         }
         else
         {
-            <form method="post" @formname="holds" @onsubmit="EndHoldAsync">
-                <AntiforgeryToken />
                 <div class="table-wrapper">
                     <table class="data-table">
                         <thead><tr><th>Mietverhältnis</th><th>Grund</th><th>Bis</th><th></th></tr></thead>
@@ -139,45 +140,36 @@
                                     <td><a href="/verwaltung/vertraege/@h.LeaseId/konto">@h.Tenant</a><span class="small"> @h.RentalUnit</span></td>
                                     <td>@h.Reason</td>
                                     <td>@(h.Until is { } until ? Format.Date(until) : "bis auf Weiteres")</td>
-                                    <td><button type="submit" class="button" name="EndHold" value="@h.Id" aria-label="@($"Mahnsperre für {h.Tenant} aufheben")">Aufheben</button></td>
+                                    <td><MudButton Variant="Variant.Outlined" OnClick="() => EndHoldAsync(h)" aria-label="@($"Mahnsperre für {h.Tenant} aufheben")">Aufheben</MudButton></td>
                                 </tr>
                             }
                         </tbody>
                     </table>
                 </div>
-            </form>
         }
     </section>
 }
+</InteractiveShell>
 
 @code {
     private DunningOverview? overview;
     private IReadOnlyList<string>? errors;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "holds")]
-    private Guid? EndHold { get; set; }
-
     protected override async Task OnInitializedAsync() => overview = await Dunning.OverviewAsync();
 
-    private async Task EndHoldAsync()
+    private async Task EndHoldAsync(DunningHoldRow hold)
     {
-        if (EndHold is not { } id)
+        if (!await Confirm.AskAsync("Mahnsperre aufheben", $"Soll die Mahnsperre für {hold.Tenant} aufgehoben werden? Danach gibt es wieder Mahnvorschläge.", "Ja, aufheben"))
         {
-            errors = ["Unbekannte Mahnsperre."];
             return;
         }
 
-        var result = await Dunning.EndHoldAsync(id);
+        var result = await Dunning.EndHoldAsync(hold.Id);
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage("/verwaltung/finanzen/mahnungen", "Die Mahnsperre wurde aufgehoben.", HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            Notify.Success("Die Mahnsperre wurde aufgehoben.");
+            overview = await Dunning.OverviewAsync();
         }
     }
 }

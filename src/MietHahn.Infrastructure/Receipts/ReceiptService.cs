@@ -346,7 +346,7 @@ internal sealed class ReceiptTodos(MietHahnDbContext db, TimeProvider clock) : I
         var today = GermanTime.Today(clock.GetUtcNow());
         var todos = new List<TodoItem>();
         var due = await db.Set<Receipt>().AsNoTracking().Where(b => b.PaidOn == null && b.DueOn != null && b.DueOn <= today.AddDays(7)).OrderBy(b => b.DueOn).ToListAsync(cancellationToken);
-        todos.AddRange(due.Select(b => new TodoItem("Belege", $"Rechnung zahlen: {b.SupplierName ?? "Beleg"} {b.Gross:0.00} €", $"/verwaltung/belege/{b.Id}",
+        todos.AddRange(due.Select(b => new TodoItem("Belege", $"Rechnung zahlen: {b.SupplierName ?? "Beleg"} {MietHahn.Domain.Common.GermanText.Money(b.Gross)}", $"/verwaltung/belege/{b.Id}",
             b.DueOn < today ? Urgency.Urgent : Urgency.Soon, b.InvoiceNumber is null ? null : $"Rechnung {b.InvoiceNumber}", b.DueOn)));
 
         var receipts = await db.Set<Receipt>().AsNoTracking().Include(b => b.Items).ToListAsync(cancellationToken);

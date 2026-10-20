@@ -1,3 +1,4 @@
+using MietHahn.Domain.Common;
 namespace MietHahn.Domain.Tax;
 
 /// <summary>Acquisition data of a building that is the basis of the depreciation (AfA).</summary>
@@ -163,12 +164,12 @@ public static class DepreciationCalculator
         if (inWindow > limit)
         {
             warnings.Add(
-                $"Anschaffungsnahe Herstellungskosten: Die Instandsetzungs- und Modernisierungskosten der ersten drei Jahre ({inWindow:N2} €, netto) " +
-                $"überschreiten 15 % der Gebäude-Anschaffungskosten ({limit:N2} €). Sie sind dann nicht sofort abziehbar, sondern über die AfA zu verteilen (§ 6 Abs. 1 Nr. 1a EStG).");
+                $"Anschaffungsnahe Herstellungskosten: Die Instandsetzungs- und Modernisierungskosten der ersten drei Jahre ({GermanText.Money(inWindow)}, netto) " +
+                $"überschreiten 15 % der Gebäude-Anschaffungskosten ({GermanText.Money(limit)}). Sie sind dann nicht sofort abziehbar, sondern über die AfA zu verteilen (§ 6 Abs. 1 Nr. 1a EStG).");
         }
         else if (limit > 0 && inWindow > limit * 0.8m)
         {
-            warnings.Add($"Die Instandsetzungskosten der ersten drei Jahre ({inWindow:N2} €) liegen nahe an der 15-%-Grenze ({limit:N2} €).");
+            warnings.Add($"Die Instandsetzungskosten der ersten drei Jahre ({GermanText.Money(inWindow)}) liegen nahe an der 15-%-Grenze ({GermanText.Money(limit)}).");
         }
 
         return warnings;

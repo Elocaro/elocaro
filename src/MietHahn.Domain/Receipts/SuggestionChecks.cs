@@ -50,7 +50,7 @@ public static class SuggestionChecks
         {
             if (n + v != g)
             {
-                warnings.Add($"Netto ({n:0.00} €) + Umsatzsteuer ({v:0.00} €) ergibt nicht den Bruttobetrag ({g:0.00} €). Bitte die Beträge prüfen.");
+                warnings.Add($"Netto ({GermanText.Money(n)}) + Umsatzsteuer ({GermanText.Money(v)}) ergibt nicht den Bruttobetrag ({GermanText.Money(g)}). Bitte die Beträge prüfen.");
                 gross = gross.CappedAt(Doubtful);
                 net = net.CappedAt(Doubtful);
                 vat = vat.CappedAt(Doubtful);
@@ -182,7 +182,7 @@ public static class SuggestionChecks
             // Lines are often net amounts, so a match with net or gross is fine.
             if (sum != gross && (s.Net.Value is not { } net || sum != net))
             {
-                warnings.Add($"Die Summe der erkannten Positionen ({sum:0.00} €) passt weder zum Brutto- noch zum Nettobetrag.");
+                warnings.Add($"Die Summe der erkannten Positionen ({GermanText.Money(sum)}) passt weder zum Brutto- noch zum Nettobetrag.");
             }
         }
 
@@ -198,7 +198,7 @@ public static class SuggestionChecks
 
         if (Math.Abs(amount) > MaxAmount || (!allowNegative && amount < 0))
         {
-            warnings.Add($"Der erkannte Betrag „{name}“ ({amount:0.00} €) ist unplausibel und wurde verworfen.");
+            warnings.Add($"Der erkannte Betrag „{name}“ ({GermanText.Money(amount)}) ist unplausibel und wurde verworfen.");
             return default;
         }
 

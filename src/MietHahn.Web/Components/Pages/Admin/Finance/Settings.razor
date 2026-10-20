@@ -1,115 +1,68 @@
 @page "/verwaltung/finanzen/einstellungen"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IFinanceSettings Admin
 @inject ITenantAccounts Accounts
-@inject Redirector Redirector
+@inject Notifier Notify
 
-<PageHeader Title="Einstellungen Finanzen" Subtitle="Buchhaltungsbeginn, Verrechnung von Zahlungen und Mahnwesen." />
+<InteractiveShell>
+    <PageHeader Title="Einstellungen Finanzen" Subtitle="Buchhaltungsbeginn, Verrechnung von Zahlungen und Mahnwesen." />
 
-<StatusMessage />
-
-<EditForm Model="Data" FormName="finance" OnValidSubmit="SaveAsync">
-    <DataAnnotationsValidator />
-    <div class="form-grid">
-        <FormField Id="accounting-valid-from" Label="Buchhaltung ab (Monat)" For="() => Data!.AccountingStart"
-                      Hint="Ab diesem Monat entstehen die Monatsmieten automatisch. Rückstände aus der Zeit davor als „Saldovortrag“ im Mieterkonto erfassen.">
-            <InputDate id="accounting-valid-from" @bind-Value="Data!.AccountingStart" />
-        </FormField>
-    </div>
-    <fieldset class="field">
-        <legend>Verrechnung von Teilzahlungen</legend>
-        <InputRadioGroup @bind-Value="Data!.Allocation">
-            @foreach (var value in Enum.GetValues<AllocationOrder>())
-            {
-                <div class="field-checkbox">
-                    <InputRadio id="@($"allocation-{value}")" Value="value" />
-                    <label for="@($"allocation-{value}")">@Labels.From(value)</label>
+    @if (data is not null)
+    {
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppDateField @bind-Value="data.AccountingStart" Label="Buchhaltung ab (Monat)"
+                              Hint="Ab diesem Monat entstehen die Monatsmieten automatisch. Rückstände aus der Zeit davor als „Saldovortrag“ im Mieterkonto erfassen." />
+            </div>
+            <fieldset class="field">
+                <legend>Verrechnung von Teilzahlungen</legend>
+                <AppRadioGroup @bind-Value="data.Allocation" Items="Enum.GetValues<AllocationOrder>()" Text="@(v => Labels.From(v))" />
+                <span class="field-hint">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
+            </fieldset>
+            <section id="mahnwesen" aria-labelledby="dunning-heading">
+                <h2 id="dunning-heading">Mahnwesen</h2>
+                <Notice Level="NoticeLevel.Info">
+                    Die Vorgaben sind Voreinstellungen und <strong>keine Rechtsberatung</strong>. Mahngebühren dürfen nur tatsächlich entstandene Kosten
+                    abdecken, die Verzugszinsen und die Mahnvorlage sollten vor dem produktiven Einsatz rechtlich geprüft werden.
+                </Notice>
+                <div class="form-grid">
+                    <AppNumberField T="int" @bind-Value="data.DunningGraceDays" Label="Karenzzeit (Tage)" Hint="Ein Posten gilt erst nach so vielen Tagen über der Fälligkeit als Rückstand." />
+                    <AppNumberField T="int" @bind-Value="data.DaysUntilFirstNotice" Label="Tage bis zur 1. Mahnung" Hint="Wartezeit nach der Zahlungserinnerung." />
+                    <AppNumberField T="int" @bind-Value="data.DaysUntilSecondNotice" Label="Tage bis zur 2. Mahnung" Hint="Wartezeit nach der 1. Mahnung." />
+                    <AppNumberField T="int" @bind-Value="data.DunningDeadlineDays" Label="Zahlungsfrist im Schreiben (Tage)" />
+                    <AppNumberField T="decimal?" @bind-Value="data.DunningMinimumAmount" Label="Mindestbetrag" Suffix="€" Hint="Rückstände darunter werden nicht gemahnt." />
+                    <AppNumberField T="decimal?" @bind-Value="data.ReminderFee" Label="Gebühr Zahlungserinnerung" Suffix="€" Hint="Üblicherweise 0 €." />
+                    <AppNumberField T="decimal?" @bind-Value="data.FirstNoticeFee" Label="Gebühr 1. Mahnung" Suffix="€" Hint="Nur tatsächlich entstandene Kosten (z. B. Porto); 0 € = keine." />
+                    <AppNumberField T="decimal?" @bind-Value="data.SecondNoticeFee" Label="Gebühr 2. Mahnung" Suffix="€" Hint="Nur tatsächlich entstandene Kosten; 0 € = keine." />
                 </div>
-            }
-        </InputRadioGroup>
-        <span class="field-hint">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
-    </fieldset>
-    <section id="mahnwesen" aria-labelledby="dunning-heading">
-        <h2 id="dunning-heading">Mahnwesen</h2>
-        <Notice Level="NoticeLevel.Info">
-            Die Vorgaben sind Voreinstellungen und <strong>keine Rechtsberatung</strong>. Mahngebühren dürfen nur tatsächlich entstandene Kosten
-            abdecken, die Verzugszinsen und die Mahnvorlage sollten vor dem produktiven Einsatz rechtlich geprüft werden.
-        </Notice>
-        <div class="form-grid">
-            <FormField Id="dunning-grace-days" Label="Karenzzeit (Tage)" For="() => Data!.DunningGraceDays"
-                       Hint="Ein Posten gilt erst nach so vielen Tagen über der Fälligkeit als Rückstand.">
-                <InputNumber id="dunning-grace-days" @bind-Value="Data!.DunningGraceDays" />
-            </FormField>
-            <FormField Id="dunning-first-notice-days" Label="Tage bis zur 1. Mahnung" For="() => Data!.DaysUntilFirstNotice"
-                       Hint="Wartezeit nach der Zahlungserinnerung.">
-                <InputNumber id="dunning-first-notice-days" @bind-Value="Data!.DaysUntilFirstNotice" />
-            </FormField>
-            <FormField Id="dunning-second-notice-days" Label="Tage bis zur 2. Mahnung" For="() => Data!.DaysUntilSecondNotice"
-                       Hint="Wartezeit nach der 1. Mahnung.">
-                <InputNumber id="dunning-second-notice-days" @bind-Value="Data!.DaysUntilSecondNotice" />
-            </FormField>
-            <FormField Id="dunning-deadline-days" Label="Zahlungsfrist im Schreiben (Tage)" For="() => Data!.DunningDeadlineDays">
-                <InputNumber id="dunning-deadline-days" @bind-Value="Data!.DunningDeadlineDays" />
-            </FormField>
-            <FormField Id="dunning-minimum-amount" Label="Mindestbetrag" For="() => Data!.DunningMinimumAmount"
-                       Hint="Rückstände darunter werden nicht gemahnt.">
-                <InputAmount id="dunning-minimum-amount" @bind-Value="Data!.DunningMinimumAmount" />
-            </FormField>
-            <FormField Id="reminder-fee" Label="Gebühr Zahlungserinnerung" For="() => Data!.ReminderFee" Hint="Üblicherweise 0 €.">
-                <InputAmount id="reminder-fee" @bind-Value="Data!.ReminderFee" />
-            </FormField>
-            <FormField Id="first-notice-fee" Label="Gebühr 1. Mahnung" For="() => Data!.FirstNoticeFee" Hint="Nur tatsächlich entstandene Kosten (z. B. Porto); 0 € = keine.">
-                <InputAmount id="first-notice-fee" @bind-Value="Data!.FirstNoticeFee" />
-            </FormField>
-            <FormField Id="second-notice-fee" Label="Gebühr 2. Mahnung" For="() => Data!.SecondNoticeFee" Hint="Nur tatsächlich entstandene Kosten; 0 € = keine.">
-                <InputAmount id="second-notice-fee" @bind-Value="Data!.SecondNoticeFee" />
-            </FormField>
-        </div>
-        <div class="field field-checkbox">
-            <InputCheckbox id="charge-default-interest" @bind-Value="Data!.ChargeDefaultInterest" />
-            <label for="charge-default-interest">Verzugszinsen ab der 1. Mahnung berechnen (§ 288 Abs. 1 BGB: Basiszinssatz + 5 Prozentpunkte)</label>
-        </div>
-        <div class="form-grid">
-            <FormField Id="base-rate" Label="Basiszinssatz (% p. a.)" For="() => Data!.BaseRate"
-                       Hint="Ändert sich zum 1.1. und 1.7.; den aktuellen Wert veröffentlicht die Deutsche Bundesbank. Ohne Wert werden keine Zinsen berechnet.">
-                <InputNumber id="base-rate" @bind-Value="Data!.BaseRate" step="0.01" />
-            </FormField>
-            <FormField Id="base-rate-as-of" Label="Basiszinssatz gültig seit" For="() => Data!.BaseRateAsOf" Hint="Zur Kontrolle, wann der Wert zuletzt gepflegt wurde.">
-                <InputDate id="base-rate-as-of" @bind-Value="Data!.BaseRateAsOf" />
-            </FormField>
-            <FormField Id="interest-margin" Label="Aufschlag (Prozentpunkte)" For="() => Data!.InterestMarginPoints"
-                       Hint="Gesetzlich 5 Prozentpunkte bei Verbrauchern (§ 288 Abs. 1 BGB).">
-                <InputNumber id="interest-margin" @bind-Value="Data!.InterestMarginPoints" step="0.01" />
-            </FormField>
-        </div>
-        @if (Data!.ChargeDefaultInterest && Data.BaseRate is null)
-        {
-            <Notice Level="NoticeLevel.Info">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</Notice>
-        }
-    </section>
-    <button type="submit" class="button button-primary">Speichern</button>
-</EditForm>
+                <AppCheckBox @bind-Value="data.ChargeDefaultInterest" Label="Verzugszinsen ab der 1. Mahnung berechnen (§ 288 Abs. 1 BGB: Basiszinssatz + 5 Prozentpunkte)" />
+                <div class="form-grid">
+                    <AppNumberField T="decimal?" @bind-Value="data.BaseRate" Label="Basiszinssatz (% p. a.)"
+                                    Hint="Ändert sich zum 1.1. und 1.7.; den aktuellen Wert veröffentlicht die Deutsche Bundesbank. Ohne Wert werden keine Zinsen berechnet." />
+                    <AppDateField @bind-Value="data.BaseRateAsOf" Label="Basiszinssatz gültig seit" Hint="Zur Kontrolle, wann der Wert zuletzt gepflegt wurde." />
+                    <AppNumberField T="decimal?" @bind-Value="data.InterestMarginPoints" Label="Aufschlag (Prozentpunkte)" Hint="Gesetzlich 5 Prozentpunkte bei Verbrauchern (§ 288 Abs. 1 BGB)." />
+                </div>
+                @if (data.ChargeDefaultInterest && data.BaseRate is null)
+                {
+                    <Notice Level="NoticeLevel.Info">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</Notice>
+                }
+            </section>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
 
 @code {
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private FinanceSettingsInput? data;
 
-    [SupplyParameterFromForm(FormName = "finance")]
-    private FinanceSettingsInput? Data { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        var form = Data;
-        Data ??= new();
-        if (form is null)
-        {
-            Data = await Admin.GetAsync();
-        }
-    }
+    protected override async Task OnInitializedAsync() => data = await Admin.GetAsync();
 
     private async Task SaveAsync()
     {
-        await Admin.SaveAsync(Data!);
+        await Admin.SaveAsync(data!);
         var count = await Accounts.GenerateChargesAsync();
-        Redirector.RedirectWithMessage("/verwaltung/finanzen/einstellungen", count == 0 ? "Gespeichert." : $"Gespeichert. {count} Sollstellungen angelegt oder angeglichen.", HttpContext);
+        Notify.Success(count == 0 ? "Gespeichert." : $"Gespeichert. {count} Sollstellungen angelegt oder angeglichen.");
     }
 }

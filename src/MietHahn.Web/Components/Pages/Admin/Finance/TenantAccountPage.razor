@@ -1,18 +1,26 @@
 @page "/verwaltung/vertraege/{Id:guid}/konto"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Domain.Leases
 @inject ITenantAccounts Accounts
 @inject IDunning Dunning
-@inject Redirector Redirector
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (account is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (account is null)
 {
     <PageHeader Title="Vertrag nicht gefunden" Back="/verwaltung/finanzen/offene-posten" BackText="Offene Posten" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@($"Mieterkonto {account.Tenant}")" Subtitle="@account.RentalUnit" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 @if (account.AccountingStart is null)
@@ -27,11 +35,10 @@
     <dt>Verrechnung</dt><dd>@Labels.From(account.Allocation)</dd>
 </dl>
 
-<form method="post" @formname="refresh" @onsubmit="RefreshAsync">
-    <AntiforgeryToken />
-    <button type="submit" class="button button-primary">Monatsmieten jetzt aktualisieren</button>
+<div class="form-row">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAsync">Monatsmieten jetzt aktualisieren</MudButton>
     <span class="field-hint">Passiert sonst jede Nacht automatisch, z. B. nach einer Mieterhöhung.</span>
-</form>
+</div>
 
 <section>
     <h2>Buchungen</h2>
@@ -41,8 +48,6 @@
     }
     else
     {
-        <form method="post" @formname="delete" @onsubmit="DeleteAsync">
-            <AntiforgeryToken />
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead>
@@ -74,7 +79,7 @@
                                 <td>
                                     @if (!b.Automatic && b.Origin is null or PaymentOrigin.Manual)
                                     {
-                                        <RowConfirm Name="Delete" Value="@($"{b.EntryType}:{b.Id}")" Label="@($"{b.Text} löschen")" Text="Löschen" ConfirmText="Ja, löschen" />
+                                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(b)" aria-label="@($"{b.Text} löschen")">Löschen</MudButton>
                                     }
                                 </td>
                             </tr>
@@ -82,66 +87,35 @@
                     </tbody>
                 </table>
             </div>
-        </form>
     }
 </section>
 
 <section>
     <h2>Zahlung erfassen</h2>
-    <EditForm Model="Payment" FormName="payment" OnValidSubmit="PaymentAsync">
+    <EditForm Model="payment" OnValidSubmit="PaymentAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <FormField Id="payment-date" Label="Datum" For="() => Payment!.Date" Required="true">
-                <InputDate id="payment-date" @bind-Value="Payment!.Date" />
-            </FormField>
-            <FormField Id="payment-amount" Label="Betrag" For="() => Payment!.Amount" Required="true">
-                <InputAmount id="payment-amount" @bind-Value="Payment!.Amount" />
-            </FormField>
-            <FormField Id="payment-purpose" Label="Verwendungszweck" For="() => Payment!.Purpose">
-                <InputText id="payment-purpose" @bind-Value="Payment!.Purpose" />
-            </FormField>
-            <FormField Id="payment-allocation" Label="Zahlt auf (optional)" For="() => Payment!.ChargeId" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“).">
-                <InputSelect id="payment-allocation" @bind-Value="Payment!.ChargeId">
-                    <option value="">– automatisch verrechnen –</option>
-                    @foreach (var b in account.Entries.Where(b => b.Open > 0))
-                    {
-                        <option value="@b.Id">@b.Text (@Format.Money(b.Open))</option>
-                    }
-                </InputSelect>
-            </FormField>
+            <AppDateField @bind-Value="payment.Date" Label="Datum" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="payment.Amount" Label="Betrag" Suffix="€" Required="true" />
+            <AppTextField @bind-Value="payment.Purpose" Label="Verwendungszweck" />
+            <AppSelect T="Guid?" @bind-Value="payment.ChargeId" Label="Zahlt auf (optional)" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“)." Items="openChargeIds" Text="ChargeText" EmptyText="– automatisch verrechnen –" />
         </div>
-        <div class="field field-checkbox">
-            <InputCheckbox id="payment-payout" @bind-Value="Payment!.Payout" />
-            <label for="payment-payout">Auszahlung an den Mieter (z. B. Guthaben überwiesen)</label>
-        </div>
-        <button type="submit" class="button button-primary">Zahlung buchen</button>
+        <AppCheckBox @bind-Value="payment.Payout" Label="Auszahlung an den Mieter (z. B. Guthaben überwiesen)" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zahlung buchen</MudButton>
     </EditForm>
 </section>
 
 <section>
     <h2>Sonstige Forderung oder Gutschrift</h2>
-    <EditForm Model="Charge" FormName="charge" OnValidSubmit="ChargeAsync">
+    <EditForm Model="charge" OnValidSubmit="ChargeAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <FormField Id="charge-kind" Label="Art" For="() => Charge!.Kind">
-                <InputSelect id="charge-kind" @bind-Value="Charge!.Kind">
-                    @foreach (var value in Enum.GetValues<ChargeType>().Where(a => a != ChargeType.Rent))
-                    {
-                        <option value="@value">@Labels.From(value)</option>
-                    }
-                </InputSelect>
-            </FormField>
-            <FormField Id="charge-due" Label="Fällig am" For="() => Charge!.Due" Required="true">
-                <InputDate id="charge-due" @bind-Value="Charge!.Due" />
-            </FormField>
-            <FormField Id="charge-amount" Label="Betrag" For="() => Charge!.Amount" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht.">
-                <InputAmount id="charge-amount" @bind-Value="Charge!.Amount" />
-            </FormField>
-            <FormField Id="charge-text" Label="Bezeichnung" For="() => Charge!.Name" Hint="z. B. „Nachzahlung Betriebskosten 2025“">
-                <InputText id="charge-text" @bind-Value="Charge!.Name" />
-            </FormField>
+            <AppSelect @bind-Value="charge.Kind" Label="Art" Items="Enum.GetValues<ChargeType>().Where(a => a != ChargeType.Rent).ToList()" Text="@(v => Labels.From(v))" />
+            <AppDateField @bind-Value="charge.Due" Label="Fällig am" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="charge.Amount" Label="Betrag" Suffix="€" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht." />
+            <AppTextField @bind-Value="charge.Name" Label="Bezeichnung" Hint="z. B. „Nachzahlung Betriebskosten 2025“" />
         </div>
-        <button type="submit" class="button button-primary">Buchen</button>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Buchen</MudButton>
     </EditForm>
 </section>
 
@@ -194,35 +168,28 @@
         <h3>Mahnsperre</h3>
         @if (dunning.Holds.Count > 0)
         {
-            <form method="post" @formname="end-hold" @onsubmit="EndHoldAsync">
-                <AntiforgeryToken />
-                <ul>
-                    @foreach (var h in dunning.Holds)
-                    {
-                        <li>
-                            @h.Reason (@(h.Until is { } until ? "bis " + Format.Date(until) : "bis auf Weiteres"))
-                            <button type="submit" class="button" name="EndHold" value="@h.Id">Aufheben</button>
-                        </li>
-                    }
-                </ul>
-            </form>
+            <ul>
+                @foreach (var h in dunning.Holds)
+                {
+                    <li>
+                        @h.Reason (@(h.Until is { } until ? "bis " + Format.Date(until) : "bis auf Weiteres"))
+                        <MudButton Variant="Variant.Outlined" OnClick="() => EndHoldAsync(h)">Aufheben</MudButton>
+                    </li>
+                }
+            </ul>
         }
         else
         {
             <p class="small">Keine aktive Mahnsperre. Mit einer Sperre (z. B. Ratenvereinbarung) gibt es keine Mahnvorschläge für dieses Mietverhältnis.</p>
         }
 
-        <EditForm Model="Hold" FormName="hold" OnValidSubmit="HoldAsync">
+        <EditForm Model="hold" OnValidSubmit="HoldAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
-                <FormField Id="hold-reason" Label="Grund" For="() => Hold!.Reason" Required="true">
-                    <InputText id="hold-reason" @bind-Value="Hold!.Reason" />
-                </FormField>
-                <FormField Id="hold-until" Label="Bis (optional)" For="() => Hold!.Until" Hint="Leer = bis zur Aufhebung.">
-                    <InputDate id="hold-until" @bind-Value="Hold!.Until" />
-                </FormField>
+                <AppTextField @bind-Value="hold.Reason" Label="Grund" Required="true" />
+                <AppDateField @bind-Value="hold.Until" Label="Bis (optional)" Hint="Leer = bis zur Aufhebung." />
             </div>
-            <button type="submit" class="button button-primary">Mahnsperre setzen</button>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Mahnsperre setzen</MudButton>
         </EditForm>
     }
 </section>
@@ -255,85 +222,78 @@
         </div>
     }
 </section>
+}
+</InteractiveShell>
 
 @code {
     private TenantAccount? account;
+    private LeaseDunning? dunning;
     private IReadOnlyList<string>? errors;
+    private PaymentInput payment = new();
+    private ChargeInput charge = new();
+    private DunningHoldInput hold = new();
+    private IReadOnlyList<Guid?> openChargeIds = [];
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
-    [SupplyParameterFromForm(FormName = "payment")]
-    private PaymentInput? Payment { get; set; }
-
-    [SupplyParameterFromForm(FormName = "charge")]
-    private ChargeInput? Charge { get; set; }
-
-    [SupplyParameterFromForm(FormName = "delete")]
-    private string? Delete { get; set; }
-
-    [SupplyParameterFromForm(FormName = "hold")]
-    private DunningHoldInput? Hold { get; set; }
-
-    [SupplyParameterFromForm(FormName = "end-hold")]
-    private Guid? EndHold { get; set; }
-
-    private LeaseDunning? dunning;
-
-    private string Target => $"/verwaltung/vertraege/{Id}/konto";
-
-    protected override async Task OnInitializedAsync()
+    private async Task LoadAsync()
     {
-        Payment ??= new();
-        Charge ??= new();
-        Hold ??= new();
         account = await Accounts.GetAsync(Id);
         if (account is not null)
         {
             dunning = await Dunning.ForLeaseAsync(Id);
+            openChargeIds = account.Entries.Where(b => b.Open > 0).Select(b => (Guid?)b.Id).ToList();
         }
+
+        loaded = true;
     }
 
-    private Task HoldAsync() => ExecuteAsync(Dunning.AddHoldAsync(Id, Hold!), "Die Mahnsperre wurde gesetzt.");
-
-    private Task EndHoldAsync() =>
-        EndHold is { } holdId ? ExecuteAsync(Dunning.EndHoldAsync(holdId), "Die Mahnsperre wurde aufgehoben.") : Task.CompletedTask;
+    private string ChargeText(Guid? id) => account?.Entries.FirstOrDefault(b => b.Id == id) is { } b ? $"{b.Text} ({Format.Money(b.Open)})" : "";
 
     private async Task RefreshAsync()
     {
         var count = await Accounts.GenerateChargesAsync(Id);
-        Redirector.RedirectWithMessage(Target, count == 0 ? "Die Monatsmieten sind aktuell." : $"{count} Sollstellungen angelegt oder angeglichen.", HttpContext);
+        Notify.Success(count == 0 ? "Die Monatsmieten sind aktuell." : $"{count} Sollstellungen angelegt oder angeglichen.");
+        await LoadAsync();
     }
 
-    private Task PaymentAsync() => ExecuteAsync(Accounts.RecordPaymentAsync(Id, Payment!), "Die Zahlung wurde gebucht.");
+    private Task PaymentAsync() => ExecuteAsync(Accounts.RecordPaymentAsync(Id, payment), "Die Zahlung wurde gebucht.", () => payment = new());
 
-    private Task ChargeAsync() => ExecuteAsync(Accounts.CreateChargeAsync(Id, Charge!), "Die Buchung wurde angelegt.");
+    private Task ChargeAsync() => ExecuteAsync(Accounts.CreateChargeAsync(Id, charge), "Die Buchung wurde angelegt.", () => charge = new());
 
-    private Task DeleteAsync()
+    private Task HoldAsync() => ExecuteAsync(Dunning.AddHoldAsync(Id, hold), "Die Mahnsperre wurde gesetzt.", () => hold = new());
+
+    private async Task EndHoldAsync(DunningHoldRow row)
     {
-        var parts = (Delete ?? "").Split(':');
-        if (parts.Length != 2 || !Guid.TryParse(parts[1], out var id) || !Enum.TryParse<EntryType>(parts[0], out var kind))
+        if (await Confirm.AskAsync("Mahnsperre aufheben", "Soll die Mahnsperre aufgehoben werden?", "Ja, aufheben"))
         {
-            errors = ["Unbekannte Buchung."];
-            return Task.CompletedTask;
+            await ExecuteAsync(Dunning.EndHoldAsync(row.Id), "Die Mahnsperre wurde aufgehoben.");
+        }
+    }
+
+    private async Task DeleteAsync(AccountEntry entry)
+    {
+        if (!await Confirm.AskAsync("Buchung löschen", $"Soll die Buchung „{entry.Text}“ gelöscht werden?", "Ja, löschen"))
+        {
+            return;
         }
 
-        return ExecuteAsync(kind == EntryType.Payment ? Accounts.DeletePaymentAsync(id) : Accounts.DeleteChargeAsync(id), "Die Buchung wurde gelöscht.");
+        await ExecuteAsync(entry.EntryType == EntryType.Payment ? Accounts.DeletePaymentAsync(entry.Id) : Accounts.DeleteChargeAsync(entry.Id), "Die Buchung wurde gelöscht.");
     }
 
-    private async Task ExecuteAsync(Task<Result> command, string success)
+    private async Task ExecuteAsync(Task<Result> command, string success, Action? reset = null)
     {
         var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage(Target, success, HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            reset?.Invoke();
+            Notify.Success(success);
+            await LoadAsync();
         }
     }
 }

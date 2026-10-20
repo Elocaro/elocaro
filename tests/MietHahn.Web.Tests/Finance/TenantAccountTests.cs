@@ -3,18 +3,21 @@ using System.Net;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Finance;
 using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
 using MietHahn.Domain.Common;
+using MietHahn.Domain.Finance;
 using MietHahn.Web.Tests.Account;
 
 namespace MietHahn.Web.Tests.Finance;
 
 public class TenantAccountTests(PostgresFixture postgres) : AccountTestBase(postgres)
 {
+    // Data goes through the services; operating the interactive pages is covered by FinanceBrowserTests.
     [Fact]
-    public async Task Set_up_accounting_rents_are_created_book_and_delete_payment()
+    public async Task Accounting_start_creates_prorated_monthly_rents_and_a_payment_changes_the_balance()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
@@ -28,60 +31,42 @@ public class TenantAccountTests(PostgresFixture postgres) : AccountTestBase(post
         Assert.Contains("Noch kein Buchhaltungsbeginn festgelegt", account.Text, StringComparison.Ordinal);
         Assert.Contains("Buchhaltungsbeginn festlegen", (await admin.GetAsync("/verwaltung")).TextWithStreaming, StringComparison.Ordinal);
 
-        var settings = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/finanzen/einstellungen"), "finance", new Dictionary<string, string>
+        var created = await App.WithScopeAsync(async sp =>
         {
-            ["Data.AccountingStart"] = Iso(previousMonth),
-            ["Data.Allocation"] = "Statutory",
+            var ct = TestContext.Current.CancellationToken;
+            await sp.GetRequiredService<IFinanceSettings>().SaveAsync(new FinanceSettingsInput { AccountingStart = previousMonth }, ct);
+            return await sp.GetRequiredService<ITenantAccounts>().GenerateChargesAsync(null, ct);
         });
-        Assert.Contains("Gespeichert. 2 Sollstellungen angelegt oder angeglichen.", settings.Text, StringComparison.Ordinal);
+        Assert.Equal(2, created);
 
         account = await admin.GetAsync($"/verwaltung/vertraege/{lease}/konto");
         var prorated = decimal.Round(650m * (days - 14) / days, 2, MidpointRounding.AwayFromZero);
-        Assert.Contains($"Kaltmiete {previousMonth:MM/yyyy} (anteilig {days - 14}/{days})", account.Text, StringComparison.Ordinal);
+        Assert.Contains($"Kaltmiete {previousMonth.ToString("MM/yyyy", CultureInfo.InvariantCulture)} (anteilig {days - 14}/{days})", account.Text, StringComparison.Ordinal);
         Assert.Contains(Money(prorated + 650m), account.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
 
-        account = await admin.SubmitAsync(account, "payment", new Dictionary<string, string>
-        {
-            ["Payment.Date"] = Iso(today),
-            ["Payment.Amount"] = "100.50",
-            ["Payment.Purpose"] = "Miete",
-        });
-        Assert.Contains("Die Zahlung wurde gebucht.", account.Text, StringComparison.Ordinal);
+        await App.WithScopeAsync(async sp => (await sp.GetRequiredService<ITenantAccounts>().RecordPaymentAsync(lease, new PaymentInput { Date = today, Amount = 100.50m, Purpose = "Miete" }, TestContext.Current.CancellationToken)).Succeeded);
+        account = await admin.GetAsync($"/verwaltung/vertraege/{lease}/konto");
         Assert.Contains(Money(prorated + 650m - 100.50m), account.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("offen", account.Text, StringComparison.Ordinal);
-
-        // Monthly rents have no delete button, the payment does.
-        var buttons = account.Form("delete").QuerySelectorAll("button[name=Delete]").ToList();
-        var button = Assert.Single(buttons);
-        Assert.StartsWith("Payment:", button.GetAttribute("value"), StringComparison.Ordinal);
-        account = await admin.SubmitAsync(account, "delete", new Dictionary<string, string> { ["Delete"] = button.GetAttribute("value")! });
-        Assert.Contains("Die Buchung wurde gelöscht.", account.Text, StringComparison.Ordinal);
-        Assert.Contains(Money(prorated + 650m), account.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Book_credit_and_export_open_items_as_CSV()
+    public async Task Credit_note_and_additional_payment_appear_in_the_open_items_and_the_CSV_export()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var today = GermanTime.Today(App.Clock.GetUtcNow());
         var lease = await LeaseAsync(today.AddMonths(-3));
-        var account = await admin.GetAsync($"/verwaltung/vertraege/{lease}/konto");
 
-        account = await admin.SubmitAsync(account, "charge", new Dictionary<string, string>
+        await App.WithScopeAsync(async sp =>
         {
-            ["Charge.Kind"] = "AdditionalPayment",
-            ["Charge.Due"] = Iso(today.AddDays(-20)),
-            ["Charge.Amount"] = "212.40",
-            ["Charge.Name"] = "=Nachzahlung NK 2025",
+            var accounts = sp.GetRequiredService<ITenantAccounts>();
+            var ct = TestContext.Current.CancellationToken;
+            Assert.True((await accounts.CreateChargeAsync(lease, new ChargeInput { Kind = ChargeType.AdditionalPayment, Due = today.AddDays(-20), Amount = 212.40m, Name = "=Nachzahlung NK 2025" }, ct)).Succeeded);
+            Assert.True((await accounts.CreateChargeAsync(lease, new ChargeInput { Kind = ChargeType.Refund, Due = today.AddDays(-10), Amount = 12.40m }, ct)).Succeeded);
+            return 0;
         });
-        Assert.Contains("Die Buchung wurde angelegt.", account.Text, StringComparison.Ordinal);
-        account = await admin.SubmitAsync(account, "charge", new Dictionary<string, string>
-        {
-            ["Charge.Kind"] = "Refund",
-            ["Charge.Due"] = Iso(today.AddDays(-10)),
-            ["Charge.Amount"] = "12.40",
-        });
+        var account = await admin.GetAsync($"/verwaltung/vertraege/{lease}/konto");
         Assert.Contains("Erstattung (Guthaben)", account.Text, StringComparison.Ordinal);
         Assert.Contains(Money(200m), account.Document.QuerySelector("dl.details")!.TextContent, StringComparison.Ordinal);
 

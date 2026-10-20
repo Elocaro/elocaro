@@ -108,7 +108,7 @@ public sealed class Receipt : Entity
 
         if (Math.Abs(Allocated + amount) > Math.Abs(Gross) || Math.Sign(amount) != Math.Sign(Gross))
         {
-            throw new RuleViolationException($"Die Positionen übersteigen den Rechnungsbetrag (offen: {Gross - Allocated:0.00} €).");
+            throw new RuleViolationException($"Die Positionen übersteigen den Rechnungsbetrag (offen: {GermanText.Money(Gross - Allocated)}).");
         }
 
         var position = new CostItem(Id, kind.Key, amount, propertyId, billingPeriod, allocable ?? kind.Allocable);
@@ -139,7 +139,7 @@ public sealed class Receipt : Entity
 
         if (Net is { } net && Vat is { } vat && net + vat != Gross)
         {
-            throw new RuleViolationException($"Netto + Umsatzsteuer ({net + vat:0.00} €) ergibt nicht den Bruttobetrag ({Gross:0.00} €).");
+            throw new RuleViolationException($"Netto + Umsatzsteuer ({GermanText.Money(net + vat)}) ergibt nicht den Bruttobetrag ({GermanText.Money(Gross)}).");
         }
 
         if (string.IsNullOrWhiteSpace(SupplierName) && SupplierId is null)

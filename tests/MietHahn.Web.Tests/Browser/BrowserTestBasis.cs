@@ -21,13 +21,21 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
 
     protected MietHahnWebFactory App { get; private set; } = null!;
 
+    /// <summary>Additional configuration for the app under test.</summary>
+    protected virtual IDictionary<string, string?>? Configuration => null;
+
+    /// <summary>Replaces services of the app under test (e.g. the PDF generator).</summary>
+    protected virtual void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+    {
+    }
+
     protected IBrowser Browser { get; private set; } = null!;
 
     protected string BaseUrl { get; private set; } = "";
 
     public async ValueTask InitializeAsync()
     {
-        App = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken));
+        App = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), Configuration, ConfigureServices);
         App.UseKestrel(0);
         App.StartServer();
         BaseUrl = App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First().Replace("127.0.0.1", "localhost", StringComparison.Ordinal);
