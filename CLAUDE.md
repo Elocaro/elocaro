@@ -1,7 +1,7 @@
 # MietHahn – Hinweise für Claude
 
 Self-hosted Vermieterverwaltung: .NET 10, Blazor Static SSR, PostgreSQL 18 (EF Core/Npgsql), Quartz, Gotenberg, MailKit.
-Details: [docs/entwicklung.md](docs/entwicklung.md) (Konventionen, Glossar, Tests), [docs/betrieb.md](docs/betrieb.md), [CONTRIBUTING.md](CONTRIBUTING.md).
+Details: [docs/entwicklung.md](docs/entwicklung.md) (Konventionen, Glossar, Tests), [docs/ui.md](docs/ui.md) (UI-Leitfaden, verbindlich für jede Seite), [docs/betrieb.md](docs/betrieb.md), [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Sprache
 

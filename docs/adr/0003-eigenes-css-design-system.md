@@ -24,4 +24,4 @@ Ein **eigenes, schlankes Design-System** in `wwwroot/app.css`:
 
 ## Konsequenzen
 
-Neue UI-Bausteine werden im Design-System ergänzt, nicht ad hoc in Seiten. Die Übersicht der Klassen steht in `docs/entwicklung.md` → Oberfläche.
+Neue UI-Bausteine werden im Design-System ergänzt, nicht ad hoc in Seiten. Die Gestaltung legt ADR 0004 fest, die Regeln stehen in `docs/ui.md`.

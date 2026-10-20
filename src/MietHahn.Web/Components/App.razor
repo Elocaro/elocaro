@@ -1,5 +1,6 @@
+@using MietHahn.Web.Account
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="@Theme">
 
 <head>
     <meta charset="utf-8" />
@@ -18,3 +19,10 @@
 </body>
 
 </html>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? Theme => ThemePreference.Read(HttpContext);
+}

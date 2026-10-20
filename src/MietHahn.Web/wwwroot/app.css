@@ -1,51 +1,102 @@
 /* MietHahn design system (CSS variables, light/dark, mobile first). No CSS framework. */
 
+/*
+  Color roles follow Material 3 (light-dark(light, dark)). `color-scheme` follows the system; the cookie-driven
+  attribute data-theme="light|dark" on <html> overrides it (see docs/ui.md). Pages use the roles or the aliases below.
+*/
 :root {
-    --color-background: #f6f6f4;
-    --color-surface: #ffffff;
-    --color-surface-2: #f0f0ed;
-    --color-text: #1c1c1a;
-    --color-text-muted: #5c5c57;
-    --color-border: #d9d9d4;
-    --color-primary: #b4441b;          /* Rooster-comb red */
-    --color-primary-hover: #963614;
-    --color-primary-text: #ffffff;
-    --color-focus: #2563eb;
-    --color-ok: #1f7a3d;
-    --color-ok-surface: #e6f4ea;
-    --color-error: #b3261e;
-    --color-error-surface: #fbe9e7;
-    --color-info: #8a5a00;
-    --color-info-surface: #fff4dc;
-
-    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
-    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    --radius: 8px;
-    --spacing: 1rem;
-    --shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 4px 16px rgb(0 0 0 / 6%);
     color-scheme: light dark;
+
+    /* Brand: rooster-comb red, tonal palette hand-tuned for AA contrast */
+    --md-primary: light-dark(#a73f17, #ffb59c);
+    --md-on-primary: light-dark(#ffffff, #5c1900);
+    --md-primary-container: light-dark(#ffdbcf, #812b09);
+    --md-on-primary-container: light-dark(#380d00, #ffdbcf);
+    --md-secondary: light-dark(#77574d, #e7bdb0);
+    --md-secondary-container: light-dark(#fddcd2, #5d3f35);
+    --md-on-secondary-container: light-dark(#2c150e, #ffdbd0);
+    --md-tertiary: light-dark(#6b5e2f, #d7c68d);
+    --md-tertiary-container: light-dark(#f4e2a7, #504517);
+    --md-on-tertiary-container: light-dark(#231b00, #f4e2a7);
+
+    /* Status roles (info = neutral/blue-grey, success, warning, error) */
+    --md-info: light-dark(#3c5a73, #a9c9e6);
+    --md-info-container: light-dark(#d4e6f8, #25405a);
+    --md-on-info-container: light-dark(#071d31, #d4e6f8);
+    --md-success: light-dark(#2e6b3a, #9cd4a3);
+    --md-success-container: light-dark(#b8f0be, #1b5130);
+    --md-on-success-container: light-dark(#00210b, #b8f0be);
+    --md-warning: light-dark(#7a5900, #f0c04a);
+    --md-warning-container: light-dark(#ffdf9b, #5c4300);
+    --md-on-warning-container: light-dark(#261a00, #ffdf9b);
+    --md-error: light-dark(#ba1a1a, #ffb4ab);
+    --md-on-error: light-dark(#ffffff, #690005);
+    --md-error-container: light-dark(#ffdad6, #93000a);
+    --md-on-error-container: light-dark(#410002, #ffdad6);
+
+    --md-surface: light-dark(#fff8f6, #1a110e);
+    --md-surface-container-lowest: light-dark(#ffffff, #140c09);
+    --md-surface-container-low: light-dark(#fff1ed, #231915);
+    --md-surface-container: light-dark(#fceae4, #271d19);
+    --md-surface-container-high: light-dark(#f6e4de, #322723);
+    --md-surface-container-highest: light-dark(#f0dfd9, #3d322d);
+    --md-on-surface: light-dark(#231916, #f1dfd9);
+    --md-on-surface-variant: light-dark(#53433e, #d8c2bb);
+    --md-outline: light-dark(#85736d, #a08d86);
+    --md-outline-variant: light-dark(#d8c2bb, #53433e);
+    --md-focus: light-dark(#2563eb, #7aa2ff);
+
+    /* Shape scale (expressive: generous radii, pills for actions) */
+    --shape-xs: 4px;
+    --shape-sm: 8px;
+    --shape-md: 12px;
+    --shape-lg: 16px;
+    --shape-xl: 28px;
+    --shape-full: 999px;
+
+    /* Typography (M3 scale; "emphasized" = heavier weight) */
+    --font: Roboto, system-ui, -apple-system, "Segoe UI", "Noto Sans", sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --type-display: 600 2.25rem/1.15 var(--font);
+    --type-headline: 600 1.75rem/1.2 var(--font);
+    --type-headline-small: 600 1.4rem/1.25 var(--font);
+    --type-title: 600 1.125rem/1.3 var(--font);
+    --type-body: 400 1rem/1.5 var(--font);
+    --type-label: 600 0.875rem/1.3 var(--font);
+
+    /* Motion: spring-like easing, switched off for reduced motion */
+    --motion-spatial: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --motion-effects: cubic-bezier(0.2, 0, 0, 1);
+    --motion-duration: 250ms;
+
+    --spacing: 1rem;
+    --shadow: 0 1px 2px rgb(0 0 0 / 8%), 0 4px 16px rgb(0 0 0 / 8%);
+
+    /* Aliases for existing styles (new code uses the --md-* roles) */
+    --color-background: var(--md-surface);
+    --color-surface: var(--md-surface-container-lowest);
+    --color-surface-2: var(--md-surface-container);
+    --color-text: var(--md-on-surface);
+    --color-text-muted: var(--md-on-surface-variant);
+    --color-border: var(--md-outline-variant);
+    --color-primary: var(--md-primary);
+    --color-primary-hover: color-mix(in srgb, var(--md-primary) 85%, var(--md-on-surface));
+    --color-primary-text: var(--md-on-primary);
+    --color-focus: var(--md-focus);
+    --color-ok: var(--md-success);
+    --color-ok-surface: var(--md-success-container);
+    --color-error: var(--md-error);
+    --color-error-surface: var(--md-error-container);
+    --color-info: var(--md-warning);
+    --color-info-surface: var(--md-warning-container);
+    --radius: var(--shape-sm);
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --color-background: #161614;
-        --color-surface: #20201d;
-        --color-surface-2: #2a2a26;
-        --color-text: #ececea;
-        --color-text-muted: #a8a8a2;
-        --color-border: #3a3a35;
-        --color-primary: #e06a3c;
-        --color-primary-hover: #f07f52;
-        --color-primary-text: #1c1c1a;
-        --color-focus: #7aa2ff;
-        --color-ok: #6fcf8a;
-        --color-ok-surface: #1d3324;
-        --color-error: #ff8a80;
-        --color-error-surface: #3a1f1d;
-        --color-info: #f5c46b;
-        --color-info-surface: #3a2e15;
-        --shadow: 0 1px 2px rgb(0 0 0 / 40%);
-    }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+@media (prefers-reduced-motion: reduce) {
+    :root { --motion-duration: 0ms; }
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -61,8 +112,8 @@ body {
     background: var(--color-background);
 }
 
-h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 var(--spacing); }
-h2 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; }
+h1 { font: var(--type-headline); margin: 0 0 var(--spacing); }
+h2 { font: var(--type-title); font-size: 1.25rem; margin: 1.5rem 0 0.5rem; }
 h1:focus { outline: none; }
 a { color: var(--color-primary); }
 a:hover { color: var(--color-primary-hover); }
@@ -81,12 +132,12 @@ pre code { font-size: 0.85rem; }
 
 input:not([type=checkbox]):not([type=radio]):not([type=hidden]), select, textarea {
     width: 100%;
-    padding: 0.6rem 0.75rem;
+    padding: 0.6rem 0.9rem;
     font: inherit;
     color: var(--color-text);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius);
+    border-radius: var(--shape-md);
     min-height: 2.75rem; /* easy to tap on a smartphone */
 }
 
@@ -94,35 +145,40 @@ input[type=checkbox] { width: 1.15rem; height: 1.15rem; accent-color: var(--colo
 input.invalid, select.invalid, textarea.invalid { border-color: var(--color-error); }
 .validation-message { color: var(--color-error); font-size: 0.875rem; }
 
-/* Buttons */
+/* Buttons (M3): .button = tonal (default), -primary = filled, -outlined, -text, -danger */
 .button, button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
     min-height: 2.75rem;
-    padding: 0.55rem 1.1rem;
+    padding: 0.55rem 1.5rem;
     font: inherit;
     font-weight: 600;
-    color: var(--color-text);
-    background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
+    color: var(--md-on-secondary-container);
+    background: var(--md-secondary-container);
+    border: 1px solid transparent;
+    border-radius: var(--shape-full);
     cursor: pointer;
     text-decoration: none;
+    transition: background-color var(--motion-duration) var(--motion-effects), border-radius var(--motion-duration) var(--motion-spatial), box-shadow var(--motion-duration) var(--motion-effects);
 }
 
-.button:hover, button:hover { filter: brightness(0.97); }
-.button-primary { color: var(--color-primary-text); background: var(--color-primary); border-color: var(--color-primary); }
-.button-primary:hover { background: var(--color-primary-hover); color: var(--color-primary-text); }
+.button:hover, button:hover { box-shadow: var(--shadow); }
+.button:active, button:active { border-radius: var(--shape-md); }
+.button-primary { color: var(--md-on-primary); background: var(--md-primary); border-color: var(--md-primary); }
+.button-primary:hover { color: var(--md-on-primary); background: color-mix(in srgb, var(--md-primary) 88%, var(--md-on-surface)); }
+.button-outlined { color: var(--md-primary); background: transparent; border-color: var(--md-outline); }
+.button-text { color: var(--md-primary); background: transparent; box-shadow: none; padding-inline: 0.75rem; }
+.button-text:hover { background: color-mix(in srgb, var(--md-primary) 10%, transparent); box-shadow: none; }
 
-/* Messages */
-.message { padding: 0.75rem 1rem; border-radius: var(--radius); margin: 0 0 var(--spacing); border: 1px solid transparent; }
+/* Messages: four levels (info, success, warning, error). .message-ok is the legacy name of success. */
+.message { padding: 0.75rem 1rem; border-radius: var(--shape-lg); margin: 0 0 var(--spacing); border: 1px solid transparent; background: var(--md-surface-container); color: var(--md-on-surface); }
 .message ul { margin: 0; padding-left: 1.2rem; }
-.message-ok { background: var(--color-ok-surface); color: var(--color-ok); border-color: color-mix(in srgb, var(--color-ok) 30%, transparent); }
-.message-error { background: var(--color-error-surface); color: var(--color-error); border-color: color-mix(in srgb, var(--color-error) 30%, transparent); }
-.message-info { background: var(--color-info-surface); color: var(--color-info); }
-.message:not(.message-ok):not(.message-error):not(.message-info) { background: var(--color-surface-2); }
+.message-success, .message-ok { background: var(--md-success-container); color: var(--md-on-success-container); }
+.message-error { background: var(--md-error-container); color: var(--md-on-error-container); }
+.message-warning { background: var(--md-warning-container); color: var(--md-on-warning-container); }
+.message-info { background: var(--md-warning-container); color: var(--md-on-warning-container); } /* legacy: yellow; migrated to the blue info level together with the Message component */
 
 /* Tables: scroll horizontally on narrow screens instead of scrolling the page */
 .data-table { width: 100%; border-collapse: collapse; background: var(--color-surface); }
@@ -130,7 +186,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 .data-table th { font-size: 0.85rem; color: var(--color-text-muted); font-weight: 600; }
 .data-table td.number, .data-table th.number { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .data-table td a { white-space: nowrap; }
-.table-wrapper { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); }
+.table-wrapper { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--shape-lg); }
 
 .status { display: inline-block; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: var(--color-surface-2); }
 .status-ok { background: var(--color-ok-surface); color: var(--color-ok); }
@@ -148,13 +204,11 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 
 /* Account pages (sign-in etc.) */
 .account-page { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
-.account-card { width: 100%; max-width: 28rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: calc(var(--radius) * 1.5); box-shadow: var(--shadow); padding: 1.5rem; }
+.account-card { width: 100%; max-width: 28rem; background: var(--md-surface-container-low); border: 1px solid var(--color-border); border-radius: var(--shape-xl); box-shadow: var(--shadow); padding: 1.5rem; }
 .account-card button[type=submit] { width: 100%; }
 .account-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 1.25rem; color: var(--color-primary); }
 .account-links { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.25rem; font-size: 0.95rem; }
 .account-actions { padding-left: 1.2rem; }
-.steps { padding-left: 1.2rem; }
-.steps li { margin-bottom: 0.75rem; }
 .qr-code { background: #fff; padding: 0.5rem; width: max-content; border-radius: var(--radius); margin: 0.5rem 0; }
 .qr-code svg { display: block; width: 180px; height: 180px; }
 .key { word-break: break-all; }
@@ -188,14 +242,14 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 
 /* Navigation */
 .navigation { list-style: none; margin: 0; padding: 0.5rem; }
-.navigation a { display: block; padding: 0.6rem 0.75rem; border-radius: var(--radius); color: var(--color-text); text-decoration: none; }
+.navigation a { display: block; padding: 0.6rem 1rem; border-radius: var(--shape-full); color: var(--color-text); text-decoration: none; }
 .navigation a:hover { background: var(--color-surface-2); }
-.navigation a.active { background: color-mix(in srgb, var(--color-primary) 12%, transparent); color: var(--color-primary); font-weight: 600; }
+.navigation a.active { background: var(--md-primary-container); color: var(--md-on-primary-container); font-weight: 600; }
 .navigation-group { padding: 1rem 0.75rem 0.25rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted); }
 
 .section-navigation { display: flex; gap: 0.25rem; padding: 0.25rem 1rem; overflow-x: auto; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
-.section-navigation a { padding: 0.5rem 0.75rem; border-radius: var(--radius); color: var(--color-text); text-decoration: none; white-space: nowrap; }
-.section-navigation a.active { color: var(--color-primary); font-weight: 600; }
+.section-navigation a { padding: 0.5rem 1rem; border-radius: var(--shape-full); color: var(--color-text); text-decoration: none; white-space: nowrap; }
+.section-navigation a.active { background: var(--md-primary-container); color: var(--md-on-primary-container); font-weight: 600; }
 
 /* Mobile: menu as <details> (no JavaScript) */
 .mobile-navigation > summary { list-style: none; cursor: pointer; font-size: 1.4rem; padding: 0.25rem 0.5rem; border-radius: var(--radius); }
@@ -288,11 +342,11 @@ iframe.document-preview { display: block; width: 100%; height: 70vh; border-radi
 h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 
 /* Danger actions */
-.button-danger { color: var(--color-error); border-color: color-mix(in srgb, var(--color-error) 40%, var(--color-border)); background: var(--color-surface); }
+.button-danger { color: var(--md-error); border-color: color-mix(in srgb, var(--md-error) 40%, var(--md-outline-variant)); background: transparent; }
 .danger-action > summary { list-style: none; width: max-content; }
 .danger-action > summary::-webkit-details-marker { display: none; }
 .danger-action-content { margin-top: 0.5rem; padding: 0.75rem 1rem; border: 1px solid var(--color-error); border-radius: var(--radius); background: var(--color-error-surface); }
-.danger-action-content .button-danger { background: var(--color-error); color: #fff; }
+.danger-action-content .button-danger { background: var(--md-error); color: var(--md-on-error); }
 
 /* Dashboard */
 .todos { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
@@ -324,3 +378,11 @@ h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 .protocol-entry { margin-bottom: 0.6rem; padding-left: 0.5rem; border-left: 3px solid var(--color-border); overflow-wrap: anywhere; }
 .problem-error strong { color: var(--color-error); }
 .statement { margin-top: calc(var(--spacing) * 2); }
+
+/* Theme switch in the user menu (segmented, works without JavaScript) */
+.theme-switch { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.25rem 0.6rem; }
+.theme-switch [role=group] { display: flex; gap: 0; }
+.theme-switch button { flex: 1; min-height: 2.25rem; padding: 0.25rem 0.5rem; border-radius: 0; font-weight: 500; border-color: var(--md-outline); background: transparent; color: var(--md-on-surface); }
+.theme-switch button:first-child { border-radius: var(--shape-full) 0 0 var(--shape-full); }
+.theme-switch button:last-child { border-radius: 0 var(--shape-full) var(--shape-full) 0; }
+.theme-switch button[aria-pressed=true] { background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight: 700; }

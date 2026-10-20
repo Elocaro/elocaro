@@ -14,6 +14,7 @@
 Oberflächentexte, URLs, Dokumentation und Commit-Nachrichten. Details und Glossar: [docs/entwicklung.md](docs/entwicklung.md#sprache-im-code).
 
 Konventionen, Testaufbau und Migrationen: [docs/entwicklung.md](docs/entwicklung.md).
+Oberfläche (Design-Tokens, Bausteine, Seitentypen, Checkliste für neue Seiten): [docs/ui.md](docs/ui.md). Neue Seiten halten sich daran.
 
 ## Empfohlene Branch-Protection für den Default-Branch
 

@@ -81,6 +81,14 @@ internal static class AccountExtensions
             await signIn.SignOutAsync();
             return TypedResults.LocalRedirect("~/konto/anmelden?abgemeldet=true");
         });
+
+        endpoints.MapPost("/konto/darstellung", async (HttpContext context, IAntiforgery antiforgery) =>
+        {
+            await antiforgery.ValidateRequestAsync(context);
+            var form = await context.Request.ReadFormAsync();
+            ThemePreference.Write(context, form["theme"].ToString());
+            return TypedResults.LocalRedirect("~" + Redirector.LocalTarget(form["returnUrl"].ToString()));
+        });
         return endpoints;
     }
 
