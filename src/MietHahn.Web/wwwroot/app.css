@@ -525,3 +525,4 @@ p + .form-grid, p + .form-row, .small + .form-grid { margin-top: 1rem; }
 .file-upload input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
 .file-upload:focus-within { outline: 3px solid var(--md-focus); outline-offset: 2px; }
 .file-upload-name { margin-left: 0.75rem; }
+.app-field { flex: 1 1 14rem; min-width: 0; } .form-grid > .app-field { margin-bottom: 1rem; }

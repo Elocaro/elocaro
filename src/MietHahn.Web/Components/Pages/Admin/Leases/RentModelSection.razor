@@ -1,6 +1,12 @@
-@* Rent model of a lease: standard (rent development), graduated or index-linked rent. The page processes the forms. *@
+@using MudBlazor
+@inject ILeaseService Admin
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+@* Rent model of a lease: standard (rent development), graduated or index-linked rent. Interactive: saves itself and reports changes. *@
 <section>
     <h2>Mietmodell: @Labels.From(Model.Model)</h2>
+    <ErrorList Errors="errors" />
 
     @switch (Model.Model)
     {
@@ -22,51 +28,44 @@
             }
             else
             {
-                <form method="post" @formname="graduated-remove" @onsubmit="OnRemoveStep">
-                    <AntiforgeryToken />
-                    <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr><th>Ab</th><th class="number">Kaltmiete</th><th>Status</th><th></th></tr></thead>
-                            <tbody>
-                                @foreach (var rentStep in Model.RentSteps)
-                                {
-                                    <tr>
-                                        <td>@Format.Date(rentStep.From)</td>
-                                        <td class="number">@Format.Money(rentStep.BaseRent)</td>
-                                        <td>
-                                            @if (rentStep.AppliedAt is not null)
-                                            {
-                                                <StatusChip Level="StatusLevel.Success">übernommen</StatusChip>
-                                            }
-                                            else
-                                            {
-                                                <StatusChip Level="StatusLevel.Warning">geplant</StatusChip>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (rentStep.AppliedAt is null)
-                                            {
-                                                <RowConfirm Name="RemoveStepId" Value="@rentStep.Id" Label="@($"Staffel {Format.Date(rentStep.From)} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" />
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Ab</th><th class="number">Kaltmiete</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var rentStep in Model.RentSteps)
+                            {
+                                <tr>
+                                    <td>@Format.Date(rentStep.From)</td>
+                                    <td class="number">@Format.Money(rentStep.BaseRent)</td>
+                                    <td>
+                                        @if (rentStep.AppliedAt is not null)
+                                        {
+                                            <StatusChip Level="StatusLevel.Success">übernommen</StatusChip>
+                                        }
+                                        else
+                                        {
+                                            <StatusChip Level="StatusLevel.Warning">geplant</StatusChip>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (rentStep.AppliedAt is null)
+                                        {
+                                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveStepAsync(rentStep)" aria-label="@($"Staffel {Format.Date(rentStep.From)} entfernen")">Entfernen</MudButton>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
             <details class="disclosure" open="@(Model.RentSteps.Count == 0)">
                 <summary>Staffel hinzufügen</summary>
-                <EditForm Model="Graduated" FormName="graduated" OnValidSubmit="OnAddStep" class="form-row">
+                <EditForm Model="graduated" OnValidSubmit="AddStepAsync" novalidate class="form-row">
                     <DataAnnotationsValidator />
-                    <FormField Id="graduated-valid-from" Label="Ab" For="() => Graduated.From" Required="true">
-                        <InputDate id="graduated-valid-from" @bind-Value="Graduated.From" />
-                    </FormField>
-                    <FormField Id="graduated-rent" Label="Neue Kaltmiete (€)" For="() => Graduated.BaseRent" Required="true">
-                        <InputAmount id="graduated-rent" @bind-Value="Graduated.BaseRent" />
-                    </FormField>
-                    <div class="field field-action"><button type="submit" class="button button-primary">Staffel speichern</button></div>
+                    <AppDateField @bind-Value="graduated.From" Label="Ab" Required="true" />
+                    <AppNumberField T="decimal?" @bind-Value="graduated.BaseRent" Label="Neue Kaltmiete" Suffix="€" Required="true" />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Staffel speichern</MudButton>
                 </EditForm>
                 <p class="small">§ 557a BGB: Die Miete muss jeweils mindestens ein Jahr unverändert bleiben. Am Stichtag übernimmt MietHahn die Staffel automatisch als Kaltmiete.</p>
             </details>
@@ -83,12 +82,10 @@
                     <p>VPI @Format.Month(suggestion.CpiMonth): @Format.Number(suggestion.CpiValue) (@(suggestion.ChangePercent >= 0 ? "+" : "")@Format.Number(suggestion.ChangePercent) %) → neue Kaltmiete <strong>@Format.Money(suggestion.NewBaseRent)</strong> statt @Format.Money(Model.BaseRent).</p>
                     <p class="small">Frühestens wirksam ab @Format.Date(suggestion.EarliestEffective) (ein Jahr nach der letzten Änderung).</p>
                 </Notice>
-                <EditForm Model="Adjustment" FormName="index-adjustment" OnValidSubmit="OnAdjustIndex" class="form-row">
+                <EditForm Model="adjustment" OnValidSubmit="AdjustIndexAsync" novalidate class="form-row">
                     <DataAnnotationsValidator />
-                    <FormField Id="declaration" Label="Erklärung geht zu am" For="() => Adjustment.DeclaredOn" Required="true" Hint="Die neue Miete gilt ab dem übernächsten Monat (§ 557b Abs. 3 BGB).">
-                        <InputDate id="declaration" @bind-Value="Adjustment.DeclaredOn" />
-                    </FormField>
-                    <div class="field field-action"><button type="submit" class="button button-primary">Anpassung übernehmen</button></div>
+                    <AppDateField @bind-Value="adjustment.DeclaredOn" Label="Erklärung geht zu am" Required="true" Hint="Die neue Miete gilt ab dem übernächsten Monat (§ 557b Abs. 3 BGB)." />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Anpassung übernehmen</MudButton>
                 </EditForm>
             }
             else
@@ -100,50 +97,57 @@
 
     <details class="disclosure">
         <summary>Mietmodell ändern</summary>
-        <EditForm Model="Input" FormName="rent-model" OnValidSubmit="OnSetModel" class="form-grid">
+        <EditForm Model="input" OnValidSubmit="SetModelAsync" novalidate class="form-grid">
             <DataAnnotationsValidator />
-            <FormField Id="model" Label="Mietmodell" For="() => Input.Model">
-                <InputSelect id="model" @bind-Value="Input.Model">
-                    @foreach (var value in Enum.GetValues<RentModel>())
-                    {
-                        <option value="@value">@Labels.From(value)</option>
-                    }
-                </InputSelect>
-            </FormField>
-            <FormField Id="index-month" Label="Indexmiete: Ausgangsmonat" For="() => Input.BaseMonth" Hint="Monat des Ausgangsindex, z. B. Mietbeginn">
-                <InputText id="index-month" type="month" @bind-Value="Input.BaseMonth" />
-            </FormField>
-            <FormField Id="index-value" Label="Indexmiete: Ausgangswert" For="() => Input.BaseValue" Hint="VPI (2020 = 100), z. B. 117,4">
-                <InputArea id="index-value" @bind-Value="Input.BaseValue" step="0.1" />
-            </FormField>
-            <div class="field field-action"><button type="submit" class="button button-primary">Mietmodell speichern</button></div>
+            <AppSelect @bind-Value="input.Model" Label="Mietmodell" Items="Enum.GetValues<RentModel>()" Text="@(v => Labels.From(v))" />
+            <AppMonthField @bind-Value="input.BaseMonth" Label="Indexmiete: Ausgangsmonat" Hint="Monat des Ausgangsindex, z. B. Mietbeginn" />
+            <AppNumberField T="decimal?" @bind-Value="input.BaseValue" Label="Indexmiete: Ausgangswert" Hint="VPI (2020 = 100), z. B. 117,4" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Mietmodell speichern</MudButton>
         </EditForm>
     </details>
 </section>
 
 @code {
+    private RentModelForm input = new();
+    private RentStepInput graduated = new();
+    private IndexAdjustmentInput adjustment = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid LeaseId { get; set; }
+
     [Parameter, EditorRequired]
     public RentModelView Model { get; set; } = default!;
 
-    [Parameter, EditorRequired]
-    public RentModelForm Input { get; set; } = default!;
-
-    [Parameter, EditorRequired]
-    public RentStepInput Graduated { get; set; } = default!;
-
-    [Parameter, EditorRequired]
-    public IndexAdjustmentInput Adjustment { get; set; } = default!;
-
+    /// <summary>Called after a change was saved (the page reloads).</summary>
     [Parameter]
-    public EventCallback OnSetModel { get; set; }
+    public EventCallback OnChanged { get; set; }
 
-    [Parameter]
-    public EventCallback OnAddStep { get; set; }
+    protected override void OnParametersSet() => input = RentModelForm.From(Model);
 
-    [Parameter]
-    public EventCallback OnRemoveStep { get; set; }
+    private Task SetModelAsync() => ExecuteAsync(Admin.SetRentModelAsync(LeaseId, input.AfterInput()), "Das Mietmodell wurde gespeichert.");
 
-    [Parameter]
-    public EventCallback OnAdjustIndex { get; set; }
+    private Task AddStepAsync() => ExecuteAsync(Admin.AddRentStepAsync(LeaseId, graduated), "Die Staffel wurde gespeichert.", () => graduated = new());
 
+    private Task AdjustIndexAsync() => ExecuteAsync(Admin.AdjustIndexAsync(LeaseId, adjustment), "Die Indexanpassung wurde übernommen.", () => adjustment = new());
+
+    private async Task RemoveStepAsync(RentStepView step)
+    {
+        if (await Confirm.AskAsync("Staffel entfernen", $"Soll die Staffel ab {Format.Date(step.From)} entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveRentStepAsync(LeaseId, step.Id), "Die Staffel wurde entfernt.");
+        }
+    }
+
+    private async Task ExecuteAsync(Task<Result> command, string success, Action? reset = null)
+    {
+        var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            reset?.Invoke();
+            Notify.Success(success);
+            await OnChanged.InvokeAsync();
+        }
+    }
 }

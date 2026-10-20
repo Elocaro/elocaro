@@ -1,8 +1,11 @@
 @page "/verwaltung/vertraege/neu"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject ILeaseService Admin
 @inject IPersonService People
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 
+<InteractiveShell>
 <PageHeader Title="Mietvertrag anlegen" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
 
 <ErrorList Errors="errors" />
@@ -14,114 +17,54 @@
     </Notice>
 }
 
-<EditForm Model="Form" FormName="lease" OnValidSubmit="CreateAsync">
+<EditForm Model="form" OnValidSubmit="CreateAsync" novalidate>
     <DataAnnotationsValidator />
     <h2>Mietobjekt &amp; Laufzeit</h2>
     <div class="form-grid">
-        <FormField Id="rental-unit" Label="Mietobjekt" For="() => Form!.RentalUnitId" Required="true">
-            <InputSelect id="rental-unit" @bind-Value="Form!.RentalUnitId">
-                <option value="">– bitte wählen –</option>
-                @foreach (var group in rentalUnits.GroupBy(m => m.Property))
-                {
-                    <optgroup label="@group.Key">
-                        @foreach (var m in group)
-                        {
-                            <option value="@m.Id">@m.Name@(m.CurrentlyOccupied is { } occupied ? $" (vermietet{(occupied.To is { } to ? " bis " + Format.Date(to) : "")})" : " (frei)")</option>
-                        }
-                    </optgroup>
-                }
-            </InputSelect>
-        </FormField>
-        <FormField Id="start" Label="Mietbeginn" For="() => Form!.Start" Required="true">
-            <InputDate id="start" @bind-Value="Form!.Start" />
-        </FormField>
-        <FormField Id="fixed-term" Label="Befristet bis" For="() => Form!.FixedTermUntil" Hint="Nur bei Zeitmietverträgen (§ 575 BGB).">
-            <InputDate id="fixed-term" @bind-Value="Form!.FixedTermUntil" />
-        </FormField>
+        <AppSelect T="Guid?" @bind-Value="form.RentalUnitId" Label="Mietobjekt" Required="true" Items="rentalUnits.Select(m => (Guid?)m.Id).ToList()" Text="RentalUnitText" EmptyText="– bitte wählen –" />
+        <AppDateField @bind-Value="form.Start" Label="Mietbeginn" Required="true" />
+        <AppDateField @bind-Value="form.FixedTermUntil" Label="Befristet bis" Hint="Nur bei Zeitmietverträgen (§ 575 BGB)." />
     </div>
 
     <h2>Mieter</h2>
     <div class="form-grid">
-        <FormField Id="tenant1" Label="Mieter" For="() => Form!.Tenant1" Required="true">
-            <PersonSelectField Id="tenant1" @bind-Value="Form!.Tenant1" People="people" />
-        </FormField>
-        <FormField Id="tenant2" Label="Weiterer Mieter" For="() => Form!.Tenant2" Hint="Gesamtschuldnerisch; weitere später im Vertrag.">
-            <PersonSelectField Id="tenant2" @bind-Value="Form!.Tenant2" People="people" />
-        </FormField>
-        <FormField Id="guarantor" Label="Bürge" For="() => Form!.Guarantor">
-            <PersonSelectField Id="guarantor" @bind-Value="Form!.Guarantor" People="people" />
-        </FormField>
+        <PersonSelect @bind-Value="form.Tenant1" Label="Mieter" Required="true" People="people" />
+        <PersonSelect @bind-Value="form.Tenant2" Label="Weiterer Mieter" Hint="Gesamtschuldnerisch; weitere später im Vertrag." People="people" />
+        <PersonSelect @bind-Value="form.Guarantor" Label="Bürge" People="people" />
     </div>
     <p class="small"><a href="/verwaltung/personen/neu">Neue Person anlegen</a> (danach diese Seite neu laden)</p>
 
     <h2>Miete</h2>
     <div class="form-grid">
-        <FormField Id="billing-type" Label="Nebenkosten" For="() => Form!.BillingType">
-            <InputSelect id="billing-type" @bind-Value="Form!.BillingType">
-                @foreach (var value in Enum.GetValues<BillingType>())
-                {
-                    <option value="@value">@Labels.From(value)</option>
-                }
-            </InputSelect>
-        </FormField>
-        <FormField Id="base-rent" Label="Kaltmiete (€/Monat)" For="() => Form!.BaseRent" Required="true">
-            <InputAmount id="base-rent" @bind-Value="Form!.BaseRent" />
-        </FormField>
-        <FormField Id="operating-costs" Label="Betriebskosten-Vorauszahlung" For="() => Form!.OperatingCostPrepayment">
-            <InputAmount id="operating-costs" @bind-Value="Form!.OperatingCostPrepayment" />
-        </FormField>
-        <FormField Id="heating-costs" Label="Heizkosten-Vorauszahlung" For="() => Form!.HeatingCostPrepayment">
-            <InputAmount id="heating-costs" @bind-Value="Form!.HeatingCostPrepayment" />
-        </FormField>
-        <FormField Id="flat-rate" Label="Betriebskostenpauschale" For="() => Form!.OperatingCostFlatRate" Hint="Nur bei „Pauschale“, z. B. WG-Zimmer.">
-            <InputAmount id="flat-rate" @bind-Value="Form!.OperatingCostFlatRate" />
-        </FormField>
-        <FormField Id="persons" Label="Personen im Haushalt" For="() => Form!.People">
-            <InputNumber id="persons" @bind-Value="Form!.People" min="1" max="20" />
-        </FormField>
+        <AppSelect @bind-Value="form.BillingType" Label="Nebenkosten" Items="Enum.GetValues<BillingType>()" Text="@(v => Labels.From(v))" />
+        <AppNumberField T="decimal?" @bind-Value="form.BaseRent" Label="Kaltmiete (€/Monat)" Suffix="€" Required="true" />
+        <AppNumberField T="decimal?" @bind-Value="form.OperatingCostPrepayment" Label="Betriebskosten-Vorauszahlung" Suffix="€" />
+        <AppNumberField T="decimal?" @bind-Value="form.HeatingCostPrepayment" Label="Heizkosten-Vorauszahlung" Suffix="€" />
+        <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Betriebskostenpauschale" Suffix="€" Hint="Nur bei „Pauschale“, z. B. WG-Zimmer." />
+        <AppNumberField T="int" @bind-Value="form.People" Label="Personen im Haushalt" Min="1" Max="20" />
     </div>
-    <div class="field field-checkbox">
-        <InputCheckbox id="heating-costs-consumption" @bind-Value="Form!.HeatingCostsConsumptionBased" />
-        <label for="heating-costs-consumption">Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)</label>
-    </div>
+    <AppCheckBox @bind-Value="form.HeatingCostsConsumptionBased" Label="Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)" />
 
     <h2>Weitere Angaben</h2>
     <div class="form-grid">
-        <FormField Id="business-day" Label="Fällig am … Werktag" For="() => Form!.DueOnWorkingDay">
-            <InputNumber id="business-day" @bind-Value="Form!.DueOnWorkingDay" min="1" max="10" />
-        </FormField>
-        <FormField Id="payment-method" Label="Zahlungsart" For="() => Form!.PaymentMethod">
-            <InputSelect id="payment-method" @bind-Value="Form!.PaymentMethod">
-                @foreach (var value in Enum.GetValues<PaymentMethod>())
-                {
-                    <option value="@value">@Labels.From(value)</option>
-                }
-            </InputSelect>
-        </FormField>
-        <FormField Id="deadline" Label="Kündigungsfrist Mieter (Monate)" For="() => Form!.NoticePeriodMonths">
-            <InputNumber id="deadline" @bind-Value="Form!.NoticePeriodMonths" min="1" max="24" />
-        </FormField>
-        <FormField Id="deposit" Label="Kaution (€)" For="() => Form!.Deposit">
-            <InputAmount id="deposit" @bind-Value="Form!.Deposit" />
-        </FormField>
-        <FormField Id="deposit-note" Label="Kaution – Notiz" For="() => Form!.DepositNote" Hint="z. B. „Bürgschaft Sparkasse“">
-            <InputText id="deposit-note" @bind-Value="Form!.DepositNote" />
-        </FormField>
+        <AppNumberField T="int" @bind-Value="form.DueOnWorkingDay" Label="Fällig am … Werktag" Min="1" Max="10" />
+        <AppSelect @bind-Value="form.PaymentMethod" Label="Zahlungsart" Items="Enum.GetValues<PaymentMethod>()" Text="@(v => Labels.From(v))" />
+        <AppNumberField T="int" @bind-Value="form.NoticePeriodMonths" Label="Kündigungsfrist Mieter (Monate)" Min="1" Max="24" />
+        <AppNumberField T="decimal?" @bind-Value="form.Deposit" Label="Kaution" Suffix="€" />
+        <AppTextField @bind-Value="form.DepositNote" Label="Kaution – Notiz" Hint="z. B. „Bürgschaft Sparkasse“" />
     </div>
-    <FormField Id="notes" Label="Notizen" For="() => Form!.Notes">
-        <InputTextArea id="notes" @bind-Value="Form!.Notes" rows="2" />
-    </FormField>
+    <AppTextField @bind-Value="form.Notes" Label="Notizen" Lines="2" />
 
-    <button type="submit" class="button button-primary">Vertrag anlegen</button>
+    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Vertrag anlegen</MudButton>
 </EditForm>
+</InteractiveShell>
 
 @code {
     private IReadOnlyList<RentalUnitOption> rentalUnits = [];
     private IReadOnlyList<PersonOption> people = [];
     private IReadOnlyList<string>? errors;
 
-    [SupplyParameterFromForm(FormName = "lease")]
-    private LeaseForm? Form { get; set; }
+    private LeaseForm form = new();
 
     [SupplyParameterFromQuery(Name = "mietobjekt")]
     private Guid? RentalUnit { get; set; }
@@ -129,19 +72,21 @@
     [SupplyParameterFromQuery(Name = "beginn")]
     private DateOnly? Start { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
     protected override async Task OnInitializedAsync()
     {
-        Form ??= new() { RentalUnitId = RentalUnit, Start = Start };
+        form = new() { RentalUnitId = RentalUnit, Start = Start };
         rentalUnits = await Admin.RentalUnitsAsync();
         people = await People.OptionsAsync();
     }
 
+    private string RentalUnitText(Guid? id) =>
+        rentalUnits.FirstOrDefault(m => m.Id == id) is { } m
+            ? $"{m.Property} – {m.Name}" + (m.CurrentlyOccupied is { } occupied ? $" (vermietet{(occupied.To is { } to ? " bis " + Format.Date(to) : "")})" : " (frei)")
+            : "";
+
     private async Task CreateAsync()
     {
-        var f = Form!;
+        var f = form;
         var creation = new LeaseCreation
         {
             RentalUnitId = f.RentalUnitId,
@@ -171,7 +116,7 @@
         var result = await Admin.CreateAsync(creation);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/vertraege/{result.Id}", "Der Vertrag wurde angelegt.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/vertraege/{result.Id}?meldung=angelegt");
         }
         else
         {

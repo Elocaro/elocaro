@@ -94,6 +94,24 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         return page;
     }
 
+    /// <summary>Opens a page and waits until it is interactive (before that, the prerendered page ignores input).</summary>
+    protected async Task GotoInteractiveAsync(IPage page, string path)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        await page.GotoAsync(BaseUrl + path);
+        await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
+    }
+
+    /// <summary>Chooses an entry in a selection field of an interactive page (opens the list, clicks the entry).</summary>
+    protected static async Task SelectAsync(IPage page, string label, string option, ILocator? scope = null)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        // The labelled input of a MudSelect is hidden; the visible control around it takes the click.
+        var control = (scope ?? page.Locator("body")).Locator(".mud-select", new() { Has = page.Locator($"[aria-label='{label}']") }).First;
+        await control.Locator(".mud-input").First.ClickAsync();
+        await page.Locator(".mud-popover-open .mud-list-item", new() { HasText = option }).First.ClickAsync();
+    }
+
     /// <summary>Saves a screenshot on failure (path in the error message) for diagnosis.</summary>
     protected static async Task WithScreenshotOnFailureAsync(IPage page, Func<Task> steps)
     {

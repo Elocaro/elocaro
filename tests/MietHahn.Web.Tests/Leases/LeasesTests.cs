@@ -1,9 +1,11 @@
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
 using MietHahn.Domain.Common;
+using MietHahn.Domain.Leases;
 using MietHahn.Web.Tests.Account;
 
 namespace MietHahn.Web.Tests.Leases;
@@ -14,27 +16,34 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
 
     private static string Iso(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
+    // Data goes through the services; operating the interactive pages is covered by LeasesBrowserTests.
+    private async Task<Guid> CreateLeaseAsync(Guid apartment, DateOnly start, Guid tenant, decimal baseRent = 650m, Action<LeaseCreation>? more = null) =>
+        await App.WithScopeAsync(async sp =>
+        {
+            var creation = new LeaseCreation { RentalUnitId = apartment, Start = start, TenantIds = [tenant], BaseRent = baseRent };
+            more?.Invoke(creation);
+            var result = await sp.GetRequiredService<ILeaseService>().CreateAsync(creation, TestContext.Current.CancellationToken);
+            Assert.True(result.Succeeded, string.Join(" ", result.Errors));
+            return result.Id!.Value;
+        });
+
     [Fact]
-    public async Task Create_lease_increase_rent_terminate_and_cancel()
+    public async Task Lease_with_two_tenants_rent_increase_and_termination_are_shown()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var (property, apartment, anna, ben) = await MasterDataAsync();
         var start = new DateOnly(Today.Year, Today.Month, 1);
-
-        var newItem = await admin.GetAsync($"/verwaltung/vertraege/neu?mietobjekt={apartment}&beginn={Iso(start)}");
-        Assert.Equal(apartment.ToString(), newItem.Document.QuerySelector("#rental-unit option[selected]")!.GetAttribute("value"));
-        var lease = await admin.SubmitAsync(newItem, "lease", new Dictionary<string, string>
+        var id = await CreateLeaseAsync(apartment, start, anna, 650m, c =>
         {
-            ["Form.Tenant1"] = anna.ToString(),
-            ["Form.Tenant2"] = ben.ToString(),
-            ["Form.BaseRent"] = "650",
-            ["Form.OperatingCostPrepayment"] = "180",
-            ["Form.HeatingCostPrepayment"] = "90.50",
-            ["Form.People"] = "2",
-            ["Form.Deposit"] = "1950",
+            c.TenantIds = [anna, ben];
+            c.OperatingCostPrepayment = 180m;
+            c.HeatingCostPrepayment = 90.50m;
+            c.People = 2;
+            c.Data = new LeaseInput { Deposit = 1950m };
         });
-        Assert.Contains("Der Vertrag wurde angelegt.", lease.Text, StringComparison.Ordinal);
+
+        var lease = await admin.GetAsync($"/verwaltung/vertraege/{id}");
         Assert.Contains("Anna Schmidt, Ben Weber", lease.Text, StringComparison.Ordinal);
         Assert.Contains("920,50 €", lease.Text, StringComparison.Ordinal);
         Assert.Contains("1.950,00 €", lease.Text, StringComparison.Ordinal);
@@ -44,55 +53,37 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
 
         // Rent increase from the effective date: old amount stays in the history
         var increase = start.AddMonths(2);
-        lease = await admin.SubmitAsync(lease, "component", new Dictionary<string, string>
+        var incoming = new DateOnly(Today.Year, Today.Month, 1).AddMonths(1).AddDays(14); // after the 3rd working day
+        await App.WithScopeAsync(async sp =>
         {
-            ["Component.Kind"] = "BaseRent",
-            ["Component.From"] = Iso(increase),
-            ["Component.Amount"] = "700",
+            var leases = sp.GetRequiredService<ILeaseService>();
+            var ct = TestContext.Current.CancellationToken;
+            Assert.True((await leases.SetComponentAsync(id, new ComponentInput { Kind = RentComponentType.BaseRent, From = increase, Amount = 700m }, ct)).Succeeded);
+            Assert.True((await leases.TerminateAsync(id, new TerminationInput { ReceivedOn = incoming, By = TerminatingParty.Tenant }, ct)).Succeeded);
+            return 0;
         });
-        Assert.Contains("Der Betrag wurde gespeichert.", lease.Text, StringComparison.Ordinal);
+        lease = await admin.GetAsync($"/verwaltung/vertraege/{id}");
         Assert.Contains("Verlauf", lease.Text, StringComparison.Ordinal);
         Assert.Contains("700,00 €", lease.Text, StringComparison.Ordinal);
         Assert.Contains($"{increase.AddDays(-1):dd.MM.yyyy}", lease.Text, StringComparison.Ordinal);
-
-        // Termination by the tenant: date per § 573c BGB
-        var incoming = new DateOnly(Today.Year, Today.Month, 1).AddMonths(1).AddDays(14); // after the 3rd working day
-        lease = await admin.SubmitAsync(lease, "termination", new Dictionary<string, string> { ["Termination.ReceivedOn"] = Iso(incoming), ["Termination.By"] = "Tenant" });
         var expected = MietHahn.Domain.Leases.Lease.TerminationDateForTenant(incoming);
         Assert.Contains($"endet am {expected:dd.MM.yyyy}", lease.Text, StringComparison.Ordinal);
 
-        lease = await admin.SubmitAsync(lease, "termination-revoke");
-        Assert.Contains("unbefristet", lease.Text, StringComparison.Ordinal);
+        await App.WithScopeAsync(async sp => (await sp.GetRequiredService<ILeaseService>().RevokeTerminationAsync(id, TestContext.Current.CancellationToken)).Succeeded);
+        Assert.Contains("unbefristet", (await admin.GetAsync($"/verwaltung/vertraege/{id}")).Text, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Second_lease_in_same_period_is_rejected()
     {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        using var _ = admin;
         var (_, apartment, anna, ben) = await MasterDataAsync();
-        var fields = new Dictionary<string, string> { ["Form.Tenant1"] = anna.ToString(), ["Form.BaseRent"] = "650" };
+        await CreateLeaseAsync(apartment, Today, anna);
 
-        await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/vertraege/neu?mietobjekt={apartment}&beginn={Iso(Today)}"), "lease", fields);
-        var second = await admin.SubmitAsync(
-            await admin.GetAsync($"/verwaltung/vertraege/neu?mietobjekt={apartment}&beginn={Iso(Today.AddMonths(3))}"),
-            "lease",
-            new Dictionary<string, string>(fields) { ["Form.Tenant1"] = ben.ToString() });
+        var second = await App.WithScopeAsync(sp => sp.GetRequiredService<ILeaseService>().CreateAsync(
+            new LeaseCreation { RentalUnitId = apartment, Start = Today.AddMonths(3), TenantIds = [ben], BaseRent = 650m }, TestContext.Current.CancellationToken));
 
-        Assert.Contains("Für dieses Mietobjekt gibt es in diesem Zeitraum bereits einen Vertrag.", second.Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Without_tenant_and_base_rent_the_form_reports_errors()
-    {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        using var _ = admin;
-        var (_, apartment, _, _) = await MasterDataAsync();
-
-        var errors = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/vertraege/neu?mietobjekt={apartment}&beginn={Iso(Today)}"), "lease");
-
-        Assert.Contains("Bitte den Mieter wählen.", errors.Text, StringComparison.Ordinal);
-        Assert.Contains("Bitte die Kaltmiete angeben.", errors.Text, StringComparison.Ordinal);
+        Assert.False(second.Succeeded);
+        Assert.Contains("Für dieses Mietobjekt gibt es in diesem Zeitraum bereits einen Vertrag.", string.Join(" ", second.Errors), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -101,54 +92,52 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var (_, apartment, anna, ben) = await MasterDataAsync();
-        var lease = await admin.SubmitAsync(
-            await admin.GetAsync($"/verwaltung/vertraege/neu?mietobjekt={apartment}&beginn={Iso(Today.AddMonths(-12))}"),
-            "lease",
-            new Dictionary<string, string> { ["Form.Tenant1"] = anna.ToString(), ["Form.BaseRent"] = "650" });
+        var id = await CreateLeaseAsync(apartment, Today.AddMonths(-12), anna);
         var end = Today.AddDays(3);
 
-        var moveOut = await admin.SubmitAsync(await admin.GetAsync(lease.Path + "/auszug"), "move-out", new Dictionary<string, string>
-        {
-            ["Input.End"] = Iso(end),
-            ["Input.NewStreet"] = "Neue Straße 5",
-            ["Input.NewPostalCode"] = "10115",
-            ["Input.NewCity"] = "Berlin",
-        });
+        var moved = await App.WithScopeAsync(sp => sp.GetRequiredService<ILeaseService>().MoveOutAsync(
+            id, new MoveOutInput { End = end, NewStreet = "Neue Straße 5", NewPostalCode = "10115", NewCity = "Berlin" }, TestContext.Current.CancellationToken));
+        Assert.True(moved.Succeeded);
 
+        // The move-out page links to the new lease with the day after the end prefilled.
+        var moveOut = await admin.GetAsync($"/verwaltung/vertraege/{id}/auszug?fertig=true");
         Assert.Contains($"endet am {end:dd.MM.yyyy}", moveOut.Text, StringComparison.Ordinal);
         var moveIn = moveOut.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Neuen Vertrag anlegen").GetAttribute("href")!;
         Assert.Contains($"beginn={Iso(end.AddDays(1))}", moveIn, StringComparison.Ordinal);
 
-        var newItem = await admin.SubmitAsync(await admin.GetAsync(moveIn), "lease", new Dictionary<string, string> { ["Form.Tenant1"] = ben.ToString(), ["Form.BaseRent"] = "690" });
-        Assert.Contains("Der Vertrag wurde angelegt.", newItem.Text, StringComparison.Ordinal);
-
+        await CreateLeaseAsync(apartment, end.AddDays(1), ben, 690m);
         var history = await admin.GetAsync($"/verwaltung/einheiten/{apartment}");
         Assert.Contains("Ben Weber", history.Text, StringComparison.Ordinal);
         Assert.Contains("Anna Schmidt", history.Text, StringComparison.Ordinal);
 
         App.Clock.Advance(TimeSpan.FromDays(5)); // after the move-out the new address applies
-        var record = await admin.GetAsync($"/verwaltung/personen/{anna}");
-        Assert.Contains("Neue Straße 5, 10115 Berlin", record.Text, StringComparison.Ordinal);
+        Assert.Contains("Neue Straße 5, 10115 Berlin", (await admin.GetAsync($"/verwaltung/personen/{anna}")).Text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Add_and_remove_guarantor()
+    public async Task Guarantor_can_be_added_and_removed_but_the_only_tenant_cannot()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
         var (_, apartment, anna, ben) = await MasterDataAsync();
-        var lease = await admin.SubmitAsync(
-            await admin.GetAsync($"/verwaltung/vertraege/neu?mietobjekt={apartment}&beginn={Iso(Today)}"),
-            "lease",
-            new Dictionary<string, string> { ["Form.Tenant1"] = anna.ToString(), ["Form.BaseRent"] = "650" });
+        var id = await CreateLeaseAsync(apartment, Today, anna);
 
-        lease = await admin.SubmitAsync(lease, "party", new Dictionary<string, string> { ["NewParty.PersonId"] = ben.ToString(), ["NewParty.Role"] = "Guarantor" });
-        Assert.Contains("Die Person wurde hinzugefügt.", lease.Text, StringComparison.Ordinal);
-        Assert.Contains("Bürge", lease.Text, StringComparison.Ordinal);
+        await App.WithScopeAsync(async sp =>
+        {
+            var leases = sp.GetRequiredService<ILeaseService>();
+            Assert.True((await leases.AddPartyAsync(id, ben, PartyRole.Guarantor, TestContext.Current.CancellationToken)).Succeeded);
+            return 0;
+        });
+        Assert.Contains("Bürge", (await admin.GetAsync($"/verwaltung/vertraege/{id}")).Text, StringComparison.Ordinal);
 
-        lease = await admin.SubmitAsync(lease, "party-remove", new Dictionary<string, string> { ["RemovePersonId"] = ben.ToString() });
-        Assert.Contains("Die Person wurde entfernt.", lease.Text, StringComparison.Ordinal);
-        Assert.Empty(lease.Document.QuerySelectorAll("button[name=RemovePersonId]")); // the only tenant cannot be removed
+        await App.WithScopeAsync(async sp =>
+        {
+            var leases = sp.GetRequiredService<ILeaseService>();
+            Assert.True((await leases.RemovePartyAsync(id, ben, TestContext.Current.CancellationToken)).Succeeded);
+            Assert.False((await leases.RemovePartyAsync(id, anna, TestContext.Current.CancellationToken)).Succeeded); // the only tenant
+            return 0;
+        });
+        Assert.DoesNotContain("Bürge", (await admin.GetAsync($"/verwaltung/vertraege/{id}")).Text.Replace("Bürgen hinzufügen", "", StringComparison.Ordinal), StringComparison.Ordinal);
     }
 
     [Fact]

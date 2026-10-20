@@ -1,59 +1,63 @@
 @page "/verwaltung/vertraege/{Id:guid}/auszug"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject ILeaseService Admin
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 
-@if (lease is null)
-{
-    <PageHeader Title="Vertrag nicht gefunden" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
-    return;
-}
+<InteractiveShell>
+    @if (!loaded)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else if (lease is null)
+    {
+        <PageHeader Title="Vertrag nicht gefunden" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
+    }
+    else
+    {
+        <PageHeader Title="Mieterwechsel" Subtitle="@($"{lease.RentalUnit}, {lease.Property}")" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag" />
 
-<PageHeader Title="Mieterwechsel" Subtitle="@($"{lease.RentalUnit}, {lease.Property}")" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag" />
+        <ErrorList Errors="errors" />
 
-<ErrorList Errors="errors" />
+        @if (Done)
+        {
+            <Notice Level="NoticeLevel.Success">Das Mietverhältnis endet am @Format.Date(lease.Term.To).</Notice>
+            <ol class="steps">
+                <li class="done">Auszug erfasst</li>
+                <li><a href="/verwaltung/objekte/@lease.PropertyId/ablesung?einheit=@lease.UnitId&datum=@(lease.Term.To?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))&art=Zwischenablesung">Zählerstände zum Auszug ablesen</a> (Zwischenablesung für die Abrechnung)</li>
+                <li><MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/vertraege/neu?mietobjekt={lease.RentalUnitId}&beginn={lease.Term.To?.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}")">Neuen Vertrag anlegen</MudButton></li>
+            </ol>
+            <p class="small">Bis zum nächsten Vertrag steht das Mietobjekt leer; Leerstandszeiten erscheinen automatisch in der Vertragshistorie und gehen in die Abrechnung zulasten des Vermieters.</p>
+        }
+        else
+        {
+            <ol class="steps">
+                <li class="active">Auszug: letzter Tag und neue Anschrift</li>
+                <li>Zählerstände ablesen</li>
+                <li>Neuer Vertrag (Einzug)</li>
+            </ol>
 
-@if (Done)
-{
-    <Notice Level="NoticeLevel.Success">Das Mietverhältnis endet am @Format.Date(lease.Term.To).</Notice>
-    <ol class="steps">
-        <li class="done">Auszug erfasst</li>
-        <li><a href="/verwaltung/objekte/@lease.PropertyId/ablesung?einheit=@lease.UnitId&datum=@(lease.Term.To?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))&art=Zwischenablesung">Zählerstände zum Auszug ablesen</a> (Zwischenablesung für die Abrechnung)</li>
-        <li><a class="button button-primary" href="/verwaltung/vertraege/neu?mietobjekt=@lease.RentalUnitId&beginn=@(lease.Term.To?.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))">Neuen Vertrag anlegen</a></li>
-    </ol>
-    <p class="small">Bis zum nächsten Vertrag steht das Mietobjekt leer; Leerstandszeiten erscheinen automatisch in der Vertragshistorie und gehen in die Abrechnung zulasten des Vermieters.</p>
-    return;
-}
-
-<ol class="steps">
-    <li class="active">Auszug: letzter Tag und neue Anschrift</li>
-    <li>Zählerstände ablesen</li>
-    <li>Neuer Vertrag (Einzug)</li>
-</ol>
-
-<EditForm Model="Input" FormName="move-out" OnValidSubmit="MoveOutAsync">
-    <DataAnnotationsValidator />
-    <FormField Id="end" Label="Letzter Tag des Mietverhältnisses" For="() => Input!.End" Required="true">
-        <InputDate id="end" @bind-Value="Input!.End" />
-    </FormField>
-    <h2>Neue Anschrift der Mieter</h2>
-    <p class="small">Für die Zustellung der Nebenkostenabrechnung und der Kautionsabrechnung. Gilt ab dem Tag nach dem Auszug.</p>
-    <div class="form-grid">
-        <FormField Id="new-street" Label="Straße und Hausnummer" For="() => Input!.NewStreet">
-            <InputText id="new-street" @bind-Value="Input!.NewStreet" autocomplete="off" />
-        </FormField>
-        <FormField Id="new-postal-code" Label="PLZ" For="() => Input!.NewPostalCode">
-            <InputText id="new-postal-code" @bind-Value="Input!.NewPostalCode" inputmode="numeric" autocomplete="off" />
-        </FormField>
-        <FormField Id="new-city" Label="Ort" For="() => Input!.NewCity">
-            <InputText id="new-city" @bind-Value="Input!.NewCity" autocomplete="off" />
-        </FormField>
-    </div>
-    <button type="submit" class="button button-primary">Auszug erfassen</button>
-</EditForm>
+            <EditForm Model="input" OnValidSubmit="MoveOutAsync" novalidate>
+                <DataAnnotationsValidator />
+                <AppDateField @bind-Value="input.End" Label="Letzter Tag des Mietverhältnisses" Required="true" />
+                <h2>Neue Anschrift der Mieter</h2>
+                <p class="small">Für die Zustellung der Nebenkostenabrechnung und der Kautionsabrechnung. Gilt ab dem Tag nach dem Auszug.</p>
+                <div class="form-grid">
+                    <AppTextField @bind-Value="input.NewStreet" Label="Straße und Hausnummer" />
+                    <AppTextField @bind-Value="input.NewPostalCode" Label="PLZ" />
+                    <AppTextField @bind-Value="input.NewCity" Label="Ort" />
+                </div>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Auszug erfassen</MudButton>
+            </EditForm>
+        }
+    }
+</InteractiveShell>
 
 @code {
     private LeaseDetails? lease;
+    private MoveOutInput input = new();
     private IReadOnlyList<string>? errors;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
@@ -61,25 +65,19 @@
     [SupplyParameterFromQuery(Name = "fertig")]
     private bool Done { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "move-out")]
-    private MoveOutInput? Input { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
         lease = await Admin.GetAsync(Id);
-        Input.End ??= lease?.Term.To;
+        input.End ??= lease?.Term.To;
+        loaded = true;
     }
 
     private async Task MoveOutAsync()
     {
-        var result = await Admin.MoveOutAsync(Id, Input!);
+        var result = await Admin.MoveOutAsync(Id, input);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/vertraege/{Id}/auszug?fertig=true", "Der Auszug wurde erfasst.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/vertraege/{Id}/auszug?fertig=true&meldung=auszug-erfasst", forceLoad: true);
         }
         else
         {

@@ -1,0 +1,34 @@
+@using System.Linq.Expressions
+@* Selection of a person (name and city to tell apart people with the same name); "nothing" is allowed. *@
+<AppSelect T="Guid?" Value="Value" ValueChanged="ValueChanged" ValueExpression="ValueExpression" Label="@Label" Hint="@Hint" Required="Required"
+           Items="items" Text="TextOf" EmptyText="– keine –" />
+
+@code {
+    private IReadOnlyList<Guid?> items = [];
+
+    [Parameter]
+    public Guid? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<Guid?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PersonOption> People { get; set; } = [];
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    protected override void OnParametersSet() => items = People.Select(p => (Guid?)p.Id).ToList();
+
+    private string TextOf(Guid? id) =>
+        People.FirstOrDefault(p => p.Id == id) is { } person ? person.DisplayName + (person.City is null ? "" : $" ({person.City})") : "";
+}

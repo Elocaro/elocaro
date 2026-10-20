@@ -1,0 +1,54 @@
+@using System.Linq.Expressions
+@using MudBlazor
+@* Month input (e.g. "Januar 2026") with a calendar. Value is text in the form "yyyy-MM" (empty = none), as the models use it. *@
+<div class="app-field">
+    <MudDatePicker Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="true" Editable="true"
+                   OpenTo="OpenTo.Month" FixDay="1" DateFormat="MM.yyyy" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" />
+    @if (ValueExpression is not null)
+    {
+        <ValidationMessage For="ValueExpression" />
+    }
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+    private DateTime? current;
+    private string? lastValue;
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    // Same pattern as AppDateField: keep the chosen value locally, take the parameter only when the parent changed it.
+    protected override void OnParametersSet()
+    {
+        if (Value != lastValue)
+        {
+            lastValue = Value;
+            current = DateTime.TryParseExact(Value + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed) ? parsed : null;
+        }
+    }
+
+    private async Task OnDateChanged(DateTime? date)
+    {
+        current = date;
+        await ValueChanged.InvokeAsync(date?.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
+    }
+}

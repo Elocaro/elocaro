@@ -1,117 +1,103 @@
 @page "/verwaltung/vpi"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject ICpiService Admin
-@inject Redirector Redirector
+@inject Notifier Notify
 
-<PageHeader Title="Verbraucherpreisindex" Subtitle="Monatswerte für Indexmieten (Destatis, Basis 2020 = 100, Tabelle 61111-0002)." />
+<InteractiveShell>
+    <PageHeader Title="Verbraucherpreisindex" Subtitle="Monatswerte für Indexmieten (Destatis, Basis 2020 = 100, Tabelle 61111-0002)." />
 
-<StatusMessage />
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-<section>
-    <h2>Wert erfassen</h2>
-    <EditForm Model="Input" FormName="cpi" OnValidSubmit="SaveAsync" class="form-row">
-        <DataAnnotationsValidator />
-        <FormField Id="cpi-month" Label="Monat" For="() => Input!.Month" Required="true">
-            <InputText id="cpi-month" type="month" @bind-Value="Input!.Month" />
-        </FormField>
-        <FormField Id="cpi-value" Label="Indexwert" For="() => Input!.Value" Required="true">
-            <InputArea id="cpi-value" @bind-Value="Input!.Value" step="0.1" />
-        </FormField>
-        <div class="field field-action"><button type="submit" class="button button-primary">Speichern</button></div>
-    </EditForm>
-</section>
+    <section>
+        <h2>Wert erfassen</h2>
+        <EditForm Model="input" OnValidSubmit="SaveAsync" novalidate class="form-row">
+            <DataAnnotationsValidator />
+            <AppMonthField @bind-Value="input.Month" Label="Monat" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="input.Value" Label="Indexwert" Required="true" Hint="z. B. 121,7" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    </section>
 
-<section>
-    <h2>Import</h2>
-    <p class="small">
-        In <a href="https://www-genesis.destatis.de/datenbank/online/table/61111-0002" rel="noopener" target="_blank">GENESIS-Online, Tabelle 61111-0002</a>
-        die Monatswerte als CSV herunterladen und den Inhalt hier einfügen. Vorhandene Monate werden aktualisiert.
-    </p>
-    <EditForm Model="Import" FormName="cpi-import" OnValidSubmit="ImportAsync">
-        <FormField Id="cpi-csv" Label="CSV-Inhalt" For="() => Import!.Csv">
-            <InputTextArea id="cpi-csv" @bind-Value="Import!.Csv" rows="6" placeholder="2026;Januar;121,2&#10;2026;Februar;121,9" />
-        </FormField>
-        <button type="submit" class="button button-primary">Importieren</button>
-    </EditForm>
-</section>
+    <section>
+        <h2>Import</h2>
+        <p class="small">
+            In <a href="https://www-genesis.destatis.de/datenbank/online/table/61111-0002" rel="noopener" target="_blank">GENESIS-Online, Tabelle 61111-0002</a>
+            die Monatswerte als CSV herunterladen und den Inhalt hier einfügen. Vorhandene Monate werden aktualisiert.
+        </p>
+        <EditForm Model="import" OnValidSubmit="ImportAsync" novalidate>
+            <AppTextField @bind-Value="import.Csv" Label="CSV-Inhalt" Lines="6" Placeholder="2026;Januar;121,2" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Importieren</MudButton>
+        </EditForm>
+    </section>
 
-<section>
-    <h2>Werte</h2>
-    @if (values is { Count: 0 })
-    {
-        <EmptyState Text="Noch keine Indexwerte." />
-    }
-    else if (values is not null)
-    {
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Monat</th><th class="number">Wert</th><th>Quelle</th></tr></thead>
-                <tbody>
-                    @foreach (var value in values)
-                    {
-                        <tr>
-                            <td>@Format.Month(value.Month)</td>
-                            <td class="number">@Format.Number(value.Value)</td>
-                            <td>@value.Source</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-</section>
+    <section>
+        <h2>Werte</h2>
+        @if (values is { Count: 0 })
+        {
+            <EmptyState Text="Noch keine Indexwerte." />
+        }
+        else if (values is not null)
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Monat</th><th class="number">Wert</th><th>Quelle</th></tr></thead>
+                    <tbody>
+                        @foreach (var value in values)
+                        {
+                            <tr>
+                                <td>@Format.Month(value.Month)</td>
+                                <td class="number">@Format.Number(value.Value)</td>
+                                <td>@value.Source</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</InteractiveShell>
 
 @code {
     private IReadOnlyList<CpiView>? values;
     private IReadOnlyList<string>? errors;
+    private CpiInput input = new();
+    private ImportInput import = new();
 
-    [SupplyParameterFromForm(FormName = "cpi")]
-    private CpiInput? Input { get; set; }
-
-    [SupplyParameterFromForm(FormName = "cpi-import")]
-    private ImportInput? Import { get; set; }
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    protected override async Task OnInitializedAsync()
-    {
-        Input ??= new();
-        Import ??= new();
-        values = await Admin.ListAsync();
-    }
+    protected override async Task OnInitializedAsync() => values = await Admin.ListAsync();
 
     private async Task SaveAsync()
     {
-        if (!DateOnly.TryParseExact(Input!.Month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var month))
+        if (!DateOnly.TryParseExact(input.Month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var month))
         {
             errors = ["Bitte einen Monat wählen."];
             return;
         }
 
-        var result = await Admin.SetAsync(month, Input.Value!.Value);
+        var result = await Admin.SetAsync(month, input.Value!.Value);
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage("/verwaltung/vpi", "Der Indexwert wurde gespeichert.", HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            Notify.Success("Der Indexwert wurde gespeichert.");
+            input = new();
+            values = await Admin.ListAsync();
         }
     }
 
     private async Task ImportAsync()
     {
-        var result = await Admin.ImportAsync(Import!.Csv ?? "");
+        var result = await Admin.ImportAsync(import.Csv ?? "");
         var message = $"Import: {result.Added} neu, {result.Modified} geändert, {result.Unchanged} unverändert.";
+        values = await Admin.ListAsync();
         if (result.Errors.Count > 0)
         {
             errors = [message, .. result.Errors];
-            values = await Admin.ListAsync();
             return;
         }
 
-        Redirector.RedirectWithMessage("/verwaltung/vpi", message, HttpContext);
+        errors = null;
+        Notify.Success(message);
+        import = new();
     }
 
     private sealed class CpiInput

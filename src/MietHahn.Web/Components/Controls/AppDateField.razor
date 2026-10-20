@@ -1,12 +1,14 @@
 @using System.Linq.Expressions
 @using MudBlazor
 @* Date input (day, month, year) with a calendar. Value is a DateOnly?; the validation message of the model is shown below. *@
-<MudDatePicker Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="Clearable"
-               Editable="true" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" />
-@if (ValueExpression is not null)
-{
-    <ValidationMessage For="ValueExpression" />
-}
+<div class="app-field">
+    <MudDatePicker Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="Clearable"
+                   Editable="true" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" />
+    @if (ValueExpression is not null)
+    {
+        <ValidationMessage For="ValueExpression" />
+    }
+</div>
 
 @code {
     private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
