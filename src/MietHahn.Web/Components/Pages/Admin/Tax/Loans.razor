@@ -1,0 +1,75 @@
+@page "/verwaltung/finanzen/darlehen"
+@inject ILoanService Admin
+@inject IPropertyService Properties
+@inject Redirector Redirector
+
+<PageHeader Title="Darlehen" Subtitle="Finanzierung der Objekte: Tilgungsplan, Zinsen als Werbungskosten." />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+@if (loans is { Count: 0 })
+{
+    <EmptyState Text="Noch keine Darlehen erfasst." />
+}
+else if (loans is not null)
+{
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Bank</th><th>Objekt</th><th class="number">Betrag</th><th class="number">Sollzins</th><th>Zinsbindung bis</th></tr></thead>
+            <tbody>
+                @foreach (var loan in loans)
+                {
+                    <tr>
+                        <td><a href="/verwaltung/finanzen/darlehen/@loan.Id">@loan.Bank</a><span class="small"> @loan.LoanNumber</span></td>
+                        <td>@loan.PropertyName</td>
+                        <td class="number">@Format.Money(loan.Principal)</td>
+                        <td class="number">@Format.Number(loan.InterestRatePercent) %</td>
+                        <td>@(loan.FixedUntil is { } until ? Format.Date(until) : "–")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<section>
+    <h2>Darlehen anlegen</h2>
+    <EditForm Model="Data" FormName="loan" OnValidSubmit="CreateAsync">
+        <DataAnnotationsValidator />
+        <LoanFields Data="Data" Properties="properties" />
+        <button type="submit" class="button button-primary">Anlegen</button>
+    </EditForm>
+</section>
+
+@code {
+    private IReadOnlyList<LoanListItem>? loans;
+    private IReadOnlyList<PropertyOverview> properties = [];
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm(FormName = "loan")]
+    private LoanInput? Data { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Data ??= new();
+        loans = await Admin.ListAsync();
+        properties = await Properties.ListAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        var result = await Admin.CreateAsync(Data!);
+        if (result.Succeeded)
+        {
+            Redirector.RedirectWithMessage($"/verwaltung/finanzen/darlehen/{result.Id}", "Das Darlehen wurde angelegt.", HttpContext);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

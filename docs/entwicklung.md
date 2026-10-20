@@ -410,6 +410,14 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Oberfläche:** `/verwaltung/objekte/{id}/afa` (Recht Finanzen), erreichbar über „AfA“ in den Objektdetails.
 - Die Anlage-V-Auswertung (#39) übernimmt die AfA je Jahr aus diesem Plan.
 
+### Darlehen & Tilgungsplan (#37)
+
+- **Rechenkern:** `Domain.Tax.LoanCalculator.Calculate(LoanTerms, Sondertilgungen)` ist eine reine Funktion. Zinsen je Periode auf die Restschuld nach 30E/360 (`Days360`; ein voller Monat = 1/12 des Jahreszinses, eine angebrochene erste Periode tagesanteilig), auf Cent kaufmännisch gerundet; der Rest der festen Rate tilgt, die letzte Rate ist kleiner. Sondertilgungen mindern die Restschuld nach der Rate der Periode, in die sie fallen. Deckt die Rate die Zinsen nicht, entsteht kein Plan, sondern eine Warnung. `InstalmentFor` rechnet aus Anfangstilgung (% p. a.) die Rate.
+- **Daten:** `Loan` (Tabelle `loans`, ein Objekt, Anteil Vermietung in %), `LoanExtraPayment`, `LoanCertificate` (Jahreszinsbescheinigung, eindeutig je Darlehen und Jahr) und `FinancingCost` (Disagio, Bereitstellungszinsen, Grundschuldbestellung, Sonstiges).
+- **Dienst:** `ILoanService`. Eine Bescheinigung ersetzt Zins und Restschuld des Plans für ihr Jahr (`LoanYearInterest.Interest`). `ExpensesAsync(Objekt, Jahr)` liefert die abziehbaren Finanzierungskosten (Zinsen × Anteil Vermietung + Einmalkosten im Zahlungsjahr); die Anlage-V-Auswertung (#39) übernimmt sie von dort.
+- **Oberfläche:** `/verwaltung/finanzen/darlehen` (Liste, Anlegen) und `/verwaltung/finanzen/darlehen/{id}` (Jahresübersicht, Daten, Bescheinigung, Sondertilgungen, Finanzierungskosten, Tilgungsplan), Recht Finanzen.
+- **Noch offen aus #37:** Import eines Bank-Tilgungsplans (CSV), automatische Aufteilung der Raten-Umsätze in Zins und Tilgung, Frist-Erinnerung zum Ende der Zinsbindung (kommt mit den Fristen in M5), Darlehen über mehrere Objekte verteilt.
+
 ### Personen & Datenschutz
 
 - `Person` (Mieter, Bürgen, Kontakte) mit Anschriften als Zeitreihe (Voranschrift → aktuelle → neue Anschrift nach Auszug) und beliebig vielen `BankDetails`en (IBAN mit Prüfsumme, `Domain.Common.Iban`). Mieter und Bürgen ergeben sich aus Verträgen, nicht aus einem Feld.
