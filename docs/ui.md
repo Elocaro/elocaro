@@ -37,6 +37,7 @@ Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gil
 | Hinweis | `Notice` (Level Info/Success/Warning/Error), `StatusMessage` (nach Weiterleitung), `ErrorList` (Fehler aus Diensten) | Kein eigenes `class="message …"`; `role` setzt `Notice` selbst |
 | Leerer Zustand | `EmptyState` | Unterscheiden: „Keine Treffer für …“ (Filter aktiv) und „Noch keine …“ |
 | Riskante Aktion | `DangerAction` (eigenes Formular), `RowConfirm` (Zeile in Tabelle/Liste, im umgebenden Formular) | Siehe „Riskante Aktionen“ |
+| Filter, Suche | `FilterBar` | Siehe „Filter“ |
 | Verlauf | `ChangeHistory` | Auf Detailseiten von Stammdaten |
 | Datum, Geld, Zahl | `Format.*`, Enum-Texte `Labels.*` | Nie `ToString("dd.MM.yyyy")` o. ä. in Seiten |
 
@@ -71,7 +72,7 @@ Alles, was löscht, sperrt, storniert oder sich nicht einfach zurücknehmen läs
 
 ### Filter
 
-GET-Formular mit `role="search"`, Werte über `[SupplyParameterFromQuery]`, deutsche Query-Parameter. Zurücksetzen ist ein Link auf die Seite ohne Parameter.
+Filter und Suche einer Liste oder Auswertung stehen in `<FilterBar>`: GET-Formular mit `role="search"`, die Felder als `div.field` im Inhalt, Werte über `[SupplyParameterFromQuery]`, deutsche Query-Parameter. „Zurücksetzen“ erscheint automatisch, sobald die URL Parameter hat (`AllowReset="false"` für Assistenten und Jahresauswahl). Weitere Aktionen zur aktuellen Ansicht (Export) gehören in den Slot `Actions`. Ein rohes `<form method="get">` meldet ein Architekturtest.
 
 ## Seitentypen
 

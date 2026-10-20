@@ -9,7 +9,7 @@
 
 <StatusMessage />
 
-<form method="get" class="form-row search-bar" role="search">
+<FilterBar SubmitText="Suchen">
     <div class="field">
         <label for="search">Suche</label>
         <input id="search" type="search" name="q" value="@Q" placeholder="Titel, Schlagwort, Dateiname" />
@@ -24,10 +24,7 @@
             }
         </select>
     </div>
-    <div class="field field-action">
-        <button type="submit" class="button">Suchen</button>
-    </div>
-</form>
+</FilterBar>
 
 @if (lines is { Count: 0 })
 {

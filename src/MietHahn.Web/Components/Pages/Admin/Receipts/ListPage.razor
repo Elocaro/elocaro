@@ -9,7 +9,7 @@
 
 <StatusMessage />
 
-<form method="get" class="form-row search-bar" role="search">
+<FilterBar>
     <div class="field">
         <label for="year">Jahr</label>
         <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
@@ -43,10 +43,7 @@
         <input id="split" type="checkbox" name="aufteilen" value="true" checked="@Split" />
         <label for="split">nicht aufgeteilt</label>
     </div>
-    <div class="field field-action">
-        <button type="submit" class="button">Filtern</button>
-    </div>
-</form>
+</FilterBar>
 
 @if (receipts is { Count: 0 })
 {

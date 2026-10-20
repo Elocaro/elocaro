@@ -1,0 +1,34 @@
+@inject NavigationManager Navigation
+@* Filter and search form of a list or report: GET with query parameters, role=search. Fields come as content. *@
+<form method="get" class="form-row search-bar" role="search">
+    @ChildContent
+    <div class="field field-action">
+        <button type="submit" class="button">@SubmitText</button>
+        @if (AllowReset && HasFilter)
+        {
+            <a class="button button-text" href="@Path">Zurücksetzen</a>
+        }
+        @Actions
+    </div>
+</form>
+
+@code {
+    /// <summary>The filter fields (<c>div.field</c> with label and input).</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Further actions next to the buttons, e.g. exports of the current view.</summary>
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+
+    /// <summary>Show a reset link while filters are set; off in wizards where the query carries the state.</summary>
+    [Parameter]
+    public bool AllowReset { get; set; } = true;
+
+    [Parameter]
+    public string SubmitText { get; set; } = "Filtern";
+
+    private string Path => new Uri(Navigation.Uri).GetLeftPart(UriPartial.Path);
+
+    private bool HasFilter => new Uri(Navigation.Uri).Query.Length > 1;
+}

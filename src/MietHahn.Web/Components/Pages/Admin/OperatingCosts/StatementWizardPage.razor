@@ -70,7 +70,7 @@
     case WizardStep.PeriodAndProperty:
         <section id="step-1">
             <h2>1. Zeitraum und Objekt</h2>
-            <form method="get" class="form-row search-bar">
+            <FilterBar SubmitText="Übernehmen" AllowReset="false">
                 <input type="hidden" name="schritt" value="1" />
                 <div class="field">
                     <label for="year">Abrechnungsjahr</label>
@@ -80,10 +80,7 @@
                     <label for="threshold">Abweichung zum Vorjahr (±&nbsp;%)</label>
                     <input id="threshold" type="number" name="abweichung" value="@Num(w.ThresholdPercent)" min="1" max="500" step="1" />
                 </div>
-                <div class="field field-action">
-                    <button type="submit" class="button">Übernehmen</button>
-                </div>
-            </form>
+</FilterBar>
             <dl class="summary">
                 <dt>Objekt</dt><dd>@w.Preview.PropertyName</dd>
                 <dt>Abrechnungszeitraum</dt><dd>@Format.Period(result.BillingPeriod)</dd>

@@ -12,11 +12,12 @@
     Die Zeilennummern des Vordrucks ändern sich jährlich. Die vorbelegten Werte sind Platzhalter und müssen am amtlichen Vordruck des Steuerjahres geprüft werden.
 </p>
 
-<form method="get" class="form-row search-bar">
-    <label for="year">Steuerjahr</label>
-    <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
-    <button type="submit" class="button">Anzeigen</button>
-</form>
+<FilterBar SubmitText="Anzeigen" AllowReset="false">
+    <div class="field">
+        <label for="year">Steuerjahr</label>
+        <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
+    </div>
+</FilterBar>
 
 <form method="post" @formname="mapping" @onsubmit="SaveAsync">
     <AntiforgeryToken />

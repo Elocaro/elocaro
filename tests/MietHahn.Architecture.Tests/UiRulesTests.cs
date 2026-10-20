@@ -28,6 +28,12 @@ public class UiRulesTests
     }
 
     [Fact]
+    public void Filters_use_FilterBar()
+    {
+        AssertNoMatch(@"<form method=""get""", "Use <FilterBar> for filter and search forms", except: "Common/FilterBar.razor");
+    }
+
+    [Fact]
     public void Destructive_actions_ask_for_confirmation()
     {
         AssertNoMatch(@"button-danger", "Use <DangerAction> or <RowConfirm> instead of a bare danger button", except: "Common/DangerAction.razor", exceptAlso: "Common/RowConfirm.razor");

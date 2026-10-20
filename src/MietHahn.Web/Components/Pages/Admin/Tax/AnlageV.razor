@@ -13,15 +13,23 @@
 
 <StatusMessage />
 
-<form method="get" class="form-row search-bar">
-    <label for="year">Steuerjahr</label>
-    <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
-    <label><input type="checkbox" name="prognose" value="true" checked="@Forecast" /> Totalüberschussprognose positiv</label>
-    <button type="submit" class="button">Anzeigen</button>
-    <a class="button" href="/verwaltung/objekte/@PropertyId/anlage-v.csv?jahr=@Year&prognose=@Forecast.ToString().ToLowerInvariant()">CSV exportieren</a>
-    <a class="button" href="/verwaltung/objekte/@PropertyId/anlage-v.pdf?jahr=@Year&prognose=@Forecast.ToString().ToLowerInvariant()">PDF</a>
-    <a class="button" href="/verwaltung/finanzen/anlage-v-zeilen?jahr=@Year">Zeilennummern pflegen</a>
-</form>
+<FilterBar SubmitText="Anzeigen" AllowReset="false">
+    <ChildContent>
+    <div class="field">
+        <label for="year">Steuerjahr</label>
+        <input id="year" type="number" name="jahr" value="@Year" min="2000" max="2100" />
+    </div>
+    <div class="field field-checkbox">
+        <input id="forecast" type="checkbox" name="prognose" value="true" checked="@Forecast" />
+        <label for="forecast">Totalüberschussprognose positiv</label>
+    </div>
+    </ChildContent>
+    <Actions>
+        <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/anlage-v.csv?jahr=@Year&prognose=@Forecast.ToString().ToLowerInvariant()">CSV exportieren</a>
+        <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/anlage-v.pdf?jahr=@Year&prognose=@Forecast.ToString().ToLowerInvariant()">PDF</a>
+        <a class="button button-outlined" href="/verwaltung/finanzen/anlage-v-zeilen?jahr=@Year">Zeilennummern pflegen</a>
+    </Actions>
+</FilterBar>
 
 @if (report.Warnings.Count > 0)
 {

@@ -13,7 +13,7 @@
 <StatusMessage />
 <ErrorList Errors="errors" />
 
-<form method="get" class="form-row search-bar" role="search">
+<FilterBar SubmitText="Anzeigen">
     <div class="field">
         <label for="account">Konto</label>
         <select id="account" name="konto">
@@ -24,10 +24,7 @@
             }
         </select>
     </div>
-    <div class="field field-action">
-        <button type="submit" class="button">Anzeigen</button>
-    </div>
-</form>
+</FilterBar>
 
 @if (rows is { Count: 0 })
 {
