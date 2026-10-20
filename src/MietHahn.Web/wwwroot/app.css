@@ -276,7 +276,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 }
 
 /* User menu */
-.user-menu { position: relative; }
+.user-menu { position: relative; min-width: 0; flex: 0 1 auto; }
 .user-menu > summary { list-style: none; cursor: pointer; padding: 0.4rem 0.6rem; border-radius: var(--radius); max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-menu > summary::-webkit-details-marker { display: none; }
 .user-menu > summary::after { content: " ▾"; color: var(--color-text-muted); }

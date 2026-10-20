@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
+using MietHahn.Application.Accounts;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
+using MietHahn.Infrastructure.Identity;
 
 namespace MietHahn.Web.Tests.Browser;
 
@@ -154,6 +157,61 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         }
 
         Assert.True(problems.Count == 0, "Kontrast unter WCAG AA:\n" + string.Join("\n", problems.Distinct()));
+    }
+
+    [Theory]
+    [InlineData(Roles.Caretaker, new[] { "/service", "/service/objekte" })]
+    [InlineData(Roles.Tenant, new[] { "/portal" })]
+    public async Task Service_and_portal_pages_meet_contrast_fit_360_pixels_and_can_be_photographed(string role, string[] paths)
+    {
+        var email = $"{role.ToLowerInvariant()}@example.de";
+        await App.WithScopeAsync(async sp =>
+        {
+            var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, DisplayName = role + " Test" };
+            Assert.True((await manager.CreateAsync(user, Password)).Succeeded);
+            await manager.AddToRoleAsync(user, role);
+            return 0;
+        });
+        await SignedInAsAdminAsync(); // makes sure the app is set up
+        var page = await NewPageAsync();
+        await page.GotoAsync(BaseUrl + "/konto/anmelden");
+        await page.FillAsync("#email", email);
+        await page.FillAsync("#password", Password);
+        await page.ClickAsync("button[type=submit]");
+        await page.WaitForURLAsync(url => !url.Contains("/konto/", StringComparison.Ordinal));
+
+        var directory = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_DIR");
+        var problems = new List<string>();
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await page.EmulateMediaAsync(new() { ColorScheme = scheme });
+            foreach (var path in paths)
+            {
+                var response = await page.GotoAsync(BaseUrl + path);
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                if (response?.Status != 200)
+                {
+                    problems.Add($"[{scheme}] {path}: Status {response?.Status}");
+                    continue;
+                }
+
+                problems.AddRange((await page.EvaluateAsync<string[]>(ContrastScript)).Select(f => $"[{scheme}] {path}: {f}"));
+                var width = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+                if (width[0] > width[1])
+                {
+                    problems.Add($"[{scheme}] {path}: {width[0]}px breit bei {width[1]}px");
+                }
+
+                if (directory is not null)
+                {
+                    Directory.CreateDirectory(directory);
+                    await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{role}-{scheme}-{path.Trim('/').Replace('/', '_')}.png"), FullPage = true });
+                }
+            }
+        }
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems.Distinct()));
     }
 
     [Fact]
