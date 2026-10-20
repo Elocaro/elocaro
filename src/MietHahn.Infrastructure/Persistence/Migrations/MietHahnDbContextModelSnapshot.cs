@@ -2017,6 +2017,113 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("cpi_values", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Leases.HandoverProtocol", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid?>("DocumentFileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_file_id");
+
+                    b.Property<Guid?>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<Guid?>("LandlordSignatureFileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("landlord_signature_file_id");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<DateTimeOffset?>("SignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("signed_at");
+
+                    b.Property<string>("SignedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("signed_by_name");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("TenantSignatureFileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_signature_file_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_handover_protocols");
+
+                    b.HasIndex("DocumentFileId")
+                        .HasDatabaseName("ix_handover_protocols_document_file_id");
+
+                    b.HasIndex("DocumentId")
+                        .HasDatabaseName("ix_handover_protocols_document_id");
+
+                    b.HasIndex("LandlordSignatureFileId")
+                        .HasDatabaseName("ix_handover_protocols_landlord_signature_file_id");
+
+                    b.HasIndex("TenantSignatureFileId")
+                        .HasDatabaseName("ix_handover_protocols_tenant_signature_file_id");
+
+                    b.HasIndex("LeaseId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("ix_handover_protocols_lease_id_type")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("handover_protocols", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Leases.Lease", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5861,6 +5968,40 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_heating_settings_property_property_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Leases.HandoverProtocol", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentFileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_handover_protocols_stored_file_document_file_id");
+
+                    b.HasOne("MietHahn.Domain.Documents.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_handover_protocols_documents_document_id");
+
+                    b.HasOne("MietHahn.Domain.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("LandlordSignatureFileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_handover_protocols_stored_file_landlord_signature_file_id");
+
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_handover_protocols_lease_lease_id");
+
+                    b.HasOne("MietHahn.Domain.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("TenantSignatureFileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_handover_protocols_stored_file_tenant_signature_file_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Leases.Lease", b =>

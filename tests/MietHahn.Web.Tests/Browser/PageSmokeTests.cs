@@ -114,6 +114,9 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
                 result["dunning"] = dunnings.Proposals[0].Id.ToString();
             }
 
+            // A draft handover protocol so that the mobile form is rendered with data.
+            await sp.GetRequiredService<IHandovers>().CreateAsync(lease, MietHahn.Domain.Leases.HandoverType.MoveIn, today, Ct);
+
             result["property"] = property.ToString();
             result["unit"] = unit.ToString();
             result["room"] = room.ToString();
@@ -138,7 +141,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             "/verwaltung/datenschutz",
             "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{p}", $"/verwaltung/objekte/{p}/bearbeiten", $"/verwaltung/einheiten/{ids["unit"]}", $"/verwaltung/zimmer/{ids["room"]}",
             "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/vertraege/{ids["lease"]}/konto", $"/verwaltung/vertraege/{ids["lease"]}/auszug",
-            $"/verwaltung/vertraege/{ids["lease"]}/kostenarten", $"/verwaltung/vertraege/{ids["lease"]}/vertragsdokument", $"/verwaltung/vertraege/{ids["lease"]}/mieterhoehung", "/verwaltung/vpi",
+            $"/verwaltung/vertraege/{ids["lease"]}/kostenarten", $"/verwaltung/vertraege/{ids["lease"]}/vertragsdokument", $"/verwaltung/vertraege/{ids["lease"]}/mieterhoehung", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/einzug", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/auszug", "/verwaltung/vpi",
             "/verwaltung/dokumente", "/verwaltung/dokumente/neu",
             $"/verwaltung/objekte/{p}/zaehler", $"/verwaltung/objekte/{p}/ablesung", $"/verwaltung/zaehler/{ids["meter"]}",
             "/verwaltung/bank/konten", "/verwaltung/bank/konten/neu", $"/verwaltung/bank/konten/{ids["account"]}", "/verwaltung/bank/umsaetze", "/verwaltung/bank/zuordnung",

@@ -120,3 +120,32 @@ internal sealed class RentIncreaseConfiguration : IEntityTypeConfiguration<RentI
         builder.HasIndex(r => new { r.LeaseId, r.Status });
     }
 }
+
+internal sealed class HandoverProtocolConfiguration : IEntityTypeConfiguration<HandoverProtocol>
+{
+    private static readonly System.Text.Json.JsonSerializerOptions Json = new(System.Text.Json.JsonSerializerDefaults.Web);
+
+    public void Configure(EntityTypeBuilder<HandoverProtocol> builder)
+    {
+        builder.ToTable("handover_protocols");
+        builder.Property(p => p.Type).HasConversion<string>().HasMaxLength(20);
+        builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(p => p.SignedByName).HasMaxLength(200);
+
+        // The filled-in part is one JSON document; the comparer looks at the serialized text so that edits are noticed.
+        var comparer = new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<HandoverContent>(
+            (a, b) => System.Text.Json.JsonSerializer.Serialize(a, Json) == System.Text.Json.JsonSerializer.Serialize(b, Json),
+            c => System.Text.Json.JsonSerializer.Serialize(c, Json).GetHashCode(StringComparison.Ordinal),
+            c => System.Text.Json.JsonSerializer.Deserialize<HandoverContent>(System.Text.Json.JsonSerializer.Serialize(c, Json), Json)!);
+        builder.Property(p => p.Content)
+            .HasConversion(c => System.Text.Json.JsonSerializer.Serialize(c, Json), s => System.Text.Json.JsonSerializer.Deserialize<HandoverContent>(s, Json)!, comparer)
+            .HasColumnType("jsonb");
+
+        builder.HasOne<Lease>().WithMany().HasForeignKey(p => p.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Files.StoredFile>().WithMany().HasForeignKey(p => p.TenantSignatureFileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Files.StoredFile>().WithMany().HasForeignKey(p => p.LandlordSignatureFileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Files.StoredFile>().WithMany().HasForeignKey(p => p.DocumentFileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Documents.Document>().WithMany().HasForeignKey(p => p.DocumentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(p => new { p.LeaseId, p.Type }).IsUnique().HasFilter("NOT deleted");
+    }
+}
