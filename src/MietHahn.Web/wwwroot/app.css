@@ -134,7 +134,7 @@ pre code { font-size: 0.85rem; }
 .field-checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
 .field-checkbox label { font-weight: normal; }
 
-input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([class*="mud-"]), select:not([class*="mud-"]), textarea:not([class*="mud-"]) {
+input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])), select:where(:not([class*="mud-"])), textarea:where(:not([class*="mud-"])) {
     width: 100%;
     padding: 0.6rem 0.9rem;
     font: inherit;
@@ -150,7 +150,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 .validation-message { color: var(--color-error); font-size: 0.875rem; }
 
 /* Buttons (M3): .button = tonal (default), -primary = filled, -outlined, -text, -danger */
-.button, button:not([class*="mud-"]) {
+.button, button:where(:not([class*="mud-"])) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -168,8 +168,8 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
     transition: background-color var(--motion-duration) var(--motion-effects), border-radius var(--motion-duration) var(--motion-spatial), box-shadow var(--motion-duration) var(--motion-effects);
 }
 
-.button:hover, button:not([class*="mud-"]):hover { box-shadow: var(--shadow); }
-.button:active, button:not([class*="mud-"]):active { border-radius: var(--shape-md); }
+.button:hover, button:where(:not([class*="mud-"])):hover { box-shadow: var(--shadow); }
+.button:active, button:where(:not([class*="mud-"])):active { border-radius: var(--shape-md); }
 .button-primary { color: var(--md-on-primary); background: var(--md-primary); border-color: var(--md-primary); }
 .button-primary:hover { color: var(--md-on-primary); background: color-mix(in srgb, var(--md-primary) 88%, var(--md-on-surface)); }
 .button-outlined { color: var(--md-primary); background: transparent; border-color: var(--md-outline); }
@@ -447,15 +447,15 @@ h2 { font-size: 1.35rem; font-weight: 650; margin: 2rem 0 0.75rem; }
 .field:focus-within > label { color: var(--md-primary); }
 .field-checkbox { margin-top: 0; }
 .field-checkbox > label { position: static; padding: 0; font-size: 1rem; background: none; pointer-events: auto; color: var(--md-on-surface); }
-input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([class*="mud-"]), select:not([class*="mud-"]), textarea:not([class*="mud-"]) {
+input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])), select:where(:not([class*="mud-"])), textarea:where(:not([class*="mud-"])) {
     min-height: 3.25rem; padding: 0.75rem 1rem; background: transparent; border: 1px solid var(--md-outline); border-radius: var(--shape-md);
     transition: border-color var(--motion-duration) var(--motion-effects), box-shadow var(--motion-duration) var(--motion-effects);
 }
-input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([class*="mud-"]):hover, select:not([class*="mud-"]):hover, textarea:not([class*="mud-"]):hover { border-color: var(--md-on-surface); }
-input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([class*="mud-"]):focus, select:not([class*="mud-"]):focus, textarea:not([class*="mud-"]):focus { outline: none; border-color: var(--md-primary); box-shadow: 0 0 0 1px var(--md-primary); }
-input.invalid:not([class*="mud-"]), select.invalid:not([class*="mud-"]), textarea.invalid:not([class*="mud-"]) { border-color: var(--md-error); }
-select:not([class*="mud-"]) { appearance: none; padding-right: 2.75rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2385736d'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.9rem center; background-size: 1.5rem; }
-textarea:not([class*="mud-"]) { min-height: 6.5rem; resize: vertical; }
+input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])):hover, select:where(:not([class*="mud-"])):hover, textarea:where(:not([class*="mud-"])):hover { border-color: var(--md-on-surface); }
+input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])):focus, select:where(:not([class*="mud-"])):focus, textarea:where(:not([class*="mud-"])):focus { outline: none; border-color: var(--md-primary); box-shadow: 0 0 0 1px var(--md-primary); }
+input.invalid:where(:not([class*="mud-"])), select.invalid:where(:not([class*="mud-"])), textarea.invalid:where(:not([class*="mud-"])) { border-color: var(--md-error); }
+select:where(:not([class*="mud-"])) { appearance: none; padding-right: 2.75rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2385736d'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.9rem center; background-size: 1.5rem; }
+textarea:where(:not([class*="mud-"])) { min-height: 6.5rem; resize: vertical; }
 input[type=checkbox], input[type=radio] { accent-color: var(--md-primary); width: 1.25rem; height: 1.25rem; }
 .field-hint { margin: 0 0 0 1rem; font-size: 0.78rem; }
 .validation-message { margin-left: 1rem; font-size: 0.78rem; }

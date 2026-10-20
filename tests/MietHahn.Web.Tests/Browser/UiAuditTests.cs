@@ -57,6 +57,48 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         """;
 
     [Fact]
+    public async Task Button_variants_are_rendered_for_real_buttons()
+    {
+        await SignedInAsAdminAsync(); // app set up
+        var page = await NewPageAsync(mobile: false);
+        await page.GotoAsync(BaseUrl + "/konto/anmelden");
+        var primary = page.Locator("button.button-primary").First;
+        var tonal = await page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).getPropertyValue('--md-secondary-container')");
+        var background = await primary.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor");
+        var primaryColor = await page.EvaluateAsync<string>("() => { const d = document.createElement('div'); d.style.color = getComputedStyle(document.documentElement).getPropertyValue('--md-primary'); document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }");
+        Assert.Equal(primaryColor, background); // filled with the primary color, not the tonal default
+        Assert.False(string.IsNullOrWhiteSpace(tonal));
+    }
+
+    // Pages without sign-in: AccountLayout with its own card.
+    private static readonly string[] AnonymousPages = ["/konto/anmelden", "/konto/link", "/konto/passwort-vergessen", "/konto/gesperrt", "/konto/zugriff-verweigert", "/not-found"];
+
+    [Fact]
+    public async Task Anonymous_pages_meet_contrast_and_fit_360_pixels()
+    {
+        await SignedInAsAdminAsync(); // makes sure the app is set up (otherwise sign-in redirects to the initial setup)
+        var problems = new List<string>();
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            var page = await NewPageAsync();
+            await page.EmulateMediaAsync(new() { ColorScheme = scheme });
+            foreach (var path in AnonymousPages)
+            {
+                await page.GotoAsync(BaseUrl + path);
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                problems.AddRange((await page.EvaluateAsync<string[]>(ContrastScript)).Select(f => $"[{scheme}] {path}: {f}"));
+                var width = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+                if (width[0] > width[1])
+                {
+                    problems.Add($"[{scheme}] {path}: {width[0]}px breit bei {width[1]}px");
+                }
+            }
+        }
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems.Distinct()));
+    }
+
+    [Fact]
     public async Task All_areas_fit_360_pixels_without_horizontal_scrolling()
     {
         var property = await App.WithScopeAsync(async sp =>
@@ -135,6 +177,17 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         });
 
         var page = await SignedInAsAdminAsync(mobile: false);
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            var anonymous = await NewPageAsync(mobile: false);
+            await anonymous.EmulateMediaAsync(new() { ColorScheme = scheme });
+            foreach (var path in AnonymousPages)
+            {
+                await anonymous.GotoAsync(BaseUrl + path);
+                await anonymous.ScreenshotAsync(new() { Path = Path.Combine(directory, $"anonym-{scheme.ToString().ToLowerInvariant()}-{path.Trim('/').Replace('/', '_')}.png"), FullPage = true });
+            }
+        }
+
         foreach (var mobile in new[] { false, true })
         {
             await page.SetViewportSizeAsync(mobile ? 360 : 1280, mobile ? 780 : 900);
@@ -148,6 +201,19 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
                     var name = $"{(mobile ? "mobil" : "desktop")}-{scheme.ToString().ToLowerInvariant()}-{path.Trim('/').Replace('/', '_')}";
                     await page.ScreenshotAsync(new() { Path = Path.Combine(directory, name[..Math.Min(name.Length, 80)] + ".png"), FullPage = true });
                 }
+
+                // Opened menus (mobile navigation, user menu with the theme switch).
+                await page.GotoAsync(BaseUrl + "/verwaltung/personen");
+                var prefix = $"{(mobile ? "mobil" : "desktop")}-{scheme.ToString().ToLowerInvariant()}";
+                if (mobile)
+                {
+                    await page.ClickAsync(".mobile-navigation > summary");
+                    await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-menue-navigation.png") });
+                    await page.ClickAsync(".mobile-navigation > summary");
+                }
+
+                await page.ClickAsync(".user-menu > summary");
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-menue-benutzer.png") });
             }
         }
     }
