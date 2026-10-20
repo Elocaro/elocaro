@@ -22,6 +22,18 @@ public interface IDocumentTemplates
 
     /// <summary>Renders the (even unsaved) text with the sample data of the catalog as PDF; stores nothing.</summary>
     Task<TemplatePreview> PreviewAsync(TemplateKind kind, string subject, string body, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates the bundled starting templates that do not exist yet (by name); existing ones stay untouched.</summary>
+    Task<DefaultsInstalled> InstallDefaultsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The template as a file for backup or exchange.</summary>
+    Task<TemplateExport?> ExportAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates a template from an exported file; an existing name gets a suffix.</summary>
+    Task<Result> ImportAsync(byte[] content, CancellationToken cancellationToken = default);
+
+    /// <summary>Names of the snippets that can be included in letters.</summary>
+    Task<IReadOnlyList<string>> SnippetNamesAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class TemplateInput
@@ -35,7 +47,7 @@ public sealed class TemplateInput
     [StringLength(500)]
     public string? Description { get; set; }
 
-    [Required(ErrorMessage = "Bitte einen Betreff angeben.")]
+    /// <summary>Required for letters; snippets have none.</summary>
     [StringLength(200)]
     public string Subject { get; set; } = "";
 
@@ -46,6 +58,10 @@ public sealed class TemplateInput
     /// <summary>Number of the current revision (read only).</summary>
     public int Revision { get; set; }
 }
+
+public sealed record DefaultsInstalled(int Created, int Existing);
+
+public sealed record TemplateExport(string FileName, byte[] Content);
 
 public sealed record TemplateRow(Guid Id, string Name, TemplateKind Kind, string? Description, int Revision, DateTimeOffset? ChangedAt);
 
@@ -71,7 +87,10 @@ public sealed record LetterModel(
     DateOnly LeaseStart,
     DateOnly? LeaseEnd,
     string SenderName,
-    DateOnly Today);
+    DateOnly Today,
+    string? SenderBank = null,
+    string? SenderIban = null,
+    string? SenderBic = null);
 
 /// <summary>Documented placeholders and sample data per template kind.</summary>
 public static class TemplateCatalog
@@ -91,7 +110,11 @@ public static class TemplateCatalog
             new("lease_end", "Mietende, leer bei unbefristetem Vertrag", "(leer)"),
             new("sender_name", "Name des Vermieters", "Hans Vermieter"),
             new("today", "Heutiges Datum (mit „date“ formatieren)", "20.10.2026"),
+            new("sender_bank", "Bank des Vermieters (leer, wenn nicht hinterlegt)", "Sparkasse KölnBonn"),
+            new("sender_iban", "IBAN des Vermieters (leer, wenn nicht hinterlegt)", "DE89 3704 0044 0532 0130 00"),
+            new("sender_bic", "BIC des Vermieters (leer, wenn nicht hinterlegt)", "COLSDE33XXX"),
         ],
+        TemplateKind.Snippet => Placeholders(TemplateKind.Letter),
         _ => [],
     };
 
@@ -101,12 +124,13 @@ public static class TemplateCatalog
         new("date value", "Datum im Format TT.MM.JJJJ", "{{ date today }} → 20.10.2026"),
         new("number value 2", "Zahl mit Nachkommastellen", "{{ number 1234.5 2 }} → 1.234,50"),
         new("text_to_html text", "Text mit Zeilenumbrüchen", "{{ text_to_html note }}"),
+        new("include 'Name'", "Fügt einen Baustein ein (Name wie in der Liste der Vorlagen)", "{{ include 'Grußformel' }}"),
     ];
 
     public static object Sample(TemplateKind kind) => kind switch
     {
-        TemplateKind.Letter => new LetterModel("Sehr geehrte Frau Muster,", "Erika Muster", "Wohnung 1, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
-            new DateOnly(2024, 4, 1), null, "Hans Vermieter", new DateOnly(2026, 10, 20)),
+        TemplateKind.Letter or TemplateKind.Snippet => new LetterModel("Sehr geehrte Frau Muster,", "Erika Muster", "Wohnung 1, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
+            new DateOnly(2024, 4, 1), null, "Hans Vermieter", new DateOnly(2026, 10, 20), "Sparkasse KölnBonn", "DE89 3704 0044 0532 0130 00", "COLSDE33XXX"),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 }

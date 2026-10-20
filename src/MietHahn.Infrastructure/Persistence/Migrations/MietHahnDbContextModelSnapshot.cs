@@ -1120,6 +1120,10 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("tags");
 
+                    b.Property<Guid?>("TemplateRevisionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_revision_id");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1155,6 +1159,9 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PropertyId")
                         .HasDatabaseName("ix_documents_property_id");
+
+                    b.HasIndex("TemplateRevisionId")
+                        .HasDatabaseName("ix_documents_template_revision_id");
 
                     b.HasIndex("UnitId")
                         .HasDatabaseName("ix_documents_unit_id");
@@ -5512,6 +5519,12 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasForeignKey("PropertyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_documents_property_property_id");
+
+                    b.HasOne("MietHahn.Domain.Documents.DocumentTemplateRevision", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_documents_document_template_revision_template_revision_id");
 
                     b.HasOne("MietHahn.Domain.Properties.Unit", null)
                         .WithMany()

@@ -4,6 +4,7 @@ using MietHahn.Application.Files;
 using MietHahn.Domain.Admin;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Files;
+using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Infrastructure.Templates;
 
@@ -44,7 +45,7 @@ internal sealed class PdfGenerator(
 
         var content = job switch
         {
-            { TemplateText: { } text } => ScribanRenderer.RenderText(text, job.Model, name: job.Title),
+            { TemplateText: { } text } => ScribanRenderer.RenderText(text, job.Model, name: job.Title, snippets: await TemplateSnippets.LoadAsync(db, cancellationToken)),
             { Template: { } name } => renderer.RenderEmbedded($"Pdf/Templates/{name}.sbn", job.Model),
             _ => throw new ArgumentException("Vorlage oder Vorlagentext ist erforderlich.", nameof(job)),
         };

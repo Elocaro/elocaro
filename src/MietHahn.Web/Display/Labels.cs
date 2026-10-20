@@ -34,6 +34,7 @@ public static class Labels
     public static string From(TemplateKind value) => value switch
     {
         TemplateKind.Letter => "Schreiben",
+        TemplateKind.Snippet => "Baustein",
         _ => value.ToString(),
     };
 

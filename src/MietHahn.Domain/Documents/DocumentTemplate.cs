@@ -6,6 +6,9 @@ public enum TemplateKind
 {
     /// <summary>Free letter to tenants (single letter or mass letter to all tenants of a property).</summary>
     Letter = 0,
+
+    /// <summary>Reusable part (letterhead, closing, bank details) that letters include with <c>{{ include 'Name' }}</c>.</summary>
+    Snippet = 1,
 }
 
 /// <summary>
@@ -54,7 +57,8 @@ public sealed class DocumentTemplate : Entity
             throw new RuleViolationException("Bitte einen Namen angeben.");
         }
 
-        if (string.IsNullOrWhiteSpace(subject))
+        subject ??= "";
+        if (Kind == TemplateKind.Letter && string.IsNullOrWhiteSpace(subject))
         {
             throw new RuleViolationException("Bitte einen Betreff angeben.");
         }

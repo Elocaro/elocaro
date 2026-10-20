@@ -86,6 +86,69 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Contains("unbekannt", preview.Errors.Single(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Letters_can_include_snippets_but_unknown_snippets_are_rejected()
+    {
+        var unknown = Input("Mit Baustein");
+        unknown.Body = "<p>{{ include 'Gibt es nicht' }}</p>";
+        var rejected = await WithAsync(t => t.SaveAsync(null, unknown, Ct));
+        Validate(await WithAsync(t => t.SaveAsync(null, new TemplateInput { Name = "Gruß", Kind = TemplateKind.Snippet, Body = "<p>Gruß von {{ sender_name }}</p>" }, Ct)));
+
+        unknown.Body = "<p>{{ include 'Gruß' }}</p>";
+        Validate(await WithAsync(t => t.SaveAsync(null, unknown, Ct)));
+
+        Assert.Contains("Gibt es nicht", rejected.Errors.Single(), StringComparison.Ordinal);
+        Assert.Equal(["Gruß"], await WithAsync(t => t.SnippetNamesAsync(Ct)));
+    }
+
+    [Fact]
+    public async Task A_snippet_that_is_still_included_cannot_be_deleted_or_renamed()
+    {
+        var snippet = Validate(await WithAsync(t => t.SaveAsync(null, new TemplateInput { Name = "Gruß", Kind = TemplateKind.Snippet, Body = "<p>Gruß</p>" }, Ct)));
+        var letter = Input("Brief");
+        letter.Body = "<p>{{ include 'Gruß' }}</p>";
+        var letterId = Validate(await WithAsync(t => t.SaveAsync(null, letter, Ct)));
+
+        var delete = await WithAsync(t => t.DeleteAsync(snippet, Ct));
+        var renamed = (await WithAsync(t => t.GetAsync(snippet, Ct)))!;
+        renamed.Name = "Anderer Name";
+        var rename = await WithAsync(t => t.SaveAsync(snippet, renamed, Ct));
+        Validate(await WithAsync(t => t.DeleteAsync(letterId, Ct)));
+
+        Assert.Contains("„Brief“", delete.Errors.Single(), StringComparison.Ordinal);
+        Assert.Contains("umbenannt", rename.Errors.Single(), StringComparison.Ordinal);
+        Validate(await WithAsync(t => t.DeleteAsync(snippet, Ct)));
+    }
+
+    [Fact]
+    public async Task Bundled_templates_are_installed_once_and_are_valid()
+    {
+        var first = await WithAsync(t => t.InstallDefaultsAsync(Ct));
+        var second = await WithAsync(t => t.InstallDefaultsAsync(Ct));
+
+        Assert.Equal((4, 0, 0, 4), (first.Created, first.Existing, second.Created, second.Existing));
+        var rows = await WithAsync(t => t.ListAsync(Ct));
+        Assert.Equal(["Allgemeines Schreiben", "Ankündigung von Arbeiten", "Bankverbindung", "Grußformel"], rows.Select(r => r.Name));
+        Assert.All(rows, r => Assert.Equal(1, r.Revision));
+    }
+
+    [Fact]
+    public async Task Export_and_import_roundtrip_with_a_suffix_for_existing_names()
+    {
+        var id = Validate(await WithAsync(t => t.SaveAsync(null, Input("Original"), Ct)));
+        var export = (await WithAsync(t => t.ExportAsync(id, Ct)))!;
+
+        var import = Validate(await WithAsync(t => t.ImportAsync(export.Content, Ct)));
+        var second = Validate(await WithAsync(t => t.ImportAsync(export.Content, Ct)));
+        var bad = await WithAsync(t => t.ImportAsync("{\"format\":\"x\"}"u8.ToArray(), Ct));
+
+        Assert.Equal("vorlage-Original.json", export.FileName);
+        Assert.Equal("Original (Import)", (await WithAsync(t => t.GetAsync(import, Ct)))!.Name);
+        Assert.Equal("Original (Import 2)", (await WithAsync(t => t.GetAsync(second, Ct)))!.Name);
+        Assert.Equal("<p>{{ salutation }}</p>", (await WithAsync(t => t.GetAsync(import, Ct)))!.Body);
+        Assert.False(bad.Succeeded);
+    }
+
     private static TemplateInput Input(string name) => new()
     {
         Name = name,

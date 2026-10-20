@@ -62,6 +62,9 @@ public sealed class DocumentInput
 
     public Guid? PersonId { get; set; }
 
+    /// <summary>Set for documents generated from a template: the version it was created from.</summary>
+    public Guid? TemplateRevisionId { get; set; }
+
     public bool SharedWithTenants { get; set; }
 
     public bool SharedWithCaretakers { get; set; }

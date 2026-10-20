@@ -1,0 +1,4 @@
+{{# Ausgangspunkt, keine Rechtsberatung. }}
+<p>{{ salutation }}</p>
+<p>[Text des Schreibens]</p>
+{{ include 'Grußformel' }}

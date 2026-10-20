@@ -31,8 +31,9 @@ public sealed class ScribanRenderer
     }
 
     /// <summary>Renders template text (e.g. from the database, maintained by the user).</summary>
-    public static TemplateResult RenderText(string templateText, object? model, IReadOnlyDictionary<string, object?>? supplement = null, string name = "template") =>
-        Render(Parse(templateText, name), model, supplement);
+    /// <param name="snippets">Texts that the template can include with <c>include 'Name'</c> (name → text); only these can be included.</param>
+    public static TemplateResult RenderText(string templateText, object? model, IReadOnlyDictionary<string, object?>? supplement = null, string name = "template", IReadOnlyDictionary<string, string>? snippets = null) =>
+        Render(Parse(templateText, name), model, supplement, snippets);
 
     /// <summary>Checks a template for syntax errors without rendering it.</summary>
     public static IReadOnlyList<string> Validate(string templateText)
@@ -52,7 +53,7 @@ public sealed class ScribanRenderer
         return template;
     }
 
-    private static TemplateResult Render(Template template, object? model, IReadOnlyDictionary<string, object?>? supplement)
+    private static TemplateResult Render(Template template, object? model, IReadOnlyDictionary<string, object?>? supplement, IReadOnlyDictionary<string, string>? snippets = null)
     {
         var global = new ScriptObject();
         HelperFunctions(global);
@@ -69,7 +70,7 @@ public sealed class ScribanRenderer
             }
         }
 
-        var context = new EscapingTemplateContext { StrictVariables = true, LoopLimit = 10_000 };
+        var context = new EscapingTemplateContext { StrictVariables = true, LoopLimit = 10_000, TemplateLoader = new SnippetLoader(snippets ?? new Dictionary<string, string>()) };
         context.PushCulture(German);
         context.PushGlobal(global);
 
@@ -77,6 +78,10 @@ public sealed class ScribanRenderer
         {
             var html = template.Render(context);
             return new TemplateResult(html, global);
+        }
+        catch (Scriban.Syntax.ScriptRuntimeException ex) when (ex.InnerException is TemplateErrorException inner)
+        {
+            throw new TemplateErrorException(inner.Message, ex);
         }
         catch (Scriban.Syntax.ScriptRuntimeException ex)
         {
@@ -91,6 +96,17 @@ public sealed class ScribanRenderer
         global.Import("number", new Func<decimal?, int, string>((value, decimals) => value?.ToString("N" + decimals, German) ?? ""));
         global.Import("text_to_html", new Func<string?, RawHtml>(text =>
             new RawHtml(Html.Escape(text ?? "").ReplaceLineEndings("<br>"))));
+    }
+
+    /// <summary>Resolves <c>include</c> only against the given snippets: no file or database access from a template.</summary>
+    private sealed class SnippetLoader(IReadOnlyDictionary<string, string> snippets) : ITemplateLoader
+    {
+        public string GetPath(TemplateContext context, SourceSpan callerSpan, string templateName) => templateName;
+
+        public string Load(TemplateContext context, SourceSpan callerSpan, string templatePath) =>
+            snippets.TryGetValue(templatePath, out var text) ? text : throw new TemplateErrorException($"Der Baustein „{templatePath}“ existiert nicht.");
+
+        public ValueTask<string?> LoadAsync(TemplateContext context, SourceSpan callerSpan, string templatePath) => ValueTask.FromResult<string?>(Load(context, callerSpan, templatePath));
     }
 
     /// <summary>Escapes every expression output, except <see cref="RawHtml"/>.</summary>

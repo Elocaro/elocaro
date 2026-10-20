@@ -22,6 +22,7 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.HasOne<Unit>().WithMany().HasForeignKey(d => d.UnitId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Lease>().WithMany().HasForeignKey(d => d.LeaseId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Person>().WithMany().HasForeignKey(d => d.PersonId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<DocumentTemplateRevision>().WithMany().HasForeignKey(d => d.TemplateRevisionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(d => d.ExpiresOn).HasFilter("expires_on IS NOT NULL AND NOT deleted");
     }
 }

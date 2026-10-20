@@ -252,3 +252,11 @@ MIETHAHN_DOMAIN=localhost MIETHAHN_IMAGE=miethahn:lokal POSTGRES_PASSWORD=test A
 ```
 
 Für `localhost` stellt Caddy ein Zertifikat seiner internen CA aus (Browserwarnung bestätigen).
+
+## Vorlagen und Schreiben an Mieter
+
+- **Vorlagen** (Einstellungen → Vorlagen): eigene Texte für Schreiben an Mieter und wiederverwendbare **Bausteine** (z. B. Grußformel, Bankverbindung). Beim ersten Mal „Standardvorlagen anlegen“ wählen; die Texte sind Ausgangspunkte und **keine Rechtsberatung**, bitte vor dem Einsatz prüfen und anpassen.
+- Im Text stehen Platzhalter wie `{{ salutation }}` oder `{{ tenant_name }}`; die Liste steht unter dem Editor. Bausteine fügt `{{ include 'Grußformel' }}` ein. Die Vorschau zeigt das PDF mit Beispieldaten und benötigt den PDF-Dienst und das Vermieterprofil.
+- Jede Änderung des Textes bleibt als **Fassung** erhalten und lässt sich in den Editor zurückladen. Schon erzeugte Schreiben ändern sich nie; sie verweisen auf die Fassung, aus der sie entstanden.
+- **Schreiben an Mieter** (Dokumente → Schreiben an Mieter): Vorlage und Objekt wählen, Empfänger abhaken (Standard: alle laufenden Mietverträge), optional per E-Mail senden und im Mieterportal freigeben. Je Mieter entsteht ein PDF bei den Dokumenten; ein Fehler bei einem Mieter hält die anderen nicht auf. Mieter ohne E-Mail-Adresse bekommen nur das PDF (per Post senden).
+- **Austausch und Sicherung:** Vorlagen lassen sich einzeln als Datei exportieren und in einer anderen Installation importieren. Im Gesamtexport und in der Datensicherung sind sie wie alle Tabellen enthalten.

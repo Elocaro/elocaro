@@ -228,6 +228,7 @@ public static class DependencyInjection
         services.AddScoped<ITodoSource, CalibrationDueTodos>();
         services.AddScoped<IDocumentLibrary, DocumentLibrary>();
         services.AddScoped<IDocumentTemplates, DocumentTemplates>();
+        services.AddScoped<ILetters, Letters>();
         services.AddScoped<IFileShare, DocumentFileShare>();
         services.AddScoped<ITodoSource, DocumentExpiryTodos>();
         services.AddScoped<IPersonalDataSource, DocumentPersonalData>();

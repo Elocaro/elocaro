@@ -62,6 +62,9 @@ public sealed class Document : Entity
 
     public Guid? PersonId { get; private set; }
 
+    /// <summary>Exact template version a generated document was created from (letters); <c>null</c> for uploaded files.</summary>
+    public Guid? TemplateRevisionId { get; set; }
+
     /// <summary>Visible in the tenant portal to the tenants of the subject (lease, unit, property or person).</summary>
     public bool SharedWithTenants { get; set; }
 

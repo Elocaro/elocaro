@@ -1,0 +1,3 @@
+{{~ if sender_iban ~}}
+<p>Unsere Bankverbindung:<br>{{ if sender_bank }}{{ sender_bank }}<br>{{ end }}IBAN {{ sender_iban }}{{ if sender_bic }}<br>BIC {{ sender_bic }}{{ end }}</p>
+{{~ end ~}}

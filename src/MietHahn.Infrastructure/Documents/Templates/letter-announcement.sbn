@@ -1,0 +1,8 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Fristen und Duldungspflichten (§ 555a BGB) im Einzelfall prüfen. Datum, Dauer und Art der Arbeiten anpassen. }}
+<p>{{ salutation }}</p>
+<p>wir möchten Sie darüber informieren, dass in Ihrem Haus ({{ property_name }}) Arbeiten durchgeführt werden. Die Arbeiten betreffen auch Ihre Wohnung bzw. das Gebäude, in dem Sie wohnen ({{ rental_unit }}).</p>
+<p><strong>Art der Arbeiten:</strong> [bitte ergänzen]<br>
+<strong>Zeitraum:</strong> [bitte ergänzen]<br>
+<strong>Zugang zur Wohnung erforderlich:</strong> [ja/nein, ggf. Termin]</p>
+<p>Wir bitten um Ihr Verständnis für mögliche Beeinträchtigungen und bemühen uns, sie so gering wie möglich zu halten. Bei Fragen melden Sie sich gern bei uns.</p>
+{{ include 'Grußformel' }}

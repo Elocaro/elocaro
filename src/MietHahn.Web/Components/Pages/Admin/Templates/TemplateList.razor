@@ -2,13 +2,17 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @inject IDocumentTemplates Library
+@inject Notifier Notify
 
 <InteractiveShell>
     <PageHeader Title="Vorlagen" Subtitle="Texte für Schreiben an Mieter. Platzhalter wie {{ tenant_name }} werden beim Erzeugen ersetzt.">
         <Actions>
+            <MudButton Variant="Variant.Outlined" OnClick="InstallDefaultsAsync">Standardvorlagen anlegen</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/einstellungen/vorlagen/neu">Vorlage anlegen</MudButton>
         </Actions>
     </PageHeader>
+
+    <ErrorList Errors="errors" />
 
     @if (rows is { Count: 0 })
     {
@@ -28,10 +32,41 @@
             </RowTemplate>
         </MudTable>
     }
+
+    <section>
+        <h2>Vorlage importieren</h2>
+        <p class="small">Eine zuvor exportierte Vorlagendatei (.json). Gibt es den Namen schon, bekommt die neue Vorlage den Zusatz „(Import)“.</p>
+        <AppFileUpload Text="Datei auswählen" Accept=".json" OnSelected="ImportAsync" />
+    </section>
 </InteractiveShell>
 
 @code {
     private IReadOnlyList<TemplateRow>? rows;
+    private IReadOnlyList<string>? errors;
 
     protected override async Task OnInitializedAsync() => rows = await Library.ListAsync();
+
+    private async Task InstallDefaultsAsync()
+    {
+        var installed = await Library.InstallDefaultsAsync();
+        rows = await Library.ListAsync();
+        Notify.Success(installed.Created == 0 ? "Alle Standardvorlagen sind schon vorhanden." : $"{installed.Created} Standardvorlagen wurden angelegt. Texte vor dem Einsatz prüfen.");
+    }
+
+    private async Task ImportAsync(FileSelection file)
+    {
+        using var buffer = new MemoryStream();
+        await using (var content = file.Open())
+        {
+            await content.CopyToAsync(buffer);
+        }
+
+        var result = await Library.ImportAsync(buffer.ToArray());
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            rows = await Library.ListAsync();
+            Notify.Success("Die Vorlage wurde importiert.");
+        }
+    }
 }

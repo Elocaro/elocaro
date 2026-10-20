@@ -159,6 +159,7 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
         document.SharedWithCaretakers = data.SharedWithCaretakers;
         document.SetTags((data.Tags ?? "").Split(',', ';'));
         document.SetReference(data.PropertyId, data.UnitId, data.LeaseId, data.PersonId);
+        document.TemplateRevisionId = data.TemplateRevisionId ?? document.TemplateRevisionId;
         document.Validate();
 
         if ((data.PropertyId is { } o && !await db.Set<Property>().AnyAsync(x => x.Id == o, cancellationToken))

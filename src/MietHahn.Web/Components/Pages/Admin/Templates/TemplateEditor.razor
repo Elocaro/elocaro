@@ -27,14 +27,26 @@ else
     <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <AppTextField @bind-Value="data.Name" Label="Name" Required="true" Hint="z. B. „Ankündigung Bauarbeiten“" />
+            @if (Id is null)
+            {
+                <AppSelect @bind-Value="data.Kind" Label="Art" Items="Enum.GetValues<TemplateKind>()" Text="@(v => Labels.From(v))" Hint="Ein Baustein wird in Schreiben mit {{ include 'Name' }} eingefügt." />
+            }
+
+            <AppTextField @bind-Value="data.Name" Label="Name" Required="true" Hint="@(data.Kind == TemplateKind.Snippet ? "So wird der Baustein in include '…' genannt" : "z. B. „Ankündigung Bauarbeiten“")" />
             <AppTextField @bind-Value="data.Description" Label="Beschreibung" />
-            <AppTextField @bind-Value="data.Subject" Label="Betreff" Required="true" Hint="Titel des Schreibens; darf Platzhalter enthalten" />
+            @if (data.Kind == TemplateKind.Letter)
+            {
+                <AppTextField @bind-Value="data.Subject" Label="Betreff" Required="true" Hint="Titel des Schreibens; darf Platzhalter enthalten" />
+            }
         </div>
         <AppTextField @bind-Value="data.Body" Label="Text" Required="true" Lines="18" Hint="HTML mit Platzhaltern, z. B. <p>{{ salutation }}</p>. Absätze mit <p>, Zeilenumbruch mit <br>." />
         <div class="form-row">
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
             <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">Vorschau</MudButton>
+            @if (Id is not null)
+            {
+                <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/einstellungen/vorlagen/{Id}/export.json")" download>Exportieren</MudButton>
+            }
         </div>
     </EditForm>
 
@@ -73,6 +85,11 @@ else
             </table>
         </div>
         <p class="small">Bedingungen und Schleifen: <code>@("{{ if lease_end }} … {{ end }}")</code>.</p>
+        @if (snippetNames.Count > 0)
+        {
+            <h3>Vorhandene Bausteine</h3>
+            <p class="small">@foreach (var name in snippetNames) {<code>@("{{ include '" + name + "' }}")</code><text> </text>}</p>
+        }
     </section>
 
     @if (Id is not null)
@@ -108,6 +125,7 @@ else
 @code {
     private TemplateInput? data;
     private IReadOnlyList<TemplateRevisionRow> revisions = [];
+    private IReadOnlyList<string> snippetNames = [];
     private IReadOnlyList<string>? errors;
     private Guid? previewId;
     private bool loaded;
@@ -127,6 +145,7 @@ else
             data = new TemplateInput();
         }
 
+        snippetNames = await Templates.SnippetNamesAsync();
         loaded = true;
     }
 

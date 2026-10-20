@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Documents;
 
 namespace MietHahn.Web.Documents;
 
@@ -40,6 +41,11 @@ internal static class TemplatePreviewEndpoint
             context.Response.Headers.CacheControl = "private, no-store";
             return Results.File(pdf, "application/pdf");
         }).RequireAuthorization(Policies.System);
+
+        endpoints.MapGet("/verwaltung/einstellungen/vorlagen/{id:guid}/export.json", async (Guid id, IDocumentTemplates templates, HttpContext context) =>
+            await templates.ExportAsync(id, context.RequestAborted) is { } export
+                ? Results.File(export.Content, "application/json", export.FileName)
+                : Results.NotFound()).RequireAuthorization(Policies.System);
         return endpoints;
     }
 }
