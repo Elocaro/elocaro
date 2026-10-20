@@ -1,45 +1,42 @@
 @page "/verwaltung/bank/konten"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IBankService Bank
 
-<PageHeader Title="Bankkonten" Subtitle="Konten für Mieteingänge, Darlehen und Rücklagen; Umsätze per Datei-Import.">
-    <Actions>
-        <a class="button" href="/verwaltung/bank/csv-profile">CSV-Profile</a>
-        <a class="button button-primary" href="/verwaltung/bank/konten/neu">Konto anlegen</a>
-    </Actions>
-</PageHeader>
+<InteractiveShell>
+    <PageHeader Title="Bankkonten" Subtitle="Konten für Mieteingänge, Darlehen und Rücklagen; Umsätze per Datei-Import.">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Href="/verwaltung/bank/csv-profile">CSV-Profile</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/bank/konten/neu">Konto anlegen</MudButton>
+        </Actions>
+    </PageHeader>
 
-<StatusMessage />
-
-@if (accounts is { Count: 0 })
-{
-    <EmptyState Text="Noch keine Bankkonten." />
-}
-else if (accounts is not null)
-{
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead><tr><th>Konto</th><th>IBAN</th><th>Art</th><th>Objekte</th><th>Umsätze</th></tr></thead>
-            <tbody>
-                @foreach (var account in accounts)
-                {
-                    <tr>
-                        <td><a href="/verwaltung/bank/konten/@account.Id">@account.Name</a>@if (account.Bank is not null) {<span class="small"> @account.Bank</span>}</td>
-                        <td>@account.Iban</td>
-                        <td>@Labels.From(account.Type)</td>
-                        <td>@(account.Properties.Count == 0 ? "alle" : string.Join(", ", account.Properties))</td>
-                        <td>
-                            <a href="/verwaltung/bank/umsaetze?konto=@account.Id">@(account.LastTransaction is { } lastReading ? $"bis {Format.Date(lastReading)}" : "keine")</a>
-                            @if (account.OpenTransactions > 0)
-                            {
-                                <StatusChip Level="StatusLevel.Warning">@account.OpenTransactions offen</StatusChip>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+    @if (accounts is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Bankkonten." />
+    }
+    else if (accounts is not null)
+    {
+        <MudTable T="BankAccountRow" Items="accounts" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Konto</MudTh><MudTh>IBAN</MudTh><MudTh>Art</MudTh><MudTh>Objekte</MudTh><MudTh>Umsätze</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Konto"><a href="/verwaltung/bank/konten/@context.Id">@context.Name</a>@if (context.Bank is not null) {<span class="small"> @context.Bank</span>}</MudTd>
+                <MudTd DataLabel="IBAN">@context.Iban</MudTd>
+                <MudTd DataLabel="Art">@Labels.From(context.Type)</MudTd>
+                <MudTd DataLabel="Objekte">@(context.Properties.Count == 0 ? "alle" : string.Join(", ", context.Properties))</MudTd>
+                <MudTd DataLabel="Umsätze">
+                    <a href="/verwaltung/bank/umsaetze?konto=@context.Id">@(context.LastTransaction is { } last ? $"bis {Format.Date(last)}" : "keine")</a>
+                    @if (context.OpenTransactions > 0)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">@context.OpenTransactions offen</StatusChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
 
 @code {
     private IReadOnlyList<BankAccountRow>? accounts;

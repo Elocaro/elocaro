@@ -1,40 +1,30 @@
 @page "/verwaltung/bank/zuordnung"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IPaymentAssignment Assignment
 @inject IBankService Bank
-@inject Redirector Redirector
-@inject NavigationManager Navigation
+@inject Notifier Notify
 
-<PageHeader Title="Umsätze zuordnen" Subtitle="Unzugeordnete Umsätze mit Vorschlag: bestätigen, ändern oder aufteilen, ignorieren." Back="/verwaltung/bank/umsaetze" BackText="Alle Umsätze">
-    <Actions>
-        <a class="button" href="/verwaltung/bank/regeln">Regeln</a>
-    </Actions>
-</PageHeader>
+<InteractiveShell>
+    <PageHeader Title="Umsätze zuordnen" Subtitle="Unzugeordnete Umsätze mit Vorschlag: bestätigen, ändern oder aufteilen, ignorieren." Back="/verwaltung/bank/umsaetze" BackText="Alle Umsätze">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Href="/verwaltung/bank/regeln">Regeln</MudButton>
+        </Actions>
+    </PageHeader>
 
-<StatusMessage />
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-<FilterBar SubmitText="Anzeigen">
-    <div class="field">
-        <label for="account">Konto</label>
-        <select id="account" name="konto">
-            <option value="">Alle Konten</option>
-            @foreach (var k in accounts)
-            {
-                <option value="@k.Id" selected="@(k.Id == AccountId)">@k.Name</option>
-            }
-        </select>
+    <div class="form-row search-bar" role="search">
+        <AppSelect T="Guid?" Value="accountId" ValueChanged="OnAccountChanged" Label="Konto" Items="accountIds" Text="AccountText" EmptyText="Alle Konten" />
     </div>
-</FilterBar>
 
-@if (rows is { Count: 0 })
-{
-    <EmptyState Text="Alle Umsätze sind zugeordnet." />
-}
-else if (rows is not null)
-{
-    <p class="small">@rows.Count offene Umsätze · @rows.Count(r => r.Suggestion is not null) mit Vorschlag</p>
-    <form method="post" @formname="inbox" @onsubmit="ActionAsync">
-        <AntiforgeryToken />
+    @if (rows is { Count: 0 })
+    {
+        <EmptyState Text="Alle Umsätze sind zugeordnet." />
+    }
+    else if (rows is not null)
+    {
+        <p class="small">@rows.Count offene Umsätze · @rows.Count(r => r.Suggestion is not null) mit Vorschlag</p>
         <div class="table-wrapper">
             <table class="data-table">
                 <thead><tr><th>Buchung</th><th>Gegenseite und Verwendungszweck</th><th class="number">Betrag</th><th>Vorschlag</th><th>Aktion</th></tr></thead>
@@ -70,66 +60,65 @@ else if (rows is not null)
                                 }
                             </td>
                             <td>
-                                @if (row.Suggestion is not null)
-                                {
-                                    <button type="submit" class="button button-primary" name="Action" value="@($"bestaetigen:{u.Id}")" aria-label="Vorschlag für den Umsatz vom @Format.Date(u.BookingDate) über @Format.Money(u.Amount) bestätigen">Bestätigen</button>
-                                }
-                                <a class="button" href="/verwaltung/bank/umsaetze/@u.Id/zuordnen" aria-label="Umsatz vom @Format.Date(u.BookingDate) über @Format.Money(u.Amount) ändern oder aufteilen">Ändern / Aufteilen</a>
-                                <button type="submit" class="button" name="Action" value="@($"ignorieren:{u.Id}")" aria-label="Umsatz vom @Format.Date(u.BookingDate) über @Format.Money(u.Amount) ignorieren">Ignorieren</button>
+                                <div class="row-actions">
+                                    @if (row.Suggestion is not null)
+                                    {
+                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AcceptAsync(u)" aria-label="@($"Vorschlag für den Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} bestätigen")">Bestätigen</MudButton>
+                                    }
+                                    <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/bank/umsaetze/{u.Id}/zuordnen")" aria-label="@($"Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} ändern oder aufteilen")">Ändern / Aufteilen</MudButton>
+                                    <MudButton Variant="Variant.Outlined" OnClick="() => IgnoreAsync(u)" aria-label="@($"Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} ignorieren")">Ignorieren</MudButton>
+                                </div>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
-        <div class="field">
-            <label for="note">Notiz beim Ignorieren (optional)</label>
-            <input id="note" name="Note" placeholder="z. B. privat, Umbuchung" />
-        </div>
-    </form>
-}
+        <AppTextField @bind-Value="ignoreNote" Label="Notiz beim Ignorieren (optional)" Placeholder="z. B. privat, Umbuchung" />
+    }
+</InteractiveShell>
 
 @code {
     private IReadOnlyList<BankAccountRow> accounts = [];
+    private IReadOnlyList<Guid?> accountIds = [];
     private IReadOnlyList<InboxRow>? rows;
     private IReadOnlyList<string>? errors;
+    private Guid? accountId;
+    private string? ignoreNote;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
+    // The query string only provides the start value (see ADR 0005).
     [SupplyParameterFromQuery(Name = "konto")]
-    private Guid? AccountId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "inbox")]
-    private string? Action { get; set; }
-
-    [SupplyParameterFromForm(FormName = "inbox")]
-    private string? Note { get; set; }
+    private Guid? InitialAccount { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         accounts = await Bank.AccountsAsync();
-        rows = await Assignment.InboxAsync(AccountId);
+        accountIds = accounts.Select(a => (Guid?)a.Id).ToList();
+        accountId = InitialAccount;
+        await LoadAsync();
     }
 
-    private async Task ActionAsync()
-    {
-        var parts = (Action ?? "").Split(':');
-        if (parts.Length != 2 || !Guid.TryParse(parts[1], out var id))
-        {
-            errors = ["Unbekannte Aktion."];
-            return;
-        }
+    private string AccountText(Guid? id) => accounts.FirstOrDefault(a => a.Id == id)?.Name ?? "";
 
-        var ignore = parts[0] == "ignorieren";
-        var result = ignore ? await Bank.IgnoreAsync(id, Note) : await Assignment.AcceptAsync(id, 0);
+    private async Task OnAccountChanged(Guid? value)
+    {
+        accountId = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => rows = await Assignment.InboxAsync(accountId);
+
+    private async Task AcceptAsync(TransactionRow transaction) => await ChangeAsync(await Assignment.AcceptAsync(transaction.Id, 0), "Der Vorschlag wurde übernommen.");
+
+    private async Task IgnoreAsync(TransactionRow transaction) => await ChangeAsync(await Bank.IgnoreAsync(transaction.Id, ignoreNote), "Der Umsatz wird ignoriert.");
+
+    private async Task ChangeAsync(Result result, string success)
+    {
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage("/" + Navigation.ToBaseRelativePath(Navigation.Uri), ignore ? "Der Umsatz wird ignoriert." : "Der Vorschlag wurde übernommen.", HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            Notify.Success(success);
+            await LoadAsync();
         }
     }
 }

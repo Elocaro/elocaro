@@ -1,47 +1,42 @@
 @page "/verwaltung/bank/konten/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Properties
 @inject IBankService Bank
 @inject IPropertyService PropertyService
-@inject Redirector Redirector
+@inject NavigationManager Navigation
+@inject Notifier Notify
 
-@if (account is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (account is null)
 {
     <PageHeader Title="Konto nicht gefunden" Back="/verwaltung/bank/konten" BackText="Alle Konten" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@account.Name" Subtitle="@account.Iban" Back="/verwaltung/bank/konten" BackText="Alle Konten">
     <Actions>
-        <a class="button" href="/verwaltung/bank/umsaetze?konto=@Id">Umsätze</a>
+        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/bank/umsaetze?konto={Id}")">Umsätze</MudButton>
     </Actions>
 </PageHeader>
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 <section>
     <h2>Kontoauszug importieren</h2>
-    <form method="post" enctype="multipart/form-data" @formname="import" @onsubmit="UploadAsync">
-        <AntiforgeryToken />
-        <div class="form-grid">
-            <div class="field">
-                <label for="file">Datei *</label>
-                <input type="file" id="file" name="Upload" accept=".xml,.sta,.mt940,.940,.txt,.csv" required />
-                <span class="field-hint">camt.053 (XML), MT940 oder CSV. Das Format wird erkannt; schon vorhandene Umsätze werden übersprungen.</span>
-            </div>
-            <div class="field">
-                <label for="profile">CSV-Profil</label>
-                <select id="profile" name="Profile">
-                    <option value="">automatisch erkennen</option>
-                    @foreach (var profile in profile)
-                    {
-                        <option value="@profile.Name">@profile.Name</option>
-                    }
-                </select>
-            </div>
+    <div class="form-grid">
+        <div>
+            <AppFileUpload Text="Datei auswählen *" Accept=".xml,.sta,.mt940,.940,.txt,.csv" OnSelected="OnFileSelected" />
+            <p class="small">camt.053 (XML), MT940 oder CSV. Das Format wird erkannt; schon vorhandene Umsätze werden übersprungen.</p>
         </div>
-        <button type="submit" class="button button-primary">Vorschau anzeigen</button>
-    </form>
+        <AppSelect T="string" @bind-Value="profile" Label="CSV-Profil" Items="profileNames" EmptyText="automatisch erkennen" />
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UploadAsync">Vorschau anzeigen</MudButton>
 </section>
 
 <section>
@@ -85,73 +80,63 @@
 
 <section>
     <h2>Angaben</h2>
-    <EditForm Model="Data" FormName="account" OnValidSubmit="SaveAsync">
+    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
         <DataAnnotationsValidator />
-        <AccountFields Data="Data!" Properties="properties" />
-        <button type="submit" class="button button-primary">Speichern</button>
+        <AccountEditor Data="data" Properties="properties" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
     </EditForm>
 </section>
+}
+</InteractiveShell>
 
 @code {
     private BankAccountInput? account;
+    private BankAccountInput data = new();
     private IReadOnlyList<ImportRow>? imports;
-    private IReadOnlyList<CsvProfileInput> profile = [];
+    private IReadOnlyList<string> profileNames = [];
     private IReadOnlyList<PropertyOverview> properties = [];
     private IReadOnlyList<string>? errors;
+    private FileSelection? file;
+    private string? profile;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "account")]
-    private BankAccountInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "import")]
-    private IFormFile? Upload { get; set; }
-
-    [SupplyParameterFromForm(FormName = "import")]
-    private string? Profile { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
-        var form = Data;
-        Data ??= new();
         account = await Bank.GetAccountAsync(Id);
-        if (account is null)
+        if (account is not null)
         {
-            return;
+            data = account;
+            imports = await Bank.ImportsAsync(Id);
+            profileNames = (await Bank.CsvProfilesAsync()).Select(p => p.Name).ToList();
+            properties = await PropertyService.ListAsync(null);
         }
 
-        if (form is null)
-        {
-            Data = account;
-        }
-
-        imports = await Bank.ImportsAsync(Id);
-        profile = await Bank.CsvProfilesAsync();
-        properties = await PropertyService.ListAsync(null);
+        loaded = true;
     }
+
+    private void OnFileSelected(FileSelection selection) => file = selection;
 
     private async Task UploadAsync()
     {
-        if (Upload is null || Upload.Length == 0)
+        if (file is null || file.Length == 0)
         {
             errors = ["Bitte eine Datei auswählen."];
             return;
         }
 
         using var buffer = new MemoryStream();
-        await using (var content = Upload.OpenReadStream())
+        await using (var content = file.Open())
         {
             await content.CopyToAsync(buffer);
         }
 
-        var result = await Bank.CreatePreviewAsync(Id, Upload.FileName, buffer.ToArray(), Profile);
+        var result = await Bank.CreatePreviewAsync(Id, file.Name, buffer.ToArray(), string.IsNullOrEmpty(profile) ? null : profile);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/bank/importe/{result.Id}", "Bitte die Vorschau prüfen und den Import bestätigen.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/bank/importe/{result.Id}");
         }
         else
         {
@@ -161,14 +146,11 @@
 
     private async Task SaveAsync()
     {
-        var result = await Bank.UpdateAccountAsync(Id, Data!);
+        var result = await Bank.UpdateAccountAsync(Id, data);
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/bank/konten/{Id}", "Die Angaben wurden gespeichert.", HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            Notify.Success("Die Angaben wurden gespeichert.");
         }
     }
 }

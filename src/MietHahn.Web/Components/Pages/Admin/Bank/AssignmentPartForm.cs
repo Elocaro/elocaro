@@ -3,8 +3,7 @@ using MietHahn.Application.Bank;
 namespace MietHahn.Web.Components.Pages.Admin.Bank;
 
 /// <summary>
-/// Form row of an assignment part; the target select carries "L:&lt;lease&gt;" or "C:&lt;charge&gt;". Ids and dates are
-/// kept as text because the form binder rejects empty values for these types inside collections.
+/// Form row of an assignment part; <see cref="Target"/> carries "L:&lt;lease&gt;" or "C:&lt;charge&gt;".
 /// </summary>
 public sealed class AssignmentPartForm
 {
@@ -14,18 +13,18 @@ public sealed class AssignmentPartForm
 
     public string? CostType { get; set; }
 
-    public string? PropertyId { get; set; }
+    public Guid? PropertyId { get; set; }
 
-    public string? UnitId { get; set; }
+    public Guid? UnitId { get; set; }
 
-    public string? From { get; set; }
+    public DateOnly? From { get; set; }
 
-    public string? To { get; set; }
+    public DateOnly? To { get; set; }
 
-    /// <summary>"" = according to the cost type, "true", "false".</summary>
-    public string? Allocable { get; set; }
+    /// <summary><c>null</c> = according to the cost type.</summary>
+    public bool? Allocable { get; set; }
 
-    public string? ReceiptId { get; set; }
+    public Guid? ReceiptId { get; set; }
 
     public string? Note { get; set; }
 
@@ -51,18 +50,13 @@ public sealed class AssignmentPartForm
             LeaseId = lease,
             ChargeId = charge,
             CostType = string.IsNullOrWhiteSpace(CostType) ? null : CostType,
-            PropertyId = ParseId(PropertyId),
-            UnitId = ParseId(UnitId),
-            From = ParseDate(From),
-            To = ParseDate(To),
-            Allocable = Allocable switch { "true" => true, "false" => false, _ => null },
-            ReceiptId = ParseId(ReceiptId),
+            PropertyId = PropertyId,
+            UnitId = UnitId,
+            From = From,
+            To = To,
+            Allocable = Allocable,
+            ReceiptId = ReceiptId,
             Note = string.IsNullOrWhiteSpace(Note) ? null : Note.Trim(),
         };
     }
-
-    private static Guid? ParseId(string? text) => Guid.TryParse(text, out var id) ? id : null;
-
-    private static DateOnly? ParseDate(string? text) =>
-        DateOnly.TryParseExact(text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date) ? date : null;
 }

@@ -1,120 +1,109 @@
 @page "/verwaltung/bank/csv-profile"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IBankService Bank
-@inject Redirector Redirector
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-<PageHeader Title="CSV-Profile" Subtitle="Wie CSV-Exporte der Banken gelesen werden. Spalten werden über ihre Überschrift gefunden." Back="/verwaltung/bank/konten" BackText="Bankkonten" />
+<InteractiveShell>
+    <PageHeader Title="CSV-Profile" Subtitle="Wie CSV-Exporte der Banken gelesen werden. Spalten werden über ihre Überschrift gefunden." Back="/verwaltung/bank/konten" BackText="Bankkonten" />
 
-<StatusMessage />
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-<form method="post" @formname="delete" @onsubmit="DeleteAsync">
-    <AntiforgeryToken />
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead><tr><th>Profil</th><th>Trennzeichen</th><th>Datum</th><th>Spalten (Datum · Betrag · Zweck)</th><th></th></tr></thead>
-            <tbody>
-                @foreach (var p in profile)
+    <MudTable T="CsvProfileInput" Items="profiles" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true">
+        <HeaderContent>
+            <MudTh>Profil</MudTh><MudTh>Trennzeichen</MudTh><MudTh>Datum</MudTh><MudTh>Spalten (Datum · Betrag · Zweck)</MudTh><MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Profil">@context.Name @if (context.IsDefault) {<StatusChip>mitgeliefert</StatusChip>}</MudTd>
+            <MudTd DataLabel="Trennzeichen">@(context.Delimiter == "\t" ? "Tab" : context.Delimiter), Dezimal „@context.DecimalSeparator“</MudTd>
+            <MudTd DataLabel="Datum">@context.DateFormat</MudTd>
+            <MudTd DataLabel="Spalten"><span class="small">@context.BookingDateColumn · @(context.AmountColumn ?? $"{context.DebitColumn} / {context.CreditColumn}") · @context.PurposeColumn</span></MudTd>
+            <MudTd>
+                @if (context.Id is not null)
                 {
-                    <tr>
-                        <td>@p.Name @if (p.IsDefault) {<StatusChip>mitgeliefert</StatusChip>}</td>
-                        <td>@(p.Delimiter == "\t" ? "Tab" : p.Delimiter), Dezimal „@p.DecimalSeparator“</td>
-                        <td>@p.DateFormat</td>
-                        <td class="small">@p.BookingDateColumn · @(p.AmountColumn ?? $"{p.DebitColumn} / {p.CreditColumn}") · @p.PurposeColumn</td>
-                        <td>
-                            @if (p.Id is { } id)
-                            {
-                                <RowConfirm Name="DeleteId" Value="@id" Label="@($"Profil {p.Name} löschen")" Text="Löschen" ConfirmText="Ja, löschen" />
-                            }
-                        </td>
-                    </tr>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(context)" aria-label="@($"Profil {context.Name} löschen")">Löschen</MudButton>
                 }
-            </tbody>
-        </table>
-    </div>
-</form>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
 
-<section>
-    <h2>Eigenes Profil anlegen</h2>
-    <p class="small">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>
-    <EditForm Model="Data" FormName="profile" OnValidSubmit="SaveAsync">
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <FormField Id="p-name" Label="Name" For="() => Data!.Name" Required="true">
-                <InputText id="p-name" @bind-Value="Data!.Name" />
-            </FormField>
-            <FormField Id="p-separator" Label="Trennzeichen" For="() => Data!.Delimiter" Hint="; , oder \t für Tab">
-                <InputText id="p-separator" @bind-Value="Data!.Delimiter" maxlength="2" />
-            </FormField>
-            <FormField Id="p-decimal" Label="Dezimaltrennzeichen" For="() => Data!.DecimalSeparator">
-                <InputSelect id="p-decimal" @bind-Value="Data!.DecimalSeparator">
-                    <option value=",">Komma (1.234,56)</option>
-                    <option value=".">Punkt (1,234.56)</option>
-                </InputSelect>
-            </FormField>
-            <FormField Id="p-charset" Label="Zeichensatz" For="() => Data!.Charset">
-                <InputSelect id="p-charset" @bind-Value="Data!.Charset">
-                    <option value="auto">automatisch</option>
-                    <option value="utf-8">UTF-8</option>
-                    <option value="windows-1252">Windows-1252 / ISO-8859-1</option>
-                </InputSelect>
-            </FormField>
-            <FormField Id="p-date" Label="Datumsformat" For="() => Data!.DateFormat" Hint="z. B. dd.MM.yyyy|dd.MM.yy oder yyyy-MM-dd">
-                <InputText id="p-date" @bind-Value="Data!.DateFormat" />
-            </FormField>
-        </div>
-        <h3>Spaltenüberschriften</h3>
-        <div class="form-grid">
-            <FormField Id="p-booking" Label="Buchungsdatum" For="() => Data!.BookingDateColumn" Required="true"><InputText id="p-booking" @bind-Value="Data!.BookingDateColumn" /></FormField>
-            <FormField Id="p-value-date" Label="Valutadatum" For="() => Data!.ValueDateColumn"><InputText id="p-value-date" @bind-Value="Data!.ValueDateColumn" /></FormField>
-            <FormField Id="p-amount" Label="Betrag" For="() => Data!.AmountColumn"><InputText id="p-amount" @bind-Value="Data!.AmountColumn" /></FormField>
-            <FormField Id="p-charge" Label="Soll (Ausgang)" For="() => Data!.DebitColumn"><InputText id="p-charge" @bind-Value="Data!.DebitColumn" /></FormField>
-            <FormField Id="p-credit" Label="Haben (Eingang)" For="() => Data!.CreditColumn"><InputText id="p-credit" @bind-Value="Data!.CreditColumn" /></FormField>
-            <FormField Id="p-name-counterparty" Label="Name Gegenseite" For="() => Data!.NameColumn"><InputText id="p-name-counterparty" @bind-Value="Data!.NameColumn" /></FormField>
-            <FormField Id="p-iban" Label="IBAN Gegenseite" For="() => Data!.IbanColumn"><InputText id="p-iban" @bind-Value="Data!.IbanColumn" /></FormField>
-            <FormField Id="p-bic" Label="BIC Gegenseite" For="() => Data!.BicColumn"><InputText id="p-bic" @bind-Value="Data!.BicColumn" /></FormField>
-            <FormField Id="p-purpose" Label="Verwendungszweck" For="() => Data!.PurposeColumn"><InputText id="p-purpose" @bind-Value="Data!.PurposeColumn" /></FormField>
-            <FormField Id="p-text" Label="Buchungstext" For="() => Data!.BookingTextColumn"><InputText id="p-text" @bind-Value="Data!.BookingTextColumn" /></FormField>
-            <FormField Id="p-eref" Label="End-to-End-Referenz" For="() => Data!.EndToEndColumn"><InputText id="p-eref" @bind-Value="Data!.EndToEndColumn" /></FormField>
-            <FormField Id="p-mref" Label="Mandatsreferenz" For="() => Data!.MandateReferenceColumn"><InputText id="p-mref" @bind-Value="Data!.MandateReferenceColumn" /></FormField>
-            <FormField Id="p-cred" Label="Gläubiger-ID" For="() => Data!.CreditorIdColumn"><InputText id="p-cred" @bind-Value="Data!.CreditorIdColumn" /></FormField>
-        </div>
-        <button type="submit" class="button button-primary">Profil anlegen</button>
-    </EditForm>
-</section>
+    <section>
+        <h2>Eigenes Profil anlegen</h2>
+        <p class="small">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Name" Label="Name" Required="true" />
+                <AppTextField @bind-Value="data.Delimiter" Label="Trennzeichen" Hint="; , oder \t für Tab" />
+                <AppSelect T="string" @bind-Value="data.DecimalSeparator" Label="Dezimaltrennzeichen" Items="decimalSeparators" Text="@(v => v == "," ? "Komma (1.234,56)" : "Punkt (1,234.56)")" />
+                <AppSelect T="string" @bind-Value="data.Charset" Label="Zeichensatz" Items="charsets" Text="CharsetText" />
+                <AppTextField @bind-Value="data.DateFormat" Label="Datumsformat" Hint="z. B. dd.MM.yyyy|dd.MM.yy oder yyyy-MM-dd" />
+            </div>
+            <h3>Spaltenüberschriften</h3>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.BookingDateColumn" Label="Buchungsdatum" Required="true" />
+            <AppTextField @bind-Value="data.ValueDateColumn" Label="Valutadatum" />
+            <AppTextField @bind-Value="data.AmountColumn" Label="Betrag" />
+            <AppTextField @bind-Value="data.DebitColumn" Label="Soll (Ausgang)" />
+            <AppTextField @bind-Value="data.CreditColumn" Label="Haben (Eingang)" />
+            <AppTextField @bind-Value="data.NameColumn" Label="Name Gegenseite" />
+            <AppTextField @bind-Value="data.IbanColumn" Label="IBAN Gegenseite" />
+            <AppTextField @bind-Value="data.BicColumn" Label="BIC Gegenseite" />
+            <AppTextField @bind-Value="data.PurposeColumn" Label="Verwendungszweck" />
+            <AppTextField @bind-Value="data.BookingTextColumn" Label="Buchungstext" />
+            <AppTextField @bind-Value="data.EndToEndColumn" Label="End-to-End-Referenz" />
+            <AppTextField @bind-Value="data.MandateReferenceColumn" Label="Mandatsreferenz" />
+            <AppTextField @bind-Value="data.CreditorIdColumn" Label="Gläubiger-ID" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Profil anlegen</MudButton>
+        </EditForm>
+    </section>
+</InteractiveShell>
 
 @code {
-    private IReadOnlyList<CsvProfileInput> profile = [];
+    private static readonly string[] decimalSeparators = [",", "."];
+    private static readonly string[] charsets = ["auto", "utf-8", "windows-1252"];
+
+    private IReadOnlyList<CsvProfileInput> profiles = [];
     private IReadOnlyList<string>? errors;
+    private CsvProfileInput data = new();
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    protected override async Task OnInitializedAsync() => profiles = await Bank.CsvProfilesAsync();
 
-    [SupplyParameterFromForm(FormName = "profile")]
-    private CsvProfileInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "delete")]
-    private Guid? DeleteId { get; set; }
-
-    protected override async Task OnInitializedAsync()
+    private static string CharsetText(string? value) => value switch
     {
-        Data ??= new();
-        profile = await Bank.CsvProfilesAsync();
+        "utf-8" => "UTF-8",
+        "windows-1252" => "Windows-1252 / ISO-8859-1",
+        _ => "automatisch",
+    };
+
+    private async Task SaveAsync()
+    {
+        if (await ExecuteAsync(Bank.SaveCsvProfileAsync(null, data), "Das Profil wurde angelegt."))
+        {
+            data = new();
+        }
     }
 
-    private Task SaveAsync() => ExecuteAsync(Bank.SaveCsvProfileAsync(null, Data!), "Das Profil wurde angelegt.");
+    private async Task DeleteAsync(CsvProfileInput profile)
+    {
+        if (profile.Id is { } id && await Confirm.AskAsync("Profil löschen", $"Soll das Profil „{profile.Name}“ gelöscht werden?", "Ja, löschen"))
+        {
+            await ExecuteAsync(Bank.DeleteCsvProfileAsync(id), "Das Profil wurde gelöscht.");
+        }
+    }
 
-    private Task DeleteAsync() => DeleteId is { } id ? ExecuteAsync(Bank.DeleteCsvProfileAsync(id), "Das Profil wurde gelöscht.") : Task.CompletedTask;
-
-    private async Task ExecuteAsync(Task<Result> command, string success)
+    private async Task<bool> ExecuteAsync(Task<Result> command, string success)
     {
         var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage("/verwaltung/bank/csv-profile", success, HttpContext);
+            Notify.Success(success);
+            profiles = await Bank.CsvProfilesAsync();
         }
-        else
-        {
-            errors = result.Errors;
-        }
+
+        return result.Succeeded;
     }
 }

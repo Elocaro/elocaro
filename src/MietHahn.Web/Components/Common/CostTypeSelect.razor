@@ -1,0 +1,34 @@
+@using MietHahn.Domain.Receipts
+@using System.Linq.Expressions
+@* Selection of a cost type by its key; the text tells apart allocable (§ 2 BetrKV) and non-allocable costs. *@
+<AppSelect T="string" Value="Value" ValueChanged="ValueChanged" ValueExpression="ValueExpression" Label="@Label" Hint="@Hint" Required="Required" Items="keys" Text="TextOf" EmptyText="@EmptyText" />
+
+@code {
+    private static readonly IReadOnlyList<string> keys = CostTypes.All.Where(k => k.Allocable).Concat(CostTypes.All.Where(k => !k.Allocable)).Select(k => k.Key).ToList();
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Kostenart";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public string? EmptyText { get; set; } = "– bitte wählen –";
+
+    private static string TextOf(string? key) =>
+        CostTypes.All.FirstOrDefault(k => k.Key == key) is { } kind
+            ? kind.Allocable ? $"{kind.BetrKvNumber}. {kind.Name}" : $"{kind.Name} (nicht umlagefähig)"
+            : "";
+}

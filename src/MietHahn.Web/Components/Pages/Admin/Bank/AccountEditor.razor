@@ -1,0 +1,42 @@
+@using MietHahn.Application.Properties
+@* Fields of a bank account for interactive pages; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    <AppTextField @bind-Value="Data.Name" Label="Name" Required="true" Hint="z. B. „Mietkonto Lindenweg“" />
+    <AppTextField @bind-Value="Data.Iban" Label="IBAN" Required="true" />
+    <AppTextField @bind-Value="Data.Bic" Label="BIC" />
+    <AppTextField @bind-Value="Data.Bank" Label="Bank" />
+    <AppSelect @bind-Value="Data.Type" Label="Art" Items="Enum.GetValues<AccountType>()" Text="@(v => Labels.From(v))" />
+</div>
+@if (Properties.Count > 0)
+{
+    <fieldset class="field">
+        <legend>Objekte (leer = alle)</legend>
+        @foreach (var property in Properties)
+        {
+            <AppCheckBox Value="Data.PropertyIds?.Contains(property.Id) == true" ValueChanged="@(on => Toggle(property.Id, on))" Label="@property.Name" />
+        }
+    </fieldset>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public BankAccountInput Data { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PropertyOverview> Properties { get; set; } = [];
+
+    private void Toggle(Guid id, bool on)
+    {
+        var ids = Data.PropertyIds?.ToList() ?? [];
+        if (on && !ids.Contains(id))
+        {
+            ids.Add(id);
+        }
+        else if (!on)
+        {
+            ids.Remove(id);
+        }
+
+        Data.PropertyIds = ids;
+    }
+}

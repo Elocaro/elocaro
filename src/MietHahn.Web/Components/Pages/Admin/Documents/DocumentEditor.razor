@@ -10,10 +10,10 @@
 <h3>Bezug</h3>
 <p class="small">Mindestens ein Bezug. Dokumente eines Vertrags erscheinen auch bei der Einheit und dem Objekt.</p>
 <div class="form-grid">
-    <OptionSelect @bind-Value="Data.PropertyId" Label="Objekt" Options="Options.Properties" />
-    <OptionSelect @bind-Value="Data.UnitId" Label="Einheit" Options="Options.Units" />
-    <OptionSelect @bind-Value="Data.LeaseId" Label="Vertrag" Options="Options.Leases" />
-    <OptionSelect @bind-Value="Data.PersonId" Label="Person" Options="Options.People" />
+    <OptionSelect @bind-Value="Data.PropertyId" Label="Objekt" Options="Options.Properties.Select(o => (o.Id, o.Name)).ToList()" />
+    <OptionSelect @bind-Value="Data.UnitId" Label="Einheit" Options="Options.Units.Select(o => (o.Id, o.Name)).ToList()" />
+    <OptionSelect @bind-Value="Data.LeaseId" Label="Vertrag" Options="Options.Leases.Select(o => (o.Id, o.Name)).ToList()" />
+    <OptionSelect @bind-Value="Data.PersonId" Label="Person" Options="Options.People.Select(o => (o.Id, o.Name)).ToList()" />
 </div>
 
 <div class="form-row">
