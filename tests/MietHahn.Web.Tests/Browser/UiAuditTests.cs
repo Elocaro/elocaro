@@ -113,6 +113,8 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
             "/verwaltung/system/mails", "/verwaltung/system/belegauslesung", "/verwaltung/belege/neu", "/verwaltung/dokumente/neu",
             $"/verwaltung/objekte/{property}", $"/verwaltung/objekte/{property}/anlage-v", $"/verwaltung/objekte/{property}/afa",
             $"/verwaltung/objekte/{property}/erhaltungsaufwand", $"/verwaltung/objekte/{property}/abrechnungen",
+            $"/verwaltung/objekte/{property}/umlageschluessel", $"/verwaltung/objekte/{property}/heizung", $"/verwaltung/objekte/{property}/nebenkosten",
+            $"/verwaltung/objekte/{property}/abrechnung?jahr=2026&schritt=5",
         ];
         foreach (var path in Pages.Concat(more))
         {
