@@ -130,7 +130,7 @@ pre code { font-size: 0.85rem; }
 .field-checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
 .field-checkbox label { font-weight: normal; }
 
-input:not([type=checkbox]):not([type=radio]):not([type=hidden]), select, textarea {
+input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([class*="mud-"]), select:not([class*="mud-"]), textarea:not([class*="mud-"]) {
     width: 100%;
     padding: 0.6rem 0.9rem;
     font: inherit;
@@ -146,7 +146,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 .validation-message { color: var(--color-error); font-size: 0.875rem; }
 
 /* Buttons (M3): .button = tonal (default), -primary = filled, -outlined, -text, -danger */
-.button, button {
+.button, button:not([class*="mud-"]) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -164,8 +164,8 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
     transition: background-color var(--motion-duration) var(--motion-effects), border-radius var(--motion-duration) var(--motion-spatial), box-shadow var(--motion-duration) var(--motion-effects);
 }
 
-.button:hover, button:hover { box-shadow: var(--shadow); }
-.button:active, button:active { border-radius: var(--shape-md); }
+.button:hover, button:not([class*="mud-"]):hover { box-shadow: var(--shadow); }
+.button:active, button:not([class*="mud-"]):active { border-radius: var(--shape-md); }
 .button-primary { color: var(--md-on-primary); background: var(--md-primary); border-color: var(--md-primary); }
 .button-primary:hover { color: var(--md-on-primary); background: color-mix(in srgb, var(--md-primary) 88%, var(--md-on-surface)); }
 .button-outlined { color: var(--md-primary); background: transparent; border-color: var(--md-outline); }

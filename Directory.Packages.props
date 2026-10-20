@@ -17,6 +17,7 @@
 
   <ItemGroup Label="Infrastruktur">
     <PackageVersion Include="MailKit" Version="4.18.1" />
+    <PackageVersion Include="MudBlazor" Version="9.11.0" />
     <PackageVersion Include="QRCoder" Version="1.8.1" />
     <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.22.6" />
     <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.22.6" />

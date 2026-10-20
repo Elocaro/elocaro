@@ -7,6 +7,7 @@ using MietHahn.Web.Components;
 using MietHahn.Web.Finance;
 using MietHahn.Web.Operations;
 using MietHahn.Web.People;
+using MudBlazor.Services;
 
 if (args.FirstOrDefault() == "healthcheck")
 {
@@ -16,11 +17,16 @@ if (args.FirstOrDefault() == "healthcheck")
 var builder = WebApplication.CreateBuilder(args);
 
 // Register before the infrastructure: it only adds a default (system user) if nothing is set.
+builder.Services.AddScoped<CircuitUser>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, CircuitUserHandler>();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddMietHahnInfrastructure(builder.Configuration);
 builder.Services.AddMietHahnSignIn(builder.Configuration);
 builder.Services.AddMietHahnOperations();
-builder.Services.AddRazorComponents();
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, RevalidatingAuthenticationStateProvider>();
+builder.Services.AddMudServices();
+builder.Services.AddScoped<MietHahn.Web.Components.Shell.Notifier>();
 
 var app = builder.Build();
 
@@ -45,7 +51,8 @@ app.UseTwoFactorRequirement();
 app.UseAntiforgery();
 
 app.MapStaticAssets().AllowAnonymous();
-app.MapRazorComponents<App>();
+// Our own CSP (frame-ancestors 'none') applies; the framework header would be a second, duplicate one.
+app.MapRazorComponents<App>().AddInteractiveServerRenderMode(o => o.ContentSecurityFrameAncestorsPolicy = null);
 app.MapAccountEndpoints();
 app.MapFileEndpoints();
 app.MapHealthEndpoints();

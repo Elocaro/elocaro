@@ -4,7 +4,7 @@ Verbindlich für alle neuen und geänderten Seiten. Grundlage: ADR 0003 (eigenes
 
 ## Prinzipien
 
-1. **Statisches SSR, kein eigenes JavaScript.** Interaktion läuft über Links, GET-/POST-Formulare und `<details>`.
+1. **Zwei Arten von Seiten.** Statische Seiten (Standard, ohne eigenes JavaScript: Links, GET-/POST-Formulare, `<details>`) und interaktive Seiten (`@rendermode InteractiveServer`, MudBlazor, siehe [Interaktive Seiten](#interaktive-seiten)). Neue Seiten mit Live-Suche, Dialogen oder Assistenten werden interaktiv gebaut, alles andere bleibt statisch, bis es umgestellt wird.
 2. **Mobil zuerst.** Jede Seite funktioniert bei 360 px ohne horizontales Scrollen; Touch-Ziele ≥ 44 px.
 3. **Bausteine statt Rohmarkup.** Gibt es für etwas einen Baustein (siehe unten), wird er benutzt. Fehlt einer, wird er im Design-System ergänzt und hier dokumentiert, nicht in der Seite gebaut.
 4. **Farben nur über Rollen.** Keine Hex-Werte in Seiten oder Komponenten. Hell und Dunkel müssen beide lesbar sein.
@@ -73,6 +73,18 @@ Alles, was löscht, sperrt, storniert oder sich nicht einfach zurücknehmen läs
 ### Filter
 
 Filter und Suche einer Liste oder Auswertung stehen in `<FilterBar>`: GET-Formular mit `role="search"`, die Felder als `div.field` im Inhalt, Werte über `[SupplyParameterFromQuery]`, deutsche Query-Parameter. „Zurücksetzen“ erscheint automatisch, sobald die URL Parameter hat (`AllowReset="false"` für Assistenten und Jahresauswahl). Weitere Aktionen zur aktuellen Ansicht (Export) gehören in den Slot `Actions`. Ein rohes `<form method="get">` meldet ein Architekturtest.
+
+## Interaktive Seiten
+
+Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Components/Pages/Admin/People/ListPage.razor`.
+
+- `@rendermode InteractiveServer`, `@using MudBlazor` in der Seite (nicht global), Inhalt in `<InteractiveShell>` (Provider, Hell/Dunkel, Marker `data-interactive`).
+- MudBlazor-Komponenten dürfen direkt verwendet werden. Look über `M3Theme` und die Tokens, keine eigenen Farben an der Komponente.
+- Eigene Komponenten haben **keine MudBlazor-Typen in der Schnittstelle**, damit sie ersetzbar bleiben.
+- Rückmeldung nach einer Aktion über `Notifier` (`Success`, `Info`, `Warning`, `Error`), nicht über `StatusMessage`/Redirect-Cookie.
+- Die Query-Parameter liefern nur den Startwert; danach hält die Seite ihren Zustand. Live-Eingaben mit `DebounceInterval` und `OnDebounceIntervalElapsed`, nicht mit `ValueChanged` allein.
+- Riskante Aktionen auch hier mit Rückfrage (MudBlazor-Dialog).
+- Tests: Browser-Test auf `[data-interactive=true]` warten, dann bedienen; Debounce-Timer brauchen die vorgestellte Testuhr (`App.Clock`).
 
 ## Seitentypen
 

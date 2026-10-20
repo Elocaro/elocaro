@@ -1,6 +1,6 @@
 # ADR 0001: Blazor Static SSR als UI-Technologie
 
-- Status: angenommen
+- Status: angenommen, teilweise abgelöst durch [ADR 0005](0005-interaktive-seiten-mit-mudblazor.md) (Interactive Server schrittweise pro Seite)
 - Datum: 2026-10-18
 
 ## Kontext

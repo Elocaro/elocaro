@@ -9,6 +9,9 @@ namespace MietHahn.Web.Operations;
 
 internal static class OperationsExtensions
 {
+    /// <summary>Key in <c>HttpContext.Items</c> of the script nonce of the current request (see <c>App.razor</c>).</summary>
+    public const string CspNonceKey = "csp-nonce";
+
     public const string LivenessPath = "/health/live";
     public const string ReadyPath = "/health";
 
@@ -37,8 +40,11 @@ internal static class OperationsExtensions
             header["Cross-Origin-Opener-Policy"] = "same-origin";
             if (!header.ContainsKey("Content-Security-Policy"))
             {
+                // The inline import map of the fingerprinted assets is allowed by a nonce per request (App.razor), not by unsafe-inline.
+                var nonce = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+                context.Items[CspNonceKey] = nonce;
                 header.ContentSecurityPolicy =
-                    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
+                    $"default-src 'self'; script-src 'self' 'nonce-{nonce}'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
                     "font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'";
             }
 

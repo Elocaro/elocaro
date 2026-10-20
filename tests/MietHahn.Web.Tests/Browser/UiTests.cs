@@ -59,7 +59,7 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         await page.SelectOptionAsync("#role", "Tenant");
         await page.ClickAsync("text=Einladung senden");
 
-        await page.WaitForSelectorAsync(".message-ok:has-text('erika@example.de')");
+        await page.WaitForSelectorAsync(".message-success:has-text('erika@example.de')");
         Assert.Contains("Erika Mustermann", await page.TextContentAsync("table.data-table"), StringComparison.Ordinal);
     }
 
@@ -86,7 +86,7 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
             await page.FillAsync("#name", "Mieter Test");
             await page.FillAsync("#email", "m@example.de");
             await page.ClickAsync("text=Einladung senden");
-            await page.WaitForSelectorAsync(".message-ok:has-text('m@example.de')");
+            await page.WaitForSelectorAsync(".message-success:has-text('m@example.de')");
 
             await page.ClickAsync("table.data-table a:text-is('Mieter Test')");
             await page.WaitForSelectorAsync("h1:text-is('Mieter Test')");
@@ -95,7 +95,7 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
             await page.ClickAsync("summary:has-text('Konto sperren')");
             await page.ClickAsync("button:has-text('Ja, Konto sperren')");
 
-            await page.WaitForSelectorAsync(".message-ok:has-text('Das Konto wurde gesperrt.')");
+            await page.WaitForSelectorAsync(".message-success:has-text('Das Konto wurde gesperrt.')");
         });
     }
 }
