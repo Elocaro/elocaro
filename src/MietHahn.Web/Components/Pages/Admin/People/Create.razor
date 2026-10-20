@@ -1,43 +1,29 @@
 @page "/verwaltung/personen/neu"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IPersonService Admin
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 @inject TimeProvider Clock
 
-<PageHeader Title="Person anlegen" Back="/verwaltung/personen" BackText="Alle Personen" />
+<InteractiveShell>
+    <PageHeader Title="Person anlegen" Back="/verwaltung/personen" BackText="Alle Personen" />
 
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-<EditForm Model="Data" FormName="person" OnValidSubmit="CreateAsync">
-    <DataAnnotationsValidator />
-    <PersonFields Data="Data!" />
-    <h2>Anschrift</h2>
-    <p class="small">Optional. Für Mieter die bisherige Anschrift (Voranschrift); beim Einzug wird sie fortgeschrieben.</p>
-    <AddressFields Address="Address!" WithReferenceDate="false" />
-    <button type="submit" class="button button-primary">Person anlegen</button>
-</EditForm>
+    <EditForm Model="data" OnValidSubmit="CreateAsync" novalidate>
+        <DataAnnotationsValidator />
+        <PersonEditor Data="data" Address="address" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Person anlegen</MudButton>
+    </EditForm>
+</InteractiveShell>
 
 @code {
+    private readonly PersonInput data = new();
+    private readonly AddressInput address = new();
     private IReadOnlyList<string>? errors;
-
-    // One form, two models: field names Data.* (PersonFields) and Address.* (AddressFields).
-    [SupplyParameterFromForm(FormName = "person")]
-    private PersonInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "person")]
-    private AddressInput? Address { get; set; }
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    protected override void OnInitialized()
-    {
-        Data ??= new();
-        Address ??= new();
-    }
 
     private async Task CreateAsync()
     {
-        var address = Address!;
         var withAddress = !string.IsNullOrWhiteSpace(address.Street);
         if (withAddress && (string.IsNullOrWhiteSpace(address.PostalCode) || string.IsNullOrWhiteSpace(address.City)))
         {
@@ -46,10 +32,10 @@
         }
 
         address.From ??= MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow());
-        var result = await Admin.CreateAsync(Data!, withAddress ? address : null);
+        var result = await Admin.CreateAsync(data, withAddress ? address : null);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/personen/{result.Id}", "Die Person wurde angelegt.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/personen/{result.Id}?meldung=angelegt");
         }
         else
         {

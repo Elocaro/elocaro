@@ -214,6 +214,15 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
 
                 await page.ClickAsync(".user-menu > summary");
                 await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-menue-benutzer.png") });
+                await page.ClickAsync(".user-menu > summary");
+
+                // Interactive dialog.
+                await page.GotoAsync(BaseUrl + "/verwaltung/personen");
+                await page.Locator("[data-interactive=true]").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+                await page.GetByRole(AriaRole.Button, new() { Name = "Person anlegen" }).ClickAsync();
+                await page.Locator(".mud-dialog").WaitForAsync();
+                await page.WaitForTimeoutAsync(600); // let the open animation finish
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-dialog-person.png") });
             }
         }
     }

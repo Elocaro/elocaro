@@ -513,3 +513,9 @@ img.document-preview, iframe.document-preview, .property-image { border-radius: 
 
 /* Text above a field grid keeps its distance from the floating labels */
 p + .form-grid, p + .form-row, .small + .form-grid { margin-top: 1rem; }
+
+/* MudBlazor buttons: pill shape like our own buttons; inputs in grids keep a row gap */
+.mud-button-root { border-radius: var(--shape-full); text-transform: none; font-weight: 600; }
+.form-grid > .mud-input-control { margin-bottom: 1rem; }
+.mud-dialog { border-radius: var(--shape-xl); background: var(--md-surface-container-high); }
+.dialog-form { display: contents; } /* the form around a dialog must not break its flex layout (scrolling content, pinned actions) */

@@ -3,7 +3,9 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.People;
 using MietHahn.Domain.Communication;
+using MietHahn.Domain.People;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Web.Tests.Account;
 
@@ -14,17 +16,18 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
     // Suggest unrelated persons immediately once they are no longer brand new (instead of after 12 months).
     protected override IDictionary<string, string?> Configuration => new Dictionary<string, string?> { ["Privacy:MonthsWithoutRelation"] = "0" };
 
-    private static readonly Dictionary<string, string> Anna = new()
+    // People are created through the service; the interactive create and edit forms are covered by the browser tests.
+    private async Task<Page> CreatePersonAsync(TestBrowser admin, PersonInput data, AddressInput? address = null)
     {
-        ["Data.Salutation"] = "Mrs",
-        ["Data.FirstName"] = "Anna",
-        ["Data.LastName"] = "Schmidt",
-        ["Data.Email"] = "anna@example.de",
-        ["Data.Phone"] = "0221 123456",
-        ["Address.Street"] = "Altweg 1",
-        ["Address.PostalCode"] = "50667",
-        ["Address.City"] = "Köln",
-    };
+        var id = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IPersonService>().CreateAsync(data, address, TestContext.Current.CancellationToken)).Id!.Value);
+        return await admin.GetAsync($"/verwaltung/personen/{id}");
+    }
+
+    private Task<Page> CreateAnnaAsync(TestBrowser admin) =>
+        CreatePersonAsync(
+            admin,
+            new PersonInput { Salutation = Salutation.Mrs, FirstName = "Anna", LastName = "Schmidt", Email = "anna@example.de", Phone = "0221 123456" },
+            new AddressInput { From = MietHahn.Domain.Common.GermanTime.Today(App.Clock.GetUtcNow()), Street = "Altweg 1", PostalCode = "50667", City = "Köln" });
 
     [Fact]
     public async Task Create_search_and_edit_tenant()
@@ -32,9 +35,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
-        var person = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/personen/neu"), "person", Anna);
-        Assert.Matches("^/verwaltung/personen/[0-9a-f-]{36}$", person.Path);
-        Assert.Contains("Die Person wurde angelegt.", person.Text, StringComparison.Ordinal);
+        var person = await CreateAnnaAsync(admin);
         Assert.Contains("Altweg 1, 50667 Köln", person.Text, StringComparison.Ordinal);
 
         // Multiple IBANs, one invalid
@@ -77,14 +78,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        var person = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/personen/neu"), "person", new Dictionary<string, string>
-        {
-            ["Data.LastName"] = "Klempner",
-            ["Data.Company"] = "Rohr & Co.",
-            ["Data.ContactType"] = "Tradesperson",
-            ["Data.Occupation"] = "Sanitär",
-            ["Data.Email"] = "rohr@example.de",
-        });
+        var person = await CreatePersonAsync(admin, new PersonInput { LastName = "Klempner", Company = "Rohr & Co.", ContactType = ContactType.Tradesperson, Occupation = "Sanitär", Email = "rohr@example.de" });
         Assert.Contains("Handwerker (Sanitär)", person.Text, StringComparison.Ordinal);
 
         person = await admin.SubmitAsync(person, "access");
@@ -101,7 +95,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        var person = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/personen/neu"), "person", Anna);
+        var person = await CreateAnnaAsync(admin);
         var link = person.Document.QuerySelectorAll("a").Single(a => a.TextContent == "DSGVO-Auskunft").GetAttribute("href")!;
 
         using var response = await admin.Http.GetAsync(new Uri(link, UriKind.Relative), TestContext.Current.CancellationToken);
@@ -119,7 +113,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
-        var person = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/personen/neu"), "person", Anna);
+        var person = await CreateAnnaAsync(admin);
         var path = person.Path;
 
         App.Clock.Advance(TimeSpan.FromMinutes(1));
@@ -140,7 +134,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
     public async Task Without_master_data_permission_no_access_to_people_and_access_report()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        var person = await admin.SubmitAsync(await admin.GetAsync("/verwaltung/personen/neu"), "person", Anna);
+        var person = await CreateAnnaAsync(admin);
         admin.Dispose();
         var (manager, _) = await SignedInAsAsync(Roles.Manager, [AccessRight.Finance]);
         using var _ = manager;

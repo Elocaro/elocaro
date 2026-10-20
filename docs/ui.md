@@ -93,6 +93,12 @@ Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Co
 - Rückmeldung nach einer Aktion über `Notifier` (`Success`, `Info`, `Warning`, `Error`), nicht über `StatusMessage`/Redirect-Cookie.
 - Die Query-Parameter liefern nur den Startwert; danach hält die Seite ihren Zustand. Live-Eingaben mit `DebounceInterval` und `OnDebounceIntervalElapsed`, nicht mit `ValueChanged` allein.
 - Riskante Aktionen auch hier mit Rückfrage (MudBlazor-Dialog).
+
+**Formulare und Dialoge** (Muster: `People/PersonEditor`, `PersonDialog`, `Create`, `Edit`):
+- Eingabefelder in einer Komponente (`*Editor`), die in einem `EditForm` mit `DataAnnotationsValidator` sitzt; `For="() => Modell.Eigenschaft"` zeigt die deutschen Validierungsmeldungen. Das `EditForm` bekommt `novalidate` (sonst erscheint die englische Browser-Meldung), die Mud-Felder `ShrinkLabel="true"` (Beschriftung im Rahmen wie bei statischen Feldern).
+- Dialog: `IDialogService.ShowAsync<…Dialog>`, Inhalt im `EditForm class="dialog-form"` (hält Inhalt scrollbar und Aktionen sichtbar), Erfolg → `Notifier.Success`, `MudDialog.Close(DialogResult.Ok(id))`, die Liste lädt neu. Fehler aus Diensten über `ErrorList` im Dialog.
+- Nach dem Speichern auf einer Seite weiterleiten: `Navigation.NavigateTo("…?meldung=gespeichert")`; `StatusMessage` der Zielseite zeigt den festen Text (`StatusMessage.Keys`: `gespeichert`, `angelegt`, `geloescht`). Freitext in der URL gibt es nicht.
+- Testen: Anlegen und Bearbeiten im Browser-Test (Dialog, Validierung, Snackbar, Audit-Benutzer); HTTP-Tests legen Daten über Dienste an.
 - Tests: Browser-Test auf `[data-interactive=true]` warten, dann bedienen; Debounce-Timer brauchen die vorgestellte Testuhr (`App.Clock`).
 
 ## Seitentypen

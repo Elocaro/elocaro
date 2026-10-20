@@ -1,53 +1,50 @@
 @page "/verwaltung/personen/{Id:guid}/bearbeiten"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IPersonService Admin
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 
-@if (person is null)
-{
-    <PageHeader Title="Person nicht gefunden" Back="/verwaltung/personen" BackText="Alle Personen" />
-    return;
-}
+<InteractiveShell>
+    @if (loaded && person is null)
+    {
+        <PageHeader Title="Person nicht gefunden" Back="/verwaltung/personen" BackText="Alle Personen" />
+    }
+    else if (person is not null && data is not null)
+    {
+        <PageHeader Title="@($"{person.DisplayName} bearbeiten")" Back="@($"/verwaltung/personen/{Id}")" BackText="Zur Person" />
 
-<PageHeader Title="@($"{person.DisplayName} bearbeiten")" Back="@($"/verwaltung/personen/{Id}")" BackText="Zur Person" />
+        <ErrorList Errors="errors" />
 
-<ErrorList Errors="errors" />
-
-<EditForm Model="Data" FormName="person" OnValidSubmit="SaveAsync">
-    <DataAnnotationsValidator />
-    <PersonFields Data="Data!" />
-    <button type="submit" class="button button-primary">Speichern</button>
-</EditForm>
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <PersonEditor Data="data" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
 
 @code {
     private PersonDetails? person;
+    private PersonInput? data;
     private IReadOnlyList<string>? errors;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "person")]
-    private PersonInput? Data { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
-        var form = Data;
-        Data ??= new();
         person = await Admin.GetAsync(Id);
-        if (person is not null)
-        {
-            Data = form ?? person.Data;
-        }
+        data = person?.Data;
+        loaded = true;
     }
 
     private async Task SaveAsync()
     {
-        var result = await Admin.UpdateAsync(Id, Data!);
+        var result = await Admin.UpdateAsync(Id, data!);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/personen/{Id}", "Die Angaben wurden gespeichert.", HttpContext);
+            Navigation.NavigateTo($"/verwaltung/personen/{Id}?meldung=gespeichert");
         }
         else
         {

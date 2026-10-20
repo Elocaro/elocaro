@@ -1,4 +1,6 @@
-@* Shows a message from the parameter or from the status cookie of the previous page. *@
+@* Shows a message from the parameter, from the status cookie of the previous page, or for a known key in the query (?meldung=gespeichert) after navigation from an interactive page. *@
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
 @if (!string.IsNullOrEmpty(DisplayText))
 {
     <Notice Level="@(IsError ? NoticeLevel.Error : NoticeLevel.Success)">@DisplayText</Notice>
@@ -19,11 +21,26 @@
 
     private string? DisplayText => Message ?? cookieMessage;
 
+    /// <summary>Texts for <c>?meldung=key</c>. Only fixed keys, so the URL cannot carry free text onto the page.</summary>
+    public static IReadOnlyDictionary<string, string> Keys { get; } = new Dictionary<string, string>
+    {
+        ["gespeichert"] = "Die Angaben wurden gespeichert.",
+        ["angelegt"] = "Der Eintrag wurde angelegt.",
+        ["geloescht"] = "Der Eintrag wurde gelöscht.",
+    };
+
     protected override void OnInitialized()
     {
         if (HttpContext is not null)
         {
             cookieMessage = Redirector.ReadMessage(HttpContext);
+        }
+
+        if (cookieMessage is null
+            && QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query).TryGetValue("meldung", out var key)
+            && Keys.TryGetValue(key.ToString(), out var text))
+        {
+            cookieMessage = text;
         }
     }
 }

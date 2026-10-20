@@ -1,18 +1,18 @@
 @page "/verwaltung/personen"
 @rendermode InteractiveServer
 @using MudBlazor
-@using MietHahn.Web.Components.Shell
 @inject IPersonService Admin
+@inject IDialogService Dialogs
 
 <InteractiveShell>
     <PageHeader Title="Personen" Subtitle="Mieter, Bürgen und Kontakte wie Hausmeister, Handwerker und Versorger.">
         <Actions>
-            <a class="button button-primary" href="/verwaltung/personen/neu">Person anlegen</a>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">Person anlegen</MudButton>
         </Actions>
     </PageHeader>
 
     <div class="form-row search-bar" role="search">
-        <MudTextField T="string" Label="Suche" Value="search" Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="OnSearchChanged"
+        <MudTextField T="string" ShrinkLabel="true" Label="Suche" Value="search" Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="OnSearchChanged"
                       Variant="Variant.Outlined" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                       Placeholder="Name, E-Mail, Telefon, IBAN, Gewerk" />
         <MudSelect T="PersonFilter" Label="Anzeigen" Value="filter" ValueChanged="OnFilterChanged" Variant="Variant.Outlined">
@@ -94,6 +94,16 @@
     {
         filter = value;
         await LoadAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<PersonDialog>("Person anlegen", new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
     }
 
     private async Task LoadAsync() => people = await Admin.SearchAsync(new PersonQuery(search, filter));
