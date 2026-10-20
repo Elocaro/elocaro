@@ -78,6 +78,10 @@ public sealed class RoomInput
 
     public Furnishing Furnishing { get; set; }
 
+    /// <summary>Furniture and equipment handed over with the room, one item per line.</summary>
+    [StringLength(4000)]
+    public string? FurnishingList { get; set; }
+
     [StringLength(2000)]
     public string? Notes { get; set; }
 }

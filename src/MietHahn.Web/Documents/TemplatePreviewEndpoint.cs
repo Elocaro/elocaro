@@ -40,7 +40,7 @@ internal static class TemplatePreviewEndpoint
             context.Response.Headers.XFrameOptions = "SAMEORIGIN";
             context.Response.Headers.CacheControl = "private, no-store";
             return Results.File(pdf, "application/pdf");
-        }).RequireAuthorization(Policies.System);
+        }).RequireAuthorization(Policies.Admin);
 
         endpoints.MapGet("/verwaltung/einstellungen/vorlagen/{id:guid}/export.json", async (Guid id, IDocumentTemplates templates, HttpContext context) =>
             await templates.ExportAsync(id, context.RequestAborted) is { } export

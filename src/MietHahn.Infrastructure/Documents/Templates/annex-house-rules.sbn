@@ -1,0 +1,13 @@
+{{# Platzhaltertext: an das Haus anpassen. Alternativ die eigene Hausordnung hier einfügen. }}
+<div style="page-break-before: always">
+<h2>Anlage: Hausordnung für {{ property_name }}</h2>
+<ol>
+  <li><strong>Ruhezeiten:</strong> Werktags 13–15 Uhr und 22–6 Uhr, an Sonn- und Feiertagen ganztägig. Zimmerlautstärke ist stets einzuhalten.</li>
+  <li><strong>Sauberkeit:</strong> Treppenhaus, Keller und gemeinschaftlich genutzte Räume sind sauber zu halten und frei von Gegenständen zu lassen.</li>
+  <li><strong>Müll:</strong> Abfall wird getrennt und nur in die dafür vorgesehenen Behälter geworfen.</li>
+  <li><strong>Lüften und Heizen:</strong> Räume sind ausreichend zu lüften und zu beheizen, um Schimmel und Frostschäden zu vermeiden.</li>
+  <li><strong>Balkon und Fenster:</strong> Blumenkästen und Gegenstände sind sicher zu befestigen.</li>
+  <li><strong>Schlüssel:</strong> Der Verlust eines Schlüssels ist unverzüglich zu melden.</li>
+  <li><strong>Rauchmelder:</strong> Sie dürfen nicht abgedeckt oder entfernt werden; Funktionsstörungen sind zu melden.</li>
+</ol>
+</div>

@@ -35,6 +35,7 @@ public static class Labels
     {
         TemplateKind.Letter => "Schreiben",
         TemplateKind.Snippet => "Baustein",
+        TemplateKind.Contract => "Mietvertrag",
         _ => value.ToString(),
     };
 
@@ -44,6 +45,20 @@ public static class Labels
         BankFormat.Mt940 => "MT940",
         BankFormat.FinTs => "FinTS-Abruf",
         _ => "CSV",
+    };
+
+    public static string From(ContractStatus value) => value switch
+    {
+        ContractStatus.Concluded => "unterschrieben",
+        ContractStatus.Withdrawn => "ersetzt/verworfen",
+        _ => "Entwurf",
+    };
+
+    public static StatusLevel Level(ContractStatus value) => value switch
+    {
+        ContractStatus.Concluded => StatusLevel.Success,
+        ContractStatus.Draft => StatusLevel.Warning,
+        _ => StatusLevel.Neutral,
     };
 
     public static string From(TransactionStatus value) => value switch

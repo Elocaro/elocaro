@@ -59,6 +59,7 @@ internal sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
         builder.ToTable("rooms");
         builder.Property(z => z.Name).HasMaxLength(100).UseCollation(MietHahnDbContext.GermanCollation);
         builder.Property(z => z.Furnishing).HasConversion<string>().HasMaxLength(20);
+        builder.Property(z => z.FurnishingList).HasMaxLength(4000);
         builder.Property(z => z.Notes).HasMaxLength(2000);
         builder.HasMany(z => z.Areas).WithOne().HasForeignKey(f => f.RoomId).OnDelete(DeleteBehavior.Cascade);
     }

@@ -1,0 +1,20 @@
+<div style="page-break-before: always">
+<h2>Anlage: Übergabeprotokoll</h2>
+<p>Mietsache: {{ unit_name }}{{ if room_name }}, {{ room_name }}{{ end }}, {{ property_street }}, {{ property_postal_code }} {{ property_city }}<br>Übergabe am: ______________</p>
+<table>
+  <thead><tr><th>Zähler</th><th>Nummer</th><th>Stand bei Einzug</th></tr></thead>
+  <tbody>
+    <tr><td>Strom</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>Heizung / Wärme</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>Wasser (kalt)</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>Wasser (warm)</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+  </tbody>
+</table>
+<p>Übergebene Schlüssel: Haustür ____ Wohnung ____ Keller ____ Briefkasten ____ Sonstige ____</p>
+<p>Zustand und festgestellte Mängel:<br>____________________________________________<br>____________________________________________<br>____________________________________________</p>
+<table>
+  <tbody>
+    <tr><td><br><br>______________________________<br>Vermieter</td><td><br><br>______________________________<br>Mieter</td></tr>
+  </tbody>
+</table>
+</div>

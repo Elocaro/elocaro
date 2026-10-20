@@ -15,6 +15,12 @@ internal static class TemplateDefaults
     [
         new(Closing, TemplateKind.Snippet, "Schlussformel mit Namen des Vermieters", "", Read("snippet-closing")),
         new("Bankverbindung", TemplateKind.Snippet, "Bankverbindung des Vermieters, nur wenn im Vermieterprofil hinterlegt", "", Read("snippet-bank-details")),
+        new("Anlage Hausordnung", TemplateKind.Snippet, "Platzhaltertext der Hausordnung als Anlage zum Mietvertrag; an das Haus anpassen", "", Read("annex-house-rules")),
+        new("Anlage Energieausweis", TemplateKind.Snippet, "Hinweis zur Übergabe des Energieausweises (§ 80 GEG)", "", Read("annex-energy")),
+        new("Anlage Datenschutzinformation", TemplateKind.Snippet, "Datenschutzinformation für Mieter nach Art. 13 DSGVO (Mustertext)", "", Read("annex-privacy")),
+        new("Anlage Übergabeprotokoll", TemplateKind.Snippet, "Leeres Übergabeprotokoll zum Ausfüllen bei Einzug", "", Read("annex-handover")),
+        new("Mietvertrag Wohnraum", TemplateKind.Contract, "Wohnraummietvertrag mit Staffel-/Indexmiete, Betriebskosten, Kaution und Anlagen", "Mietvertrag {{ unit_name }}, {{ property_name }}", Read("contract-lease")),
+        new("Zimmervertrag WG", TemplateKind.Contract, "Mietvertrag über ein WG-Zimmer mit Gemeinschaftsflächen, Pauschale und Möblierungsliste", "Zimmervertrag {{ room_name }}, {{ unit_name }}", Read("contract-room")),
         new("Ankündigung von Arbeiten", TemplateKind.Letter, "Serienbrief an die Mieter eines Objekts; Art und Zeitraum ergänzen", "Ankündigung von Arbeiten am Haus {{ property_name }}", Read("letter-announcement")),
         new("Allgemeines Schreiben", TemplateKind.Letter, "Leerer Brief mit Anrede und Grußformel", "Mitteilung zu Ihrem Mietverhältnis", Read("letter-general")),
     ];

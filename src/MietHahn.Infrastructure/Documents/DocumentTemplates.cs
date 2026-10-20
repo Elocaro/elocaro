@@ -114,7 +114,7 @@ internal sealed partial class DocumentTemplates(MietHahnDbContext db, IPdfGenera
         {
             var title = Check(kind, subject, body, await TemplateSnippets.LoadAsync(db, cancellationToken));
             var sample = new PostalAddress(["Erika Muster", "Lindenweg 3", "50667 Köln"]);
-            var bytes = await pdf.GenerateAsync(new PdfRequest(null, title, TemplateCatalog.Sample(kind), sample, body, new DateOnly(2026, 10, 20)), cancellationToken);
+            var bytes = await pdf.GenerateAsync(new PdfRequest(null, title, TemplateCatalog.Sample(kind), kind == TemplateKind.Contract ? null : sample, body, new DateOnly(2026, 10, 20)), cancellationToken);
             return new TemplatePreview(bytes, []);
         }
         catch (RuleViolationException ex)
@@ -224,23 +224,37 @@ internal sealed partial class DocumentTemplates(MietHahnDbContext db, IPdfGenera
     /// <summary>Checks syntax and placeholders by rendering with the sample data; returns the rendered subject.</summary>
     internal static string Check(TemplateKind kind, string? subject, string body, IReadOnlyDictionary<string, string> snippets)
     {
-        var sample = TemplateCatalog.Sample(kind);
         subject ??= "";
-        try
+        var errors = ScribanRenderer.Validate(body).Concat(ScribanRenderer.Validate(subject)).ToList();
+        if (errors.Count > 0)
         {
-            var errors = ScribanRenderer.Validate(body).Concat(ScribanRenderer.Validate(subject)).ToList();
-            if (errors.Count > 0)
-            {
-                throw new RuleViolationException("Die Vorlage enthält Fehler: " + string.Join("; ", errors));
-            }
+            throw new RuleViolationException("Die Vorlage enthält Fehler: " + string.Join("; ", errors));
+        }
 
-            ScribanRenderer.RenderText(body, sample, snippets: snippets);
-            return WebUtility.HtmlDecode(ScribanRenderer.RenderText(subject, sample, snippets: snippets).Html).Trim();
-        }
-        catch (TemplateErrorException ex)
+        // All samples of the kind must work; a snippet only has to work for one kind of document it is used in.
+        var failures = new List<string>();
+        var passed = 0;
+        string? title = null;
+        foreach (var sample in TemplateCatalog.Samples(kind))
         {
-            throw new RuleViolationException(ex.Message);
+            try
+            {
+                ScribanRenderer.RenderText(body, sample, snippets: snippets);
+                title ??= WebUtility.HtmlDecode(ScribanRenderer.RenderText(subject, sample, snippets: snippets).Html).Trim();
+                passed++;
+            }
+            catch (TemplateErrorException ex)
+            {
+                failures.Add(ex.Message);
+            }
         }
+
+        if (failures.Count > 0 && (kind != TemplateKind.Snippet || passed == 0))
+        {
+            throw new RuleViolationException(failures[0]);
+        }
+
+        return title ?? "";
     }
 
     private static Dictionary<string, string> Without(IReadOnlyDictionary<string, string> snippets, DocumentTemplate template)

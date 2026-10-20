@@ -34,9 +34,9 @@ else
 
             <AppTextField @bind-Value="data.Name" Label="Name" Required="true" Hint="@(data.Kind == TemplateKind.Snippet ? "So wird der Baustein in include '…' genannt" : "z. B. „Ankündigung Bauarbeiten“")" />
             <AppTextField @bind-Value="data.Description" Label="Beschreibung" />
-            @if (data.Kind == TemplateKind.Letter)
+            @if (data.Kind != TemplateKind.Snippet)
             {
-                <AppTextField @bind-Value="data.Subject" Label="Betreff" Required="true" Hint="Titel des Schreibens; darf Platzhalter enthalten" />
+                <AppTextField @bind-Value="data.Subject" Label="Betreff" Required="true" Hint="Titel des Dokuments; darf Platzhalter enthalten" />
             }
         </div>
         <AppTextField @bind-Value="data.Body" Label="Text" Required="true" Lines="18" Hint="HTML mit Platzhaltern, z. B. <p>{{ salutation }}</p>. Absätze mit <p>, Zeilenumbruch mit <br>." />

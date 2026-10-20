@@ -81,3 +81,19 @@ internal sealed class OccupantCountConfiguration : IEntityTypeConfiguration<Occu
 {
     public void Configure(EntityTypeBuilder<OccupantCount> builder) => builder.ToTable("occupant_counts");
 }
+
+internal sealed class LeaseContractConfiguration : IEntityTypeConfiguration<LeaseContract>
+{
+    public void Configure(EntityTypeBuilder<LeaseContract> builder)
+    {
+        builder.ToTable("lease_contracts");
+        builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
+        builder.HasOne<Lease>().WithMany().HasForeignKey(c => c.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Documents.DocumentTemplateRevision>().WithMany().HasForeignKey(c => c.TemplateRevisionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Files.StoredFile>().WithMany().HasForeignKey(c => c.DraftFileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Documents.Document>().WithMany().HasForeignKey(c => c.SignedDocumentId).OnDelete(DeleteBehavior.Restrict);
+
+        // At most one open draft per lease.
+        builder.HasIndex(c => c.LeaseId).IsUnique().HasFilter("status = 'Draft' AND NOT deleted").HasDatabaseName("ux_lease_contracts_open_draft");
+    }
+}

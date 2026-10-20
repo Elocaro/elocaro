@@ -9,6 +9,9 @@ public enum TemplateKind
 
     /// <summary>Reusable part (letterhead, closing, bank details) that letters include with <c>{{ include 'Name' }}</c>.</summary>
     Snippet = 1,
+
+    /// <summary>Lease or shared-flat room contract, rendered from the data of a lease (see <c>ContractModel</c>).</summary>
+    Contract = 2,
 }
 
 /// <summary>
@@ -58,7 +61,7 @@ public sealed class DocumentTemplate : Entity
         }
 
         subject ??= "";
-        if (Kind == TemplateKind.Letter && string.IsNullOrWhiteSpace(subject))
+        if (Kind != TemplateKind.Snippet && string.IsNullOrWhiteSpace(subject))
         {
             throw new RuleViolationException("Bitte einen Betreff angeben.");
         }

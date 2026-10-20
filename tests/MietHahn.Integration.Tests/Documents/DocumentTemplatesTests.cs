@@ -126,10 +126,19 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
         var first = await WithAsync(t => t.InstallDefaultsAsync(Ct));
         var second = await WithAsync(t => t.InstallDefaultsAsync(Ct));
 
-        Assert.Equal((4, 0, 0, 4), (first.Created, first.Existing, second.Created, second.Existing));
+        Assert.Equal((10, 0, 0, 10), (first.Created, first.Existing, second.Created, second.Existing));
         var rows = await WithAsync(t => t.ListAsync(Ct));
-        Assert.Equal(["Allgemeines Schreiben", "Ankündigung von Arbeiten", "Bankverbindung", "Grußformel"], rows.Select(r => r.Name));
+        Assert.Equal(
+            ["Allgemeines Schreiben", "Ankündigung von Arbeiten", "Anlage Datenschutzinformation", "Anlage Energieausweis", "Anlage Hausordnung", "Anlage Übergabeprotokoll", "Bankverbindung", "Grußformel", "Mietvertrag Wohnraum", "Zimmervertrag WG"],
+            rows.Select(r => r.Name));
         Assert.All(rows, r => Assert.Equal(1, r.Revision));
+
+        // Every bundled text must pass the check that saving applies (syntax, placeholders, snippets) for all samples.
+        foreach (var entry in rows)
+        {
+            var edit = (await WithAsync(t => t.GetAsync(entry.Id, Ct)))!;
+            Validate(await WithAsync(t => t.SaveAsync(entry.Id, edit, Ct)));
+        }
     }
 
     [Fact]

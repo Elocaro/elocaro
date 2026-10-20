@@ -34,6 +34,9 @@ public sealed class Room : Entity
 
     public Furnishing Furnishing { get; set; }
 
+    /// <summary>Furniture and equipment handed over with the room (one item per line); goes into the shared-flat room contract.</summary>
+    public string? FurnishingList { get; set; }
+
     public string? Notes { get; set; }
 
     public List<RoomArea> Areas { get; private set; } = [];

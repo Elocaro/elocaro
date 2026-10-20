@@ -260,3 +260,9 @@ Für `localhost` stellt Caddy ein Zertifikat seiner internen CA aus (Browserwarn
 - Jede Änderung des Textes bleibt als **Fassung** erhalten und lässt sich in den Editor zurückladen. Schon erzeugte Schreiben ändern sich nie; sie verweisen auf die Fassung, aus der sie entstanden.
 - **Schreiben an Mieter** (Dokumente → Schreiben an Mieter): Vorlage und Objekt wählen, Empfänger abhaken (Standard: alle laufenden Mietverträge), optional per E-Mail senden und im Mieterportal freigeben. Je Mieter entsteht ein PDF bei den Dokumenten; ein Fehler bei einem Mieter hält die anderen nicht auf. Mieter ohne E-Mail-Adresse bekommen nur das PDF (per Post senden).
 - **Austausch und Sicherung:** Vorlagen lassen sich einzeln als Datei exportieren und in einer anderen Installation importieren. Im Gesamtexport und in der Datensicherung sind sie wie alle Tabellen enthalten.
+
+## Mietvertrag erstellen
+
+- Unter **Verträge → Vertrag → Vertragsdokument** wird aus den Stammdaten ein Entwurf als PDF erzeugt: Parteien, Mietobjekt und Fläche, Miete (Standard, Staffel oder Index), Vorauszahlung oder Pauschale, vereinbarte Betriebskostenarten, Kaution, dazu Hausordnung, Energieausweis-Hinweis, Datenschutzinformation und Übergabeprotokoll als Anlagen. Für ein WG-Zimmer wird der **Zimmervertrag** gewählt (Zimmer, Anteil der Gemeinschaftsflächen, Pauschale, Möblierungsliste).
+- Vorher die Standardvorlagen anlegen (Einstellungen → Vorlagen → „Standardvorlagen anlegen“) und prüfen: Sie sind **Basisvorlagen und keine Rechtsberatung**, insbesondere zu Schönheitsreparaturen, Kleinreparaturen, Befristung und Kündigung. Die Möblierungsliste eines Zimmers pflegt man am Zimmer.
+- Der Entwurf wird ausgedruckt und unterschrieben. Den Scan lädt man am selben Ort hoch („Unterschrieben hochladen“); er landet bei den Dokumenten des Vertrags und der Vertrag gilt als abgeschlossen. Ein neuer Entwurf ersetzt einen noch offenen.

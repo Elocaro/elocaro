@@ -216,7 +216,7 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
             unit.Name,
             property.Id,
             property.Name,
-            new RoomInput { Name = room.Name, Furnishing = room.Furnishing, Notes = room.Notes },
+            new RoomInput { Name = room.Name, Furnishing = room.Furnishing, FurnishingList = room.FurnishingList, Notes = room.Notes },
             Entry(room.AreaOn(Today)),
             History(room.Areas, f => new AreaReading(f.Validity, f.Area, f.CommonAreaShare)),
             occupied.GetValueOrDefault(room.Id));
@@ -371,6 +371,7 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
     {
         z.Name = d.Name.Trim();
         z.Furnishing = d.Furnishing;
+        z.FurnishingList = TrimToNull(d.FurnishingList);
         z.Notes = TrimToNull(d.Notes);
     }
 

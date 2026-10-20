@@ -1,0 +1,192 @@
+@page "/verwaltung/vertraege/{Id:guid}/vertragsdokument"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Application.Documents
+@using MietHahn.Domain.Documents
+@using MietHahn.Web.Documents
+@inject ILeaseService Leases
+@inject ILeaseContracts Contracts
+@inject IDocumentTemplates Templates
+@inject TemplatePreviews Previews
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (lease is null)
+{
+    <PageHeader Title="Vertrag nicht gefunden" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
+}
+else
+{
+    <PageHeader Title="@($"Vertragsdokument {lease.RentalUnit}")" Subtitle="@lease.Property" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag" />
+
+    <ErrorList Errors="errors" />
+
+    <section>
+        <h2>Entwurf erstellen</h2>
+        @if (templates.Count == 0)
+        {
+            <p class="small">Es gibt noch keine Vorlage für Mietverträge. <a href="/verwaltung/einstellungen/vorlagen">Unter Vorlagen die Standardvorlagen anlegen.</a></p>
+        }
+        else
+        {
+            <p class="small">Der Vertrag wird aus den Stammdaten dieses Vertrags erzeugt (Parteien, Fläche, Miete, Kaution, Kostenarten). Für ein WG-Zimmer die Vorlage „Zimmervertrag“ wählen.</p>
+            <div class="form-grid">
+                <AppSelect T="Guid" @bind-Value="templateId" Label="Vorlage" Items="templates.Select(t => t.Id)" Text="@(id => templates.FirstOrDefault(t => t.Id == id)?.Name ?? "")" />
+            </div>
+            <div class="form-row">
+                <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">Vorschau</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync">Entwurf als PDF erstellen</MudButton>
+            </div>
+            @if (previewId is not null)
+            {
+                <iframe class="document-preview" src="/verwaltung/einstellungen/vorlagen/vorschau/@(previewId).pdf" title="Vorschau des Vertrags"></iframe>
+            }
+        }
+    </section>
+
+    <section>
+        <h2>Entwürfe und unterschriebene Verträge</h2>
+        @if (rows.Count == 0)
+        {
+            <EmptyState Compact="true" Text="Noch kein Vertragsdokument." />
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Erstellt</th><th>Vorlage</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var row in rows)
+                        {
+                            <tr>
+                                <td>@Format.Date(row.CreatedOn)</td>
+                                <td>@row.TemplateName <span class="small">Fassung @row.TemplateRevision</span></td>
+                                <td><StatusChip Level="Labels.Level(row.Status)">@Labels.From(row.Status)</StatusChip>@if (row.SignedOn is not null) {<span class="small"> am @Format.Date(row.SignedOn)</span>}</td>
+                                <td>
+                                    <a href="/dateien/@row.DraftFileId">Entwurf (PDF)</a>
+                                    @if (row.SignedDocumentId is not null) {<text> · </text><a href="/verwaltung/dokumente/@row.SignedDocumentId">Unterschrieben</a>}
+                                    @if (row.Status == ContractStatus.Draft) {<text> · </text><MudButton Variant="Variant.Text" OnClick="() => SelectSigned(row.Id)">Unterschrieben hochladen</MudButton><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => WithdrawAsync(row)">Verwerfen</MudButton>}
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    @if (signing is not null)
+    {
+        <section>
+            <h2>Unterschriebenen Vertrag ablegen</h2>
+            <p class="small">Der Scan oder das Foto des unterschriebenen Vertrags wird bei den Dokumenten des Vertrags abgelegt. Damit gilt der Vertrag als abgeschlossen.</p>
+            <EditForm Model="signedData" OnValidSubmit="ConcludeAsync" novalidate>
+                <DataAnnotationsValidator />
+                <div class="form-grid">
+                    <AppFileUpload Text="Datei auswählen *" Accept="application/pdf,image/*" OnSelected="f => signedFile = f" />
+                    <AppDateField @bind-Value="signedData.SignedOn" Label="Unterschrieben am" Required="true" />
+                </div>
+                <AppCheckBox @bind-Value="signedData.ShareWithTenants" Label="Im Mieterportal freigeben" />
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Ablegen</MudButton>
+            </EditForm>
+        </section>
+    }
+}
+</InteractiveShell>
+
+@code {
+    private LeaseDetails? lease;
+    private IReadOnlyList<TemplateRow> templates = [];
+    private IReadOnlyList<ContractRow> rows = [];
+    private IReadOnlyList<string>? errors;
+    private Guid templateId;
+    private Guid? previewId;
+    private Guid? signing;
+    private FileSelection? signedFile;
+    private readonly SignedContractInput signedData = new();
+    private bool loaded;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        lease = await Leases.GetAsync(Id);
+        if (lease is not null)
+        {
+            templates = (await Templates.ListAsync()).Where(t => t.Kind == TemplateKind.Contract).ToList();
+            // A shared-flat room gets the room contract by default.
+            templateId = (lease.RoomId is not null ? templates.FirstOrDefault(t => t.Name.Contains("Zimmer", StringComparison.Ordinal)) : templates.FirstOrDefault())?.Id
+                ?? templates.FirstOrDefault()?.Id ?? Guid.Empty;
+            rows = await Contracts.ListAsync(Id);
+            signedData.SignedOn = DateOnly.FromDateTime(DateTime.Today);
+        }
+
+        loaded = true;
+    }
+
+    private async Task PreviewAsync()
+    {
+        var preview = await Contracts.PreviewAsync(templateId, Id);
+        errors = preview.Errors.Count > 0 ? preview.Errors : null;
+        previewId = preview.Pdf is { } pdf ? Previews.Add(pdf) : null;
+    }
+
+    private async Task CreateAsync()
+    {
+        var result = await Contracts.CreateDraftAsync(Id, templateId);
+        errors = result.Succeeded ? null : result.Errors;
+        previewId = null;
+        if (result.Succeeded)
+        {
+            rows = await Contracts.ListAsync(Id);
+            Notify.Success("Der Entwurf wurde erstellt. Ein früherer offener Entwurf ist ersetzt.");
+        }
+    }
+
+    private void SelectSigned(Guid contractId)
+    {
+        signing = contractId;
+        signedFile = null;
+    }
+
+    private async Task ConcludeAsync()
+    {
+        if (signing is not { } contractId || signedFile is null || signedFile.Length == 0)
+        {
+            errors = ["Bitte die Datei des unterschriebenen Vertrags auswählen."];
+            return;
+        }
+
+        await using var content = signedFile.Open();
+        var result = await Contracts.ConcludeAsync(contractId, signedData, signedFile.Name, content);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            signing = null;
+            rows = await Contracts.ListAsync(Id);
+            Notify.Success("Der unterschriebene Vertrag wurde abgelegt.");
+        }
+    }
+
+    private async Task WithdrawAsync(ContractRow row)
+    {
+        if (!await Confirm.AskAsync("Entwurf verwerfen", "Der Entwurf wird als verworfen markiert. Die PDF-Datei bleibt erhalten.", "Ja, verwerfen"))
+        {
+            return;
+        }
+
+        var result = await Contracts.WithdrawAsync(row.Id);
+        errors = result.Succeeded ? null : result.Errors;
+        rows = await Contracts.ListAsync(Id);
+        if (signing == row.Id)
+        {
+            signing = null;
+        }
+    }
+}

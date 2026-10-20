@@ -2165,6 +2165,90 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("leases", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Leases.LeaseContract", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("CreatedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("created_on");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("DraftFileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("draft_file_id");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid?>("SignedDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("signed_document_id");
+
+                    b.Property<DateOnly?>("SignedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("signed_on");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TemplateRevisionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_revision_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lease_contracts");
+
+                    b.HasIndex("DraftFileId")
+                        .HasDatabaseName("ix_lease_contracts_draft_file_id");
+
+                    b.HasIndex("LeaseId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_lease_contracts_open_draft")
+                        .HasFilter("status = 'Draft' AND NOT deleted");
+
+                    b.HasIndex("SignedDocumentId")
+                        .HasDatabaseName("ix_lease_contracts_signed_document_id");
+
+                    b.HasIndex("TemplateRevisionId")
+                        .HasDatabaseName("ix_lease_contracts_template_revision_id");
+
+                    b.ToTable("lease_contracts", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Leases.LeaseParty", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3328,6 +3412,11 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("furnishing");
+
+                    b.Property<string>("FurnishingList")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("furnishing_list");
 
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")
@@ -5631,6 +5720,36 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_leases_unit_unit_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Leases.LeaseContract", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("DraftFileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_lease_contracts_stored_file_draft_file_id");
+
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_lease_contracts_leases_lease_id");
+
+                    b.HasOne("MietHahn.Domain.Documents.Document", null)
+                        .WithMany()
+                        .HasForeignKey("SignedDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_lease_contracts_documents_signed_document_id");
+
+                    b.HasOne("MietHahn.Domain.Documents.DocumentTemplateRevision", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_lease_contracts_document_template_revisions_template_revisi");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Leases.LeaseParty", b =>
