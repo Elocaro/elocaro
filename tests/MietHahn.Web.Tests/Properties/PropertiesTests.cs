@@ -126,13 +126,11 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
         var (caretaker, caretakerId) = await SignedInAsAsync(Roles.Caretaker);
         using var __ = caretaker;
 
-        // Assignment via user management
+        // Assignment (the page itself is covered by the browser tests); the account page lists the properties to choose from
         var account = await admin.GetAsync($"/verwaltung/benutzer/{caretakerId}");
         Assert.Contains("Betreute Objekte", account.Text, StringComparison.Ordinal);
-        account = await admin.SubmitAsync(account, "properties", new Dictionary<string, string> { ["PropertiesInput.Options"] = idA.ToString() });
-        Assert.Contains("Die betreuten Objekte wurden gespeichert.", account.Text, StringComparison.Ordinal);
-        Assert.True(account.Document.QuerySelector($"#property-{idA}")!.HasAttribute("checked"));
-        Assert.False(account.Document.QuerySelector($"#property-{idB}")!.HasAttribute("checked"));
+        Assert.True((await App.WithScopeAsync(sp => sp.GetRequiredService<IPropertyAssignments>().SetAsync(caretakerId, [idA], TestContext.Current.CancellationToken))).Succeeded);
+        Assert.Equal([idA], await App.WithScopeAsync(sp => sp.GetRequiredService<IPropertyAssignments>().PropertiesOfAsync(caretakerId, TestContext.Current.CancellationToken)));
 
         var list = await caretaker.GetAsync("/service/objekte");
         Assert.Contains("Lindenweg 3", list.Text, StringComparison.Ordinal);

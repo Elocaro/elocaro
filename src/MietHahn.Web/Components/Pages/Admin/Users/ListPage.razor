@@ -1,104 +1,84 @@
 @page "/verwaltung/benutzer"
+@rendermode InteractiveServer
+@using MudBlazor
 @using System.ComponentModel.DataAnnotations
 @inject IUserManagementService Admin
 @inject IAccountService Accounts
+@inject Notifier Notify
 
-<PageHeader Title="Benutzer" Subtitle="Wer Zugang zu MietHahn hat – Verwaltung, Hausmeister, Handwerker und Mieter." />
+<InteractiveShell>
+    <PageHeader Title="Benutzer" Subtitle="Wer Zugang zu MietHahn hat – Verwaltung, Hausmeister, Handwerker und Mieter." />
 
-<StatusMessage />
-<StatusMessage Message="@message" />
-<ErrorList Errors="errors" />
+    <ErrorList Errors="errors" />
 
-<section>
-    <h2>Person einladen</h2>
-    <EditForm Model="Invitation" FormName="invite" OnValidSubmit="InviteAsync" class="form-grid">
-        <DataAnnotationsValidator />
-        <FormField Id="name" Label="Name" For="() => Invitation!.DisplayName" Required="true">
-            <InputText id="name" @bind-Value="Invitation!.DisplayName" autocomplete="off" />
-        </FormField>
-        <FormField Id="email" Label="E-Mail-Adresse" For="() => Invitation!.Email" Required="true">
-            <InputText id="email" type="email" @bind-Value="Invitation!.Email" autocomplete="off" />
-        </FormField>
-        <FormField Id="role" Label="Rolle" For="() => Invitation!.Role">
-            <InputSelect id="role" @bind-Value="Invitation!.Role">
-                @foreach (var role in Roles.All)
-                {
-                    <option value="@role">@Roles.DisplayName(role)</option>
-                }
-            </InputSelect>
-        </FormField>
-        <div class="field field-action">
-            <button type="submit" class="button button-primary">Einladung senden</button>
-        </div>
-    </EditForm>
-</section>
+    <section>
+        <h2>Person einladen</h2>
+        <EditForm Model="invitation" OnValidSubmit="InviteAsync" novalidate class="form-grid">
+            <DataAnnotationsValidator />
+            <AppTextField @bind-Value="invitation.DisplayName" Label="Name" Required="true" />
+            <AppTextField @bind-Value="invitation.Email" Label="E-Mail-Adresse" Type="email" Required="true" />
+            <AppSelect @bind-Value="invitation.Role" Label="Rolle" Items="Roles.All" Text="@(r => Roles.DisplayName(r!))" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Einladung senden</MudButton>
+        </EditForm>
+    </section>
 
-<section>
-    <h2>Konten</h2>
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead>
-                <tr><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Status</th><th>Letzte Anmeldung</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var b in user)
-                {
-                    <tr>
-                        <td><a href="/verwaltung/benutzer/@b.Id">@b.DisplayName</a></td>
-                        <td>@b.Email</td>
-                        <td>@Roles.DisplayName(b.Role)</td>
-                        <td>
-                            @if (b.Locked)
-                            {
-                                <StatusChip Level="StatusLevel.Error">gesperrt</StatusChip>
-                            }
-                            else if (!b.InvitationAccepted)
-                            {
-                                <StatusChip Level="StatusLevel.Warning">eingeladen</StatusChip>
-                            }
-                            else
-                            {
-                                <StatusChip Level="StatusLevel.Success">aktiv</StatusChip>
-                            }
-                            @if (b.TwoFactorEnabled)
-                            {
-                                <StatusChip title="Zwei-Faktor-Anmeldung aktiv">2FA</StatusChip>
-                            }
-                        </td>
-                        <td>@Format.Timestamp(b.LastSignInAt)</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</section>
+    <section>
+        <h2>Konten</h2>
+        <MudTable T="UserOverview" Items="users" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="UserOverview" SortBy="@(u => u.DisplayName)" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel></MudTh>
+                <MudTh>E-Mail</MudTh>
+                <MudTh>Rolle</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Letzte Anmeldung</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name"><a href="/verwaltung/benutzer/@context.Id">@context.DisplayName</a></MudTd>
+                <MudTd DataLabel="E-Mail">@context.Email</MudTd>
+                <MudTd DataLabel="Rolle">@Roles.DisplayName(context.Role)</MudTd>
+                <MudTd DataLabel="Status">
+                    @if (context.Locked)
+                    {
+                        <StatusChip Level="StatusLevel.Error">gesperrt</StatusChip>
+                    }
+                    else if (!context.InvitationAccepted)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">eingeladen</StatusChip>
+                    }
+                    else
+                    {
+                        <StatusChip Level="StatusLevel.Success">aktiv</StatusChip>
+                    }
+                    @if (context.TwoFactorEnabled)
+                    {
+                        <StatusChip title="Zwei-Faktor-Anmeldung aktiv">2FA</StatusChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Letzte Anmeldung">@Format.Timestamp(context.LastSignInAt)</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+            </PagerContent>
+        </MudTable>
+    </section>
+</InteractiveShell>
 
 @code {
-    private IReadOnlyList<UserOverview> user = [];
-    private string? message;
+    private IReadOnlyList<UserOverview> users = [];
     private IReadOnlyList<string>? errors;
+    private InvitationInput invitation = new();
 
-    [SupplyParameterFromForm(FormName = "invite")]
-    private InvitationInput? Invitation { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        Invitation ??= new();
-        user = await Admin.ListAsync();
-    }
+    protected override async Task OnInitializedAsync() => users = await Admin.ListAsync();
 
     private async Task InviteAsync()
     {
-        var result = await Accounts.InviteAsync(Invitation!.Email.Trim(), Invitation.DisplayName.Trim(), Invitation.Role);
+        var result = await Accounts.InviteAsync(invitation.Email.Trim(), invitation.DisplayName.Trim(), invitation.Role);
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            message = $"Die Einladung an {Invitation.Email} wurde verschickt.";
-            Invitation = new();
-            user = await Admin.ListAsync();
-        }
-        else
-        {
-            errors = result.Errors;
+            Notify.Success($"Die Einladung an {invitation.Email} wurde verschickt.");
+            invitation = new();
+            users = await Admin.ListAsync();
         }
     }
 

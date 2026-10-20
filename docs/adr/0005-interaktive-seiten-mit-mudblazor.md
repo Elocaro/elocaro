@@ -14,6 +14,7 @@ ADR 0001 sah Interactive Server nur für Einzelfälle vor. Das Frontend soll abe
 - **MudBlazor** liefert die interaktiven Bausteine (Tabellen, Dialoge, Snackbar, Auswahl, Datepicker, Diagramme). Es wird mit dem Theme `M3Theme` an das Design nach ADR 0004 angepasst.
 - **Seiten dürfen `Mud*`-Komponenten direkt verwenden.** Es gibt keine Wrapper-Schicht auf Vorrat. Eigene Komponenten entstehen dort, wo MudBlazor etwas nicht oder schlecht kann. Sie haben **keine MudBlazor-Typen in ihrer Schnittstelle** (einfache Parameter, `EventCallback`s), damit sie sich später austauschen lassen. Beispiele: `InteractiveShell` (Rahmen mit Providern und Hell/Dunkel), `Notifier` (Rückmeldungen).
 - Static-SSR-Seiten behalten ihre Bausteine aus `docs/ui.md`.
+- **Interaktiv wird, was Eingaben oder Live-Verhalten hat.** Reine Anzeigeseiten (z. B. Hintergrundjobs, Datensicherung, Belegauslesung, Dashboard) bleiben statisch: schneller, ohne Verbindung pro Tab.
 
 ## Folgen für die Technik
 

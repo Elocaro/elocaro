@@ -8,22 +8,21 @@ namespace MietHahn.Web.Tests.AccessControl;
 
 public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(postgres)
 {
+    // Account changes go through the service; operating the interactive pages is covered by the browser tests (UiTests).
+    private Task<AccountResult> UsersAsync(Func<IUserManagementService, CancellationToken, Task<AccountResult>> action) =>
+        App.WithScopeAsync(sp => action(sp.GetRequiredService<IUserManagementService>(), TestContext.Current.CancellationToken));
+
     [Fact]
-    public async Task Admin_invites_via_the_UI()
+    public async Task Invited_account_is_listed_as_invited_and_a_mail_is_queued()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
-        var list = await admin.GetAsync("/verwaltung/benutzer");
-        var result = await admin.SubmitAsync(list, "invite", new Dictionary<string, string>
-        {
-            ["Invitation.DisplayName"] = "Erika Mustermann",
-            ["Invitation.Email"] = "erika@example.de",
-            ["Invitation.Role"] = Roles.Tenant,
-        });
+        var invited = await App.WithScopeAsync(sp => sp.GetRequiredService<IAccountService>().InviteAsync("erika@example.de", "Erika Mustermann", Roles.Tenant, TestContext.Current.CancellationToken));
+        Assert.True(invited.Succeeded);
 
-        Assert.Contains("Die Einladung an erika@example.de wurde verschickt.", result.Text, StringComparison.Ordinal);
-        var line = result.Document.QuerySelectorAll("tbody tr").Single(z => z.TextContent.Contains("erika@example.de", StringComparison.Ordinal));
+        var list = await admin.GetAsync("/verwaltung/benutzer");
+        var line = list.Document.QuerySelectorAll("tbody tr").Single(z => z.TextContent.Contains("erika@example.de", StringComparison.Ordinal));
         Assert.Contains("Mieter", line.TextContent, StringComparison.Ordinal);
         Assert.Contains("eingeladen", line.TextContent, StringComparison.Ordinal);
         Assert.NotNull(await LastMailToAsync("erika@example.de"));
@@ -38,15 +37,13 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
         using var m = tenant;
         Assert.Equal(HttpStatusCode.OK, (await tenant.GetAsync("/portal")).Status);
 
-        var details = await admin.GetAsync($"/verwaltung/benutzer/{tenantId}");
-        var locked = await admin.SubmitAsync(details, "lock");
-        Assert.Contains("Das Konto wurde gesperrt.", locked.Text, StringComparison.Ordinal);
+        Assert.True((await UsersAsync((users, ct) => users.LockAsync(tenantId, ct))).Succeeded);
 
         var after = await tenant.GetAsync("/portal", followRedirects: false);
         Assert.Equal("/konto/anmelden", after.RedirectLocation!.AbsolutePath);
+        Assert.Contains("gesperrt", (await admin.GetAsync($"/verwaltung/benutzer/{tenantId}")).Text, StringComparison.Ordinal);
 
-        var unlocked = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/benutzer/{tenantId}"), "lock");
-        Assert.Contains("Das Konto wurde entsperrt.", unlocked.Text, StringComparison.Ordinal);
+        Assert.True((await UsersAsync((users, ct) => users.UnlockAsync(tenantId, ct))).Succeeded);
     }
 
     [Fact]
@@ -58,17 +55,7 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
         using var v = manager;
         Assert.Equal(HttpStatusCode.Redirect, (await manager.GetAsync("/verwaltung/benutzer", followRedirects: false)).Status);
 
-        var details = await admin.GetAsync($"/verwaltung/benutzer/{managerId}");
-        var form = details.Form("permissions");
-        using var content = new FormUrlEncodedContent(
-        [
-            new("_handler", "permissions"),
-            new("__RequestVerificationToken", form.QuerySelector("input[name=__RequestVerificationToken]")!.GetAttribute("value")!),
-            new("PermissionsInput.Options", nameof(AccessRight.MasterData)),
-            new("PermissionsInput.Options", nameof(AccessRight.UserManagement)),
-        ]);
-        using var response = await admin.Http.PostAsync(details.Url, content, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.True((await UsersAsync((users, ct) => users.SetPermissionsAsync(managerId, [AccessRight.MasterData, AccessRight.UserManagement], ct))).Succeeded);
 
         Assert.Equal(HttpStatusCode.OK, (await manager.GetAsync("/verwaltung/benutzer", followRedirects: false)).Status);
 
@@ -76,8 +63,7 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
         Assert.Contains(history.SelectMany(h => h.Changes), f => f is { Field: "Permissions", Old: "MasterData, Finance", New: "MasterData, UserManagement" });
 
         // Role change to tenant: no more access to the administration.
-        var byRole = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/benutzer/{managerId}"), "role", new Dictionary<string, string> { ["RoleInput.Role"] = Roles.Tenant });
-        Assert.Contains("Die Rolle wurde geändert.", byRole.Text, StringComparison.Ordinal);
+        Assert.True((await UsersAsync((users, ct) => users.ChangeRoleAsync(managerId, Roles.Tenant, ct))).Succeeded);
         Assert.Equal("/konto/zugriff-verweigert", (await manager.GetAsync("/verwaltung", followRedirects: false)).RedirectLocation!.AbsolutePath);
     }
 
@@ -87,13 +73,10 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
         var (admin, adminId) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
-        var result = await admin.SubmitAsync(await admin.GetAsync($"/verwaltung/benutzer/{adminId}"), "role", new Dictionary<string, string> { ["RoleInput.Role"] = Roles.Manager });
-
-        Assert.Contains("Der letzte aktive Administrator kann seine Rolle nicht abgeben.", result.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Konto sperren", result.Text, StringComparison.Ordinal); // own account: do not offer locking
-
-        var lockout = await App.WithScopeAsync(sp => sp.GetRequiredService<IUserManagementService>().LockAsync(adminId, TestContext.Current.CancellationToken));
-        Assert.False(lockout.Succeeded);
+        var demote = await UsersAsync((users, ct) => users.ChangeRoleAsync(adminId, Roles.Manager, ct));
+        Assert.False(demote.Succeeded);
+        Assert.Contains("Der letzte aktive Administrator kann seine Rolle nicht abgeben.", string.Join(" ", demote.Errors), StringComparison.Ordinal);
+        Assert.False((await UsersAsync((users, ct) => users.LockAsync(adminId, ct))).Succeeded);
     }
 
     [Fact]
@@ -103,8 +86,6 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
         var (second, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = second;
 
-        var result = await second.SubmitAsync(await second.GetAsync($"/verwaltung/benutzer/{firstId}"), "lock");
-
-        Assert.Contains("Das Konto wurde gesperrt.", result.Text, StringComparison.Ordinal);
+        Assert.True((await UsersAsync((users, ct) => users.LockAsync(firstId, ct))).Succeeded);
     }
 }

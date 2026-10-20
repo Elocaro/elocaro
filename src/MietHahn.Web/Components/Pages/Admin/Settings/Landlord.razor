@@ -1,85 +1,60 @@
 @page "/verwaltung/einstellungen/vermieter"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Admin
 @inject ILandlordProfileService Profile
-@inject Redirector Redirector
+@inject Notifier Notify
 
-<PageHeader Title="Vermieter" Subtitle="Absenderangaben für Briefkopf, Fußzeile und Zahlungshinweise in Dokumenten." />
+<InteractiveShell>
+    <PageHeader Title="Vermieter" Subtitle="Absenderangaben für Briefkopf, Fußzeile und Zahlungshinweise in Dokumenten." />
 
-<StatusMessage />
-@if (newItem)
-{
-    <Notice Level="NoticeLevel.Info">Noch kein Vermieterprofil hinterlegt – ohne diese Angaben können keine Dokumente erzeugt werden.</Notice>
-}
+    @if (newItem)
+    {
+        <Notice Level="NoticeLevel.Info">Noch kein Vermieterprofil hinterlegt – ohne diese Angaben können keine Dokumente erzeugt werden.</Notice>
+    }
 
-<EditForm Model="Data" FormName="landlord" OnValidSubmit="SaveAsync">
-    <DataAnnotationsValidator />
-    <div class="form-grid">
-        <FormField Id="name" Label="Name" For="() => Data!.Name" Required="true">
-            <InputText id="name" @bind-Value="Data!.Name" autocomplete="name" />
-        </FormField>
-        <FormField Id="supplement" Label="Zusatz" For="() => Data!.AddressLine2" Hint="z. B. „Hausverwaltung Hauptstraße 5“">
-            <InputText id="supplement" @bind-Value="Data!.AddressLine2" />
-        </FormField>
-        <FormField Id="street" Label="Straße und Hausnummer" For="() => Data!.Street" Required="true">
-            <InputText id="street" @bind-Value="Data!.Street" autocomplete="street-address" />
-        </FormField>
-        <FormField Id="postal-code" Label="PLZ" For="() => Data!.PostalCode" Required="true">
-            <InputText id="postal-code" @bind-Value="Data!.PostalCode" inputmode="numeric" autocomplete="postal-code" />
-        </FormField>
-        <FormField Id="city" Label="Ort" For="() => Data!.City" Required="true">
-            <InputText id="city" @bind-Value="Data!.City" autocomplete="address-level2" />
-        </FormField>
-        <FormField Id="phone" Label="Telefon" For="() => Data!.Phone">
-            <InputText id="phone" type="tel" @bind-Value="Data!.Phone" autocomplete="tel" />
-        </FormField>
-        <FormField Id="email" Label="E-Mail" For="() => Data!.Email">
-            <InputText id="email" type="email" @bind-Value="Data!.Email" autocomplete="email" />
-        </FormField>
-    </div>
+    @if (data is not null)
+    {
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Name" Label="Name" Required="true" Autocomplete="name" />
+                <AppTextField @bind-Value="data.AddressLine2" Label="Zusatz" Hint="z. B. „Hausverwaltung Hauptstraße 5“" />
+                <AppTextField @bind-Value="data.Street" Label="Straße und Hausnummer" Required="true" Autocomplete="street-address" />
+                <AppTextField @bind-Value="data.PostalCode" Label="PLZ" Required="true" Autocomplete="postal-code" />
+                <AppTextField @bind-Value="data.City" Label="Ort" Required="true" Autocomplete="address-level2" />
+                <AppTextField @bind-Value="data.Phone" Label="Telefon" Type="tel" Autocomplete="tel" />
+                <AppTextField @bind-Value="data.Email" Label="E-Mail" Type="email" Autocomplete="email" />
+            </div>
 
-    <h2>Bankverbindung &amp; Steuer</h2>
-    <div class="form-grid">
-        <FormField Id="iban" Label="IBAN" For="() => Data!.Iban" Hint="Erscheint in der Fußzeile und in Zahlungsaufforderungen.">
-            <InputText id="iban" @bind-Value="Data!.Iban" autocomplete="off" />
-        </FormField>
-        <FormField Id="bic" Label="BIC" For="() => Data!.Bic">
-            <InputText id="bic" @bind-Value="Data!.Bic" autocomplete="off" />
-        </FormField>
-        <FormField Id="bank" Label="Bank" For="() => Data!.Bank">
-            <InputText id="bank" @bind-Value="Data!.Bank" />
-        </FormField>
-        <FormField Id="tax-number" Label="Steuernummer" For="() => Data!.TaxNumber">
-            <InputText id="tax-number" @bind-Value="Data!.TaxNumber" />
-        </FormField>
-    </div>
+            <h2>Bankverbindung &amp; Steuer</h2>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Iban" Label="IBAN" Hint="Erscheint in der Fußzeile und in Zahlungsaufforderungen." />
+                <AppTextField @bind-Value="data.Bic" Label="BIC" />
+                <AppTextField @bind-Value="data.Bank" Label="Bank" />
+                <AppTextField @bind-Value="data.TaxNumber" Label="Steuernummer" />
+            </div>
 
-    <button type="submit" class="button button-primary">Speichern</button>
-</EditForm>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
 
 @code {
     private bool newItem;
-
-    [SupplyParameterFromForm(FormName = "landlord")]
-    private LandlordProfileInput? Data { get; set; }
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private LandlordProfileInput? data;
 
     protected override async Task OnInitializedAsync()
     {
-        if (Data is null)
-        {
-            // Set the model synchronously: Blazor already renders once before the first await.
-            Data = new();
-            var loaded = await Profile.GetAsync();
-            newItem = loaded is null;
-            Data = loaded ?? Data;
-        }
+        var loaded = await Profile.GetAsync();
+        newItem = loaded is null;
+        data = loaded ?? new();
     }
 
     private async Task SaveAsync()
     {
-        await Profile.SaveAsync(Data!);
-        Redirector.RedirectWithMessage("/verwaltung/einstellungen/vermieter", "Die Vermieterangaben wurden gespeichert.", HttpContext);
+        await Profile.SaveAsync(data!);
+        newItem = false;
+        Notify.Success("Die Vermieterangaben wurden gespeichert.");
     }
 }

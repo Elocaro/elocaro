@@ -1,3 +1,5 @@
+using Microsoft.Playwright;
+
 namespace MietHahn.Web.Tests.Browser;
 
 public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
@@ -49,18 +51,18 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     }
 
     [Fact]
-    public async Task Forms_work_with_enhanced_forms_in_the_browser()
+    public async Task Interactive_form_invites_a_user_and_updates_the_list()
     {
         var page = await SignedInAsAdminAsync();
-        await page.GotoAsync(BaseUrl + "/verwaltung/benutzer");
+        await GotoInteractiveAsync(page, "/verwaltung/benutzer");
 
-        await page.FillAsync("#name", "Erika Mustermann");
-        await page.FillAsync("#email", "erika@example.de");
-        await page.SelectOptionAsync("#role", "Tenant");
-        await page.ClickAsync("text=Einladung senden");
+        await page.GetByLabel("Name", new() { Exact = true }).FillAsync("Erika Mustermann");
+        await page.GetByLabel("E-Mail-Adresse").FillAsync("erika@example.de");
+        await SelectAsync(page, "Rolle", "Mieter");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Einladung senden" }).ClickAsync();
 
-        await page.WaitForSelectorAsync(".message-success:has-text('erika@example.de')");
-        Assert.Contains("Erika Mustermann", await page.TextContentAsync("table.data-table"), StringComparison.Ordinal);
+        await ExpectSnackbarAsync(page, "erika@example.de");
+        await Assertions.Expect(page.Locator("tbody")).ToContainTextAsync("Erika Mustermann");
     }
 
     [Fact]
@@ -82,20 +84,25 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         var page = await SignedInAsAdminAsync();
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.GotoAsync(BaseUrl + "/verwaltung/benutzer");
-            await page.FillAsync("#name", "Mieter Test");
-            await page.FillAsync("#email", "m@example.de");
-            await page.ClickAsync("text=Einladung senden");
-            await page.WaitForSelectorAsync(".message-success:has-text('m@example.de')");
+            await GotoInteractiveAsync(page, "/verwaltung/benutzer");
+            await page.GetByLabel("Name", new() { Exact = true }).FillAsync("Mieter Test");
+            await page.GetByLabel("E-Mail-Adresse").FillAsync("m@example.de");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Einladung senden" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "m@example.de");
 
-            await page.ClickAsync("table.data-table a:text-is('Mieter Test')");
+            await page.GetByRole(AriaRole.Link, new() { Name = "Mieter Test" }).ClickAsync();
             await page.WaitForSelectorAsync("h1:text-is('Mieter Test')");
+            await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
-            Assert.False(await page.IsVisibleAsync("text=Ja, Konto sperren"));
-            await page.ClickAsync("summary:has-text('Konto sperren')");
-            await page.ClickAsync("button:has-text('Ja, Konto sperren')");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Konto sperren" }).ClickAsync();
+            var box = page.Locator(".mud-message-box");
+            await box.GetByRole(AriaRole.Button, new() { Name = "Abbrechen" }).ClickAsync();
+            await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Konto entsperren" })).ToHaveCountAsync(0);
 
-            await page.WaitForSelectorAsync(".message-success:has-text('Das Konto wurde gesperrt.')");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Konto sperren" }).ClickAsync();
+            await box.GetByRole(AriaRole.Button, new() { Name = "Ja, Konto sperren" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "Das Konto wurde gesperrt.");
+            await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Konto entsperren" })).ToBeVisibleAsync();
         });
     }
 }

@@ -1,4 +1,6 @@
 @page "/verwaltung/benutzer/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @using Microsoft.AspNetCore.Identity
 @using MietHahn.Infrastructure.Identity
 @using MietHahn.Application.Properties
@@ -6,17 +8,22 @@
 @inject IPropertyService Properties
 @inject IPropertyAssignments Assignments
 @inject UserManager<ApplicationUser> UserManager
-@inject Redirector Redirector
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (user is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (user is null)
 {
     <PageHeader Title="Konto nicht gefunden" Back="/verwaltung/benutzer" BackText="Alle Benutzer" />
-    return;
 }
-
+else
+{
 <PageHeader Title="@user.DisplayName" Subtitle="@Roles.DisplayName(user.Role)" Back="/verwaltung/benutzer" BackText="Alle Benutzer" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 <dl class="details">
@@ -30,31 +37,21 @@
 
 <section>
     <h2>Rolle</h2>
-    <EditForm Model="RoleInput" FormName="role" OnSubmit="ChangeRoleAsync" class="form-row">
-        <InputSelect id="role" @bind-Value="RoleInput!.Role" aria-label="Rolle">
-            @foreach (var role in Roles.All)
-            {
-                <option value="@role">@Roles.DisplayName(role)</option>
-            }
-        </InputSelect>
-        <button type="submit" class="button button-primary">Rolle ändern</button>
-    </EditForm>
+    <div class="form-row">
+        <AppSelect T="string" Value="role" ValueChanged="@(r => role = r!)" Label="Rolle" Items="Roles.All" Text="@(r => Roles.DisplayName(r!))" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeRoleAsync">Rolle ändern</MudButton>
+    </div>
 </section>
 
 @if (user.Role == Roles.Manager)
 {
     <section>
         <h2>Rechte</h2>
-        <EditForm Model="PermissionsInput" FormName="permissions" OnSubmit="SetPermissionsAsync">
-            @foreach (var permission in Permissions.All)
-            {
-                <div class="field field-checkbox">
-                    <input type="checkbox" id="permission-@permission" name="PermissionsInput.Options" value="@permission" checked="@user.Permissions.Contains(permission)" />
-                    <label for="permission-@permission">@Permissions.DisplayName(permission)</label>
-                </div>
-            }
-            <button type="submit" class="button button-primary">Rechte speichern</button>
-        </EditForm>
+        @foreach (var permission in Permissions.All)
+        {
+            <AppCheckBox Value="permissionSelection.Contains(permission)" ValueChanged="@(on => Toggle(permissionSelection, permission, on))" Label="@Permissions.DisplayName(permission)" />
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SetPermissionsAsync">Rechte speichern</MudButton>
     </section>
 }
 
@@ -68,16 +65,11 @@
         }
         else
         {
-            <EditForm Model="PropertiesInput" FormName="properties" OnSubmit="SetPropertiesAsync">
-                @foreach (var property in allProperties)
-                {
-                    <div class="field field-checkbox">
-                        <input type="checkbox" id="property-@property.Id" name="PropertiesInput.Options" value="@property.Id" checked="@assigned.Contains(property.Id)" />
-                        <label for="property-@property.Id">@property.Name <span class="small">@property.Address</span></label>
-                    </div>
-                }
-                <button type="submit" class="button button-primary">Objekte speichern</button>
-            </EditForm>
+            @foreach (var property in allProperties)
+            {
+                <AppCheckBox Value="propertySelection.Contains(property.Id)" ValueChanged="@(on => Toggle(propertySelection, property.Id, on))" Label="@($"{property.Name} ({property.Address})")" />
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SetPropertiesAsync">Objekte speichern</MudButton>
             <p class="small">Hausmeister sehen nur diese Objekte (ohne Mieterdaten).</p>
         }
     </section>
@@ -89,110 +81,107 @@
         <h2>Zugang</h2>
         @if (user.Locked)
         {
-            <form method="post" @formname="lock" @onsubmit="ToggleLockAsync">
-                <AntiforgeryToken />
-                <button type="submit" class="button button-primary">Konto entsperren</button>
-            </form>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ToggleLockAsync">Konto entsperren</MudButton>
         }
         else
         {
-            <DangerAction Text="Konto sperren" FormName="lock" Confirmed="ToggleLockAsync"
-                            Confirmation="Das Konto wird sofort abgemeldet und kann sich nicht mehr anmelden. Fortfahren?"
-                            ConfirmText="Ja, Konto sperren" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ToggleLockAsync">Konto sperren</MudButton>
         }
     </section>
 }
 
 <ChangeHistory EntityType="ApplicationUser" EntityId="Id" />
+}
+</InteractiveShell>
 
 @code {
     private UserOverview? user;
     private bool isOwnAccount;
+    private bool loaded;
     private IReadOnlyList<string>? errors;
+    private string role = Roles.Tenant;
+    private readonly HashSet<AccessRight> permissionSelection = [];
+    private readonly HashSet<Guid> propertySelection = [];
+    private IReadOnlyList<PropertyOverview> allProperties = [];
 
     [Parameter]
     public Guid Id { get; set; }
 
     [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "role")]
-    private RoleModel? RoleInput { get; set; }
-
-    [SupplyParameterFromForm(FormName = "permissions")]
-    private PermissionsModel? PermissionsInput { get; set; }
-
-    [SupplyParameterFromForm(FormName = "properties")]
-    private PropertiesModel? PropertiesInput { get; set; }
-
-    private IReadOnlyList<PropertyOverview> allProperties = [];
-    private IReadOnlyList<Guid> assigned = [];
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        user = await Admin.GetAsync(Id);
-        RoleInput ??= new() { Role = user?.Role ?? Roles.Tenant };
-        PermissionsInput ??= new();
-        PropertiesInput ??= new();
-        if (user?.Role == Roles.Caretaker)
-        {
-            allProperties = await Properties.ListAsync();
-            assigned = await Assignments.PropertiesOfAsync(Id);
-        }
-
-        isOwnAccount = UserManager.GetUserId(HttpContext.User) == Id.ToString();
+        var principal = (await Authentication).User;
+        isOwnAccount = UserManager.GetUserId(principal) == Id.ToString();
+        await LoadAsync();
     }
 
-    private async Task ChangeRoleAsync() =>
-        await ExecuteAsync(Admin.ChangeRoleAsync(Id, RoleInput!.Role), "Die Rolle wurde geändert.");
-
-    private async Task SetPermissionsAsync() =>
-        await ExecuteAsync(Admin.SetPermissionsAsync(Id, PermissionsInput!.Options), "Die Rechte wurden gespeichert.");
-
-    private async Task SetPropertiesAsync()
+    private async Task LoadAsync()
     {
-        var result = await Assignments.SetAsync(Id, PropertiesInput!.Options);
-        if (result.Succeeded)
+        user = await Admin.GetAsync(Id);
+        if (user is not null)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/benutzer/{Id}", "Die betreuten Objekte wurden gespeichert.", HttpContext);
+            role = user.Role;
+            permissionSelection.Clear();
+            permissionSelection.UnionWith(user.Permissions);
+            if (user.Role == Roles.Caretaker)
+            {
+                allProperties = await Properties.ListAsync();
+                propertySelection.Clear();
+                propertySelection.UnionWith(await Assignments.PropertiesOfAsync(Id));
+            }
+        }
+
+        loaded = true;
+    }
+
+    private static void Toggle<T>(HashSet<T> selection, T item, bool on)
+    {
+        if (on)
+        {
+            selection.Add(item);
         }
         else
         {
-            errors = result.Errors;
+            selection.Remove(item);
         }
     }
 
-    private async Task ToggleLockAsync() =>
-        await ExecuteAsync(
-            user!.Locked ? Admin.UnlockAsync(Id) : Admin.LockAsync(Id),
-            user.Locked ? "Das Konto wurde entsperrt." : "Das Konto wurde gesperrt.");
+    private async Task ChangeRoleAsync() => await ExecuteAsync(Admin.ChangeRoleAsync(Id, role), "Die Rolle wurde geändert.");
+
+    private async Task SetPermissionsAsync() => await ExecuteAsync(Admin.SetPermissionsAsync(Id, permissionSelection.ToList()), "Die Rechte wurden gespeichert.");
+
+    private async Task SetPropertiesAsync()
+    {
+        var result = await Assignments.SetAsync(Id, propertySelection.ToList());
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die betreuten Objekte wurden gespeichert.");
+        }
+    }
+
+    private async Task ToggleLockAsync()
+    {
+        if (!user!.Locked
+            && !await Confirm.AskAsync("Konto sperren", "Das Konto wird sofort abgemeldet und kann sich nicht mehr anmelden. Fortfahren?", "Ja, Konto sperren"))
+        {
+            return;
+        }
+
+        await ExecuteAsync(user.Locked ? Admin.UnlockAsync(Id) : Admin.LockAsync(Id), user.Locked ? "Das Konto wurde entsperrt." : "Das Konto wurde gesperrt.");
+    }
 
     private async Task ExecuteAsync(Task<AccountResult> action, string success)
     {
         var result = await action;
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/benutzer/{Id}", success, HttpContext);
+            Notify.Success(success);
         }
-        else
-        {
-            errors = result.Errors;
-            user = await Admin.GetAsync(Id);
-        }
-    }
 
-    private sealed class RoleModel
-    {
-        public string Role { get; set; } = Roles.Tenant;
-    }
-
-    private sealed class PermissionsModel
-    {
-        public List<AccessRight> Options { get; set; } = [];
-    }
-
-    private sealed class PropertiesModel
-    {
-        public List<Guid> Options { get; set; } = [];
+        await LoadAsync();
     }
 }
