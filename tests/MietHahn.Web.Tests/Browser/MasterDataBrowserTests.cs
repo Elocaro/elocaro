@@ -123,12 +123,12 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         var duration = System.Diagnostics.Stopwatch.StartNew();
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.GotoAsync(BaseUrl + $"/verwaltung/objekte/{property}/ablesung");
+            await GotoInteractiveAsync(page, $"/verwaltung/objekte/{property}/ablesung");
             for (var i = 0; i < meterIds.Count; i++)
             {
                 await page.WaitForSelectorAsync($"text=Zähler {i + 1} von {meterIds.Count}");
                 await NoHorizontalScrollAsync(page);
-                await page.FillAsync("#reading-value", (110 + i).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                await page.GetByLabel("Zählerstand").FillAsync((110 + i).ToString(System.Globalization.CultureInfo.InvariantCulture));
                 await page.ClickAsync("button:has-text('Speichern & weiter')");
             }
 

@@ -1,127 +1,120 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/zaehler"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IMeterService Admin
 @inject IPropertyService Properties
-@inject Redirector Redirector
 @inject TimeProvider Clock
+@inject Notifier Notify
 
-@if (property is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (property is null)
 {
     <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
-}
-
-<PageHeader Title="Zähler" Subtitle="@property.Data.Name" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name">
-    <Actions>
-        @if (meter.Count > 0)
-        {
-            <a class="button button-primary" href="/verwaltung/objekte/@PropertyId/ablesung">Ablese-Runde starten</a>
-        }
-    </Actions>
-</PageHeader>
-
-<StatusMessage />
-<ErrorList Errors="errors" />
-
-@if (meter.Count == 0)
-{
-    <EmptyState Text="Noch keine Zähler. Lege Hauptzähler, Wohnungszähler und Allgemeinstrom an." />
 }
 else
 {
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead><tr><th>Zähler</th><th>Zuordnung</th><th class="number">Letzter Stand</th><th>Eichfrist</th></tr></thead>
-            <tbody>
-                @foreach (var z in meter)
-                {
-                    <tr>
-                        <td>
-                            <a href="/verwaltung/zaehler/@z.Id">@z.Name</a>
-                            <span class="small">@Labels.From(z.Type) · @z.Number@(z.MainMeterId is not null ? " · Unterzähler" : "")</span>
-                        </td>
-                        <td>@z.Assignment</td>
-                        <td class="number">@Format.Quantity(z.LastReading?.Value, Labels.From(z.MeasurementUnit))<br /><span class="small">@Format.Date(z.LastReading?.Date)</span></td>
-                        <td>
-                            @if (z.CalibrationDueDate is { } deadline)
-                            {
-                                <span class="@(deadline < today ? "status status-error" : deadline <= today.AddDays(90) ? "status status-pending" : "")">@Format.Date(deadline)</span>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+    <PageHeader Title="Zähler" Subtitle="@property.Data.Name" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name">
+        <Actions>
+            @if (meter.Count > 0)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/ablesung")">Ablese-Runde starten</MudButton>
+            }
+        </Actions>
+    </PageHeader>
 
-<section>
-    <details class="disclosure" open="@(meter.Count == 0)">
-        <summary>Zähler hinzufügen</summary>
-        <EditForm Model="Data" FormName="meter" OnValidSubmit="CreateAsync">
-            <DataAnnotationsValidator />
-            <MeterFields Data="Data!" Units="property.Units" MainMeter="meter" />
-            <div class="form-grid">
-                <FormField Id="installation" Label="Eingebaut am" For="() => Creation!.InstalledOn" Required="true" Hint="Bei vorhandenen Zählern: Tag der ersten Ablesung">
-                    <InputDate id="installation" @bind-Value="Creation!.InstalledOn" />
-                </FormField>
-                <FormField Id="initial-reading" Label="Stand an diesem Tag" For="() => Creation!.InitialReading" Required="true">
-                    <InputArea id="initial-reading" @bind-Value="Creation!.InitialReading" step="0.001" />
-                </FormField>
-            </div>
-            <button type="submit" class="button button-primary">Zähler anlegen</button>
-        </EditForm>
-    </details>
-</section>
+    <ErrorList Errors="errors" />
+
+    @if (meter.Count == 0)
+    {
+        <EmptyState Text="Noch keine Zähler. Lege Hauptzähler, Wohnungszähler und Allgemeinstrom an." />
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Zähler</th><th>Zuordnung</th><th class="number">Letzter Stand</th><th>Eichfrist</th></tr></thead>
+                <tbody>
+                    @foreach (var z in meter)
+                    {
+                        <tr>
+                            <td>
+                                <a href="/verwaltung/zaehler/@z.Id">@z.Name</a>
+                                <span class="small">@Labels.From(z.Type) · @z.Number@(z.MainMeterId is not null ? " · Unterzähler" : "")</span>
+                            </td>
+                            <td>@z.Assignment</td>
+                            <td class="number">@Format.Quantity(z.LastReading?.Value, Labels.From(z.MeasurementUnit))<br /><span class="small">@Format.Date(z.LastReading?.Date)</span></td>
+                            <td>
+                                @if (z.CalibrationDueDate is { } deadline)
+                                {
+                                    <StatusChip Level="@(deadline < today ? StatusLevel.Error : deadline <= today.AddDays(90) ? StatusLevel.Warning : StatusLevel.Neutral)">@Format.Date(deadline)</StatusChip>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <section>
+        <details class="disclosure" open="@(meter.Count == 0)">
+            <summary>Zähler hinzufügen</summary>
+            <EditForm Model="creation" OnValidSubmit="CreateAsync" novalidate>
+                <DataAnnotationsValidator />
+                <MeterEditor Data="creation.Data" Units="property.Units" MainMeter="meter" />
+                <div class="form-grid">
+                    <AppDateField @bind-Value="creation.InstalledOn" Label="Eingebaut am" Required="true" Hint="Bei vorhandenen Zählern: Tag der ersten Ablesung" />
+                    <AppNumberField T="decimal?" @bind-Value="creation.InitialReading" Label="Stand an diesem Tag" Required="true" />
+                </div>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zähler anlegen</MudButton>
+            </EditForm>
+        </details>
+    </section>
+}
+</InteractiveShell>
 
 @code {
     private PropertyDetails? property;
     private IReadOnlyList<MeterRow> meter = [];
     private IReadOnlyList<string>? errors;
     private DateOnly today;
+    private MeterCreation creation = new();
+    private bool loaded;
 
     [Parameter]
     public Guid PropertyId { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    // One form, two models: Data.* (MeterFields) and Creation.* (installation, initial reading)
-    [SupplyParameterFromForm(FormName = "meter")]
-    private MeterInput? Data { get; set; }
-
-    [SupplyParameterFromForm(FormName = "meter")]
-    private MeterCreation? Creation { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
         today = MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow());
-        Data ??= new();
-        Creation ??= new() { InstalledOn = today };
+        creation = new MeterCreation { InstalledOn = today };
         property = await Properties.GetAsync(PropertyId);
         if (property is not null)
         {
             meter = await Admin.ListAsync(PropertyId);
         }
+
+        loaded = true;
     }
 
     private async Task CreateAsync()
     {
-        if (Creation!.InstalledOn is null || Creation.InitialReading is null)
+        if (creation.InstalledOn is null || creation.InitialReading is null)
         {
             errors = ["Bitte Einbaudatum und Stand angeben."];
-            meter = await Admin.ListAsync(PropertyId);
             return;
         }
 
-        Creation.Data = Data!;
-        var result = await Admin.CreateAsync(PropertyId, Creation);
+        var result = await Admin.CreateAsync(PropertyId, creation);
+        errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/objekte/{PropertyId}/zaehler", "Der Zähler wurde angelegt.", HttpContext);
-        }
-        else
-        {
-            errors = result.Errors;
+            Notify.Success("Der Zähler wurde angelegt.");
+            creation = new MeterCreation { InstalledOn = today };
             meter = await Admin.ListAsync(PropertyId);
         }
     }

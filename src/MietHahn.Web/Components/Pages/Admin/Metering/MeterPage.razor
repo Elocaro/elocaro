@@ -1,20 +1,29 @@
 @page "/verwaltung/zaehler/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
 @inject IMeterService Admin
 @inject IPropertyService Properties
 @inject IFileStore Storage
-@inject Redirector Redirector
+@inject NavigationManager Navigation
 @inject TimeProvider Clock
+@inject Notifier Notify
+@inject Confirmations Confirm
 
-@if (meter is null)
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (meter is null)
 {
     <PageHeader Title="Zähler nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
-    return;
 }
+else
+{
 
 <PageHeader Title="@meter.Meter.Name" Subtitle="@($"{Labels.From(meter.Meter.Type)} · Nr. {meter.Meter.Number} · {meter.Meter.Assignment}")"
             Back="@($"/verwaltung/objekte/{meter.PropertyId}/zaehler")" BackText="@($"Zähler {meter.PropertyName}")" />
 
-<StatusMessage />
 <ErrorList Errors="errors" />
 
 <dl class="details">
@@ -60,40 +69,18 @@
                 </ul>
             </Notice>
         }
-        <EditForm Model="Entry" FormName="entry" OnValidSubmit="RecordReadingAsync" enctype="multipart/form-data">
+        <EditForm Model="entry" OnValidSubmit="RecordReadingAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
-                <FormField Id="entry-date" Label="Datum" For="() => Entry!.Date" Required="true">
-                    <InputDate id="entry-date" @bind-Value="Entry!.Date" />
-                </FormField>
-                <FormField Id="entry-value" Label="@($"Zählerstand ({Labels.From(meter.Meter.MeasurementUnit)})")" For="() => Entry!.Value" Required="true">
-                    <InputArea id="entry-value" @bind-Value="Entry!.Value" step="0.001" />
-                </FormField>
-                <FormField Id="entry-kind" Label="Art" For="() => Entry!.Kind">
-                    <InputSelect id="entry-kind" @bind-Value="Entry!.Kind">
-                        <option value="@ReadingType.Reading">Ablesung</option>
-                        <option value="@ReadingType.InterimReading">Zwischenablesung (z. B. Mieterwechsel)</option>
-                        <option value="@ReadingType.Estimate">Schätzung</option>
-                    </InputSelect>
-                </FormField>
-                <div class="field">
-                    <label for="entry-photo">Foto</label>
-                    <input type="file" id="entry-photo" name="Photo" accept="image/*" capture="environment" />
-                </div>
-                <FormField Id="entry-note" Label="Notiz" For="() => Entry!.Note">
-                    <InputText id="entry-note" @bind-Value="Entry!.Note" />
-                </FormField>
+                <AppDateField @bind-Value="entry.Date" Label="Datum" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="entry.Value" Label="@($"Zählerstand ({Labels.From(meter.Meter.MeasurementUnit)})")" Required="true" />
+                <AppSelect @bind-Value="entry.Kind" Label="Art" Items="kinds" Text="KindText" />
+                <AppTextField @bind-Value="entry.Note" Label="Notiz" />
             </div>
-            @if (warnings is { Count: > 0 })
-            {
-                <input type="hidden" name="Entry.Confirmed" value="true" />
-                <input type="hidden" name="PhotoId" value="@PhotoId" />
-                <button type="submit" class="button button-primary">Trotzdem speichern</button>
-            }
-            else
-            {
-                <button type="submit" class="button button-primary">Stand speichern</button>
-            }
+            <div class="form-row">
+                <AppFileUpload Text="@(photo is null ? "Foto aufnehmen" : "Foto ersetzen")" Accept="image/*" Capture="environment" OnSelected="OnPhotoSelected" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(warnings is { Count: > 0 } ? "Trotzdem speichern" : "Stand speichern")</MudButton>
         </EditForm>
     </section>
 }
@@ -144,8 +131,6 @@
 
 <section>
     <h2>Stände</h2>
-    <form method="post" @formname="entry-remove" @onsubmit="RemoveReadingAsync">
-        <AntiforgeryToken />
         <div class="table-wrapper">
             <table class="data-table">
                 <thead><tr><th>Datum</th><th class="number">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
@@ -170,7 +155,7 @@
                             <td>
                                 @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
                                 {
-                                    <RowConfirm Name="RemoveReadingId" Value="@entry.Id" Label="@($"Stand vom {Format.Date(entry.Date)} entfernen")" Text="Entfernen" ConfirmText="Ja, entfernen" />
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} entfernen")">Entfernen</MudButton>
                                 }
                             </td>
                         </tr>
@@ -178,7 +163,6 @@
                 </tbody>
             </table>
         </div>
-    </form>
 </section>
 
 @if (meter.Meter.RemovedOn is null)
@@ -186,24 +170,14 @@
     <section>
         <details class="disclosure">
             <summary>Zähler tauschen</summary>
-            <EditForm Model="Replacement" FormName="replacement" OnValidSubmit="ReplaceAsync" class="form-grid">
+            <EditForm Model="replacement" OnValidSubmit="ReplaceAsync" novalidate class="form-grid">
                 <DataAnnotationsValidator />
-                <FormField Id="replacement-date" Label="Tauschdatum" For="() => Replacement!.Date" Required="true">
-                    <InputDate id="replacement-date" @bind-Value="Replacement!.Date" />
-                </FormField>
-                <FormField Id="replacement-final-reading" Label="Endstand alter Zähler" For="() => Replacement!.FinalReading" Required="true">
-                    <InputArea id="replacement-final-reading" @bind-Value="Replacement!.FinalReading" step="0.001" />
-                </FormField>
-                <FormField Id="replacement-number" Label="Nummer neuer Zähler" For="() => Replacement!.NewNumber" Required="true">
-                    <InputText id="replacement-number" @bind-Value="Replacement!.NewNumber" autocomplete="off" />
-                </FormField>
-                <FormField Id="replacement-opening" Label="Anfangsstand neuer Zähler" For="() => Replacement!.InitialReading" Required="true">
-                    <InputArea id="replacement-opening" @bind-Value="Replacement!.InitialReading" step="0.001" />
-                </FormField>
-                <FormField Id="replacement-calibration-deadline" Label="Eichfrist neuer Zähler" For="() => Replacement!.CalibrationDueDate" Hint="Leer = gesetzliche Frist">
-                    <InputDate id="replacement-calibration-deadline" @bind-Value="Replacement!.CalibrationDueDate" />
-                </FormField>
-                <div class="field field-action"><button type="submit" class="button button-primary">Tausch erfassen</button></div>
+                <AppDateField @bind-Value="replacement.Date" Label="Tauschdatum" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="replacement.FinalReading" Label="Endstand alter Zähler" Required="true" />
+                <AppTextField @bind-Value="replacement.NewNumber" Label="Nummer neuer Zähler" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="replacement.InitialReading" Label="Anfangsstand neuer Zähler" Required="true" />
+                <AppDateField @bind-Value="replacement.CalibrationDueDate" Label="Eichfrist neuer Zähler" Hint="Leer = gesetzliche Frist" />
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Tausch erfassen</MudButton>
             </EditForm>
             <p class="small">Der Verbrauch wird über alten und neuen Zähler durchgängig berechnet.</p>
         </details>
@@ -212,72 +186,77 @@
     <section>
         <details class="disclosure">
             <summary>Angaben ändern</summary>
-            <EditForm Model="Data" FormName="data" OnValidSubmit="SaveDataAsync">
+            <EditForm Model="data" OnValidSubmit="SaveDataAsync" novalidate>
                 <DataAnnotationsValidator />
-                <MeterFields Data="Data!" Units="units" MainMeter="mainMeter" TypeLocked="true" />
-                <button type="submit" class="button button-primary">Speichern</button>
+                <MeterEditor Data="data" Units="units" MainMeter="mainMeter" TypeLocked="true" />
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
             </EditForm>
         </details>
     </section>
 }
 
 <ChangeHistory EntityType="Zaehler" EntityId="Id" />
+}
+</InteractiveShell>
 
 @code {
+    private static readonly ReadingType[] kinds = [ReadingType.Reading, ReadingType.InterimReading, ReadingType.Estimate];
+
     private MeterDetails? meter;
     private IReadOnlyList<UnitRow> units = [];
     private IReadOnlyList<MeterRow> mainMeter = [];
     private IReadOnlyList<string>? errors;
     private IReadOnlyList<string>? warnings;
+    private ReadingInput entry = new();
+    private ReplacementInput replacement = new();
+    private MeterInput data = new();
+    private FileSelection? photo;
+    private Guid? photoId;
+    private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm(FormName = "entry")]
-    private ReadingInput? Entry { get; set; }
-
-    [SupplyParameterFromForm(FormName = "entry")]
-    private IFormFile? Photo { get; set; }
-
-    /// <summary>When confirming after warnings: do not upload the already saved photo again.</summary>
-    [SupplyParameterFromForm(FormName = "entry")]
-    private Guid? PhotoId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "entry-remove")]
-    private Guid? RemoveReadingId { get; set; }
-
-    [SupplyParameterFromForm(FormName = "replacement")]
-    private ReplacementInput? Replacement { get; set; }
-
-    [SupplyParameterFromForm(FormName = "data")]
-    private MeterInput? Data { get; set; }
+    private static string KindText(ReadingType kind) => kind switch
+    {
+        ReadingType.InterimReading => "Zwischenablesung (z. B. Mieterwechsel)",
+        ReadingType.Estimate => "Schätzung",
+        _ => "Ablesung",
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        var form = Data;
-        Entry ??= new() { Date = MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()) };
-        Replacement ??= new();
-        Data ??= new();
+        entry = new ReadingInput { Date = MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()) };
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
         meter = await Admin.GetAsync(Id);
         if (meter is not null)
         {
-            Data = form ?? meter.Data;
+            data = meter.Data;
             units = (await Properties.GetAsync(meter.PropertyId))?.Units ?? [];
             mainMeter = (await Admin.ListAsync(meter.PropertyId)).Where(z => z.Id != Id).ToList();
         }
+
+        loaded = true;
+    }
+
+    private void OnPhotoSelected(FileSelection selection)
+    {
+        photo = selection;
+        photoId = null; // a new photo replaces one saved for an earlier attempt
     }
 
     private async Task RecordReadingAsync()
     {
-        if (Photo is { Length: > 0 } && PhotoId is null)
+        if (photo is { Length: > 0 } && photoId is null)
         {
             try
             {
-                await using var content = Photo.OpenReadStream();
-                PhotoId = (await Storage.SaveAsync(content, Photo.FileName)).Id;
+                await using var content = photo.Open();
+                photoId = (await Storage.SaveAsync(content, photo.Name)).Id;
             }
             catch (FileRejectedException ex)
             {
@@ -286,43 +265,63 @@
             }
         }
 
-        var result = await Admin.RecordReadingAsync(Id, Entry!, PhotoId);
+        // After warnings the second click confirms.
+        entry.Confirmed = warnings is { Count: > 0 };
+        var result = await Admin.RecordReadingAsync(Id, entry, photoId);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage($"/verwaltung/zaehler/{Id}", "Der Zählerstand wurde gespeichert.", HttpContext);
+            Notify.Success("Der Zählerstand wurde gespeichert.");
+            entry = new ReadingInput { Date = MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()) };
+            photo = null;
+            photoId = null;
+            warnings = null;
+            errors = null;
+            await LoadAsync();
         }
         else if (result.NeedsConfirmation)
         {
             warnings = result.Warnings;
+            errors = null;
         }
         else
         {
             errors = result.Errors;
+            warnings = null;
         }
     }
 
-    private Task RemoveReadingAsync() =>
-        RemoveReadingId is { } entry ? ExecuteAsync(Admin.RemoveReadingAsync(Id, entry), $"/verwaltung/zaehler/{Id}", "Der Stand wurde entfernt.") : Task.CompletedTask;
+    private async Task RemoveReadingAsync(ReadingView reading)
+    {
+        if (await Confirm.AskAsync("Stand entfernen", $"Soll der Stand vom {Format.Date(reading.Date)} entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveReadingAsync(Id, reading.Id), "Der Stand wurde entfernt.");
+        }
+    }
 
     private async Task ReplaceAsync()
     {
-        var result = await Admin.ReplaceAsync(Id, Replacement!);
-        await ExecuteAsync(Task.FromResult(result), $"/verwaltung/zaehler/{result.Id}", "Der Zähler wurde getauscht. Das ist der neue Zähler.");
-    }
-
-    private Task SaveDataAsync() => ExecuteAsync(Admin.UpdateAsync(Id, Data!), $"/verwaltung/zaehler/{Id}", "Die Angaben wurden gespeichert.");
-
-    private async Task ExecuteAsync(Task<Result> command, string destination, string success)
-    {
-        var result = await command;
+        var result = await Admin.ReplaceAsync(Id, replacement);
         if (result.Succeeded)
         {
-            Redirector.RedirectWithMessage(destination, success, HttpContext);
+            Navigation.NavigateTo($"/verwaltung/zaehler/{result.Id}?meldung=gespeichert");
         }
         else
         {
             errors = result.Errors;
-            meter = await Admin.GetAsync(Id);
         }
+    }
+
+    private Task SaveDataAsync() => ExecuteAsync(Admin.UpdateAsync(Id, data), "Die Angaben wurden gespeichert.");
+
+    private async Task ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+        }
+
+        await LoadAsync();
     }
 }

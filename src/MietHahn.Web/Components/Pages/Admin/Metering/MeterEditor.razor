@@ -1,0 +1,59 @@
+@* Master data of a meter for interactive pages; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    @if (TypeLocked)
+    {
+        <AppTextField Value="@Labels.From(Data.Type)" Label="Art" ReadOnly="true" Hint="Nicht änderbar; bei einem anderen Zähler einen neuen anlegen." />
+    }
+    else
+    {
+        <AppSelect @bind-Value="Data.Type" Label="Art" Items="Enum.GetValues<MeterType>()" Text="@(v => Labels.From(v))" />
+    }
+    <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Kaltwasser Bad“" />
+    <AppTextField @bind-Value="Data.Number" Label="Zählernummer" Required="true" />
+    <AppSelect T="Guid?" @bind-Value="Data.AssignmentId" Label="Zuordnung" Items="assignmentIds" Text="AssignmentText" EmptyText="Haus (Haupt-/Allgemeinzähler)" />
+    <AppSelect T="Guid?" @bind-Value="Data.MainMeterId" Label="Hauptzähler" Hint="Für die Differenz Haupt- zu Unterzählern" Items="mainIds" Text="MainText" EmptyText="– keiner –" />
+    <AppTextField @bind-Value="Data.Location" Label="Lage" Hint="z. B. „Keller, Raum 2“" />
+    <AppDateField @bind-Value="Data.CalibrationDueDate" Label="Eichfrist bis" Hint="Leer = gesetzliche Frist ab Einbau" />
+    <AppNumberField T="int" @bind-Value="Data.Order" Label="Reihenfolge der Ablesung" Min="0" Max="999" />
+</div>
+
+@code {
+    private IReadOnlyList<Guid?> assignmentIds = [];
+    private IReadOnlyList<Guid?> mainIds = [];
+    private Dictionary<Guid, string> assignmentTexts = [];
+
+    [Parameter, EditorRequired]
+    public MeterInput Data { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<UnitRow> Units { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<MeterRow> MainMeter { get; set; } = [];
+
+    [Parameter]
+    public bool TypeLocked { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        assignmentTexts = [];
+        var ids = new List<Guid?>();
+        foreach (var unit in Units)
+        {
+            assignmentTexts[unit.Id] = unit.Name;
+            ids.Add(unit.Id);
+            foreach (var room in unit.RentalUnits.Where(m => m.IsRoom))
+            {
+                assignmentTexts[room.Id] = $"{unit.Name}, {room.Name}";
+                ids.Add(room.Id);
+            }
+        }
+
+        assignmentIds = ids;
+        mainIds = MainMeter.Select(z => (Guid?)z.Id).ToList();
+    }
+
+    private string AssignmentText(Guid? id) => id is { } key && assignmentTexts.TryGetValue(key, out var text) ? text : "";
+
+    private string MainText(Guid? id) => MainMeter.FirstOrDefault(z => z.Id == id) is { } z ? $"{z.Name} ({z.Number})" : "";
+}
