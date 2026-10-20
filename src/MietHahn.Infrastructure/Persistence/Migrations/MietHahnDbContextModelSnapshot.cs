@@ -4454,6 +4454,75 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("loan_extra_payments", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Tax.MaintenanceDistribution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid>("CostItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cost_item_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<int>("StartYear")
+                        .HasColumnType("integer")
+                        .HasColumnName("start_year");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("Years")
+                        .HasColumnType("integer")
+                        .HasColumnName("years");
+
+                    b.HasKey("Id")
+                        .HasName("pk_maintenance_distributions");
+
+                    b.HasIndex("CostItemId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_maintenance_distributions_cost_item_id")
+                        .HasFilter("NOT deleted");
+
+                    b.HasIndex("PropertyId", "StartYear")
+                        .HasDatabaseName("ix_maintenance_distributions_property_id_start_year");
+
+                    b.ToTable("maintenance_distributions", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Tax.PropertyAcquisition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5669,6 +5738,23 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_loan_extra_payments_loans_loan_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Tax.MaintenanceDistribution", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Receipts.CostItem", null)
+                        .WithMany()
+                        .HasForeignKey("CostItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_maintenance_distributions_cost_items_cost_item_id");
+
+                    b.HasOne("MietHahn.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_maintenance_distributions_property_property_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Tax.PropertyAcquisition", b =>

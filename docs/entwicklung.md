@@ -418,6 +418,15 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Oberfläche:** `/verwaltung/finanzen/darlehen` (Liste, Anlegen) und `/verwaltung/finanzen/darlehen/{id}` (Jahresübersicht, Daten, Bescheinigung, Sondertilgungen, Finanzierungskosten, Tilgungsplan), Recht Finanzen.
 - **Noch offen aus #37:** Import eines Bank-Tilgungsplans (CSV), automatische Aufteilung der Raten-Umsätze in Zins und Tilgung, Frist-Erinnerung zum Ende der Zinsbindung (kommt mit den Fristen in M5), Darlehen über mehrere Objekte verteilt.
 
+### Erhaltungsaufwand (#38)
+
+- **Kennzeichnung:** Belegpositionen der Kostenart `CostTypes.MaintenanceKey` („Instandhaltung und Reparaturen“) sind Erhaltungsaufwand; ein eigenes Feld gibt es nicht. Positionen ohne Verteilung werden im Jahr der Zahlung (`Receipt.PaidOn`) sofort abgezogen.
+- **Rechenkern:** `Domain.Tax.MaintenanceCalculator.Schedule(Betrag, Startjahr, Jahre)` verteilt gleichmäßig; der Rundungsrest fällt ins erste Jahr, jede Rate trägt den Restbetrag.
+- **Daten:** `MaintenanceDistribution` (Tabelle `maintenance_distributions`, eindeutig je Position) mit Startjahr (Zahlungsjahr), Betrag und 2–5 Jahren (§ 82b EStDV).
+- **Dienst:** `IMaintenanceService` – `GetAsync` (Positionen, Verteilungen), `DistributeAsync`, `RevokeAsync`, `DeductionAsync(Objekt, Jahr)` (abziehbare Anteile mit Beleg-Id; die Anlage-V-Auswertung #39 übernimmt sie von dort). Unbezahlte Positionen lassen sich nicht verteilen.
+- **Abgrenzung:** `DepreciationService` zählt Belegpositionen „Instandhaltung“ zusätzlich zu den manuell erfassten Kosten für die 15-%-Prüfung mit (Datum: Zahlung, sonst Rechnung). Manuelle Kosten also nur eintragen, wenn es keinen Beleg gibt.
+- **Oberfläche:** `/verwaltung/objekte/{id}/erhaltungsaufwand` (Positionen, Verteilen/Widerrufen, laufende Verteilungen mit Jahres- und Restbeträgen), Recht Finanzen.
+
 ### Personen & Datenschutz
 
 - `Person` (Mieter, Bürgen, Kontakte) mit Anschriften als Zeitreihe (Voranschrift → aktuelle → neue Anschrift nach Auszug) und beliebig vielen `BankDetails`en (IBAN mit Prüfsumme, `Domain.Common.Iban`). Mieter und Bürgen ergeben sich aus Verträgen, nicht aus einem Feld.

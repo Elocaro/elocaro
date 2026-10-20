@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MietHahn.Domain.Properties;
+using MietHahn.Domain.Receipts;
 using MietHahn.Domain.Tax;
 
 namespace MietHahn.Infrastructure.Persistence.Configurations;
@@ -100,5 +101,18 @@ internal sealed class FinancingCostConfiguration : IEntityTypeConfiguration<Fina
         builder.HasOne<Property>().WithMany().HasForeignKey(k => k.PropertyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Loan>().WithMany().HasForeignKey(k => k.LoanId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(k => new { k.PropertyId, k.Date });
+    }
+}
+
+internal sealed class MaintenanceDistributionConfiguration : IEntityTypeConfiguration<MaintenanceDistribution>
+{
+    public void Configure(EntityTypeBuilder<MaintenanceDistribution> builder)
+    {
+        builder.ToTable("maintenance_distributions");
+        builder.Property(v => v.Amount).HasPrecision(18, 2);
+        builder.HasOne<Property>().WithMany().HasForeignKey(v => v.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<CostItem>().WithMany().HasForeignKey(v => v.CostItemId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(v => v.CostItemId).IsUnique().HasFilter("NOT deleted");
+        builder.HasIndex(v => new { v.PropertyId, v.StartYear });
     }
 }

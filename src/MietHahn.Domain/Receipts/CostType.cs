@@ -10,6 +10,9 @@ public sealed record CostType(string Key, string Name, bool Allocable, int? Betr
 /// </summary>
 public static class CostTypes
 {
+    /// <summary>Cost type of maintenance expenses (Erhaltungsaufwand), which can be spread over several years (§ 82b EStDV).</summary>
+    public const string MaintenanceKey = "instandhaltung";
+
     public static IReadOnlyList<CostType> All { get; } =
     [
         new("betrkv-01", "Laufende öffentliche Lasten (Grundsteuer)", true, 1),
@@ -29,7 +32,7 @@ public static class CostTypes
         new("betrkv-15", "Antenne / Breitbandnetz", true, 15, "Kabel-TV-Gebühren sind seit 1.7.2024 nicht mehr umlagefähig (TKG); umlagefähig bleiben u. a. Betrieb und Wartung einer Gemeinschaftsantenne."),
         new("betrkv-16", "Einrichtungen für die Wäschepflege", true, 16),
         new("betrkv-17", "Sonstige Betriebskosten", true, 17, "Nur wenn im Mietvertrag einzeln benannt (z. B. Dachrinnenreinigung, Wartung Rauchmelder)."),
-        new("instandhaltung", "Instandhaltung und Reparaturen", false),
+        new(MaintenanceKey, "Instandhaltung und Reparaturen", false, Hint: "Erhaltungsaufwand: sofort abziehbar oder auf 2–5 Jahre verteilbar (§ 82b EStDV)."),
         new("modernisierung", "Modernisierung / Herstellungskosten", false, Hint: "Steuerlich ggf. über die AfA statt sofort."),
         new("verwaltung", "Verwaltungskosten", false),
         new("bankgebuehren", "Kontoführung und Bankgebühren", false),

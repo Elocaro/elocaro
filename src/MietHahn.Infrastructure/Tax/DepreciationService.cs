@@ -3,6 +3,7 @@ using MietHahn.Application.Common;
 using MietHahn.Application.Tax;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Properties;
+using MietHahn.Domain.Receipts;
 using MietHahn.Domain.Tax;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
@@ -26,11 +27,19 @@ internal sealed class DepreciationService(MietHahnDbContext db, TimeProvider clo
         var costs = await db.Set<PropertyCost>().AsNoTracking().Where(k => k.PropertyId == propertyId).OrderBy(k => k.Date).ToListAsync(cancellationToken);
         var assets = await db.Set<PropertyAsset>().AsNoTracking().Where(w => w.PropertyId == propertyId).OrderBy(w => w.AcquisitionDate).ToListAsync(cancellationToken);
 
+        // Maintenance from receipts counts for the 15 % limit as well (date of payment, otherwise invoice date)
+        var receiptCosts = await db.Set<Receipt>().AsNoTracking()
+            .SelectMany(b => b.Items.Where(p => p.PropertyId == propertyId && p.CostType == CostTypes.MaintenanceKey && p.Amount > 0), (b, p) => new { b.InvoiceDate, b.PaidOn, p.Amount })
+            .ToListAsync(cancellationToken);
+        var calculationCosts = costs.Select(k => k.ToCalculation())
+            .Concat(receiptCosts.Select(r => new SubsequentCost(r.PaidOn ?? r.InvoiceDate, r.Amount, "Beleg", true)))
+            .ToList();
+
         var plan = acquisition is null
             ? null
             : DepreciationCalculator.Calculate(
                 acquisition.ToCalculation(),
-                costs.Select(k => k.ToCalculation()).ToList(),
+                calculationCosts,
                 assets.Select(w => w.ToCalculation()).ToList(),
                 LastYear(acquisition.PurchaseDate.Year));
 
