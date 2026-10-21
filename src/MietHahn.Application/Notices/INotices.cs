@@ -47,6 +47,9 @@ public sealed class NoticeInput : IValidatableObject
     [Required(ErrorMessage = "Bitte das Objekt wählen.")]
     public Guid? PropertyId { get; set; }
 
+    /// <summary>Only for these units of the property; empty = the whole property.</summary>
+    public List<Guid> UnitIds { get; set; } = [];
+
     public DateOnly? ValidFrom { get; set; }
 
     public DateOnly? ValidUntil { get; set; }
@@ -62,7 +65,7 @@ public sealed class NoticeInput : IValidatableObject
     }
 }
 
-public sealed record NoticeRow(Guid Id, string Title, string Property, DateOnly ValidFrom, DateOnly? ValidUntil, bool IsCurrent, bool RequiresAcknowledgement, int Recipients, int Read);
+public sealed record NoticeRow(Guid Id, string Title, string Property, DateOnly ValidFrom, DateOnly? ValidUntil, bool IsCurrent, bool RequiresAcknowledgement, int Recipients, int Read, string Scope = "");
 
 public sealed record NoticeReader(string Name, DateTimeOffset? ReadAt);
 

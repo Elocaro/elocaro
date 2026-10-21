@@ -4,8 +4,10 @@
 @using MietHahn.Application.Documents
 @using MietHahn.Application.Files
 @using MietHahn.Application.Notices
+@using MietHahn.Application.Properties
 @using MietHahn.Web.Components.Controls
 @inject INotices Notices
+@inject IPropertyService Properties
 @inject IDocumentLibrary Documents
 @inject IFileStore Files
 @inject AuthenticationStateProvider Authentication
@@ -20,7 +22,17 @@
         <EditForm Model="input" OnValidSubmit="SubmitAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
-                <AppSelect T="Guid?" @bind-Value="input.PropertyId" Label="Objekt" Required="true" Items="options.Properties.Select(o => (Guid?)o.Id).ToList()" Text="@(id => options.Properties.FirstOrDefault(o => o.Id == id)?.Name ?? "")" />
+                <AppSelect T="Guid?" Value="input.PropertyId" ValueChanged="PropertyChangedAsync" Label="Objekt" Required="true" Items="options.Properties.Select(o => (Guid?)o.Id).ToList()" Text="@(id => options.Properties.FirstOrDefault(o => o.Id == id)?.Name ?? "")" />
+                @if (units.Count > 0)
+                {
+                    <fieldset class="field">
+                        <legend>Für wen? <span class="small">Ohne Auswahl geht der Aushang an das ganze Haus.</span></legend>
+                        @foreach (var unit in units)
+                        {
+                            <AppCheckBox Value="input.UnitIds.Contains(unit.Id)" ValueChanged="on => ToggleUnit(unit.Id, on)" Label="@unit.Name" />
+                        }
+                    </fieldset>
+                }
                 <AppTextField @bind-Value="input.Title" Label="Titel" Required="true" Hint="z. B. „Wasser wird am 12.3. abgestellt“" />
                 <AppTextField @bind-Value="input.Body" Label="Text" Required="true" Lines="6" />
                 <AppDateField @bind-Value="input.ValidFrom" Label="Gültig ab" Hint="leer = heute" />
@@ -30,7 +42,7 @@
             <div class="form-row">
                 <AppFileUpload Text="Anhänge wählen" Multiple="true" OnSelectedMany="files => selected = files" />
             </div>
-            <p class="small">Alle Mieter des Objekts mit Portalzugang erhalten eine Mail mit dem Titel und einem Link.</p>
+            <p class="small">Alle angesprochenen Mieter mit Portalzugang erhalten eine Mail mit dem Titel und einem Link.</p>
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy">Veröffentlichen</MudButton>
         </EditForm>
     }
@@ -42,6 +54,26 @@
     private IReadOnlyList<FileSelection> selected = [];
     private IReadOnlyList<string>? errors;
     private bool busy;
+    private IReadOnlyList<UnitRow> units = [];
+
+    private async Task PropertyChangedAsync(Guid? id)
+    {
+        input.PropertyId = id;
+        input.UnitIds.Clear();
+        units = id is { } propertyId ? (await Properties.GetAsync(propertyId))?.Units ?? [] : [];
+    }
+
+    private void ToggleUnit(Guid id, bool on)
+    {
+        if (on && !input.UnitIds.Contains(id))
+        {
+            input.UnitIds.Add(id);
+        }
+        else if (!on)
+        {
+            input.UnitIds.Remove(id);
+        }
+    }
 
     protected override async Task OnInitializedAsync() => options = await Documents.ReferenceOptionsAsync();
 

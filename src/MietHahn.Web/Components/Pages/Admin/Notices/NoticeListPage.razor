@@ -28,7 +28,7 @@
                         {
                             <tr>
                                 <td><a href="/verwaltung/aushaenge/@row.Id">@row.Title</a>@if (row.IsCurrent) {<StatusChip Level="StatusLevel.Success">aktuell</StatusChip>}</td>
-                                <td>@row.Property</td>
+                                <td>@row.Property <span class="small">· @row.Scope</span></td>
                                 <td>@Format.Date(row.ValidFrom)@(row.ValidUntil is { } until ? $" bis {Format.Date(until)}" : " bis auf Weiteres")</td>
                                 <td>@row.Read von @row.Recipients@(row.RequiresAcknowledgement ? " (Pflicht)" : "")</td>
                             </tr>

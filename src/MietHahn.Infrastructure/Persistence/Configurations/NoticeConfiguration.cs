@@ -14,6 +14,7 @@ internal sealed class NoticeConfiguration : IEntityTypeConfiguration<Notice>
         builder.ToTable("notices");
         builder.Property(n => n.Title).HasMaxLength(200).UseCollation(MietHahnDbContext.GermanCollation);
         builder.Property(n => n.Body).HasMaxLength(4000);
+        builder.Property(n => n.UnitIds).HasColumnType("uuid[]");
         builder.HasOne<Property>().WithMany().HasForeignKey(n => n.PropertyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(n => n.PropertyId).HasFilter("NOT deleted");
     }

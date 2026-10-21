@@ -3,7 +3,7 @@ using MietHahn.Domain.Common;
 namespace MietHahn.Domain.Notices;
 
 /// <summary>
-/// A notice for all current tenants of a property (water shut-off, meter reading date, house rules).
+/// A notice for all current tenants of a property, or only for those of some of its units (water shut-off, meter reading date, house rules).
 /// It is shown in the portal from <see cref="ValidFrom"/> to <see cref="ValidUntil"/> (inclusive).
 /// </summary>
 public sealed class Notice : Entity
@@ -16,8 +16,9 @@ public sealed class Notice : Entity
         Body = "";
     }
 
-    public Notice(string title, string body, Guid propertyId, DateOnly validFrom, DateOnly? validUntil, bool requiresAcknowledgement)
+    public Notice(string title, string body, Guid propertyId, DateOnly validFrom, DateOnly? validUntil, bool requiresAcknowledgement, IEnumerable<Guid>? unitIds = null)
     {
+        UnitIds = unitIds is null ? [] : unitIds.Distinct().ToList();
         Title = title.Trim();
         Body = body.Trim();
         PropertyId = propertyId;
@@ -32,6 +33,11 @@ public sealed class Notice : Entity
     public string Body { get; private set; }
 
     public Guid PropertyId { get; private set; }
+
+    /// <summary>Units the notice is meant for; empty = the whole property.</summary>
+    public List<Guid> UnitIds { get; private set; } = [];
+
+    public bool AppliesToUnit(Guid unitId) => UnitIds.Count == 0 || UnitIds.Contains(unitId);
 
     public DateOnly ValidFrom { get; private set; }
 

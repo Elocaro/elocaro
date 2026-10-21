@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Leases;
+using MietHahn.Domain.Notices;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Persistence;
@@ -45,6 +46,18 @@ internal static class TenantScope
     public static async Task<List<Lease>> CurrentLeasesAsync(MietHahnDbContext db, DateOnly day, CancellationToken cancellationToken) =>
         await db.Set<Lease>().AsNoTracking().Include(v => v.Parties)
             .Where(v => v.Term.From <= day && (v.Term.To == null || v.Term.To >= day)).ToListAsync(cancellationToken);
+
+    /// <summary>The (property, unit) pairs of the current leases of the given persons.</summary>
+    public static async Task<List<(Guid Property, Guid Unit)>> OwnUnitsAsync(MietHahnDbContext db, List<Guid> persons, DateOnly day, CancellationToken cancellationToken)
+    {
+        var leases = await CurrentLeasesAsync(db, day, cancellationToken);
+        var properties = await PropertyOfUnitAsync(db, cancellationToken);
+        return leases.Where(v => v.Tenant.Any(p => persons.Contains(p.PersonId)))
+            .Select(v => (Property: properties.GetValueOrDefault(v.UnitId), Unit: v.UnitId)).Where(x => x.Property != Guid.Empty).Distinct().ToList();
+    }
+
+    /// <summary>Does the notice reach a tenant of <paramref name="unitId"/> in <paramref name="propertyId"/>?</summary>
+    public static bool Reaches(Notice notice, Guid propertyId, Guid unitId) => notice.PropertyId == propertyId && notice.AppliesToUnit(unitId);
 
     public static async Task<Dictionary<Guid, Guid>> PropertyOfUnitAsync(MietHahnDbContext db, CancellationToken cancellationToken) =>
         await db.Set<Unit>().AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.PropertyId, cancellationToken);

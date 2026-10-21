@@ -3831,6 +3831,11 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnName("title")
                         .UseCollation("german");
 
+                    b.PrimitiveCollection<List<Guid>>("UnitIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("unit_ids");
+
                     b.Property<DateOnly>("ValidFrom")
                         .HasColumnType("date")
                         .HasColumnName("valid_from");

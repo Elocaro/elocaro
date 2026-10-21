@@ -18,7 +18,7 @@
     else
     {
         <dl class="details">
-            <dt>Objekt</dt><dd>@view.Row.Property</dd>
+            <dt>Objekt</dt><dd>@view.Row.Property (@view.Row.Scope)</dd>
             <dt>Gültig</dt><dd>@Format.Date(view.Row.ValidFrom)@(view.Row.ValidUntil is { } until ? $" bis {Format.Date(until)}" : " bis auf Weiteres")@(view.Row.IsCurrent ? "" : " (nicht mehr aktuell)")</dd>
             <dt>Bestätigung</dt><dd>@(view.Row.RequiresAcknowledgement ? "Pflicht" : "freiwillig")</dd>
         </dl>

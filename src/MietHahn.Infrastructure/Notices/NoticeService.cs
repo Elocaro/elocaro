@@ -34,10 +34,11 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
             return [];
         }
 
-        var properties = await OwnPropertiesAsync(persons, cancellationToken);
         var today = Today;
+        var own = await TenantScope.OwnUnitsAsync(db, persons, today, cancellationToken);
+        var properties = own.Select(x => x.Property).Distinct().ToList();
         var notices = (await db.Set<Notice>().AsNoTracking().Where(n => properties.Contains(n.PropertyId)).ToListAsync(cancellationToken))
-            .Where(n => n.IsCurrent(today)).OrderByDescending(n => n.ValidFrom).ThenByDescending(n => n.CreatedAt).ToList();
+            .Where(n => n.IsCurrent(today) && own.Any(x => TenantScope.Reaches(n, x.Property, x.Unit))).OrderByDescending(n => n.ValidFrom).ThenByDescending(n => n.CreatedAt).ToList();
         if (notices.Count == 0)
         {
             return [];
@@ -80,7 +81,13 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
                 throw new RuleViolationException($"Höchstens {Notice.MaxAttachments} Anhänge je Aushang.");
             }
 
-            var notice = new Notice(input.Title, input.Body, propertyId, input.ValidFrom ?? Today, input.ValidUntil, input.RequiresAcknowledgement);
+            var unitIds = input.UnitIds.Distinct().ToList();
+            if (unitIds.Count > 0 && await db.Set<Unit>().CountAsync(e => unitIds.Contains(e.Id) && e.PropertyId == propertyId, cancellationToken) != unitIds.Count)
+            {
+                throw new RuleViolationException("Die gewählten Einheiten gehören nicht zum Objekt.");
+            }
+
+            var notice = new Notice(input.Title, input.Body, propertyId, input.ValidFrom ?? Today, input.ValidUntil, input.RequiresAcknowledgement, unitIds);
             db.Add(notice);
             foreach (var fileId in fileIds)
             {
@@ -111,8 +118,9 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
             }
 
             // Only notices of the own properties count, whatever id the caller passes.
-            var properties = await OwnPropertiesAsync(persons, cancellationToken);
-            var notice = await db.Set<Notice>().AsNoTracking().SingleOrDefaultAsync(n => n.Id == id && properties.Contains(n.PropertyId), cancellationToken) ?? throw new NotFoundException();
+            var own = await TenantScope.OwnUnitsAsync(db, persons, Today, cancellationToken);
+            var candidate = await db.Set<Notice>().AsNoTracking().SingleOrDefaultAsync(n => n.Id == id, cancellationToken);
+            var notice = candidate is not null && own.Any(x => TenantScope.Reaches(candidate, x.Property, x.Unit)) ? candidate : throw new NotFoundException();
             if (!await db.Set<NoticeRead>().AnyAsync(l => l.NoticeId == id && l.UserId == userId, cancellationToken))
             {
                 db.Add(new NoticeRead(notice.Id, userId, clock.GetUtcNow()));
@@ -161,7 +169,7 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
 
         var propertyId = (await db.Set<Unit>().AsNoTracking().Where(e => e.Id == lease.UnitId).Select(e => (Guid?)e.PropertyId).FirstOrDefaultAsync(cancellationToken)) ?? Guid.Empty;
         var notices = (await db.Set<Notice>().AsNoTracking().Where(n => n.PropertyId == propertyId).ToListAsync(cancellationToken))
-            .Where(n => n.ValidFrom <= (lease.End ?? DateOnly.MaxValue) && (n.ValidUntil ?? DateOnly.MaxValue) >= lease.Start)
+            .Where(n => n.AppliesToUnit(lease.UnitId) && n.ValidFrom <= (lease.End ?? DateOnly.MaxValue) && (n.ValidUntil ?? DateOnly.MaxValue) >= lease.Start)
             .OrderByDescending(n => n.ValidFrom).ToList();
         var readers = await ReadersAsync(notices, lease, cancellationToken);
         return notices.Select(n => new LeaseNotice(n.Id, n.Title, n.ValidFrom, n.ValidUntil, n.RequiresAcknowledgement, readers[n.Id])).ToList();
@@ -174,13 +182,6 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
         {
             throw new RuleViolationException("Dafür fehlt die Berechtigung.");
         }
-    }
-
-    private async Task<List<Guid>> OwnPropertiesAsync(List<Guid> persons, CancellationToken cancellationToken)
-    {
-        var leases = await TenantScope.CurrentLeasesAsync(db, Today, cancellationToken);
-        var units = await TenantScope.PropertyOfUnitAsync(db, cancellationToken);
-        return leases.Where(v => v.Tenant.Any(p => persons.Contains(p.PersonId))).Select(v => units.GetValueOrDefault(v.UnitId)).Where(p => p != Guid.Empty).Distinct().ToList();
     }
 
     /// <summary>Tenants with a portal account of the property's current leases (or only of <paramref name="lease"/>).</summary>
@@ -200,7 +201,7 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
         var people = await db.Set<Person>().AsNoTracking().Where(p => personIds.Contains(p.Id) && p.UserId != null && p.AnonymizedAt == null).ToDictionaryAsync(p => p.Id, cancellationToken);
         foreach (var notice in notices)
         {
-            var tenants = leases.Where(v => lease is not null || units.GetValueOrDefault(v.UnitId) == notice.PropertyId)
+            var tenants = leases.Where(v => lease is not null || (units.GetValueOrDefault(v.UnitId) == notice.PropertyId && notice.AppliesToUnit(v.UnitId)))
                 .SelectMany(v => v.Tenant.Select(p => p.PersonId)).Distinct()
                 .Select(p => people.GetValueOrDefault(p)).OfType<Person>().OrderBy(p => p.LastName).ToList();
             result[notice.Id] = tenants.Select(p => new NoticeReader(p.DisplayName, reads[notice.Id].FirstOrDefault(l => l.UserId == p.UserId)?.ReadAt)).ToList();
@@ -212,9 +213,11 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
     private async Task<List<NoticeRow>> RowsAsync(List<Notice> notices, CancellationToken cancellationToken)
     {
         var names = await db.Set<Property>().AsNoTracking().ToDictionaryAsync(o => o.Id, o => o.Name, cancellationToken);
+        var unitNames = await db.Set<Unit>().AsNoTracking().ToDictionaryAsync(e => e.Id, e => e.Name, cancellationToken);
         var readers = await ReadersAsync(notices, null, cancellationToken);
         var today = Today;
         return notices.Select(n => new NoticeRow(n.Id, n.Title, names.GetValueOrDefault(n.PropertyId, ""), n.ValidFrom, n.ValidUntil, n.IsCurrent(today), n.RequiresAcknowledgement,
-            readers[n.Id].Count, readers[n.Id].Count(r => r.ReadAt is not null))).ToList();
+            readers[n.Id].Count, readers[n.Id].Count(r => r.ReadAt is not null),
+            n.UnitIds.Count == 0 ? "ganzes Haus" : string.Join(", ", n.UnitIds.Select(u => unitNames.GetValueOrDefault(u, "Einheit")).Order(StringComparer.CurrentCulture)))).ToList();
     }
 }

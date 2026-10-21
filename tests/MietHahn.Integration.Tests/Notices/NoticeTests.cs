@@ -27,6 +27,8 @@ public class NoticeTests(PostgresFixture postgres) : IAsyncLifetime
     private Guid house;
     private ClaimsPrincipal anna = null!;
     private ClaimsPrincipal ben = null!;
+    private Guid unit1;
+    private Guid foreignUnit;
     private ClaimsPrincipal admin = null!;
     private ClaimsPrincipal carla = null!;
     private Guid otherHouse;
@@ -39,7 +41,7 @@ public class NoticeTests(PostgresFixture postgres) : IAsyncLifetime
         await using var scope = environment.Services.CreateAsyncScope();
         var properties = scope.ServiceProvider.GetRequiredService<IPropertyService>();
         house = Validate(await properties.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, Ct));
-        var unit1 = Validate(await properties.CreateUnitAsync(house, new UnitInput { Name = "Wohnung 1" }, Ct));
+        unit1 = Validate(await properties.CreateUnitAsync(house, new UnitInput { Name = "Wohnung 1" }, Ct));
         var unit2 = Validate(await properties.CreateUnitAsync(house, new UnitInput { Name = "Wohnung 2" }, Ct));
         var people = scope.ServiceProvider.GetRequiredService<IPersonService>();
         var annaPerson = Validate(await people.CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt", Email = "anna@example.de" }, null, Ct));
@@ -50,7 +52,7 @@ public class NoticeTests(PostgresFixture postgres) : IAsyncLifetime
 
         var carlaPerson = Validate(await people.CreateAsync(new PersonInput { FirstName = "Carla", LastName = "Neu", Email = "carla@example.de" }, null, Ct));
         otherHouse = Validate(await properties.CreateAsync(new PropertyInput { Name = "Buchenweg 1", Street = "Buchenweg 1", PostalCode = "50667", City = "Köln" }, Ct));
-        var unit3 = Validate(await properties.CreateUnitAsync(otherHouse, new UnitInput { Name = "Wohnung 3" }, Ct));
+        var unit3 = foreignUnit = Validate(await properties.CreateUnitAsync(otherHouse, new UnitInput { Name = "Wohnung 3" }, Ct));
         Validate(await leases.CreateAsync(new LeaseCreation { RentalUnitId = unit3, Start = Today, TenantIds = [carlaPerson], BaseRent = 500m }, Ct));
         carla = await LinkedAccountAsync(carlaPerson, "carla@example.de", Roles.Tenant);
         anna = await LinkedAccountAsync(annaPerson, "anna@example.de", Roles.Tenant);
@@ -160,6 +162,42 @@ public class NoticeTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal(2, mails.Count);
         Assert.Contains(mails, m => m.To.Contains("anna@example.de"));
         Assert.DoesNotContain(mails, m => m.Html.Contains("geheim", StringComparison.OrdinalIgnoreCase) || m.Text.Contains("geheim", StringComparison.OrdinalIgnoreCase) || m.Html.Contains("Antwort der Verwaltung", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_notice_for_one_unit_reaches_only_its_tenants()
+    {
+        var file = await FileAsync("nur-wohnung-1");
+        var input = Input("Heizkörper entlüften", acknowledge: true);
+        input.UnitIds = [unit1];
+        var id = Validate(await With<INotices, Result>(n => n.CreateAsync(admin, input, [file], Ct)));
+
+        Assert.Single(await With<INotices, IReadOnlyList<TenantNotice>>(n => n.CurrentAsync(anna, Ct)));
+        Assert.Empty(await With<INotices, IReadOnlyList<TenantNotice>>(n => n.CurrentAsync(ben, Ct)));
+        Assert.True(await IsSharedAsync(file, anna));
+        Assert.False(await IsSharedAsync(file, ben));
+        Assert.False((await With<INotices, Result>(n => n.AcknowledgeAsync(ben, id, Ct))).Succeeded);
+        Assert.True((await With<INotices, Result>(n => n.AcknowledgeAsync(anna, id, Ct))).Succeeded);
+
+        var details = (await With<INotices, NoticeDetails?>(n => n.GetAsync(admin, id, Ct)))!;
+        Assert.Equal((1, 1, "Wohnung 1"), (details.Row.Recipients, details.Row.Read, details.Row.Scope));
+
+        Assert.Equal(1, await Notify());
+        var mails = await WithDbAsync(db => db.Set<OutgoingMail>().Where(m => m.Template == "notice").ToListAsync(Ct));
+        Assert.Equal("anna@example.de", Assert.Single(mails).To.Single());
+
+        var whole = Validate(await With<INotices, Result>(n => n.CreateAsync(admin, Input("Für alle"), [], Ct)));
+        Assert.Equal("ganzes Haus", (await With<INotices, NoticeDetails?>(n => n.GetAsync(admin, whole, Ct)))!.Row.Scope);
+        Assert.Equal(2, (await With<INotices, IReadOnlyList<TenantNotice>>(n => n.CurrentAsync(anna, Ct))).Count);
+    }
+
+    [Fact]
+    public async Task A_notice_cannot_name_units_of_another_property()
+    {
+        var input = Input("Falsch");
+        input.UnitIds = [foreignUnit];
+
+        Assert.False((await With<INotices, Result>(n => n.CreateAsync(admin, input, [], Ct))).Succeeded);
     }
 
     [Fact]

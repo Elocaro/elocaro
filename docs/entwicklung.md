@@ -567,7 +567,7 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Oberfläche:** Portal `/portal/aushaenge`, `/portal/nachrichten[/neu|/{id}]` (Tab *Nachrichten*, Aushänge und ungelesene Nachrichten auf der Übersicht); Verwaltung unter dem Bereich *Mitteilungen* (`/verwaltung/aushaenge[/neu|/{id}]`, `/verwaltung/nachrichten[/neu|/{id}]`). Verlauf: Komponente `ConversationThread`.
 - **Pflicht-Lesen offen:** `NoticeAcknowledgementTodos` meldet der Verwaltung im Dashboard („Aushänge“) jeden aktuellen Pflicht-Aushang, den eine Woche nach Beginn noch nicht alle Mieter bestätigt haben.
 - **Zurückgezogen:** Ein Aushang, über den die Mieter schon eine Mail bekamen, löst beim vorzeitigen Zurückziehen eine zweite Mail aus (`Notice.WithdrawnAt` / `WithdrawalNotifiedAt`, Vorlage `notice-withdrawn.sbn`, derselbe Job), einmal je Aushang. Was nie angekündigt oder schon abgelaufen war, bleibt still.
-- **Offen:** Aushang an einzelne Einheiten statt ans ganze Objekt.
+- **Einzelne Einheiten:** `Notice.UnitIds` (`uuid[]`, leer = ganzes Haus; `AppliesToUnit`). Gewählte Einheiten müssen zum Objekt gehören. Wer den Aushang sieht, bestätigt, Anhänge öffnet, die Mail bekommt und als Leser gezählt wird, richtet sich nach der Einheit des laufenden Mietverhältnisses (`TenantScope.Reaches`/`OwnUnitsAsync`); im Formular gibt es dafür eine Auswahl der Einheiten des Objekts, in der Liste die Spalte „Objekt · Wohnung 1“.
 - **Tests:** Domain (`Notices/NoticeTests`), Integration (`Notices/NoticeTests`: Reichweite nur im Objekt, Ablauf, Bestätigung, Mail genau einmal, Nachrichten nur für die eigenen Mietverhältnisse, Mail ohne Text), Web (`PortalPagesTests`, `PageSmokeTests`), Browser (`UiAuditTests`).
 
 ### Hintergrundjobs (Quartz.NET 3)

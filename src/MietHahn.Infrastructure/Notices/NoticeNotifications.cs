@@ -37,7 +37,7 @@ internal sealed class NoticeNotifications(MietHahnDbContext db, IMailSender mail
         var titles = new Dictionary<Guid, List<string>>();
         foreach (var notice in notices)
         {
-            foreach (var id in leases.Where(v => units.GetValueOrDefault(v.UnitId) == notice.PropertyId).SelectMany(v => v.Tenant.Select(p => p.PersonId)).Distinct())
+            foreach (var id in leases.Where(v => units.GetValueOrDefault(v.UnitId) == notice.PropertyId && notice.AppliesToUnit(v.UnitId)).SelectMany(v => v.Tenant.Select(p => p.PersonId)).Distinct())
             {
                 if (!titles.TryGetValue(id, out var list))
                 {
@@ -85,7 +85,7 @@ internal sealed class NoticeNotifications(MietHahnDbContext db, IMailSender mail
         {
             if (notice.IsCurrent(today))
             {
-                foreach (var id in leases.Where(v => units.GetValueOrDefault(v.UnitId) == notice.PropertyId).SelectMany(v => v.Tenant.Select(p => p.PersonId)).Distinct())
+                foreach (var id in leases.Where(v => units.GetValueOrDefault(v.UnitId) == notice.PropertyId && notice.AppliesToUnit(v.UnitId)).SelectMany(v => v.Tenant.Select(p => p.PersonId)).Distinct())
                 {
                     if (!titles.TryGetValue(id, out var list))
                     {

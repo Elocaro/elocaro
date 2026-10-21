@@ -24,12 +24,13 @@ internal sealed class NoticeFileShare(MietHahnDbContext db, TimeProvider clock) 
         var today = GermanTime.Today(clock.GetUtcNow());
         var leases = (await TenantScope.CurrentLeasesAsync(db, today, cancellationToken)).Where(v => v.Tenant.Any(p => persons.Contains(p.PersonId))).ToList();
         var units = await TenantScope.PropertyOfUnitAsync(db, cancellationToken);
-        var properties = leases.Select(v => units.GetValueOrDefault(v.UnitId)).ToList();
+        var ownUnits = leases.Select(v => (Property: units.GetValueOrDefault(v.UnitId), Unit: v.UnitId)).ToList();
+        var properties = ownUnits.Select(x => x.Property).Distinct().ToList();
         var noticeIds = await db.Set<NoticeFile>().AsNoTracking().Where(f => f.FileId == fileId).Select(f => f.NoticeId).ToListAsync(cancellationToken);
         if (noticeIds.Count > 0)
         {
             var notices = await db.Set<Notice>().AsNoTracking().Where(n => noticeIds.Contains(n.Id) && properties.Contains(n.PropertyId)).ToListAsync(cancellationToken);
-            if (notices.Any(n => n.IsCurrent(today)))
+            if (notices.Any(n => n.IsCurrent(today) && ownUnits.Any(x => TenantScope.Reaches(n, x.Property, x.Unit))))
             {
                 return true;
             }
