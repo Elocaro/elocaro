@@ -16,8 +16,11 @@ public sealed class InfrastructureEnvironment : IAsyncDisposable
 {
     public static readonly DateTimeOffset StartTime = new(2026, 3, 1, 9, 30, 0, TimeSpan.Zero);
 
-    private InfrastructureEnvironment(ServiceProvider services, FakeTimeProvider clock, string filePath, string connection)
+    private readonly PostgresFixture postgres;
+
+    private InfrastructureEnvironment(PostgresFixture postgres, ServiceProvider services, FakeTimeProvider clock, string filePath, string connection)
     {
+        this.postgres = postgres;
         Services = services;
         Clock = clock;
         FilePath = filePath;
@@ -62,12 +65,13 @@ public sealed class InfrastructureEnvironment : IAsyncDisposable
 
         var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
         await provider.MigrateDatabaseAsync(ct);
-        return new InfrastructureEnvironment(provider, clock, filePath, connection);
+        return new InfrastructureEnvironment(postgres, provider, clock, filePath, connection);
     }
 
     public async ValueTask DisposeAsync()
     {
         await Services.DisposeAsync();
+        await postgres.DropDatabaseAsync(Connection);
         if (Directory.Exists(FilePath))
         {
             Directory.Delete(FilePath, recursive: true);

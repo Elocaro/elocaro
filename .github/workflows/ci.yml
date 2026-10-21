@@ -24,6 +24,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      # The tests start several containers and many databases; the runner's default free space is tight.
+      - name: Speicherplatz freiräumen
+        run: |
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/share/swift
+          df -h /
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
@@ -55,6 +61,10 @@ jobs:
           dotnet test --no-build -c Release
           -- --report-trx --results-directory "${{ github.workspace }}/testergebnisse"
           --coverage --coverage-output-format cobertura
+
+      - name: Speicherplatz anzeigen
+        if: always()
+        run: df -h /
 
       - name: Testergebnisse hochladen
         if: always()

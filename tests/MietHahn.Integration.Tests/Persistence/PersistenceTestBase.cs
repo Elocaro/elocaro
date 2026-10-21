@@ -26,10 +26,13 @@ public abstract class PersistenceTestBase(PostgresFixture postgres) : IAsyncLife
         await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
-        return ValueTask.CompletedTask;
+        if (connection.Length > 0)
+        {
+            await postgres.DropDatabaseAsync(connection);
+        }
     }
 
     internal TestDbContext NewContext()

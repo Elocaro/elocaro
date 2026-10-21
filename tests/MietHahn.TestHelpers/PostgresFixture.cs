@@ -38,4 +38,29 @@ public sealed class PostgresFixture : IAsyncLifetime
             ConnectionPruningInterval = 1,
         }.ConnectionString;
     }
+
+    /// <summary>
+    /// Drops a database created by <see cref="CreateDatabaseAsync"/>. Without this the schemas of thousands of tests
+    /// add up and fill the disk of the CI runner. Best effort: cleanup must never fail a test.
+    /// </summary>
+    public async Task DropDatabaseAsync(string connectionString)
+    {
+        try
+        {
+            var name = new NpgsqlConnectionStringBuilder(connectionString).Database;
+            if (string.IsNullOrEmpty(name))
+            {
+                return;
+            }
+
+            await using var connection = new NpgsqlConnection(container.GetConnectionString());
+            await connection.OpenAsync();
+            await using var command = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{name}\" WITH (FORCE)", connection);
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (Exception ex) when (ex is NpgsqlException or InvalidOperationException)
+        {
+            // The database is gone with the container at the latest.
+        }
+    }
 }

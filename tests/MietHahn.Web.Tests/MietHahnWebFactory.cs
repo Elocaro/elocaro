@@ -11,7 +11,11 @@ namespace MietHahn.Web.Tests;
 /// Starts the real web app against a dedicated, fresh database. Jobs are off (mails stay in the outbox
 /// and are verified there), the clock is controllable.
 /// </summary>
-public sealed class MietHahnWebFactory(string connection, IDictionary<string, string?>? supplement = null, Action<IServiceCollection>? configureServices = null)
+public sealed class MietHahnWebFactory(
+    string connection,
+    IDictionary<string, string?>? supplement = null,
+    Action<IServiceCollection>? configureServices = null,
+    PostgresFixture? postgres = null)
     : WebApplicationFactory<Program>
 {
     public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
@@ -22,7 +26,7 @@ public sealed class MietHahnWebFactory(string connection, IDictionary<string, st
         PostgresFixture postgres, IDictionary<string, string?>? supplement = null, Action<IServiceCollection>? configureServices = null)
     {
         ArgumentNullException.ThrowIfNull(postgres);
-        var factory = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), supplement, configureServices);
+        var factory = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), supplement, configureServices, postgres);
         _ = factory.Server; // start the host (migrations run in the process)
         return factory;
     }
@@ -75,6 +79,11 @@ public sealed class MietHahnWebFactory(string connection, IDictionary<string, st
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
+        if (postgres is not null)
+        {
+            await postgres.DropDatabaseAsync(connection);
+        }
+
         if (Directory.Exists(FilePath))
         {
             Directory.Delete(FilePath, recursive: true);

@@ -35,7 +35,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
 
     public async ValueTask InitializeAsync()
     {
-        App = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), Configuration, ConfigureServices);
+        App = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), Configuration, ConfigureServices, postgres);
         App.UseKestrel(0);
         App.StartServer();
         BaseUrl = App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First().Replace("127.0.0.1", "localhost", StringComparison.Ordinal);
