@@ -4,6 +4,7 @@ using MietHahn.Application.Tax;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Tax;
+using MietHahn.Infrastructure.Bank.Import;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 
@@ -31,6 +32,12 @@ internal sealed class LoanService(MietHahnDbContext db) : ILoanService
         var certificates = await db.Set<LoanCertificate>().AsNoTracking().Where(b => b.LoanId == loanId).OrderBy(b => b.Year).ToListAsync(cancellationToken);
         var costs = await db.Set<FinancingCost>().AsNoTracking().Where(k => k.LoanId == loanId).OrderBy(k => k.Date).ToListAsync(cancellationToken);
 
+        var booked = await (from a in db.Set<MietHahn.Domain.Bank.TransactionAssignment>().AsNoTracking()
+                            join u in db.Set<MietHahn.Domain.Bank.Transaction>().AsNoTracking() on a.TransactionId equals u.Id
+                            where a.LoanId == loanId
+                            orderby u.BookingDate
+                            select new { u.Id, u.BookingDate, a.Amount, a.LoanInterest }).ToListAsync(cancellationToken);
+
         var plan = LoanCalculator.Calculate(loan.ToCalculation(), extras.Select(s => s.ToCalculation()).ToList());
         return new LoanDetail(
             loan.Id,
@@ -40,7 +47,10 @@ internal sealed class LoanService(MietHahnDbContext db) : ILoanService
             YearsOf(plan, certificates),
             extras.Select(s => new ExtraPaymentRow(s.Id, s.Date, s.Amount)).ToList(),
             certificates.Select(b => new CertificateRow(b.Id, b.Year, b.Interest, b.ClosingBalance)).ToList(),
-            costs.Select(k => new FinancingCostRow(k.Id, k.Date, k.Amount, k.Kind, k.Description)).ToList());
+            costs.Select(k => new FinancingCostRow(k.Id, k.Date, k.Amount, k.Kind, k.Description)).ToList())
+        {
+            Booked = booked.Select(b => new BookedInstalment(b.Id, b.BookingDate, -b.Amount, b.LoanInterest ?? 0m, -b.Amount - (b.LoanInterest ?? 0m))).ToList(),
+        };
     }
 
     public Task<Result> CreateAsync(LoanInput input, CancellationToken cancellationToken = default) =>
@@ -114,6 +124,39 @@ internal sealed class LoanService(MietHahnDbContext db) : ILoanService
 
             await db.SaveChangesAsync(cancellationToken);
             return certificate.Id;
+        });
+
+    public async Task<BankPlanPreview> PreviewBankPlanAsync(Guid loanId, byte[] csv, CancellationToken cancellationToken = default)
+    {
+        await EnsureLoanAsync(loanId, cancellationToken);
+        return BankPlanCsv.Parse(TextDecoding.Read(csv));
+    }
+
+    public Task<Result> ImportBankPlanAsync(Guid loanId, byte[] csv, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            await EnsureLoanAsync(loanId, cancellationToken);
+            var preview = BankPlanCsv.Parse(TextDecoding.Read(csv));
+            if (!preview.CanImport)
+            {
+                throw new RuleViolationException(preview.Errors.Count > 0 ? preview.Errors[0] : "Die Datei enthält keine Raten.");
+            }
+
+            var existing = await db.Set<LoanCertificate>().Where(b => b.LoanId == loanId).ToDictionaryAsync(b => b.Year, cancellationToken);
+            foreach (var year in preview.Years)
+            {
+                if (existing.TryGetValue(year.Year, out var certificate))
+                {
+                    certificate.Set(year.Year, year.Interest, year.ClosingBalance);
+                }
+                else
+                {
+                    db.Add(new LoanCertificate(loanId, year.Year, year.Interest, year.ClosingBalance));
+                }
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+            return loanId;
         });
 
     public Task<Result> RemoveCertificateAsync(Guid loanId, Guid certificateId, CancellationToken cancellationToken = default) =>

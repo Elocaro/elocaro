@@ -117,7 +117,16 @@ else if (options is not null)
                     <div class="form-grid">
                         <AppNumberField T="decimal?" @bind-Value="part.Amount" Label="Betrag" Suffix="€" Hint="Leer = Rest" />
                         <AppSelect T="string" @bind-Value="part.Target" Label="@(income ? "Mietverhältnis oder Forderung" : "Auszahlung an Mieter (optional)")" Items="targetKeys" Text="TargetText" EmptyText="@(income ? "– bitte wählen –" : "– keine, Kostenposition –")" />
-                        @if (!income)
+                        @if (!income && options.Loans.Count > 0)
+                        {
+                            <OptionSelect @bind-Value="part.LoanId" Label="Darlehensrate (statt Kostenposition)" Options="options.Loans.Select(o => (o.Id, o.Text)).ToList()" />
+                            @if (part.LoanId is not null)
+                            {
+                                <AppNumberField T="decimal?" @bind-Value="part.LoanInterest" Label="Davon Zinsen" Suffix="€" Hint="Leer = laut Tilgungsplan" />
+                            }
+                        }
+
+                        @if (!income && part.LoanId is null)
                         {
                             <CostTypeSelect @bind-Value="part.CostType" />
                             <OptionSelect @bind-Value="part.PropertyId" Label="Objekt" Options="options.Properties.Select(o => (o.Id, o.Name)).ToList()" />

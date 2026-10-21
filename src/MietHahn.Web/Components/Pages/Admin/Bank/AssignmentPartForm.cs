@@ -26,6 +26,11 @@ public sealed class AssignmentPartForm
 
     public Guid? ReceiptId { get; set; }
 
+    public Guid? LoanId { get; set; }
+
+    /// <summary>Interest share of a loan instalment; <c>null</c> = according to the repayment plan.</summary>
+    public decimal? LoanInterest { get; set; }
+
     public string? Note { get; set; }
 
     public AssignmentPartInput ToInput()
@@ -56,6 +61,8 @@ public sealed class AssignmentPartForm
             To = To,
             Allocable = Allocable,
             ReceiptId = ReceiptId,
+            LoanId = LoanId,
+            LoanInterest = LoanId is null ? null : LoanInterest,
             Note = string.IsNullOrWhiteSpace(Note) ? null : Note.Trim(),
         };
     }

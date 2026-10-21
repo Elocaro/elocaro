@@ -42,6 +42,21 @@ public static class LoanCalculator
     public static decimal InstalmentFor(decimal principal, decimal interestRatePercent, decimal initialRepaymentPercent, int monthsPerPeriod = 1) =>
         Math.Round(principal * (interestRatePercent + initialRepaymentPercent) / 100m * monthsPerPeriod / 12m, 2, MidpointRounding.AwayFromZero);
 
+    /// <summary>
+    /// Interest share of the planned instalment that is due closest to <paramref name="bookingDate"/> (within
+    /// <paramref name="toleranceDays"/> days, banks book a few days early or late); <c>null</c> if there is none.
+    /// </summary>
+    public static decimal? InterestAround(LoanPlan plan, DateOnly bookingDate, int toleranceDays = 20)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return plan.Payments
+            .Select(p => (Payment: p, Distance: Math.Abs(p.Date.DayNumber - bookingDate.DayNumber)))
+            .Where(x => x.Distance <= toleranceDays)
+            .OrderBy(x => x.Distance)
+            .Select(x => (decimal?)x.Payment.Interest)
+            .FirstOrDefault();
+    }
+
     /// <summary>German 30E/360 day count.</summary>
     public static int Days360(DateOnly from, DateOnly to)
     {

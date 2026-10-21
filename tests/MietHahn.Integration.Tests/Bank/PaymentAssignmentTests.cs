@@ -204,6 +204,60 @@ public class PaymentAssignmentTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Loan_instalment_is_split_into_interest_from_the_plan_and_repayment_and_can_be_undone()
+    {
+        var loan = (await WithAsync<MietHahn.Application.Tax.ILoanService, Result>(s => s.CreateAsync(new MietHahn.Application.Tax.LoanInput
+        {
+            PropertyId = house,
+            Bank = "Sparkasse",
+            Principal = 120_000m,
+            DisbursementDate = new DateOnly(2026, 1, 1),
+            FirstPaymentDate = new DateOnly(2026, 2, 1),
+            InterestRatePercent = 3m,
+            Instalment = 1_000m,
+        }, Ct))).Id!.Value;
+        var id = await TransactionAsync(new DateOnly(2026, 3, 2), -1_000m, "Sparkasse", SupplierIban, "Darlehen Rate");
+
+        Validate(await WithAsync<IPaymentAssignment, Result>(a => a.AssignAsync(id, [new AssignmentPartInput { LoanId = loan }], Ct)));
+
+        var view = Assert.Single(await WithAsync<IPaymentAssignment, IReadOnlyList<AssignmentView>>(a => a.AssignmentsAsync(id, Ct)));
+        Assert.Equal("Darlehensrate", view.Kind);
+        Assert.Contains("Sparkasse", view.Target, StringComparison.Ordinal);
+        var booked = Assert.Single((await WithAsync<MietHahn.Application.Tax.ILoanService, MietHahn.Application.Tax.LoanDetail?>(s => s.GetAsync(loan, Ct)))!.Booked);
+        Assert.Equal(1_000m, booked.Amount);
+        Assert.Equal(1_000m, booked.Interest + booked.Repayment);
+        Assert.InRange(booked.Interest, 290m, 300m);
+
+        Validate(await WithAsync<IPaymentAssignment, Result>(a => a.UnassignAsync(id, Ct)));
+        Assert.Empty((await WithAsync<MietHahn.Application.Tax.ILoanService, MietHahn.Application.Tax.LoanDetail?>(s => s.GetAsync(loan, Ct)))!.Booked);
+    }
+
+    [Fact]
+    public async Task Loan_instalment_takes_the_given_interest_and_rejects_impossible_ones()
+    {
+        var loan = (await WithAsync<MietHahn.Application.Tax.ILoanService, Result>(s => s.CreateAsync(new MietHahn.Application.Tax.LoanInput
+        {
+            PropertyId = house,
+            Bank = "Sparkasse",
+            Principal = 120_000m,
+            DisbursementDate = new DateOnly(2026, 1, 1),
+            FirstPaymentDate = new DateOnly(2026, 2, 1),
+            InterestRatePercent = 3m,
+            Instalment = 1_000m,
+        }, Ct))).Id!.Value;
+        var far = await TransactionAsync(new DateOnly(2055, 7, 15), -1_000m, "Sparkasse", SupplierIban, "Rate");
+        var income = await TransactionAsync(new DateOnly(2026, 3, 2), 500m, "Sparkasse", SupplierIban, "Gutschrift");
+
+        Assert.Contains("Zinsanteil", (await WithAsync<IPaymentAssignment, Result>(a => a.AssignAsync(far, [new AssignmentPartInput { LoanId = loan }], Ct))).Errors.Single(), StringComparison.Ordinal);
+        Assert.False((await WithAsync<IPaymentAssignment, Result>(a => a.AssignAsync(far, [new AssignmentPartInput { LoanId = loan, LoanInterest = 1_500m }], Ct))).Succeeded);
+        Assert.False((await WithAsync<IPaymentAssignment, Result>(a => a.AssignAsync(income, [new AssignmentPartInput { LoanId = loan, LoanInterest = 10m }], Ct))).Succeeded);
+
+        Validate(await WithAsync<IPaymentAssignment, Result>(a => a.AssignAsync(far, [new AssignmentPartInput { LoanId = loan, LoanInterest = 250m }], Ct)));
+        var booked = Assert.Single((await WithAsync<MietHahn.Application.Tax.ILoanService, MietHahn.Application.Tax.LoanDetail?>(s => s.GetAsync(loan, Ct)))!.Booked);
+        Assert.Equal((250m, 750m), (booked.Interest, booked.Repayment));
+    }
+
+    [Fact]
     public async Task Undo_removes_the_receipt_created_with_the_assignment()
     {
         var id = await TransactionAsync(new DateOnly(2026, 3, 5), -85m, "Stadtwerke Musterstadt", SupplierIban, "Abschlag Strom");

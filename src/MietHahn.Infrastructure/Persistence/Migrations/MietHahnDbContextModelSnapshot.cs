@@ -890,6 +890,15 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
 
+                    b.Property<Guid?>("LoanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("loan_id");
+
+                    b.Property<decimal?>("LoanInterest")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("loan_interest");
+
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("modified_at");
@@ -930,6 +939,9 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CostItemId")
                         .HasDatabaseName("ix_transaction_assignments_cost_item_id");
+
+                    b.HasIndex("LoanId")
+                        .HasDatabaseName("ix_transaction_assignments_loan_id");
 
                     b.HasIndex("PaymentId")
                         .HasDatabaseName("ix_transaction_assignments_payment_id");
@@ -7518,6 +7530,12 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CostItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_transaction_assignments_cost_items_cost_item_id");
+
+                    b.HasOne("MietHahn.Domain.Tax.Loan", null)
+                        .WithMany()
+                        .HasForeignKey("LoanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_transaction_assignments_loans_loan_id");
 
                     b.HasOne("MietHahn.Domain.Finance.Payment", null)
                         .WithMany()

@@ -23,6 +23,12 @@ public interface ILoanService
     /// <summary>Saves the interest certificate of a year (replaces an existing one).</summary>
     Task<Result> SaveCertificateAsync(Guid loanId, CertificateInput input, CancellationToken cancellationToken = default);
 
+    /// <summary>Reads the repayment plan of the bank (CSV) and shows the interest and remaining debt per year; nothing is saved.</summary>
+    Task<BankPlanPreview> PreviewBankPlanAsync(Guid loanId, byte[] csv, CancellationToken cancellationToken = default);
+
+    /// <summary>Takes the yearly values of the bank plan over as interest certificates (replaces those of the same years; they win over the calculated plan).</summary>
+    Task<Result> ImportBankPlanAsync(Guid loanId, byte[] csv, CancellationToken cancellationToken = default);
+
     Task<Result> RemoveCertificateAsync(Guid loanId, Guid certificateId, CancellationToken cancellationToken = default);
 
     Task<Result> AddFinancingCostAsync(Guid loanId, FinancingCostInput input, CancellationToken cancellationToken = default);
@@ -89,6 +95,14 @@ public sealed class ExtraPaymentInput
     public decimal? Amount { get; set; }
 }
 
+/// <param name="Instalments">Number of instalments of the year in the file.</param>
+public sealed record BankPlanYear(int Year, decimal Interest, decimal? ClosingBalance, int Instalments);
+
+public sealed record BankPlanPreview(IReadOnlyList<BankPlanYear> Years, IReadOnlyList<string> Warnings, IReadOnlyList<string> Errors)
+{
+    public bool CanImport => Errors.Count == 0 && Years.Count > 0;
+}
+
 public sealed class CertificateInput
 {
     [Required(ErrorMessage = "Bitte das Jahr angeben.")]
@@ -125,6 +139,9 @@ public sealed record ExtraPaymentRow(Guid Id, DateOnly Date, decimal Amount);
 
 public sealed record CertificateRow(Guid Id, int Year, decimal Interest, decimal? ClosingBalance);
 
+/// <summary>An instalment booked from a bank transaction, split into interest and repayment.</summary>
+public sealed record BookedInstalment(Guid TransactionId, DateOnly Date, decimal Amount, decimal Interest, decimal Repayment);
+
 public sealed record FinancingCostRow(Guid Id, DateOnly Date, decimal Amount, FinancingCostKind Kind, string Description);
 
 /// <summary>Interest of a year: calculated by plan and, if available, from the bank certificate (which wins).</summary>
@@ -141,7 +158,11 @@ public sealed record LoanDetail(
     IReadOnlyList<LoanYearInterest> Years,
     IReadOnlyList<ExtraPaymentRow> ExtraPayments,
     IReadOnlyList<CertificateRow> Certificates,
-    IReadOnlyList<FinancingCostRow> Costs);
+    IReadOnlyList<FinancingCostRow> Costs)
+{
+    /// <summary>Instalments assigned from the bank transactions (actual split into interest and repayment).</summary>
+    public IReadOnlyList<BookedInstalment> Booked { get; init; } = [];
+}
 
 public sealed record FinancingExpenses(decimal Interest, decimal OneOffCosts)
 {

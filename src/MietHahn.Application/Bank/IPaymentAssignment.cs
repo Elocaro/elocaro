@@ -77,12 +77,19 @@ public sealed class AssignmentPartInput
     /// <summary>Existing receipt to add the cost item to; empty = a receipt is created for the transaction.</summary>
     public Guid? ReceiptId { get; set; }
 
+    /// <summary>Instalment of this loan (outflows only); the interest share is taken from the repayment plan unless <see cref="LoanInterest"/> is given.</summary>
+    public Guid? LoanId { get; set; }
+
+    public decimal? LoanInterest { get; set; }
+
     [StringLength(500)]
     public string? Note { get; set; }
 
+    public bool IsLoan => LoanId is not null;
+
     public bool IsCost => !string.IsNullOrWhiteSpace(CostType) || PropertyId is not null || ReceiptId is not null;
 
-    public bool IsEmpty => Amount is null && LeaseId is null && ChargeId is null && !IsCost && From is null && To is null && UnitId is null && Allocable is null && string.IsNullOrWhiteSpace(Note);
+    public bool IsEmpty => Amount is null && LeaseId is null && ChargeId is null && !IsCost && !IsLoan && LoanInterest is null && From is null && To is null && UnitId is null && Allocable is null && string.IsNullOrWhiteSpace(Note);
 }
 
 public sealed record InboxRow(TransactionRow Transaction, SuggestionView? Suggestion, int Alternatives);
@@ -108,9 +115,15 @@ public sealed record AssignmentOptions(
     IReadOnlyList<ChargeOption> Charges,
     IReadOnlyList<ReferenceOption> Properties,
     IReadOnlyList<ReferenceOption> Units,
-    IReadOnlyList<ReceiptOption> Receipts);
+    IReadOnlyList<ReceiptOption> Receipts)
+{
+    /// <summary>Loans an outflow can be booked to as an instalment.</summary>
+    public IReadOnlyList<LoanOption> Loans { get; init; } = [];
+}
 
 public sealed record LeaseOption(Guid Id, string Text);
+
+public sealed record LoanOption(Guid Id, string Text);
 
 public sealed record ChargeOption(Guid Id, Guid LeaseId, string Text, decimal Open);
 

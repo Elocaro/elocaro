@@ -11,6 +11,7 @@ using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;
+using MietHahn.Domain.Tax;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Finance;
 using MietHahn.Infrastructure.Leases;
@@ -78,7 +79,16 @@ internal sealed class PaymentAssignment(MietHahnDbContext db) : IPaymentAssignme
                 var part = inputs[i];
                 try
                 {
-                    if (part.IsCost)
+                    if (part.IsLoan)
+                    {
+                        if (part.LeaseId is not null || part.ChargeId is not null || part.IsCost)
+                        {
+                            throw new RuleViolationException("Eine Darlehensrate lässt sich nicht zugleich einem Mieter oder einer Kostenart zuordnen.");
+                        }
+
+                        await AddLoanInstalmentAsync(transaction, part, amounts[i], cancellationToken);
+                    }
+                    else if (part.IsCost)
                     {
                         if (part.LeaseId is not null || part.ChargeId is not null)
                         {
@@ -211,6 +221,8 @@ internal sealed class PaymentAssignment(MietHahnDbContext db) : IPaymentAssignme
         var receipts = await db.Set<Receipt>().AsNoTracking().Include(b => b.Items).Include(b => b.Files).AsSplitQuery()
             .Where(b => receiptIds.Contains(b.Id)).ToDictionaryAsync(b => b.Id, cancellationToken);
         var properties = await db.Set<Property>().AsNoTracking().ToDictionaryAsync(o => o.Id, o => o.Name, cancellationToken);
+        var loanIds = assignments.Where(a => a.LoanId is not null).Select(a => a.LoanId!.Value).Distinct().ToList();
+        var loans = await db.Set<Loan>().AsNoTracking().Where(d => loanIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, cancellationToken);
 
         var result = new List<AssignmentView>();
         foreach (var a in assignments)
@@ -227,6 +239,12 @@ internal sealed class PaymentAssignment(MietHahnDbContext db) : IPaymentAssignme
                     $"{CostTypes.Find(item.CostType)?.Name ?? item.CostType}, {properties.GetValueOrDefault(item.PropertyId, "?")}",
                     $"{(item.Allocable ? "umlagefähig" : "nicht umlagefähig")}, Zeitraum {item.BillingPeriod}",
                     $"/verwaltung/belege/{receipt.Id}", receipt.Files.Count == 0));
+            }
+            else if (a.LoanId is { } loanId && loans.TryGetValue(loanId, out var loan))
+            {
+                var interest = a.LoanInterest ?? 0m;
+                result.Add(new AssignmentView(a.Id, a.Amount, "Darlehensrate", $"{loan.Bank}{(string.IsNullOrWhiteSpace(loan.LoanNumber) ? "" : $" ({loan.LoanNumber})")}, {properties.GetValueOrDefault(loan.PropertyId, "?")}",
+                    $"Zinsen {Money(interest)}, Tilgung {Money(-a.Amount - interest)}", $"/verwaltung/finanzen/darlehen/{loan.Id}", false));
             }
             else
             {
@@ -251,7 +269,35 @@ internal sealed class PaymentAssignment(MietHahnDbContext db) : IPaymentAssignme
             .Where(b => b.Gross > 0 && b.Gross - b.Allocated > 0)
             .Select(b => new ReceiptOption(b.Id, $"{b.SupplierName ?? "Beleg"} · {Money(b.Gross)} vom {b.InvoiceDate.ToString("dd.MM.yyyy", German)} · offen {Money(b.Gross - b.Allocated)}", b.Gross - b.Allocated))
             .ToList();
-        return new AssignmentOptions(leases, charges, properties, units.Select(e => new ReferenceOption(e.Id, $"{e.Name} ({e.Property})")).ToList(), receipts);
+        var loanOptions = await (from d in db.Set<Loan>().AsNoTracking()
+                                 join o in db.Set<Property>().AsNoTracking() on d.PropertyId equals o.Id
+                                 orderby o.Name, d.Bank
+                                 select new { d.Id, d.Bank, d.LoanNumber, Property = o.Name }).ToListAsync(cancellationToken);
+        return new AssignmentOptions(leases, charges, properties, units.Select(e => new ReferenceOption(e.Id, $"{e.Name} ({e.Property})")).ToList(), receipts)
+        {
+            Loans = loanOptions.Select(d => new LoanOption(d.Id, $"{d.Bank}{(string.IsNullOrWhiteSpace(d.LoanNumber) ? "" : $" ({d.LoanNumber})")} · {d.Property}")).ToList(),
+        };
+    }
+
+    private async Task AddLoanInstalmentAsync(Transaction transaction, AssignmentPartInput part, decimal amount, CancellationToken cancellationToken)
+    {
+        if (amount >= 0)
+        {
+            throw new RuleViolationException("Nur Ausgänge lassen sich als Darlehensrate buchen.");
+        }
+
+        var loan = await db.Set<Loan>().AsNoTracking().SingleOrDefaultAsync(d => d.Id == part.LoanId, cancellationToken)
+            ?? throw new RuleViolationException("Das Darlehen wurde nicht gefunden.");
+        var extras = await db.Set<LoanExtraPayment>().AsNoTracking().Where(s => s.LoanId == loan.Id).ToListAsync(cancellationToken);
+        var interest = part.LoanInterest
+            ?? LoanCalculator.InterestAround(LoanCalculator.Calculate(loan.ToCalculation(), extras.Select(s => s.ToCalculation()).ToList()), transaction.BookingDate)
+            ?? throw new RuleViolationException("Für dieses Datum gibt es im Tilgungsplan keine Rate. Bitte den Zinsanteil der Rate selbst angeben.");
+        if (interest < 0 || interest > -amount)
+        {
+            throw new RuleViolationException($"Der Zinsanteil muss zwischen 0 und {Money(-amount)} liegen.");
+        }
+
+        db.Add(new TransactionAssignment(transaction.Id, amount) { LoanId = loan.Id, LoanInterest = interest });
     }
 
     private async Task AddPaymentAsync(Transaction transaction, AssignmentPartInput part, decimal amount, CancellationToken cancellationToken)

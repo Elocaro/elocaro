@@ -83,6 +83,45 @@ public class LoanServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Bank_plan_csv_becomes_yearly_certificates()
+    {
+        var id = (await WithAsync(s => s.CreateAsync(Input(), Ct))).Id!.Value;
+        await WithAsync(s => s.SaveCertificateAsync(id, new CertificateInput { Year = 2024, Interest = 1m }, Ct));
+        var csv = System.Text.Encoding.UTF8.GetBytes(
+            "Datum;Rate;Zinsen;Tilgung;Restschuld\r\n"
+            + "30.06.2024;1.000,00;300,10;699,90;99.300,10\r\n"
+            + "31.12.2024;1.000,00;297,90;702,10;98.598,00\r\n"
+            + "30.06.2025;1.000,00;295,00;705,00;97.893,00\r\n"
+            + "31.12.2025;1.000,00;292,45;707,55;97.185,45\r\n"
+            + "Summe;;1.185,45;;\r\n");
+
+        var preview = await WithAsync(s => s.PreviewBankPlanAsync(id, csv, Ct));
+
+        Assert.True(preview.CanImport);
+        Assert.Equal([(2024, 598.00m, 98_598.00m), (2025, 587.45m, 97_185.45m)], preview.Years.Select(j => (j.Year, j.Interest, j.ClosingBalance!.Value)));
+        Assert.Empty(preview.Warnings);
+
+        Assert.True((await WithAsync(s => s.ImportBankPlanAsync(id, csv, Ct))).Succeeded);
+        var detail = (await WithAsync(s => s.GetAsync(id, Ct)))!;
+        Assert.Equal(2, detail.Certificates.Count);
+        Assert.Equal(598.00m, detail.Years.Single(j => j.Year == 2024).Interest);
+    }
+
+    [Fact]
+    public async Task Bank_plan_csv_without_the_needed_columns_is_refused_with_a_clear_message()
+    {
+        var id = (await WithAsync(s => s.CreateAsync(Input(), Ct))).Id!.Value;
+        var csv = System.Text.Encoding.UTF8.GetBytes("Name;Wert\r\nA;1\r\n");
+
+        var preview = await WithAsync(s => s.PreviewBankPlanAsync(id, csv, Ct));
+
+        Assert.False(preview.CanImport);
+        Assert.Contains("Zinsen", preview.Errors.Single(), StringComparison.Ordinal);
+        Assert.False((await WithAsync(s => s.ImportBankPlanAsync(id, csv, Ct))).Succeeded);
+        Assert.Empty((await WithAsync(s => s.GetAsync(id, Ct)))!.Certificates);
+    }
+
+    [Fact]
     public async Task Expenses_apply_the_share_and_add_one_off_costs()
     {
         var id = (await WithAsync(s => s.CreateAsync(Input(share: 50m), Ct))).Id!.Value;

@@ -30,6 +30,12 @@ public sealed class TransactionAssignment : Entity
 
     public Guid? CostItemId { get; set; }
 
+    /// <summary>The part is an instalment of this loan (outflow); <see cref="LoanInterest"/> is the interest share of it.</summary>
+    public Guid? LoanId { get; set; }
+
+    /// <summary>Interest share of the instalment; the rest (<c>|Amount| - LoanInterest</c>) repays the loan.</summary>
+    public decimal? LoanInterest { get; set; }
+
     /// <summary>The receipt was created with the assignment (and is removed again on undo if it stays empty).</summary>
     public bool ReceiptCreated { get; set; }
 

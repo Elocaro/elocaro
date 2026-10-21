@@ -66,6 +66,45 @@ else
 </section>
 
 <section>
+    <h2>Tilgungsplan der Bank (CSV)</h2>
+    <p class="small">Die Zinsen des Plans werden je Jahr summiert und wie eine Jahreszinsbescheinigung übernommen. Vorhandene Werte derselben Jahre werden ersetzt.</p>
+    <AppFileUpload Text="CSV-Datei wählen" Accept=".csv,.txt" OnSelected="PlanSelectedAsync" />
+    @if (plan is not null)
+    {
+        <ErrorList Errors="plan.Errors" />
+        @foreach (var warning in plan.Warnings)
+        {
+            <Notice Level="NoticeLevel.Warning">@warning</Notice>
+        }
+
+        @if (plan.Years.Count > 0)
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Jahr</th><th class="number">Raten</th><th class="number">Zinsen</th><th class="number">Restschuld</th></tr></thead>
+                    <tbody>
+                        @foreach (var year in plan.Years)
+                        {
+                            <tr>
+                                <td>@year.Year</td>
+                                <td class="number">@year.Instalments</td>
+                                <td class="number">@Format.Money(year.Interest)</td>
+                                <td class="number">@(year.ClosingBalance is { } balance ? Format.Money(balance) : "–")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (plan.CanImport)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ImportPlanAsync">Als Jahreswerte übernehmen</MudButton>
+        }
+    }
+</section>
+
+<section>
     <h2>Jahreszinsbescheinigung</h2>
     @if (detail.Certificates.Count > 0)
     {
@@ -97,6 +136,31 @@ else
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
     </EditForm>
 </section>
+
+@if (detail.Booked.Count > 0)
+{
+    <section>
+        <h2>Gebuchte Raten</h2>
+        <p class="small">Aus den Bankumsätzen zugeordnet; der Zinsanteil stammt aus dem Tilgungsplan oder wurde bei der Zuordnung eingegeben.</p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Datum</th><th class="number">Rate</th><th class="number">Zinsen</th><th class="number">Tilgung</th></tr></thead>
+                <tbody>
+                    @foreach (var rate in detail.Booked)
+                    {
+                        <tr>
+                            <td><a href="/verwaltung/bank/umsaetze/@rate.TransactionId/zuordnen">@Format.Date(rate.Date)</a></td>
+                            <td class="number">@Format.Money(rate.Amount)</td>
+                            <td class="number">@Format.Money(rate.Interest)</td>
+                            <td class="number">@Format.Money(rate.Repayment)</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot><tr><td>Summe</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Amount))</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Interest))</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Repayment))</td></tr></tfoot>
+            </table>
+        </div>
+    </section>
+}
 
 <section>
     <h2>Sondertilgungen</h2>
@@ -225,6 +289,27 @@ else
     };
 
     private Task UpdateAsync() => ExecuteAsync(Admin.UpdateAsync(LoanId, Data!), "Das Darlehen wurde gespeichert.");
+
+    private BankPlanPreview? plan;
+    private byte[]? planFile;
+
+    private async Task PlanSelectedAsync(FileSelection file)
+    {
+        await using var content = file.Open();
+        using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer);
+        planFile = buffer.ToArray();
+        plan = await Admin.PreviewBankPlanAsync(LoanId, planFile);
+    }
+
+    private async Task ImportPlanAsync()
+    {
+        if (planFile is not null && await ExecuteAsync(Admin.ImportBankPlanAsync(LoanId, planFile), "Die Jahreswerte wurden übernommen."))
+        {
+            plan = null;
+            planFile = null;
+        }
+    }
 
     private async Task SaveCertificateAsync()
     {

@@ -294,7 +294,17 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             {
                 await page.GotoAsync(BaseUrl + path);
                 await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                problems.AddRange((await page.EvaluateAsync<string[]>(UiAuditTests.ContrastScript)).Select(f => $"[{scheme}] {path}: {f}"));
+
+                // A page is first prerendered and then becomes interactive; measured in between, the dark scheme can still show
+                // light surfaces. A real contrast problem stays, so measure again for a moment before reporting.
+                var found = await page.EvaluateAsync<string[]>(UiAuditTests.ContrastScript);
+                for (var attempt = 0; attempt < 8 && found.Length > 0; attempt++)
+                {
+                    await page.WaitForTimeoutAsync(250);
+                    found = await page.EvaluateAsync<string[]>(UiAuditTests.ContrastScript);
+                }
+
+                problems.AddRange(found.Select(f => $"[{scheme}] {path}: {f}"));
             }
         }
 

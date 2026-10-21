@@ -113,6 +113,8 @@ internal sealed class TransactionAssignmentConfiguration : IEntityTypeConfigurat
         builder.HasOne<Payment>().WithMany().HasForeignKey(a => a.PaymentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Receipt>().WithMany().HasForeignKey(a => a.ReceiptId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<CostItem>().WithMany().HasForeignKey(a => a.CostItemId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Tax.Loan>().WithMany().HasForeignKey(a => a.LoanId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(a => a.TransactionId);
+        builder.HasIndex(a => a.LoanId);
     }
 }
