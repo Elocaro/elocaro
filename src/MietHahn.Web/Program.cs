@@ -10,6 +10,7 @@ using MietHahn.Web.Finance;
 using MietHahn.Web.Notices;
 using MietHahn.Web.Operations;
 using MietHahn.Web.People;
+using MietHahn.Web.Tickets;
 using MudBlazor.Services;
 
 if (args.FirstOrDefault() == "healthcheck")
@@ -65,6 +66,7 @@ app.MapHealthEndpoints();
 app.MapExportEndpoint();
 app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
+app.MapCareChecksEndpoint();
 app.MapNoticePdfEndpoint();
 app.MapDatevEndpoints();
 app.MapContractorFileEndpoint();

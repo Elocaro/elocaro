@@ -10,7 +10,12 @@
 @inject Notifier Notify
 
 <InteractiveShell>
-    <PageHeader Title="Hausmeister-Aufgaben" Subtitle="Regelmäßige Aufgaben je Objekt, vom Hausmeister im Service-Bereich abgehakt." />
+    <PageHeader Title="Hausmeister-Aufgaben" Subtitle="Regelmäßige Aufgaben je Objekt, vom Hausmeister im Service-Bereich abgehakt.">
+        <Actions>
+            <a class="button" href="/verwaltung/tickets/routinen.csv?jahr=@DateTime.Today.Year">Nachweis @DateTime.Today.Year (CSV)</a>
+            <a class="button" href="/verwaltung/tickets/routinen.csv?jahr=@(DateTime.Today.Year - 1)">Nachweis @(DateTime.Today.Year - 1) (CSV)</a>
+        </Actions>
+    </PageHeader>
     <StatusMessage />
     <ErrorList Errors="errors" />
 

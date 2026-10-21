@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -166,6 +167,36 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
         var (tenant, _, _) = await TenantWithLeasesAsync();
         using var ___ = tenant;
         Assert.Equal("/konto/zugriff-verweigert", (await tenant.GetAsync("/service/routinen", followRedirects: false)).RedirectLocation!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task Care_check_proof_is_a_csv_for_the_administration_only()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        await App.WithScopeAsync(async sp =>
+        {
+            var propertyId = (await sp.GetRequiredService<MietHahn.Application.Properties.IPropertyService>().CreateAsync(
+                new MietHahn.Application.Properties.PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, TestContext.Current.CancellationToken)).Id!.Value;
+            var db = sp.GetRequiredService<MietHahn.Infrastructure.Persistence.MietHahnDbContext>();
+            var routine = new MietHahn.Domain.Tickets.CareRoutine(propertyId, "=Treppenhaus", MietHahn.Domain.Tickets.CareInterval.Weekly, null);
+            db.Add(routine);
+            db.Add(new MietHahn.Domain.Tickets.CareCheck(routine.Id, new DateOnly(2026, 3, 2), null, "Max Hausmeister", "sauber"));
+            db.Add(new MietHahn.Domain.Tickets.CareCheck(routine.Id, new DateOnly(2025, 3, 2), null, "Max Hausmeister", null));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            return true;
+        });
+
+        using var csv = await admin.Http.GetAsync(new Uri("/verwaltung/tickets/routinen.csv?jahr=2026", UriKind.Relative), TestContext.Current.CancellationToken);
+        Assert.Equal("text/csv", csv.Content.Headers.ContentType!.MediaType);
+        var lines = Encoding.UTF8.GetString(await csv.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).TrimStart('\uFEFF').Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal("Objekt;Aufgabe;Rhythmus;Erledigt am;Erledigt von;Notiz", lines[0]);
+        Assert.Equal(2, lines.Length);
+        Assert.Equal("Lindenweg 3;'=Treppenhaus;" + MietHahn.Web.Display.Labels.From(MietHahn.Domain.Tickets.CareInterval.Weekly) + ";02.03.2026;Max Hausmeister;sauber", lines[1]);
+
+        var (caretaker, _) = await SignedInAsAsync(Roles.Caretaker);
+        using var __ = caretaker;
+        Assert.NotEqual(HttpStatusCode.OK, (await caretaker.GetAsync("/verwaltung/tickets/routinen.csv", followRedirects: false)).Status);
     }
 
     [Fact]
