@@ -1,0 +1,107 @@
+@using MudBlazor
+@using MietHahn.Application.Files
+@using MietHahn.Application.Notices
+@using MietHahn.Web.Components.Controls
+@inject IMessages Messages
+@inject IFileStore Files
+@inject AuthenticationStateProvider Authentication
+
+@* Messages between tenants and administration. The mail only points here, the text stays in the app. *@
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (view is null)
+{
+    <EmptyState Text="Die Unterhaltung wurde nicht gefunden." />
+}
+else
+{
+    <p class="small">@view.Row.Unit@(view.Row.Property.Length > 0 ? $" · {view.Row.Property}" : "") · @view.Row.Tenants</p>
+    <ul class="ticket-thread">
+        @foreach (var message in view.Messages)
+        {
+            <li class="@(message.FromTenant != Admin ? null : "internal")">
+                <span class="meta">@message.Author · @Format.Timestamp(message.At)</span>
+                <p>@message.Text</p>
+                @foreach (var fileId in message.FileIds)
+                {
+                    <p><a href="/dateien/@fileId" target="_blank" rel="noopener">Anhang öffnen</a></p>
+                }
+            </li>
+        }
+    </ul>
+
+    <section>
+        <h2>Antworten</h2>
+        <ErrorList Errors="errors" />
+        <AppTextField @bind-Value="text" Label="Nachricht" Lines="4" />
+        <div class="form-row">
+            <AppFileUpload Text="Anhang hinzufügen" Multiple="true" OnSelectedMany="files => selected = files" />
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SendAsync" Disabled="busy">Senden</MudButton>
+    </section>
+}
+
+@code {
+    private ThreadView? view;
+    private bool loaded;
+    private bool busy;
+    private string? text;
+    private IReadOnlyList<FileSelection> selected = [];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid Id { get; set; }
+
+    /// <summary>Administration side (own messages are not marked as foreign).</summary>
+    [Parameter]
+    public bool Admin { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        loaded = true;
+    }
+
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+
+    private async Task LoadAsync() => view = await Messages.GetAsync(await UserAsync(), Id);
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            errors = ["Bitte eine Nachricht schreiben."];
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var ids = new List<Guid>();
+            foreach (var file in selected)
+            {
+                await using var content = file.Open();
+                ids.Add((await Files.SaveAsync(content, file.Name)).Id);
+            }
+
+            var result = await Messages.ReplyAsync(await UserAsync(), Id, text, ids);
+            errors = result.Succeeded ? null : result.Errors;
+            if (result.Succeeded)
+            {
+                text = null;
+                selected = [];
+                await LoadAsync();
+            }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

@@ -168,7 +168,7 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     public async Task Service_and_portal_pages_meet_contrast_fit_360_pixels_and_can_be_photographed(string role)
     {
         var email = $"{role.ToLowerInvariant()}@example.de";
-        string[] paths = role == Roles.Tenant ? ["/portal", "/portal/tickets", "/portal/tickets/neu", "/portal/dokumente", "/portal/vertrag", "/portal/kontakt"] : ["/service", "/service/objekte"];
+        string[] paths = role == Roles.Tenant ? ["/portal", "/portal/tickets", "/portal/tickets/neu", "/portal/aushaenge", "/portal/nachrichten", "/portal/dokumente", "/portal/vertrag", "/portal/kontakt"] : ["/service", "/service/objekte"];
         paths = await App.WithScopeAsync(async sp =>
         {
             var ct = TestContext.Current.CancellationToken;

@@ -1,0 +1,12 @@
+@page "/portal/nachrichten/{Id:guid}"
+@rendermode InteractiveServer
+
+<InteractiveShell>
+    <PageHeader Title="Nachricht" Back="/portal/nachrichten" BackText="Nachrichten" />
+    <ConversationThread Id="Id" />
+</InteractiveShell>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+}

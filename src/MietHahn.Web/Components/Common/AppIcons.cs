@@ -13,6 +13,7 @@ public static class AppIcons
     public static string People => Icons.Material.Outlined.People;
     public static string Lease => Icons.Material.Outlined.Description;
     public static string Tickets => Icons.Material.Outlined.ConfirmationNumber;
+    public static string Messages => Icons.Material.Outlined.Forum;
     public static string Deadlines => Icons.Material.Outlined.Event;
     public static string Documents => Icons.Material.Outlined.FolderOpen;
     public static string Templates => Icons.Material.Outlined.EditNote;

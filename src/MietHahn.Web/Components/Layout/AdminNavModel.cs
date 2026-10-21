@@ -60,6 +60,8 @@ public static class AdminNavModel
             [new("Dokumente", $"{Root}/dokumente", Exact: true), new("Schreiben an Mieter", $"{Root}/dokumente/schreiben")], "Bestand"),
         new("Tickets", AppIcons.Tickets, $"{Root}/tickets", Policies.MasterData, [$"{Root}/tickets"],
             [new("Tickets", $"{Root}/tickets", Exact: true), new("Anlegen", $"{Root}/tickets/neu")], "Bestand"),
+        new("Mitteilungen", AppIcons.Messages, $"{Root}/nachrichten", Policies.MasterData, [$"{Root}/nachrichten", $"{Root}/aushaenge"],
+            [new("Nachrichten", $"{Root}/nachrichten"), new("Aushänge", $"{Root}/aushaenge")], "Bestand"),
         new("Fristen", AppIcons.Deadlines, $"{Root}/fristen", Policies.MasterData, [$"{Root}/fristen"],
             [new("Kalender", $"{Root}/fristen", Exact: true), new("Wartung", $"{Root}/fristen/wartung")], "Bestand"),
 
@@ -129,6 +131,7 @@ public static class AdminNavModel
         NavTab.Group("Vertrag", null,
             new("Vertragsdokument", $"{id}/vertragsdokument"),
             new("Mieterhöhung", $"{id}/mieterhoehung")),
+        new("Kommunikation", $"{id}/kommunikation"),
         NavTab.Group("Ein- & Auszug", null,
             new("Übergabe Einzug", $"{id}/uebergabe/einzug"),
             new("Übergabe Auszug", $"{id}/uebergabe/auszug"),

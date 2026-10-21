@@ -1,0 +1,78 @@
+@page "/verwaltung/aushaenge/neu"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Application.Documents
+@using MietHahn.Application.Files
+@using MietHahn.Application.Notices
+@using MietHahn.Web.Components.Controls
+@inject INotices Notices
+@inject IDocumentLibrary Documents
+@inject IFileStore Files
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Aushang anlegen" Back="/verwaltung/aushaenge" BackText="Alle Aushänge" />
+    <ErrorList Errors="errors" />
+
+    @if (options is not null)
+    {
+        <EditForm Model="input" OnValidSubmit="SubmitAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppSelect T="Guid?" @bind-Value="input.PropertyId" Label="Objekt" Required="true" Items="options.Properties.Select(o => (Guid?)o.Id).ToList()" Text="@(id => options.Properties.FirstOrDefault(o => o.Id == id)?.Name ?? "")" />
+                <AppTextField @bind-Value="input.Title" Label="Titel" Required="true" Hint="z. B. „Wasser wird am 12.3. abgestellt“" />
+                <AppTextField @bind-Value="input.Body" Label="Text" Required="true" Lines="6" />
+                <AppDateField @bind-Value="input.ValidFrom" Label="Gültig ab" Hint="leer = heute" />
+                <AppDateField @bind-Value="input.ValidUntil" Label="Gültig bis" Hint="leer = bis auf Weiteres" />
+                <AppCheckBox @bind-Value="input.RequiresAcknowledgement" Label="Mieter müssen das Lesen bestätigen" />
+            </div>
+            <div class="form-row">
+                <AppFileUpload Text="Anhänge wählen" Multiple="true" OnSelectedMany="files => selected = files" />
+            </div>
+            <p class="small">Alle Mieter des Objekts mit Portalzugang erhalten eine Mail mit dem Titel und einem Link.</p>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy">Veröffentlichen</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
+
+@code {
+    private readonly NoticeInput input = new();
+    private ReferenceOptions? options;
+    private IReadOnlyList<FileSelection> selected = [];
+    private IReadOnlyList<string>? errors;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync() => options = await Documents.ReferenceOptionsAsync();
+
+    private async Task SubmitAsync()
+    {
+        busy = true;
+        try
+        {
+            var ids = new List<Guid>();
+            foreach (var file in selected)
+            {
+                await using var content = file.Open();
+                ids.Add((await Files.SaveAsync(content, file.Name)).Id);
+            }
+
+            var result = await Notices.CreateAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            if (result.Succeeded)
+            {
+                Navigation.NavigateTo($"/verwaltung/aushaenge/{result.Id}");
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

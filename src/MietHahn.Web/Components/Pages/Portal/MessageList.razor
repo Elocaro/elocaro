@@ -1,0 +1,28 @@
+@page "/portal/nachrichten"
+@attribute [StreamRendering]
+@using MietHahn.Application.Notices
+@inject IMessages Messages
+
+<PageHeader Title="Nachrichten" Subtitle="Schreiben Sie Ihrer Verwaltung. Per Mail erhalten Sie nur einen Hinweis, den Text lesen Sie hier.">
+    <Actions>
+        <a class="button button-primary" href="/portal/nachrichten/neu">Neue Nachricht</a>
+    </Actions>
+</PageHeader>
+
+@if (rows is null)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else
+{
+    <ThreadTable Rows="rows" BasePath="/portal/nachrichten" EmptyText="Sie haben noch keine Nachrichten geschrieben oder erhalten." />
+}
+
+@code {
+    private IReadOnlyList<ThreadRow>? rows;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync() => rows = await Messages.ListAsync(HttpContext.User);
+}

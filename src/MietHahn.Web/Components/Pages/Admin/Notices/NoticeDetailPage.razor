@@ -1,0 +1,81 @@
+@page "/verwaltung/aushaenge/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Application.Notices
+@inject INotices Notices
+@inject AuthenticationStateProvider Authentication
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="@(view?.Row.Title ?? "Aushang")" Back="/verwaltung/aushaenge" BackText="Alle Aushänge" />
+    <StatusMessage />
+    <ErrorList Errors="errors" />
+
+    @if (view is null)
+    {
+        <EmptyState Text="Der Aushang wurde nicht gefunden." />
+    }
+    else
+    {
+        <dl class="details">
+            <dt>Objekt</dt><dd>@view.Row.Property</dd>
+            <dt>Gültig</dt><dd>@Format.Date(view.Row.ValidFrom)@(view.Row.ValidUntil is { } until ? $" bis {Format.Date(until)}" : " bis auf Weiteres")@(view.Row.IsCurrent ? "" : " (nicht mehr aktuell)")</dd>
+            <dt>Bestätigung</dt><dd>@(view.Row.RequiresAcknowledgement ? "Pflicht" : "freiwillig")</dd>
+        </dl>
+        <p class="ticket-description">@view.Body</p>
+        @foreach (var fileId in view.FileIds)
+        {
+            <p><a href="/dateien/@fileId" target="_blank" rel="noopener">Anhang öffnen</a></p>
+        }
+
+        <div class="form-row">
+            <a class="button" href="/verwaltung/aushaenge/@Id/aushang.pdf" target="_blank" rel="noopener">Als PDF für das Treppenhaus</a>
+            @if (view.Row.IsCurrent)
+            {
+                <MudButton Variant="Variant.Outlined" OnClick="WithdrawAsync">Zurückziehen</MudButton>
+            }
+        </div>
+
+        <section>
+            <h2>Gelesen (@view.Row.Read von @view.Row.Recipients)</h2>
+            @if (view.Readers.Count == 0)
+            {
+                <EmptyState Compact="true" Text="Keine Mieter mit Portalzugang im Objekt." />
+            }
+            else
+            {
+                <ul class="todos">
+                    @foreach (var reader in view.Readers)
+                    {
+                        <li class="todo">@reader.Name <span class="small">@(reader.ReadAt is { } at ? $"gelesen {Format.Timestamp(at)}" : "noch nicht gelesen")</span></li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+</InteractiveShell>
+
+@code {
+    private NoticeDetails? view;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+
+    private async Task LoadAsync() => view = await Notices.GetAsync(await UserAsync(), Id);
+
+    private async Task WithdrawAsync()
+    {
+        var result = await Notices.WithdrawAsync(await UserAsync(), Id);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Aushang ist zurückgezogen.");
+            await LoadAsync();
+        }
+    }
+}

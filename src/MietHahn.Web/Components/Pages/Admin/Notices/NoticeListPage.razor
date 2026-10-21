@@ -1,0 +1,47 @@
+@page "/verwaltung/aushaenge"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Application.Notices
+@inject INotices Notices
+@inject AuthenticationStateProvider Authentication
+
+<InteractiveShell>
+    <PageHeader Title="Aushänge" Subtitle="Mitteilungen an alle Mieter eines Objekts, im Portal und per Mail.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/aushaenge/neu">Aushang anlegen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (rows is not null)
+    {
+        @if (rows.Count == 0)
+        {
+            <EmptyState Text="Noch keine Aushänge." />
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Aushang</th><th>Objekt</th><th>Gültig</th><th>Gelesen</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in rows)
+                        {
+                            <tr>
+                                <td><a href="/verwaltung/aushaenge/@row.Id">@row.Title</a>@if (row.IsCurrent) {<StatusChip Level="StatusLevel.Success">aktuell</StatusChip>}</td>
+                                <td>@row.Property</td>
+                                <td>@Format.Date(row.ValidFrom)@(row.ValidUntil is { } until ? $" bis {Format.Date(until)}" : " bis auf Weiteres")</td>
+                                <td>@row.Read von @row.Recipients@(row.RequiresAcknowledgement ? " (Pflicht)" : "")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<NoticeRow>? rows;
+
+    protected override async Task OnInitializedAsync() => rows = await Notices.ListAsync((await Authentication.GetAuthenticationStateAsync()).User);
+}

@@ -4,10 +4,13 @@
 @using MietHahn.Application.Documents
 @using MietHahn.Application.Admin
 @using MietHahn.Application.Portal
+@using MietHahn.Application.Notices
 @using MietHahn.Application.Tickets
 @inject ITenantPortal Portal
 @inject IDocumentLibrary Documents
 @inject ITickets Tickets
+@inject INotices Notices
+@inject IMessages Messages
 @inject ILandlordProfileService Landlord
 
 <PageHeader Title="Willkommen" Subtitle="Hier finden Sie Ihre Dokumente und Vertragsdaten." />
@@ -44,6 +47,41 @@ else
                 </ul>
             }
             <p><a href="/portal/dokumente">Alle Dokumente</a></p>
+        </section>
+
+        @if (notices.Count > 0)
+        {
+            <section class="panel">
+                <header>
+                    <h2>Aushänge</h2>
+                    @if (notices.Any(n => !n.Read && n.RequiresAcknowledgement))
+                    {
+                        <span class="count-badge" aria-label="Bitte bestätigen">!</span>
+                    }
+                </header>
+                <ul class="todos">
+                    @foreach (var notice in notices.Take(5))
+                    {
+                        <li class="todo">
+                            <a href="/portal/aushaenge">@notice.Title</a>
+                            <span class="small">@notice.Property · @Format.Date(notice.ValidFrom)@(notice.ValidUntil is { } until ? $" bis {Format.Date(until)}" : "")@(notice.RequiresAcknowledgement && !notice.Read ? " · bitte bestätigen" : "")</span>
+                        </li>
+                    }
+                </ul>
+                <p><a href="/portal/aushaenge">Alle Aushänge</a></p>
+            </section>
+        }
+
+        <section class="panel">
+            <header>
+                <h2>Nachrichten</h2>
+                @if (unreadMessages > 0)
+                {
+                    <span class="count-badge" aria-label="@unreadMessages ungelesen">@unreadMessages</span>
+                }
+            </header>
+            <p><a class="button" href="/portal/nachrichten/neu">Nachricht schreiben</a></p>
+            <p><a href="/portal/nachrichten">Alle Nachrichten (@unreadMessages neu)</a></p>
         </section>
 
         <section class="panel">
@@ -113,6 +151,8 @@ else
     private PortalContacts? contacts;
     private List<DocumentRow> unread = [];
     private int openTickets;
+    private int unreadMessages;
+    private IReadOnlyList<TenantNotice> notices = [];
     private string? emergency;
 
     [CascadingParameter]
@@ -124,6 +164,8 @@ else
         leases = await Portal.LeasesAsync(user);
         contacts = await Portal.ContactsAsync(user);
         openTickets = (await Tickets.ListAsync(user)).Count;
+        notices = await Notices.CurrentAsync(user);
+        unreadMessages = (await Messages.ListAsync(user)).Count(t => t.Unread);
         emergency = (await Landlord.GetAsync())?.EmergencyInfo;
         var read = await Portal.ReadDocumentsAsync(user);
         unread = (await Documents.SharedAsync(user)).Where(d => !read.Contains(d.Id)).ToList();

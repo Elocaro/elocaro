@@ -1,0 +1,8 @@
+{{ capture subject }}Neuer Aushang in Ihrem Mieterportal{{ end }}
+<p>{{ salutation }}</p>
+<p>für Ihr Haus gibt es einen neuen Aushang im Mieterportal:</p>
+<ul>
+{{ for title in titles }}  <li>{{ title }}</li>
+{{ end }}</ul>
+<p><a href="{{ link }}">Zum Mieterportal</a></p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

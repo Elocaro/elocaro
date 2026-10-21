@@ -114,6 +114,33 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
         Assert.Equal(HttpStatusCode.OK, (await caretaker.GetAsync("/service", followRedirects: false)).Status);
     }
 
+    [Fact]
+    public async Task Notice_and_message_pages_are_reachable_for_the_tenant_but_the_administration_stays_closed()
+    {
+        var (tenant, _, _) = await TenantWithLeasesAsync();
+        using var _ = tenant;
+
+        Assert.Equal(HttpStatusCode.OK, (await tenant.GetAsync("/portal/aushaenge", followRedirects: false)).Status);
+        Assert.Equal(HttpStatusCode.OK, (await tenant.GetAsync("/portal/nachrichten", followRedirects: false)).Status);
+        Assert.Equal(HttpStatusCode.OK, (await tenant.GetAsync("/portal/nachrichten/neu", followRedirects: false)).Status);
+        Assert.Equal("/konto/zugriff-verweigert", (await tenant.GetAsync("/verwaltung/aushaenge", followRedirects: false)).RedirectLocation!.AbsolutePath);
+        Assert.Equal("/konto/zugriff-verweigert", (await tenant.GetAsync("/verwaltung/nachrichten", followRedirects: false)).RedirectLocation!.AbsolutePath);
+        Assert.Equal("/konto/zugriff-verweigert", (await tenant.GetAsync("/verwaltung/aushaenge/" + Guid.NewGuid() + "/aushang.pdf", followRedirects: false)).RedirectLocation!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task Administration_notice_and_message_pages_open()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        foreach (var path in new[] { "/verwaltung/aushaenge", "/verwaltung/aushaenge/neu", "/verwaltung/nachrichten", "/verwaltung/nachrichten/neu" })
+        {
+            Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync(path, followRedirects: false)).Status);
+        }
+
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync("/verwaltung/aushaenge/" + Guid.NewGuid() + "/aushang.pdf", followRedirects: false)).Status);
+    }
+
     private async Task<(TestBrowser Browser, Guid Own, Guid Foreign)> TenantWithLeasesAsync()
     {
         var (browser, userId) = await SignedInAsAsync(Roles.Tenant);
