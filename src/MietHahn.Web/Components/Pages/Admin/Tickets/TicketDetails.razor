@@ -17,7 +17,11 @@
     <StatusMessage />
     <ErrorList Errors="errors" />
 
-    <TicketThread @key="version" Id="Id" Admin="true" OnChanged="LoadAsync" />
+    @* The thread loads through the same scoped DbContext, so it starts only after this page has finished loading. *@
+    @if (loaded)
+    {
+        <TicketThread @key="version" Id="Id" Admin="true" OnChanged="LoadAsync" />
+    }
 
     @if (view is not null)
     {
@@ -90,6 +94,7 @@
     private DateOnly? appointment;
     private Guid? receiptId;
     private int version;
+    private bool loaded;
     private TicketWorkView work = new([], [], false);
     private IReadOnlyList<LinkRow> links = [];
     private string? linkRecipient;
@@ -106,6 +111,7 @@
         assignees = await Tickets.AssigneesAsync();
         receipts = await Receipts.SearchAsync(new ReceiptQuery());
         await LoadAsync();
+        loaded = true;
     }
 
     private async Task LoadAsync()

@@ -66,6 +66,7 @@ app.MapExportEndpoint();
 app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
 app.MapNoticePdfEndpoint();
+app.MapDatevEndpoints();
 app.MapContractorFileEndpoint();
 app.MapCalendarEndpoint();
 app.MapAnlageVEndpoints();

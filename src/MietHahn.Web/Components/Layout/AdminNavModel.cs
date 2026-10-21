@@ -75,8 +75,8 @@ public static class AdminNavModel
             [new("Offene Posten", $"{Root}/finanzen/offene-posten"), new("Mahnwesen", $"{Root}/finanzen/mahnungen"), new("Einstellungen", $"{Root}/finanzen/einstellungen")], "Finanzen"),
         new("Belege", AppIcons.Receipts, $"{Root}/belege", Policies.Finance, [$"{Root}/belege"], [], "Finanzen"),
         new("Darlehen & Steuer", AppIcons.Loan, $"{Root}/finanzen/darlehen", Policies.Finance,
-            [$"{Root}/finanzen/darlehen", $"{Root}/finanzen/anlage-v-zeilen"],
-            [new("Darlehen", $"{Root}/finanzen/darlehen"), new("Anlage-V-Zeilen", $"{Root}/finanzen/anlage-v-zeilen")], "Finanzen"),
+            [$"{Root}/finanzen/darlehen", $"{Root}/finanzen/anlage-v-zeilen", $"{Root}/finanzen/datev"],
+            [new("Darlehen", $"{Root}/finanzen/darlehen"), new("Anlage-V-Zeilen", $"{Root}/finanzen/anlage-v-zeilen"), new("DATEV-Export", $"{Root}/finanzen/datev")], "Finanzen"),
 
         new("Benutzer", AppIcons.Users, $"{Root}/benutzer", Policies.UserManagement, [$"{Root}/benutzer"], [], "System"),
         new("Einstellungen", AppIcons.Finance, $"{Root}/einstellungen/vermieter", Policies.System,

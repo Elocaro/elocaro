@@ -4,7 +4,7 @@
 <div class="app-field">
     <MudDatePicker Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="true" Editable="true"
                    OpenTo="OpenTo.Month" FixDay="1" DateFormat="MM.yyyy" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" />
-    @if (ValueExpression is not null)
+    @if (ValueExpression is not null && EditContext is not null)
     {
         <ValidationMessage For="ValueExpression" />
     }
@@ -20,6 +20,10 @@
 
     [Parameter]
     public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>Present inside an EditForm only; without it there is nothing to show messages from.</summary>
+    [CascadingParameter]
+    private Microsoft.AspNetCore.Components.Forms.EditContext? EditContext { get; set; }
 
     [Parameter]
     public Expression<Func<string?>>? ValueExpression { get; set; }

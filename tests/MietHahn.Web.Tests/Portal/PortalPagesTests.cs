@@ -168,6 +168,29 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
         Assert.Equal("/konto/zugriff-verweigert", (await tenant.GetAsync("/service/routinen", followRedirects: false)).RedirectLocation!.AbsolutePath);
     }
 
+    [Fact]
+    public async Task Administration_ticket_details_show_work_links_and_invoice_sections()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        var id = await App.WithScopeAsync(async sp =>
+        {
+            var propertyId = (await sp.GetRequiredService<MietHahn.Application.Properties.IPropertyService>().CreateAsync(
+                new MietHahn.Application.Properties.PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, TestContext.Current.CancellationToken)).Id!.Value;
+            var db = sp.GetRequiredService<MietHahn.Infrastructure.Persistence.MietHahnDbContext>();
+            var ticket = new MietHahn.Domain.Tickets.Ticket("Wasserhahn tropft", "Im Bad", MietHahn.Domain.Tickets.TicketCategory.Water, MietHahn.Domain.Tickets.TicketUrgency.Normal, propertyId, null, null, null, DateTimeOffset.UtcNow);
+            db.Add(ticket);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            return ticket.Id;
+        });
+
+        var page = await admin.GetAsync($"/verwaltung/tickets/{id}", followRedirects: false);
+
+        Assert.Equal(HttpStatusCode.OK, page.Status);
+        Assert.Contains("Wasserhahn tropft", page.TextWithStreaming, StringComparison.Ordinal);
+        Assert.Contains("Link für Handwerker ohne Zugang", page.TextWithStreaming, StringComparison.Ordinal);
+    }
+
     private async Task<(TestBrowser Browser, Guid Own, Guid Foreign)> TenantWithLeasesAsync()
     {
         var (browser, userId) = await SignedInAsAsync(Roles.Tenant);
