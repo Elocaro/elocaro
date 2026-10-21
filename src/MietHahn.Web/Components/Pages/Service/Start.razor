@@ -1,6 +1,24 @@
 @page "/service"
+@attribute [StreamRendering]
+@using MietHahn.Application.Tickets
+@inject ITickets Tickets
 
-<PageTitle>Service – MietHahn</PageTitle>
+<PageHeader Title="Meine Aufträge" Subtitle="Die Ihnen zugewiesenen Aufträge." />
 
-<h1>Meine Aufträge</h1>
-<p>Hier erscheinen die Ihnen zugewiesenen Aufträge und Aufgaben.</p>
+@if (rows is null)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else
+{
+    <TicketTable Rows="rows" BasePath="/service/tickets" EmptyText="Ihnen ist derzeit nichts zugewiesen." />
+}
+
+@code {
+    private IReadOnlyList<TicketRow>? rows;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync() => rows = await Tickets.ListAsync(HttpContext.User);
+}

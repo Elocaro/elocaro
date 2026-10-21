@@ -1,0 +1,12 @@
+@page "/service/tickets/{Id:guid}"
+@rendermode InteractiveServer
+
+<InteractiveShell>
+    <PageHeader Title="Auftrag" Back="/service" BackText="Meine Aufträge" />
+    <TicketThread Id="Id" />
+</InteractiveShell>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+}

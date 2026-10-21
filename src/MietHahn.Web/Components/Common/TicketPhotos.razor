@@ -1,0 +1,14 @@
+@if (FileIds.Count > 0)
+{
+    <div class="ticket-photos">
+        @foreach (var id in FileIds)
+        {
+            <a href="/dateien/@id" target="_blank" rel="noopener"><img src="/dateien/@id" alt="Foto zur Meldung" loading="lazy" /></a>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Guid> FileIds { get; set; } = [];
+}

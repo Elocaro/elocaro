@@ -35,6 +35,11 @@
                 <AppTextField @bind-Value="data.TaxNumber" Label="Steuernummer" />
             </div>
 
+            <h2>Notdienst</h2>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.EmergencyInfo" Label="Notdienst für Mieter" Lines="3" Hint="Nummern und Hinweise für Notfälle (Wasserrohrbruch, Gas, Heizungsausfall); erscheint im Portal." />
+            </div>
+
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
     }

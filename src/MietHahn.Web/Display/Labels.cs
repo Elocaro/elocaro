@@ -9,6 +9,7 @@ using MietHahn.Domain.OperatingCosts;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;
+using MietHahn.Domain.Tickets;
 
 using MietHahn.Web.Components.Common;
 
@@ -404,5 +405,34 @@ public static class Labels
         DunningStatus.Issued => "freigegeben",
         DunningStatus.Dismissed => "verworfen",
         _ => "Vorschlag",
+    };
+
+    public static string From(TicketCategory value) => value switch
+    {
+        TicketCategory.Heating => "Heizung",
+        TicketCategory.Water => "Wasser",
+        TicketCategory.Electrical => "Elektrik",
+        TicketCategory.WindowsDoors => "Fenster / Türen",
+        TicketCategory.CommonAreas => "Allgemeinflächen",
+        _ => "Sonstiges",
+    };
+
+    public static string From(TicketUrgency value) => value == TicketUrgency.High ? "dringend" : "normal";
+
+    public static string From(TicketStatus value) => value switch
+    {
+        TicketStatus.New => "neu",
+        TicketStatus.InReview => "in Prüfung",
+        TicketStatus.Commissioned => "beauftragt",
+        TicketStatus.InProgress => "in Arbeit",
+        TicketStatus.Done => "erledigt",
+        _ => "geschlossen",
+    };
+
+    public static StatusLevel Level(TicketStatus value) => value switch
+    {
+        TicketStatus.New => StatusLevel.Warning,
+        TicketStatus.Done or TicketStatus.Closed => StatusLevel.Success,
+        _ => StatusLevel.Neutral,
     };
 }

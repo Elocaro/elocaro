@@ -2,9 +2,13 @@
 @attribute [StreamRendering]
 @using System.Security.Claims
 @using MietHahn.Application.Documents
+@using MietHahn.Application.Admin
 @using MietHahn.Application.Portal
+@using MietHahn.Application.Tickets
 @inject ITenantPortal Portal
 @inject IDocumentLibrary Documents
+@inject ITickets Tickets
+@inject ILandlordProfileService Landlord
 
 <PageHeader Title="Willkommen" Subtitle="Hier finden Sie Ihre Dokumente und Vertragsdaten." />
 
@@ -40,6 +44,16 @@ else
                 </ul>
             }
             <p><a href="/portal/dokumente">Alle Dokumente</a></p>
+        </section>
+
+        <section class="panel">
+            <header><h2>Meldungen</h2></header>
+            <p><a class="button button-primary" href="/portal/tickets/neu">Problem melden</a></p>
+            <p><a href="/portal/tickets">Meine Meldungen (@openTickets offen)</a></p>
+            @if (emergency is not null)
+            {
+                <div class="emergency"><strong>Notdienst</strong><p>@emergency</p></div>
+            }
         </section>
 
         <section class="panel">
@@ -98,6 +112,8 @@ else
     private IReadOnlyList<PortalLeaseRow>? leases;
     private PortalContacts? contacts;
     private List<DocumentRow> unread = [];
+    private int openTickets;
+    private string? emergency;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -107,6 +123,8 @@ else
         var user = HttpContext.User;
         leases = await Portal.LeasesAsync(user);
         contacts = await Portal.ContactsAsync(user);
+        openTickets = (await Tickets.ListAsync(user)).Count;
+        emergency = (await Landlord.GetAsync())?.EmergencyInfo;
         var read = await Portal.ReadDocumentsAsync(user);
         unread = (await Documents.SharedAsync(user)).Where(d => !read.Contains(d.Id)).ToList();
     }

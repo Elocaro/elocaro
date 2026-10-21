@@ -87,6 +87,33 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
         Assert.Equal("/konto/zugriff-verweigert", response.RedirectLocation!.AbsolutePath);
     }
 
+    [Fact]
+    public async Task Ticket_pages_are_reachable_for_the_tenant_but_the_administration_stays_closed()
+    {
+        var (tenant, _, _) = await TenantWithLeasesAsync();
+        using var _ = tenant;
+
+        Assert.Equal(HttpStatusCode.OK, (await tenant.GetAsync("/portal/tickets", followRedirects: false)).Status);
+        var form = await tenant.GetAsync("/portal/tickets/neu", followRedirects: false);
+        Assert.Equal(HttpStatusCode.OK, form.Status);
+        Assert.Contains("Notfall", form.TextWithStreaming, StringComparison.Ordinal);
+        Assert.Equal("/konto/zugriff-verweigert", (await tenant.GetAsync("/verwaltung/tickets", followRedirects: false)).RedirectLocation!.AbsolutePath);
+        Assert.Equal("/konto/zugriff-verweigert", (await tenant.GetAsync("/service/tickets/" + Guid.NewGuid(), followRedirects: false)).RedirectLocation!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task Administration_and_service_ticket_lists_open()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/verwaltung/tickets", followRedirects: false)).Status);
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/verwaltung/tickets/neu", followRedirects: false)).Status);
+
+        var (caretaker, _) = await SignedInAsAsync(Roles.Caretaker);
+        using var __ = caretaker;
+        Assert.Equal(HttpStatusCode.OK, (await caretaker.GetAsync("/service", followRedirects: false)).Status);
+    }
+
     private async Task<(TestBrowser Browser, Guid Own, Guid Foreign)> TenantWithLeasesAsync()
     {
         var (browser, userId) = await SignedInAsAsync(Roles.Tenant);

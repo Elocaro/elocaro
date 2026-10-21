@@ -50,4 +50,7 @@ public sealed class LandlordProfileInput
 
     [StringLength(30)]
     public string? TaxNumber { get; set; }
+
+    [StringLength(500)]
+    public string? EmergencyInfo { get; set; }
 }

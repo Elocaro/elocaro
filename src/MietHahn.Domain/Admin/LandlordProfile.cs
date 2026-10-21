@@ -49,6 +49,9 @@ public sealed class LandlordProfile : Entity
 
     public string? TaxNumber { get; set; }
 
+    /// <summary>Emergency service for tenants (water pipe burst, gas, heating failure): numbers and notes, shown in the portal.</summary>
+    public string? EmergencyInfo { get; set; }
+
     /// <summary>Single-line sender address for the return line in the address window.</summary>
     public string ReturnAddressLine => $"{Name} · {Street} · {PostalCode} {City}";
 

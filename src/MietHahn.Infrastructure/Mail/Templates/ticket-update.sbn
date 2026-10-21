@@ -1,0 +1,5 @@
+{{ capture subject }}Ticket: {{ title }}{{ end }}
+<p>{{ salutation }}</p>
+<p>zum Ticket „{{ title }}“: {{ message }}</p>
+<p><a href="{{ link }}">Ticket ansehen</a></p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

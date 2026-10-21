@@ -23,6 +23,7 @@ internal sealed class LandlordProfileService(MietHahnDbContext db) : ILandlordPr
             Bic = profile.Bic,
             Bank = profile.Bank,
             TaxNumber = profile.TaxNumber,
+            EmergencyInfo = profile.EmergencyInfo,
         };
     }
 
@@ -47,6 +48,7 @@ internal sealed class LandlordProfileService(MietHahnDbContext db) : ILandlordPr
         profile.Bic = TrimToNull(data.Bic)?.ToUpperInvariant();
         profile.Bank = TrimToNull(data.Bank);
         profile.TaxNumber = TrimToNull(data.TaxNumber);
+        profile.EmergencyInfo = TrimToNull(data.EmergencyInfo);
         profile.Validate();
         await db.SaveChangesAsync(cancellationToken);
     }

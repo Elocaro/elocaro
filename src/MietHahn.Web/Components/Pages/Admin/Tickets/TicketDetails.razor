@@ -1,0 +1,96 @@
+@page "/verwaltung/tickets/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Application.Documents
+@using MietHahn.Application.Receipts
+@using MietHahn.Application.Tickets
+@inject ITickets Tickets
+@inject IReceiptService Receipts
+@inject AuthenticationStateProvider Authentication
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="@(view?.Row.Title ?? "Ticket")" Back="/verwaltung/tickets" BackText="Alle Tickets" />
+    <StatusMessage />
+    <ErrorList Errors="errors" />
+
+    <TicketThread @key="version" Id="Id" Admin="true" OnChanged="LoadAsync" />
+
+    @if (view is not null)
+    {
+        <section>
+            <h2>Zuständigkeit</h2>
+            <div class="form-row">
+                <AppSelect T="Guid?" @bind-Value="assigneeId" Label="Zuständig" EmptyText="Niemand" Items="assignees.Select(o => (Guid?)o.Id).ToList()" Text="@(id => assignees.FirstOrDefault(o => o.Id == id)?.Name ?? "")" />
+                <AppDateField @bind-Value="appointment" Label="Termin" />
+                <MudButton Variant="Variant.Outlined" OnClick="AssignAsync">Speichern</MudButton>
+            </div>
+            @if (assignees.Count == 0)
+            {
+                <p class="small">Zuweisen lassen sich Personen vom Typ Hausmeister oder Handwerker, die einen Zugang zum Servicebereich haben (Personenakte → Zugang einrichten).</p>
+            }
+        </section>
+
+        <section>
+            <h2>Rechnung</h2>
+            <div class="form-row">
+                <AppSelect T="Guid?" @bind-Value="receiptId" Label="Beleg zur Arbeit" EmptyText="Keiner" Items="receipts.Select(r => (Guid?)r.Id).ToList()" Text="@(id => receipts.FirstOrDefault(r => r.Id == id) is { } r ? $"{r.Supplier} · {Format.Date(r.InvoiceDate)} · {Format.Money(r.Gross)}" : "")" />
+                <MudButton Variant="Variant.Outlined" OnClick="LinkAsync">Verknüpfen</MudButton>
+                <MudButton Variant="Variant.Text" Href="@("/verwaltung/belege/neu")">Rechnung hochladen</MudButton>
+            </div>
+            <p class="small">Mit der Verknüpfung lassen sich die Kosten je Einheit auswerten.</p>
+        </section>
+    }
+</InteractiveShell>
+
+@code {
+    private TicketView? view;
+    private IReadOnlyList<MietHahn.Application.Documents.ReferenceOption> assignees = [];
+    private IReadOnlyList<ReceiptRow> receipts = [];
+    private IReadOnlyList<string>? errors;
+    private Guid? assigneeId;
+    private DateOnly? appointment;
+    private Guid? receiptId;
+    private int version;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        assignees = await Tickets.AssigneesAsync();
+        receipts = await Receipts.SearchAsync(new ReceiptQuery());
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        view = await Tickets.GetAsync((await Authentication.GetAuthenticationStateAsync()).User, Id);
+        assigneeId = view?.AssigneeId;
+        appointment = view?.Row.AppointmentOn;
+        receiptId = view?.ReceiptId;
+    }
+
+    private async Task AssignAsync()
+    {
+        var result = await Tickets.AssignAsync((await Authentication.GetAuthenticationStateAsync()).User, Id, assigneeId, appointment);
+        await FinishAsync(result, "Die Zuständigkeit wurde gespeichert.");
+    }
+
+    private async Task LinkAsync()
+    {
+        var result = await Tickets.LinkReceiptAsync((await Authentication.GetAuthenticationStateAsync()).User, Id, receiptId);
+        await FinishAsync(result, "Der Beleg wurde verknüpft.");
+    }
+
+    private async Task FinishAsync(MietHahn.Application.Common.Result result, string success)
+    {
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+            version++;
+            await LoadAsync();
+        }
+    }
+}

@@ -27,6 +27,7 @@ using MietHahn.Application.Properties;
 using MietHahn.Application.Receipts;
 using MietHahn.Application.Statements;
 using MietHahn.Application.Tax;
+using MietHahn.Application.Tickets;
 using MietHahn.Application.Todos;
 using MietHahn.Infrastructure.Admin;
 using MietHahn.Infrastructure.Audit;
@@ -55,6 +56,7 @@ using MietHahn.Infrastructure.Receipts.Extraction;
 using MietHahn.Infrastructure.Statements;
 using MietHahn.Infrastructure.Tax;
 using MietHahn.Infrastructure.Templates;
+using MietHahn.Infrastructure.Tickets;
 using Quartz;
 
 namespace MietHahn.Infrastructure;
@@ -274,6 +276,10 @@ public static class DependencyInjection
         services.AddScoped<IContactChangeRequests, ContactChangeRequests>();
         services.AddScoped<ITodoSource, ContactChangeTodos>();
         services.AddScoped<DocumentNotifications>();
+        services.AddScoped<ITickets, TicketService>();
+        services.AddScoped<IFileShare, TicketFileShare>();
+        services.AddScoped<IPersonReference, TicketPersonReferences>();
+        services.AddScoped<ITodoSource, TicketTodos>();
         services.AddScoped<ITodoSource, DeadlineTodos>();
         services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();
     }

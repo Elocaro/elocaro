@@ -1,0 +1,48 @@
+@using MietHahn.Application.Tickets
+@if (Rows.Count == 0)
+{
+    <EmptyState Text="@EmptyText" />
+}
+else
+{
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr><th>Meldung</th><th>Ort</th><th>Status</th>@if (WithPeople){<th>Mieter</th><th>Zuständig</th>}<th>Gemeldet</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Rows)
+                {
+                    <tr>
+                        <td>
+                            <a href="@BasePath/@row.Id">@row.Title</a>
+                            <span class="small"> @Labels.From(row.Category)@(row.Urgency == MietHahn.Domain.Tickets.TicketUrgency.High ? " · dringend" : "")</span>
+                        </td>
+                        <td>@row.Property@(row.Unit is null ? "" : $", {row.Unit}")</td>
+                        <td><StatusChip Level="Labels.Level(row.Status)">@Labels.From(row.Status)</StatusChip></td>
+                        @if (WithPeople)
+                        {
+                            <td>@(row.Reporter ?? "–")</td>
+                            <td>@(row.Assignee ?? "–")</td>
+                        }
+                        <td>@Format.Day(row.ReportedAt)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TicketRow> Rows { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string BasePath { get; set; } = "";
+
+    [Parameter]
+    public bool WithPeople { get; set; }
+
+    [Parameter]
+    public string EmptyText { get; set; } = "Keine Tickets.";
+}
