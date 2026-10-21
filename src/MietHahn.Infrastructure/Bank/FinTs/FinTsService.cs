@@ -26,16 +26,9 @@ internal sealed partial class FinTsService(
 {
     internal const string ProtectionPurpose = "MietHahn.FinTs.UserId";
 
-    public bool IsConfigured => options.Value.IsConfigured;
-
     public Task<Result> StartAsync(Guid bankAccountId, string pin, DateOnly from, DateOnly to, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
-            if (!IsConfigured)
-            {
-                throw new RuleViolationException("Die Produktregistrierungsnummer ist nicht eingetragen (Einstellung FinTs__ProductId, siehe Doku „Banking: FinTS“).");
-            }
-
             if (string.IsNullOrEmpty(pin))
             {
                 throw new RuleViolationException("Bitte die PIN eingeben.");
@@ -58,7 +51,7 @@ internal sealed partial class FinTsService(
             }
 
             // Process-wide in libfintx; sent with every dialog initialization (HKVVB). The version field holds at most 5 characters.
-            FinTsGlobals.ProductId = options.Value.ProductId!.Trim();
+            FinTsGlobals.ProductId = options.Value.EffectiveProductId;
             FinTsGlobals.Version = string.IsNullOrWhiteSpace(options.Value.ProductVersion) ? "1.0" : options.Value.ProductVersion.Trim()[..Math.Min(5, options.Value.ProductVersion.Trim().Length)];
 
             var details = new ConnectionDetails

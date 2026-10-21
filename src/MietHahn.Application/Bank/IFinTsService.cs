@@ -27,9 +27,6 @@ public sealed record FinTsFetchState(FinTsPhase Phase, string? Message = null, G
 /// </summary>
 public interface IFinTsService
 {
-    /// <summary>The product registration number is configured (<c>FinTs__ProductId</c>); without it the banks reject the connection.</summary>
-    bool IsConfigured { get; }
-
     /// <summary>Starts a retrieval in the background; <see cref="Result.Id"/> identifies it for the other methods.</summary>
     Task<Result> StartAsync(Guid bankAccountId, string pin, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 

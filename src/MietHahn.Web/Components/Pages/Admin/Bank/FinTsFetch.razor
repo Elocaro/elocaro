@@ -7,11 +7,7 @@
    The result lands in the usual import preview. *@
 <section>
     <h2>Per FinTS abrufen</h2>
-    @if (!FinTs.IsConfigured)
-    {
-        <Notice Level="NoticeLevel.Info">Der Direktabruf ist noch nicht freigeschaltet: Es fehlt die Produktregistrierungsnummer (Einstellung <code>FinTs__ProductId</code>, siehe Dokumentation „Banking: FinTS“). Bis dahin bleibt der Import einer Datei.</Notice>
-    }
-    else if (!Enabled)
+    @if (!Enabled)
     {
         <p class="small">Für den Abruf unter „Angaben“ FinTS-URL, Bankleitzahl und Benutzerkennung der Bank eintragen und speichern.</p>
     }

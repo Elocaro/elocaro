@@ -17,13 +17,13 @@ Herausgeber ist **Die Deutsche Kreditwirtschaft (DK)**. Die Registrierung ist f�
    - Nutzungsbedingungen der DK akzeptieren.
 2. **Nummer erhalten**: Laut Erfahrungsberichten kommt sie per E-Mail nach wenigen Tagen bis ca. **10–15 Werktagen**.
 3. **Verteilung an die Banken abwarten**: Die DK verteilt die Registrierung an die Bankrechenzentren (Sparkassen/Finanz Informatik, Atruvia für Volks- und Raiffeisenbanken, Privatbanken). Das kann **0 bis über 8 Wochen** dauern. Bis dahin können Abrufe mit „Produkt nicht registriert“ abgelehnt werden.
-4. **In MietHahn eintragen**: Die Nummer kommt als Secret in `deploy/.env` (nicht ins Repo, `chmod 600`), danach den Dienst neu starten (`docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d`):
+4. **In MietHahn eintragen**: Die Registrierung von MietHahn (Produkt „MietHahn“) ist als Standard fest eingebaut (`FinTsOptions.DefaultProductId`). Wer MietHahn selbst betreibt, muss nichts beantragen oder eintragen. Die Nummer kennzeichnet die Software und ist kein Geheimnis: Sie geht bei jedem Verbindungsaufbau im Klartext an die Bank. Ein Fork mit eigener Registrierung überschreibt sie in `deploy/.env` (danach `docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d`):
    ```env
-   FINTS_PRODUCT_ID=<Registrierungsnummer>
+   FINTS_PRODUCT_ID=<eigene Registrierungsnummer>
    # optional, höchstens 5 Zeichen, Standard 1.0
    FINTS_PRODUCT_VERSION=1.0
    ```
-   `docker-compose.yml` reicht beides als `FinTs__ProductId` und `FinTs__ProductVersion` an die App weiter (Konfigurationsabschnitt `FinTs`). Die App sendet sie bei jeder Dialoginitialisierung (libfintx: `FinTsGlobals.ProductId` und `Version`). Ohne Nummer zeigt die Kontoseite nur den Hinweis, dass der Direktabruf noch nicht freigeschaltet ist; der Datei-Import funktioniert unabhängig davon.
+   `docker-compose.yml` reicht beides als `FinTs__ProductId` und `FinTs__ProductVersion` an die App weiter (Konfigurationsabschnitt `FinTs`). Die App sendet sie bei jeder Dialoginitialisierung (libfintx: `FinTsGlobals.ProductId` und `Version`).
 5. **Bei Versionssprüngen** prüfen, ob die DK eine Meldung neuer Hauptversionen verlangt (Bedingungen beim Antrag lesen).
 
 ## Bedienung

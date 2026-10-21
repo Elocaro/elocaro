@@ -123,18 +123,6 @@ public class FinTsServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Without_product_number_nothing_is_started()
-    {
-        await using var other = await InfrastructureEnvironment.CreateAsync(postgres);
-        await using var scope = other.Services.CreateAsyncScope();
-        var finTs = scope.ServiceProvider.GetRequiredService<IFinTsService>();
-
-        Assert.False(finTs.IsConfigured);
-        var result = await finTs.StartAsync(Guid.NewGuid(), "12345", new DateOnly(2026, 1, 1), new DateOnly(2026, 3, 1), Ct);
-        Assert.Contains("Produktregistrierungsnummer", result.Errors.Single(), StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task Delivered_transactions_land_in_the_preview_and_can_be_imported_once()
     {
         var account = await CreateAccountAsync(new BankAccountInput { Name = "Mietkonto", Iban = Iban });
