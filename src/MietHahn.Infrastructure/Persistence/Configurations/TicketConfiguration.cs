@@ -118,6 +118,8 @@ internal sealed class CareCheckConfiguration : IEntityTypeConfiguration<CareChec
         builder.Property(c => c.DoneBy).HasMaxLength(200);
         builder.Property(c => c.Note).HasMaxLength(1000);
         builder.HasOne<CareRoutine>().WithMany().HasForeignKey(c => c.RoutineId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<StoredFile>().WithMany().HasForeignKey(c => c.FileId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(c => new { c.RoutineId, c.DoneOn });
+        builder.HasIndex(c => c.FileId);
     }
 }

@@ -76,7 +76,7 @@ internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock, IPd
             return id;
         });
 
-    public Task<Result> CheckAsync(ClaimsPrincipal user, Guid id, DateOnly? doneOn, string? note, CancellationToken cancellationToken = default) =>
+    public Task<Result> CheckAsync(ClaimsPrincipal user, Guid id, DateOnly? doneOn, string? note, Guid? fileId = null, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
             var properties = await VisiblePropertiesAsync(user, cancellationToken);
@@ -96,7 +96,7 @@ internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock, IPd
 
             var userId = TenantScope.UserId(user);
             var name = userId is { } uid ? await db.Set<ApplicationUser>().Where(u => u.Id == uid).Select(u => u.DisplayName).FirstOrDefaultAsync(cancellationToken) ?? "Unbekannt" : "Unbekannt";
-            var check = new CareCheck(id, day, userId, name, note);
+            var check = new CareCheck(id, day, userId, name, note, fileId);
             db.Add(check);
             await db.SaveChangesAsync(cancellationToken);
             return check.Id;
@@ -111,7 +111,7 @@ internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock, IPd
         }
 
         return (await db.Set<CareCheck>().AsNoTracking().Where(c => c.RoutineId == id && (year == null || c.DoneOn.Year == year)).OrderByDescending(c => c.DoneOn).ThenByDescending(c => c.CreatedAt).ToListAsync(cancellationToken))
-            .Select(c => new CheckRow(c.Id, c.DoneOn, c.DoneBy, c.Note)).ToList();
+            .Select(c => new CheckRow(c.Id, c.DoneOn, c.DoneBy, c.Note, c.FileId)).ToList();
     }
 
     public async Task<byte[]> ProofPdfAsync(ClaimsPrincipal user, int year, CancellationToken cancellationToken = default)
@@ -135,7 +135,7 @@ internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock, IPd
                     routine.Title,
                     Interval = IntervalText(routine.Interval),
                     Count = checks.Count,
-                    Checks = checks.OrderBy(c => c.DoneOn).Select(c => new { c.DoneOn, c.DoneBy, c.Note }).ToList(),
+                    Checks = checks.OrderBy(c => c.DoneOn).Select(c => new { c.DoneOn, c.DoneBy, c.Note, HasPhoto = c.FileId != null }).ToList(),
                 });
             }
 

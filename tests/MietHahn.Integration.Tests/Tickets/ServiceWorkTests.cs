@@ -163,22 +163,36 @@ public class ServiceWorkTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.True(due.Due);
         Assert.Null(due.LastDone);
 
-        Validate(await With<ICareRoutines, Result>(r => r.CheckAsync(caretaker, routine, null, "Alles sauber", Ct)));
+        Validate(await With<ICareRoutines, Result>(r => r.CheckAsync(caretaker, routine, null, "Alles sauber", null, Ct)));
         var done = Assert.Single(await With<ICareRoutines, IReadOnlyList<RoutineRow>>(r => r.ListAsync(caretaker, false, Ct)));
         Assert.False(done.Due);
         Assert.Equal(1, done.ChecksThisYear);
         Assert.NotNull(done.NextDue);
         Assert.Equal("Alles sauber", (await With<ICareRoutines, IReadOnlyList<CheckRow>>(r => r.ChecksAsync(admin, routine, null, Ct))).Single().Note);
-        Assert.False((await With<ICareRoutines, Result>(r => r.CheckAsync(caretaker, routine, DateOnly.FromDateTime(DateTime.UtcNow).AddYears(1), null, Ct))).Succeeded);
+        Assert.False((await With<ICareRoutines, Result>(r => r.CheckAsync(caretaker, routine, DateOnly.FromDateTime(DateTime.UtcNow).AddYears(1), null, null, Ct))).Succeeded);
 
         environment.Clock.Advance(TimeSpan.FromDays(8));
         Assert.True((await With<ICareRoutines, IReadOnlyList<RoutineRow>>(r => r.ListAsync(caretaker, false, Ct))).Single().Due);
 
-        Assert.False((await With<ICareRoutines, Result>(r => r.CheckAsync(otherCaretaker, routine, null, null, Ct))).Succeeded);
+        Assert.False((await With<ICareRoutines, Result>(r => r.CheckAsync(otherCaretaker, routine, null, null, null, Ct))).Succeeded);
         Assert.Empty(await With<ICareRoutines, IReadOnlyList<CheckRow>>(r => r.ChecksAsync(otherCaretaker, routine, null, Ct)));
         Validate(await With<ICareRoutines, Result>(r => r.DeactivateAsync(admin, routine, Ct)));
         Assert.Empty(await With<ICareRoutines, IReadOnlyList<RoutineRow>>(r => r.ListAsync(caretaker, false, Ct)));
         Assert.Single(await With<ICareRoutines, IReadOnlyList<RoutineRow>>(r => r.ListAsync(admin, true, Ct)));
+    }
+
+    [Fact]
+    public async Task A_tick_can_carry_a_photo_as_proof()
+    {
+        var routine = Validate(await With<ICareRoutines, Result>(r => r.CreateAsync(admin, new RoutineInput { PropertyId = house, Title = "Hof kehren", Interval = CareInterval.Weekly }, Ct)));
+        var photo = await FileAsync("hof");
+
+        Validate(await With<ICareRoutines, Result>(r => r.CheckAsync(admin, routine, null, null, photo, Ct)));
+        Validate(await With<ICareRoutines, Result>(r => r.CheckAsync(admin, routine, null, null, null, Ct)));
+
+        var checks = await With<ICareRoutines, IReadOnlyList<CheckRow>>(r => r.ChecksAsync(admin, routine, null, Ct));
+        Assert.Equal(2, checks.Count);
+        Assert.Equal(photo, Assert.Single(checks, c => c.FileId is not null).FileId);
     }
 
     [Fact]
@@ -192,7 +206,7 @@ public class ServiceWorkTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Contains("Treppenhaus reinigen", todo.Title);
         Assert.Empty(await TodosAsync(caretaker));
 
-        Validate(await With<ICareRoutines, Result>(r => r.CheckAsync(admin, routine, null, null, Ct)));
+        Validate(await With<ICareRoutines, Result>(r => r.CheckAsync(admin, routine, null, null, null, Ct)));
         Assert.Empty(await TodosAsync(admin));
     }
 

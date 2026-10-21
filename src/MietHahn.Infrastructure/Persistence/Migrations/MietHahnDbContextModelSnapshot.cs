@@ -6489,6 +6489,10 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("done_on");
 
+                    b.Property<Guid?>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("modified_at");
@@ -6519,6 +6523,9 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_care_checks");
+
+                    b.HasIndex("FileId")
+                        .HasDatabaseName("ix_care_checks_file_id");
 
                     b.HasIndex("RoutineId", "DoneOn")
                         .HasDatabaseName("ix_care_checks_routine_id_done_on");
@@ -8345,6 +8352,12 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("MietHahn.Domain.Tickets.CareCheck", b =>
                 {
+                    b.HasOne("MietHahn.Domain.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_care_checks_stored_file_file_id");
+
                     b.HasOne("MietHahn.Domain.Tickets.CareRoutine", null)
                         .WithMany()
                         .HasForeignKey("RoutineId")

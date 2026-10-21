@@ -1,8 +1,11 @@
 @page "/service/routinen"
 @rendermode InteractiveServer
 @using MudBlazor
+@using MietHahn.Application.Files
 @using MietHahn.Application.Tickets
+@using MietHahn.Web.Components.Controls
 @inject ICareRoutines Care
+@inject IFileStore Files
 @inject AuthenticationStateProvider Authentication
 @inject Notifier Notify
 
@@ -31,7 +34,8 @@
                             @(row.LastDone is { } last ? $"Zuletzt erledigt am {Format.Date(last)} von {row.LastDoneBy}" : "Noch nie erledigt")
                             @(row.Due ? " · fällig" : row.NextDue is { } next ? $" · nächstes Mal ab {Format.Date(next)}" : "")
                         </p>
-                        <MudButton Variant="@(row.Due ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="() => CheckAsync(row.Id)">Erledigt (heute)</MudButton>
+                        <MudButton Variant="@(row.Due ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="() => CheckAsync(row.Id, null)">Erledigt (heute)</MudButton>
+                        <AppFileUpload Text="Erledigt mit Foto" Accept="image/*" Capture="environment" OnSelected="file => CheckAsync(row.Id, file)" />
                     </li>
                 }
             </ul>
@@ -49,9 +53,24 @@
 
     private async Task LoadAsync() => rows = await Care.ListAsync(await UserAsync());
 
-    private async Task CheckAsync(Guid id)
+    private async Task CheckAsync(Guid id, FileSelection? photo)
     {
-        var result = await Care.CheckAsync(await UserAsync(), id, null, null);
+        Guid? fileId = null;
+        try
+        {
+            if (photo is not null)
+            {
+                await using var content = photo.Open();
+                fileId = (await Files.SaveAsync(content, photo.Name)).Id;
+            }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+            return;
+        }
+
+        var result = await Care.CheckAsync(await UserAsync(), id, null, null, fileId);
         errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {

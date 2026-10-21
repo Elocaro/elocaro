@@ -182,8 +182,9 @@ public sealed class CareCheck : Entity
         DoneBy = "";
     }
 
-    public CareCheck(Guid routineId, DateOnly doneOn, Guid? userId, string doneBy, string? note)
+    public CareCheck(Guid routineId, DateOnly doneOn, Guid? userId, string doneBy, string? note, Guid? fileId = null)
     {
+        FileId = fileId;
         RoutineId = routineId;
         DoneOn = doneOn;
         UserId = userId;
@@ -200,4 +201,7 @@ public sealed class CareCheck : Entity
     public string DoneBy { get; private set; }
 
     public string? Note { get; private set; }
+
+    /// <summary>Optional photo as additional proof.</summary>
+    public Guid? FileId { get; private set; }
 }

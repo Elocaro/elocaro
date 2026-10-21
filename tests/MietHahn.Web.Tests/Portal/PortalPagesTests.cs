@@ -190,9 +190,9 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
         using var csv = await admin.Http.GetAsync(new Uri("/verwaltung/tickets/routinen.csv?jahr=2026", UriKind.Relative), TestContext.Current.CancellationToken);
         Assert.Equal("text/csv", csv.Content.Headers.ContentType!.MediaType);
         var lines = Encoding.UTF8.GetString(await csv.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).TrimStart('\uFEFF').Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal("Objekt;Aufgabe;Rhythmus;Erledigt am;Erledigt von;Notiz", lines[0]);
+        Assert.Equal("Objekt;Aufgabe;Rhythmus;Erledigt am;Erledigt von;Notiz;Foto", lines[0]);
         Assert.Equal(2, lines.Length);
-        Assert.Equal("Lindenweg 3;'=Treppenhaus;" + MietHahn.Web.Display.Labels.From(MietHahn.Domain.Tickets.CareInterval.Weekly) + ";02.03.2026;Max Hausmeister;sauber", lines[1]);
+        Assert.Equal("Lindenweg 3;'=Treppenhaus;" + MietHahn.Web.Display.Labels.From(MietHahn.Domain.Tickets.CareInterval.Weekly) + ";02.03.2026;Max Hausmeister;sauber;", lines[1]);
 
         var (caretaker, _) = await SignedInAsAsync(Roles.Caretaker);
         using var __ = caretaker;

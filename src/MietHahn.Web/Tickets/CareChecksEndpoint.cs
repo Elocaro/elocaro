@@ -52,7 +52,7 @@ internal static class CareChecksEndpoint
     internal static byte[] Csv(IEnumerable<(RoutineRow Routine, CheckRow Check)> rows)
     {
         var text = new StringBuilder();
-        text.Append("Objekt;Aufgabe;Rhythmus;Erledigt am;Erledigt von;Notiz\r\n");
+        text.Append("Objekt;Aufgabe;Rhythmus;Erledigt am;Erledigt von;Notiz;Foto\r\n");
         foreach (var (routine, check) in rows)
         {
             text.AppendJoin(';',
@@ -61,7 +61,8 @@ internal static class CareChecksEndpoint
                 OpenItemsEndpoint.Field(Labels.From(routine.Interval)),
                 check.DoneOn.ToString("dd.MM.yyyy", German),
                 OpenItemsEndpoint.Field(check.DoneBy),
-                OpenItemsEndpoint.Field(check.Note ?? "")).Append("\r\n");
+                OpenItemsEndpoint.Field(check.Note ?? ""),
+                check.FileId is null ? "" : "ja").Append("\r\n");
         }
 
         return [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(text.ToString())];

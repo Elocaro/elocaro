@@ -1,0 +1,68 @@
+@page "/verwaltung/tickets/routinen/{Id:guid}"
+@rendermode InteractiveServer
+@using MietHahn.Application.Tickets
+@inject ICareRoutines Routines
+@inject AuthenticationStateProvider Authentication
+
+<InteractiveShell>
+    @if (loaded && routine is null)
+    {
+        <PageHeader Title="Aufgabe nicht gefunden" Back="/verwaltung/tickets/routinen" BackText="Alle Aufgaben" />
+    }
+    else if (routine is not null)
+    {
+        <PageHeader Title="@routine.Title" Subtitle="@($"{routine.Property} · {Labels.From(routine.Interval)}")" Back="/verwaltung/tickets/routinen" BackText="Alle Aufgaben" />
+        <nav class="tabs" aria-label="Jahr">
+            @foreach (var y in new[] { year, year - 1, year - 2 })
+            {
+                <a class="button" href="/verwaltung/tickets/routinen/@Id?jahr=@y" aria-current="@(y == Year ? "page" : null)">@y</a>
+            }
+        </nav>
+        @if (checks.Count == 0)
+        {
+            <EmptyState Text="@($"Keine Eintragung in {Year}.")" />
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Erledigt am</th><th>Erledigt von</th><th>Notiz</th><th>Foto</th></tr></thead>
+                    <tbody>
+                        @foreach (var check in checks)
+                        {
+                            <tr>
+                                <td>@Format.Date(check.DoneOn)</td>
+                                <td>@check.DoneBy</td>
+                                <td>@check.Note</td>
+                                <td>@if (check.FileId is { } file) { <a href="/dateien/@file" target="_blank" rel="noopener">Foto ansehen</a> } else { <span>–</span> }</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private RoutineRow? routine;
+    private IReadOnlyList<CheckRow> checks = [];
+    private bool loaded;
+    private int year = DateTime.Today.Year;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "jahr")]
+    private int? SelectedYear { get; set; }
+
+    private int Year => SelectedYear ?? year;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        routine = (await Routines.ListAsync(user, true)).FirstOrDefault(r => r.Id == Id);
+        checks = routine is null ? [] : await Routines.ChecksAsync(user, Id, Year);
+        loaded = true;
+    }
+}

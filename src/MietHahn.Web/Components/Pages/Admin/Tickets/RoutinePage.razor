@@ -50,7 +50,7 @@
                         @foreach (var row in rows)
                         {
                             <tr>
-                                <td>@row.Title@(row.Due ? " (fällig)" : "")</td>
+                                <td><a href="/verwaltung/tickets/routinen/@row.Id">@row.Title</a>@(row.Due ? " (fällig)" : "")</td>
                                 <td>@row.Property</td>
                                 <td>@Labels.From(row.Interval)</td>
                                 <td>@(row.LastDone is { } last ? $"{Format.Date(last)} · {row.LastDoneBy}" : "–")</td>

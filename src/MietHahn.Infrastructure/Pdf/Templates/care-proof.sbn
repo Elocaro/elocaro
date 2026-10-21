@@ -11,10 +11,10 @@
 <p class="small">Keine Eintragung in {{ year }}.</p>
 {{~ else ~}}
 <table>
-  <thead><tr><th>Erledigt am</th><th>Erledigt von</th><th>Notiz</th></tr></thead>
+  <thead><tr><th>Erledigt am</th><th>Erledigt von</th><th>Notiz</th><th>Foto</th></tr></thead>
   <tbody>
   {{~ for c in routine.checks ~}}
-    <tr><td>{{ date c.done_on }}</td><td>{{ c.done_by }}</td><td>{{ c.note }}</td></tr>
+    <tr><td>{{ date c.done_on }}</td><td>{{ c.done_by }}</td><td>{{ c.note }}</td><td>{{ if c.has_photo }}ja{{ end }}</td></tr>
   {{~ end ~}}
   </tbody>
 </table>

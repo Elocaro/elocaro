@@ -18,8 +18,8 @@ public interface ICareRoutines
 
     Task<Result> DeactivateAsync(ClaimsPrincipal user, Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Ticks the routine as done (today unless <paramref name="doneOn"/> is given; not in the future).</summary>
-    Task<Result> CheckAsync(ClaimsPrincipal user, Guid id, DateOnly? doneOn, string? note, CancellationToken cancellationToken = default);
+    /// <summary>Ticks the routine as done (today unless <paramref name="doneOn"/> is given; not in the future), optionally with a photo as proof.</summary>
+    Task<Result> CheckAsync(ClaimsPrincipal user, Guid id, DateOnly? doneOn, string? note, Guid? fileId = null, CancellationToken cancellationToken = default);
 
     /// <summary>Proof: the ticks of a routine, newest first.</summary>
     Task<IReadOnlyList<CheckRow>> ChecksAsync(ClaimsPrincipal user, Guid id, int? year, CancellationToken cancellationToken = default);
@@ -45,4 +45,4 @@ public sealed class RoutineInput
 
 public sealed record RoutineRow(Guid Id, Guid PropertyId, string Property, string Title, string? Description, CareInterval Interval, bool Active, DateOnly? LastDone, string? LastDoneBy, DateOnly? NextDue, bool Due, int ChecksThisYear);
 
-public sealed record CheckRow(Guid Id, DateOnly DoneOn, string DoneBy, string? Note);
+public sealed record CheckRow(Guid Id, DateOnly DoneOn, string DoneBy, string? Note, Guid? FileId = null);

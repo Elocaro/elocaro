@@ -552,7 +552,8 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Überfällig:** `CareRoutineTodos` meldet der Verwaltung im Dashboard („Tickets“) jede aktive Aufgabe, deren Fälligkeitstag ohne Häkchen verstrichen ist (`CareRoutine.IsOverdue`; eine noch nie abgehakte zählt ab dem Anlegetag), ab 7 Tagen Verzug dringend.
 - **Nachweis als CSV:** `/verwaltung/tickets/routinen.csv?jahr=` (Recht Admin, Semikolon, UTF-8 mit BOM, Formel-Präfixe entschärft) listet alle Häkchen eines Jahres je Objekt und Aufgabe; Knöpfe für dieses und das Vorjahr stehen auf `/verwaltung/tickets/routinen`.
 - **Nachweis als PDF:** `/verwaltung/tickets/routinen.pdf?jahr=` (`ICareRoutines.ProofPdfAsync`, Vorlage `care-proof.sbn`): je Objekt und Aufgabe Rhythmus, Anzahl und die Häkchen mit Datum, Name und Notiz; Aufgaben ohne Häkchen stehen mit „Keine Eintragung“ drin.
-- **Offen:** Foto am Abhaken, Verknüpfung von Arbeitszeit mit dem Beleg.
+- **Foto am Abhaken:** `CareCheck.FileId` (optional, Datei im `IFileStore`); der Hausmeister wählt unter `/service/routinen` „Erledigt mit Foto“ (Kamera am Handy). Die Verwaltung sieht die Häkchen je Aufgabe unter `/verwaltung/tickets/routinen/{id}` (Jahr wählbar, Foto über `/dateien/{id}`); CSV und PDF vermerken „Foto: ja“.
+- **Offen:** Verknüpfung von Arbeitszeit mit dem Beleg.
 - **Tests:** Domain (`Tickets/ServiceWorkTests`: Link-Gültigkeit, Token, Arbeit, Fälligkeit), Integration (`Tickets/ServiceWorkTests`: Link zeigt nur ein Ticket ohne interne Daten, Ablauf/Widerruf/Abschluss, Zuständiger bucht nur auf eigene Tickets, Hausmeisteraufgaben nur im eigenen Objekt), Web (`PortalPagesTests`, `PageSmokeTests`), Browser (`UiAuditTests`).
 
 ### Aushänge & Nachrichten (#50)
