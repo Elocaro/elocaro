@@ -226,6 +226,7 @@ else
 
 @code {
     private IJSObjectReference? module;
+    private Task? moduleReady;
     private ElementReference tenantCanvas;
     private ElementReference landlordCanvas;
     private bool canvasReady;
@@ -268,10 +269,17 @@ else
         if (view is { Status: HandoverStatus.Draft } && !canvasReady && tenantCanvas.Id is not null)
         {
             canvasReady = true;
-            module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/signature.js");
-            await module.InvokeVoidAsync("init", tenantCanvas);
-            await module.InvokeVoidAsync("init", landlordCanvas);
+            moduleReady = LoadSignatureAsync();
+            await moduleReady;
         }
+    }
+
+    private async Task LoadSignatureAsync()
+    {
+        var loaded = await JS.InvokeAsync<IJSObjectReference>("import", "/js/signature.js");
+        await loaded.InvokeVoidAsync("init", tenantCanvas);
+        await loaded.InvokeVoidAsync("init", landlordCanvas);
+        module = loaded;
     }
 
     private async Task ReloadAsync()
@@ -361,14 +369,25 @@ else
 
     private async Task ClearAsync(ElementReference canvas)
     {
+        await WhenSignatureReadyAsync();
         if (module is not null)
         {
             await module.InvokeVoidAsync("clear", canvas);
         }
     }
 
+    /// <summary>A quick click can arrive while the signature script is still loading: wait for it instead of ignoring the click.</summary>
+    private async Task WhenSignatureReadyAsync()
+    {
+        if (moduleReady is not null)
+        {
+            await moduleReady;
+        }
+    }
+
     private async Task SignAsync(bool confirm)
     {
+        await WhenSignatureReadyAsync();
         if (module is null || !await PersistAsync())
         {
             return;
