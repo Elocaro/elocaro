@@ -417,6 +417,15 @@ public static class Labels
         _ => "Sonstiges",
     };
 
+    public static string From(CareInterval value) => value switch
+    {
+        CareInterval.Daily => "täglich",
+        CareInterval.Weekly => "wöchentlich",
+        CareInterval.Monthly => "monatlich",
+        CareInterval.Quarterly => "vierteljährlich",
+        _ => "jährlich",
+    };
+
     public static string From(TicketUrgency value) => value == TicketUrgency.High ? "dringend" : "normal";
 
     public static string From(TicketStatus value) => value switch

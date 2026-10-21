@@ -10,7 +10,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Tickets;
 
-/// <summary>Tenants and assignees may download the photos of their tickets, except those of internal comments.</summary>
+/// <summary>Tenants and assignees may download the photos of their tickets, except those of internal comments; assignees also the invoices they uploaded.</summary>
 internal sealed class TicketFileShare(MietHahnDbContext db) : IFileShare
 {
     public async Task<bool> IsSharedAsync(Guid fileId, ClaimsPrincipal user, CancellationToken cancellationToken = default)
@@ -33,6 +33,11 @@ internal sealed class TicketFileShare(MietHahnDbContext db) : IFileShare
             ? t.ReporterId != null && persons.Contains(t.ReporterId.Value)
             : t.AssigneeId != null && persons.Contains(t.AssigneeId.Value));
         var internalComments = db.Set<TicketComment>().Where(c => c.IsInternal).Select(c => c.Id);
+        if (!tenant && await db.Set<TicketInvoice>().AnyAsync(i => i.FileId == fileId && tickets.Select(t => t.Id).Contains(i.TicketId), cancellationToken))
+        {
+            return true;
+        }
+
         return await db.Set<TicketPhoto>().AnyAsync(
             p => p.FileId == fileId && tickets.Select(t => t.Id).Contains(p.TicketId) && (p.CommentId == null || !internalComments.Contains(p.CommentId.Value)),
             cancellationToken);

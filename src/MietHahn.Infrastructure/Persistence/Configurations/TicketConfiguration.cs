@@ -57,3 +57,67 @@ internal sealed class TicketPhotoConfiguration : IEntityTypeConfiguration<Ticket
         builder.HasIndex(p => p.FileId);
     }
 }
+
+internal sealed class TicketWorkConfiguration : IEntityTypeConfiguration<TicketWork>
+{
+    public void Configure(EntityTypeBuilder<TicketWork> builder)
+    {
+        builder.ToTable("ticket_work");
+        builder.Property(w => w.Material).HasMaxLength(500);
+        builder.Property(w => w.Note).HasMaxLength(1000);
+        builder.Property(w => w.AuthorName).HasMaxLength(200);
+        builder.HasOne<Ticket>().WithMany().HasForeignKey(w => w.TicketId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(w => w.TicketId);
+    }
+}
+
+internal sealed class TicketInvoiceConfiguration : IEntityTypeConfiguration<TicketInvoice>
+{
+    public void Configure(EntityTypeBuilder<TicketInvoice> builder)
+    {
+        builder.ToTable("ticket_invoices");
+        builder.Property(i => i.UploadedBy).HasMaxLength(200);
+        builder.HasOne<Ticket>().WithMany().HasForeignKey(i => i.TicketId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<StoredFile>().WithMany().HasForeignKey(i => i.FileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(i => i.TicketId);
+        builder.HasIndex(i => i.FileId);
+    }
+}
+
+internal sealed class TicketAccessLinkConfiguration : IEntityTypeConfiguration<TicketAccessLink>
+{
+    public void Configure(EntityTypeBuilder<TicketAccessLink> builder)
+    {
+        builder.ToTable("ticket_access_links");
+        builder.Property(l => l.TokenHash).HasMaxLength(64);
+        builder.Property(l => l.Recipient).HasMaxLength(200);
+        builder.HasOne<Ticket>().WithMany().HasForeignKey(l => l.TicketId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(l => l.TokenHash).IsUnique();
+        builder.HasIndex(l => l.TicketId);
+    }
+}
+
+internal sealed class CareRoutineConfiguration : IEntityTypeConfiguration<CareRoutine>
+{
+    public void Configure(EntityTypeBuilder<CareRoutine> builder)
+    {
+        builder.ToTable("care_routines");
+        builder.Property(r => r.Title).HasMaxLength(200).UseCollation(MietHahnDbContext.GermanCollation);
+        builder.Property(r => r.Description).HasMaxLength(1000);
+        builder.Property(r => r.Interval).HasConversion<string>().HasMaxLength(10);
+        builder.HasOne<Property>().WithMany().HasForeignKey(r => r.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(r => r.PropertyId).HasFilter("NOT deleted");
+    }
+}
+
+internal sealed class CareCheckConfiguration : IEntityTypeConfiguration<CareCheck>
+{
+    public void Configure(EntityTypeBuilder<CareCheck> builder)
+    {
+        builder.ToTable("care_checks");
+        builder.Property(c => c.DoneBy).HasMaxLength(200);
+        builder.Property(c => c.Note).HasMaxLength(1000);
+        builder.HasOne<CareRoutine>().WithMany().HasForeignKey(c => c.RoutineId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(c => new { c.RoutineId, c.DoneOn });
+    }
+}

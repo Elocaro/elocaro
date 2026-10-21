@@ -282,6 +282,9 @@ public static class DependencyInjection
         services.AddScoped<IFileShare, TicketFileShare>();
         services.AddScoped<IPersonReference, TicketPersonReferences>();
         services.AddScoped<ITodoSource, TicketTodos>();
+        services.AddScoped<ITicketWork, TicketWorkService>();
+        services.AddScoped<IContractorLinks, ContractorLinks>();
+        services.AddScoped<ICareRoutines, CareRoutines>();
         services.AddScoped<INotices, NoticeService>();
         services.AddScoped<IMessages, MessageService>();
         services.AddScoped<IFileShare, NoticeFileShare>();

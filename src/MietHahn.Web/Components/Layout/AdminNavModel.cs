@@ -59,7 +59,7 @@ public static class AdminNavModel
             [$"{Root}/dokumente"],
             [new("Dokumente", $"{Root}/dokumente", Exact: true), new("Schreiben an Mieter", $"{Root}/dokumente/schreiben")], "Bestand"),
         new("Tickets", AppIcons.Tickets, $"{Root}/tickets", Policies.MasterData, [$"{Root}/tickets"],
-            [new("Tickets", $"{Root}/tickets", Exact: true), new("Anlegen", $"{Root}/tickets/neu")], "Bestand"),
+            [new("Tickets", $"{Root}/tickets", Exact: true), new("Anlegen", $"{Root}/tickets/neu"), new("Hausmeister-Aufgaben", $"{Root}/tickets/routinen")], "Bestand"),
         new("Mitteilungen", AppIcons.Messages, $"{Root}/nachrichten", Policies.MasterData, [$"{Root}/nachrichten", $"{Root}/aushaenge"],
             [new("Nachrichten", $"{Root}/nachrichten"), new("Aushänge", $"{Root}/aushaenge")], "Bestand"),
         new("Fristen", AppIcons.Deadlines, $"{Root}/fristen", Policies.MasterData, [$"{Root}/fristen"],

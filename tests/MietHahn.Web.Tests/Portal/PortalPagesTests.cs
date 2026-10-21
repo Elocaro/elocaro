@@ -141,6 +141,33 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
         Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync("/verwaltung/aushaenge/" + Guid.NewGuid() + "/aushang.pdf", followRedirects: false)).Status);
     }
 
+    [Fact]
+    public async Task Contractor_link_page_is_public_but_shows_nothing_for_an_unknown_token()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        using var visitor = App.Browser();
+        var page = await visitor.GetAsync("/auftrag/unbekannt", followRedirects: false);
+        Assert.Equal(HttpStatusCode.OK, page.Status);
+        Assert.Equal(HttpStatusCode.NotFound, (await visitor.GetAsync("/auftrag/unbekannt/datei/" + Guid.NewGuid(), followRedirects: false)).Status);
+    }
+
+    [Fact]
+    public async Task Routine_pages_open_for_administration_and_caretaker_but_not_for_tenants()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/verwaltung/tickets/routinen", followRedirects: false)).Status);
+
+        var (caretaker, _) = await SignedInAsAsync(Roles.Caretaker);
+        using var __ = caretaker;
+        Assert.Equal(HttpStatusCode.OK, (await caretaker.GetAsync("/service/routinen", followRedirects: false)).Status);
+
+        var (tenant, _, _) = await TenantWithLeasesAsync();
+        using var ___ = tenant;
+        Assert.Equal("/konto/zugriff-verweigert", (await tenant.GetAsync("/service/routinen", followRedirects: false)).RedirectLocation!.AbsolutePath);
+    }
+
     private async Task<(TestBrowser Browser, Guid Own, Guid Foreign)> TenantWithLeasesAsync()
     {
         var (browser, userId) = await SignedInAsAsync(Roles.Tenant);

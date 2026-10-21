@@ -3,7 +3,7 @@
     <div class="ticket-photos">
         @foreach (var id in FileIds)
         {
-            <a href="/dateien/@id" target="_blank" rel="noopener"><img src="/dateien/@id" alt="Foto zur Meldung" loading="lazy" /></a>
+            <a href="@Base/@id" target="_blank" rel="noopener"><img src="@Base/@id" alt="Foto zur Meldung" loading="lazy" /></a>
         }
     </div>
 }
@@ -11,4 +11,8 @@
 @code {
     [Parameter, EditorRequired]
     public IReadOnlyList<Guid> FileIds { get; set; } = [];
+
+    /// <summary>Path the files are served from (contractor links use their own, token-scoped one).</summary>
+    [Parameter]
+    public string Base { get; set; } = "/dateien";
 }

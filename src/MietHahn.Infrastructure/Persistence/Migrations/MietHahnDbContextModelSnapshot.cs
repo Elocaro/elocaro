@@ -6202,6 +6202,142 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("tax_line_mappings", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Tickets.CareCheck", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<string>("DoneBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("done_by");
+
+                    b.Property<DateOnly>("DoneOn")
+                        .HasColumnType("date")
+                        .HasColumnName("done_on");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("note");
+
+                    b.Property<Guid>("RoutineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("routine_id");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_care_checks");
+
+                    b.HasIndex("RoutineId", "DoneOn")
+                        .HasDatabaseName("ix_care_checks_routine_id_done_on");
+
+                    b.ToTable("care_checks", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Tickets.CareRoutine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Interval")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("interval");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title")
+                        .UseCollation("german");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_care_routines");
+
+                    b.HasIndex("PropertyId")
+                        .HasDatabaseName("ix_care_routines_property_id")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("care_routines", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Tickets.Ticket", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6342,6 +6478,77 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("tickets", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Tickets.TicketAccessLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("recipient");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ticket_access_links");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ticket_access_links_ticket_id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ticket_access_links_token_hash");
+
+                    b.ToTable("ticket_access_links", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Tickets.TicketComment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6409,6 +6616,66 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("ticket_comments", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Tickets.TicketInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<string>("UploadedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("uploaded_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ticket_invoices");
+
+                    b.HasIndex("FileId")
+                        .HasDatabaseName("ix_ticket_invoices_file_id");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ticket_invoices_ticket_id");
+
+                    b.ToTable("ticket_invoices", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Tickets.TicketPhoto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6468,6 +6735,81 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_ticket_photos_ticket_id");
 
                     b.ToTable("ticket_photos", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Tickets.TicketWork", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("author_name");
+
+                    b.Property<Guid?>("AuthorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<string>("Material")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("material");
+
+                    b.Property<int>("Minutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("minutes");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("note");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<DateOnly>("WorkedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("worked_on");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ticket_work");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ticket_work_ticket_id");
+
+                    b.ToTable("ticket_work", (string)null);
                 });
 
             modelBuilder.Entity("MietHahn.Infrastructure.Audit.AuditEntry", b =>
@@ -7733,6 +8075,26 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_property_costs_properties_property_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Tickets.CareCheck", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Tickets.CareRoutine", null)
+                        .WithMany()
+                        .HasForeignKey("RoutineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_care_checks_care_routine_routine_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Tickets.CareRoutine", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_care_routines_property_property_id");
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Tickets.Ticket", b =>
                 {
                     b.HasOne("MietHahn.Domain.People.Person", null)
@@ -7773,6 +8135,16 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_tickets_unit_unit_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Tickets.TicketAccessLink", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_access_links_ticket_ticket_id");
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Tickets.TicketComment", b =>
                 {
                     b.HasOne("MietHahn.Domain.Tickets.Ticket", null)
@@ -7781,6 +8153,23 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_ticket_comments_ticket_ticket_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Tickets.TicketInvoice", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Files.StoredFile", null)
+                        .WithMany()
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_invoices_stored_files_file_id");
+
+                    b.HasOne("MietHahn.Domain.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_invoices_tickets_ticket_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Tickets.TicketPhoto", b =>
@@ -7804,6 +8193,16 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_ticket_photos_tickets_ticket_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Tickets.TicketWork", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_work_tickets_ticket_id");
                 });
 
             modelBuilder.Entity("MietHahn.Infrastructure.Identity.MagicLink", b =>

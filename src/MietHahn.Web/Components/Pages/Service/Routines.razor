@@ -1,0 +1,63 @@
+@page "/service/routinen"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Application.Tickets
+@inject ICareRoutines Care
+@inject AuthenticationStateProvider Authentication
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="Regelmäßige Aufgaben" Subtitle="Treppenhausreinigung, Winterdienst, Mülltonnen: Abhaken gilt als Nachweis." />
+    <ErrorList Errors="errors" />
+
+    @if (rows is not null)
+    {
+        @if (rows.Count == 0)
+        {
+            <EmptyState Text="Für Ihre Objekte sind keine regelmäßigen Aufgaben angelegt." />
+        }
+        else
+        {
+            <ul class="todos">
+                @foreach (var row in rows)
+                {
+                    <li class="todo">
+                        <strong>@row.Title</strong> <span class="small">@row.Property · @Labels.From(row.Interval)</span>
+                        @if (row.Description is not null)
+                        {
+                            <p class="small">@row.Description</p>
+                        }
+                        <p class="small">
+                            @(row.LastDone is { } last ? $"Zuletzt erledigt am {Format.Date(last)} von {row.LastDoneBy}" : "Noch nie erledigt")
+                            @(row.Due ? " · fällig" : row.NextDue is { } next ? $" · nächstes Mal ab {Format.Date(next)}" : "")
+                        </p>
+                        <MudButton Variant="@(row.Due ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="() => CheckAsync(row.Id)">Erledigt (heute)</MudButton>
+                    </li>
+                }
+            </ul>
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<RoutineRow>? rows;
+    private IReadOnlyList<string>? errors;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+
+    private async Task LoadAsync() => rows = await Care.ListAsync(await UserAsync());
+
+    private async Task CheckAsync(Guid id)
+    {
+        var result = await Care.CheckAsync(await UserAsync(), id, null, null);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Abgehakt, danke.");
+        }
+
+        await LoadAsync();
+    }
+}

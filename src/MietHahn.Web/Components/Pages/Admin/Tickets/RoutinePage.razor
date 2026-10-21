@@ -1,0 +1,96 @@
+@page "/verwaltung/tickets/routinen"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Application.Documents
+@using MietHahn.Application.Tickets
+@using MietHahn.Domain.Tickets
+@inject ICareRoutines Routines
+@inject IDocumentLibrary Documents
+@inject AuthenticationStateProvider Authentication
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="Hausmeister-Aufgaben" Subtitle="Regelmäßige Aufgaben je Objekt, vom Hausmeister im Service-Bereich abgehakt." />
+    <StatusMessage />
+    <ErrorList Errors="errors" />
+
+    @if (options is not null)
+    {
+        <EditForm Model="input" OnValidSubmit="CreateAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppSelect T="Guid?" @bind-Value="input.PropertyId" Label="Objekt" Required="true" Items="options.Properties.Select(o => (Guid?)o.Id).ToList()" Text="@(id => options.Properties.FirstOrDefault(o => o.Id == id)?.Name ?? "")" />
+                <AppTextField @bind-Value="input.Title" Label="Aufgabe" Required="true" Hint="z. B. Treppenhaus reinigen" />
+                <AppSelect T="CareInterval" @bind-Value="input.Interval" Label="Rhythmus" Items="Enum.GetValues<CareInterval>()" Text="@(v => Labels.From(v))" />
+                <AppTextField @bind-Value="input.Description" Label="Beschreibung" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Aufgabe anlegen</MudButton>
+        </EditForm>
+    }
+
+    @if (rows is not null)
+    {
+        @if (rows.Count == 0)
+        {
+            <EmptyState Text="Noch keine Aufgaben." />
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Aufgabe</th><th>Objekt</th><th>Rhythmus</th><th>Zuletzt</th><th>Erledigt @DateTime.Today.Year</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var row in rows)
+                        {
+                            <tr>
+                                <td>@row.Title@(row.Due ? " (fällig)" : "")</td>
+                                <td>@row.Property</td>
+                                <td>@Labels.From(row.Interval)</td>
+                                <td>@(row.LastDone is { } last ? $"{Format.Date(last)} · {row.LastDoneBy}" : "–")</td>
+                                <td>@row.ChecksThisYear</td>
+                                <td><MudButton Variant="Variant.Text" OnClick="() => DeactivateAsync(row.Id)">Beenden</MudButton></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private readonly RoutineInput input = new();
+    private ReferenceOptions? options;
+    private IReadOnlyList<RoutineRow>? rows;
+    private IReadOnlyList<string>? errors;
+
+    protected override async Task OnInitializedAsync()
+    {
+        options = await Documents.ReferenceOptionsAsync();
+        await LoadAsync();
+    }
+
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+
+    private async Task LoadAsync() => rows = await Routines.ListAsync(await UserAsync());
+
+    private async Task CreateAsync()
+    {
+        var result = await Routines.CreateAsync(await UserAsync(), input);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Aufgabe ist angelegt.");
+            input.Title = "";
+            input.Description = null;
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeactivateAsync(Guid id)
+    {
+        var result = await Routines.DeactivateAsync(await UserAsync(), id);
+        errors = result.Succeeded ? null : result.Errors;
+        await LoadAsync();
+    }
+}

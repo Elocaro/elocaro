@@ -4,7 +4,10 @@
 @using MietHahn.Application.Documents
 @using MietHahn.Application.Receipts
 @using MietHahn.Application.Tickets
+@using MietHahn.Domain.Tickets
 @inject ITickets Tickets
+@inject ITicketWork Work
+@inject IContractorLinks ContractorLinks
 @inject IReceiptService Receipts
 @inject AuthenticationStateProvider Authentication
 @inject Notifier Notify
@@ -31,6 +34,41 @@
             }
         </section>
 
+        <TicketWorkPanel @key="@("w" + version)" View="work" />
+
+        <section>
+            <h2>Link für Handwerker ohne Zugang</h2>
+            <p class="small">Der Link zeigt nur dieses Ticket (ohne Kontaktdaten des Mieters), gilt befristet und endet mit dem Abschluss des Tickets.</p>
+            @if (createdUrl is not null)
+            {
+                <Notice Level="NoticeLevel.Success">
+                    <p>Link für <strong>@createdFor</strong> (gültig bis @Format.Timestamp(createdUntil!.Value)). Er wird nur jetzt angezeigt:</p>
+                    <p><input class="link-field" readonly value="@createdUrl" onfocus="this.select()" aria-label="Link" /></p>
+                </Notice>
+            }
+            <div class="form-row">
+                <AppTextField @bind-Value="linkRecipient" Label="Für wen?" Hint="Firma oder Name" />
+                <AppNumberField T="int" @bind-Value="linkDays" Label="Gültig (Tage)" Min="1" Max="60" />
+                <MudButton Variant="Variant.Outlined" OnClick="CreateLinkAsync">Link erzeugen</MudButton>
+            </div>
+            @if (links.Count > 0)
+            {
+                <ul class="todos">
+                    @foreach (var link in links)
+                    {
+                        <li class="todo">
+                            @link.Recipient
+                            <span class="small">@(link.RevokedAt is not null ? "widerrufen" : link.Active ? $"gültig bis {Format.Timestamp(link.ExpiresAt)}" : "abgelaufen")</span>
+                            @if (link.Active)
+                            {
+                                <MudButton Variant="Variant.Text" OnClick="() => RevokeAsync(link.Id)">Widerrufen</MudButton>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
         <section>
             <h2>Rechnung</h2>
             <div class="form-row">
@@ -52,6 +90,13 @@
     private DateOnly? appointment;
     private Guid? receiptId;
     private int version;
+    private TicketWorkView work = new([], [], false);
+    private IReadOnlyList<LinkRow> links = [];
+    private string? linkRecipient;
+    private int linkDays = TicketAccessLink.DefaultDays;
+    private string? createdUrl;
+    private string? createdFor;
+    private DateTimeOffset? createdUntil;
 
     [Parameter]
     public Guid Id { get; set; }
@@ -69,6 +114,29 @@
         assigneeId = view?.AssigneeId;
         appointment = view?.Row.AppointmentOn;
         receiptId = view?.ReceiptId;
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        work = await Work.GetAsync(user, Id) ?? work;
+        links = await ContractorLinks.ListAsync(user, Id);
+    }
+
+    private async Task CreateLinkAsync()
+    {
+        var created = await ContractorLinks.CreateAsync((await Authentication.GetAuthenticationStateAsync()).User, Id, linkRecipient ?? "", linkDays);
+        errors = created.Result.Succeeded ? null : created.Result.Errors;
+        if (created.Result.Succeeded)
+        {
+            createdUrl = created.Url;
+            createdFor = linkRecipient;
+            createdUntil = created.ExpiresAt;
+            linkRecipient = null;
+            await LoadAsync();
+        }
+    }
+
+    private async Task RevokeAsync(Guid linkId)
+    {
+        var result = await ContractorLinks.RevokeAsync((await Authentication.GetAuthenticationStateAsync()).User, linkId);
+        await FinishAsync(result, "Der Link ist widerrufen.");
     }
 
     private async Task AssignAsync()
