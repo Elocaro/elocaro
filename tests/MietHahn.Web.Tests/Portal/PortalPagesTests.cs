@@ -197,6 +197,7 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
         var (caretaker, _) = await SignedInAsAsync(Roles.Caretaker);
         using var __ = caretaker;
         Assert.NotEqual(HttpStatusCode.OK, (await caretaker.GetAsync("/verwaltung/tickets/routinen.csv", followRedirects: false)).Status);
+        Assert.NotEqual(HttpStatusCode.OK, (await caretaker.GetAsync("/verwaltung/tickets/routinen.pdf", followRedirects: false)).Status);
     }
 
     [Fact]

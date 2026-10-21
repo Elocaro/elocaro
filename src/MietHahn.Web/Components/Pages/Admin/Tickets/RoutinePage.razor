@@ -14,6 +14,8 @@
         <Actions>
             <a class="button" href="/verwaltung/tickets/routinen.csv?jahr=@DateTime.Today.Year">Nachweis @DateTime.Today.Year (CSV)</a>
             <a class="button" href="/verwaltung/tickets/routinen.csv?jahr=@(DateTime.Today.Year - 1)">Nachweis @(DateTime.Today.Year - 1) (CSV)</a>
+            <a class="button" href="/verwaltung/tickets/routinen.pdf?jahr=@DateTime.Today.Year">Nachweis @DateTime.Today.Year (PDF)</a>
+            <a class="button" href="/verwaltung/tickets/routinen.pdf?jahr=@(DateTime.Today.Year - 1)">Nachweis @(DateTime.Today.Year - 1) (PDF)</a>
         </Actions>
     </PageHeader>
     <StatusMessage />

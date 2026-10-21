@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Common;
+using MietHahn.Application.Documents;
 using MietHahn.Application.Tickets;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
@@ -14,7 +15,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Tickets;
 
-internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock) : ICareRoutines
+internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock, IPdfGenerator pdf) : ICareRoutines
 {
     private DateOnly Today => GermanTime.Today(clock.GetUtcNow());
 
@@ -112,6 +113,46 @@ internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock) : I
         return (await db.Set<CareCheck>().AsNoTracking().Where(c => c.RoutineId == id && (year == null || c.DoneOn.Year == year)).OrderByDescending(c => c.DoneOn).ThenByDescending(c => c.CreatedAt).ToListAsync(cancellationToken))
             .Select(c => new CheckRow(c.Id, c.DoneOn, c.DoneBy, c.Note)).ToList();
     }
+
+    public async Task<byte[]> ProofPdfAsync(ClaimsPrincipal user, int year, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (!TenantScope.IsAdmin(user))
+        {
+            throw new RuleViolationException("Dafür fehlt die Berechtigung.");
+        }
+
+        var routines = await ListAsync(user, true, cancellationToken);
+        var groups = new List<object>();
+        foreach (var property in routines.GroupBy(r => r.Property).OrderBy(g => g.Key, StringComparer.CurrentCulture))
+        {
+            var items = new List<object>();
+            foreach (var routine in property.OrderBy(r => r.Title, StringComparer.CurrentCulture))
+            {
+                var checks = await ChecksAsync(user, routine.Id, year, cancellationToken);
+                items.Add(new
+                {
+                    routine.Title,
+                    Interval = IntervalText(routine.Interval),
+                    Count = checks.Count,
+                    Checks = checks.OrderBy(c => c.DoneOn).Select(c => new { c.DoneOn, c.DoneBy, c.Note }).ToList(),
+                });
+            }
+
+            groups.Add(new { Property = property.Key, Routines = items });
+        }
+
+        return await pdf.GenerateAsync(new PdfRequest("care-proof", $"Nachweis Hausmeisteraufgaben {year}", new { Year = year, Properties = groups }, null, null, Today), cancellationToken);
+    }
+
+    private static string IntervalText(CareInterval interval) => interval switch
+    {
+        CareInterval.Daily => "täglich",
+        CareInterval.Weekly => "wöchentlich",
+        CareInterval.Monthly => "monatlich",
+        CareInterval.Quarterly => "vierteljährlich",
+        _ => "jährlich",
+    };
 
     /// <summary><c>null</c> = all properties (administration); otherwise the properties assigned to the caretaker (possibly none).</summary>
     private async Task<List<Guid>?> VisiblePropertiesAsync(ClaimsPrincipal user, CancellationToken cancellationToken)

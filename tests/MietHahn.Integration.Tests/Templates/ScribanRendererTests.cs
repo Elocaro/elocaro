@@ -104,4 +104,32 @@ public class ScribanRendererTests
         Assert.Contains("01.03.2026", result.Html, StringComparison.Ordinal);
         Assert.Throws<InvalidOperationException>(() => renderer.RenderEmbedded("Mail/Templates/gibt-es-nicht.sbn", null));
     }
+
+    [Fact]
+    public void Care_proof_template_lists_the_ticks_per_routine()
+    {
+        var model = new
+        {
+            Year = 2026,
+            Properties = new[]
+            {
+                new
+                {
+                    Property = "Lindenweg 3",
+                    Routines = new[]
+                    {
+                        new { Title = "Treppenhaus", Interval = "wöchentlich", Count = 1, Checks = new[] { new { DoneOn = new DateOnly(2026, 3, 2), DoneBy = "Max", Note = "sauber" } } },
+                        new { Title = "Hof", Interval = "monatlich", Count = 0, Checks = Array.Empty<object>().Select(_ => new { DoneOn = new DateOnly(2026, 1, 1), DoneBy = "", Note = "" }).ToArray() },
+                    },
+                },
+            },
+        };
+
+        var html = new ScribanRenderer().RenderEmbedded("Pdf/Templates/care-proof.sbn", model).Html;
+
+        Assert.Contains("Lindenweg 3", html, StringComparison.Ordinal);
+        Assert.Contains("02.03.2026", html, StringComparison.Ordinal);
+        Assert.Contains("Max", html, StringComparison.Ordinal);
+        Assert.Contains("Keine Eintragung in 2026", html, StringComparison.Ordinal);
+    }
 }

@@ -12,7 +12,7 @@ internal static class CareChecksEndpoint
 {
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
 
-    /// <summary>Proof of the caretaker duties of a year as CSV (semicolon, UTF-8 with BOM for Excel).</summary>
+    /// <summary>Proof of the caretaker duties of a year as CSV (semicolon, UTF-8 with BOM for Excel) and PDF.</summary>
     public static IEndpointRouteBuilder MapCareChecksEndpoint(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/verwaltung/tickets/routinen.csv", async (ICareRoutines routines, TimeProvider clock, HttpContext context, int? jahr) =>
@@ -32,6 +32,19 @@ internal static class CareChecksEndpoint
             context.Response.Headers.CacheControl = "no-store";
             return Results.File(Csv(rows.OrderBy(r => r.Routine.Property, StringComparer.CurrentCulture).ThenBy(r => r.Routine.Title, StringComparer.CurrentCulture).ThenBy(r => r.Check.DoneOn)),
                 "text/csv; charset=utf-8", $"hausmeisteraufgaben-{year}.csv");
+        }).RequireAuthorization(Policies.Admin);
+
+        endpoints.MapGet("/verwaltung/tickets/routinen.pdf", async (ICareRoutines routines, TimeProvider clock, HttpContext context, int? jahr) =>
+        {
+            var year = jahr ?? GermanTime.Today(clock.GetUtcNow()).Year;
+            if (year is < 2000 or > 2100)
+            {
+                return Results.BadRequest();
+            }
+
+            var pdf = await routines.ProofPdfAsync(context.User, year, context.RequestAborted);
+            context.Response.Headers.CacheControl = "no-store";
+            return Results.File(pdf, "application/pdf", $"hausmeisteraufgaben-{year}.pdf");
         }).RequireAuthorization(Policies.Admin);
         return endpoints;
     }

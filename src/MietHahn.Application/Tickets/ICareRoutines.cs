@@ -23,6 +23,9 @@ public interface ICareRoutines
 
     /// <summary>Proof: the ticks of a routine, newest first.</summary>
     Task<IReadOnlyList<CheckRow>> ChecksAsync(ClaimsPrincipal user, Guid id, int? year, CancellationToken cancellationToken = default);
+
+    /// <summary>Administration: proof of the ticks of a year as PDF (for the allocation of caretaker costs and § 35a EStG).</summary>
+    Task<byte[]> ProofPdfAsync(ClaimsPrincipal user, int year, CancellationToken cancellationToken = default);
 }
 
 public sealed class RoutineInput
