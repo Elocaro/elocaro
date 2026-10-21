@@ -470,7 +470,8 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Daten:** `Loan` (Tabelle `loans`, ein Objekt, Anteil Vermietung in %), `LoanExtraPayment`, `LoanCertificate` (Jahreszinsbescheinigung, eindeutig je Darlehen und Jahr) und `FinancingCost` (Disagio, Bereitstellungszinsen, Grundschuldbestellung, Sonstiges).
 - **Dienst:** `ILoanService`. Eine Bescheinigung ersetzt Zins und Restschuld des Plans für ihr Jahr (`LoanYearInterest.Interest`). `ExpensesAsync(Objekt, Jahr)` liefert die abziehbaren Finanzierungskosten (Zinsen × Anteil Vermietung + Einmalkosten im Zahlungsjahr); die Anlage-V-Auswertung (#39) übernimmt sie von dort.
 - **Oberfläche:** `/verwaltung/finanzen/darlehen` (Liste, Anlegen) und `/verwaltung/finanzen/darlehen/{id}` (Jahresübersicht, Daten, Bescheinigung, Sondertilgungen, Finanzierungskosten, Tilgungsplan), Recht Finanzen.
-- **Noch offen aus #37:** Import eines Bank-Tilgungsplans (CSV), automatische Aufteilung der Raten-Umsätze in Zins und Tilgung, Frist-Erinnerung zum Ende der Zinsbindung (kommt mit den Fristen in M5), Darlehen über mehrere Objekte verteilt.
+- **Zinsbindung:** Das Ende steht als Frist („Darlehen“, 180 Tage Vorlauf) im Fristenkalender (`LoanDeadlineSource`).
+- **Noch offen aus #37:** Import eines Bank-Tilgungsplans (CSV), automatische Aufteilung der Raten-Umsätze in Zins und Tilgung, Darlehen über mehrere Objekte verteilt.
 
 ### Erhaltungsaufwand (#38)
 
