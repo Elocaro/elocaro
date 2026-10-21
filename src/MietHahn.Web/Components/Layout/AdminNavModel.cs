@@ -58,6 +58,8 @@ public static class AdminNavModel
         new("Dokumente", AppIcons.Documents, $"{Root}/dokumente", Policies.MasterData,
             [$"{Root}/dokumente"],
             [new("Dokumente", $"{Root}/dokumente", Exact: true), new("Schreiben an Mieter", $"{Root}/dokumente/schreiben")], "Bestand"),
+        new("Fristen", AppIcons.Deadlines, $"{Root}/fristen", Policies.MasterData, [$"{Root}/fristen"],
+            [new("Kalender", $"{Root}/fristen", Exact: true), new("Wartung", $"{Root}/fristen/wartung")], "Bestand"),
 
         new("Bank", AppIcons.Bank, $"{Root}/bank/zuordnung", Policies.Finance, [$"{Root}/bank"],
             [new("Zuordnen", $"{Root}/bank/zuordnung", Also: [$"{Root}/bank/umsaetze/"]),
@@ -75,7 +77,7 @@ public static class AdminNavModel
         new("Benutzer", AppIcons.Users, $"{Root}/benutzer", Policies.UserManagement, [$"{Root}/benutzer"], [], "System"),
         new("Einstellungen", AppIcons.Finance, $"{Root}/einstellungen/vermieter", Policies.System,
             [$"{Root}/einstellungen", $"{Root}/system"],
-            [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"),
+            [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Fristen", $"{Root}/einstellungen/fristen"),
              new("E-Mail-Versand", $"{Root}/system/mails"), new("Hintergrundjobs", $"{Root}/system/jobs"),
              new("Datensicherung", $"{Root}/system/datensicherung"), new("Belegauslesung", $"{Root}/system/belegauslesung")], "System"),
     ];

@@ -1,0 +1,25 @@
+@* Fields of a maintenance task; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    <AppTextField @bind-Value="Data.Title" Label="Bezeichnung" Required="true" Placeholder="z. B. Rauchmelder prüfen" />
+    <AppSelect T="TaskKind" @bind-Value="Data.Kind" Label="Art" Items="Enum.GetValues<TaskKind>()" Text="@(v => Labels.From(v))" />
+    <OptionSelect @bind-Value="Data.PropertyId" Label="Objekt" Options="Properties.Select(p => (p.Id, p.Name)).ToList()" />
+    <AppDateField @bind-Value="Data.DueOn" Label="Nächste Fälligkeit" Required="true" />
+    <AppNumberField T="int" @bind-Value="Data.IntervalMonths" Label="Abstand (Monate)" Hint="0 = einmalig, 12 = jährlich" />
+    <AppNumberField T="int?" @bind-Value="Data.LeadDays" Label="Vorlauf für die Erinnerung (Tage)" Hint="Leer = Standard aus den Einstellungen" />
+</div>
+<AppTextField @bind-Value="Data.Note" Label="Notiz" Lines="2" />
+@if (ShowActive)
+{
+    <AppCheckBox @bind-Value="Data.Active" Label="Aktiv (abgeschlossene oder abgeschaltete Wartungen erscheinen nirgends)" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public TaskInput Data { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<PropertyOverview> Properties { get; set; } = [];
+
+    [Parameter]
+    public bool ShowActive { get; set; }
+}

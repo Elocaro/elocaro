@@ -1,0 +1,147 @@
+@page "/verwaltung/fristen"
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+@inject IDeadlines Admin
+@inject AuthenticationStateProvider Authentication
+@inject TimeProvider Clock
+
+<InteractiveShell>
+    <PageHeader Title="Fristen und Wartung" Subtitle="Alles, was ansteht: abgeleitet aus Verträgen, Zählern, Darlehen und Dokumenten sowie die eingetragenen Wartungen.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/fristen/wartung">Wartung eintragen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <div class="form-row">
+        <AppSelect T="string" Value="view" ValueChanged="OnViewChanged" Label="Ansicht" Items="views" Text="@(v => v == "monat" ? "Monat" : "Liste")" />
+        @if (view == "monat")
+        {
+            <MudButton Variant="Variant.Text" OnClick="() => MoveAsync(-1)" aria-label="Vorheriger Monat">Zurück</MudButton>
+            <strong aria-live="polite">@Format.Month(month)</strong>
+            <MudButton Variant="Variant.Text" OnClick="() => MoveAsync(1)" aria-label="Nächster Monat">Weiter</MudButton>
+        }
+        else
+        {
+            <AppSelect T="int" Value="days" ValueChanged="OnDaysChanged" Label="Zeitraum" Items="ranges" Text="@(v => v == 365 ? "12 Monate" : $"{v} Tage")" />
+        }
+    </div>
+
+    @if (entries is null)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else if (view == "monat")
+    {
+        <div class="table-wrapper">
+            <table class="data-table month-grid" data-nostack>
+                <caption class="small">Fristen im @Format.Month(month)</caption>
+                <thead><tr>@foreach (var name in weekdays) { <th scope="col">@name</th> }</tr></thead>
+                <tbody>
+                    @foreach (var week in Weeks())
+                    {
+                        <tr>
+                            @foreach (var day in week)
+                            {
+                                var dayEntries = entries.Where(e => e.Due == day).ToList();
+                                <td class="@(day.Month != month.Month ? "muted" : null)" aria-label="@Format.Date(day)">
+                                    <span class="small">@day.Day</span>
+                                    @foreach (var entry in dayEntries)
+                                    {
+                                        <div><a href="@entry.Link" class="@(entry.Due < today ? "overdue" : null)">@entry.Title</a></div>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (entries.Count == 0)
+    {
+        <EmptyState Text="Nichts fällig in diesem Zeitraum." />
+    }
+    else
+    {
+        @if (entries.Any(e => e.Due < today))
+        {
+            <Notice Level="NoticeLevel.Warning">@entries.Count(e => e.Due < today) überfällig.</Notice>
+        }
+
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Fällig</th><th>Was</th><th>Bereich</th><th>Hinweis</th></tr></thead>
+                <tbody>
+                    @foreach (var entry in entries)
+                    {
+                        <tr>
+                            <td>@Format.Date(entry.Due)@if (entry.Due < today) { <StatusChip Level="StatusLevel.Error">überfällig</StatusChip> }</td>
+                            <td><a href="@entry.Link">@entry.Title</a></td>
+                            <td>@entry.Area</td>
+                            <td class="small">@entry.Details</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</InteractiveShell>
+
+@code {
+    private static readonly string[] views = ["liste", "monat"];
+    private static readonly int[] ranges = [30, 90, 365];
+    private static readonly string[] weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+    private IReadOnlyList<DeadlineEntry>? entries;
+    private ClaimsPrincipal? user;
+    private string view = "liste";
+    private int days = 90;
+    private DateOnly today;
+    private DateOnly month;
+
+    protected override async Task OnInitializedAsync()
+    {
+        today = GermanTime.Today(Clock.GetUtcNow());
+        month = new DateOnly(today.Year, today.Month, 1);
+        user = (await Authentication.GetAuthenticationStateAsync()).User;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var until = view == "monat" ? month.AddMonths(1).AddDays(7) : today.AddDays(days);
+        var all = await Admin.ListAsync(user!, until);
+        entries = view == "monat" ? all.Where(e => e.Due >= month.AddDays(-7) && e.Due < month.AddMonths(1).AddDays(7)).ToList() : all;
+    }
+
+    private Task OnViewChanged(string? value)
+    {
+        view = value ?? "liste";
+        return LoadAsync();
+    }
+
+    private Task OnDaysChanged(int value)
+    {
+        days = value;
+        return LoadAsync();
+    }
+
+    private Task MoveAsync(int months)
+    {
+        month = month.AddMonths(months);
+        return LoadAsync();
+    }
+
+    /// <summary>Weeks (Monday to Sunday) that cover the month.</summary>
+    private IEnumerable<DateOnly[]> Weeks()
+    {
+        var first = month.AddDays(-(((int)month.DayOfWeek + 6) % 7));
+        var last = month.AddMonths(1).AddDays(-1);
+        for (var start = first; start <= last; start = start.AddDays(7))
+        {
+            yield return Enumerable.Range(0, 7).Select(start.AddDays).ToArray();
+        }
+    }
+}

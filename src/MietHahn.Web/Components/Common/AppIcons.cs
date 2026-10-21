@@ -12,6 +12,7 @@ public static class AppIcons
     public static string Property => Icons.Material.Outlined.Apartment;
     public static string People => Icons.Material.Outlined.People;
     public static string Lease => Icons.Material.Outlined.Description;
+    public static string Deadlines => Icons.Material.Outlined.Event;
     public static string Documents => Icons.Material.Outlined.FolderOpen;
     public static string Templates => Icons.Material.Outlined.EditNote;
     public static string Cpi => Icons.Material.Outlined.TrendingUp;

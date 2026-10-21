@@ -131,7 +131,7 @@ NK-/Heizkostenabrechnung, Mietvertrag, Zimmervertrag (WG), Mieterhöhung (Vergle
 ## Kommunikation & Fristen
 
 - **E-Mail (SMTP)** für Dokumentversand, Magic Links und Benachrichtigungen.
-- **Fristen-Erinnerungen:** NK-Abrechnungsfrist, Vertragsende/Kündigungsfristen, Index-/Staffeltermine, Wartezeit Mieterhöhung, Rauchmelderwartung, Wartung Heizung, Schornsteinfeger, Eichfristen der Zähler (Wasser 6 J., Wärme 5 J.), Versicherungen.
+- **Fristen-Erinnerungen:** Der Fristenkalender (`/verwaltung/fristen`) sammelt abgeleitete Fristen ohne Eingabe: NK-Abrechnungsfrist (§ 556 Abs. 3 BGB), Vertragsende bzw. Befristung, Staffeltermine, frühester Termin für Mieterhöhung (§ 558 BGB) und Indexanpassung (§ 557b BGB), Zinsbindungsende, Eichfristen der Zähler (Wasser 6 J., Wärme 5 J.), Ablauf von Energieausweis und Versicherungen. Dazu kommen von Hand eingetragene, wiederkehrende Wartungen (Rauchmelder, Heizungswartung, Schornsteinfeger, Trinkwasser-/Legionellenprüfung, Dachrinnen, Spielplatz) mit Nachweis beim Erledigen. Erinnerungen kommen per E-Mail zum einstellbaren Vorlauf, montags als Wochenübersicht, und als iCal-Abo für den eigenen Kalender (geheimer Link).
 - **Mieterportal:** Dokumente einsehen, Schadensmeldung/Tickets (mit Fotos, Status, Zuweisung an Hausmeister/Handwerker), Nachrichten/Aushänge.
 - **Zählerablesung** macht der Admin mobil (responsive Erfassungsmaske mit Foto).
 

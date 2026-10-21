@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using MietHahn.Application.Bank;
+using MietHahn.Application.Deadlines;
 using MietHahn.Application.Documents;
 using MietHahn.Application.Finance;
 using MietHahn.Application.Leases;
@@ -117,6 +118,9 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             // A draft handover protocol so that the mobile form is rendered with data.
             await sp.GetRequiredService<IHandovers>().CreateAsync(lease, MietHahn.Domain.Leases.HandoverType.MoveIn, today, Ct);
 
+            result["task"] = (await sp.GetRequiredService<IDeadlines>().CreateTaskAsync(
+                new TaskInput { Title = "Rauchmelder prüfen", Kind = Domain.Deadlines.TaskKind.SmokeDetectors, PropertyId = property, DueOn = today.AddDays(20), IntervalMonths = 12 }, Ct)).Id!.Value.ToString();
+
             result["property"] = property.ToString();
             result["unit"] = unit.ToString();
             result["room"] = room.ToString();
@@ -143,6 +147,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/vertraege/{ids["lease"]}/konto", $"/verwaltung/vertraege/{ids["lease"]}/auszug",
             $"/verwaltung/vertraege/{ids["lease"]}/kostenarten", $"/verwaltung/vertraege/{ids["lease"]}/vertragsdokument", $"/verwaltung/vertraege/{ids["lease"]}/mieterhoehung", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/einzug", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/auszug", "/verwaltung/vpi",
             "/verwaltung/dokumente", "/verwaltung/dokumente/neu",
+            "/verwaltung/fristen", "/verwaltung/fristen/wartung", $"/verwaltung/fristen/wartung/{ids["task"]}", "/verwaltung/einstellungen/fristen",
             $"/verwaltung/objekte/{p}/zaehler", $"/verwaltung/objekte/{p}/ablesung", $"/verwaltung/zaehler/{ids["meter"]}",
             "/verwaltung/bank/konten", "/verwaltung/bank/konten/neu", $"/verwaltung/bank/konten/{ids["account"]}", "/verwaltung/bank/umsaetze", "/verwaltung/bank/zuordnung",
             $"/verwaltung/bank/umsaetze/{ids["transaction"]}/zuordnen", "/verwaltung/bank/regeln", "/verwaltung/bank/regeln/neu", $"/verwaltung/bank/regeln/{ids["rule"]}", "/verwaltung/bank/csv-profile",

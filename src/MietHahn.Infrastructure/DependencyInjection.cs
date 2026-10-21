@@ -11,6 +11,7 @@ using MietHahn.Application.Audit;
 using MietHahn.Application.Bank;
 using MietHahn.Application.Common;
 using MietHahn.Application.Communication;
+using MietHahn.Application.Deadlines;
 using MietHahn.Application.Documents;
 using MietHahn.Application.Files;
 using MietHahn.Application.Finance;
@@ -30,6 +31,7 @@ using MietHahn.Infrastructure.Admin;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Bank;
 using MietHahn.Infrastructure.Bank.FinTs;
+using MietHahn.Infrastructure.Deadlines;
 using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Files;
 using MietHahn.Infrastructure.Finance;
@@ -257,6 +259,16 @@ public static class DependencyInjection
         services.AddScoped<IStatementDispatch, StatementDispatchService>();
         services.AddScoped<ITodoSource, StatementDeadlineTodos>();
         services.AddScoped<ITodoSource, ReceiptTodos>();
+        services.AddScoped<IDeadlineSource, StatementDeadlineSource>();
+        services.AddScoped<IDeadlineSource, LeaseDeadlineSource>();
+        services.AddScoped<IDeadlineSource, LoanDeadlineSource>();
+        services.AddScoped<IDeadlineSource, CalibrationDeadlineSource>();
+        services.AddScoped<IDeadlineSource, DocumentDeadlineSource>();
+        services.AddScoped<IDeadlineSource, TaskDeadlineSource>();
+        services.AddScoped<DeadlineService>();
+        services.AddScoped<IDeadlines>(sp => sp.GetRequiredService<DeadlineService>());
+        services.AddScoped<DeadlineReminders>();
+        services.AddScoped<ITodoSource, DeadlineTodos>();
         services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();
     }
 
@@ -304,6 +316,7 @@ public static class DependencyInjection
             q.ScheduleDaily<RentStepJob>(RentStepJob.Key, "Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins", 0, 30);
             q.ScheduleDaily<ChargeJob>(ChargeJob.Key, "Erzeugt die Monatsmieten (Sollstellungen) und gleicht sie an Vertragsänderungen an", 0, 40);
             q.ScheduleDaily<DunningJob>(DunningJob.Key, "Erkennt Rückstände und schlägt Mahnungen vor (versendet nichts, Freigabe nötig)", 6, 15);
+            q.ScheduleDaily<DeadlineReminderJob>(DeadlineReminderJob.Key, "Schickt Erinnerungen zu Fristen und Wartungen und montags die Wochenübersicht", 7, 30);
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);

@@ -726,3 +726,10 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
     .page-header-title { flex: 1 1 0; }
     .page-header-actions:has(> .mud-menu:only-child) { flex: 0 0 auto; }
 }
+
+/* Deadline calendar: month grid (scrolls sideways inside .table-wrapper on narrow screens) */
+.month-grid { table-layout: fixed; min-width: 42rem; }
+.month-grid td { vertical-align: top; height: 5.5rem; padding: 0.35rem; overflow-wrap: anywhere; }
+.month-grid td.muted { background: var(--md-surface-container-lowest); color: var(--md-on-surface-variant); }
+.month-grid td > div { margin-top: 0.2rem; font-size: 0.8125rem; line-height: 1.25; }
+.month-grid a.overdue { color: var(--md-error); font-weight: 600; }

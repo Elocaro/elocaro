@@ -1,4 +1,5 @@
 using MietHahn.Domain.Bank;
+using MietHahn.Domain.Deadlines;
 using MietHahn.Domain.Documents;
 using MietHahn.Domain.Finance;
 using MietHahn.Domain.Heating;
@@ -157,6 +158,28 @@ public static class Labels
         DocumentCategory.Photo => "Foto",
         DocumentCategory.HouseRules => "Hausordnung",
         _ => "Sonstiges",
+    };
+
+    public static string From(TaskKind value) => value switch
+    {
+        TaskKind.SmokeDetectors => "Rauchmelder",
+        TaskKind.HeatingService => "Heizungswartung",
+        TaskKind.ChimneySweep => "Schornsteinfeger",
+        TaskKind.DrinkingWater => "Trinkwasser/Legionellen",
+        TaskKind.Gutters => "Dachrinnen",
+        TaskKind.Playground => "Spielplatz",
+        TaskKind.Insurance => "Versicherung",
+        _ => "Sonstiges",
+    };
+
+    public static string Interval(int months) => months switch
+    {
+        0 => "einmalig",
+        1 => "monatlich",
+        12 => "jährlich",
+        24 => "alle 2 Jahre",
+        _ when months % 12 == 0 => $"alle {months / 12} Jahre",
+        _ => $"alle {months} Monate",
     };
 
     public static string From(HeatingType value) => value switch
