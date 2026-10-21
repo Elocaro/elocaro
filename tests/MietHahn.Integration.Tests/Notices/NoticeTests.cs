@@ -162,6 +162,50 @@ public class NoticeTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.DoesNotContain(mails, m => m.Html.Contains("geheim", StringComparison.OrdinalIgnoreCase) || m.Text.Contains("geheim", StringComparison.OrdinalIgnoreCase) || m.Html.Contains("Antwort der Verwaltung", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Withdrawing_a_notice_tells_the_tenants_once()
+    {
+        var id = Validate(await With<INotices, Result>(n => n.CreateAsync(admin, Input("Baustelle"), [], Ct)));
+        Assert.Equal(2, await Notify());
+        Validate(await With<INotices, Result>(n => n.WithdrawAsync(admin, id, Ct)));
+
+        Assert.Equal(2, await Notify());
+        Assert.Equal(0, await Notify());
+        var mails = await WithDbAsync(db => db.Set<OutgoingMail>().Where(m => m.Template == "notice-withdrawn").ToListAsync(Ct));
+        Assert.Equal(2, mails.Count);
+        Assert.All(mails, m => Assert.Contains("Baustelle", m.Html, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Unconfirmed_mandatory_notices_show_up_on_the_dashboard_after_a_week()
+    {
+        var id = Validate(await With<INotices, Result>(n => n.CreateAsync(admin, Input("Hausordnung", acknowledge: true), [], Ct)));
+        Validate(await With<INotices, Result>(n => n.CreateAsync(admin, Input("Info ohne Pflicht"), [], Ct)));
+        Assert.Empty(await TodosAsync(admin));
+
+        environment.Clock.Advance(TimeSpan.FromDays(8));
+        var todo = Assert.Single(await TodosAsync(admin));
+        Assert.Contains("Hausordnung (0 von 2 bestätigt)", todo.Title, StringComparison.Ordinal);
+        Assert.Empty(await TodosAsync(anna));
+
+        Validate(await With<INotices, Result>(n => n.AcknowledgeAsync(anna, id, Ct)));
+        Assert.Contains("1 von 2", Assert.Single(await TodosAsync(admin)).Title, StringComparison.Ordinal);
+        Validate(await With<INotices, Result>(n => n.AcknowledgeAsync(ben, id, Ct)));
+        Assert.Empty(await TodosAsync(admin));
+    }
+
+    private async Task<IReadOnlyList<MietHahn.Application.Todos.TodoItem>> TodosAsync(ClaimsPrincipal user)
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var items = new List<MietHahn.Application.Todos.TodoItem>();
+        foreach (var source in scope.ServiceProvider.GetServices<MietHahn.Application.Todos.ITodoSource>())
+        {
+            items.AddRange(await source.TodosAsync(user, Ct));
+        }
+
+        return items.Where(t => t.Title.StartsWith("Pflicht-Lesen", StringComparison.Ordinal)).ToList();
+    }
+
     private Guid HouseId => house;
 
     private NoticeInput Input(string title, bool acknowledge = false) =>

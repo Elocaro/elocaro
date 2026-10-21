@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Files;
+using MietHahn.Application.Notices;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Leases;
@@ -53,5 +54,28 @@ internal sealed class MessageTodos(MietHahnDbContext db) : ITodoSource
 
         var threads = await db.Set<MessageThread>().AsNoTracking().Where(t => t.AdminUnread).OrderBy(t => t.LastMessageAt).ToListAsync(cancellationToken);
         return threads.Select(t => new TodoItem("Nachrichten", $"Neue Nachricht: {t.Subject}", $"/verwaltung/nachrichten/{t.Id}", Urgency.Soon, "Lesen und beantworten.", null)).ToList();
+    }
+}
+
+/// <summary>Dashboard: notices that must be read and that some tenants have not confirmed a week after they started.</summary>
+internal sealed class NoticeAcknowledgementTodos(INotices notices, TimeProvider clock) : ITodoSource
+{
+    public const int GraceDays = 7;
+
+    public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (!TenantScope.IsAdmin(user))
+        {
+            return [];
+        }
+
+        var today = GermanTime.Today(clock.GetUtcNow());
+        return (await notices.ListAsync(user, cancellationToken))
+            .Where(n => n.IsCurrent && n.RequiresAcknowledgement && n.Read < n.Recipients && n.ValidFrom.AddDays(GraceDays) <= today)
+            .OrderBy(n => n.ValidFrom)
+            .Select(n => new TodoItem("Aushänge", $"Pflicht-Lesen offen: {n.Title} ({n.Read} von {n.Recipients} bestätigt)", $"/verwaltung/aushaenge/{n.Id}", Urgency.Soon,
+                "Mieter erinnern oder den Aushang im Treppenhaus aufhängen.", n.ValidUntil))
+            .ToList();
     }
 }

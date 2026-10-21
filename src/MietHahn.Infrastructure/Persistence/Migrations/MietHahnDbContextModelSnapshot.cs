@@ -3845,6 +3845,14 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
 
+                    b.Property<DateTimeOffset?>("WithdrawalNotifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("withdrawal_notified_at");
+
+                    b.Property<DateTimeOffset?>("WithdrawnAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("withdrawn_at");
+
                     b.HasKey("Id")
                         .HasName("pk_notices");
 

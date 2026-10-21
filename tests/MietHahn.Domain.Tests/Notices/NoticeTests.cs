@@ -24,10 +24,27 @@ public class NoticeTests
         var notice = new Notice("Hausordnung", "Text", Guid.NewGuid(), Day, null, true);
         Assert.True(notice.IsCurrent(Day.AddYears(5)));
 
-        notice.Withdraw(Day.AddDays(4));
+        notice.Withdraw(Day.AddDays(4), DateTimeOffset.UtcNow);
 
         Assert.True(notice.IsCurrent(Day.AddDays(4)));
         Assert.False(notice.IsCurrent(Day.AddDays(5)));
+        Assert.Null(notice.WithdrawnAt);
+    }
+
+    [Fact]
+    public void Withdrawing_after_the_tenants_were_told_is_remembered_for_the_mail()
+    {
+        var at = new DateTimeOffset(2026, 10, 12, 8, 0, 0, TimeSpan.Zero);
+        var notice = new Notice("Hausordnung", "Text", Guid.NewGuid(), Day, null, true);
+        notice.MarkTenantsNotified(at);
+
+        notice.Withdraw(Day.AddDays(4), at);
+        Assert.Equal(at, notice.WithdrawnAt);
+
+        var expired = new Notice("Alt", "Text", Guid.NewGuid(), Day, Day.AddDays(2), false);
+        expired.MarkTenantsNotified(at);
+        expired.Withdraw(Day.AddDays(5), at);
+        Assert.Null(expired.WithdrawnAt);
     }
 
     [Fact]

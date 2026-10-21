@@ -48,12 +48,23 @@ public sealed class Notice : Entity
 
     public void MarkTenantsNotified(DateTimeOffset at) => TenantsNotifiedAt = at;
 
+    /// <summary>Set when a notice the tenants were told about is withdrawn before its end; they get a mail about it once.</summary>
+    public DateTimeOffset? WithdrawnAt { get; private set; }
+
+    public DateTimeOffset? WithdrawalNotifiedAt { get; private set; }
+
+    public void MarkWithdrawalNotified(DateTimeOffset at) => WithdrawalNotifiedAt = at;
+
     /// <summary>Ends the validity (the notice stays in the archive).</summary>
-    public void Withdraw(DateOnly day)
+    public void Withdraw(DateOnly day, DateTimeOffset at)
     {
         if (ValidUntil is null || ValidUntil > day)
         {
             ValidUntil = day < ValidFrom ? ValidFrom : day;
+            if (TenantsNotifiedAt is not null)
+            {
+                WithdrawnAt = at;
+            }
         }
     }
 

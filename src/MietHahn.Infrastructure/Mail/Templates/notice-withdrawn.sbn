@@ -1,0 +1,8 @@
+{{ capture subject }}Aushang zurückgezogen{{ end }}
+<p>{{ salutation }}</p>
+<p>folgende Aushänge für Ihr Haus wurden zurückgezogen und sind im Mieterportal nicht mehr zu sehen:</p>
+<ul>
+{{ for title in titles }}  <li>{{ title }}</li>
+{{ end }}</ul>
+<p><a href="{{ link }}">Zum Mieterportal</a></p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

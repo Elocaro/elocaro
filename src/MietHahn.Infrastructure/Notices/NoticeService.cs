@@ -96,7 +96,7 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
         {
             await RequireAdminAsync(user, cancellationToken);
             var notice = await db.Set<Notice>().SingleOrDefaultAsync(n => n.Id == id, cancellationToken) ?? throw new NotFoundException();
-            notice.Withdraw(Today.AddDays(-1) < notice.ValidFrom ? notice.ValidFrom : Today.AddDays(-1));
+            notice.Withdraw(Today.AddDays(-1) < notice.ValidFrom ? notice.ValidFrom : Today.AddDays(-1), clock.GetUtcNow());
             await db.SaveChangesAsync(cancellationToken);
             return id;
         });

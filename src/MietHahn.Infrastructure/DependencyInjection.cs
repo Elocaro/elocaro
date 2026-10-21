@@ -291,6 +291,7 @@ public static class DependencyInjection
         services.AddScoped<IMessages, MessageService>();
         services.AddScoped<IFileShare, NoticeFileShare>();
         services.AddScoped<ITodoSource, MessageTodos>();
+        services.AddScoped<ITodoSource, NoticeAcknowledgementTodos>();
         services.AddScoped<NoticeNotifications>();
         services.AddScoped<ITodoSource, DeadlineTodos>();
         services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();
