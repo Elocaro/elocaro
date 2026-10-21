@@ -2,7 +2,10 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @using MietHahn.Application.Files
+@using MietHahn.Application.Tickets
 @inject IReceiptService Receipts
+@inject ITicketWork TicketWork
+@inject AuthenticationStateProvider Authentication
 @inject IReceiptExtraction Extraction
 @inject IFileStore Storage
 @inject NavigationManager Navigation
@@ -93,6 +96,36 @@ else
     }
 </section>
             </MudTabPanel>
+            @if (tickets.Count > 0)
+            {
+                <MudTabPanel Text="Auftrag">
+                    @foreach (var ticket in tickets)
+                    {
+                        <section>
+                            <h2><a href="/verwaltung/tickets/@ticket.Id">@ticket.Title</a> <span class="small">· @Labels.From(ticket.Status)</span></h2>
+                            @if (ticket.Work.Count == 0)
+                            {
+                                <EmptyState Text="Auf dem Auftrag ist noch keine Arbeit eingetragen." />
+                            }
+                            else
+                            {
+                                <p>Gemeldete Arbeitszeit: <strong>@Format.Hours(ticket.Minutes)</strong></p>
+                                <div class="table-wrapper">
+                                    <table class="data-table">
+                                        <thead><tr><th>Datum</th><th>Dauer</th><th>Material</th><th>Bemerkung</th><th>Von</th></tr></thead>
+                                        <tbody>
+                                            @foreach (var row in ticket.Work)
+                                            {
+                                                <tr><td>@Format.Date(row.WorkedOn)</td><td>@Format.Hours(row.Minutes)</td><td>@row.Material</td><td>@row.Note</td><td>@row.Author</td></tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </section>
+                    }
+                </MudTabPanel>
+            }
             <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="@nameof(Receipt)" EntityId="Id" />
             </MudTabPanel>
@@ -145,6 +178,7 @@ else
     private ExtractionOutcome? outcome;
     private IReadOnlySet<string>? uncertain;
     private bool loaded;
+    private IReadOnlyList<ReceiptTicket> tickets = [];
 
     [Parameter]
     public Guid Id { get; set; }
@@ -158,6 +192,7 @@ else
     private async Task LoadAsync()
     {
         receipt = await Receipts.GetAsync(Id);
+        tickets = await TicketWork.ForReceiptAsync((await Authentication.GetAuthenticationStateAsync()).User, Id);
         if (receipt is not null)
         {
             data = receipt.Data;

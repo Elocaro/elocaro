@@ -31,6 +31,25 @@ internal sealed class TicketWorkService(MietHahnDbContext db, TimeProvider clock
             return entry.Id;
         });
 
+    public async Task<IReadOnlyList<ReceiptTicket>> ForReceiptAsync(ClaimsPrincipal user, Guid receiptId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (!TenantScope.IsAdmin(user))
+        {
+            return [];
+        }
+
+        var tickets = await db.Set<Ticket>().AsNoTracking().Where(t => t.ReceiptId == receiptId).OrderBy(t => t.ReportedAt).ToListAsync(cancellationToken);
+        var result = new List<ReceiptTicket>();
+        foreach (var ticket in tickets)
+        {
+            var work = (await ViewAsync(db, ticket.Id, false, cancellationToken)).Work;
+            result.Add(new ReceiptTicket(ticket.Id, ticket.Title, ticket.Status, work.Sum(w => w.Minutes), work));
+        }
+
+        return result;
+    }
+
     public Task<Result> AddInvoiceAsync(ClaimsPrincipal user, Guid ticketId, Guid fileId, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {

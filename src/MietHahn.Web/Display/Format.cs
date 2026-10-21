@@ -22,6 +22,9 @@ public static class Format
 
     public static string Money(decimal? value) => value?.ToString("#,##0.00 €", German) ?? "–";
 
+    /// <summary>Working time as "2 h 05 min"; no time = a dash.</summary>
+    public static string Hours(int minutes) => minutes == 0 ? "–" : $"{minutes / 60} h {minutes % 60:00} min";
+
     public static string Area(decimal? value) => value is null ? "–" : value.Value.ToString("#,##0.##", German) + " m²";
 
     public static string Number(decimal? value) => value?.ToString("#,##0.##", German) ?? "–";

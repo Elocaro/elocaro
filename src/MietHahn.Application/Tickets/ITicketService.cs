@@ -13,6 +13,9 @@ public interface ITicketWork
     Task<Result> AddWorkAsync(ClaimsPrincipal user, Guid ticketId, WorkInput input, CancellationToken cancellationToken = default);
 
     Task<Result> AddInvoiceAsync(ClaimsPrincipal user, Guid ticketId, Guid fileId, CancellationToken cancellationToken = default);
+
+    /// <summary>Administration: the tickets whose invoice is this receipt, with the work reported on them (to check the invoice against the hours and material).</summary>
+    Task<IReadOnlyList<ReceiptTicket>> ForReceiptAsync(ClaimsPrincipal user, Guid receiptId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -62,6 +65,8 @@ public sealed class WorkInput
 }
 
 public sealed record WorkRow(Guid Id, DateOnly WorkedOn, int Minutes, string? Material, string? Note, string Author);
+
+public sealed record ReceiptTicket(Guid Id, string Title, TicketStatus Status, int Minutes, IReadOnlyList<WorkRow> Work);
 
 public sealed record InvoiceRow(Guid Id, Guid FileId, string UploadedBy, DateTimeOffset At);
 

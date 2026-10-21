@@ -553,7 +553,7 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Nachweis als CSV:** `/verwaltung/tickets/routinen.csv?jahr=` (Recht Admin, Semikolon, UTF-8 mit BOM, Formel-Präfixe entschärft) listet alle Häkchen eines Jahres je Objekt und Aufgabe; Knöpfe für dieses und das Vorjahr stehen auf `/verwaltung/tickets/routinen`.
 - **Nachweis als PDF:** `/verwaltung/tickets/routinen.pdf?jahr=` (`ICareRoutines.ProofPdfAsync`, Vorlage `care-proof.sbn`): je Objekt und Aufgabe Rhythmus, Anzahl und die Häkchen mit Datum, Name und Notiz; Aufgaben ohne Häkchen stehen mit „Keine Eintragung“ drin.
 - **Foto am Abhaken:** `CareCheck.FileId` (optional, Datei im `IFileStore`); der Hausmeister wählt unter `/service/routinen` „Erledigt mit Foto“ (Kamera am Handy). Die Verwaltung sieht die Häkchen je Aufgabe unter `/verwaltung/tickets/routinen/{id}` (Jahr wählbar, Foto über `/dateien/{id}`); CSV und PDF vermerken „Foto: ja“.
-- **Offen:** Verknüpfung von Arbeitszeit mit dem Beleg.
+- **Arbeit am Beleg:** Der Beleg (`/verwaltung/belege/{id}`) zeigt im Reiter „Auftrag“ die Tickets, die ihn als Rechnung verknüpft haben, mit Gesamtzeit und den Arbeitseinträgen samt Material (`ITicketWork.ForReceiptAsync`, nur Verwaltung), damit sich die Rechnung gegen Stunden und Material prüfen lässt.
 - **Tests:** Domain (`Tickets/ServiceWorkTests`: Link-Gültigkeit, Token, Arbeit, Fälligkeit), Integration (`Tickets/ServiceWorkTests`: Link zeigt nur ein Ticket ohne interne Daten, Ablauf/Widerruf/Abschluss, Zuständiger bucht nur auf eigene Tickets, Hausmeisteraufgaben nur im eigenen Objekt), Web (`PortalPagesTests`, `PageSmokeTests`), Browser (`UiAuditTests`).
 
 ### Aushänge & Nachrichten (#50)

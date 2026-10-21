@@ -182,6 +182,25 @@ public class ServiceWorkTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Receipt_shows_the_work_reported_on_its_ticket_to_the_administration_only()
+    {
+        var id = Validate(await With<ITickets, Result>(t => t.ReportAsync(anna, new TicketReport { Title = "Wasserhahn", Description = "Tropft" }, [], Ct)));
+        Validate(await With<ITickets, Result>(t => t.AssignAsync(admin, id, caretakerPerson, null, Ct)));
+        Validate(await With<ITicketWork, Result>(w => w.AddWorkAsync(caretaker, id, new WorkInput { Minutes = 90, Material = "Dichtung" }, Ct)));
+        Validate(await With<ITicketWork, Result>(w => w.AddWorkAsync(caretaker, id, new WorkInput { Minutes = 30, Note = "Probe" }, Ct)));
+        var receipt = Validate(await With<MietHahn.Application.Receipts.IReceiptService, Result>(r => r.CreateAsync(
+            new MietHahn.Application.Receipts.ReceiptInput { SupplierName = "Firma Müller", InvoiceDate = new DateOnly(2026, 4, 30), Gross = 119m }, [], null, Ct)));
+        Assert.Empty(await With<ITicketWork, IReadOnlyList<ReceiptTicket>>(w => w.ForReceiptAsync(admin, receipt, Ct)));
+
+        Validate(await With<ITickets, Result>(t => t.LinkReceiptAsync(admin, id, receipt, Ct)));
+
+        var linked = Assert.Single(await With<ITicketWork, IReadOnlyList<ReceiptTicket>>(w => w.ForReceiptAsync(admin, receipt, Ct)));
+        Assert.Equal(("Wasserhahn", 120), (linked.Title, linked.Minutes));
+        Assert.Equal(2, linked.Work.Count);
+        Assert.Empty(await With<ITicketWork, IReadOnlyList<ReceiptTicket>>(w => w.ForReceiptAsync(anna, receipt, Ct)));
+    }
+
+    [Fact]
     public async Task A_tick_can_carry_a_photo_as_proof()
     {
         var routine = Validate(await With<ICareRoutines, Result>(r => r.CreateAsync(admin, new RoutineInput { PropertyId = house, Title = "Hof kehren", Interval = CareInterval.Weekly }, Ct)));

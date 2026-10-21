@@ -20,13 +20,13 @@
                     {
                         <tr>
                             <td>@Format.Date(row.WorkedOn)</td>
-                            <td>@(row.Minutes == 0 ? "–" : $"{row.Minutes / 60} h {row.Minutes % 60:00} min")</td>
+                            <td>@Format.Hours(row.Minutes)</td>
                             <td>@row.Material@(row.Material is not null && row.Note is not null ? " · " : "")@row.Note</td>
                             <td>@row.Author</td>
                         </tr>
                     }
                 </tbody>
-                <tfoot><tr><td>Summe</td><td colspan="3">@($"{View.Work.Sum(w => w.Minutes) / 60} h {View.Work.Sum(w => w.Minutes) % 60:00} min")</td></tr></tfoot>
+                <tfoot><tr><td>Summe</td><td colspan="3">@Format.Hours(View.Work.Sum(w => w.Minutes))</td></tr></tfoot>
             </table>
         </div>
     }
