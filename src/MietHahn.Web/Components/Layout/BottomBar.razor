@@ -1,0 +1,32 @@
+@using MietHahn.Application.Accounts
+@inject NavigationManager Navigation
+
+@* Bottom navigation on smartphones: the most used areas and the full menu as a sheet. Hidden on wide screens. *@
+<nav class="bottom-bar" aria-label="Schnellzugriff">
+    <AuthorizeView>
+        <a href="/verwaltung" class="@Active(AdminNavModel.Start)"><Icon Path="@AppIcons.Todo" /><span>Aufgaben</span></a>
+    </AuthorizeView>
+    <AuthorizeView Policy="@Policies.MasterData">
+        <a href="/verwaltung/objekte" class="@Active(Area("Objekte"))"><Icon Path="@AppIcons.Property" /><span>Objekte</span></a>
+        <a href="/verwaltung/vertraege" class="@Active(Area("Verträge"))"><Icon Path="@AppIcons.Lease" /><span>Verträge</span></a>
+    </AuthorizeView>
+    <AuthorizeView Policy="@Policies.Finance">
+        <a href="/verwaltung/finanzen/offene-posten" class="@Active(Area("Forderungen"))"><Icon Path="@AppIcons.OpenItems" /><span>Forderungen</span></a>
+    </AuthorizeView>
+    <details class="mobile-navigation">
+        <summary aria-label="Menü öffnen"><Icon Path="@AppIcons.Menu" /><span>Menü</span></summary>
+        <div class="sheet">
+            <QuickSearch @rendermode="InteractiveServer" Compact="true" />
+            <AdminNavigation />
+            <UserMenu Inline="true" />
+        </div>
+    </details>
+</nav>
+
+@code {
+    private string Path => new Uri(Navigation.Uri).AbsolutePath;
+
+    private static NavArea Area(string label) => AdminNavModel.Areas.First(a => a.Label == label);
+
+    private string? Active(NavArea area) => AdminNavModel.AreaOf(Path) == area ? "active" : null;
+}

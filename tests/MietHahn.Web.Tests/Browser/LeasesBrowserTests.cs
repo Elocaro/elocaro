@@ -93,6 +93,7 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
 
             // Guarantor: add, remove after confirmation; the only tenant cannot be removed.
             await Assertions.Expect(page.Locator("button[aria-label$='entfernen']")).ToHaveCountAsync(0);
+            await OpenTabAsync(page, "Parteien & Haushalt");
             await page.Locator("summary", new() { HasText = "Mieter oder Bürgen hinzufügen" }).ClickAsync();
             await SelectAsync(page, "Person", "Ben Weber");
             await SelectAsync(page, "Rolle", "Bürge");
@@ -103,6 +104,7 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await Assertions.Expect(page.Locator("button[aria-label='Ben Weber entfernen']")).ToHaveCountAsync(0);
 
             // Termination by the tenant, then revoked.
+            await OpenTabAsync(page, "Kündigung");
             var incoming = new DateOnly(Today.Year, Today.Month, 1).AddMonths(1).AddDays(14);
             await page.GetByLabel("Eingegangen am").FillAsync(German(incoming));
             await page.GetByRole(AriaRole.Button, new() { Name = "Kündigung erfassen" }).ClickAsync();

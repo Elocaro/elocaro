@@ -29,6 +29,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
+            await OpenTabAsync(page, "Anschrift & Bank");
             await page.GetByRole(AriaRole.Button, new() { Name = "IBAN hinzufügen" }).ClickAsync();
             var dialog = page.Locator(".mud-dialog");
 
@@ -66,6 +67,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
+            await OpenTabAsync(page, "Anschrift & Bank");
             await page.GetByRole(AriaRole.Button, new() { Name = "Neue Anschrift" }).ClickAsync();
             var dialog = page.Locator(".mud-dialog");
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Anschrift speichern" }).ClickAsync();
@@ -92,6 +94,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
+            await OpenTabAsync(page, "Zugang");
             await page.GetByRole(AriaRole.Button, new() { Name = "Zugang einrichten und einladen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Zugang wurde eingerichtet.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("rohr@example.de (Handwerker)");
@@ -112,6 +115,7 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
+            await OpenTabAsync(page, "Datenschutz");
             await page.GetByRole(AriaRole.Button, new() { Name = "Person löschen" }).ClickAsync();
             await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, löschen" }).ClickAsync();
 

@@ -157,7 +157,7 @@ public class OperatingCostPagesTests(PostgresFixture postgres) : AccountTestBase
         var preview = await admin.GetAsync($"/verwaltung/objekte/{house}/nebenkosten?jahr=2025");
         Assert.Contains("nicht vereinbart", preview.Document.QuerySelector($"#tenant-{leaseAnna}")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("Im Vertrag nicht vereinbart", preview.Document.QuerySelector("#landlord")!.TextContent, StringComparison.Ordinal);
-        Assert.Contains("Vereinbarte Kostenarten", (await admin.GetAsync($"/verwaltung/vertraege/{leaseAnna}")).Text, StringComparison.Ordinal);
+        Assert.Contains("Vereinbarte Kostenarten", page.Text, StringComparison.Ordinal);
     }
 
     [Fact]

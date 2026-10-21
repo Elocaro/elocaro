@@ -26,6 +26,7 @@ else
 
 <ErrorList Errors="errors" />
 
+<div class="summary-card">
 <dl class="details">
     <dt>Eingebaut</dt><dd>@Format.Date(meter.Meter.InstalledOn)@(meter.Meter.RemovedOn is { } removal ? $", ausgebaut am {Format.Date(removal)}" : "")</dd>
     @if (meter.Meter.CalibrationDueDate is { } deadline)
@@ -52,7 +53,10 @@ else
         </dd>
     }
 </dl>
+</div>
 
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Stände">
 @if (meter.Meter.RemovedOn is null)
 {
     <section>
@@ -85,6 +89,44 @@ else
     </section>
 }
 
+<section>
+    <h2>Stände</h2>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Datum</th><th class="number">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var entry in meter.Readings)
+                    {
+                        <tr>
+                            <td>@Format.Date(entry.Date)</td>
+                            <td class="number">@Format.Quantity(entry.Value)</td>
+                            <td>
+                                @Labels.From(entry.Kind)
+                                @if (entry.PhotoFileId is { } photo)
+                                {
+                                    <a href="/dateien/@photo" target="_blank" rel="noopener">Foto</a>
+                                }
+                                @if (entry.Note is not null)
+                                {
+                                    <span class="small">@entry.Note</span>
+                                }
+                            </td>
+                            <td class="small">@entry.ReadBy</td>
+                            <td>
+                                @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
+                                {
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} entfernen")">Entfernen</MudButton>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+</section>
+
+    </MudTabPanel>
+    <MudTabPanel Text="Verbrauch">
 <section>
     <h2>Verbrauch</h2>
     <div class="table-wrapper">
@@ -129,42 +171,8 @@ else
     </section>
 }
 
-<section>
-    <h2>Stände</h2>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Datum</th><th class="number">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var entry in meter.Readings)
-                    {
-                        <tr>
-                            <td>@Format.Date(entry.Date)</td>
-                            <td class="number">@Format.Quantity(entry.Value)</td>
-                            <td>
-                                @Labels.From(entry.Kind)
-                                @if (entry.PhotoFileId is { } photo)
-                                {
-                                    <a href="/dateien/@photo" target="_blank" rel="noopener">Foto</a>
-                                }
-                                @if (entry.Note is not null)
-                                {
-                                    <span class="small">@entry.Note</span>
-                                }
-                            </td>
-                            <td class="small">@entry.ReadBy</td>
-                            <td>
-                                @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
-                                {
-                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} entfernen")">Entfernen</MudButton>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-</section>
-
+    </MudTabPanel>
+    <MudTabPanel Text="Austausch & Ausbau">
 @if (meter.Meter.RemovedOn is null)
 {
     <section>
@@ -195,7 +203,11 @@ else
     </section>
 }
 
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="Zaehler" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 

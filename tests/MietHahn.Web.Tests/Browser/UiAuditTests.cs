@@ -90,7 +90,7 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
                 await page.GotoAsync(BaseUrl + path);
                 await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
                 problems.AddRange((await page.EvaluateAsync<string[]>(ContrastScript)).Select(f => $"[{scheme}] {path}: {f}"));
-                var width = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+                var width = await page.EvaluateAsync<int[]>("() => { const c = document.getElementById('content'); return [Math.max(document.documentElement.scrollWidth, c ? c.scrollWidth : 0), window.innerWidth]; }");
                 if (width[0] > width[1])
                 {
                     problems.Add($"[{scheme}] {path}: {width[0]}px breit bei {width[1]}px");
@@ -129,7 +129,7 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
                 continue;
             }
 
-            var width = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+            var width = await page.EvaluateAsync<int[]>("() => { const c = document.getElementById('content'); return [Math.max(document.documentElement.scrollWidth, c ? c.scrollWidth : 0), window.innerWidth]; }");
             if (width[0] > width[1])
             {
                 var culprits = await page.EvaluateAsync<string[]>("() => [...document.body.querySelectorAll('*')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 1 && !e.closest('.table-wrapper,.mud-table-container')).slice(0, 4).map(e => e.tagName.toLowerCase() + (typeof e.className === 'string' && e.className ? '.' + e.className.split(' ').join('.') : '') + ' ' + Math.round(e.getBoundingClientRect().right))");
@@ -210,7 +210,7 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
                 }
 
                 problems.AddRange((await page.EvaluateAsync<string[]>(ContrastScript)).Select(f => $"[{scheme}] {path}: {f}"));
-                var width = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+                var width = await page.EvaluateAsync<int[]>("() => { const c = document.getElementById('content'); return [Math.max(document.documentElement.scrollWidth, c ? c.scrollWidth : 0), window.innerWidth]; }");
                 if (width[0] > width[1])
                 {
                     problems.Add($"[{scheme}] {path}: {width[0]}px breit bei {width[1]}px");
@@ -267,7 +267,7 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
             foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
             {
                 await page.EmulateMediaAsync(new() { ColorScheme = scheme });
-                foreach (var path in Pages.Append($"/verwaltung/objekte/{property}"))
+                foreach (var path in Pages.Append($"/verwaltung/objekte/{property}").Append($"/verwaltung/objekte/{property}/zaehler"))
                 {
                     await page.GotoAsync(BaseUrl + path);
                     await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
@@ -285,9 +285,12 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
                     await page.ClickAsync(".mobile-navigation > summary");
                 }
 
-                await page.ClickAsync(".user-menu > summary");
-                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-menue-benutzer.png") });
-                await page.ClickAsync(".user-menu > summary");
+                if (!mobile)
+                {
+                    await page.ClickAsync(".user-menu > summary");
+                    await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-menue-benutzer.png") });
+                    await page.ClickAsync(".user-menu > summary");
+                }
 
                 // Interactive dialog.
                 await page.GotoAsync(BaseUrl + "/verwaltung/personen");
@@ -296,6 +299,20 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
                 await page.Locator(".mud-dialog").WaitForAsync();
                 await page.WaitForTimeoutAsync(600); // let the open animation finish
                 await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-dialog-person.png") });
+                await page.Keyboard.PressAsync("Escape");
+
+                // Quick search (on smartphones via the menu sheet).
+                await page.GotoAsync(BaseUrl + "/verwaltung/personen");
+                await page.Locator("[data-interactive=true]").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+                if (mobile)
+                {
+                    await page.ClickAsync(".mobile-navigation > summary");
+                }
+
+                await page.Locator(".quick-search-trigger:visible").First.ClickAsync();
+                await page.GetByLabel("Suchbegriff").PressSequentiallyAsync("Sch");
+                await page.WaitForTimeoutAsync(800);
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-schnellsuche.png") });
             }
         }
     }

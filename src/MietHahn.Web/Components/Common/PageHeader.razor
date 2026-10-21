@@ -1,10 +1,10 @@
 @* Heading with page title and optional actions (buttons/links on the right, or below on smartphones). *@
 <PageTitle>@Title – MietHahn</PageTitle>
 <div class="page-header">
-    <div>
+    <div class="page-header-title">
         @if (Back is not null)
         {
-            <a class="back" href="@Back"><Icon Path="@AppIcons.Back" />@(BackText ?? "Zurück")</a>
+            <a class="back" href="@Back"><Icon Path="@AppIcons.Back" /><span class="back-text">@(BackText ?? "Zurück")</span></a>
         }
         <h1>@Title</h1>
         @if (Subtitle is not null)

@@ -16,8 +16,8 @@
         {
             <OptionSelect Value="propertyId" ValueChanged="OnPropertyChanged" Label="Objekt" Options="selection.Properties.Select(o => (o.Id, o.Name)).ToList()" />
         }
-        <CostTypeSelect Value="costType" ValueChanged="OnCostTypeChanged" Label="Kostenart" EmptyText="Alle" />
-        <AppTextField Value="search" Label="Suche" Type="search" Placeholder="Lieferant, Rechnungsnr." Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
+        <CostTypeSelect Value="@costType" ValueChanged="OnCostTypeChanged" Label="Kostenart" EmptyText="Alle" />
+        <AppTextField Value="@search" Label="Suche" Type="search" Placeholder="Lieferant, Rechnungsnr." Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
         <AppCheckBox Value="unpaid" ValueChanged="OnUnpaidChanged" Label="ohne Zahlung" />
         <AppCheckBox Value="split" ValueChanged="OnSplitChanged" Label="nicht aufgeteilt" />
     </div>

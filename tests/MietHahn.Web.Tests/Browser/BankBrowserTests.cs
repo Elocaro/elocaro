@@ -88,15 +88,16 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await Assertions.Expect(page.Locator("tbody")).ToContainTextAsync("Stadtwerke Musterstadt");
 
             // Ignore one transaction with a note.
-            await page.GetByLabel("Notiz beim Ignorieren").FillAsync("über Belege");
             await page.Locator("button[aria-label*='05.02.2026'][aria-label$='ignorieren']").ClickAsync();
+            await page.Locator(".mud-dialog").GetByLabel("Notiz").FillAsync("über Belege");
+            await page.Locator(".mud-dialog").GetByRole(AriaRole.Button, new() { Name = "Ignorieren" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Umsatz wird ignoriert.");
             await Assertions.Expect(page.Locator("tbody")).ToContainTextAsync("Notiz: über Belege");
             await SelectAsync(page, "Status", "offen");
             await Assertions.Expect(page.Locator("tbody tr")).ToHaveCountAsync(3);
 
             // The same file again: nothing new, the import is blocked, discarding works.
-            await page.GetByRole(AriaRole.Link, new() { Name = "Bankkonten" }).First.ClickAsync();
+            await page.Locator(".tab-bar").GetByRole(AriaRole.Link, new() { Name = "Konten" }).ClickAsync();
             await page.GetByRole(AriaRole.Link, new() { Name = "Mietkonto" }).First.ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/bank/konten/*");
             await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Mietkonto");

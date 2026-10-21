@@ -25,7 +25,7 @@ else
     <Actions>
         @if (person.AnonymizedAt is null)
         {
-            <a class="button" href="/verwaltung/personen/@Id/bearbeiten">Bearbeiten</a>
+            <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
         }
         <a class="button" href="/verwaltung/personen/@Id/auskunft" download>DSGVO-Auskunft</a>
     </Actions>
@@ -38,6 +38,7 @@ else
     <Notice Level="NoticeLevel.Info">Die personenbezogenen Daten wurden am @Format.Timestamp(anonymized) entfernt (DSGVO).</Notice>
 }
 
+<div class="summary-card">
 <dl class="details">
     @if (person.Data.Email is not null)
     {
@@ -60,7 +61,14 @@ else
         <dt>Notizen</dt><dd>@person.Data.Notes</dd>
     }
 </dl>
+</div>
 
+<MudTabs @ref="tabs" Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Verträge & Vorgänge">
+@if (person.References.Count == 0)
+{
+    <EmptyState Compact="true" Text="Keine Verträge oder Vorgänge." />
+}
 @if (person.References.Count > 0)
 {
     <section>
@@ -88,9 +96,17 @@ else
     </section>
 }
 
-@if (person.AnonymizedAt is null)
-{
-    <section>
+    </MudTabPanel>
+    <MudTabPanel Text="Angaben" ID="@("angaben")" Visible="@(person.AnonymizedAt is null)">
+        <ErrorList Errors="editErrors" />
+        <EditForm Model="data" OnValidSubmit="SaveDataAsync" novalidate>
+            <DataAnnotationsValidator />
+            <PersonEditor Data="data" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    </MudTabPanel>
+    <MudTabPanel Text="Anschrift & Bank" Visible="@(person.AnonymizedAt is null)">
+<section>
         <h2>Anschrift</h2>
         @if (person.Address is null)
         {
@@ -138,7 +154,9 @@ else
         <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddBankDetailsAsync" Class="mt-3">IBAN hinzufügen</MudButton>
     </section>
 
-    <section>
+        </MudTabPanel>
+    <MudTabPanel Text="Zugang" Visible="@(person.AnonymizedAt is null)">
+<section>
         <h2>Zugang</h2>
         @if (person.Access is { } access)
         {
@@ -161,7 +179,13 @@ else
         }
     </section>
 
-    <section>
+        </MudTabPanel>
+    <MudTabPanel Text="Dokumente">
+<DocumentsSection PersonId="Id" />
+
+    </MudTabPanel>
+    <MudTabPanel Text="Datenschutz" Visible="@(person.AnonymizedAt is null)">
+<section>
         <h2>Löschen &amp; Datenschutz</h2>
         @if (person.References.Count == 0)
         {
@@ -177,16 +201,19 @@ else
             <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="AnonymizeAsync">Jetzt anonymisieren</MudButton>
         }
     </section>
-}
-
-<DocumentsSection PersonId="Id" />
-
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="@nameof(Person)" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 
 @code {
     private PersonDetails? person;
+    private PersonInput data = new();
+    private IReadOnlyList<string>? editErrors;
+    private MudTabs? tabs;
     private IReadOnlyList<string>? errors;
     private bool loaded;
 
@@ -212,6 +239,7 @@ else
     private async Task LoadAsync()
     {
         person = await Admin.GetAsync(Id);
+        data = person?.Data ?? new();
         loaded = true;
     }
 
@@ -279,5 +307,24 @@ else
         }
 
         await LoadAsync();
+    }
+
+    private async Task SaveDataAsync()
+    {
+        var result = await Admin.UpdateAsync(Id, data);
+        editErrors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Angaben wurden gespeichert.");
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditAsync()
+    {
+        if (tabs is not null)
+        {
+            await tabs.ActivatePanelAsync("angaben");
+        }
     }
 }

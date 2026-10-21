@@ -107,12 +107,12 @@ public class InteractiveBrowserTests(PostgresFixture postgres) : BrowserTestBasi
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.GotoAsync(BaseUrl + $"/verwaltung/personen/{id}/bearbeiten");
+            await page.GotoAsync(BaseUrl + $"/verwaltung/personen/{id}");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
+            await page.GetByRole(AriaRole.Button, new() { Name = "Bearbeiten" }).ClickAsync();
             await page.GetByLabel("E-Mail").FillAsync("anna@example.de");
             await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
 
-            await page.WaitForURLAsync("**/verwaltung/personen/" + id + "?meldung=gespeichert");
             await ExpectSnackbarAsync(page, "Die Angaben wurden gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("anna@example.de");
         });

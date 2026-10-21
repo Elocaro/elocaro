@@ -19,11 +19,7 @@ else if (overview is null)
 else
 {
 
-<PageHeader Title="Umlageschlüssel" Subtitle="@overview.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName">
-    <Actions>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/nebenkosten")">Nebenkosten-Vorschau</MudButton>
-    </Actions>
-</PageHeader>
+<PageHeader Title="Umlageschlüssel" Subtitle="@overview.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName" />
 
 <ErrorList Errors="errors" />
 

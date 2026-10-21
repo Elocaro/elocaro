@@ -21,10 +21,39 @@ else if (receipt is null)
 else
 {
 
-<PageHeader Title="@($"{receipt.Supplier} {Format.Money(receipt.Data.Gross)}")" Subtitle="@($"Rechnung {receipt.Data.InvoiceNumber} vom {Format.Date(receipt.Data.InvoiceDate)}")" Back="/verwaltung/belege" BackText="Alle Belege" />
+<PageHeader Title="@($"{receipt.Supplier} {Format.Money(receipt.Data.Gross)}")" Subtitle="@($"Rechnung {receipt.Data.InvoiceNumber} vom {Format.Date(receipt.Data.InvoiceDate)}")" Back="/verwaltung/belege" BackText="Alle Belege">
+    <Actions>
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+            <MudMenuItem OnClick="DeleteAsync">Beleg löschen</MudMenuItem>
+        </MudMenu>
+    </Actions>
+</PageHeader>
 
 <ErrorList Errors="errors" />
 
+<div class="split">
+    <div class="split-main">
+        <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+            <MudTabPanel Text="Angaben">
+@if (selection is not null)
+{
+    <section>
+        <h2>Angaben</h2>
+        @if (Extraction.Info.Ready && receipt.Files.Count > 0)
+        {
+            <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExtractAsync">Vorschlag aus Beleg auslesen</MudButton>
+            <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
+        }
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <ReceiptEditor Data="data" Options="selection" Uncertain="uncertain" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    </section>
+}
+            </MudTabPanel>
+            <MudTabPanel Text="@($"Kostenaufteilung{(receipt.Open != 0 ? " (offen)" : "")}")">
 <section>
     <h2>Kostenaufteilung</h2>
     @if (receipt.Open != 0)
@@ -63,7 +92,13 @@ else
         </EditForm>
     }
 </section>
-
+            </MudTabPanel>
+            <MudTabPanel Text="Verlauf">
+<ChangeHistory EntityType="@nameof(Receipt)" EntityId="Id" />
+            </MudTabPanel>
+        </MudTabs>
+    </div>
+    <aside class="split-side" aria-label="Belegdateien">
 <section>
     <h2>Dateien</h2>
     @if (receipt.Files.Count == 0)
@@ -96,31 +131,8 @@ else
         <AppFileUpload Multiple="true" Text="Seiten hinzufügen" Accept="application/pdf,image/*" OnSelectedMany="UploadAsync" />
     </div>
 </section>
-
-@if (selection is not null)
-{
-    <section>
-        <h2>Angaben</h2>
-        @if (Extraction.Info.Ready && receipt.Files.Count > 0)
-        {
-            <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExtractAsync">Vorschlag aus Beleg auslesen</MudButton>
-            <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
-        }
-        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
-            <DataAnnotationsValidator />
-            <ReceiptEditor Data="data" Options="selection" Uncertain="uncertain" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-        </EditForm>
-    </section>
-}
-
-<section>
-    <h2>Löschen</h2>
-    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Beleg löschen</MudButton>
-</section>
-
-<ChangeHistory EntityType="@nameof(Receipt)" EntityId="Id" />
+    </aside>
+</div>
 }
 </InteractiveShell>
 

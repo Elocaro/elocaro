@@ -17,25 +17,11 @@ else if (lease is null)
 }
 else
 {
-<PageHeader Title="@($"Mietvertrag {lease.RentalUnit}")" Subtitle="@($"{lease.Property} · {TenantText}")" Back="/verwaltung/vertraege" BackText="Alle Verträge">
-    <Actions>
-        <AuthorizeView Policy="@Policies.Finance">
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/konto")">Mieterkonto</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/kostenarten")">Vereinbarte Kostenarten</MudButton>
-        </AuthorizeView>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/vertragsdokument")">Vertragsdokument</MudButton>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/mieterhoehung")">Mieterhöhung</MudButton>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/uebergabe/einzug")">Übergabe Einzug</MudButton>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/uebergabe/auszug")">Übergabe Auszug</MudButton>
-        @if (lease.Status != LeaseStatus.Ended)
-        {
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/vertraege/{Id}/auszug")">Mieterwechsel</MudButton>
-        }
-    </Actions>
-</PageHeader>
+<PageHeader Title="@($"Mietvertrag {lease.RentalUnit}")" Subtitle="@($"{lease.Property} · {TenantText}")" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
 
 <ErrorList Errors="errors" />
 
+<div class="summary-card">
 <dl class="details">
     <dt>Status</dt><dd><StatusChip Level="Labels.Level(lease.Status)">@Labels.From(lease.Status)</StatusChip></dd>
     <dt>Laufzeit</dt>
@@ -59,7 +45,10 @@ else
         <dt>Kaution</dt><dd>@Format.Money(lease.Data.Deposit) @lease.Data.DepositNote</dd>
     }
 </dl>
+</div>
 
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Miete">
 <section>
     <h2>Miete <span class="small">am @Format.Date(lease.ReferenceDate)</span></h2>
     <div class="table-wrapper">
@@ -128,6 +117,8 @@ else
 
 <RentModelSection LeaseId="Id" Model="lease.RentModel" OnChanged="LoadAsync" />
 
+    </MudTabPanel>
+    <MudTabPanel Text="Parteien & Haushalt">
 <section>
     <h2>Vertragsparteien</h2>
     <ul class="todos">
@@ -183,6 +174,8 @@ else
     }
 </section>
 
+    </MudTabPanel>
+    <MudTabPanel Text="Kündigung">
 <section>
     <h2>Kündigung</h2>
     @if (lease.TerminationReceivedOn is not null)
@@ -203,6 +196,8 @@ else
     }
 </section>
 
+    </MudTabPanel>
+    <MudTabPanel Text="Angaben">
 <section>
     <h2>Angaben</h2>
     <EditForm Model="data" OnValidSubmit="SaveDataAsync" novalidate>
@@ -221,9 +216,15 @@ else
     </EditForm>
 </section>
 
+    </MudTabPanel>
+    <MudTabPanel Text="Dokumente">
 <DocumentsSection LeaseId="Id" />
 
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="@nameof(Lease)" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 

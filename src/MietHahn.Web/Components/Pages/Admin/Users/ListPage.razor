@@ -1,29 +1,16 @@
 @page "/verwaltung/benutzer"
 @rendermode InteractiveServer
 @using MudBlazor
-@using System.ComponentModel.DataAnnotations
 @inject IUserManagementService Admin
-@inject IAccountService Accounts
-@inject Notifier Notify
+@inject IDialogService Dialogs
 
 <InteractiveShell>
-    <PageHeader Title="Benutzer" Subtitle="Wer Zugang zu MietHahn hat – Verwaltung, Hausmeister, Handwerker und Mieter." />
+    <PageHeader Title="Benutzer" Subtitle="Wer Zugang zu MietHahn hat – Verwaltung, Hausmeister, Handwerker und Mieter.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="InviteAsync">Person einladen</MudButton>
+        </Actions>
+    </PageHeader>
 
-    <ErrorList Errors="errors" />
-
-    <section>
-        <h2>Person einladen</h2>
-        <EditForm Model="invitation" OnValidSubmit="InviteAsync" novalidate class="form-grid">
-            <DataAnnotationsValidator />
-            <AppTextField @bind-Value="invitation.DisplayName" Label="Name" Required="true" />
-            <AppTextField @bind-Value="invitation.Email" Label="E-Mail-Adresse" Type="email" Required="true" />
-            <AppSelect @bind-Value="invitation.Role" Label="Rolle" Items="Roles.All" Text="@(r => Roles.DisplayName(r!))" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Einladung senden</MudButton>
-        </EditForm>
-    </section>
-
-    <section>
-        <h2>Konten</h2>
         <MudTable T="UserOverview" Items="users" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="UserOverview" SortBy="@(u => u.DisplayName)" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel></MudTh>
@@ -60,39 +47,19 @@
                 <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
             </PagerContent>
         </MudTable>
-    </section>
 </InteractiveShell>
 
 @code {
     private IReadOnlyList<UserOverview> users = [];
-    private IReadOnlyList<string>? errors;
-    private InvitationInput invitation = new();
 
     protected override async Task OnInitializedAsync() => users = await Admin.ListAsync();
 
     private async Task InviteAsync()
     {
-        var result = await Accounts.InviteAsync(invitation.Email.Trim(), invitation.DisplayName.Trim(), invitation.Role);
-        errors = result.Succeeded ? null : result.Errors;
-        if (result.Succeeded)
+        var dialog = await Dialogs.ShowAsync<InviteDialog>("Person einladen", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
         {
-            Notify.Success($"Die Einladung an {invitation.Email} wurde verschickt.");
-            invitation = new();
             users = await Admin.ListAsync();
         }
-    }
-
-    private sealed class InvitationInput
-    {
-        [Required(ErrorMessage = "Bitte einen Namen angeben.")]
-        [StringLength(200)]
-        public string DisplayName { get; set; } = "";
-
-        [Required(ErrorMessage = "Bitte eine E-Mail-Adresse angeben.")]
-        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
-        public string Email { get; set; } = "";
-
-        [Required]
-        public string Role { get; set; } = Roles.Tenant;
     }
 }

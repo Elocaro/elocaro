@@ -17,12 +17,7 @@ else if (view is null)
 else
 {
 
-<PageHeader Title="Heizkosten (HeizkostenV)" Subtitle="@view.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@view.PropertyName">
-    <Actions>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/nebenkosten")">Nebenkosten-Vorschau</MudButton>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/zaehler")">Zähler</MudButton>
-    </Actions>
-</PageHeader>
+<PageHeader Title="Heizkosten (HeizkostenV)" Subtitle="@view.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@view.PropertyName" />
 
 <ErrorList Errors="errors" />
 

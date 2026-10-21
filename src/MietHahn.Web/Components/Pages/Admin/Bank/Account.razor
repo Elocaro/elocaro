@@ -27,6 +27,8 @@ else
 
 <ErrorList Errors="errors" />
 
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Import">
 <section>
     <h2>Kontoauszug importieren</h2>
     <div class="form-grid">
@@ -40,7 +42,8 @@ else
 </section>
 
 <FinTsFetch BankAccountId="Id" Enabled="@(account.FinTsUrl is not null && account.FinTsBankCode is not null && account.FinTsUserId is not null)" />
-
+    </MudTabPanel>
+    <MudTabPanel Text="Importprotokoll">
 <section>
     <h2>Importprotokoll</h2>
     @if (imports is { Count: 0 })
@@ -80,6 +83,8 @@ else
     }
 </section>
 
+    </MudTabPanel>
+    <MudTabPanel Text="Angaben">
 <section>
     <h2>Angaben</h2>
     <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
@@ -88,6 +93,8 @@ else
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
     </EditForm>
 </section>
+    </MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 

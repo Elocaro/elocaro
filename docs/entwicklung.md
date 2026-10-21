@@ -123,7 +123,7 @@ Domänenregeln werfen `RuleViolationException` mit einer für Benutzer formulier
 
 Statisches SSR mit Blazor (ADR 0001) und eigenem Design-System (ADR 0003, `wwwroot/app.css`, hell/dunkel). **Regeln, Tokens und Seitentypen stehen verbindlich in [ui.md](ui.md)**; dieser Abschnitt behandelt die Blazor-Technik.
 
-**Layouts** (per `_Imports.razor` im Bereichsordner): `AdminLayout` (Seitenleiste ab 900 px, darunter Menü als `<details>` ohne JavaScript), `ServiceLayout`, `PortalLayout`, `AccountLayout` (Anmeldeseiten) und `MainLayout` (Fehlerseiten). Neue Navigationspunkte der Verwaltung kommen in `AdminNavigation.razor`, bei Bedarf in `<AuthorizeView Policy="…">`.
+**Layouts** (per `_Imports.razor` im Bereichsordner): `AdminLayout` (feststehendes Gerüst: Seitenleiste ab 900 px, darunter untere Leiste mit Menü-Blatt; siehe [ui.md](ui.md#app-gerüst)), `ServiceLayout`, `PortalLayout`, `AccountLayout` (Anmeldeseiten) und `MainLayout` (Fehlerseiten). Neue Navigationspunkte der Verwaltung kommen in `Layout/AdminNavModel.cs` (Bereich, Tab oder Tab im Objekt-/Vertrags-Arbeitsbereich) mit der passenden Berechtigung.
 
 **Bausteine** (`Components/Common`):
 

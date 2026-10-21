@@ -1,7 +1,9 @@
 @page "/verwaltung/objekte/{Id:guid}"
 @rendermode InteractiveServer
 @using MudBlazor
+@using MietHahn.Application.Files
 @inject IPropertyService Admin
+@inject IFileStore Storage
 @inject IDialogService Dialogs
 @inject NavigationManager Navigation
 @inject Notifier Notify
@@ -21,17 +23,13 @@ else
 
 <PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/verwaltung/objekte" BackText="Alle Objekte">
     <Actions>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/zaehler")">Zähler</MudButton>
-        <AuthorizeView Policy="@Policies.Finance">
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/umlageschluessel")">Umlageschlüssel</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/heizung")">Heizkosten</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/afa")">AfA</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/erhaltungsaufwand")">Erhaltungsaufwand</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/anlage-v")">Anlage V</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/nebenkosten")">Nebenkosten-Vorschau</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/abrechnung")">Abrechnungs-Assistent</MudButton>
-        </AuthorizeView>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/bearbeiten")">Bearbeiten</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
+        @if (property.Units.Count == 0)
+        {
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+                <MudMenuItem OnClick="DeleteAsync">Objekt löschen</MudMenuItem>
+            </MudMenu>
+        }
     </Actions>
 </PageHeader>
 
@@ -72,8 +70,9 @@ else
     </dl>
 </div>
 
+<MudTabs @ref="tabs" Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="@($"Einheiten ({property.Units.Count})")">
 <section>
-    <h2>Einheiten &amp; Belegung</h2>
     @if (property.Units.Count == 0)
     {
         <EmptyState Text="Noch keine Einheiten. Füge unten die erste Wohnung hinzu." />
@@ -125,24 +124,48 @@ else
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddUnitAsync">Einheit hinzufügen</MudButton>
 </section>
 
+    </MudTabPanel>
+    <MudTabPanel Text="Flächen">
 <AreaSection Save="input => Admin.SetAreaAsync(Id, input)" OnSaved="LoadAsync" Current="property.Area" History="property.AreaHistory"
                  AreaText="Gesamtfläche" AdditionalText="Gemeinschaftsfläche" AdditionalHint="Treppenhaus, Keller, Waschküche …" />
 
-@if (property.Units.Count == 0)
-{
-    <section>
-        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Objekt löschen</MudButton>
-    </section>
-}
+    </MudTabPanel>
+    <MudTabPanel Text="Angaben" ID="@("angaben")">
+        <ErrorList Errors="editErrors" />
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <PropertyEditor Data="data" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
 
+        <section>
+            <h2>Foto</h2>
+            <div class="form-row">
+                <AppFileUpload Text="@(property.ImageFileId is null ? "Foto hochladen" : "Foto ersetzen")" Accept="image/jpeg,image/png,image/webp,image/heic" Capture="environment" OnSelected="UploadImageAsync" />
+                @if (property.ImageFileId is not null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="RemoveImageAsync">Foto entfernen</MudButton>
+                }
+            </div>
+            <p class="small">Fotos werden verkleinert, gedreht und ohne Metadaten (GPS) gespeichert.</p>
+        </section>
+    </MudTabPanel>
+    <MudTabPanel Text="Dokumente">
 <DocumentsSection PropertyId="Id" />
 
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="@nameof(Property)" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 
 @code {
     private PropertyDetails? property;
+    private PropertyInput data = new();
+    private IReadOnlyList<string>? editErrors;
+    private MudTabs? tabs;
     private IReadOnlyList<string>? errors;
     private bool loaded;
 
@@ -154,6 +177,7 @@ else
     private async Task LoadAsync()
     {
         property = await Admin.GetAsync(Id);
+        data = property?.Data ?? new();
         loaded = true;
     }
 
@@ -181,6 +205,58 @@ else
         else
         {
             errors = result.Errors;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.UpdateAsync(Id, data);
+        editErrors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Angaben wurden gespeichert.");
+            await LoadAsync();
+        }
+    }
+
+    private async Task UploadImageAsync(FileSelection selection)
+    {
+        try
+        {
+            await using var content = selection.Open();
+            var file = await Storage.SaveAsync(content, selection.Name);
+            await ApplyImageAsync(file.Id, "Das Foto wurde gespeichert.");
+        }
+        catch (FileRejectedException ex)
+        {
+            editErrors = [ex.Message];
+        }
+    }
+
+    private async Task RemoveImageAsync()
+    {
+        if (await Confirm.AskAsync("Foto entfernen", "Soll das Foto des Objekts entfernt werden?", "Ja, Foto entfernen"))
+        {
+            await ApplyImageAsync(null, "Das Foto wurde entfernt.");
+        }
+    }
+
+    private async Task ApplyImageAsync(Guid? fileId, string success)
+    {
+        var result = await Admin.SetImageAsync(Id, fileId);
+        editErrors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditAsync()
+    {
+        if (tabs is not null)
+        {
+            await tabs.ActivatePanelAsync("angaben");
         }
     }
 }

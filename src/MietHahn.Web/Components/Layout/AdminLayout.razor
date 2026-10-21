@@ -1,20 +1,26 @@
 @inherits LayoutComponentBase
-@using MietHahn.Application.Accounts
+@inject NavigationManager Navigation
 
 <SkipLink />
 <div class="app app-admin">
     <header class="top-bar">
-        <details class="mobile-navigation">
-            <summary aria-label="Menü öffnen"><Icon Path="@AppIcons.Menu" /></summary>
-            <AdminNavigation />
-        </details>
         <BrandMark Href="/verwaltung" />
+        <QuickSearch @rendermode="InteractiveServer" />
         <UserMenu />
     </header>
     <nav class="sidebar" aria-label="Hauptnavigation">
         <AdminNavigation />
     </nav>
-    <main id="content" class="content">
-        @Body
-    </main>
+    <div class="@("workspace" + (HasTabs ? " has-tabs" : ""))">
+        <ContextTabs />
+        <main id="content" class="content">
+            @Body
+        </main>
+    </div>
+    <BottomBar />
 </div>
+
+@code {
+    // With a tab bar the "back to the list" link of a page is redundant on wide screens (the tab leads there).
+    private bool HasTabs => AdminNavModel.TabsFor(new Uri(Navigation.Uri).AbsolutePath) is not null;
+}

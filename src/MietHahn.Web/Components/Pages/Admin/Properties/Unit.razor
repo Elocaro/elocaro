@@ -27,6 +27,8 @@ else
     <Notice Level="NoticeLevel.Info">@hint</Notice>
 }
 
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="@(unit.IsSharedFlat ? "Zimmer" : "Belegung")">
 @if (!unit.IsSharedFlat)
 {
     <section>
@@ -35,7 +37,6 @@ else
     </section>
     <LeaseHistory RentalUnitId="Id" />
 }
-
 <section>
     <h2>Zimmer (WG)</h2>
     @if (unit.IsSharedFlat)
@@ -65,9 +66,13 @@ else
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddRoomAsync">Zimmer hinzufügen</MudButton>
 </section>
 
+    </MudTabPanel>
+    <MudTabPanel Text="Flächen">
 <AreaSection Save="input => Admin.SetUnitAreaAsync(Id, input)" OnSaved="LoadAsync" Current="unit.Area" History="unit.AreaHistory"
                  AreaText="Wohnfläche" AdditionalText="Heizfläche" AdditionalHint="Leer lassen, wenn gleich der Wohnfläche." />
 
+    </MudTabPanel>
+    <MudTabPanel Text="Angaben">
 <section>
     <h2>Angaben &amp; Ausstattung</h2>
     <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
@@ -84,9 +89,15 @@ else
     </section>
 }
 
+    </MudTabPanel>
+    <MudTabPanel Text="Dokumente">
 <DocumentsSection UnitId="Id" />
 
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="@nameof(MietHahn.Domain.Properties.Unit)" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 

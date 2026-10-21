@@ -4,6 +4,7 @@
 @inject ILeaseService Admin
 @inject IPersonService People
 @inject NavigationManager Navigation
+@inject IDialogService Dialogs
 
 <InteractiveShell>
 <PageHeader Title="Mietvertrag anlegen" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
@@ -32,7 +33,7 @@
         <PersonSelect @bind-Value="form.Tenant2" Label="Weiterer Mieter" Hint="Gesamtschuldnerisch; weitere später im Vertrag." People="people" />
         <PersonSelect @bind-Value="form.Guarantor" Label="Bürge" People="people" />
     </div>
-    <p class="small"><a href="/verwaltung/personen/neu">Neue Person anlegen</a> (danach diese Seite neu laden)</p>
+    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="AddPersonAsync">Neue Person anlegen</MudButton>
 
     <h2>Miete</h2>
     <div class="form-grid">
@@ -77,6 +78,24 @@
         form = new() { RentalUnitId = RentalUnit, Start = Start };
         rentalUnits = await Admin.RentalUnitsAsync();
         people = await People.OptionsAsync();
+    }
+
+    // New person without leaving the form: the person is added to the choices and taken over as tenant.
+    private async Task AddPersonAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<MietHahn.Web.Components.Pages.Admin.People.PersonDialog>("Person anlegen", new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false, Data: Guid id })
+        {
+            people = await People.OptionsAsync();
+            if (form.Tenant1 is null)
+            {
+                form.Tenant1 = id;
+            }
+            else if (form.Tenant2 is null)
+            {
+                form.Tenant2 = id;
+            }
+        }
     }
 
     private string RentalUnitText(Guid? id) =>

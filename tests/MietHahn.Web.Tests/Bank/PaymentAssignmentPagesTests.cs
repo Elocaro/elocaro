@@ -30,7 +30,7 @@ public class PaymentAssignmentPagesTests(PostgresFixture postgres) : AccountTest
         Assert.Contains("SCHMIDT, ANNA", inbox.Text, StringComparison.Ordinal);
         Assert.Contains("Anna Schmidt", inbox.Text, StringComparison.Ordinal);
         Assert.Contains("Gegen-IBAN gehört zum Mieter", inbox.Text, StringComparison.Ordinal);
-        Assert.Contains("Umsätze zuordnen", (await admin.GetAsync("/verwaltung")).Text, StringComparison.Ordinal);
+        Assert.Contains("/verwaltung/bank/zuordnung", (await admin.GetAsync("/verwaltung")).Document.Body!.InnerHtml, StringComparison.Ordinal);
 
         Assert.True((await App.WithScopeAsync(sp => sp.GetRequiredService<IPaymentAssignment>().AcceptAsync(id, 0, TestContext.Current.CancellationToken))).Succeeded);
         Assert.Contains("Alle Umsätze sind zugeordnet.", (await admin.GetAsync("/verwaltung/bank/zuordnung")).Text, StringComparison.Ordinal);

@@ -1,0 +1,98 @@
+// Behavior of the app frame that CSS cannot do: close menus, reset the scroll position of the content area on
+// navigation, bring the active tab into view. Everything else works without JavaScript.
+(function () {
+    const closeMenus = (except) => {
+        document.querySelectorAll('details.mobile-navigation[open], details.user-menu[open]').forEach((menu) => {
+            if (menu !== except) {
+                menu.removeAttribute('open');
+            }
+        });
+    };
+
+    const revealActiveTab = () => {
+        document.querySelectorAll('.tab-bar a.active').forEach((tab) => {
+            tab.scrollIntoView({ block: 'nearest', inline: 'center' });
+        });
+    };
+
+    document.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        closeMenus(target ? target.closest('details.mobile-navigation, details.user-menu') : null);
+        if (target && target.closest('details.mobile-navigation a')) {
+            closeMenus(null);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeMenus(null);
+        }
+
+        // Ctrl+K / Cmd+K opens the quick search
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+            const trigger = Array.from(document.querySelectorAll('.quick-search-trigger')).find((button) => button.offsetParent !== null);
+            if (trigger) {
+                event.preventDefault();
+                trigger.click();
+            }
+        }
+    });
+
+    const afterNavigation = () => {
+        closeMenus(null);
+        const content = document.getElementById('content');
+        if (content && !location.hash) {
+            content.scrollTop = 0;
+        }
+        revealActiveTab();
+    };
+
+    if (window.Blazor && typeof window.Blazor.addEventListener === 'function') {
+        window.Blazor.addEventListener('enhancednavigationend', afterNavigation);
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.Blazor && typeof window.Blazor.addEventListener === 'function') {
+                window.Blazor.addEventListener('enhancednavigationend', afterNavigation);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', revealActiveTab);
+
+    // Tables become card lists on smartphones: every cell gets the text of its column header as a label
+    // (CSS shows it below 700 px). Tables with merged cells stay tables.
+    const labelTables = () => {
+        document.querySelectorAll('table.data-table').forEach((table) => {
+            if (table.hasAttribute('data-nostack') || table.querySelector('[rowspan], [colspan]')) {
+                return;
+            }
+
+            const heads = Array.from(table.querySelectorAll('thead th')).map((th) => th.textContent.trim());
+            if (heads.length === 0) {
+                return;
+            }
+
+            table.classList.add('stackable');
+            table.querySelectorAll('tbody tr:not([data-labelled])').forEach((row) => {
+                row.dataset.labelled = '1';
+                Array.from(row.children).forEach((cell, index) => {
+                    if (cell.tagName === 'TD' && heads[index]) {
+                        cell.dataset.label = heads[index];
+                    }
+                });
+            });
+        });
+    };
+
+    let scheduled = false;
+    new MutationObserver(() => {
+        if (!scheduled) {
+            scheduled = true;
+            requestAnimationFrame(() => {
+                scheduled = false;
+                labelTables();
+            });
+        }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener('DOMContentLoaded', labelTables);
+})();

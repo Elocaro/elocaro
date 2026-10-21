@@ -111,6 +111,13 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         return Assertions.Expect(page.Locator(".mud-snackbar", new() { HasText = text }).First).ToBeVisibleAsync();
     }
 
+    /// <summary>Switches to a tab of a detail page (section tabs).</summary>
+    protected static Task OpenTabAsync(IPage page, string name)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        return page.GetByRole(AriaRole.Tab, new() { Name = name }).ClickAsync();
+    }
+
     /// <summary>Opens a page and waits until it is interactive (before that, the prerendered page ignores input).</summary>
     protected async Task GotoInteractiveAsync(IPage page, string path)
     {
@@ -152,7 +159,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
     /// <summary>Document width ≤ window width, i.e. no horizontal scrolling.</summary>
     protected static async Task NoHorizontalScrollAsync(IPage page)
     {
-        var dimensions = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+        var dimensions = await page.EvaluateAsync<int[]>("() => { const c = document.getElementById('content'); return [Math.max(document.documentElement.scrollWidth, c ? c.scrollWidth : 0), window.innerWidth]; }");
         Assert.True(dimensions[0] <= dimensions[1], $"{page.Url}: Inhalt ist {dimensions[0]}px breit, Fenster {dimensions[1]}px.");
     }
 }

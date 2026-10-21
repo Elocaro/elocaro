@@ -3,14 +3,11 @@
 @using MudBlazor
 @inject IPaymentAssignment Assignment
 @inject IBankService Bank
+@inject IDialogService Dialogs
 @inject Notifier Notify
 
 <InteractiveShell>
-    <PageHeader Title="Umsätze zuordnen" Subtitle="Unzugeordnete Umsätze mit Vorschlag: bestätigen, ändern oder aufteilen, ignorieren." Back="/verwaltung/bank/umsaetze" BackText="Alle Umsätze">
-        <Actions>
-            <MudButton Variant="Variant.Outlined" Href="/verwaltung/bank/regeln">Regeln</MudButton>
-        </Actions>
-    </PageHeader>
+    <PageHeader Title="Umsätze zuordnen" Subtitle="Unzugeordnete Umsätze mit Vorschlag: bestätigen, ändern oder aufteilen, ignorieren." />
 
     <ErrorList Errors="errors" />
 
@@ -25,56 +22,49 @@
     else if (rows is not null)
     {
         <p class="small">@rows.Count offene Umsätze · @rows.Count(r => r.Suggestion is not null) mit Vorschlag</p>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Buchung</th><th>Gegenseite und Verwendungszweck</th><th class="number">Betrag</th><th>Vorschlag</th><th>Aktion</th></tr></thead>
-                <tbody>
-                    @foreach (var row in rows)
-                    {
-                        var u = row.Transaction;
-                        <tr>
-                            <td>@Format.Date(u.BookingDate)</td>
-                            <td>
-                                @u.CounterpartyName<span class="small"> @u.CounterpartyIban</span>
-                                <br /><span class="small">@u.Purpose</span>
-                            </td>
-                            <td class="number">@Format.Money(u.Amount)</td>
-                            <td>
-                                @if (row.Suggestion is { } s)
-                                {
-                                    <strong>@s.Target</strong>
-                                    <StatusChip Level="@(s.Score >= 70 ? StatusLevel.Success : StatusLevel.Warning)">@s.Score % (@s.Confidence)</StatusChip>
-                                    <br /><span class="small">@string.Join(" · ", s.Reasons)</span>
-                                    @if (s.Parts.Count > 1)
-                                    {
-                                        <br /><span class="small">@s.Parts.Count Teilbeträge</span>
-                                    }
-                                    @if (row.Alternatives > 0)
-                                    {
-                                        <br /><span class="small">+ @row.Alternatives weitere Vorschläge</span>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="small">kein Vorschlag</span>
-                                }
-                            </td>
-                            <td>
-                                <div class="row-actions">
-                                    @if (row.Suggestion is not null)
-                                    {
-                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AcceptAsync(u)" aria-label="@($"Vorschlag für den Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} bestätigen")">Bestätigen</MudButton>
-                                    }
-                                    <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/bank/umsaetze/{u.Id}/zuordnen")" aria-label="@($"Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} ändern oder aufteilen")">Ändern / Aufteilen</MudButton>
-                                    <MudButton Variant="Variant.Outlined" OnClick="() => IgnoreAsync(u)" aria-label="@($"Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} ignorieren")">Ignorieren</MudButton>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        <AppTextField @bind-Value="ignoreNote" Label="Notiz beim Ignorieren (optional)" Placeholder="z. B. privat, Umbuchung" />
+        <ul class="work-list">
+            @foreach (var row in rows)
+            {
+                var u = row.Transaction;
+                <li class="work-card">
+                    <div class="work-card-transaction">
+                        <span class="work-card-amount @(u.Amount < 0 ? "negative" : null)">@Format.Money(u.Amount)</span>
+                        <div>
+                            <strong>@u.CounterpartyName</strong><span class="small"> @u.CounterpartyIban</span>
+                            <div class="small">@Format.Date(u.BookingDate) · @u.Purpose</div>
+                        </div>
+                    </div>
+                    <div class="work-card-suggestion">
+                        @if (row.Suggestion is { } s)
+                        {
+                            <strong>@s.Target</strong>
+                            <StatusChip Level="@(s.Score >= 70 ? StatusLevel.Success : StatusLevel.Warning)">@s.Score % (@s.Confidence)</StatusChip>
+                            <div class="small">@string.Join(" · ", s.Reasons)</div>
+                            @if (s.Parts.Count > 1)
+                            {
+                                <div class="small">@s.Parts.Count Teilbeträge</div>
+                            }
+                            @if (row.Alternatives > 0)
+                            {
+                                <div class="small">+ @row.Alternatives weitere Vorschläge</div>
+                            }
+                        }
+                        else
+                        {
+                            <span class="small">kein Vorschlag</span>
+                        }
+                    </div>
+                    <div class="row-actions">
+                        @if (row.Suggestion is not null)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AcceptAsync(u)" aria-label="@($"Vorschlag für den Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} bestätigen")">Bestätigen</MudButton>
+                        }
+                        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/bank/umsaetze/{u.Id}/zuordnen")" aria-label="@($"Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} ändern oder aufteilen")">Ändern / Aufteilen</MudButton>
+                        <MudButton Variant="Variant.Text" OnClick="() => IgnoreAsync(u)" aria-label="@($"Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} ignorieren")">Ignorieren</MudButton>
+                    </div>
+                </li>
+            }
+        </ul>
     }
 </InteractiveShell>
 
@@ -84,7 +74,6 @@
     private IReadOnlyList<InboxRow>? rows;
     private IReadOnlyList<string>? errors;
     private Guid? accountId;
-    private string? ignoreNote;
 
     // The query string only provides the start value (see ADR 0005).
     [SupplyParameterFromQuery(Name = "konto")]
@@ -110,7 +99,14 @@
 
     private async Task AcceptAsync(TransactionRow transaction) => await ChangeAsync(await Assignment.AcceptAsync(transaction.Id, 0), "Der Vorschlag wurde übernommen.");
 
-    private async Task IgnoreAsync(TransactionRow transaction) => await ChangeAsync(await Bank.IgnoreAsync(transaction.Id, ignoreNote), "Der Umsatz wird ignoriert.");
+    private async Task IgnoreAsync(TransactionRow transaction)
+    {
+        var dialog = await Dialogs.ShowAsync<IgnoreDialog>("Umsatz ignorieren", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false, Data: string note })
+        {
+            await ChangeAsync(await Bank.IgnoreAsync(transaction.Id, note.Length == 0 ? null : note), "Der Umsatz wird ignoriert.");
+        }
+    }
 
     private async Task ChangeAsync(Result result, string success)
     {

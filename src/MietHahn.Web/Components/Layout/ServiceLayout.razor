@@ -6,13 +6,15 @@
         <BrandMark Href="/service" Section="Service" />
         <UserMenu />
     </header>
-    <nav class="section-navigation" aria-label="Hauptnavigation">
-        <NavLink href="/service" Match="NavLinkMatch.All">Aufträge</NavLink>
-        <AuthorizeView Roles="@MietHahn.Application.Accounts.Roles.Caretaker">
-            <NavLink href="/service/objekte">Objekte</NavLink>
-        </AuthorizeView>
-    </nav>
-    <main id="content" class="content">
-        @Body
-    </main>
+    <div class="workspace">
+        <nav class="tab-bar" aria-label="Hauptnavigation">
+            <NavLink href="/service" Match="NavLinkMatch.All">Aufträge</NavLink>
+            <AuthorizeView Roles="@MietHahn.Application.Accounts.Roles.Caretaker">
+                <NavLink href="/service/objekte">Objekte</NavLink>
+            </AuthorizeView>
+        </nav>
+        <main id="content" class="content">
+            @Body
+        </main>
+    </div>
 </div>

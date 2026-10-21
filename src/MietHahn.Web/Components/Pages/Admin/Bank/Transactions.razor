@@ -2,21 +2,18 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @inject IBankService Bank
+@inject IDialogService Dialogs
 @inject Notifier Notify
 
 <InteractiveShell>
-    <PageHeader Title="Umsätze" Subtitle="Importierte Kontoumsätze; offene warten auf Zuordnung." Back="/verwaltung/bank/konten" BackText="Bankkonten">
-        <Actions>
-            <MudButton Variant="Variant.Outlined" Href="/verwaltung/bank/zuordnung">Umsätze zuordnen</MudButton>
-        </Actions>
-    </PageHeader>
+    <PageHeader Title="Umsätze" Subtitle="Importierte Kontoumsätze; offene warten auf Zuordnung." />
 
     <ErrorList Errors="errors" />
 
     <div class="form-row search-bar" role="search">
         <AppSelect T="Guid?" Value="accountId" ValueChanged="OnAccountChanged" Label="Konto" Items="accountIds" Text="AccountText" EmptyText="Alle Konten" />
         <AppSelect T="TransactionStatus?" Value="status" ValueChanged="OnStatusChanged" Label="Status" Items="statuses" Text="@(v => v is { } s ? Labels.From(s) : "")" EmptyText="Alle" />
-        <AppTextField Value="search" Label="Suche" Type="search" Placeholder="Name, IBAN, Verwendungszweck" Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
+        <AppTextField Value="@search" Label="Suche" Type="search" Placeholder="Name, IBAN, Verwendungszweck" Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
         <AppCheckBox Value="withoutReceipt" ValueChanged="OnWithoutReceiptChanged" Label="Zahlungen ohne Beleg" />
     </div>
 
@@ -69,7 +66,6 @@
                 <MudTablePager PageSizeOptions="new[] { 50, 100, 250 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
             </PagerContent>
         </MudTable>
-        <AppTextField @bind-Value="ignoreNote" Label="Notiz beim Ignorieren (optional)" Placeholder="z. B. privat, Umbuchung" />
     }
 </InteractiveShell>
 
@@ -84,7 +80,6 @@
     private TransactionStatus? status;
     private string? search;
     private bool withoutReceipt;
-    private string? ignoreNote;
 
     // The query string only provides the start values (see ADR 0005).
     [SupplyParameterFromQuery(Name = "konto")]
@@ -138,7 +133,14 @@
 
     private async Task LoadAsync() => transactions = await Bank.TransactionsAsync(new TransactionQuery(accountId, status, search, withoutReceipt));
 
-    private async Task IgnoreAsync(TransactionRow row) => await ChangeAsync(await Bank.IgnoreAsync(row.Id, ignoreNote), "Der Umsatz wird ignoriert.");
+    private async Task IgnoreAsync(TransactionRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<IgnoreDialog>("Umsatz ignorieren", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false, Data: string note })
+        {
+            await ChangeAsync(await Bank.IgnoreAsync(row.Id, note.Length == 0 ? null : note), "Der Umsatz wird ignoriert.");
+        }
+    }
 
     private async Task ReopenAsync(TransactionRow row) => await ChangeAsync(await Bank.ReopenAsync(row.Id), "Der Umsatz ist wieder offen.");
 

@@ -14,7 +14,7 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         var page = await SignedInAsAdminAsync();
         var (propertyId, sharedFlatId, roomId) = await SampleHouseAsync();
 
-        foreach (var path in new[] { "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{propertyId}", $"/verwaltung/objekte/{propertyId}/bearbeiten", $"/verwaltung/einheiten/{sharedFlatId}", $"/verwaltung/zimmer/{roomId}" })
+        foreach (var path in new[] { "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{propertyId}", $"/verwaltung/einheiten/{sharedFlatId}", $"/verwaltung/zimmer/{roomId}" })
         {
             await page.GotoAsync(BaseUrl + path);
             await NoHorizontalScrollAsync(page);
@@ -31,6 +31,7 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         {
             await page.GotoAsync(BaseUrl + $"/verwaltung/einheiten/{sharedFlatId}");
             await page.Locator("[data-interactive=true]").WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Attached });
+            await OpenTabAsync(page, "Flächen");
             await page.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Fläche ändern" }).ClickAsync();
             var dialog = page.Locator(".mud-dialog");
             await dialog.GetByLabel("Gültig ab").FillAsync("01.07.2026");
@@ -59,7 +60,7 @@ public class MasterDataBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             return id;
         });
 
-        foreach (var path in new[] { "/verwaltung/personen", "/verwaltung/personen/neu", $"/verwaltung/personen/{personId}", $"/verwaltung/personen/{personId}/bearbeiten", "/verwaltung/datenschutz" })
+        foreach (var path in new[] { "/verwaltung/personen", "/verwaltung/personen/neu", $"/verwaltung/personen/{personId}", "/verwaltung/datenschutz" })
         {
             await page.GotoAsync(BaseUrl + path);
             await NoHorizontalScrollAsync(page);

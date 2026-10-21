@@ -1,0 +1,16 @@
+{
+  "name": "MietHahn",
+  "short_name": "MietHahn",
+  "description": "Vermieterverwaltung",
+  "lang": "de",
+  "start_url": "/verwaltung",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff8f6",
+  "theme_color": "#a73f17",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

@@ -12,7 +12,7 @@
     </PageHeader>
 
     <div class="form-row search-bar" role="search">
-        <MudTextField T="string" ShrinkLabel="true" Label="Suche" Value="search" Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="OnSearchChanged"
+        <MudTextField T="string" ShrinkLabel="true" Label="Suche" Value="@search" Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="OnSearchChanged"
                       Variant="Variant.Outlined" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                       Placeholder="Name, E-Mail, Telefon, IBAN, Gewerk" />
         <MudSelect T="PersonFilter" Label="Anzeigen" Value="filter" ValueChanged="OnFilterChanged" Variant="Variant.Outlined">

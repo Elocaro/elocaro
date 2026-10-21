@@ -8,8 +8,6 @@
 <PageHeader Title="Nebenkosten-Vorschau" Subtitle="@(preview?.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
     <Actions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung?jahr={year}")">Abrechnungs-Assistent</MudButton>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/umlageschluessel")">Umlageschlüssel</MudButton>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/heizung")">Heizkosten-Einstellungen</MudButton>
     </Actions>
 </PageHeader>
 

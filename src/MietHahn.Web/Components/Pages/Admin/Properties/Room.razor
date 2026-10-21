@@ -23,16 +23,20 @@ else
 
 <ErrorList Errors="errors" />
 
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Belegung">
 <section>
     <h2>Belegung</h2>
     <p><OccupancyDisplay Occupancy="room.Occupancy" /></p>
 </section>
 
 <LeaseHistory RentalUnitId="Id" />
-
+    </MudTabPanel>
+    <MudTabPanel Text="Flächen">
 <AreaSection Save="input => Admin.SetRoomAreaAsync(Id, input)" OnSaved="LoadAsync" Current="room.Area" History="room.AreaHistory"
                  AreaText="Zimmerfläche" AdditionalText="Anteil Gemeinschaftsfläche" AdditionalHint="Anteil an Küche, Bad, Flur der WG (für Umlagen nach Fläche)." />
-
+    </MudTabPanel>
+    <MudTabPanel Text="Angaben">
 <section>
     <h2>Angaben</h2>
     <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
@@ -45,8 +49,11 @@ else
 <section>
     <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Zimmer löschen</MudButton>
 </section>
-
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="@nameof(MietHahn.Domain.Properties.Room)" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 

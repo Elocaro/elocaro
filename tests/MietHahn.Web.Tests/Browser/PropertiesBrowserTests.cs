@@ -56,6 +56,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             // Area with German decimal comma; the retroactive date is rejected with the domain message.
+            await OpenTabAsync(page, "Flächen");
             await page.GetByRole(AriaRole.Button, new() { Name = "Fläche erfassen" }).ClickAsync();
             var dialog = page.Locator(".mud-dialog");
             await dialog.GetByLabel("Gültig ab").FillAsync("01.02.2026");
@@ -71,6 +72,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Abbrechen" }).ClickAsync();
 
             // Add a unit (name required), then open it and add a room.
+            await OpenTabAsync(page, "Einheiten");
             await page.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen" }).ClickAsync();
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen" }).ClickAsync();
             await Assertions.Expect(dialog).ToContainTextAsync("Bezeichnung");
@@ -93,10 +95,11 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
     public async Task Photo_is_uploaded_rejected_when_not_an_image_and_removed_after_confirmation()
     {
         var propertyId = await CreateHouseAsync();
-        var page = await OpenAsync($"/verwaltung/objekte/{propertyId}/bearbeiten");
+        var page = await OpenAsync($"/verwaltung/objekte/{propertyId}");
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
+            await page.GetByRole(AriaRole.Button, new() { Name = "Bearbeiten" }).ClickAsync();
             var input = page.Locator("input[type=file]");
             await input.SetInputFilesAsync(new FilePayload { Name = "plan.pdf", MimeType = "application/pdf", Buffer = "%PDF-1.4"u8.ToArray() });
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Das Foto muss ein Bild sein.");
@@ -120,7 +123,8 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         var propertyId = await CreateHouseAsync();
         var page = await OpenAsync($"/verwaltung/objekte/{propertyId}");
 
-        await page.GetByRole(AriaRole.Button, new() { Name = "Objekt löschen" }).ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Weitere Aktionen" }).ClickAsync();
+        await page.GetByRole(AriaRole.Menuitem, new() { Name = "Objekt löschen" }).ClickAsync();
         await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, löschen" }).ClickAsync();
 
         await page.WaitForURLAsync("**/verwaltung/objekte?meldung=geloescht");

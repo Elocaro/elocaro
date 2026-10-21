@@ -1,0 +1,34 @@
+@using MietHahn.Application.Accounts
+@inject NavigationManager Navigation
+
+@* Tab bar below the top bar: sibling pages of an area or the pages of one property/lease. Scrolls sideways on narrow screens.
+   A group tab opens its first page; while it is active a second row lists the pages of the group. *@
+<nav class="tab-bar" aria-label="@Label">
+    @foreach (var tab in Tabs)
+    {
+        <AuthorizeView Policy="@tab.Policy">
+            <a href="@tab.Href" class="@(tab.Matches(Path) ? "active" : null)" aria-current="@(tab.Matches(Path) ? "page" : null)">@tab.Label</a>
+        </AuthorizeView>
+    }
+</nav>
+@if (Tabs.FirstOrDefault(t => t.IsGroup && t.Matches(Path)) is { } group)
+{
+    <nav class="sub-tabs" aria-label="@group.Label">
+        @foreach (var child in group.Children!)
+        {
+            <AuthorizeView Policy="@child.Policy">
+                <a href="@child.Href" class="@(child.Matches(Path) ? "active" : null)" aria-current="@(child.Matches(Path) ? "page" : null)">@child.Label</a>
+            </AuthorizeView>
+        }
+    </nav>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<NavTab> Tabs { get; set; } = [];
+
+    [Parameter]
+    public string Label { get; set; } = "Bereich";
+
+    private string Path => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+}

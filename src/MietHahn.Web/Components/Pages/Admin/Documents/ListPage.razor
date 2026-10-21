@@ -11,7 +11,7 @@
     </PageHeader>
 
     <div class="form-row search-bar" role="search">
-        <AppTextField Value="search" Label="Suche" Type="search" Placeholder="Titel, Schlagwort, Dateiname" Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
+        <AppTextField Value="@search" Label="Suche" Type="search" Placeholder="Titel, Schlagwort, Dateiname" Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
         <AppSelect T="DocumentCategory?" Value="category" ValueChanged="OnCategoryChanged" Label="Kategorie" Items="categories" Text="@(v => v is { } c ? Labels.From(c) : "")" EmptyText="Alle" />
     </div>
 

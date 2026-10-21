@@ -1,38 +1,42 @@
 @using System.Security.Claims
 @using MietHahn.Infrastructure.Identity
 @using MietHahn.Web.Account
-@inject NavigationManager Navigation
-@inject IHttpContextAccessor HttpContextAccessor
 
 <AuthorizeView>
     <Authorized>
+        @if (Inline)
+        {
+            <div class="account-menu">
+                <p class="account-menu-name">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</p>
+                <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
+                <ThemeSwitch />
+                <form method="post" action="/konto/abmelden">
+                    <AntiforgeryToken />
+                    <button type="submit" class="button-link">Abmelden</button>
+                </form>
+            </div>
+        }
+        else
+        {
         <details class="user-menu">
             <summary aria-label="Benutzermenü">
                 <span class="user-name">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</span>
             </summary>
             <div class="user-menu-content">
                 <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
-                <form method="post" action="/konto/darstellung" class="theme-switch">
-                    <AntiforgeryToken />
-                    <input type="hidden" name="returnUrl" value="@ReturnUrl" />
-                    <span class="small" id="theme-label">Darstellung</span>
-                    <div role="group" aria-labelledby="theme-label">
-                        <button type="submit" name="theme" value="system" aria-pressed="@(Theme is null)">System</button>
-                        <button type="submit" name="theme" value="light" aria-pressed="@(Theme == "light")">Hell</button>
-                        <button type="submit" name="theme" value="dark" aria-pressed="@(Theme == "dark")">Dunkel</button>
-                    </div>
-                </form>
+                <ThemeSwitch />
                 <form method="post" action="/konto/abmelden">
                     <AntiforgeryToken />
                     <button type="submit" class="button-link">Abmelden</button>
                 </form>
             </div>
         </details>
+        }
     </Authorized>
 </AuthorizeView>
 
 @code {
-    private string ReturnUrl => "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
-
-    private string? Theme => ThemePreference.Read(HttpContextAccessor.HttpContext);
+    /// <summary>Flat variant for the menu sheet on smartphones (no dropdown).</summary>
+    [Parameter]
+    public bool Inline { get; set; }
 }

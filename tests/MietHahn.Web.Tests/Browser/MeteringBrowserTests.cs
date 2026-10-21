@@ -83,7 +83,7 @@ public class MeteringBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await save.ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Rückwärtslauf");
             await page.GetByRole(AriaRole.Button, new() { Name = "Trotzdem speichern" }).ClickAsync();
-            await Assertions.Expect(page.Locator("tbody").Last).ToContainTextAsync("120");
+            await Assertions.Expect(page.Locator("section", new() { Has = page.Locator("h2", new() { HasText = "Stände" }) }).Locator("tbody")).ToContainTextAsync("120");
         });
         _ = apartment;
     }
@@ -144,6 +144,7 @@ public class MeteringBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await GotoInteractiveAsync(page, $"/verwaltung/zaehler/{meter}");
+            await OpenTabAsync(page, "Austausch & Ausbau");
             await page.Locator("summary", new() { HasText = "Zähler tauschen" }).ClickAsync();
             await page.GetByLabel("Tauschdatum").FillAsync(German(Today));
             await page.GetByLabel("Endstand alter Zähler").FillAsync("150");

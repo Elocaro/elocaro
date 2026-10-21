@@ -1,0 +1,13 @@
+@inject NavigationManager Navigation
+
+@* Tab bar of the current page (see AdminNavModel.TabsFor). *@
+@if (tabs is not null)
+{
+    <TabBar Tabs="tabs.Tabs" Label="@tabs.Label" />
+}
+
+@code {
+    private NavTabSet? tabs;
+
+    protected override void OnParametersSet() => tabs = AdminNavModel.TabsFor(new Uri(Navigation.Uri).AbsolutePath);
+}

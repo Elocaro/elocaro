@@ -59,6 +59,7 @@ public class ReceiptsBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await Assertions.Expect(page.Locator("iframe.document-preview")).ToBeVisibleAsync();
 
             // First position: tradesman/household service with labor costs.
+            await OpenTabAsync(page, "Kostenaufteilung");
             await SelectAsync(page, "Kostenart", "14. Hauswart", exact: false);
             await SelectAsync(page, "Objekt", "Lindenweg 3");
             await page.GetByLabel("Betrag", new() { Exact = true }).FillAsync("357");
@@ -105,7 +106,8 @@ public class ReceiptsBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Noch keine Datei.");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
-            await page.GetByRole(AriaRole.Button, new() { Name = "Beleg löschen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Weitere Aktionen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Menuitem, new() { Name = "Beleg löschen" }).ClickAsync();
             await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, löschen" }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/belege?meldung=geloescht");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Keine Belege in dieser Auswahl.");

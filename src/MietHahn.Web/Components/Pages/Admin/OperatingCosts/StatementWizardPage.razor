@@ -18,11 +18,7 @@ else if (wizard is null && errorText is null)
 }
 else
 {
-<PageHeader Title="Abrechnungs-Assistent" Subtitle="@(wizard?.Preview.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
-    <Actions>
-        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnungen")">Freigegebene Abrechnungen</MudButton>
-    </Actions>
-</PageHeader>
+<PageHeader Title="Abrechnungs-Assistent" Subtitle="@(wizard?.Preview.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt" />
 
 <ErrorList Errors="errors" />
 

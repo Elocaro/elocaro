@@ -137,9 +137,9 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
         string p = ids["property"], year = ids["year"];
         return
         [
-            "/verwaltung", "/verwaltung/personen", "/verwaltung/personen?q=Schmidt", "/verwaltung/personen/neu", $"/verwaltung/personen/{ids["person"]}", $"/verwaltung/personen/{ids["person"]}/bearbeiten",
+            "/verwaltung", "/verwaltung/personen", "/verwaltung/personen?q=Schmidt", "/verwaltung/personen/neu", $"/verwaltung/personen/{ids["person"]}",
             "/verwaltung/datenschutz",
-            "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{p}", $"/verwaltung/objekte/{p}/bearbeiten", $"/verwaltung/einheiten/{ids["unit"]}", $"/verwaltung/zimmer/{ids["room"]}",
+            "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{p}", $"/verwaltung/einheiten/{ids["unit"]}", $"/verwaltung/zimmer/{ids["room"]}",
             "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/vertraege/{ids["lease"]}/konto", $"/verwaltung/vertraege/{ids["lease"]}/auszug",
             $"/verwaltung/vertraege/{ids["lease"]}/kostenarten", $"/verwaltung/vertraege/{ids["lease"]}/vertragsdokument", $"/verwaltung/vertraege/{ids["lease"]}/mieterhoehung", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/einzug", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/auszug", "/verwaltung/vpi",
             "/verwaltung/dokumente", "/verwaltung/dokumente/neu",
@@ -235,16 +235,45 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
                     problems.Add($"{current}: keine Überschrift");
                 }
 
-                var width = await page.EvaluateAsync<int[]>("() => [document.documentElement.scrollWidth, window.innerWidth]");
+                var width = await page.EvaluateAsync<int[]>("() => { const c = document.getElementById('content'); return [Math.max(document.documentElement.scrollWidth, c ? c.scrollWidth : 0), window.innerWidth]; }");
                 if (width[0] > width[1])
                 {
-                    var culprits = await page.EvaluateAsync<string[]>("() => [...document.body.querySelectorAll('*')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 1 && !e.closest('.table-wrapper,.mud-table-container')).slice(0, 3).map(e => e.tagName.toLowerCase() + (typeof e.className === 'string' && e.className ? '.' + e.className.split(' ').join('.') : '') + ' ' + Math.round(e.getBoundingClientRect().right))");
+                    var culprits = await page.EvaluateAsync<string[]>("() => [...document.querySelectorAll('#content *')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 1 && !(w => w && ['auto', 'scroll'].includes(getComputedStyle(w).overflowX))(e.closest('.table-wrapper,.mud-table-container'))).slice(0, 3).map(e => e.tagName.toLowerCase() + (typeof e.className === 'string' && e.className ? '.' + e.className.split(' ').join('.') : '') + ' ' + Math.round(e.getBoundingClientRect().right))");
                     problems.Add($"{current}: {width[0]}px breit bei {width[1]}px; {string.Join(", ", culprits)}");
                 }
             }
         }
 
         Assert.True(problems.Count == 0, string.Join("\n", problems.Distinct()));
+    }
+
+    /// <summary>Screenshots of every page with data (viewport only), on demand: MIETHAHN_TOUR=1 MIETHAHN_TOUR_DIR=/pfad.</summary>
+    [Fact]
+    public async Task Screenshot_tour_of_all_pages()
+    {
+        if (Environment.GetEnvironmentVariable("MIETHAHN_TOUR") is null)
+        {
+            Assert.Skip("Tour nur auf Abruf: MIETHAHN_TOUR=1");
+        }
+
+        var directory = Path.Combine(Environment.GetEnvironmentVariable("MIETHAHN_TOUR_DIR") ?? Path.Combine(Path.GetTempPath(), "miethahn-tour"), "alle");
+        Directory.CreateDirectory(directory);
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await SeedAsync();
+        foreach (var mobile in new[] { false, true })
+        {
+            await page.SetViewportSizeAsync(mobile ? 360 : 1280, mobile ? 780 : 900);
+            var index = 0;
+            foreach (var path in Routes().Concat(OptionalRoutes()))
+            {
+                await page.GotoAsync(BaseUrl + path);
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                await page.WaitForTimeoutAsync(300);
+                var name = path.Replace(ids["property"], "P", StringComparison.Ordinal).Trim('/').Replace("verwaltung/", "", StringComparison.Ordinal);
+                name = new string(name.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_').ToArray());
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{(mobile ? "m" : "d")}{index++:00}-{name[..Math.Min(name.Length, 60)]}.png") });
+            }
+        }
     }
 
     [Fact]
@@ -295,34 +324,45 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
         {
             current = path;
             await GotoInteractiveAsync(page, path);
-            var buttons = page.Locator("main button.mud-button-root:not([type=submit])").Filter(new() { HasTextRegex = new System.Text.RegularExpressions.Regex("anlegen|hinzufügen|erfassen|Neu|Ändern|Bearbeiten", System.Text.RegularExpressions.RegexOptions.IgnoreCase) });
-            var count = await buttons.CountAsync();
-            for (var i = 0; i < count; i++)
+            var tabs = page.GetByRole(AriaRole.Tab);
+            var tabCount = await tabs.CountAsync();
+            for (var tab = -1; tab < tabCount; tab++)
             {
-                var button = buttons.Nth(i);
-                var label = (await button.InnerTextAsync()).Trim();
-                await button.ClickAsync();
-                try
+                if (tab >= 0)
                 {
-                    await page.Locator(".mud-dialog").First.WaitForAsync(new() { Timeout = 4000 });
-                }
-                catch (TimeoutException)
-                {
-                    problems.Add($"{path}: „{label}“ öffnet keinen Dialog");
-                    await GotoInteractiveAsync(page, path);
-                    continue;
+                    await tabs.Nth(tab).ClickAsync();
+                    await page.WaitForTimeoutAsync(600); // the old panel is still visible while the tab slides
                 }
 
-                opened++;
-                await page.WaitForTimeoutAsync(400);
-                var width = await page.EvaluateAsync<int[]>("() => { const d = document.querySelector('.mud-dialog').getBoundingClientRect(); return [Math.round(d.right), window.innerWidth, Math.round(d.bottom), window.innerHeight]; }");
-                if (width[0] > width[1] || width[2] > width[3])
+                var buttons = page.Locator("main button.mud-button-root:not([type=submit])").Filter(new() { HasTextRegex = new System.Text.RegularExpressions.Regex("anlegen|hinzufügen|erfassen|Neu|Ändern", System.Text.RegularExpressions.RegexOptions.IgnoreCase) }).Filter(new() { Visible = true });
+                var count = await buttons.CountAsync();
+                for (var i = 0; i < count; i++)
                 {
-                    problems.Add($"{path}: Dialog „{label}“ ragt aus dem Fenster ({width[0]}/{width[1]}, {width[2]}/{width[3]})");
-                }
+                    var button = buttons.Nth(i);
+                    var label = (await button.InnerTextAsync()).Trim();
+                    await button.ClickAsync();
+                    try
+                    {
+                        await page.Locator(".mud-dialog").First.WaitForAsync(new() { Timeout = 4000 });
+                    }
+                    catch (TimeoutException)
+                    {
+                        problems.Add($"{path}: „{label}“ öffnet keinen Dialog");
+                        await GotoInteractiveAsync(page, path);
+                        continue;
+                    }
 
-                await page.Keyboard.PressAsync("Escape");
-                await page.Locator(".mud-dialog").First.WaitForAsync(new() { State = WaitForSelectorState.Detached });
+                    opened++;
+                    await page.WaitForTimeoutAsync(400);
+                    var width = await page.EvaluateAsync<int[]>("() => { const d = document.querySelector('.mud-dialog').getBoundingClientRect(); return [Math.round(d.right), window.innerWidth, Math.round(d.bottom), window.innerHeight]; }");
+                    if (width[0] > width[1] || width[2] > width[3])
+                    {
+                        problems.Add($"{path}: Dialog „{label}“ ragt aus dem Fenster ({width[0]}/{width[1]}, {width[2]}/{width[3]})");
+                    }
+
+                    await page.Keyboard.PressAsync("Escape");
+                    await page.Locator(".mud-dialog").First.WaitForAsync(new() { State = WaitForSelectorState.Detached });
+                }
             }
         }
 

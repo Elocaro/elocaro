@@ -15,32 +15,50 @@ else if (todos.Count == 0)
 }
 else
 {
-    @foreach (var area in todos.GroupBy(a => a.Area))
-    {
-        <section class="todos-section">
-            <h2>@area.Key</h2>
-            <ul class="todos">
-                @foreach (var todo in area.OrderByDescending(a => a.Urgency).ThenBy(a => a.Due))
-                {
-                    <li class="todo todo-@todo.Urgency.ToString().ToLowerInvariant()">
-                        <a href="@todo.Link">@todo.Title</a>
-                        @if (todo.Due is { } due)
-                        {
-                            <span class="small">fällig am @Format.Date(due)</span>
-                        }
-                        @if (todo.Details is not null)
-                        {
-                            <p class="small">@todo.Details</p>
-                        }
-                    </li>
-                }
-            </ul>
-        </section>
-    }
+    <div class="dashboard-summary" aria-label="Zusammenfassung">
+        @if (Count(Urgency.Urgent) > 0)
+        {
+            <StatusChip Level="StatusLevel.Error">@Count(Urgency.Urgent) dringend</StatusChip>
+        }
+        @if (Count(Urgency.Soon) > 0)
+        {
+            <StatusChip Level="StatusLevel.Warning">@Count(Urgency.Soon) bald fällig</StatusChip>
+        }
+        <StatusChip>@todos.Count Aufgaben insgesamt</StatusChip>
+    </div>
+    <div class="dashboard">
+        @foreach (var area in todos.GroupBy(a => a.Area).OrderByDescending(g => g.Max(a => a.Urgency)).ThenBy(g => g.Key))
+        {
+            <section class="panel">
+                <header>
+                    <h2>@area.Key</h2>
+                    <span class="count-badge" aria-label="@area.Count() Aufgaben">@area.Count()</span>
+                </header>
+                <ul class="todos">
+                    @foreach (var todo in area.OrderByDescending(a => a.Urgency).ThenBy(a => a.Due))
+                    {
+                        <li class="todo todo-@todo.Urgency.ToString().ToLowerInvariant()">
+                            <a href="@todo.Link">@todo.Title</a>
+                            @if (todo.Due is { } due)
+                            {
+                                <span class="small">fällig am @Format.Date(due)</span>
+                            }
+                            @if (todo.Details is not null)
+                            {
+                                <p class="small">@todo.Details</p>
+                            }
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+    </div>
 }
 
 @code {
     private IReadOnlyList<TodoItem>? todos;
+
+    private int Count(Urgency urgency) => todos?.Count(t => t.Urgency == urgency) ?? 0;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;

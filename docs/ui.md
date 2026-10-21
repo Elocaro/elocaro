@@ -10,6 +10,46 @@ Verbindlich für alle neuen und geänderten Seiten. Grundlage: ADR 0003 (eigenes
 4. **Farben nur über Rollen.** Keine Hex-Werte in Seiten oder Komponenten. Hell und Dunkel müssen beide lesbar sein.
 5. **Barrierearm.** Kontrast nach AA, sichtbarer Fokus, `role="alert"` bzw. `"status"` bei Meldungen, Beschriftung für jedes Feld.
 
+## App-Gerüst
+
+Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. Das Dokument scrollt nie; es scrollt nur `main.content` (und Tabellen/Dialoge in sich).
+
+| Bereich | Desktop (ab 900 px) | Smartphone |
+|---|---|---|
+| Kopfleiste (`.top-bar`) | feststehend: Marke, Benutzermenü | entfällt, der Seitenkopf ist die App-Leiste |
+| Hauptnavigation | Seitenleiste (`.sidebar`), eigener Scroll, nach Bereichen gruppiert | Untere Leiste (`.bottom-bar`): Aufgaben, Objekte, Verträge, Forderungen, **Menü** (Blatt mit allen Bereichen und Benutzermenü) |
+| Tabs (`TabBar`, `ContextTabs`) | unter der Kopfleiste, feststehend | gleiche Leiste, seitlich wischbar, aktiver Tab wird sichtbar gehalten |
+| Seitenkopf (`PageHeader`) | `position: sticky` im Inhaltsbereich | Zurück als Icon links vom Titel; die gefüllte Hauptaktion wird zur schwebenden Schaltfläche über der unteren Leiste |
+| Tabellen | `MudTable` füllt die freie Höhe, Kopfzeile bleibt stehen | Karten (`Breakpoint.Sm`) |
+| Dialoge | zentriert | als Blatt vom unteren Rand |
+
+**Navigationsmodell** (`Layout/AdminNavModel.cs`): einzige Stelle, die weiß, was zusammengehört.
+- *Bereiche* (Seitenleiste, unteres Menü) mit Berechtigung; jeder Bereich kennt seine Seiten (`Prefixes`) und Geschwisterseiten (`Tabs`). `ContextTabs` zeigt die Tabs des Bereichs automatisch, eine neue Seite braucht also nur einen Eintrag dort, keinen eigenen Navigationscode.
+- *Arbeitsbereiche* einzelner Objekte (`/verwaltung/objekte/{id}/…`) und Verträge (`/verwaltung/vertraege/{id}/…`): Tabs wie Zähler, Heizkosten, Mieterkonto, Übergabe. Solche Verweise gehören **nicht** als Schaltflächen in den Seitenkopf. Im `Actions`-Slot stehen nur Aktionen an der Seite selbst (Bearbeiten, Neu); seltene und riskante Aktionen in ein `MudMenu` („Weitere Aktionen“).
+- Zusammengehörige Seiten stehen als **Gruppe** unter einem Tab (`NavTab.Group`): Objekt = Übersicht · Zähler · *Nebenkosten* (Umlageschlüssel, Heizkosten, Vorschau, Abrechnungs-Assistent, Abrechnungen) · *Steuer* (AfA, Erhaltungsaufwand, Anlage V); Vertrag = Übersicht · *Konto* (Mieterkonto, Kostenarten) · *Vertrag* (Vertragsdokument, Mieterhöhung) · *Ein- & Auszug*. Solange die Gruppe aktiv ist, zeigt `TabBar` eine zweite Zeile mit ihren Seiten.
+- Neue Unterseite eines Objekts oder Vertrags: Tab in `PropertyTabs`/`LeaseTabs` ergänzen, eine neue Gruppe nur für wirklich eigenständige Themen.
+- Auf breiten Bildschirmen blendet der Seitenkopf den Zurück-Link aus, sobald eine Tab-Leiste da ist (der Tab führt dorthin); auf dem Handy bleibt er als Pfeil.
+
+**Detailseiten** (Objekt, Vertrag, Person): Kopf mit Kerndaten als `.summary-card`, darunter `MudTabs` (`Class="detail-tabs"`) statt einer langen Abschnittsliste. Je Tab ein fachlicher Abschnitt (z. B. Miete, Parteien & Haushalt, Kündigung, Angaben, Dokumente, Verlauf). Ohne Daten bleibt ein Tab sichtbar mit `EmptyState`; ausgeblendet wird nur, was fachlich nicht möglich ist (`Visible`).
+
+**Anlegen, Bearbeiten, Einladen:** Es gibt keine eigenen „Bearbeiten“-Seiten. Stammdaten werden im Tab *Angaben* der Detailseite bearbeitet (Objekt, Person, Einheit, Bankkonto, Beleg); die Schaltfläche „Bearbeiten“ im Seitenkopf springt dorthin. Kleine Formulare (Person einladen, Umsatz ignorieren, Zimmer, IBAN …) sind Dialoge, nicht Seiten oder Formulare über der Liste.
+
+**Teilansicht** (`.split`, Beleg): Auf breiten Bildschirmen steht das Dokument rechts neben Formular und Tabs (Vorschau bleibt beim Scrollen stehen), darunter wird gestapelt.
+
+**Assistenten** (`.steps`): Schritte als Chips in einer Zeile, der aktuelle hervorgehoben; Text trägt die Nummer.
+
+**Schnellsuche** (`Layout/QuickSearch.razor`, Strg+K bzw. Feld in der Kopfleiste, auf dem Handy im Menü-Blatt): springt zu Bereichen und Unterseiten (nach Berechtigung) sowie zu Objekten, Personen und Verträgen. Interaktive Insel im statischen Layout; Pfeiltasten und Eingabe wählen, Esc schließt. Neue Bereiche tauchen automatisch auf, sobald sie in `AdminNavModel` stehen.
+
+**Arbeitslisten** (`.work-list`/`.work-card`, Beispiel Umsätze zuordnen): Wo je Eintrag eine Entscheidung fällt (Vorschlag bestätigen, ändern, ignorieren), steht eine Karte je Eintrag statt einer Tabelle: Betrag und Beschreibung, Vorschlag mit Begründung, Aktionen; auf dem Handy gestapelt.
+
+**Tabellen auf dem Handy:** Statische `.data-table` ohne verbundene Zellen werden unter 700 px zu Karten (`shell.js` setzt `data-label` aus den Spaltenköpfen). Ausnahme mit `data-nostack` am `table`.
+
+**Startseite**: Zusammenfassung (dringend/bald fällig) und ein Raster aus Karten (`.panel`) je Bereich, dringendste zuerst.
+
+`wwwroot/js/shell.js` ergänzt nur Kleinigkeiten (Menüs schließen, Inhalt nach Navigation nach oben scrollen, aktiven Tab zeigen); alles andere funktioniert ohne JavaScript. `manifest.webmanifest` macht die Anwendung auf dem Handy installierbar („Zum Startbildschirm“, Vollbild ohne Browserleiste).
+
+Regeln für neue Seiten: keine eigenen `height`-/`overflow`-Konstrukte für das Seitenscrollen; Tabellen entweder `MudTable` als direktes Kind des Inhalts (füllt die Höhe) oder `.table-wrapper`; Hauptaktion einer Seite genau einmal gefüllt im `PageHeader`.
+
 ## Design-Tokens (`wwwroot/app.css`)
 
 | Gruppe | Tokens | Verwendung |
@@ -36,7 +76,7 @@ Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gil
 
 | Bedarf | Baustein | Regel |
 |---|---|---|
-| Seitenkopf | `PageHeader` | Jede Seite außer Anmeldung und Fehlerseiten; genau ein `<h1>`; Aktionen im `Actions`-Slot |
+| Seitenkopf | `PageHeader` | Jede Seite außer Anmeldung und Fehlerseiten; genau ein `<h1>`; Aktionen im `Actions`-Slot (höchstens eine Hauptaktion, wenige Nebenaktionen, Rest im Menü) |
 | Formularfeld | `FormField` + `Input*` | Beschriftung immer sichtbar; Pflicht und Hinweis über Parameter |
 | Geld, Fläche | `InputAmount`, `InputArea` | Nie `type="text"` für Zahlen |
 | Tabelle | `.table-wrapper > .data-table` | Immer im Wrapper; Zahlen in `td.number`; Sortieren mit `SortHeader`, Blättern mit `Pagination` |
@@ -99,7 +139,7 @@ Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Co
 
 **Eingabekomponenten** (`Components/Controls`): `AppTextField`, `AppSelect<T>`, `AppDateField`, `AppNumberField<T>`, `AppMonthField` (Monat als `yyyy-MM`), `AppCheckBox`, `AppRadioGroup<T>`, `AppFileUpload` (auch mehrere Dateien). Dazu `OptionSelect` (Auswahl aus `(Id, Name)`-Listen, z. B. Objekt, Zähler). Sie sind der Standard in interaktiven Formularen (einheitlicher Look, Beschriftung im Rahmen, deutsche Zahlen und Datumsangaben) und haben nur einfache Parameter (`@bind-Value`, `Label`, `Hint`, `Required`, `Suffix`), keine MudBlazor-Typen. Einträge eines Auswahlfelds: `Items` und `Text`. Sie validieren über das umgebende `EditForm`. Eine Komponente, die den Wert selbst hält und einen eigenen Handler für `ValueChanged` nutzt, darf den Parameter nicht blind neu lesen (siehe `AppDateField`).
 
-**Formulare und Dialoge** (Muster: `People/PersonEditor`, `PersonDialog`, `Create`, `Edit`):
+**Formulare und Dialoge** (Muster: `People/PersonEditor`, `PersonDialog`, `Create`):
 - Eingabefelder in einer Komponente (`*Editor`), die in einem `EditForm` mit `DataAnnotationsValidator` sitzt; `For="() => Modell.Eigenschaft"` zeigt die deutschen Validierungsmeldungen. Das `EditForm` bekommt `novalidate` (sonst erscheint die englische Browser-Meldung), die Mud-Felder `ShrinkLabel="true"` (Beschriftung im Rahmen wie bei statischen Feldern).
 - Dialog: `IDialogService.ShowAsync<…Dialog>`, Inhalt im `EditForm class="dialog-form"` (hält Inhalt scrollbar und Aktionen sichtbar), Erfolg → `Notifier.Success`, `MudDialog.Close(DialogResult.Ok(id))`, die Liste lädt neu. Fehler aus Diensten über `ErrorList` im Dialog.
 - Nach dem Speichern auf einer Seite weiterleiten: `Navigation.NavigateTo("…?meldung=gespeichert")`; `StatusMessage` der Zielseite zeigt den festen Text (`StatusMessage.Keys`: `gespeichert`, `angelegt`, `geloescht`, `importiert`, `verworfen`, `auszug-erfasst`, `objekt-angelegt`, `freigegeben`; neue Texte dort ergänzen). Freitext in der URL gibt es nicht.
@@ -111,7 +151,7 @@ Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Co
 | Typ | Aufbau |
 |---|---|
 | Liste | `PageHeader` (Aktion „Neu“) → Filter → Tabelle (`table-wrapper`) → `Pagination`; leer → `EmptyState` |
-| Detail | `PageHeader` (Zurück, Aktionen) → Kerndaten (`.details`) → Abschnitte (`<section>` mit `<h2>`) → `ChangeHistory` → `DangerAction` ganz unten |
+| Detail | `PageHeader` (Zurück, Aktionen) → Kerndaten (`.summary-card` mit `.details`) → `MudTabs` mit Abschnitten, `ChangeHistory` im Tab „Verlauf“, riskante Aktionen im Menü oder im passenden Tab |
 | Formular | `PageHeader` → `ErrorList` → `EditForm` mit `.form-grid` → Buttons: primär links, „Abbrechen“ daneben |
 | Assistent | `PageHeader` → `.steps` → je Schritt ein Formular; Zurück/Weiter eindeutig beschriftet |
 | Auswertung | `PageHeader` (Download-Aktionen) → Filter (Jahr, Objekt) → Hinweise → Tabelle |
