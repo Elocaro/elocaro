@@ -286,6 +286,7 @@ public static class DependencyInjection
         services.AddScoped<ITicketWork, TicketWorkService>();
         services.AddScoped<IContractorLinks, ContractorLinks>();
         services.AddScoped<ICareRoutines, CareRoutines>();
+        services.AddScoped<ITodoSource, CareRoutineTodos>();
         services.AddScoped<INotices, NoticeService>();
         services.AddScoped<IMessages, MessageService>();
         services.AddScoped<IFileShare, NoticeFileShare>();

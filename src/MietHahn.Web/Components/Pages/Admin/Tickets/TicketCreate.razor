@@ -1,12 +1,14 @@
 @page "/verwaltung/tickets/neu"
 @rendermode InteractiveServer
 @using MudBlazor
+@using MietHahn.Application.Deadlines
 @using MietHahn.Application.Documents
 @using MietHahn.Application.Files
 @using MietHahn.Application.Tickets
 @using MietHahn.Domain.Tickets
 @using MietHahn.Web.Components.Controls
 @inject ITickets Tickets
+@inject IDeadlines Deadlines
 @inject IDocumentLibrary Documents
 @inject IFileStore Files
 @inject AuthenticationStateProvider Authentication
@@ -51,11 +53,18 @@
     [SupplyParameterFromQuery(Name = "objekt")]
     private Guid? PropertyId { get; set; }
 
+    [SupplyParameterFromQuery(Name = "wartung")]
+    private Guid? TaskId { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         options = await Documents.ReferenceOptionsAsync();
         assignees = await Tickets.AssigneesAsync();
         input.PropertyId = PropertyId;
+        if (TaskId is { } taskId && await Deadlines.TaskAsync(taskId) is { } task)
+        {
+            MaintenanceTicket.Prefill(input, task.Task);
+        }
     }
 
     private async Task SubmitAsync()

@@ -54,4 +54,16 @@ public class ServiceWorkTests
         Assert.False(routine.IsDue(Day, Day));
         Assert.True(routine.IsDue(Day, Day.AddDays(days)));
     }
+
+    [Fact]
+    public void Routine_is_overdue_only_after_the_due_day_and_a_new_one_counts_from_creation()
+    {
+        var routine = new CareRoutine(Guid.NewGuid(), "Treppenhaus", CareInterval.Weekly, null);
+
+        Assert.False(routine.IsOverdue(Day, Day, Day.AddDays(7)));
+        Assert.True(routine.IsOverdue(Day, Day, Day.AddDays(8)));
+        Assert.False(routine.IsOverdue(null, Day, Day.AddDays(3)));
+        Assert.True(routine.IsOverdue(null, Day, Day.AddDays(8)));
+        Assert.False(routine.IsOverdue(Day.AddDays(8), Day, Day.AddDays(9)));
+    }
 }

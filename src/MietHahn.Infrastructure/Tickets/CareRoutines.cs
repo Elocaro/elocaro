@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Common;
 using MietHahn.Application.Tickets;
+using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Tickets;
@@ -127,5 +128,47 @@ internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock) : I
         }
 
         return await db.Set<PropertyAssignment>().AsNoTracking().Where(z => z.UserId == userId).Select(z => z.PropertyId).ToListAsync(cancellationToken);
+    }
+}
+
+/// <summary>Dashboard: caretaker duties whose due day has passed without a tick.</summary>
+internal sealed class CareRoutineTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
+{
+    public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (!TenantScope.IsAdmin(user))
+        {
+            return [];
+        }
+
+        var routines = await db.Set<CareRoutine>().AsNoTracking().Where(r => r.Active).ToListAsync(cancellationToken);
+        if (routines.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = routines.Select(r => r.Id).ToList();
+        var lastDone = (await db.Set<CareCheck>().AsNoTracking().Where(c => ids.Contains(c.RoutineId)).GroupBy(c => c.RoutineId)
+            .Select(g => new { g.Key, Last = g.Max(c => c.DoneOn) }).ToListAsync(cancellationToken)).ToDictionary(x => x.Key, x => x.Last);
+        var names = await db.Set<Property>().AsNoTracking().ToDictionaryAsync(o => o.Id, o => o.Name, cancellationToken);
+        var today = GermanTime.Today(clock.GetUtcNow());
+        return routines
+            .Select(r =>
+            {
+                DateOnly? last = lastDone.TryGetValue(r.Id, out var day) ? day : null;
+                var baseline = last ?? GermanTime.Today(r.CreatedAt);
+                return (Routine: r, Last: last, Overdue: r.IsOverdue(last, GermanTime.Today(r.CreatedAt), today), Due: r.NextDue(baseline));
+            })
+            .Where(x => x.Overdue)
+            .OrderBy(x => x.Due)
+            .Select(x => new TodoItem(
+                "Tickets",
+                $"Hausmeisteraufgabe überfällig: {x.Routine.Title} ({names.GetValueOrDefault(x.Routine.PropertyId, "")})",
+                "/verwaltung/tickets/routinen",
+                today.DayNumber - x.Due.DayNumber >= 7 ? Urgency.Urgent : Urgency.Soon,
+                x.Last is { } done ? $"Zuletzt abgehakt am {done:dd.MM.yyyy}." : "Bisher nicht abgehakt.",
+                x.Due))
+            .ToList();
     }
 }

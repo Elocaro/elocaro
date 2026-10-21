@@ -21,7 +21,14 @@ else if (detail is null)
 }
 else
 {
-    <PageHeader Title="@detail.Task.Title" Subtitle="@Summary()" Back="/verwaltung/fristen/wartung" BackText="Alle Wartungen" />
+    <PageHeader Title="@detail.Task.Title" Subtitle="@Summary()" Back="/verwaltung/fristen/wartung" BackText="Alle Wartungen">
+        <Actions>
+            @if (detail.Task.Active)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="@($"/verwaltung/tickets/neu?wartung={TaskId}")">Ticket anlegen</MudButton>
+            }
+        </Actions>
+    </PageHeader>
 
     <ErrorList Errors="errors" />
 

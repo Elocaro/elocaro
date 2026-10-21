@@ -9,6 +9,7 @@ using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
 using MietHahn.Application.Tickets;
+using MietHahn.Application.Todos;
 using MietHahn.Domain.Communication;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Tickets;
@@ -178,6 +179,47 @@ public class ServiceWorkTests(PostgresFixture postgres) : IAsyncLifetime
         Validate(await With<ICareRoutines, Result>(r => r.DeactivateAsync(admin, routine, Ct)));
         Assert.Empty(await With<ICareRoutines, IReadOnlyList<RoutineRow>>(r => r.ListAsync(caretaker, false, Ct)));
         Assert.Single(await With<ICareRoutines, IReadOnlyList<RoutineRow>>(r => r.ListAsync(admin, true, Ct)));
+    }
+
+    [Fact]
+    public async Task Overdue_care_routines_show_up_on_the_dashboard_of_the_administration()
+    {
+        var routine = Validate(await With<ICareRoutines, Result>(r => r.CreateAsync(admin, new RoutineInput { PropertyId = house, Title = "Treppenhaus reinigen", Interval = CareInterval.Weekly }, Ct)));
+        Assert.Empty(await TodosAsync(admin));
+
+        environment.Clock.Advance(TimeSpan.FromDays(9));
+        var todo = Assert.Single(await TodosAsync(admin));
+        Assert.Contains("Treppenhaus reinigen", todo.Title);
+        Assert.Empty(await TodosAsync(caretaker));
+
+        Validate(await With<ICareRoutines, Result>(r => r.CheckAsync(admin, routine, null, null, Ct)));
+        Assert.Empty(await TodosAsync(admin));
+    }
+
+    [Fact]
+    public void Maintenance_task_prefills_the_ticket_form()
+    {
+        var task = new MietHahn.Application.Deadlines.TaskListItem(Guid.NewGuid(), "Heizungswartung", MietHahn.Domain.Deadlines.TaskKind.HeatingService, house, "Haus", new DateOnly(2027, 3, 1), 12, null, true);
+        var input = new AdminTicketInput();
+
+        MaintenanceTicket.Prefill(input, task);
+
+        Assert.Equal("Heizungswartung", input.Title);
+        Assert.Equal(TicketCategory.Heating, input.Category);
+        Assert.Equal(house, input.PropertyId);
+        Assert.Contains("01.03.2027", input.Description);
+    }
+
+    private async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user)
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var items = new List<TodoItem>();
+        foreach (var source in scope.ServiceProvider.GetServices<ITodoSource>())
+        {
+            items.AddRange(await source.TodosAsync(user, Ct));
+        }
+
+        return items.Where(t => t.Title.StartsWith("Hausmeisteraufgabe", StringComparison.Ordinal)).ToList();
     }
 
     private async Task<string> LinkAsync(Guid ticket, string recipient, int days)

@@ -166,6 +166,12 @@ public sealed class CareRoutine : Entity
     };
 
     public bool IsDue(DateOnly? lastDone, DateOnly today) => lastDone is null || NextDue(lastDone.Value) <= today;
+
+    /// <summary>
+    /// The due day has passed without a tick. A routine never ticked counts from the day it was created, so a new one does not
+    /// raise an alarm right away.
+    /// </summary>
+    public bool IsOverdue(DateOnly? lastDone, DateOnly createdOn, DateOnly today) => NextDue(lastDone ?? createdOn) < today;
 }
 
 /// <summary>One tick of a routine: done on a day by a person (proof for the caretaker apportionment and § 35a).</summary>
