@@ -51,7 +51,7 @@ public static class AdminNavModel
             [$"{Root}/objekte", $"{Root}/einheiten", $"{Root}/zimmer", $"{Root}/zaehler", $"{Root}/abrechnungen"], [], "Bestand"),
         new("Personen", AppIcons.People, $"{Root}/personen", Policies.MasterData,
             [$"{Root}/personen", $"{Root}/datenschutz"],
-            [new("Personen", $"{Root}/personen"), new("Datenschutz", $"{Root}/datenschutz")], "Bestand"),
+            [new("Personen", $"{Root}/personen", Exact: true), new("Änderungen", $"{Root}/personen/aenderungen"), new("Datenschutz", $"{Root}/datenschutz")], "Bestand"),
         new("Verträge", AppIcons.Lease, $"{Root}/vertraege", Policies.MasterData,
             [$"{Root}/vertraege", $"{Root}/vpi"],
             [new("Verträge", $"{Root}/vertraege"), new("Verbraucherpreisindex", $"{Root}/vpi")], "Bestand"),

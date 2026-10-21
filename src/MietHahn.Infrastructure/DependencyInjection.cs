@@ -21,6 +21,7 @@ using MietHahn.Application.Metering;
 using MietHahn.Application.OperatingCosts;
 using MietHahn.Application.Operations;
 using MietHahn.Application.People;
+using MietHahn.Application.Portal;
 using MietHahn.Application.Privacy;
 using MietHahn.Application.Properties;
 using MietHahn.Application.Receipts;
@@ -46,6 +47,7 @@ using MietHahn.Infrastructure.Operations;
 using MietHahn.Infrastructure.Pdf;
 using MietHahn.Infrastructure.People;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Portal;
 using MietHahn.Infrastructure.Privacy;
 using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Receipts;
@@ -268,6 +270,10 @@ public static class DependencyInjection
         services.AddScoped<DeadlineService>();
         services.AddScoped<IDeadlines>(sp => sp.GetRequiredService<DeadlineService>());
         services.AddScoped<DeadlineReminders>();
+        services.AddScoped<ITenantPortal, TenantPortal>();
+        services.AddScoped<IContactChangeRequests, ContactChangeRequests>();
+        services.AddScoped<ITodoSource, ContactChangeTodos>();
+        services.AddScoped<DocumentNotifications>();
         services.AddScoped<ITodoSource, DeadlineTodos>();
         services.AddScoped<IPersonalDataSource, ReceiptPersonalData>();
     }
@@ -317,6 +323,7 @@ public static class DependencyInjection
             q.ScheduleDaily<ChargeJob>(ChargeJob.Key, "Erzeugt die Monatsmieten (Sollstellungen) und gleicht sie an Vertragsänderungen an", 0, 40);
             q.ScheduleDaily<DunningJob>(DunningJob.Key, "Erkennt Rückstände und schlägt Mahnungen vor (versendet nichts, Freigabe nötig)", 6, 15);
             q.ScheduleDaily<DeadlineReminderJob>(DeadlineReminderJob.Key, "Schickt Erinnerungen zu Fristen und Wartungen und montags die Wochenübersicht", 7, 30);
+            q.ScheduleInterval<DocumentNotificationJob>(DocumentNotificationJob.Key, "Informiert Mieter per Mail über neue Dokumente im Portal", TimeSpan.FromMinutes(10));
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);

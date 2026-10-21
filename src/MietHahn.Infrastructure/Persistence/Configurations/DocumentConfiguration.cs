@@ -16,6 +16,7 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.Property(d => d.Title).HasMaxLength(200).UseCollation(MietHahnDbContext.GermanCollation);
         builder.Property(d => d.Category).HasConversion<string>().HasMaxLength(30);
         builder.Property(d => d.Note).HasMaxLength(2000);
+        builder.Property(d => d.TenantsNotifiedAt);
         builder.Property(d => d.Tags).HasColumnType("text[]");
         builder.HasOne<StoredFile>().WithMany().HasForeignKey(d => d.FileId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Property>().WithMany().HasForeignKey(d => d.PropertyId).OnDelete(DeleteBehavior.Restrict);
@@ -24,6 +25,16 @@ internal sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         builder.HasOne<Person>().WithMany().HasForeignKey(d => d.PersonId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<DocumentTemplateRevision>().WithMany().HasForeignKey(d => d.TemplateRevisionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(d => d.ExpiresOn).HasFilter("expires_on IS NOT NULL AND NOT deleted");
+    }
+}
+
+internal sealed class DocumentReadConfiguration : IEntityTypeConfiguration<DocumentRead>
+{
+    public void Configure(EntityTypeBuilder<DocumentRead> builder)
+    {
+        builder.ToTable("document_reads");
+        builder.HasOne<Document>().WithMany().HasForeignKey(l => l.DocumentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(l => new { l.DocumentId, l.UserId }).IsUnique().HasFilter("NOT deleted");
     }
 }
 

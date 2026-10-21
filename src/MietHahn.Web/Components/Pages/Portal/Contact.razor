@@ -1,0 +1,78 @@
+@page "/portal/kontakt"
+@using MietHahn.Application.Portal
+@inject ITenantPortal Portal
+@inject Redirector Redirector
+
+<PageHeader Title="Meine Kontaktdaten" Subtitle="Änderungen gelten erst, wenn Ihr Vermieter sie bestätigt hat." />
+
+<StatusMessage />
+<ErrorList Errors="errors" />
+
+@if (contacts is null)
+{
+    <EmptyState Text="Ihrem Konto ist noch keine Person zugeordnet. Bitte wenden Sie sich an Ihren Vermieter." />
+}
+else
+{
+    @if (contacts.Pending is { } pending)
+    {
+        <Notice Level="NoticeLevel.Info">
+            Ihr Änderungsantrag wartet auf Bestätigung: E-Mail @(pending.Email ?? "–"), Telefon @(pending.Phone ?? "–"), Mobil @(pending.Mobile ?? "–").
+            Mit einem neuen Antrag ersetzen Sie ihn.
+        </Notice>
+    }
+
+    <EditForm Model="Input" FormName="contact-change" OnValidSubmit="SubmitAsync">
+        <DataAnnotationsValidator />
+        <div class="field">
+            <label for="email">E-Mail-Adresse</label>
+            <InputText id="email" type="email" @bind-Value="Input!.Email" autocomplete="email" />
+            <ValidationMessage For="() => Input!.Email" />
+        </div>
+        <div class="field">
+            <label for="phone">Telefon</label>
+            <InputText id="phone" type="tel" @bind-Value="Input!.Phone" autocomplete="tel" />
+            <ValidationMessage For="() => Input!.Phone" />
+        </div>
+        <div class="field">
+            <label for="mobile">Mobil</label>
+            <InputText id="mobile" type="tel" @bind-Value="Input!.Mobile" autocomplete="tel" />
+            <ValidationMessage For="() => Input!.Mobile" />
+        </div>
+        <button type="submit" class="button button-primary">Änderung beantragen</button>
+    </EditForm>
+
+    <p class="small">Die E-Mail-Adresse, mit der Sie sich anmelden, ändert sich dadurch nicht.</p>
+}
+
+@code {
+    private PortalContacts? contacts;
+    private IReadOnlyList<string>? errors;
+
+    [SupplyParameterFromForm(FormName = "contact-change")]
+    private ContactChangeInput? Input { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        contacts = await Portal.ContactsAsync(HttpContext.User);
+        if (contacts is not null)
+        {
+            Input ??= new ContactChangeInput { Email = contacts.Current.Email, Phone = contacts.Current.Phone, Mobile = contacts.Current.Mobile };
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        var result = await Portal.RequestContactChangeAsync(HttpContext.User, Input!);
+        if (!result.Succeeded)
+        {
+            errors = result.Errors;
+            return;
+        }
+
+        Redirector.RedirectWithMessage("/portal/kontakt", "Ihr Änderungsantrag wurde übermittelt. Ihr Vermieter prüft ihn.", HttpContext);
+    }
+}

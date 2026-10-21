@@ -30,6 +30,20 @@ else
     <dt>Datei</dt><dd>@document.FileName (@Size(document.Document.Size))</dd>
     <dt>Hochgeladen</dt><dd>@Format.Timestamp(document.UploadedAt)@(document.UploadedBy is null ? "" : $" von {document.UploadedBy}")</dd>
     <dt>Freigabe</dt><dd>@DocumentTable.Share(document.Document)</dd>
+    @if (document.Document.ForTenants)
+    {
+        <dt>Geöffnet im Portal</dt>
+        <dd>
+            @if (reads is { Count: > 0 })
+            {
+                @string.Join("; ", reads.Select(l => $"{l.Name} am {Format.Timestamp(l.ReadAt)}"))
+            }
+            else
+            {
+                <span>noch nicht</span>
+            }
+        </dd>
+    }
 </dl>
 
 @if (document.Document.MimeType.StartsWith("image/", StringComparison.Ordinal))
@@ -67,6 +81,7 @@ else if (document.Document.MimeType == "application/pdf")
     private DocumentInput? data;
     private ReferenceOptions? selection;
     private IReadOnlyList<string>? errors;
+    private IReadOnlyList<DocumentReadView>? reads;
     private bool loaded;
 
     [Parameter]
@@ -76,6 +91,7 @@ else if (document.Document.MimeType == "application/pdf")
     {
         document = await Storage.GetAsync(Id);
         data = document?.Data;
+        reads = document is null ? null : await Storage.ReadsAsync(Id);
         selection = await Storage.ReferenceOptionsAsync();
         loaded = true;
     }

@@ -1398,6 +1398,10 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("template_revision_id");
 
+                    b.Property<DateTimeOffset?>("TenantsNotifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("tenants_notified_at");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1441,6 +1445,63 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_documents_unit_id");
 
                     b.ToTable("documents", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Documents.DocumentRead", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<DateTimeOffset>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_document_reads");
+
+                    b.HasIndex("DocumentId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_document_reads_document_id_user_id")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("document_reads", (string)null);
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Documents.DocumentTemplate", b =>
@@ -3474,6 +3535,88 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_bank_details_person_id");
 
                     b.ToTable("bank_details", (string)null);
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.People.ContactChangeRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("decision_note");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Mobile")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("mobile");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("phone");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_contact_change_requests");
+
+                    b.HasIndex("PersonId")
+                        .HasDatabaseName("ix_contact_change_requests_person_id")
+                        .HasFilter("status = 'Open' AND NOT deleted");
+
+                    b.ToTable("contact_change_requests", (string)null);
                 });
 
             modelBuilder.Entity("MietHahn.Domain.People.Person", b =>
@@ -6185,6 +6328,16 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_documents_unit_unit_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Documents.DocumentRead", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Documents.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_document_reads_documents_document_id");
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Documents.DocumentTemplateRevision", b =>
                 {
                     b.HasOne("MietHahn.Domain.Documents.DocumentTemplate", null)
@@ -6503,6 +6656,16 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_bank_details_person_person_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.People.ContactChangeRequest", b =>
+                {
+                    b.HasOne("MietHahn.Domain.People.Person", null)
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_contact_change_requests_person_person_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.People.Person", b =>

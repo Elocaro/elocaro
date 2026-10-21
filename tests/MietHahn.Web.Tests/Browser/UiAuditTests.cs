@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
 using MietHahn.Infrastructure.Identity;
+using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Web.Tests.Browser;
 
@@ -165,7 +168,7 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     public async Task Service_and_portal_pages_meet_contrast_fit_360_pixels_and_can_be_photographed(string role)
     {
         var email = $"{role.ToLowerInvariant()}@example.de";
-        string[] paths = role == Roles.Tenant ? ["/portal"] : ["/service", "/service/objekte"];
+        string[] paths = role == Roles.Tenant ? ["/portal", "/portal/dokumente", "/portal/vertrag", "/portal/kontakt"] : ["/service", "/service/objekte"];
         paths = await App.WithScopeAsync(async sp =>
         {
             var ct = TestContext.Current.CancellationToken;
@@ -173,6 +176,12 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
             var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, DisplayName = role + " Test" };
             Assert.True((await manager.CreateAsync(user, Password)).Succeeded);
             await manager.AddToRoleAsync(user, role);
+            if (role == Roles.Tenant)
+            {
+                await LinkTenantAsync(sp, user.Id, ct);
+                return paths;
+            }
+
             if (role != Roles.Caretaker)
             {
                 return paths;
@@ -315,5 +324,23 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
                 await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{prefix}-schnellsuche.png") });
             }
         }
+    }
+
+    private static async Task LinkTenantAsync(IServiceProvider sp, Guid userId, CancellationToken ct)
+    {
+        var properties = sp.GetRequiredService<IPropertyService>();
+        var property = (await properties.CreateAsync(new PropertyInput { Name = "Lindenweg 3 mit einem langen Namen", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, ct)).Id!.Value;
+        var unit = (await properties.CreateUnitAsync(property, new UnitInput { Name = "Wohnung 1", Location = "EG links" }, ct)).Id!.Value;
+        var person = (await sp.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt", Email = "anna@example.de", Phone = "0221 123456" }, null, ct)).Id!.Value;
+        var lease = (await sp.GetRequiredService<ILeaseService>().CreateAsync(
+            new LeaseCreation { RentalUnitId = unit, Start = new DateOnly(2025, 1, 1), TenantIds = [person], BaseRent = 650m, OperatingCostPrepayment = 120m }, ct)).Id!.Value;
+        var db = sp.GetRequiredService<MietHahnDbContext>();
+        (await db.Set<MietHahn.Domain.People.Person>().SingleAsync(p => p.Id == person, ct)).UserId = userId;
+        await db.SaveChangesAsync(ct);
+
+        using var pdf = new MemoryStream("%PDF-1.4\n%%EOF\n"u8.ToArray());
+        var file = await sp.GetRequiredService<MietHahn.Application.Files.IFileStore>().SaveAsync(pdf, "vertrag.pdf", ct);
+        Assert.True((await sp.GetRequiredService<MietHahn.Application.Documents.IDocumentLibrary>().CreateAsync(
+            file.Id, new MietHahn.Application.Documents.DocumentInput { Title = "Mietvertrag Wohnung 1", LeaseId = lease, SharedWithTenants = true }, ct)).Succeeded);
     }
 }

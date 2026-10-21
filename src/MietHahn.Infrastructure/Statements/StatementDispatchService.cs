@@ -122,6 +122,7 @@ internal sealed class StatementDispatchService(
                 LeaseId = leaseId,
                 PropertyId = prepared.Statement.Summary.PropertyId,
                 SharedWithTenants = true,
+                TenantsInformedElsewhere = true,
                 Note = "Beim Versand der Abrechnung automatisch abgelegt und im Mieterportal bereitgestellt.",
             }, cancellationToken);
             if (!documentResult.Succeeded)

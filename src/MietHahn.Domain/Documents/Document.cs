@@ -68,6 +68,11 @@ public sealed class Document : Entity
     /// <summary>Visible in the tenant portal to the tenants of the subject (lease, unit, property or person).</summary>
     public bool SharedWithTenants { get; set; }
 
+    /// <summary>When the tenants were told by mail about the release; <c>null</c> if not yet (the job sends it once).</summary>
+    public DateTimeOffset? TenantsNotifiedAt { get; private set; }
+
+    public void MarkTenantsNotified(DateTimeOffset timestamp) => TenantsNotifiedAt = timestamp;
+
     /// <summary>Visible in the service area to caretakers assigned to the property.</summary>
     public bool SharedWithCaretakers { get; set; }
 
@@ -98,4 +103,26 @@ public sealed class Document : Entity
     }
 
     public void Validate() => ArgumentException.ThrowIfNullOrWhiteSpace(Title);
+}
+
+/// <summary>A user opened or downloaded a released document: indication of receipt for the landlord.</summary>
+public sealed class DocumentRead : Entity
+{
+    private DocumentRead()
+    {
+    }
+
+    public DocumentRead(Guid documentId, Guid userId, DateTimeOffset readAt)
+    {
+        DocumentId = documentId;
+        UserId = userId;
+        ReadAt = readAt;
+    }
+
+    public Guid DocumentId { get; private set; }
+
+    public Guid UserId { get; private set; }
+
+    /// <summary>First time the user opened the document.</summary>
+    public DateTimeOffset ReadAt { get; private set; }
 }

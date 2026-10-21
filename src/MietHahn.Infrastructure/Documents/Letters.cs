@@ -111,6 +111,7 @@ internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocument
                 Date = today,
                 LeaseId = leaseId,
                 SharedWithTenants = request.ShareWithTenants,
+                TenantsInformedElsewhere = request.SendByMail,
                 TemplateRevisionId = revisionId,
                 Note = $"Aus der Vorlage „{template.Name}“ (Fassung {template.Revision}) erzeugt.",
             }, cancellationToken);

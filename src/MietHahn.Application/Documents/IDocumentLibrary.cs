@@ -22,6 +22,9 @@ public interface IDocumentLibrary
     /// <summary>Documents shared with tenants or caretakers that the account may see (portal, service area).</summary>
     Task<IReadOnlyList<DocumentRow>> SharedAsync(ClaimsPrincipal user, Guid? propertyId = null, CancellationToken cancellationToken = default);
 
+    /// <summary>Who has opened the released document in the portal (indication of receipt).</summary>
+    Task<IReadOnlyList<DocumentReadView>> ReadsAsync(Guid id, CancellationToken cancellationToken = default);
+
     /// <summary>Selection lists for the subject.</summary>
     Task<ReferenceOptions> ReferenceOptionsAsync(CancellationToken cancellationToken = default);
 }
@@ -68,6 +71,9 @@ public sealed class DocumentInput
     public bool SharedWithTenants { get; set; }
 
     public bool SharedWithCaretakers { get; set; }
+
+    /// <summary>The tenants already get the document by another channel (e.g. attached to a mail): no extra notice.</summary>
+    public bool TenantsInformedElsewhere { get; set; }
 }
 
 public sealed record DocumentRow(
@@ -83,6 +89,8 @@ public sealed record DocumentRow(
     long Size,
     bool ForTenants,
     bool ForCaretaker);
+
+public sealed record DocumentReadView(string Name, DateTimeOffset ReadAt);
 
 public sealed record DocumentDetails(DocumentRow Document, DocumentInput Data, string FileName, DateTimeOffset UploadedAt, string? UploadedBy);
 

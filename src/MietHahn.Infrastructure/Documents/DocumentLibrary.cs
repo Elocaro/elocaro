@@ -131,6 +131,15 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
         return lines.Where(z => toProperty.Contains(z.Id)).ToList();
     }
 
+    public async Task<IReadOnlyList<DocumentReadView>> ReadsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var reads = await db.Set<DocumentRead>().AsNoTracking().Where(l => l.DocumentId == id).OrderBy(l => l.ReadAt).ToListAsync(cancellationToken);
+        var userIds = reads.Select(l => l.UserId).ToList();
+        var names = (await db.Set<Person>().AsNoTracking().Where(p => p.UserId != null && userIds.Contains(p.UserId.Value)).ToListAsync(cancellationToken))
+            .ToDictionary(p => p.UserId!.Value, p => p.DisplayName);
+        return reads.Select(l => new DocumentReadView(names.GetValueOrDefault(l.UserId, "Unbekannt"), l.ReadAt)).ToList();
+    }
+
     public async Task<ReferenceOptions> ReferenceOptionsAsync(CancellationToken cancellationToken = default)
     {
         var properties = await db.Set<Property>().AsNoTracking().OrderBy(o => o.Name).Select(o => new ReferenceOption(o.Id, o.Name)).ToListAsync(cancellationToken);
@@ -157,6 +166,11 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
         document.Note = string.IsNullOrWhiteSpace(data.Note) ? null : data.Note.Trim();
         document.SharedWithTenants = data.SharedWithTenants;
         document.SharedWithCaretakers = data.SharedWithCaretakers;
+        if (data.TenantsInformedElsewhere && document.TenantsNotifiedAt is null)
+        {
+            document.MarkTenantsNotified(clock.GetUtcNow());
+        }
+
         document.SetTags((data.Tags ?? "").Split(',', ';'));
         document.SetReference(data.PropertyId, data.UnitId, data.LeaseId, data.PersonId);
         document.TemplateRevisionId = data.TemplateRevisionId ?? document.TemplateRevisionId;

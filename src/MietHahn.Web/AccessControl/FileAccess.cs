@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Files;
+using MietHahn.Application.Portal;
 using MietHahn.Domain.Files;
 
 namespace MietHahn.Web.AccessControl;
@@ -41,7 +42,7 @@ internal static class FileEndpoints
     public static IEndpointRouteBuilder MapFileEndpoints(this IEndpointRouteBuilder endpoints)
     {
         // Without a policy name the fallback policy (signed in) applies; the handler checks the file itself.
-        endpoints.MapGet("/dateien/{id:guid}", async (Guid id, bool? download, HttpContext context, IFileStore fileStore, IAuthorizationService authorization) =>
+        endpoints.MapGet("/dateien/{id:guid}", async (Guid id, bool? download, HttpContext context, IFileStore fileStore, IAuthorizationService authorization, ITenantPortal portal) =>
         {
             var opened = await fileStore.OpenAsync(id, context.RequestAborted);
             if (opened is null)
@@ -54,6 +55,9 @@ internal static class FileEndpoints
                 await opened.DisposeAsync();
                 return Results.Forbid();
             }
+
+            // Receipt indication for the landlord: tenants opening a released document.
+            await portal.MarkReadAsync(context.User, id, context.RequestAborted);
 
             // Never execute uploaded content as active content in the app context.
             context.Response.Headers.XContentTypeOptions = "nosniff";

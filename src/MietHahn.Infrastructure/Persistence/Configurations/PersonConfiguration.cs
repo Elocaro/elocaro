@@ -62,3 +62,18 @@ internal sealed class BankDetailsConfiguration : IEntityTypeConfiguration<BankDe
         builder.HasIndex(b => b.Iban);
     }
 }
+
+internal sealed class ContactChangeRequestConfiguration : IEntityTypeConfiguration<ContactChangeRequest>
+{
+    public void Configure(EntityTypeBuilder<ContactChangeRequest> builder)
+    {
+        builder.ToTable("contact_change_requests");
+        builder.Property(a => a.Email).HasMaxLength(254);
+        builder.Property(a => a.Phone).HasMaxLength(50);
+        builder.Property(a => a.Mobile).HasMaxLength(50);
+        builder.Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(a => a.DecisionNote).HasMaxLength(500);
+        builder.HasOne<Person>().WithMany().HasForeignKey(a => a.PersonId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(a => a.PersonId).HasFilter("status = 'Open' AND NOT deleted");
+    }
+}
