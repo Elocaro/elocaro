@@ -229,6 +229,7 @@ public static class DependencyInjection
         services.AddScoped<RentStepApplication>();
         services.AddScoped<ITodoSource, RentModelTodos>();
         services.AddScoped<IMeterService, MeterService>();
+        services.AddScoped<IMeterImport, MeterImport>();
         services.AddScoped<IDepreciationService, DepreciationService>();
         services.AddScoped<ILoanService, LoanService>();
         services.AddScoped<IMaintenanceService, MaintenanceService>();

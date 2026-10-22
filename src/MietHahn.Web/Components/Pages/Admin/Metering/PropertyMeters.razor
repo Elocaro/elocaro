@@ -22,6 +22,7 @@ else
             @if (meter.Count > 0)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/ablesung")">Ablese-Runde starten</MudButton>
+                <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/zaehlerimport")">Stände importieren (CSV)</MudButton>
             }
         </Actions>
     </PageHeader>
