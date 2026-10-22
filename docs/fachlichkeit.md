@@ -5,7 +5,7 @@ Ergebnis des Anforderungsinterviews (Oktober 2026). Rechtliche Hinweise sind Ums
 ## Ausgangslage
 
 - 1 Mehrfamilienhaus mit 4 Wohneinheiten, eine davon ist eine **WG mit Einzelverträgen je Zimmer**. Weitere Häuser müssen verwaltbar sein.
-- Alleineigentum. Eigentümer je Objekt mit Anteilen kommt **später**.
+- Alleineigentum ist der Normalfall. Eigentümer je Objekt mit Anteilen (Miteigentum nach Bruchteilen) lassen sich erfassen; ohne Eintrag gehört das Objekt dem Vermieter allein.
 - Keine WEG, keine Gewerbeeinheiten.
 - **Heizung zentral (Gas/Öl)**, Warmwasser zentral, **Wärmemengenzähler je Wohnung**, Abrechnung **selbst** (kein Messdienst).
 - Zähler: Wasserzähler je Wohnung, Hauptzähler, Allgemeinstrom. Keine Funkzähler.
@@ -21,6 +21,7 @@ Ergebnis des Anforderungsinterviews (Oktober 2026). Rechtliche Hinweise sind Ums
 | **Hausmeister** | Tickets, Aufgaben, Objekte (ohne Finanzen/Mieter-Personendaten außer Kontakt) | Lokales Konto oder Magic Link |
 | **Handwerker** | Nur die ihm zugewiesenen Tickets | Magic Link (zeitlich begrenzt) |
 | **Mieter** | Eigene Verträge, Dokumente, Tickets, Aushänge des Hauses | Magic Link per E-Mail |
+| **Eigentümer** (Miteigentümer eines Objekts) | Nur lesend: eigene Objekte und der eigene Anteil an der Anlage V | Lokales Konto + 2FA (TOTP) |
 
 ## Domänenmodell (Kern)
 

@@ -170,11 +170,14 @@ internal sealed class PersonService(
         }
         else
         {
+            // A person who owns a property and is not a tenant gets the owner access (read-only view of their share).
+            var owner = await db.Set<MietHahn.Domain.Properties.PropertyOwner>().AnyAsync(o => o.PersonId == person.Id, cancellationToken)
+                && !await db.Set<MietHahn.Domain.Leases.Lease>().AnyAsync(v => v.Parties.Any(p => p.PersonId == person.Id), cancellationToken);
             var role = person.ContactType switch
             {
                 ContactType.Caretaker => Roles.Caretaker,
                 ContactType.Tradesperson => Roles.Tradesperson,
-                _ => Roles.Tenant,
+                _ => owner ? Roles.Owner : Roles.Tenant,
             };
             var invitation = await accounts.InviteAsync(person.Email, person.DisplayName, role, cancellationToken);
             if (!invitation.Succeeded)

@@ -11,7 +11,8 @@ internal static class AccessControlExtensions
         builder
             .AddPolicy(Policies.Admin, p => p.RequireRole(Roles.Admin, Roles.Manager))
             .AddPolicy(Policies.Service, p => p.RequireRole(Roles.Caretaker, Roles.Tradesperson))
-            .AddPolicy(Policies.Portal, p => p.RequireRole(Roles.Tenant));
+            .AddPolicy(Policies.Portal, p => p.RequireRole(Roles.Tenant))
+            .AddPolicy(Policies.Owner, p => p.RequireRole(Roles.Owner));
 
         foreach (var permission in Permissions.All)
         {
@@ -31,5 +32,6 @@ internal static class AccessControlExtensions
         user.IsInRole(Roles.Admin) || user.IsInRole(Roles.Manager) ? "/verwaltung"
         : user.IsInRole(Roles.Caretaker) || user.IsInRole(Roles.Tradesperson) ? "/service"
         : user.IsInRole(Roles.Tenant) ? "/portal"
+        : user.IsInRole(Roles.Owner) ? "/eigentuemer"
         : "/konto/sicherheit";
 }

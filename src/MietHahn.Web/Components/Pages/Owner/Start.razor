@@ -1,0 +1,50 @@
+@page "/eigentuemer"
+@attribute [StreamRendering]
+@using MietHahn.Application.Portal
+@inject IOwnerPortal Owner
+@inject AuthenticationStateProvider Authentication
+@inject TimeProvider Clock
+
+<PageHeader Title="Meine Objekte" Subtitle="Ihre Objekte und Anteile. Die Auswertung zeigt nur Ihren Anteil." />
+
+@if (properties is null)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (properties.Count == 0)
+{
+    <EmptyState Text="Für Ihr Konto sind keine Objekte hinterlegt." />
+}
+else
+{
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Objekt</th><th class="number">Anteil</th><th>Gültig</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var property in properties)
+                {
+                    <tr>
+                        <td>@property.Name <span class="small">· @property.Address</span></td>
+                        <td class="number">@property.SharePercent.ToString("0.##") %</td>
+                        <td>@(property.Since is { } since ? $"ab {Format.Date(since)}" : "seit jeher")@(property.Until is { } until ? $" bis {Format.Date(until)}" : "")</td>
+                        <td><a class="button" href="/eigentuemer/objekte/@property.PropertyId/anlage-v?jahr=@YearFor(property)">Anlage V @YearFor(property)</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<OwnedPropertyView>? properties;
+
+    protected override async Task OnInitializedAsync() =>
+        properties = await Owner.PropertiesAsync((await Authentication.GetAuthenticationStateAsync()).User);
+
+    /// <summary>Last year, or the year the ownership ended if that was earlier.</summary>
+    private int YearFor(OwnedPropertyView property)
+    {
+        var last = MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+        return property.Until is { } until && until.Year < last ? until.Year : last;
+    }
+}

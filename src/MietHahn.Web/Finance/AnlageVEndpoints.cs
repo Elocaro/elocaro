@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Documents;
+using MietHahn.Application.Portal;
 using MietHahn.Application.Tax;
 using MietHahn.Domain.Tax;
 
@@ -37,6 +38,18 @@ internal static class AnlageVEndpoints
             context.Response.Headers.CacheControl = "private, no-store";
             return Results.File(bytes, "application/pdf", $"anlage-v-{jahr}{(eigentuemer is null ? "" : "-eigentuemer")}.pdf");
         }).RequireAuthorization(Policies.Finance);
+
+        // Owners only get their own share, and only the figures (no links into the administration).
+        endpoints.MapGet("/eigentuemer/objekte/{propertyId:guid}/anlage-v.csv", async (Guid propertyId, int jahr, IOwnerPortal portal, HttpContext context) =>
+        {
+            if (await portal.AnlageVAsync(context.User, propertyId, jahr, false, context.RequestAborted) is not { } report)
+            {
+                return Results.NotFound();
+            }
+
+            context.Response.Headers.CacheControl = "private, no-store";
+            return Results.File(Csv(report), "text/csv; charset=utf-8", $"anlage-v-{jahr}.csv");
+        }).RequireAuthorization(Policies.Owner);
         return endpoints;
     }
 
