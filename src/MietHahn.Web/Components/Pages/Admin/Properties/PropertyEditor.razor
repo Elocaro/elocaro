@@ -1,4 +1,6 @@
 @* Fields of a property for interactive pages; sits inside an EditForm with Model = Data. *@
+@using MietHahn.Application.Admin
+@inject ILandlordProfileService LandlordProfiles
 <div class="form-grid">
     <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Lindenweg 3“" />
     <AppTextField @bind-Value="Data.Street" Label="Straße und Hausnummer" Required="true" Autocomplete="street-address" />
@@ -11,10 +13,18 @@
     <AppTextField @bind-Value="Data.CadastralDistrict" Label="Gemarkung" />
     <AppTextField @bind-Value="Data.ParcelNumber" Label="Flur/Flurstück" />
     <AppTextField @bind-Value="Data.PropertyTaxReference" Label="Grundsteuer-Aktenzeichen" />
+    @if (profiles.Count > 1)
+    {
+        <AppSelect T="Guid?" @bind-Value="Data.LandlordProfileId" Label="Absender auf Dokumenten" EmptyText="Standardprofil" Hint="Briefkopf, Fußzeile und Bankverbindung der Dokumente dieses Objekts." Items="profiles.Where(p => !p.IsDefault).Select(p => (Guid?)p.Id).ToList()" Text="@(id => profiles.FirstOrDefault(p => p.Id == id)?.Name ?? "")" />
+    }
 </div>
 <AppTextField @bind-Value="Data.Notes" Label="Notizen" Lines="3" />
 
 @code {
+    private IReadOnlyList<LandlordProfileRow> profiles = [];
+
     [Parameter, EditorRequired]
     public PropertyInput Data { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync() => profiles = await LandlordProfiles.ListAsync();
 }

@@ -325,6 +325,7 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
         EnergySource = o.EnergySource,
         RentCapPercent = o.RentCapPercent,
         Notes = o.Notes,
+        LandlordProfileId = o.LandlordProfileId,
     };
 
     private static UnitInput Data(Unit e) => new()
@@ -354,6 +355,7 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
         o.EnergySource = d.EnergySource;
         o.RentCapPercent = d.RentCapPercent is 15 ? 15 : 20;
         o.Notes = TrimToNull(d.Notes);
+        o.LandlordProfileId = d.LandlordProfileId;
     }
 
     private static void Apply(Unit e, UnitInput d)

@@ -179,6 +179,34 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
         Total = 1234.56m,
     };
 
+    [Fact]
+    public async Task Documents_of_a_property_carry_the_sender_chosen_for_it()
+    {
+        var (own, plain) = await SenderPropertiesAsync();
+
+        var (chosen, chosenFooter) = await HtmlAsync(new PdfRequest("test", "Brief", TestModel(), Erika, PropertyId: own));
+        var (standard, standardFooter) = await HtmlAsync(new PdfRequest("test", "Brief", TestModel(), Erika, PropertyId: plain));
+        var (none, _) = await HtmlAsync(new PdfRequest("test", "Brief", TestModel(), Erika));
+
+        Assert.Contains("Eigentümergemeinschaft Lindenweg", chosen + chosenFooter, StringComparison.Ordinal);
+        Assert.DoesNotContain("Andy Hahn", chosen + chosenFooter, StringComparison.Ordinal);
+        Assert.Contains("Andy Hahn", standard + standardFooter, StringComparison.Ordinal);
+        Assert.Contains("Andy Hahn", none, StringComparison.Ordinal);
+    }
+
+    private async Task<(Guid WithProfile, Guid Without)> SenderPropertiesAsync()
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<MietHahnDbContext>();
+        var other = new LandlordProfile("Eigentümergemeinschaft Lindenweg", "Lindenweg 3", "50667", "Köln");
+        db.Add(other);
+        var withProfile = new MietHahn.Domain.Properties.Property("Lindenweg 3", "Lindenweg 3", "50667", "Köln") { LandlordProfileId = other.Id };
+        var without = new MietHahn.Domain.Properties.Property("Buchenweg 1", "Buchenweg 1", "50667", "Köln");
+        db.AddRange(withProfile, without);
+        await db.SaveChangesAsync(Ct);
+        return (withProfile.Id, without.Id);
+    }
+
     private async Task<(string Html, string Footer)> HtmlAsync(PdfRequest job)
     {
         await using var scope = environment.Services.CreateAsyncScope();

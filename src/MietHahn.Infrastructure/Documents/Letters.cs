@@ -152,7 +152,7 @@ internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocument
         var today = GermanTime.Today(clock.GetUtcNow());
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).SingleOrDefaultAsync(v => v.Id == leaseId, cancellationToken)
             ?? throw new RuleViolationException("Der Mietvertrag wurde nicht gefunden.");
-        var landlord = await db.Set<LandlordProfile>().AsNoTracking().OrderBy(v => v.CreatedAt).FirstOrDefaultAsync(cancellationToken)
+        var landlord = await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
             ?? throw new RuleViolationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.");
         var people = TenantsOf(lease, await PeopleAsync([lease], cancellationToken));
         var rentalUnit = (await RentalUnit.GetAsync(db, cancellationToken)).GetValueOrDefault(lease.RentalUnitId)
@@ -176,7 +176,7 @@ internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocument
             throw new RuleViolationException(ex.Message);
         }
 
-        var request = new PdfRequest(null, subject, model, LetterParts.AddressOf(people, rentalUnit.Name, property, today), template.Body, today);
+        var request = new PdfRequest(null, subject, model, LetterParts.AddressOf(people, rentalUnit.Name, property, today), template.Body, today, property.Id);
         var emails = people.Select(p => p.Email).Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e!.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         return new Prepared(request, string.Join(", ", people.Select(p => p.DisplayName)), emails, salutation, landlord.Name);
     }

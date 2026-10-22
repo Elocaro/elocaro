@@ -44,6 +44,9 @@ public sealed class PropertyInput
 
     [StringLength(4000)]
     public string? Notes { get; set; }
+
+    /// <summary>Sender details for the documents of this property; empty = the standard profile.</summary>
+    public Guid? LandlordProfileId { get; set; }
 }
 
 public sealed class UnitInput

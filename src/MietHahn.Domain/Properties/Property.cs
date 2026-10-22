@@ -81,6 +81,9 @@ public sealed class Property : Entity
 
     public string? Notes { get; set; }
 
+    /// <summary>Sender details for the documents of this property; empty = the standard profile.</summary>
+    public Guid? LandlordProfileId { get; set; }
+
     public List<Unit> Units { get; private set; } = [];
 
     public List<PropertyArea> Areas { get; private set; } = [];

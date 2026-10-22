@@ -149,7 +149,7 @@ internal sealed class LeaseContracts(MietHahnDbContext db, IPdfGenerator pdf, ID
             throw new RuleViolationException(ex.Message);
         }
 
-        return new PdfRequest(null, title, model, null, template.Body, today);
+        return new PdfRequest(null, title, model, null, template.Body, today, await Admin.LandlordProfiles.PropertyOfLeaseAsync(db, leaseId, cancellationToken));
     }
 
     private async Task<string> TenantNamesAsync(Guid leaseId, CancellationToken cancellationToken)
@@ -164,7 +164,7 @@ internal sealed class LeaseContracts(MietHahnDbContext db, IPdfGenerator pdf, ID
     {
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).Include(v => v.RentSteps).Include(v => v.People)
             .SingleOrDefaultAsync(v => v.Id == leaseId, cancellationToken) ?? throw new RuleViolationException("Der Mietvertrag wurde nicht gefunden.");
-        var landlord = await db.Set<LandlordProfile>().AsNoTracking().OrderBy(v => v.CreatedAt).FirstOrDefaultAsync(cancellationToken)
+        var landlord = await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
             ?? throw new RuleViolationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter).");
         var rentalUnit = (await RentalUnit.GetAsync(db, cancellationToken)).GetValueOrDefault(lease.RentalUnitId)
             ?? throw new RuleViolationException("Die Mietsache wurde nicht gefunden.");

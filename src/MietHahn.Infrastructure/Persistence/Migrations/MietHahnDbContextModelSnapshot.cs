@@ -4546,6 +4546,10 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("image_file_id");
 
+                    b.Property<Guid?>("LandlordProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("landlord_profile_id");
+
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("modified_at");
@@ -4610,6 +4614,9 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ImageFileId")
                         .HasDatabaseName("ix_properties_image_file_id");
+
+                    b.HasIndex("LandlordProfileId")
+                        .HasDatabaseName("ix_properties_landlord_profile_id");
 
                     b.ToTable("properties", (string)null);
                 });
@@ -8148,6 +8155,12 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ImageFileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_properties_stored_file_image_file_id");
+
+                    b.HasOne("MietHahn.Domain.Admin.LandlordProfile", null)
+                        .WithMany()
+                        .HasForeignKey("LandlordProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_properties_landlord_profiles_landlord_profile_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Properties.PropertyArea", b =>

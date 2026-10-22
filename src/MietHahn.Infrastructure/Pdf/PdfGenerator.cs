@@ -40,7 +40,7 @@ internal sealed class PdfGenerator(
             throw new ArgumentException("Eine Briefanschrift hat 1 bis 6 Zeilen.", nameof(job));
         }
 
-        var sender = await db.Set<LandlordProfile>().AsNoTracking().OrderBy(v => v.CreatedAt).FirstOrDefaultAsync(cancellationToken)
+        var sender = await Admin.LandlordProfiles.ForPropertyAsync(db, job.PropertyId, cancellationToken)
             ?? throw new InvalidOperationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Fußzeile benötigt.");
 
         var content = job switch

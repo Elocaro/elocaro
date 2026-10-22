@@ -148,7 +148,7 @@ internal sealed class NoticeService(MietHahnDbContext db, IPdfGenerator pdf, Tim
 
         var property = await db.Set<Property>().AsNoTracking().Where(o => o.Id == notice.PropertyId).Select(o => o.Name).FirstOrDefaultAsync(cancellationToken) ?? "";
         var paragraphs = notice.Body.Split(["\r\n", "\n"], StringSplitOptions.None).ToList();
-        return await pdf.GenerateAsync(new PdfRequest("notice", notice.Title, new
+        return await pdf.GenerateAsync(new PdfRequest("notice", notice.Title, PropertyId: notice.PropertyId, Model: new
         {
             title = notice.Title,
             paragraphs,

@@ -33,7 +33,7 @@ internal static class AnlageVEndpoints
                 return Results.NotFound();
             }
 
-            var bytes = await pdf.GenerateAsync(new PdfRequest("anlage-v", $"Anlage V {jahr} – {report.PropertyName}{(report.OwnerName is null ? "" : $" – {report.OwnerName}")}", Model(report)), context.RequestAborted);
+            var bytes = await pdf.GenerateAsync(new PdfRequest("anlage-v", $"Anlage V {jahr} – {report.PropertyName}{(report.OwnerName is null ? "" : $" – {report.OwnerName}")}", Model(report), PropertyId: propertyId), context.RequestAborted);
             context.Response.Headers.XContentTypeOptions = "nosniff";
             context.Response.Headers.CacheControl = "private, no-store";
             return Results.File(bytes, "application/pdf", $"anlage-v-{jahr}{(eigentuemer is null ? "" : "-eigentuemer")}.pdf");

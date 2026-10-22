@@ -566,7 +566,7 @@ internal sealed class RentIncreases(MietHahnDbContext db, IPdfGenerator pdf, IDo
             throw new RuleViolationException(ex.Message);
         }
 
-        var request = new PdfRequest(null, title, plan.Model, LetterParts.AddressOf(context.Tenants, context.RentalUnit.Name, context.Property, Today), template.Body, Today);
+        var request = new PdfRequest(null, title, plan.Model, LetterParts.AddressOf(context.Tenants, context.RentalUnit.Name, context.Property, Today), template.Body, Today, context.Property.Id);
         return (request, revision.Id, template.Name);
     }
 
@@ -601,7 +601,7 @@ internal sealed class RentIncreases(MietHahnDbContext db, IPdfGenerator pdf, IDo
         var ids = lease.Tenant.Select(p => p.PersonId).ToList();
         var people = await db.Set<Person>().AsNoTracking().Include(p => p.Addresses).Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
         var tenants = ids.Select(i => people.First(p => p.Id == i)).ToList();
-        var landlord = await db.Set<LandlordProfile>().AsNoTracking().OrderBy(v => v.CreatedAt).FirstOrDefaultAsync(cancellationToken);
+        var landlord = await Admin.LandlordProfiles.ForPropertyAsync(db, property.Id, cancellationToken);
         return new Context(lease, rentalUnit, property, area, tenants, landlord ?? new LandlordProfile("(Vermieter fehlt)", "", "", ""),
             string.Join(" und ", tenants.Select(p => p.DisplayName)), LetterParts.SalutationOf(tenants));
     }

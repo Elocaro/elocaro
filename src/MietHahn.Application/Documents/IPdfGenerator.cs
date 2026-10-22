@@ -18,13 +18,15 @@ public interface IPdfGenerator
 /// <param name="Recipient">With a recipient a letter is produced (address window, fold marks), otherwise a plain document.</param>
 /// <param name="TemplateText">Template text, e.g. from the user-maintained template management.</param>
 /// <param name="Date">Letter date; defaults to today (German time).</param>
+/// <param name="PropertyId">Property whose sender details (landlord profile) the document carries; empty = the standard profile.</param>
 public sealed record PdfRequest(
     string? Template,
     string Title,
     object? Model = null,
     PostalAddress? Recipient = null,
     string? TemplateText = null,
-    DateOnly? Date = null);
+    DateOnly? Date = null,
+    Guid? PropertyId = null);
 
 /// <param name="Rows">Address lines, e.g. name, street, postcode city (at most 6).</param>
 /// <param name="Remark">Optional remark above the address, e.g. "Einschreiben".</param>

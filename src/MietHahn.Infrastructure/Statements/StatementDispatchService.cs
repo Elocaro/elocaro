@@ -251,7 +251,7 @@ internal sealed class StatementDispatchService(
         var tenant = statement.Result.Tenants.FirstOrDefault(t => t.LeaseId == leaseId)
             ?? throw new RuleViolationException("Der Mietvertrag ist nicht Teil dieser Abrechnung.");
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).SingleOrDefaultAsync(v => v.Id == leaseId, cancellationToken) ?? throw new NotFoundException();
-        var landlord = await db.Set<LandlordProfile>().AsNoTracking().OrderBy(v => v.CreatedAt).FirstOrDefaultAsync(cancellationToken)
+        var landlord = await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
             ?? throw new RuleViolationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.");
         var today = GermanTime.Today(clock.GetUtcNow());
         var period = statement.Summary.BillingPeriod;
@@ -336,7 +336,7 @@ internal sealed class StatementDispatchService(
             landlord.Bic,
             landlord.Bank,
         };
-        var request = new PdfRequest("statement", $"Betriebskostenabrechnung {Format(period)}", model, new PostalAddress(LetterParts.AddressOf(people, rentalUnit?.Name, property, today).Rows), Date: today);
+        var request = new PdfRequest("statement", $"Betriebskostenabrechnung {Format(period)}", model, new PostalAddress(LetterParts.AddressOf(people, rentalUnit?.Name, property, today).Rows), Date: today, PropertyId: property?.Id);
         var isCurrent = summary.Current;
         return new Prepared(statement, tenant, request, model, emails, toBook, excluded, due, proposals, isCurrent);
     }

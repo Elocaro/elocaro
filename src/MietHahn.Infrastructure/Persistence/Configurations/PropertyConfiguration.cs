@@ -25,6 +25,7 @@ internal sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         builder.Property(o => o.EnergySource).HasConversion<string>().HasMaxLength(30);
         builder.HasOne<StoredFile>().WithMany().HasForeignKey(o => o.ImageFileId).OnDelete(DeleteBehavior.Restrict);
         builder.Ignore(o => o.Address);
+        builder.HasOne<MietHahn.Domain.Admin.LandlordProfile>().WithMany().HasForeignKey(o => o.LandlordProfileId).OnDelete(DeleteBehavior.Restrict);
 
         // Children of the aggregate: removing from the list deletes (softly, see EntitySaveInterceptor).
         builder.HasMany(o => o.Units).WithOne().HasForeignKey(e => e.PropertyId).OnDelete(DeleteBehavior.Cascade);

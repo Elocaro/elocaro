@@ -6,10 +6,24 @@ namespace MietHahn.Application.Admin;
 /// <summary>Maintenance of the sender details (letterhead, footer, bank details).</summary>
 public interface ILandlordProfileService
 {
+    /// <summary>The standard profile (the oldest one); <c>null</c> if none exists yet.</summary>
     Task<LandlordProfileInput?> GetAsync(CancellationToken cancellationToken = default);
 
     Task SaveAsync(LandlordProfileInput data, CancellationToken cancellationToken = default);
+
+    /// <summary>All profiles, the standard profile first. Further profiles can be chosen per property.</summary>
+    Task<IReadOnlyList<LandlordProfileRow>> ListAsync(CancellationToken cancellationToken = default);
+
+    Task<LandlordProfileInput?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates a further profile (<paramref name="id"/> empty) or changes one.</summary>
+    Task<Result> SaveAsync(Guid? id, LandlordProfileInput data, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes a further profile; not the standard profile and not one a property still uses.</summary>
+    Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }
+
+public sealed record LandlordProfileRow(Guid Id, string Name, string City, bool IsDefault, int Properties);
 
 public sealed class LandlordProfileInput
 {

@@ -409,7 +409,7 @@ internal sealed class DunningService(
         var today = GermanTime.Today(clock.GetUtcNow());
         var rules = (await FinanceSettingsService.GetOrCreateAsync(db, cancellationToken)).DunningRules;
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).SingleOrDefaultAsync(v => v.Id == proposal.LeaseId, cancellationToken);
-        var landlord = await db.Set<LandlordProfile>().AsNoTracking().OrderBy(v => v.CreatedAt).FirstOrDefaultAsync(cancellationToken);
+        var landlord = lease is null ? null : await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken);
         if (lease is null)
         {
             return null;
