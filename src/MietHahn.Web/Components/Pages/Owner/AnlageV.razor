@@ -13,10 +13,12 @@
 else if (report is null)
 {
     <PageHeader Title="Keine Auswertung" Subtitle="@($"Für {Year} liegt kein Eigentum an diesem Objekt vor.")" Back="/eigentuemer" BackText="Meine Objekte" />
-    <form method="get" class="form-row search-bar">
-        <label>Steuerjahr <input type="number" name="jahr" value="@Year" min="2000" max="2100" /></label>
-        <button type="submit" class="button">Anzeigen</button>
-    </form>
+    <FilterBar SubmitText="Anzeigen" AllowReset="false">
+        <div class="field">
+            <label for="jahr">Steuerjahr</label>
+            <input id="jahr" type="number" name="jahr" value="@Year" min="2000" max="2100" />
+        </div>
+    </FilterBar>
 }
 else
 {
@@ -26,10 +28,12 @@ else
         </Actions>
     </PageHeader>
 
-    <form method="get" class="form-row search-bar">
-        <label>Steuerjahr <input type="number" name="jahr" value="@Year" min="2000" max="2100" /></label>
-        <button type="submit" class="button">Anzeigen</button>
-    </form>
+    <FilterBar SubmitText="Anzeigen" AllowReset="false">
+        <div class="field">
+            <label for="jahr">Steuerjahr</label>
+            <input id="jahr" type="number" name="jahr" value="@Year" min="2000" max="2100" />
+        </div>
+    </FilterBar>
 
     @if (report.Warnings.Count > 0)
     {

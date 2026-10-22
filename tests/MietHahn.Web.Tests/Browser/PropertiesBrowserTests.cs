@@ -48,6 +48,36 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
     }
 
     [Fact]
+    public async Task Owners_are_entered_with_shares_and_a_total_above_100_percent_is_refused()
+    {
+        var propertyId = await CreateHouseAsync();
+        await App.WithScopeAsync(async sp =>
+        {
+            var people = sp.GetRequiredService<MietHahn.Application.People.IPersonService>();
+            await people.CreateAsync(new MietHahn.Application.People.PersonInput { FirstName = "Anna", LastName = "Schmidt" }, null, TestContext.Current.CancellationToken);
+            await people.CreateAsync(new MietHahn.Application.People.PersonInput { FirstName = "Ben", LastName = "Weber" }, null, TestContext.Current.CancellationToken);
+            return true;
+        });
+        var page = await OpenAsync($"/verwaltung/objekte/{propertyId}");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await OpenTabAsync(page, "Eigentümer");
+            await SelectAsync(page, "Person", "Anna Schmidt", exact: false);
+            await page.GetByLabel("Anteil").FillAsync("60");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Eigentümer hinzufügen" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "Der Eigentümer wurde eingetragen.");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("60 %");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("ergeben zusammen 60 % statt 100 %");
+
+            await SelectAsync(page, "Person", "Ben Weber", exact: false);
+            await page.GetByLabel("Anteil").FillAsync("50");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Eigentümer hinzufügen" }).ClickAsync();
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("mehr als 100 %");
+        });
+    }
+
+    [Fact]
     public async Task Units_rooms_and_areas_are_entered_in_dialogs()
     {
         var propertyId = await CreateHouseAsync();

@@ -1,7 +1,9 @@
 @page "/verwaltung/objekte/neu"
 @rendermode InteractiveServer
 @using MudBlazor
+@using MietHahn.Application.Admin
 @inject IPropertyService Admin
+@inject ILandlordProfileService LandlordProfiles
 @inject NavigationManager Navigation
 
 <InteractiveShell>
@@ -11,7 +13,7 @@
 
     <EditForm Model="data" OnValidSubmit="CreateAsync" novalidate>
         <DataAnnotationsValidator />
-        <PropertyEditor Data="data" />
+        <PropertyEditor Data="data" Profiles="profiles" />
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Objekt anlegen</MudButton>
     </EditForm>
 </InteractiveShell>
@@ -19,6 +21,9 @@
 @code {
     private readonly PropertyInput data = new() { HeatingType = HeatingType.CentralHeating };
     private IReadOnlyList<string>? errors;
+    private IReadOnlyList<LandlordProfileRow> profiles = [];
+
+    protected override async Task OnInitializedAsync() => profiles = await LandlordProfiles.ListAsync();
 
     private async Task CreateAsync()
     {

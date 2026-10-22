@@ -2,7 +2,9 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @using MietHahn.Application.Files
+@using MietHahn.Application.Admin
 @inject IPropertyService Admin
+@inject ILandlordProfileService LandlordProfiles
 @inject IFileStore Storage
 @inject IDialogService Dialogs
 @inject NavigationManager Navigation
@@ -138,7 +140,7 @@ else
         <ErrorList Errors="editErrors" />
         <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />
-            <PropertyEditor Data="data" />
+            <PropertyEditor Data="data" Profiles="profiles" />
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
 
@@ -176,7 +178,13 @@ else
     [Parameter]
     public Guid Id { get; set; }
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    private IReadOnlyList<LandlordProfileRow> profiles = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        profiles = await LandlordProfiles.ListAsync();
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {

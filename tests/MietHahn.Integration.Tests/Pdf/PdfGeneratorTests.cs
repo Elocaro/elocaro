@@ -41,6 +41,8 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
         var model = new
         {
             property = "Lindenweg 3",
+            owner = (string?)null,
+            owner_share = (decimal?)null,
             year = 2026,
             warnings = new[] { "Die AfA fehlt." },
             income = new[] { new { line = 13, label = "Mieteinnahmen (Kaltmiete)", amount = 1240m } },

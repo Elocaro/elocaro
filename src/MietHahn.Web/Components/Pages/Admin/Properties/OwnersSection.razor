@@ -1,8 +1,8 @@
+@inherits DataComponent
 @using MudBlazor
 @using MietHahn.Domain.Common
 @using MietHahn.Application.Documents
 @inject IPropertyOwners Owners
-@inject IDocumentLibrary Documents
 @inject Notifier Notify
 @inject Confirmations Confirm
 @inject TimeProvider Clock
@@ -55,7 +55,7 @@
         <EditForm Model="input" OnValidSubmit="AddAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
-                <OptionSelect @bind-Value="input.PersonId" Label="Person" Options="people" Required="true" />
+                <OptionSelect @bind-Value="input.PersonId" Label="Person" Options="people" />
                 <AppNumberField T="decimal?" @bind-Value="input.SharePercent" Label="Anteil" Suffix="%" Required="true" />
                 <AppDateField @bind-Value="input.ValidFrom" Label="Gültig ab" Hint="leer = seit jeher" />
                 <AppDateField @bind-Value="input.ValidTo" Label="Gültig bis" Hint="leer = bis auf Weiteres" />
@@ -76,11 +76,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        people = (await Documents.ReferenceOptionsAsync()).People.OrderBy(p => p.Name, StringComparer.CurrentCulture).Select(p => (p.Id, p.Name)).ToList();
+        people = (await GetAsync<IDocumentLibrary, ReferenceOptions>(d => d.ReferenceOptionsAsync())).People.OrderBy(p => p.Name, StringComparer.CurrentCulture).Select(p => (p.Id, p.Name)).ToList();
         await LoadAsync();
     }
 
-    private async Task LoadAsync() => ownership = await Owners.GetAsync(PropertyId);
+    // Own scope per load: several sections of the page load at the same time (see DataComponent).
+    private async Task LoadAsync() => ownership = await GetAsync<IPropertyOwners, PropertyOwnership>(o => o.GetAsync(PropertyId));
 
     private async Task AddAsync()
     {
