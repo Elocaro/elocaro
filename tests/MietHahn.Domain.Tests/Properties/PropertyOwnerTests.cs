@@ -79,4 +79,21 @@ public class PropertyOwnerTests
         owner.End(new DateOnly(2026, 8, 31));
         Assert.Equal(new DateOnly(2026, 8, 31), owner.ValidTo);
     }
+
+    [Fact]
+    public void Year_share_is_weighted_by_days_and_zero_without_ownership()
+    {
+        var anna = Guid.NewGuid();
+        var owners = new[]
+        {
+            Owner(50m, null, new DateOnly(2026, 6, 30), anna),
+            Owner(100m, new DateOnly(2026, 7, 1), null, anna),
+            Owner(50m),
+        };
+
+        Assert.Equal(50m, PropertyOwner.YearShare(owners, anna, 2025));
+        Assert.Equal(Math.Round((50m * 181 + 100m * 184) / 365m, 4), PropertyOwner.YearShare(owners, anna, 2026));
+        Assert.Equal(100m, PropertyOwner.YearShare(owners, anna, 2027));
+        Assert.Equal(0m, PropertyOwner.YearShare(owners, Guid.NewGuid(), 2026));
+    }
 }

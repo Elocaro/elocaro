@@ -51,6 +51,35 @@ public class AnlageVPageTests(PostgresFixture postgres) : AccountTestBase(postgr
     }
 
     [Fact]
+    public async Task Evaluation_for_an_owner_shows_the_share_of_every_amount_in_page_and_csv()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        var (property, _) = await PropertyWithReceiptAsync();
+        var (anna, ben) = await App.WithScopeAsync(async sp =>
+        {
+            var people = sp.GetRequiredService<MietHahn.Application.People.IPersonService>();
+            var a = (await people.CreateAsync(new MietHahn.Application.People.PersonInput { FirstName = "Anna", LastName = "Schmidt" }, null, Ct)).Id!.Value;
+            var b = (await people.CreateAsync(new MietHahn.Application.People.PersonInput { FirstName = "Ben", LastName = "Weber" }, null, Ct)).Id!.Value;
+            var owners = sp.GetRequiredService<IPropertyOwners>();
+            await owners.AddAsync(property, new OwnerInput { PersonId = a, SharePercent = 60m, ValidFrom = new DateOnly(2020, 1, 1) }, Ct);
+            await owners.AddAsync(property, new OwnerInput { PersonId = b, SharePercent = 40m, ValidFrom = new DateOnly(2020, 1, 1) }, Ct);
+            return (a, b);
+        });
+
+        var page = await admin.GetAsync($"/verwaltung/objekte/{property}/anlage-v?jahr=2026&eigentuemer={anna}");
+        Assert.Contains("Schmidt", page.Text, StringComparison.Ordinal);
+        Assert.Contains("180,00", page.Text, StringComparison.Ordinal);
+
+        using var csv = await admin.Http.GetAsync(new Uri($"/verwaltung/objekte/{property}/anlage-v.csv?jahr=2026&eigentuemer={ben}", UriKind.Relative), Ct);
+        csv.EnsureSuccessStatusCode();
+        Assert.Contains("40;Grundsteuer;120,00", Encoding.UTF8.GetString(await csv.Content.ReadAsByteArrayAsync(Ct)), StringComparison.Ordinal);
+
+        using var stranger = await admin.Http.GetAsync(new Uri($"/verwaltung/objekte/{property}/anlage-v.csv?jahr=2026&eigentuemer={Guid.NewGuid()}", UriKind.Relative), Ct);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, stranger.StatusCode);
+    }
+
+    [Fact]
     public async Task Cheap_letting_reduces_the_expenses_after_the_local_rent_was_entered()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);

@@ -19,7 +19,13 @@ internal sealed class AnlageVService(
     ILoanService loans,
     IMaintenanceService maintenance) : IAnlageVService
 {
-    public async Task<AnlageVReport?> GetAsync(Guid propertyId, int year, bool surplusForecastPositive = false, CancellationToken cancellationToken = default)
+    public Task<AnlageVReport?> GetAsync(Guid propertyId, int year, bool surplusForecastPositive = false, CancellationToken cancellationToken = default) =>
+        BuildAsync(propertyId, year, surplusForecastPositive, null, cancellationToken);
+
+    public Task<AnlageVReport?> GetForOwnerAsync(Guid propertyId, int year, Guid ownerPersonId, bool surplusForecastPositive = false, CancellationToken cancellationToken = default) =>
+        BuildAsync(propertyId, year, surplusForecastPositive, ownerPersonId, cancellationToken);
+
+    private async Task<AnlageVReport?> BuildAsync(Guid propertyId, int year, bool surplusForecastPositive, Guid? ownerPersonId, CancellationToken cancellationToken)
     {
         var name = await db.Set<Property>().AsNoTracking().Where(o => o.Id == propertyId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
         if (name is null)
@@ -75,7 +81,33 @@ internal sealed class AnlageVService(
         }
 
         var share = AnlageVCalculator.DeductibleShare(percent, surplusForecastPositive);
-        return new AnlageVReport(propertyId, name, year, AnlageVCalculator.Calculate(postings, lines, share), warnings, localRent, percent);
+        if (ownerPersonId is not { } ownerId)
+        {
+            return new AnlageVReport(propertyId, name, year, AnlageVCalculator.Calculate(postings, lines, share), warnings, localRent, percent);
+        }
+
+        // The cheap-letting test above looks at the whole property; the owner's amounts are the shares of the totals.
+        var owners = await db.Set<PropertyOwner>().AsNoTracking().Where(o => o.PropertyId == propertyId).ToListAsync(cancellationToken);
+        var ownerShare = PropertyOwner.YearShare(owners, ownerId, year);
+        if (ownerShare == 0m)
+        {
+            return null;
+        }
+
+        var fraction = ownerShare / 100m;
+        var scaled = postings.Select(p => p with { Amount = Math.Round(p.Amount * fraction, 2, MidpointRounding.AwayFromZero) }).Where(p => p.Amount != 0m).ToList();
+        warnings.Insert(0, $"Anteil des Eigentümers: {ownerShare:0.####} % aller Beträge des Objekts. Die Beträge sind je Buchung auf den Cent gerundet; die Summe aller Eigentümer kann um wenige Cent vom Gesamtwert abweichen.");
+        if (owners.Where(o => o.PersonId == ownerId).Any(o => (o.ValidFrom is { } f && f.Year == year && f > new DateOnly(year, 1, 1)) || (o.ValidTo is { } t && t.Year == year && t < new DateOnly(year, 12, 31))))
+        {
+            warnings.Add("Der Anteil hat sich im Jahr geändert; angesetzt ist der nach Tagen gewichtete Durchschnitt. Ob stattdessen die Beträge nach dem Zeitpunkt aufzuteilen sind, klärt der Steuerberater.");
+        }
+
+        var ownerName = await db.Set<MietHahn.Domain.People.Person>().AsNoTracking().Where(p => p.Id == ownerId).Select(p => p.DisplayName).SingleAsync(cancellationToken);
+        return new AnlageVReport(propertyId, name, year, AnlageVCalculator.Calculate(scaled, lines, share), warnings, localRent is { } fullRent ? Math.Round(fullRent * fraction, 2, MidpointRounding.AwayFromZero) : null, percent)
+        {
+            OwnerName = ownerName,
+            OwnerSharePercent = ownerShare,
+        };
     }
 
     public Task<Result> SaveLocalRentAsync(Guid propertyId, int year, decimal? annualRent, CancellationToken cancellationToken = default) =>

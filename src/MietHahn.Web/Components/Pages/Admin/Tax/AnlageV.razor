@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @inject IAnlageVService Admin
+@inject IPropertyOwners Owners
 @inject TimeProvider Clock
 @inject Notifier Notify
 
@@ -16,10 +17,14 @@ else if (report is null)
 }
 else
 {
-    <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@report.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
+    <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@(report.OwnerName is null ? report.PropertyName : $"{report.PropertyName} · {report.OwnerName} ({report.OwnerSharePercent:0.####} %)")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
 
     <div class="form-row search-bar" role="search">
         <AppNumberField T="int" Value="year" ValueChanged="OnYearChanged" Label="Steuerjahr" Min="2000" Max="2100" />
+        @if (ownerChoices.Count > 0)
+        {
+            <AppSelect T="Guid?" Value="ownerId" ValueChanged="OnOwnerChanged" Label="Auswertung für" EmptyText="Ganzes Objekt" Items="ownerChoices.Select(o => (Guid?)o.PersonId).ToList()" Text="@(id => ownerChoices.FirstOrDefault(o => o.PersonId == id) is { } o ? $"{o.Name} ({o.SharePercent:0.##} %)" : "")" />
+        }
         <AppCheckBox Value="forecast" ValueChanged="OnForecastChanged" Label="Totalüberschussprognose positiv" />
         <div class="field-action">
             <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.csv")">CSV exportieren</MudButton>
@@ -89,6 +94,8 @@ else
     private bool forecast;
     private decimal? localRent;
     private bool loaded;
+    private Guid? ownerId;
+    private IReadOnlyList<OwnerRow> ownerChoices = [];
 
     [Parameter]
     public Guid PropertyId { get; set; }
@@ -97,6 +104,9 @@ else
     [SupplyParameterFromQuery(Name = "jahr")]
     private int? InitialYear { get; set; }
 
+    [SupplyParameterFromQuery(Name = "eigentuemer")]
+    private Guid? InitialOwner { get; set; }
+
     [SupplyParameterFromQuery(Name = "prognose")]
     private bool? InitialForecast { get; set; }
 
@@ -104,14 +114,22 @@ else
     {
         year = InitialYear ?? MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
         forecast = InitialForecast ?? false;
+        ownerChoices = (await Owners.GetAsync(PropertyId)).Owners.Where(o => o.Current).DistinctBy(o => o.PersonId).ToList();
+        ownerId = InitialOwner is { } wanted && ownerChoices.Any(o => o.PersonId == wanted) ? wanted : null;
         await LoadAsync();
     }
 
-    private string Link(string file) => $"/verwaltung/objekte/{PropertyId}/{file}?jahr={year}&prognose={forecast.ToString().ToLowerInvariant()}";
+    private string Link(string file) => $"/verwaltung/objekte/{PropertyId}/{file}?jahr={year}&prognose={forecast.ToString().ToLowerInvariant()}{(ownerId is { } owner ? $"&eigentuemer={owner}" : "")}";
 
     private async Task OnYearChanged(int value)
     {
         year = value;
+        await LoadAsync();
+    }
+
+    private async Task OnOwnerChanged(Guid? value)
+    {
+        ownerId = value;
         await LoadAsync();
     }
 
@@ -123,7 +141,9 @@ else
 
     private async Task LoadAsync()
     {
-        report = await Admin.GetAsync(PropertyId, year, forecast);
+        report = ownerId is { } person
+            ? await Admin.GetForOwnerAsync(PropertyId, year, person, forecast) ?? await Admin.GetAsync(PropertyId, year, forecast)
+            : await Admin.GetAsync(PropertyId, year, forecast);
         localRent = report?.LocalRent;
         loaded = true;
     }

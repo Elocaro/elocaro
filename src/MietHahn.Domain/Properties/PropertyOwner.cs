@@ -61,6 +61,30 @@ public sealed class PropertyOwner : Entity
         return days.Any(day => existing.Where(o => o.IsValidOn(day)).Sum(o => o.SharePercent) + candidate.SharePercent > 100m);
     }
 
+    /// <summary>
+    /// Share of a person in a calendar year in percent, weighted by days (50 % until June and 100 % from July is 75 %).
+    /// <c>0</c> if the person did not own anything in the year.
+    /// </summary>
+    public static decimal YearShare(IEnumerable<PropertyOwner> owners, Guid personId, int year)
+    {
+        ArgumentNullException.ThrowIfNull(owners);
+        var first = new DateOnly(year, 1, 1);
+        var last = new DateOnly(year, 12, 31);
+        var days = last.DayNumber - first.DayNumber + 1;
+        var weighted = 0m;
+        foreach (var owner in owners.Where(o => o.PersonId == personId))
+        {
+            var from = owner.ValidFrom is { } f && f > first ? f : first;
+            var to = owner.ValidTo is { } t && t < last ? t : last;
+            if (to >= from)
+            {
+                weighted += owner.SharePercent * (to.DayNumber - from.DayNumber + 1);
+            }
+        }
+
+        return Math.Round(weighted / days, 4, MidpointRounding.AwayFromZero);
+    }
+
     /// <summary>Does the person already own the property in an overlapping period?</summary>
     public bool Overlaps(PropertyOwner other)
     {

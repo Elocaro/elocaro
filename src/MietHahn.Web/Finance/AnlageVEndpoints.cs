@@ -14,31 +14,36 @@ internal static class AnlageVEndpoints
     /// <summary>Filling aid for the Anlage V as CSV (line, designation, amount) and PDF.</summary>
     public static IEndpointRouteBuilder MapAnlageVEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/verwaltung/objekte/{propertyId:guid}/anlage-v.csv", async (Guid propertyId, int jahr, bool? prognose, IAnlageVService service, HttpContext context) =>
+        endpoints.MapGet("/verwaltung/objekte/{propertyId:guid}/anlage-v.csv", async (Guid propertyId, int jahr, bool? prognose, Guid? eigentuemer, IAnlageVService service, HttpContext context) =>
         {
-            if (await service.GetAsync(propertyId, jahr, prognose ?? false, context.RequestAborted) is not { } report)
+            if (await ReportAsync(service, propertyId, jahr, prognose, eigentuemer, context.RequestAborted) is not { } report)
             {
                 return Results.NotFound();
             }
 
             context.Response.Headers.CacheControl = "private, no-store";
-            return Results.File(Csv(report), "text/csv; charset=utf-8", $"anlage-v-{jahr}.csv");
+            return Results.File(Csv(report), "text/csv; charset=utf-8", $"anlage-v-{jahr}{(eigentuemer is null ? "" : "-eigentuemer")}.csv");
         }).RequireAuthorization(Policies.Finance);
 
-        endpoints.MapGet("/verwaltung/objekte/{propertyId:guid}/anlage-v.pdf", async (Guid propertyId, int jahr, bool? prognose, IAnlageVService service, IPdfGenerator pdf, HttpContext context) =>
+        endpoints.MapGet("/verwaltung/objekte/{propertyId:guid}/anlage-v.pdf", async (Guid propertyId, int jahr, bool? prognose, Guid? eigentuemer, IAnlageVService service, IPdfGenerator pdf, HttpContext context) =>
         {
-            if (await service.GetAsync(propertyId, jahr, prognose ?? false, context.RequestAborted) is not { } report)
+            if (await ReportAsync(service, propertyId, jahr, prognose, eigentuemer, context.RequestAborted) is not { } report)
             {
                 return Results.NotFound();
             }
 
-            var bytes = await pdf.GenerateAsync(new PdfRequest("anlage-v", $"Anlage V {jahr} – {report.PropertyName}", Model(report)), context.RequestAborted);
+            var bytes = await pdf.GenerateAsync(new PdfRequest("anlage-v", $"Anlage V {jahr} – {report.PropertyName}{(report.OwnerName is null ? "" : $" – {report.OwnerName}")}", Model(report)), context.RequestAborted);
             context.Response.Headers.XContentTypeOptions = "nosniff";
             context.Response.Headers.CacheControl = "private, no-store";
-            return Results.File(bytes, "application/pdf", $"anlage-v-{jahr}.pdf");
+            return Results.File(bytes, "application/pdf", $"anlage-v-{jahr}{(eigentuemer is null ? "" : "-eigentuemer")}.pdf");
         }).RequireAuthorization(Policies.Finance);
         return endpoints;
     }
+
+    private static Task<AnlageVReport?> ReportAsync(IAnlageVService service, Guid propertyId, int year, bool? forecast, Guid? owner, CancellationToken cancellationToken) =>
+        owner is { } person
+            ? service.GetForOwnerAsync(propertyId, year, person, forecast ?? false, cancellationToken)
+            : service.GetAsync(propertyId, year, forecast ?? false, cancellationToken);
 
     internal static byte[] Csv(AnlageVReport report)
     {
@@ -74,6 +79,8 @@ internal static class AnlageVEndpoints
         return new
         {
             property = report.PropertyName,
+            owner = report.OwnerName,
+            owner_share = report.OwnerSharePercent,
             year = report.Year,
             warnings = report.Warnings,
             income = report.Result.Income.Select(Line).ToList(),

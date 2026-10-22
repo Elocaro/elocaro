@@ -1,5 +1,8 @@
 {{# Ausfüllhilfe zur Anlage V (keine Steuerberatung): Zeilennummern sind je Steuerjahr in der Verwaltung gepflegt und anhand des amtlichen Vordrucks zu prüfen. }}
 <p>Objekt: <strong>{{ property }}</strong> &middot; Steuerjahr <strong>{{ year }}</strong> &middot; Zuflussprinzip (§ 11 EStG)</p>
+{{~ if owner ~}}
+<p>Eigentümer: <strong>{{ owner }}</strong> &middot; Anteil <strong>{{ owner_share }} %</strong></p>
+{{~ end ~}}
 {{~ for w in warnings ~}}
 <p class="small"><strong>Hinweis:</strong> {{ w }}</p>
 {{~ end ~}}
