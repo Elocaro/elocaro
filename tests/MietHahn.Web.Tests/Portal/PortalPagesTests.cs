@@ -79,6 +79,23 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
     }
 
     [Fact]
+    public async Task Consumption_page_opens_for_tenants_and_shows_the_empty_state_without_meters()
+    {
+        var (tenant, _, _) = await TenantWithLeasesAsync();
+        using var _ = tenant;
+
+        var page = await tenant.GetAsync("/portal/verbrauch", followRedirects: false);
+
+        Assert.Equal(HttpStatusCode.OK, page.Status);
+        Assert.Contains("Verbrauch", page.TextWithStreaming, StringComparison.Ordinal);
+        Assert.Contains("noch keine Verbrauchsdaten", page.TextWithStreaming, StringComparison.Ordinal);
+
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var __ = admin;
+        Assert.Equal("/konto/zugriff-verweigert", (await admin.GetAsync("/portal/verbrauch", followRedirects: false)).RedirectLocation!.AbsolutePath);
+    }
+
+    [Fact]
     public async Task Tenant_cannot_open_the_administration()
     {
         var (tenant, _, _) = await TenantWithLeasesAsync();

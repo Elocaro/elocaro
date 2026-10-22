@@ -3385,6 +3385,67 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("rent_steps", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Metering.ConsumptionInformationDispatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer")
+                        .HasColumnName("month");
+
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id")
+                        .HasName("pk_consumption_information_dispatches");
+
+                    b.HasIndex("LeaseId", "Year", "Month")
+                        .IsUnique()
+                        .HasDatabaseName("ix_consumption_information_dispatches_lease_id_year_month")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("consumption_information_dispatches", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Metering.Meter", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7949,6 +8010,16 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_rent_steps_leases_lease_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Metering.ConsumptionInformationDispatch", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany()
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_consumption_information_dispatches_lease_lease_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Metering.Meter", b =>

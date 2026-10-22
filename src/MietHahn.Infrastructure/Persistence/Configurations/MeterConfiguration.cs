@@ -41,3 +41,13 @@ internal sealed class MeterReadingConfiguration : IEntityTypeConfiguration<Meter
         builder.HasIndex(s => new { s.MeterId, s.Date }).IsUnique().HasFilter("NOT deleted");
     }
 }
+
+internal sealed class ConsumptionInformationDispatchConfiguration : IEntityTypeConfiguration<ConsumptionInformationDispatch>
+{
+    public void Configure(EntityTypeBuilder<ConsumptionInformationDispatch> builder)
+    {
+        builder.ToTable("consumption_information_dispatches");
+        builder.HasOne<MietHahn.Domain.Leases.Lease>().WithMany().HasForeignKey(d => d.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(d => new { d.LeaseId, d.Year, d.Month }).IsUnique().HasFilter("NOT deleted");
+    }
+}

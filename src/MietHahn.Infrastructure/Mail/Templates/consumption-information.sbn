@@ -1,0 +1,9 @@
+{{ capture subject }}Ihre Verbrauchsinformation für {{ month }}{{ end }}
+<p>{{ salutation }}</p>
+<p>hier ist die monatliche Verbrauchsinformation für Ihre Wohnung, <strong>{{ month }}</strong>:</p>
+{{ for line in lines }}<p><strong>{{ line.label }}: {{ line.current }}</strong></p>
+<ul>
+{{ for detail in line.details }}  <li>{{ detail }}</li>
+{{ end }}</ul>
+{{ end }}<p>Die Werte der letzten Monate sehen Sie im <a href="{{ link }}">Mieterportal</a>.</p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>
