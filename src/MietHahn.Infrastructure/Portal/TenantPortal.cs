@@ -84,7 +84,10 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock) : I
             .OrderByDescending(a => a.RequestedAt).FirstOrDefaultAsync(cancellationToken);
 
         var responsible = new List<PortalContact>();
-        var landlord = await db.Set<LandlordProfile>().AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        var firstUnit = OwnLeases(personIds).Select(v => v.UnitId).FirstOrDefault();
+        var landlord = firstUnit == Guid.Empty
+            ? await Admin.LandlordProfiles.ForPropertyAsync(db, null, cancellationToken)
+            : await Admin.LandlordProfiles.ForUnitAsync(db, firstUnit, cancellationToken);
         if (landlord is not null)
         {
             responsible.Add(new PortalContact("Vermieter", landlord.Name, landlord.Phone, landlord.Email));
@@ -101,7 +104,10 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock) : I
         return new PortalContacts(
             new ContactChangeInput { Email = person.Email, Phone = person.Phone, Mobile = person.Mobile },
             pending is null ? null : new ContactChangeInput { Email = pending.Email, Phone = pending.Phone, Mobile = pending.Mobile },
-            responsible);
+            responsible)
+        {
+            EmergencyInfo = landlord?.EmergencyInfo,
+        };
     }
 
     public Task<Result> RequestContactChangeAsync(ClaimsPrincipal user, ContactChangeInput input, CancellationToken cancellationToken = default) =>

@@ -70,7 +70,9 @@
     private IReadOnlyList<ReportTarget>? targets;
     private IReadOnlyList<FileSelection> selected = [];
     private IReadOnlyList<string>? errors;
-    private string? emergency;
+    private readonly Dictionary<Guid, string?> emergencyByProperty = [];
+
+    private string? emergency => targets?.FirstOrDefault(t => t.LeaseId == input.LeaseId) is { } target ? emergencyByProperty.GetValueOrDefault(target.PropertyId) : null;
     private bool busy;
 
     protected override async Task OnInitializedAsync()
@@ -78,7 +80,10 @@
         var user = (await Authentication.GetAuthenticationStateAsync()).User;
         targets = await Tickets.ReportTargetsAsync(user);
         input.LeaseId = targets.Count > 0 ? targets[0].LeaseId : null;
-        emergency = (await Landlord.GetAsync())?.EmergencyInfo;
+        foreach (var propertyId in targets.Select(t => t.PropertyId).Distinct())
+        {
+            emergencyByProperty[propertyId] = await Landlord.EmergencyInfoAsync(propertyId);
+        }
     }
 
     private void OnFiles(IReadOnlyList<FileSelection> files) => selected = files;

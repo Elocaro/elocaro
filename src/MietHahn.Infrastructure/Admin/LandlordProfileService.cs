@@ -24,6 +24,9 @@ internal sealed class LandlordProfileService(MietHahnDbContext db) : ILandlordPr
         await SaveProfileAsync(profile, data, cancellationToken);
     }
 
+    public async Task<string?> EmergencyInfoAsync(Guid propertyId, CancellationToken cancellationToken = default) =>
+        (await LandlordProfiles.ForPropertyAsync(db, propertyId, cancellationToken))?.EmergencyInfo;
+
     public async Task<IReadOnlyList<LandlordProfileRow>> ListAsync(CancellationToken cancellationToken = default)
     {
         var profiles = await db.Set<LandlordProfile>().AsNoTracking().OrderBy(v => v.CreatedAt).ToListAsync(cancellationToken);

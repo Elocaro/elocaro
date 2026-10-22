@@ -114,10 +114,22 @@ else
     {
         year = InitialYear ?? MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
         forecast = InitialForecast ?? false;
-        ownerChoices = (await Owners.GetAsync(PropertyId)).Owners.Where(o => o.Current).DistinctBy(o => o.PersonId).ToList();
-        ownerId = InitialOwner is { } wanted && ownerChoices.Any(o => o.PersonId == wanted) ? wanted : null;
+        if (InitialOwner is { } wanted)
+        {
+            await LoadOwnersAsync();
+            ownerId = ownerChoices.Any(o => o.PersonId == wanted) ? wanted : null;
+        }
+
         await LoadAsync();
+        if (InitialOwner is null)
+        {
+            // After the evaluation is shown: the owner choice only appears when there are owners, and must not delay the page.
+            await LoadOwnersAsync();
+        }
     }
+
+    private async Task LoadOwnersAsync() =>
+        ownerChoices = (await Owners.GetAsync(PropertyId)).Owners.Where(o => o.Current).DistinctBy(o => o.PersonId).ToList();
 
     private string Link(string file) => $"/verwaltung/objekte/{PropertyId}/{file}?jahr={year}&prognose={forecast.ToString().ToLowerInvariant()}{(ownerId is { } owner ? $"&eigentuemer={owner}" : "")}";
 

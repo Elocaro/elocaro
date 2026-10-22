@@ -73,19 +73,34 @@ internal sealed class DocumentNotifications(MietHahnDbContext db, IMailSender ma
 
         var ids = titles.Keys.ToList();
         var recipients = await db.Set<Person>().AsNoTracking().Where(p => ids.Contains(p.Id) && p.UserId != null && p.Email != null && p.AnonymizedAt == null).ToListAsync(cancellationToken);
-        var sender = (await db.Set<LandlordProfile>().AsNoTracking().OrderBy(p => p.CreatedAt).FirstOrDefaultAsync(cancellationToken))?.Name ?? "Ihre Hausverwaltung";
+        var senders = new Dictionary<Guid, string>();
         var link = app.Value.Link("/portal/dokumente").ToString();
         foreach (var recipient in recipients)
         {
             await mail.EnqueueAsync(new MailRequest(
                 [recipient.Email!],
                 "document-shared",
-                new { Salutation = LetterParts.SalutationOf([recipient]), Titles = titles[recipient.Id].Distinct().ToList(), Link = link, SenderName = sender },
+                new { Salutation = LetterParts.SalutationOf([recipient]), Titles = titles[recipient.Id].Distinct().ToList(), Link = link, SenderName = await SenderAsync(senders, SenderProperty(current, units, recipient.Id), cancellationToken) },
                 Reference: "document-shared"), cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
         return recipients.Count;
+    }
+
+    /// <summary>The property of the current lease of the person (the mail is sent in the name of its sender profile).</summary>
+    private static Guid? SenderProperty(List<Lease> current, Dictionary<Guid, Guid> units, Guid personId) =>
+        current.Where(v => v.Tenant.Any(p => p.PersonId == personId)).Select(v => (Guid?)units.GetValueOrDefault(v.UnitId)).FirstOrDefault();
+
+    private async Task<string> SenderAsync(Dictionary<Guid, string> cache, Guid? propertyId, CancellationToken cancellationToken)
+    {
+        var key = propertyId ?? Guid.Empty;
+        if (!cache.TryGetValue(key, out var name))
+        {
+            cache[key] = name = (await Admin.LandlordProfiles.ForPropertyAsync(db, propertyId, cancellationToken))?.Name ?? "Ihre Hausverwaltung";
+        }
+
+        return name;
     }
 
     private static IEnumerable<Guid> Tenants(Lease lease) => lease.Tenant.Select(p => p.PersonId);

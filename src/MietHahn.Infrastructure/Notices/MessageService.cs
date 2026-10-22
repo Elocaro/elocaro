@@ -146,7 +146,6 @@ internal sealed class MessageService(MietHahnDbContext db, IMailSender mail, IOp
     /// <summary>Points to the portal or the administration; the mail never contains the text.</summary>
     private async Task NotifyAsync(MessageThread thread, NoticeViewer actor, CancellationToken cancellationToken)
     {
-        var sender = (await db.Set<LandlordProfile>().AsNoTracking().OrderBy(p => p.CreatedAt).FirstOrDefaultAsync(cancellationToken))?.Name ?? "MietHahn";
         if (actor == NoticeViewer.Tenant)
         {
             var admins = await AdminRecipients.GetAsync(db, cancellationToken);
@@ -165,6 +164,7 @@ internal sealed class MessageService(MietHahnDbContext db, IMailSender mail, IOp
         }
 
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).SingleAsync(v => v.Id == thread.LeaseId, cancellationToken);
+        var sender = (await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken))?.Name ?? "MietHahn";
         var ids = lease.Tenant.Select(p => p.PersonId).ToList();
         var recipients = await db.Set<Person>().AsNoTracking().Where(p => ids.Contains(p.Id) && p.UserId != null && p.Email != null && p.AnonymizedAt == null).ToListAsync(cancellationToken);
         foreach (var person in recipients)

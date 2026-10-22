@@ -11,7 +11,6 @@
 @inject ITickets Tickets
 @inject INotices Notices
 @inject IMessages Messages
-@inject ILandlordProfileService Landlord
 
 <PageHeader Title="Willkommen" Subtitle="Hier finden Sie Ihre Dokumente und Vertragsdaten." />
 
@@ -166,7 +165,7 @@ else
         openTickets = (await Tickets.ListAsync(user)).Count;
         notices = await Notices.CurrentAsync(user);
         unreadMessages = (await Messages.ListAsync(user)).Count(t => t.Unread);
-        emergency = (await Landlord.GetAsync())?.EmergencyInfo;
+        emergency = contacts?.EmergencyInfo;
         var read = await Portal.ReadDocumentsAsync(user);
         unread = (await Documents.SharedAsync(user)).Where(d => !read.Contains(d.Id)).ToList();
     }

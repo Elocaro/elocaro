@@ -54,7 +54,11 @@ public sealed record PortalContact(string Role, string Name, string? Phone, stri
 /// <param name="Current">The tenant's own data as stored.</param>
 /// <param name="Pending">An open change request, if any.</param>
 /// <param name="Responsible">Landlord and the caretakers of the tenant's properties.</param>
-public sealed record PortalContacts(ContactChangeInput Current, ContactChangeInput? Pending, IReadOnlyList<PortalContact> Responsible);
+public sealed record PortalContacts(ContactChangeInput Current, ContactChangeInput? Pending, IReadOnlyList<PortalContact> Responsible)
+{
+    /// <summary>Emergency information of the sender profile of the tenant's property.</summary>
+    public string? EmergencyInfo { get; init; }
+}
 
 public sealed class ContactChangeInput
 {

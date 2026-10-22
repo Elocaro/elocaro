@@ -201,6 +201,29 @@ public class NoticeTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Mails_name_the_sender_profile_chosen_for_the_property()
+    {
+        Guid other;
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            var profiles = scope.ServiceProvider.GetRequiredService<MietHahn.Application.Admin.ILandlordProfileService>();
+            await profiles.SaveAsync(new MietHahn.Application.Admin.LandlordProfileInput { Name = "Andy Hahn", Street = "Musterweg 1", PostalCode = "12345", City = "Musterstadt" }, Ct);
+            other = Validate(await profiles.SaveAsync(null, new MietHahn.Application.Admin.LandlordProfileInput { Name = "Eigentümergemeinschaft Lindenweg", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, Ct));
+            var properties = scope.ServiceProvider.GetRequiredService<IPropertyService>();
+            var details = (await properties.GetAsync(HouseId, Ct))!.Data;
+            details.LandlordProfileId = other;
+            Validate(await properties.UpdateAsync(HouseId, details, Ct));
+        }
+
+        Validate(await With<INotices, Result>(n => n.CreateAsync(admin, Input("Baustelle"), [], Ct)));
+        Assert.Equal(2, await Notify());
+
+        var mails = await WithDbAsync(db => db.Set<OutgoingMail>().Where(m => m.Template == "notice").ToListAsync(Ct));
+        Assert.All(mails, m => Assert.Contains("Eigentümergemeinschaft Lindenweg", m.Html, StringComparison.Ordinal));
+        Assert.All(mails, m => Assert.DoesNotContain("Andy Hahn", m.Html, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Withdrawing_a_notice_tells_the_tenants_once()
     {
         var id = Validate(await With<INotices, Result>(n => n.CreateAsync(admin, Input("Baustelle"), [], Ct)));

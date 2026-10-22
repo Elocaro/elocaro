@@ -11,6 +11,9 @@ public interface ILandlordProfileService
 
     Task SaveAsync(LandlordProfileInput data, CancellationToken cancellationToken = default);
 
+    /// <summary>Emergency information of the profile that applies to the property (the standard profile if none is chosen).</summary>
+    Task<string?> EmergencyInfoAsync(Guid propertyId, CancellationToken cancellationToken = default);
+
     /// <summary>All profiles, the standard profile first. Further profiles can be chosen per property.</summary>
     Task<IReadOnlyList<LandlordProfileRow>> ListAsync(CancellationToken cancellationToken = default);
 
