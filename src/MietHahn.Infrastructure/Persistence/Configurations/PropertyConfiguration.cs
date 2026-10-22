@@ -107,3 +107,16 @@ internal sealed class PropertyAssignmentConfiguration : IEntityTypeConfiguration
         builder.HasIndex(z => new { z.UserId, z.PropertyId }).IsUnique().HasFilter("NOT deleted");
     }
 }
+
+internal sealed class PropertyOwnerConfiguration : IEntityTypeConfiguration<PropertyOwner>
+{
+    public void Configure(EntityTypeBuilder<PropertyOwner> builder)
+    {
+        builder.ToTable("property_owners");
+        builder.Property(o => o.SharePercent).HasPrecision(5, 2);
+        builder.HasOne<Property>().WithMany().HasForeignKey(o => o.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.People.Person>().WithMany().HasForeignKey(o => o.PersonId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(o => o.PropertyId).HasFilter("NOT deleted");
+        builder.HasIndex(o => o.PersonId).HasFilter("NOT deleted");
+    }
+}

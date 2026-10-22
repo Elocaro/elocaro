@@ -4740,6 +4740,75 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("property_assignments", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Properties.PropertyOwner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<decimal>("SharePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("share_percent");
+
+                    b.Property<DateOnly?>("ValidFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_from");
+
+                    b.Property<DateOnly?>("ValidTo")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_to");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_property_owners");
+
+                    b.HasIndex("PersonId")
+                        .HasDatabaseName("ix_property_owners_person_id")
+                        .HasFilter("NOT deleted");
+
+                    b.HasIndex("PropertyId")
+                        .HasDatabaseName("ix_property_owners_property_id")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("property_owners", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Properties.Room", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8106,6 +8175,23 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_property_assignments_users_user_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Properties.PropertyOwner", b =>
+                {
+                    b.HasOne("MietHahn.Domain.People.Person", null)
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_property_owners_people_person_id");
+
+                    b.HasOne("MietHahn.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_property_owners_properties_property_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Properties.Room", b =>

@@ -572,6 +572,15 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Einzelne Einheiten:** `Notice.UnitIds` (`uuid[]`, leer = ganzes Haus; `AppliesToUnit`). Gewählte Einheiten müssen zum Objekt gehören. Wer den Aushang sieht, bestätigt, Anhänge öffnet, die Mail bekommt und als Leser gezählt wird, richtet sich nach der Einheit des laufenden Mietverhältnisses (`TenantScope.Reaches`/`OwnUnitsAsync`); im Formular gibt es dafür eine Auswahl der Einheiten des Objekts, in der Liste die Spalte „Objekt · Wohnung 1“.
 - **Tests:** Domain (`Notices/NoticeTests`), Integration (`Notices/NoticeTests`: Reichweite nur im Objekt, Ablauf, Bestätigung, Mail genau einmal, Nachrichten nur für die eigenen Mietverhältnisse, Mail ohne Text), Web (`PortalPagesTests`, `PageSmokeTests`), Browser (`UiAuditTests`).
 
+
+### Eigentümer je Objekt (#54)
+
+- **Modell:** `PropertyOwner` (Tabelle `property_owners`: Objekt, Person, Anteil in % mit höchstens zwei Nachkommastellen, Gültig ab/bis, beides optional). Ohne Eintrag gehört das Objekt wie bisher allein dem Vermieter. Die Anteile aller an einem Tag gültigen Eigentümer dürfen 100 % nicht übersteigen (`PropertyOwner.ExceedsFullShare` prüft die Starttage), dieselbe Person nicht doppelt im selben Zeitraum (`Overlaps`). Ergeben die heute gültigen Anteile nicht 100 %, steht ein Hinweis am Objekt.
+- **Dienst:** `IPropertyOwners` (`Get`, `Add`, `End` = Ende heute, bleibt als Historie; `Remove` für Fehleingaben; `OwnedBy` für die Eigentümer-Sicht). `PropertyOwnerReferences` (`IPersonReference`) verhindert das Löschen eines Eigentümers als Person und zeigt die Rolle „Eigentümer“.
+- **Oberfläche:** Objektseite, Reiter „Eigentümer“ (Recht Stammdaten).
+- **Folgt in den nächsten Schnitten:** anteilige Anlage V je Eigentümer, Rolle „Eigentümer“ mit lesendem Zugang, Vermieterprofil je Objekt.
+- **Tests:** Domain (`PropertyOwnerTests`), Integration (`Properties/PropertyOwnerTests`).
+
 ### Hintergrundjobs (Quartz.NET 3)
 
 - Persistenter Store in PostgreSQL (Tabellen `qrtz_*`, angelegt per Migration aus dem offiziellen Skript `Persistence/Sql/quartz_3_22_6_postgres.sql`). Geplante Jobs überstehen Neustarts.
