@@ -28,6 +28,17 @@ PostgreSQL und Gotenberg liegen im Netz `intern` ohne Internetzugang. Die App is
 
 ## Installation
 
+**Mit Installationsskript (empfohlen):**
+
+```bash
+git clone https://github.com/TheR00st3r/MietHahn.git && cd MietHahn
+./deploy/install.sh            # fragt Domain, Kontakt-Mail und SMTP ab, erzeugt die Passwörter, schreibt deploy/.env und startet alles
+```
+
+Das Skript prüft Docker und Compose, schreibt `deploy/.env` (Rechte 600, ein vorhandenes `.env` wird nur mit `--force` ersetzt und als `.env.bak` gesichert), startet den Stack und wartet, bis die Adresse antwortet. Optionen: `--lokal` (Probelauf auf `https://localhost` mit selbst signiertem Zertifikat, ohne Domain), `--nur-env` (nur die Datei schreiben). Alle Fragen lassen sich über Umgebungsvariablen vorab beantworten (`MIETHAHN_DOMAIN`, `ACME_EMAIL`, `MAIL_SENDER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`, `SMTP_PASSWORD`; mit `MIETHAHN_NONINTERACTIVE=1` wird nichts gefragt). Das Sicherungsziel steht danach auf „lokal“; ein externes Ziel richten Sie wie unter [Backup](#backup) beschrieben ein.
+
+**Von Hand:**
+
 ```bash
 git clone https://github.com/TheR00st3r/MietHahn.git && cd MietHahn
 cp deploy/.env.example deploy/.env
