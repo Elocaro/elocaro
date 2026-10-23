@@ -37,6 +37,8 @@ public static class AppIcons
     public static string Scan => Icons.Material.Outlined.DocumentScanner;
     public static string Menu => Icons.Material.Filled.Menu;
     public static string Back => Icons.Material.Filled.ArrowBack;
+    public static string Next => Icons.Material.Filled.ArrowForward;
+    public static string Check => Icons.Material.Filled.Check;
     public static string Add => Icons.Material.Filled.Add;
     public static string Search => Icons.Material.Filled.Search;
     public static string Home => Icons.Material.Outlined.Home;

@@ -196,7 +196,7 @@ public class ModuleWizardTests(PostgresFixture postgres) : AccountTestBase(postg
         Assert.Equal("/verwaltung/einrichtung", redirect.RedirectLocation!.OriginalString);
         var wizard = await browser.GetAsync("/verwaltung/einrichtung");
         Assert.Equal(HttpStatusCode.OK, wizard.Status);
-        Assert.Contains("Willkommen bei MietHahn", wizard.Document.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Schritt 1 von", wizard.Document.Body!.TextContent, StringComparison.Ordinal);
 
         await App.CompleteSetupAsync();
 

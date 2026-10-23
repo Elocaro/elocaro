@@ -38,7 +38,7 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 
 **Teilansicht** (`.split`, Beleg): Auf breiten Bildschirmen steht das Dokument rechts neben Formular und Tabs (Vorschau bleibt beim Scrollen stehen), darunter wird gestapelt.
 
-**Assistenten** (`.steps`): Schritte als Chips in einer Zeile, der aktuelle hervorgehoben; Text trägt die Nummer.
+**Assistenten** (`Components/Common/Wizard.razor`, Beispiel `Settings/SetupWizard`): Rahmen für mehrstufige Abläufe mit Schrittliste (links auf breiten Bildschirmen, Abschnitte mit aufklappenden Unterschritten, erledigte mit Haken), Fortschrittsbalken mit „Schritt x von y“, Karte des aktuellen Schritts und Navigation (Zurück, Weiter bzw. Abschluss, optional „Später“). Die Seite liefert `Steps` (`WizardStepInfo`: Titel, optional Abschnitt und Beschreibung), bindet `@bind-Current` und schreibt im `ChildContent` per `if / else if` den Inhalt des aktuellen Schritts, ohne eigene Überschrift (die setzt der Rahmen). `OnFinish` speichert, `SkipText` und `OnSkip` bieten „Später“ an, `Model` (optional) wird vor „Weiter“ per DataAnnotations geprüft. Der Rahmen enthält das `EditForm`, Eingabekomponenten brauchen keines. Schritte, die noch nicht erreicht wurden, sind in der Liste nicht anklickbar (`FreeNavigation="true"` erlaubt jeden Sprung). Nach jedem Schrittwechsel erhält die Überschrift den Fokus. Auf dem Handy entfällt die Liste, Fortschritt und Abschnittsname bleiben. Die ältere Chip-Zeile (`.wizard-steps`) steht noch im Abrechnungs-Assistenten.
 
 **Schnellsuche** (`Layout/QuickSearch.razor`, Strg+K bzw. Feld in der Kopfleiste, auf dem Handy im Menü-Blatt): springt zu Bereichen und Unterseiten (nach Berechtigung) sowie zu Objekten, Personen und Verträgen. Interaktive Insel im statischen Layout; Pfeiltasten und Eingabe wählen, Esc schließt. Neue Bereiche tauchen automatisch auf, sobald sie in `AdminNavModel` stehen.
 
@@ -157,7 +157,7 @@ Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Co
 | Liste | `PageHeader` (Aktion „Neu“) → Filter → Tabelle (`table-wrapper`) → `Pagination`; leer → `EmptyState` |
 | Detail | `PageHeader` (Zurück, Aktionen) → Kerndaten (`.summary-card` mit `.details`) → `MudTabs` mit Abschnitten, `ChangeHistory` im Tab „Verlauf“, riskante Aktionen im Menü oder im passenden Tab |
 | Formular | `PageHeader` → `ErrorList` → `EditForm` mit `.form-grid` → Buttons: primär links, „Abbrechen“ daneben |
-| Assistent | `PageHeader` → `.steps` → je Schritt ein Formular; Zurück/Weiter eindeutig beschriftet |
+| Assistent | `PageHeader` → `Wizard` (Schritte, Fortschritt, Karte je Schritt, Zurück/Weiter eindeutig beschriftet) |
 | Auswertung | `PageHeader` (Download-Aktionen) → Filter (Jahr, Objekt) → Hinweise → Tabelle |
 
 ## Texte

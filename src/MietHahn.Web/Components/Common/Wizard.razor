@@ -1,0 +1,245 @@
+@using MudBlazor
+@* Reusable wizard frame: step list with progress (left on wide screens), progress bar with "Step x of y", the card of the current step and
+   the navigation (Back, Next/Finish, optional Skip). The page decides what a step contains: it switches on Current inside ChildContent.
+   Model (optional) is validated with DataAnnotations before "Next"; the content may use form controls that need an EditForm. *@
+<div class="wizard" data-wizard="">
+    <nav class="wizard-rail" aria-label="@StepsLabel">
+        <ol>
+            @foreach (var group in Sections)
+            {
+                var state = StateOf(group);
+                <li class="@("wizard-section-item is-" + state)" aria-current="@(state == "current" ? "step" : null)">
+                    <button type="button" class="wizard-section" @onclick="() => GoToAsync(group.First)" disabled="@(!CanVisit(group.First))">
+                        <span class="wizard-marker" aria-hidden="true">
+                            @if (state == "done")
+                            {
+                                <Icon Path="@AppIcons.Check" />
+                            }
+                            else
+                            {
+                                @group.Number
+                            }
+                        </span>
+                        <span class="wizard-section-label">
+                            <span>@group.Title@if (state == "done"){<span class="visually-hidden"> (erledigt)</span>}</span>
+                            @if (state == "current" && group.Count > 1)
+                            {
+                                <small>@(Current - group.First + 1) von @group.Count</small>
+                            }
+                        </span>
+                    </button>
+                    @if (state == "current" && group.Count > 1)
+                    {
+                        <ol class="wizard-substeps">
+                            @for (var i = group.First; i < group.First + group.Count; i++)
+                            {
+                                var index = i;
+                                <li class="@(index == Current ? "is-current" : index < Current ? "is-done" : null)" aria-current="@(index == Current ? "step" : null)">
+                                    <button type="button" @onclick="() => GoToAsync(index)" disabled="@(!CanVisit(index))">@Steps[index].Title</button>
+                                </li>
+                            }
+                        </ol>
+                    }
+                </li>
+            }
+        </ol>
+    </nav>
+
+    <div class="wizard-main">
+        <div class="wizard-status">
+            <p class="wizard-count">
+                <strong>Schritt @(Current + 1) von @Steps.Count</strong>
+                @if (CurrentSection is { Count: > 1 } place)
+                {
+                    <span class="wizard-where">@place.Title</span>
+                }
+            </p>
+            <progress class="wizard-progress" max="@Steps.Count" value="@(Current + 1)" aria-label="@ProgressLabel"></progress>
+        </div>
+
+        <EditForm Model="Model ?? placeholder" OnValidSubmit="NextAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="wizard-card">
+                <h2 id="wizard-heading" tabindex="-1" @ref="heading">@Steps[Current].Title</h2>
+                @if (Steps[Current].Description is { } description)
+                {
+                    <p class="help">@description</p>
+                }
+                @ChildContent
+            </div>
+            <div class="wizard-actions">
+                @if (SkipText is not null && OnSkip.HasDelegate && !IsLast)
+                {
+                    <MudButton Variant="Variant.Text" Class="wizard-skip" OnClick="SkipAsync" Disabled="busy">@SkipText</MudButton>
+                }
+                <span class="wizard-spacer"></span>
+                @if (Current > 0)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@AppIcons.Back" OnClick="() => MoveToAsync(Current - 1)" Disabled="busy">@BackText</MudButton>
+                }
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="wizard-next"
+                           EndIcon="@(IsLast ? AppIcons.Check : AppIcons.Next)" Disabled="busy">@(IsLast ? FinishText : NextText)</MudButton>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private readonly object placeholder = new();
+    private ElementReference heading;
+    private bool focusHeading;
+    private bool busy;
+    private int furthest;
+
+    /// <summary>The steps in order.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<WizardStepInfo> Steps { get; set; } = [];
+
+    /// <summary>Index of the current step (two-way).</summary>
+    [Parameter]
+    public int Current { get; set; }
+
+    [Parameter]
+    public EventCallback<int> CurrentChanged { get; set; }
+
+    /// <summary>Content of the current step; the page switches on <see cref="Current"/>.</summary>
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    /// <summary>Optional model whose DataAnnotations are checked before the next step; also gives the controls an EditContext.</summary>
+    [Parameter]
+    public object? Model { get; set; }
+
+    /// <summary>Called after "Finish" in the last step.</summary>
+    [Parameter]
+    public EventCallback OnFinish { get; set; }
+
+    /// <summary>"Later": leaves the wizard without finishing. Shown only when both text and handler are set.</summary>
+    [Parameter]
+    public string? SkipText { get; set; }
+
+    [Parameter]
+    public EventCallback OnSkip { get; set; }
+
+    /// <summary>true: every step can be opened from the list; false: only the steps already reached.</summary>
+    [Parameter]
+    public bool FreeNavigation { get; set; }
+
+    [Parameter]
+    public string NextText { get; set; } = "Weiter";
+
+    [Parameter]
+    public string BackText { get; set; } = "Zurück";
+
+    [Parameter]
+    public string FinishText { get; set; } = "Fertig";
+
+    [Parameter]
+    public string StepsLabel { get; set; } = "Schritte";
+
+    [Parameter]
+    public string ProgressLabel { get; set; } = "Fortschritt";
+
+    private bool IsLast => Current >= Steps.Count - 1;
+
+    private IReadOnlyList<Section> Sections => BuildSections();
+
+    private Section? CurrentSection => Sections.FirstOrDefault(s => Current >= s.First && Current < s.First + s.Count);
+
+    protected override void OnParametersSet()
+    {
+        Current = Math.Clamp(Current, 0, Math.Max(Steps.Count - 1, 0));
+        furthest = Math.Max(furthest, Current);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusHeading)
+        {
+            focusHeading = false;
+            await heading.FocusAsync();
+        }
+    }
+
+    private bool CanVisit(int index) => FreeNavigation || index <= furthest;
+
+    private string StateOf(Section section)
+    {
+        if (Current >= section.First && Current < section.First + section.Count)
+        {
+            return "current";
+        }
+
+        return furthest >= section.First + section.Count ? "done" : "upcoming";
+    }
+
+    /// <summary>Jump from the step list: only to steps that were reached (or any, with <see cref="FreeNavigation"/>).</summary>
+    private Task GoToAsync(int index) => CanVisit(index) ? MoveToAsync(index) : Task.CompletedTask;
+
+    private async Task MoveToAsync(int index)
+    {
+        index = Math.Clamp(index, 0, Steps.Count - 1);
+        if (index == Current)
+        {
+            return;
+        }
+
+        Current = index;
+        furthest = Math.Max(furthest, index);
+        focusHeading = true;
+        await CurrentChanged.InvokeAsync(index);
+    }
+
+    private async Task NextAsync()
+    {
+        if (!IsLast)
+        {
+            await MoveToAsync(Current + 1);
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            await OnFinish.InvokeAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SkipAsync()
+    {
+        busy = true;
+        try
+        {
+            await OnSkip.InvokeAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private List<Section> BuildSections()
+    {
+        var result = new List<Section>();
+        for (var i = 0; i < Steps.Count; i++)
+        {
+            var step = Steps[i];
+            if (step.Section is not null && result.Count > 0 && result[^1].Key == step.Section)
+            {
+                result[^1] = result[^1] with { Count = result[^1].Count + 1 };
+            }
+            else
+            {
+                result.Add(new Section(step.Section ?? step.Title, step.Section, i, 1, result.Count + 1));
+            }
+        }
+
+        return result;
+    }
+
+    private sealed record Section(string Title, string? Key, int First, int Count, int Number);
+}

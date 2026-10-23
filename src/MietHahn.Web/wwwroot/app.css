@@ -782,3 +782,70 @@ p.small:has(+ :is(.empty-state, .table-wrapper, .mud-table, .group, .explain)) {
 .module-card .module-summary { margin: 0 0 0.25rem; font-weight: 500; }
 .module-card .help { margin-bottom: 0.5rem; }
 .module-card .explain { margin-bottom: 0; background: transparent; }
+
+/* Wizard (Components/Common/Wizard.razor): step list with progress on wide screens, progress bar and card of the current step */
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.wizard { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.wizard-rail { display: none; }
+.wizard-main { min-width: 0; }
+.wizard-status { margin-bottom: 0.75rem; }
+.wizard-count { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 1rem; margin: 0 0 0.4rem; color: var(--md-on-surface-variant); font-size: 0.9rem; }
+.wizard-count strong { color: var(--md-on-surface); }
+.wizard-progress { display: block; width: 100%; height: 0.5rem; border: 0; border-radius: var(--shape-full); overflow: hidden; background: var(--md-surface-container-highest); color: var(--md-primary); appearance: none; -webkit-appearance: none; }
+.wizard-progress::-webkit-progress-bar { background: var(--md-surface-container-highest); }
+.wizard-progress::-webkit-progress-value { background: var(--md-primary); border-radius: var(--shape-full); }
+.wizard-progress::-moz-progress-bar { background: var(--md-primary); border-radius: var(--shape-full); }
+.wizard-card { padding: 1.25rem; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--shape-xl); }
+.wizard-card > h2 { margin: 0 0 0.5rem; font-size: 1.4rem; outline: none; }
+.wizard-card > h2:focus-visible { outline: 2px solid var(--md-focus); outline-offset: 4px; border-radius: var(--shape-sm); }
+.wizard-card section:last-child, .wizard-card > :last-child { margin-bottom: 0; }
+.wizard-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1.25rem; }
+.wizard-spacer { flex: 1 1 0; }
+.content .wizard-actions .mud-button-root + .mud-button-root:not(.mud-icon-button) { margin-left: 0; }
+.wizard-actions .mud-button-root { min-height: 2.75rem; padding-inline: 1.25rem; }
+.wizard-actions .wizard-next { padding-inline: 1.5rem; }
+
+@media (max-width: 480px) {
+    .wizard-card { padding: 1rem; }
+    .wizard-actions .wizard-spacer { display: none; }
+    .wizard-actions .mud-button-root { flex: 1 1 0; }
+    .wizard-actions .wizard-skip { order: 3; flex-basis: 100%; }
+}
+
+@media (min-width: 62rem) {
+    .wizard { grid-template-columns: 17rem minmax(0, 1fr); }
+    .wizard-rail { display: block; position: sticky; top: 1rem; }
+    .wizard-rail ol { margin: 0; padding: 0; list-style: none; }
+    .wizard-section-item { position: relative; padding-bottom: 0.25rem; }
+    .wizard-section-item:not(:last-child)::before { content: ""; position: absolute; left: 1.5rem; top: 2.9rem; bottom: -0.1rem; width: 2px; background: var(--md-outline-variant); }
+    .wizard-section-item.is-done:not(:last-child)::before { background: var(--md-primary); }
+    .wizard-section { display: flex; align-items: center; justify-content: flex-start; gap: 0.75rem; width: 100%; min-height: 3rem; padding: 0.25rem 0.5rem; border: 0; border-radius: var(--shape-lg); background: none; color: var(--md-on-surface-variant); font: inherit; text-align: left; cursor: pointer; }
+    .wizard-section:hover:not(:disabled) { background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); }
+    .wizard-section:disabled { cursor: default; }
+    .wizard-section:focus-visible, .wizard-substeps button:focus-visible { outline: 2px solid var(--md-focus); outline-offset: 2px; }
+    .wizard-marker { display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; border: 2px solid var(--md-outline); border-radius: 50%; background: var(--md-surface); color: var(--md-on-surface-variant); font-size: 0.875rem; font-weight: 600; }
+    .wizard-marker .icon { width: 1.1rem; height: 1.1rem; }
+    .is-done .wizard-marker { border-color: var(--md-primary); background: var(--md-primary); color: var(--md-on-primary); }
+    .is-current .wizard-marker { border-color: var(--md-primary); background: var(--md-primary-container); color: var(--md-on-primary-container); }
+    .is-done > .wizard-section { color: var(--md-on-surface); }
+    .is-current > .wizard-section { color: var(--md-on-surface); font-weight: 600; }
+    .wizard-section-label { display: flex; flex-direction: column; min-width: 0; }
+    .wizard-section-label small { margin: 0; padding: 0; font-weight: 400; color: var(--md-on-surface-variant); }
+    .wizard-rail .wizard-substeps { margin: 0 0 0.25rem 2.75rem; padding: 0; }
+    .wizard-substeps li { margin: 0; }
+    .wizard-substeps button { display: block; width: 100%; justify-content: flex-start; min-height: 2rem; padding: 0.25rem 0.75rem; border: 0; border-radius: var(--shape-md); background: none; color: var(--md-on-surface-variant); font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
+    .wizard-substeps button:hover:not(:disabled) { background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); }
+    .wizard-substeps button:disabled { cursor: default; opacity: 0.6; }
+    .wizard-substeps .is-done button { color: var(--md-on-surface); }
+    .wizard-substeps .is-current button { background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight: 600; }
+}
+.wizard-card ul:not(.wizard-chips) { margin: 0 0 1rem; padding-left: 1.25rem; }
+.wizard-card fieldset { margin-top: 0.5rem; }
+.wizard-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; padding: 0; list-style: none; }
+.wizard-chips li { padding: 0.3rem 0.85rem; border-radius: var(--shape-full); background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-size: 0.9rem; }
+.wizard-chips.is-off li { background: none; border: 1px solid var(--md-outline-variant); color: var(--md-on-surface-variant); }
+.wizard-summary { display: grid; gap: 0 2rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.wizard-summary h3 { margin-top: 0; }
+.wizard-summary { display: grid; gap: 0 2rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.wizard-summary h3 { margin-top: 0; }
+.wizard-summary ul { margin: 0 0 1rem; padding-left: 1.25rem; }

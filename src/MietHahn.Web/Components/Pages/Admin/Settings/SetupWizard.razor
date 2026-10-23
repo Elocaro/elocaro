@@ -1,6 +1,5 @@
 @page "/verwaltung/einrichtung"
 @rendermode InteractiveServer
-@using MudBlazor
 @using MietHahn.Application.Admin
 @using MietHahn.Application.Finance
 @inject IModuleState State
@@ -14,142 +13,106 @@
 
     @if (choices is not null)
     {
-        <nav aria-label="Schritte">
-            <ol class="wizard-steps">
-                <li class="@(step == 0 ? "wizard-step-current" : "")">
-                    <MudButton Variant="Variant.Text" Color="@(step == 0 ? Color.Primary : Color.Default)" OnClick="() => GoTo(0)" aria-current="@(step == 0 ? "step" : null)">Start</MudButton>
-                </li>
-                @for (var i = 0; i < choices.Count; i++)
-                {
-                    var index = i + 1;
-                    var title = ModuleCatalog.Info(choices[i].Module).Title;
-                    <li class="@(step == index ? "wizard-step-current" : "")">
-                        <MudButton Variant="Variant.Text" Color="@(step == index ? Color.Primary : Color.Default)" OnClick="() => GoTo(index)" aria-current="@(step == index ? "step" : null)">@index. @title</MudButton>
-                    </li>
-                }
-                @for (var g = 0; g < Groups.Count; g++)
-                {
-                    var groupStep = choices.Count + 1 + g;
-                    var groupTitle = Groups[g];
-                    <li class="@(step == groupStep ? "wizard-step-current" : "")">
-                        <MudButton Variant="Variant.Text" Color="@(step == groupStep ? Color.Primary : Color.Default)" OnClick="() => GoTo(groupStep)" aria-current="@(step == groupStep ? "step" : null)">@groupStep. @groupTitle</MudButton>
-                    </li>
-                }
-                <li class="@(step == Last ? "wizard-step-current" : "")">
-                    <MudButton Variant="Variant.Text" Color="@(step == Last ? Color.Primary : Color.Default)" OnClick="() => GoTo(Last)" aria-current="@(step == Last ? "step" : null)">Fertig</MudButton>
-                </li>
-            </ol>
-        </nav>
-
-        <EditForm Model="choices" OnValidSubmit="NextAsync" novalidate>
+        <Wizard Steps="Steps" @bind-Current="step" FinishText="Einrichtung abschließen" OnFinish="FinishAsync"
+                SkipText="@(State.SetupCompleted ? null : "Später")" OnSkip="LaterAsync" ProgressLabel="Fortschritt der Einrichtung">
             @if (step == 0)
             {
-                <section>
-                    <h2>Willkommen bei MietHahn</h2>
-                    <p class="help">
-                        MietHahn kann sehr viel. Das meiste davon brauchen Sie vielleicht (noch) nicht. Auf den nächsten Seiten stellen wir
-                        @choices.Count Bereiche vor. Zu jedem beantworten Sie eine einfache Frage: Brauchen Sie das?
-                    </p>
-                    <p class="help">
-                        Nichts davon ist endgültig. Sie können Module jederzeit unter Einstellungen &rarr; Module ein- und ausschalten
-                        und diesen Assistenten dort erneut starten. Die Daten bleiben erhalten.
-                    </p>
-                    <p class="help">Immer dabei sind Objekte, Personen, Verträge und das Mieterkonto.</p>
-                </section>
+                <p class="help">
+                    MietHahn kann sehr viel. Das meiste davon brauchen Sie vielleicht (noch) nicht. Auf den nächsten Seiten stellen wir
+                    @choices.Count Bereiche vor. Zu jedem beantworten Sie eine einfache Frage: Brauchen Sie das?
+                </p>
+                <p class="help">
+                    Danach klären wir noch ein paar Fragen zu Ihrer Vermietung, damit Formulare nur zeigen, was für Sie wichtig ist.
+                </p>
+                <Notice Level="NoticeLevel.Info">
+                    Nichts davon ist endgültig. Sie können Module jederzeit unter Einstellungen &rarr; Module ein- und ausschalten
+                    und diesen Assistenten dort erneut starten. Die Daten bleiben erhalten. Immer dabei sind Objekte, Personen, Verträge und das Mieterkonto.
+                </Notice>
             }
-            else if (step > choices.Count && step < Last)
-            {
-                var group = Groups[step - choices.Count - 1];
-                <section>
-                    <h2>@group</h2>
-                    <p class="help">@GroupQuestion(group)</p>
-                    @foreach (var option in options!.Where(o => ModuleCatalog.Info(o.Option).Group == group))
-                    {
-                        var info = ModuleCatalog.Info(option.Option);
-                        <AppCheckBox @bind-Value="option.On" Label="@info.Title" />
-                        <p class="help">@info.Description</p>
-                    }
-                    @if (group == ModuleCatalog.BillingGroup && !options!.Any(o => o.On && o.Option == AppOption.BillingPrepayment) && choices.Any(c => c.On && c.Module == AppModule.OperatingCosts))
-                    {
-                        <Notice Level="NoticeLevel.Info">Ohne Vorauszahlungen gibt es keine jährliche Abrechnung. Die Nebenkostenabrechnung brauchen Sie dann vermutlich nicht: Sie können sie unter „Nebenkostenabrechnung“ ausschalten.</Notice>
-                    }
-                </section>
-            }
-            else if (step < Last)
+            else if (step <= choices.Count)
             {
                 var choice = choices[step - 1];
                 var info = ModuleCatalog.Info(choice.Module);
-                <section>
-                    <h2>@info.Title</h2>
-                    <p class="module-summary">@info.Summary</p>
-                    <p class="help">@info.Purpose</p>
-                    <h3>Was gehört dazu?</h3>
-                    <ul>
-                        @foreach (var item in info.Includes)
-                        {
-                            <li>@item</li>
-                        }
-                    </ul>
-                    @if (info.Requires.Length > 0)
+                <p class="help">@info.Purpose</p>
+                <h3>Was gehört dazu?</h3>
+                <ul>
+                    @foreach (var item in info.Includes)
                     {
-                        <p class="small">Dafür wird auch @string.Join(", ", info.Requires.Select(r => ModuleCatalog.Info(r).Title)) eingeschaltet.</p>
+                        <li>@item</li>
                     }
-                    <fieldset>
-                        <legend>Brauchen Sie „@info.Title“?</legend>
-                        <AppRadioGroup T="bool" Value="choice.On" ValueChanged="on => Set(choice, on)" ValueExpression="() => choice.On"
-                                       Items="YesNo" Text="AnswerText" />
-                    </fieldset>
-                </section>
+                </ul>
+                @if (info.Requires.Length > 0)
+                {
+                    <p class="small">Dafür wird auch @string.Join(", ", info.Requires.Select(r => ModuleCatalog.Info(r).Title)) eingeschaltet.</p>
+                }
+                <fieldset>
+                    <legend>Brauchen Sie „@info.Title“?</legend>
+                    <AppRadioGroup T="bool" Value="choice.On" ValueChanged="on => Set(choice, on)" ValueExpression="() => choice.On"
+                                   Items="YesNo" Text="AnswerText" />
+                </fieldset>
+            }
+            else if (step < Last)
+            {
+                var group = Groups[step - choices.Count - 1];
+                @foreach (var option in options!.Where(o => ModuleCatalog.Info(o.Option).Group == group))
+                {
+                    var info = ModuleCatalog.Info(option.Option);
+                    <AppCheckBox @bind-Value="option.On" Label="@info.Title" />
+                    <p class="help">@info.Description</p>
+                }
+                @if (group == ModuleCatalog.BillingGroup && !options!.Any(o => o.On && o.Option == AppOption.BillingPrepayment) && choices.Any(c => c.On && c.Module == AppModule.OperatingCosts))
+                {
+                    <Notice Level="NoticeLevel.Info">Ohne Vorauszahlungen gibt es keine jährliche Abrechnung. Die Nebenkostenabrechnung brauchen Sie dann vermutlich nicht: Sie können sie unter „Nebenkostenabrechnung“ ausschalten.</Notice>
+                }
             }
             else
             {
-                <section>
-                    <h2>Zusammenfassung</h2>
-                    <p class="help">Das haben Sie gewählt. Mit „Einrichtung abschließen“ wird es gespeichert.</p>
-                    <ul>
-                        @foreach (var choice in choices)
+                <h3>Eingeschaltete Module</h3>
+                <ul class="wizard-chips">
+                    @foreach (var choice in choices.Where(c => c.On))
+                    {
+                        <li>@ModuleCatalog.Info(choice.Module).Title</li>
+                    }
+                </ul>
+                @if (choices.Any(c => !c.On))
+                {
+                    <h3>Nicht benötigt</h3>
+                    <ul class="wizard-chips is-off">
+                        @foreach (var choice in choices.Where(c => !c.On))
                         {
-                            <li>
-                                <strong>@ModuleCatalog.Info(choice.Module).Title</strong>: @(choice.On ? "an" : "aus")
-                            </li>
+                            <li>@ModuleCatalog.Info(choice.Module).Title</li>
                         }
                     </ul>
-                    @if (accountingOpen)
-                    {
-                        <h3>Mieten automatisch buchen</h3>
-                        <p class="help">
-                            Ab welchem Monat soll MietHahn die Monatsmieten als Sollstellungen anlegen? Ohne Angabe entstehen keine automatischen Sollstellungen
-                            und das Mieterkonto bleibt leer. Rückstände aus der Zeit davor tragen Sie später als Saldovortrag ein. Sie können das auch später unter
-                            Forderungen &rarr; Einstellungen festlegen.
-                        </p>
-                        <div class="form-grid">
-                            <AppDateField @bind-Value="accountingStart" Label="Buchhaltung ab (Monat)" />
-                        </div>
-                    }
+                }
+                @if (SelectedOptions.Count > 0)
+                {
+                    <h3>Ihre Vermietung</h3>
+                    <ul class="wizard-chips">
+                        @foreach (var title in SelectedOptions)
+                        {
+                            <li>@title</li>
+                        }
+                    </ul>
+                }
+                @if (accountingOpen)
+                {
+                    <h3>Mieten automatisch buchen</h3>
                     <p class="help">
-                        <strong>Ihre Auswahl:</strong>
-                        @string.Join(", ", options!.Where(o => o.On && Groups.Contains(ModuleCatalog.Info(o.Option).Group)).Select(o => ModuleCatalog.Info(o.Option).Title))
+                        Ab welchem Monat soll MietHahn die Monatsmieten als Sollstellungen anlegen? Ohne Angabe entstehen keine automatischen Sollstellungen
+                        und das Mieterkonto bleibt leer. Rückstände aus der Zeit davor tragen Sie später als Saldovortrag ein. Sie können das auch später unter
+                        Forderungen &rarr; Einstellungen festlegen.
                     </p>
-                    <p class="help">
-                        Tipp für den Anfang: Tragen Sie zuerst unter <a href="/verwaltung/einstellungen/vermieter">Einstellungen &rarr; Vermieter</a>
-                        Ihre Absenderdaten ein und legen Sie dann Ihr erstes <a href="/verwaltung/objekte/neu">Objekt</a> an.
-                        Prüfen Sie unter <a href="/verwaltung/system/mails">Einstellungen &rarr; E-Mail-Versand</a> mit einer Test-Mail, ob Mails ankommen.
-                    </p>
-                </section>
+                    <div class="form-grid">
+                        <AppDateField @bind-Value="accountingStart" Label="Buchhaltung ab (Monat)" />
+                    </div>
+                }
+                <Notice Level="NoticeLevel.Info">
+                    Tipp für den Anfang: Tragen Sie zuerst unter <a href="/verwaltung/einstellungen/vermieter">Einstellungen &rarr; Vermieter</a>
+                    Ihre Absenderdaten ein und legen Sie dann Ihr erstes <a href="/verwaltung/objekte/neu">Objekt</a> an.
+                    Prüfen Sie unter <a href="/verwaltung/system/mails">Einstellungen &rarr; E-Mail-Versand</a> mit einer Test-Mail, ob Mails ankommen.
+                </Notice>
             }
-
-            <div class="form-actions">
-                @if (step > 0)
-                {
-                    <MudButton Variant="Variant.Outlined" OnClick="() => GoTo(step - 1)">Zurück</MudButton>
-                }
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(step == Last ? "Einrichtung abschließen" : "Weiter")</MudButton>
-                @if (!State.SetupCompleted)
-                {
-                    <MudButton Variant="Variant.Text" OnClick="LaterAsync">Später</MudButton>
-                }
-            </div>
-        </EditForm>
+        </Wizard>
     }
 </InteractiveShell>
 
@@ -168,6 +131,23 @@
         .Select(o => o.Group).Distinct().ToList();
 
     private int Last => choices!.Count + 1 + Groups.Count;
+
+    private List<string> SelectedOptions => options!
+        .Where(o => o.On && Groups.Contains(ModuleCatalog.Info(o.Option).Group))
+        .Select(o => ModuleCatalog.Info(o.Option).Title).ToList();
+
+    /// <summary>Welcome, one step per module, one per question group, summary.</summary>
+    private IReadOnlyList<WizardStepInfo> Steps
+    {
+        get
+        {
+            var steps = new List<WizardStepInfo> { new("Willkommen", Description: "Ein paar Fragen, dann ist MietHahn auf Sie zugeschnitten.") };
+            steps.AddRange(choices!.Select(c => ModuleCatalog.Info(c.Module)).Select(info => new WizardStepInfo(info.Title, "Module", info.Summary)));
+            steps.AddRange(Groups.Select(group => new WizardStepInfo(group, "Ihre Vermietung", GroupQuestion(group))));
+            steps.Add(new("Zusammenfassung", Description: "Das haben Sie gewählt. Mit „Einrichtung abschließen“ wird es gespeichert."));
+            return steps;
+        }
+    }
 
     private static string GroupQuestion(string group) => group switch
     {
@@ -188,8 +168,6 @@
         choices = ModuleCatalog.All.Select(info => new ModuleChoice(info.Module) { On = selection.Enabled.Contains(info.Module) }).ToList();
         options = ModuleCatalog.Options.Select(info => new OptionChoice(info.Option) { On = selection.EnabledOptions.Contains(info.Option) }).ToList();
     }
-
-    private void GoTo(int target) => step = Math.Clamp(target, 0, Last);
 
     private void Set(ModuleChoice choice, bool on)
     {
@@ -212,14 +190,8 @@
         }
     }
 
-    private async Task NextAsync()
+    private async Task FinishAsync()
     {
-        if (step < Last)
-        {
-            step++;
-            return;
-        }
-
         await State.SaveAsync(choices!.Where(c => c.On).Select(c => c.Module), completeSetup: true, options!.Where(o => o.On).Select(o => o.Option));
         if (accountingOpen && accountingStart is not null)
         {
