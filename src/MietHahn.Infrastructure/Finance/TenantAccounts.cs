@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.Finance;
 using MietHahn.Application.People;
@@ -291,7 +292,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
     };
 }
 
-internal sealed class FinanceSettingsService(MietHahnDbContext db) : IFinanceSettings
+internal sealed class FinanceSettingsService(MietHahnDbContext db, IModuleState modules) : IFinanceSettings
 {
     public async Task<FinanceSettingsInput> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -339,6 +340,7 @@ internal sealed class FinanceSettingsService(MietHahnDbContext db) : IFinanceSet
         settings.BaseRateAsOf = data.BaseRate is null ? null : data.BaseRateAsOf;
         settings.InterestMarginPoints = data.InterestMarginPoints ?? DunningRules.Default.InterestMarginPoints;
         await db.SaveChangesAsync(cancellationToken);
+        await modules.RefreshUsageAsync(cancellationToken);
     }
 
     /// <summary>The single record, or an unsaved one with default values.</summary>

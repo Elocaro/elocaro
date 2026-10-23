@@ -2,7 +2,10 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @using MietHahn.Application.Admin
+@using MietHahn.Application.Finance
 @inject IModuleState State
+@inject IFinanceSettings Finance
+@inject ITenantAccounts Accounts
 @inject Notifier Notify
 @inject NavigationManager Navigation
 
@@ -111,6 +114,18 @@
                             </li>
                         }
                     </ul>
+                    @if (accountingOpen)
+                    {
+                        <h3>Mieten automatisch buchen</h3>
+                        <p class="help">
+                            Ab welchem Monat soll MietHahn die Monatsmieten als Sollstellungen anlegen? Ohne Angabe entstehen keine automatischen Sollstellungen
+                            und das Mieterkonto bleibt leer. Rückstände aus der Zeit davor tragen Sie später als Saldovortrag ein. Sie können das auch später unter
+                            Forderungen &rarr; Einstellungen festlegen.
+                        </p>
+                        <div class="form-grid">
+                            <AppDateField @bind-Value="accountingStart" Label="Buchhaltung ab (Monat)" />
+                        </div>
+                    }
                     <p class="help">
                         <strong>Ihre Auswahl:</strong>
                         @string.Join(", ", options!.Where(o => o.On && Groups.Contains(ModuleCatalog.Info(o.Option).Group)).Select(o => ModuleCatalog.Info(o.Option).Title))
@@ -143,6 +158,8 @@
 
     private List<ModuleChoice>? choices;
     private List<OptionChoice>? options;
+    private bool accountingOpen;
+    private DateOnly? accountingStart;
     private int step;
 
     /// <summary>The question groups to ask: those of the core and of the modules that were switched on.</summary>
@@ -155,6 +172,7 @@
     private static string GroupQuestion(string group) => group switch
     {
         ModuleCatalog.RentModelGroup => "Welche Mietmodelle verwenden Sie? Die Vergleichsmiete (normale Miete mit Erhöhung nach § 558 BGB) ist immer dabei.",
+        ModuleCatalog.DunningGroup => "Wie soll das Mahnwesen arbeiten? Mahnungen werden immer nur vorgeschlagen und erst nach Ihrer Freigabe versendet.",
         ModuleCatalog.UnitsGroup => "Was vermieten Sie? Wohnungen sind immer dabei.",
         ModuleCatalog.LeaseGroup => "Welche Angaben möchten Sie im Mietvertrag erfassen?",
         ModuleCatalog.TaxGroup => "Welche Teile der Steuer-Vorbereitung brauchen Sie? Die Anlage V selbst ist immer dabei.",
@@ -166,6 +184,7 @@
     protected override async Task OnInitializedAsync()
     {
         var selection = await State.GetAsync();
+        accountingOpen = (await Finance.GetAsync()).AccountingStart is null;
         choices = ModuleCatalog.All.Select(info => new ModuleChoice(info.Module) { On = selection.Enabled.Contains(info.Module) }).ToList();
         options = ModuleCatalog.Options.Select(info => new OptionChoice(info.Option) { On = selection.EnabledOptions.Contains(info.Option) }).ToList();
     }
@@ -202,6 +221,14 @@
         }
 
         await State.SaveAsync(choices!.Where(c => c.On).Select(c => c.Module), completeSetup: true, options!.Where(o => o.On).Select(o => o.Option));
+        if (accountingOpen && accountingStart is not null)
+        {
+            var finance = await Finance.GetAsync();
+            finance.AccountingStart = accountingStart;
+            await Finance.SaveAsync(finance);
+            await Accounts.GenerateChargesAsync();
+        }
+
         Notify.Success("Die Einrichtung ist abgeschlossen.");
         Navigation.NavigateTo("/verwaltung");
     }

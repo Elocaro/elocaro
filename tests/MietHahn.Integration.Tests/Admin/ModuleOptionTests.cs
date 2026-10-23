@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
+using MietHahn.Application.Finance;
 using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
@@ -77,6 +78,30 @@ public class ModuleOptionTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.True(State.IsVisible(AppOption.LeaseDeposit));
         Assert.Equal(1, State.UsageCount(AppOption.LeaseDeposit));
         Assert.False(State.IsVisible(AppOption.LeaseGuarantor));
+    }
+
+    [Fact]
+    public async Task Dunning_fees_and_interest_stay_visible_once_values_are_saved()
+    {
+        await State.SaveAsync(Enum.GetValues<AppModule>(), completeSetup: true, [AppOption.BillingPrepayment], Ct);
+        Assert.False(State.IsVisible(AppOption.DunningFees));
+        Assert.False(State.IsVisible(AppOption.DunningInterest));
+
+        await using var scope = environment.Services.CreateAsyncScope();
+        var finance = scope.ServiceProvider.GetRequiredService<IFinanceSettings>();
+        var input = await finance.GetAsync(Ct);
+        input.FirstNoticeFee = 5m;
+        await finance.SaveAsync(input, Ct);
+
+        Assert.True(State.IsVisible(AppOption.DunningFees));
+        Assert.False(State.IsVisible(AppOption.DunningInterest));
+
+        input.FirstNoticeFee = 0m;
+        input.ChargeDefaultInterest = true;
+        await finance.SaveAsync(input, Ct);
+
+        Assert.False(State.IsVisible(AppOption.DunningFees));
+        Assert.True(State.IsVisible(AppOption.DunningInterest));
     }
 
     private async Task<Guid> CreateLeaseAsync(RentModel model, BillingType billing, decimal? deposit = null)

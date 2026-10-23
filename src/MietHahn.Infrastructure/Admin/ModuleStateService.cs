@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Admin;
 using MietHahn.Domain.Admin;
+using MietHahn.Domain.Finance;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Tax;
@@ -158,6 +159,19 @@ internal sealed class ModuleStateService(IServiceScopeFactory scopes, TimeProvid
         if (guarantors > 0)
         {
             result[AppOption.LeaseGuarantor] = guarantors;
+        }
+
+        if (await db.Set<FinanceSettings>().OrderBy(f => f.CreatedAt).FirstOrDefaultAsync(cancellationToken) is { } finance)
+        {
+            if (finance.ReminderFee > 0 || finance.FirstNoticeFee > 0 || finance.SecondNoticeFee > 0)
+            {
+                result[AppOption.DunningFees] = 1;
+            }
+
+            if (finance.ChargeDefaultInterest || finance.BaseRate is not null)
+            {
+                result[AppOption.DunningInterest] = 1;
+            }
         }
 
         var loans = await db.Set<Loan>().CountAsync(cancellationToken);

@@ -37,20 +37,26 @@
                     <AppNumberField T="int" @bind-Value="data.DaysUntilSecondNotice" Label="Tage bis zur 2. Mahnung" Hint="Wartezeit nach der 1. Mahnung." />
                     <AppNumberField T="int" @bind-Value="data.DunningDeadlineDays" Label="Zahlungsfrist im Schreiben (Tage)" />
                     <AppNumberField T="decimal?" @bind-Value="data.DunningMinimumAmount" Label="Mindestbetrag" Suffix="€" Hint="Rückstände darunter werden nicht gemahnt." />
-                    <AppNumberField T="decimal?" @bind-Value="data.ReminderFee" Label="Gebühr Zahlungserinnerung" Suffix="€" Hint="Üblicherweise 0 €." />
-                    <AppNumberField T="decimal?" @bind-Value="data.FirstNoticeFee" Label="Gebühr 1. Mahnung" Suffix="€" Hint="Nur tatsächlich entstandene Kosten (z. B. Porto); 0 € = keine." />
-                    <AppNumberField T="decimal?" @bind-Value="data.SecondNoticeFee" Label="Gebühr 2. Mahnung" Suffix="€" Hint="Nur tatsächlich entstandene Kosten; 0 € = keine." />
+                    @if (State.IsVisible(AppOption.DunningFees))
+                    {
+                        <AppNumberField T="decimal?" @bind-Value="data.ReminderFee" Label="Gebühr Zahlungserinnerung" Suffix="€" Hint="Üblicherweise 0 €." />
+                        <AppNumberField T="decimal?" @bind-Value="data.FirstNoticeFee" Label="Gebühr 1. Mahnung" Suffix="€" Hint="Nur tatsächlich entstandene Kosten (z. B. Porto); 0 € = keine." />
+                        <AppNumberField T="decimal?" @bind-Value="data.SecondNoticeFee" Label="Gebühr 2. Mahnung" Suffix="€" Hint="Nur tatsächlich entstandene Kosten; 0 € = keine." />
+                    }
                 </div>
-                <AppCheckBox @bind-Value="data.ChargeDefaultInterest" Label="Verzugszinsen ab der 1. Mahnung berechnen (§ 288 Abs. 1 BGB: Basiszinssatz + 5 Prozentpunkte)" />
-                <div class="form-grid">
-                    <AppNumberField T="decimal?" @bind-Value="data.BaseRate" Label="Basiszinssatz (% p. a.)"
-                                    Hint="Ändert sich zum 1.1. und 1.7.; den aktuellen Wert veröffentlicht die Deutsche Bundesbank. Ohne Wert werden keine Zinsen berechnet." />
-                    <AppDateField @bind-Value="data.BaseRateAsOf" Label="Basiszinssatz gültig seit" Hint="Zur Kontrolle, wann der Wert zuletzt gepflegt wurde." />
-                    <AppNumberField T="decimal?" @bind-Value="data.InterestMarginPoints" Label="Aufschlag (Prozentpunkte)" Hint="Gesetzlich 5 Prozentpunkte bei Verbrauchern (§ 288 Abs. 1 BGB)." />
-                </div>
-                @if (data.ChargeDefaultInterest && data.BaseRate is null)
+                @if (State.IsVisible(AppOption.DunningInterest))
                 {
-                    <Notice Level="NoticeLevel.Info">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</Notice>
+                    <AppCheckBox @bind-Value="data.ChargeDefaultInterest" Label="Verzugszinsen ab der 1. Mahnung berechnen (§ 288 Abs. 1 BGB: Basiszinssatz + 5 Prozentpunkte)" />
+                    <div class="form-grid">
+                        <AppNumberField T="decimal?" @bind-Value="data.BaseRate" Label="Basiszinssatz (% p. a.)"
+                                        Hint="Ändert sich zum 1.1. und 1.7.; den aktuellen Wert veröffentlicht die Deutsche Bundesbank. Ohne Wert werden keine Zinsen berechnet." />
+                        <AppDateField @bind-Value="data.BaseRateAsOf" Label="Basiszinssatz gültig seit" Hint="Zur Kontrolle, wann der Wert zuletzt gepflegt wurde." />
+                        <AppNumberField T="decimal?" @bind-Value="data.InterestMarginPoints" Label="Aufschlag (Prozentpunkte)" Hint="Gesetzlich 5 Prozentpunkte bei Verbrauchern (§ 288 Abs. 1 BGB)." />
+                    </div>
+                    @if (data.ChargeDefaultInterest && data.BaseRate is null)
+                    {
+                        <Notice Level="NoticeLevel.Info">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</Notice>
+                    }
                 }
             </section>
             }

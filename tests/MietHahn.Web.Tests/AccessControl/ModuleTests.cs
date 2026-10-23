@@ -131,6 +131,30 @@ public class LeaseFormOptionTests(PostgresFixture postgres) : AccountTestBase(po
     }
 }
 
+public class DunningOptionPagesTests(PostgresFixture postgres) : AccountTestBase(postgres)
+{
+    [Fact]
+    public async Task Fee_and_interest_fields_appear_only_when_chosen()
+    {
+        var (browser, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = browser;
+        var full = (await browser.GetAsync("/verwaltung/finanzen/einstellungen")).Document.Body!.TextContent;
+        Assert.Contains("Gebühr 1. Mahnung", full, StringComparison.Ordinal);
+        Assert.Contains("Basiszinssatz (% p. a.)", full, StringComparison.Ordinal);
+
+        await App.WithScopeAsync(async sp =>
+        {
+            await sp.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>(), completeSetup: true, [AppOption.BillingPrepayment]);
+            return true;
+        });
+
+        var reduced = (await browser.GetAsync("/verwaltung/finanzen/einstellungen")).Document.Body!.TextContent;
+        Assert.Contains("Karenzzeit", reduced, StringComparison.Ordinal);
+        Assert.DoesNotContain("Gebühr 1. Mahnung", reduced, StringComparison.Ordinal);
+        Assert.DoesNotContain("Basiszinssatz (% p. a.)", reduced, StringComparison.Ordinal);
+    }
+}
+
 public class TaxOptionPagesTests(PostgresFixture postgres) : AccountTestBase(postgres)
 {
     [Fact]

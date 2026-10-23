@@ -38,6 +38,8 @@ public enum AppOption
     UnitCommercial,
     LeaseDeposit,
     LeaseGuarantor,
+    DunningFees,
+    DunningInterest,
 }
 
 /// <param name="Group">Options of one group are asked together in the wizard.</param>
@@ -189,6 +191,7 @@ public static class ModuleCatalog
     public const string TaxGroup = "Steuer";
     public const string UnitsGroup = "Vermietete Einheiten";
     public const string LeaseGroup = "Angaben im Mietvertrag";
+    public const string DunningGroup = "Mahnwesen";
 
     public static readonly IReadOnlyList<OptionInfo> Options =
     [
@@ -234,6 +237,12 @@ public static class ModuleCatalog
         new(AppOption.LeaseGuarantor, LeaseGroup, "Bürgen",
             "Bürgen als weitere Vertragspartei neben den Mietern.",
             [], [], [], null),
+        new(AppOption.DunningFees, DunningGroup, "Mahngebühren",
+            "Gebühr für Zahlungserinnerung und Mahnungen. Zulässig sind nur tatsächlich entstandene Kosten.",
+            [], [], [], AppModule.Dunning),
+        new(AppOption.DunningInterest, DunningGroup, "Verzugszinsen",
+            "Zinsen auf Rückstände ab der 1. Mahnung (Basiszinssatz plus Aufschlag, § 288 BGB). Der Basiszinssatz muss halbjährlich gepflegt werden.",
+            [], [], [], AppModule.Dunning),
     ];
 
     public static OptionInfo Info(AppOption option) => Options.First(o => o.Option == option);
