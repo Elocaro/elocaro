@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Frage oder Hilfe bei der Installation
+    url: https://github.com/TheR00st3r/MietHahn/discussions
+    about: Fragen zur Bedienung und zum Betrieb bitte als Diskussion stellen.
+  - name: Sicherheitslücke melden
+    url: https://github.com/TheR00st3r/MietHahn/security/advisories/new
+    about: Bitte nicht öffentlich als Issue melden.

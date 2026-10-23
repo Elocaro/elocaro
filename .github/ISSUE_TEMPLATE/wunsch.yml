@@ -1,0 +1,20 @@
+name: Wunsch oder Idee
+description: Eine Funktion, die fehlt oder besser sein könnte
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Was möchten Sie erreichen?
+      description: Beschreiben Sie die Aufgabe, nicht die Lösung.
+    validations:
+      required: true
+  - type: textarea
+    id: heute
+    attributes:
+      label: Wie lösen Sie es heute?
+  - type: input
+    id: bestand
+    attributes:
+      label: Größe Ihres Bestands
+      placeholder: z. B. 12 Wohnungen in 3 Häusern
