@@ -52,7 +52,7 @@ Alle Einstellungen kommen über Umgebungsvariablen in `deploy/.env` (eingetragen
 | `MIETHAHN_DOMAIN`, `ACME_EMAIL` | Domain und Kontakt für Let's Encrypt; daraus wird `Application__BaseUrl` (Links in Mails) |
 | `POSTGRES_PASSWORD` | Datenbankpasswort |
 | `MAIL_*`, `SMTP_*` | Absender und SMTP-Zugang (`SMTP_SECURITY`: `StartTls` für Port 587, `SslOnConnect` für 465) |
-| `MIETHAHN_IMAGE` | Image-Tag, Standard `ghcr.io/ther00st3r/miethahn:latest`; empfohlen: feste Version |
+| `MIETHAHN_IMAGE` | Image-Tag, Standard `ghcr.io/ther00st3r/miethahn:latest`; empfohlen: feste Version, z. B. `ghcr.io/ther00st3r/miethahn:0.1.0` (Änderungen siehe `CHANGELOG.md`). Die laufende Version steht unter „Über MietHahn“ (`/ueber`) |
 
 ## Belegauslesung (optional, KI)
 

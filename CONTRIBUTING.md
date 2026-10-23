@@ -34,6 +34,8 @@ Ein Tag `vX.Y.Z` auf dem Default-Branch baut das Image für amd64 und arm64 und 
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
+Vorher `CHANGELOG.md` (Abschnitt „Unveröffentlicht“ → neue Version mit Datum) abschließen. Die Version aus dem Tag landet über das Build-Argument `VERSION` in der Anwendung („Über MietHahn“).
+
 Neue GHCR-Pakete sind zunächst privat. Entweder unter *Packages → miethahn → Package settings* auf öffentlich stellen
 oder auf dem Server einmalig `docker login ghcr.io` mit einem Token (Scope `read:packages`) ausführen.
 
