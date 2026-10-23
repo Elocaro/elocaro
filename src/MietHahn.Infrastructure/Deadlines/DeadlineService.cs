@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.Communication;
 using MietHahn.Application.Deadlines;
@@ -325,6 +326,7 @@ internal sealed class DeadlineReminderJob(DeadlineReminders reminders) : IJob
 }
 
 /// <summary>Dashboard: overdue deadlines and those due within a week.</summary>
+[Module(AppModule.Deadlines)]
 internal sealed class DeadlineTodos(IDeadlines deadlines, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

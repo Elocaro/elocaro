@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
+using MietHahn.Application.Admin;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Web.Tests;
@@ -23,13 +24,26 @@ public sealed class MietHahnWebFactory(
     public string FilePath { get; } = Path.Combine(Path.GetTempPath(), "miethahn-webtests", Guid.NewGuid().ToString("N"));
 
     public static async Task<MietHahnWebFactory> WithDatabaseAsync(
-        PostgresFixture postgres, IDictionary<string, string?>? supplement = null, Action<IServiceCollection>? configureServices = null)
+        PostgresFixture postgres, IDictionary<string, string?>? supplement = null, Action<IServiceCollection>? configureServices = null, bool setupCompleted = true)
     {
         ArgumentNullException.ThrowIfNull(postgres);
         var factory = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), supplement, configureServices, postgres);
         _ = factory.Server; // start the host (migrations run in the process)
+        if (setupCompleted)
+        {
+            await factory.CompleteSetupAsync();
+        }
+
         return factory;
     }
+
+    /// <summary>Marks the setup wizard as done (all modules on), so that the dashboard does not lead to it.</summary>
+    public async Task CompleteSetupAsync() =>
+        await WithScopeAsync(async sp =>
+        {
+            await sp.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>(), completeSetup: true);
+            return true;
+        });
 
     /// <summary>HTTP client like a browser: cookies on, redirects handled manually (for inspection).</summary>
     public TestBrowser Browser() => new(CreateClient(new WebApplicationFactoryClientOptions

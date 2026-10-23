@@ -114,6 +114,39 @@ Das Datenformat ist zwischen Major-Versionen nicht kompatibel:
 3. Image von `postgres` **und** die Basis in `deploy/backup/Dockerfile` anheben, `up -d postgres`.
 4. `docker compose … run --rm backup restore`, dann `up -d`.
 
+## Module und Einrichtungsassistent
+
+Nicht jeder braucht alle Funktionen. Unter **Einstellungen → Module** lässt sich jedes Fachmodul ein- und ausschalten; zu jedem steht dort, was es tut, wann es sich lohnt und was dazugehört. Immer an sind Objekte, Personen, Verträge, Mieterkonto, Benutzer und Einstellungen.
+
+| Modul | Wofür |
+|---|---|
+| Bank & Zahlungsabgleich | Bankkonten (FinTS, CSV), Umsätze zuordnen, Regeln |
+| Mahnwesen | Rückstände erkennen, Mahnungen vorbereiten |
+| Belege | Belegablage und optionale Belegauslesung |
+| Nebenkostenabrechnung | Umlageschlüssel, Heizkosten, Abrechnung (braucht Belege) |
+| Zähler & Verbrauch | Zählerstände, Import, Verbrauchsinformation für Mieter |
+| Mieterhöhung & Indexmiete | Staffeln, Verbraucherpreisindex (VPI), Mieterhöhungs-Schreiben |
+| Steuer & Eigentümer | Anlage V, AfA, Darlehen, DATEV, Eigentümer-Portal (braucht Belege) |
+| Tickets & Hausmeister | Anliegen, Handwerker, Routineaufgaben |
+| Mitteilungen & Aushänge | Nachrichten und Aushänge im Mieterportal |
+| Dokumente & Schreiben | Ablage, Schreiben aus Vorlagen |
+| Fristen & Wartung | Kalender, Wartungen, Erinnerungsmails |
+
+Ein abgeschaltetes Modul verschwindet aus Navigation, Suche, Tabs und Mieterportal. Seiten und Downloads antworten mit 404, die Hinweise auf dem Dashboard entfallen und die zugehörigen Hintergrundjobs laufen leer durch. **Es werden keine Daten gelöscht**: Wer ein Modul wieder einschaltet, findet alles unverändert vor. Hängt ein Modul von einem anderen ab, schaltet die Seite das andere mit ein bzw. mit aus.
+
+### Auswahl innerhalb der Bereiche
+
+Zusätzlich lässt sich einstellen, was Sie innerhalb eines Bereichs überhaupt verwenden. Das steht unter Einstellungen → Module (unten) und wird im Assistenten abgefragt:
+
+| Frage | Optionen | Wirkung |
+|---|---|---|
+| Welche Mietmodelle verwenden Sie? | Staffelmiete, Indexmiete (die Vergleichsmiete ist immer dabei) | Das Vertragsformular bietet nur die gewählten Modelle an und fragt das Modell schon beim Anlegen, sobald es mehr als eines gibt. Indexfelder, die Seite „Verbraucherpreisindex“ und der Staffel-Job gibt es nur bei aktivem Modell. |
+| Wie rechnen Sie Nebenkosten ab? | Vorauszahlung, Betriebskostenpauschale, Inklusivmiete | Das Vertragsformular zeigt nur die passenden Felder: bei Vorauszahlung Betriebs- und Heizkosten-Vorauszahlung, bei Pauschale die Pauschale, bei Inklusivmiete keine. |
+
+Eine abgeschaltete Option bleibt sichtbar, solange ein Vertrag sie noch verwendet. Die Seite nennt dann die Anzahl der Verträge. Bestehende Beträge und Verträge werden nie verändert oder gelöscht.
+
+Nach der Ersteinrichtung (Administrator und Zwei-Faktor-Anmeldung) führt das Dashboard einmalig in den **Einrichtungsassistenten**: Er stellt jedes Modul kurz vor und fragt, ob Sie es brauchen. „Später“ überspringt ihn; unter Einstellungen → Module lässt er sich jederzeit erneut starten (`/verwaltung/einrichtung`). Bestehende Installationen behalten beim Update alle Module und werden nicht zum Assistenten geleitet.
+
 ## Bankumsätze zuordnen
 
 Nach dem Import erscheinen offene Umsätze unter **Finanzen → Umsätze zuordnen** (auch als Hinweis auf der Startseite). Dort lässt sich der Vorschlag bestätigen, ändern/aufteilen oder der Umsatz ignorieren. Wiederkehrende Zahlungen (Stadtwerke, Versicherungen, private Abbuchungen) lassen sich unter **Zuordnungsregeln** hinterlegen. Eine Zuordnung kann auf der Seite des Umsatzes rückgängig gemacht werden; sie stehen im Änderungsprotokoll und sind Teil der Datensicherung wie alle Tabellen (`transaction_assignments`, `match_rules`). Es sind keine zusätzlichen Einstellungen oder Dienste nötig; die Migration läuft beim Start.

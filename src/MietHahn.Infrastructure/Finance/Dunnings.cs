@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.Communication;
 using MietHahn.Application.Documents;
@@ -517,6 +518,7 @@ internal sealed class DunningJob(IDunning dunning) : IJob
 }
 
 /// <summary>Dashboard: dunning proposals to review and arrears relevant for termination.</summary>
+[Module(AppModule.Dunning)]
 internal sealed class DunningTodos(IDunning dunning) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

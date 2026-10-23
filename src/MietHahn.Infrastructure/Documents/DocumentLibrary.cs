@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.Documents;
 using MietHahn.Application.Files;
@@ -305,6 +306,7 @@ internal sealed class DocumentFileShare(MietHahnDbContext db, TimeProvider clock
 }
 
 /// <summary>Dashboard: documents whose validity ends within 60 days (e.g. energy certificate, insurance).</summary>
+[Module(AppModule.Documents)]
 internal sealed class DocumentExpiryTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

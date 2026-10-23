@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.Leases;
 using MietHahn.Domain.Common;
@@ -9,7 +10,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Leases;
 
-internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock) : ILeaseService
+internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IModuleState modules) : ILeaseService
 {
     private const string Overlap = "Für dieses Mietobjekt gibt es in diesem Zeitraum bereits einen Vertrag.";
 
@@ -170,10 +171,16 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock) : I
             Optional(lease, RentComponentType.HeatingCostPrepayment, start, creation.HeatingCostPrepayment);
             Optional(lease, RentComponentType.OperatingCostFlatRate, start, creation.OperatingCostFlatRate);
             lease.SetOccupantCount(start, creation.People);
+            if (creation.RentModel != RentModel.Standard)
+            {
+                lease.SetRentModel(creation.RentModel, creation.IndexBaseMonth, creation.IndexBaseValue);
+            }
+
             ValidateBillingType(lease, start);
 
             db.Add(lease);
             await db.SaveChangesAsync(cancellationToken);
+            await modules.RefreshUsageAsync(cancellationToken);
             return lease.Id;
         }, Overlap);
     }
@@ -387,6 +394,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock) : I
             var lease = await WithDetails().SingleOrDefaultAsync(v => v.Id == id, cancellationToken) ?? throw new NotFoundException();
             action(lease);
             await db.SaveChangesAsync(cancellationToken);
+            await modules.RefreshUsageAsync(cancellationToken);
             return id;
         }, Overlap);
 

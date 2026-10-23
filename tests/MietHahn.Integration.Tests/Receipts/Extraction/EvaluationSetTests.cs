@@ -63,7 +63,7 @@ public class EvaluationSetTests
         {
             var handler = c.Style == Style.CodeFence
                 ? FakeHttpHandler.Json(FakeHttpHandler.ClaudeTextResponse(ModelOutput(c)))
-                : FakeHttpHandler.Json(FakeHttpHandler.ClaudeToolResponse(JsonDocument.Parse(ModelOutput(c)).RootElement));
+                : FakeHttpHandler.Json(FakeHttpHandler.ClaudeToolResponse(JsonElement.Parse(ModelOutput(c))));
             var options = Options("Claude");
             return await new ClaudeReceiptExtractor(new HttpClient(handler), Microsoft.Extensions.Options.Options.Create(options), NullLogger<ClaudeReceiptExtractor>.Instance)
                 .ExtractAsync([new("rechnung.pdf", "application/pdf", "%PDF-1.4"u8.ToArray())], new ExtractionContext(Today), Ct);

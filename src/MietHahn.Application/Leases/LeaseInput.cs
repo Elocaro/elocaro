@@ -24,6 +24,14 @@ public sealed class LeaseCreation
 
     public bool HeatingCostsConsumptionBased { get; set; }
 
+    public RentModel RentModel { get; set; }
+
+    /// <summary>Index rent: month of the base index.</summary>
+    public DateOnly? IndexBaseMonth { get; set; }
+
+    /// <summary>Index rent: value of the base index.</summary>
+    public decimal? IndexBaseValue { get; set; }
+
     [Range(typeof(decimal), "0", "100000", ErrorMessage = "Bitte eine Kaltmiete angeben.", ParseLimitsInInvariantCulture = true)]
     public decimal? BaseRent { get; set; }
 

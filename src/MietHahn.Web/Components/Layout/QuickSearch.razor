@@ -4,6 +4,8 @@
 @using MietHahn.Application.Leases
 @using MietHahn.Application.People
 @using MietHahn.Application.Properties
+@using MietHahn.Application.Admin
+@inject IModuleState Modules
 @inject IAuthorizationService Authorization
 @inject AuthenticationStateProvider AuthenticationState
 @inject IPersonService People
@@ -70,12 +72,12 @@
         var user = (await AuthenticationState.GetAuthenticationStateAsync()).User;
         canMasterData = (await Authorization.AuthorizeAsync(user, Policies.MasterData)).Succeeded;
         pages = [];
-        foreach (var area in AdminNavModel.Areas)
+        foreach (var area in AdminNavModel.VisibleAreas(Modules))
         {
             if (area.Policy is null || (await Authorization.AuthorizeAsync(user, area.Policy)).Succeeded)
             {
                 pages.Add((new Hit(area.Label, "Bereich", area.Href, area.Icon), area.Policy));
-                foreach (var tab in area.Tabs.SelectMany(t => t.IsGroup ? t.Children! : [t]).Where(t => t.Href != area.Href))
+                foreach (var tab in AdminNavModel.Visible(area.Tabs, Modules).SelectMany(t => t.IsGroup ? t.Children! : [t]).Where(t => t.Href != area.Href))
                 {
                     pages.Add((new Hit(tab.Label, area.Label, tab.Href, area.Icon), area.Policy));
                 }

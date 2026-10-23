@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Files;
 using MietHahn.Application.Notices;
 using MietHahn.Application.Todos;
@@ -43,6 +44,7 @@ internal sealed class NoticeFileShare(MietHahnDbContext db, TimeProvider clock) 
 }
 
 /// <summary>Dashboard: unanswered tenant messages.</summary>
+[Module(AppModule.Notices)]
 internal sealed class MessageTodos(MietHahnDbContext db) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
@@ -59,6 +61,7 @@ internal sealed class MessageTodos(MietHahnDbContext db) : ITodoSource
 }
 
 /// <summary>Dashboard: notices that must be read and that some tenants have not confirmed a week after they started.</summary>
+[Module(AppModule.Notices)]
 internal sealed class NoticeAcknowledgementTodos(INotices notices, TimeProvider clock) : ITodoSource
 {
     public const int GraceDays = 7;

@@ -1,7 +1,9 @@
 @page "/verwaltung/vertraege/neu"
 @rendermode InteractiveServer
 @using MudBlazor
+@using MietHahn.Application.Admin
 @inject ILeaseService Admin
+@inject IModuleState State
 @inject IPersonService People
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
@@ -37,14 +39,35 @@
 
     <h2>Miete</h2>
     <div class="form-grid">
-        <AppSelect @bind-Value="form.BillingType" Label="Nebenkosten" Items="Enum.GetValues<BillingType>()" Text="@(v => Labels.From(v))" />
+        @if (RentModels.Count > 1)
+        {
+            <AppSelect @bind-Value="form.RentModel" Label="Mietmodell" Items="RentModels" Text="@(v => Labels.From(v))" />
+        }
+        @if (BillingTypes.Count > 1)
+        {
+            <AppSelect @bind-Value="form.BillingType" Label="Nebenkosten" Items="BillingTypes" Text="@(v => Labels.From(v))" />
+        }
         <AppNumberField T="decimal?" @bind-Value="form.BaseRent" Label="Kaltmiete (€/Monat)" Suffix="€" Required="true" />
-        <AppNumberField T="decimal?" @bind-Value="form.OperatingCostPrepayment" Label="Betriebskosten-Vorauszahlung" Suffix="€" />
-        <AppNumberField T="decimal?" @bind-Value="form.HeatingCostPrepayment" Label="Heizkosten-Vorauszahlung" Suffix="€" />
-        <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Betriebskostenpauschale" Suffix="€" Hint="Nur bei „Pauschale“, z. B. WG-Zimmer." />
+        @if (form.RentModel == RentModel.Index)
+        {
+            <AppMonthField @bind-Value="form.IndexBaseMonth" Label="Indexmiete: Ausgangsmonat" Hint="Monat des Ausgangsindex, z. B. Mietbeginn" />
+            <AppNumberField T="decimal?" @bind-Value="form.IndexBaseValue" Label="Indexmiete: Ausgangswert" Hint="VPI (2020 = 100), z. B. 117,4" />
+        }
+        @if (form.BillingType == BillingType.Prepayment)
+        {
+            <AppNumberField T="decimal?" @bind-Value="form.OperatingCostPrepayment" Label="Betriebskosten-Vorauszahlung" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="form.HeatingCostPrepayment" Label="Heizkosten-Vorauszahlung" Suffix="€" />
+        }
+        else if (form.BillingType == BillingType.FlatRate)
+        {
+            <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Betriebskostenpauschale" Suffix="€" Hint="z. B. WG-Zimmer." Required="true" />
+        }
         <AppNumberField T="int" @bind-Value="form.People" Label="Personen im Haushalt" Min="1" Max="20" />
     </div>
-    <AppCheckBox @bind-Value="form.HeatingCostsConsumptionBased" Label="Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)" />
+    @if (form.BillingType != BillingType.Prepayment)
+    {
+        <AppCheckBox @bind-Value="form.HeatingCostsConsumptionBased" Label="Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)" />
+    }
 
     <h2>Weitere Angaben</h2>
     <div class="form-grid">
@@ -67,6 +90,12 @@
 
     private LeaseForm form = new();
 
+    private IReadOnlyList<RentModel> RentModels => Enum.GetValues<RentModel>()
+        .Where(m => m == RentModel.Standard || State.IsVisible(ModuleCatalog.Of(m))).ToList();
+
+    private IReadOnlyList<BillingType> BillingTypes => Enum.GetValues<BillingType>()
+        .Where(b => State.IsVisible(ModuleCatalog.Of(b))).ToList();
+
     [SupplyParameterFromQuery(Name = "mietobjekt")]
     private Guid? RentalUnit { get; set; }
 
@@ -76,6 +105,10 @@
     protected override async Task OnInitializedAsync()
     {
         form = new() { RentalUnitId = RentalUnit, Start = Start };
+        if (BillingTypes.Count > 0 && !BillingTypes.Contains(form.BillingType))
+        {
+            form.BillingType = BillingTypes[0];
+        }
         rentalUnits = await Admin.RentalUnitsAsync();
         people = await People.OptionsAsync();
     }
@@ -114,11 +147,16 @@
             TenantIds = new[] { f.Tenant1, f.Tenant2 }.OfType<Guid>().Distinct().ToList(),
             GuarantorIds = f.Guarantor is { } b ? [b] : [],
             BillingType = f.BillingType,
-            HeatingCostsConsumptionBased = f.HeatingCostsConsumptionBased,
+            HeatingCostsConsumptionBased = f.BillingType != BillingType.Prepayment && f.HeatingCostsConsumptionBased,
+            RentModel = f.RentModel,
+            IndexBaseMonth = f.RentModel == RentModel.Index ? ParseMonth(f.IndexBaseMonth) : null,
+            IndexBaseValue = f.RentModel == RentModel.Index ? f.IndexBaseValue : null,
             BaseRent = f.BaseRent,
-            OperatingCostPrepayment = f.OperatingCostPrepayment,
-            HeatingCostPrepayment = f.HeatingCostPrepayment,
-            OperatingCostFlatRate = f.OperatingCostFlatRate,
+
+            // Fields of another billing type are not shown and therefore not taken over.
+            OperatingCostPrepayment = f.BillingType == BillingType.Prepayment ? f.OperatingCostPrepayment : null,
+            HeatingCostPrepayment = f.BillingType == BillingType.Prepayment ? f.HeatingCostPrepayment : null,
+            OperatingCostFlatRate = f.BillingType == BillingType.FlatRate ? f.OperatingCostFlatRate : null,
             People = f.People,
             Data = new LeaseInput
             {
@@ -126,7 +164,7 @@
                 PaymentMethod = f.PaymentMethod,
                 NoticePeriodMonths = f.NoticePeriodMonths,
                 BillingType = f.BillingType,
-                HeatingCostsConsumptionBased = f.HeatingCostsConsumptionBased,
+                HeatingCostsConsumptionBased = f.BillingType != BillingType.Prepayment && f.HeatingCostsConsumptionBased,
                 Deposit = f.Deposit,
                 DepositNote = f.DepositNote,
                 Notes = f.Notes,
@@ -142,6 +180,9 @@
             errors = result.Errors;
         }
     }
+
+    private static DateOnly? ParseMonth(string? month) =>
+        DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed) ? parsed : null;
 
     /// <summary>Flat form model (a single level so field names and validation stay simple).</summary>
     private sealed class LeaseForm
@@ -162,6 +203,13 @@
         public Guid? Guarantor { get; set; }
 
         public BillingType BillingType { get; set; }
+
+        public RentModel RentModel { get; set; }
+
+        /// <summary>From <c>&lt;input type="month"&gt;</c> as "2026-01".</summary>
+        public string? IndexBaseMonth { get; set; }
+
+        public decimal? IndexBaseValue { get; set; }
 
         public bool HeatingCostsConsumptionBased { get; set; }
 

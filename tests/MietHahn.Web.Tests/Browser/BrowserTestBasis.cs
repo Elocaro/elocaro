@@ -38,6 +38,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         App = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), Configuration, ConfigureServices, postgres);
         App.UseKestrel(0);
         App.StartServer();
+        await App.CompleteSetupAsync();
         BaseUrl = App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First().Replace("127.0.0.1", "localhost", StringComparison.Ordinal);
 
         // Many browser tests run in parallel, each with its own app and database; allow for the load.

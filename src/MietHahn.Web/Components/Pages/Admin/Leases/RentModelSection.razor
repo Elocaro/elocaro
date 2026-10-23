@@ -1,5 +1,7 @@
 @using MudBlazor
+@using MietHahn.Application.Admin
 @inject ILeaseService Admin
+@inject IModuleState State
 @inject Notifier Notify
 @inject Confirmations Confirm
 
@@ -95,16 +97,22 @@
             break;
     }
 
-    <details class="disclosure">
-        <summary>Mietmodell ändern</summary>
-        <EditForm Model="input" OnValidSubmit="SetModelAsync" novalidate class="form-grid">
-            <DataAnnotationsValidator />
-            <AppSelect @bind-Value="input.Model" Label="Mietmodell" Items="Enum.GetValues<RentModel>()" Text="@(v => Labels.From(v))" />
-            <AppMonthField @bind-Value="input.BaseMonth" Label="Indexmiete: Ausgangsmonat" Hint="Monat des Ausgangsindex, z. B. Mietbeginn" />
-            <AppNumberField T="decimal?" @bind-Value="input.BaseValue" Label="Indexmiete: Ausgangswert" Hint="VPI (2020 = 100), z. B. 117,4" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Mietmodell speichern</MudButton>
-        </EditForm>
-    </details>
+    @if (Choices.Count > 1)
+    {
+        <details class="disclosure">
+            <summary>Mietmodell ändern</summary>
+            <EditForm Model="input" OnValidSubmit="SetModelAsync" novalidate class="form-grid">
+                <DataAnnotationsValidator />
+                <AppSelect @bind-Value="input.Model" Label="Mietmodell" Items="Choices" Text="@(v => Labels.From(v))" />
+                @if (input.Model == RentModel.Index)
+                {
+                    <AppMonthField @bind-Value="input.BaseMonth" Label="Indexmiete: Ausgangsmonat" Hint="Monat des Ausgangsindex, z. B. Mietbeginn" />
+                    <AppNumberField T="decimal?" @bind-Value="input.BaseValue" Label="Indexmiete: Ausgangswert" Hint="VPI (2020 = 100), z. B. 117,4" />
+                }
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Mietmodell speichern</MudButton>
+            </EditForm>
+        </details>
+    }
 </section>
 
 @code {
@@ -112,6 +120,11 @@
     private RentStepInput graduated = new();
     private IndexAdjustmentInput adjustment = new();
     private IReadOnlyList<string>? errors;
+
+    /// <summary>The rent models on offer: the ones the landlord uses plus the current one of this lease.</summary>
+    private IReadOnlyList<RentModel> Choices => Enum.GetValues<RentModel>()
+        .Where(m => m == RentModel.Standard || m == Model.Model || State.IsVisible(ModuleCatalog.Of(m)))
+        .ToList();
 
     [Parameter, EditorRequired]
     public Guid LeaseId { get; set; }

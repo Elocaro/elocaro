@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Leases;
@@ -14,6 +15,7 @@ namespace MietHahn.Infrastructure.Statements;
 /// Dashboard: reminder to create the operating cost statement from October of the following year, warnings 6, 4 and 2 weeks
 /// before the deadline under § 556 para. 3 BGB (31 December) and a note once it has passed.
 /// </summary>
+[Module(AppModule.OperatingCosts)]
 internal sealed class StatementDeadlineTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

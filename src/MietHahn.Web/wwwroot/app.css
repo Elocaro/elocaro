@@ -775,3 +775,10 @@ p.small:has(+ :is(.empty-state, .table-wrapper, .mud-table, .group, .explain)) {
     .data-table th, .data-table td { padding-inline: 0.5rem; }
     .data-table td.small { white-space: normal; font-size: 0.8rem; }
 }
+
+/* Module settings: one card per switchable module */
+.module-list { display: grid; gap: 0.75rem; margin-bottom: 1.5rem; }
+.module-card { margin: 0; padding: 0.75rem 1rem; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); }
+.module-card .module-summary { margin: 0 0 0.25rem; font-weight: 500; }
+.module-card .help { margin-bottom: 0.5rem; }
+.module-card .explain { margin-bottom: 0; background: transparent; }

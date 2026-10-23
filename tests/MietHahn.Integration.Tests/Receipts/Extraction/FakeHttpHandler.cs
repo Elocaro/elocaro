@@ -49,5 +49,5 @@ internal sealed class FakeHttpHandler(Func<RecordedRequest, HttpResponseMessage>
 
 internal sealed record RecordedRequest(HttpMethod Method, Uri Url, Dictionary<string, string> Headers, string Body)
 {
-    public JsonElement Json() => JsonDocument.Parse(Body).RootElement.Clone();
+    public JsonElement Json() => JsonElement.Parse(Body);
 }

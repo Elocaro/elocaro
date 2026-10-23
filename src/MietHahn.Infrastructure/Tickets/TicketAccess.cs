@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Files;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
@@ -45,6 +46,7 @@ internal sealed class TicketFileShare(MietHahnDbContext db) : IFileShare
 }
 
 /// <summary>Dashboard: new tickets and tickets with a due appointment.</summary>
+[Module(AppModule.Tickets)]
 internal sealed class TicketTodos(MietHahnDbContext db) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

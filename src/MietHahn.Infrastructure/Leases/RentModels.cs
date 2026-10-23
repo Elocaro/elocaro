@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Communication;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
@@ -66,6 +67,7 @@ internal sealed class RentStepJob(RentStepApplication app) : IJob
 }
 
 /// <summary>Dashboard: upcoming graduated steps (60 days) and possible index adjustments.</summary>
+[Module(AppModule.RentIncreases)]
 internal sealed class RentModelTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

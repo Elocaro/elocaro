@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Bank;
 using MietHahn.Application.Common;
 using MietHahn.Application.Todos;
@@ -386,6 +387,7 @@ internal sealed class BankService(MietHahnDbContext db, IDataProtectionProvider 
 }
 
 /// <summary>Dashboard: open (unassigned) transactions.</summary>
+[Module(AppModule.Bank)]
 internal sealed class BankTodos(MietHahnDbContext db) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

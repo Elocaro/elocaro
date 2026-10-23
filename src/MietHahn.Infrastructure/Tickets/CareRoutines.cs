@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.Documents;
 using MietHahn.Application.Tickets;
@@ -173,6 +174,7 @@ internal sealed class CareRoutines(MietHahnDbContext db, TimeProvider clock, IPd
 }
 
 /// <summary>Dashboard: caretaker duties whose due day has passed without a tick.</summary>
+[Module(AppModule.Tickets)]
 internal sealed class CareRoutineTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

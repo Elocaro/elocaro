@@ -1,0 +1,219 @@
+@page "/verwaltung/einrichtung"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Application.Admin
+@inject IModuleState State
+@inject Notifier Notify
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Einrichtungsassistent" Subtitle="Wir gehen die Module durch, erklären kurz, wofür sie gut sind, und Sie entscheiden, was Sie brauchen." />
+
+    @if (choices is not null)
+    {
+        <nav aria-label="Schritte">
+            <ol class="wizard-steps">
+                <li class="@(step == 0 ? "wizard-step-current" : "")">
+                    <MudButton Variant="Variant.Text" Color="@(step == 0 ? Color.Primary : Color.Default)" OnClick="() => GoTo(0)" aria-current="@(step == 0 ? "step" : null)">Start</MudButton>
+                </li>
+                @for (var i = 0; i < choices.Count; i++)
+                {
+                    var index = i + 1;
+                    var title = ModuleCatalog.Info(choices[i].Module).Title;
+                    <li class="@(step == index ? "wizard-step-current" : "")">
+                        <MudButton Variant="Variant.Text" Color="@(step == index ? Color.Primary : Color.Default)" OnClick="() => GoTo(index)" aria-current="@(step == index ? "step" : null)">@index. @title</MudButton>
+                    </li>
+                }
+                @for (var g = 0; g < Groups.Count; g++)
+                {
+                    var groupStep = choices.Count + 1 + g;
+                    var groupTitle = Groups[g];
+                    <li class="@(step == groupStep ? "wizard-step-current" : "")">
+                        <MudButton Variant="Variant.Text" Color="@(step == groupStep ? Color.Primary : Color.Default)" OnClick="() => GoTo(groupStep)" aria-current="@(step == groupStep ? "step" : null)">@groupStep. @groupTitle</MudButton>
+                    </li>
+                }
+                <li class="@(step == Last ? "wizard-step-current" : "")">
+                    <MudButton Variant="Variant.Text" Color="@(step == Last ? Color.Primary : Color.Default)" OnClick="() => GoTo(Last)" aria-current="@(step == Last ? "step" : null)">Fertig</MudButton>
+                </li>
+            </ol>
+        </nav>
+
+        <EditForm Model="choices" OnValidSubmit="NextAsync" novalidate>
+            @if (step == 0)
+            {
+                <section>
+                    <h2>Willkommen bei MietHahn</h2>
+                    <p class="help">
+                        MietHahn kann sehr viel. Das meiste davon brauchen Sie vielleicht (noch) nicht. Auf den nächsten Seiten stellen wir
+                        @choices.Count Bereiche vor. Zu jedem beantworten Sie eine einfache Frage: Brauchen Sie das?
+                    </p>
+                    <p class="help">
+                        Nichts davon ist endgültig. Sie können Module jederzeit unter Einstellungen &rarr; Module ein- und ausschalten
+                        und diesen Assistenten dort erneut starten. Die Daten bleiben erhalten.
+                    </p>
+                    <p class="help">Immer dabei sind Objekte, Personen, Verträge und das Mieterkonto.</p>
+                </section>
+            }
+            else if (step > choices.Count && step < Last)
+            {
+                var group = Groups[step - choices.Count - 1];
+                <section>
+                    <h2>@group</h2>
+                    <p class="help">@GroupQuestion(group)</p>
+                    @foreach (var option in options!.Where(o => ModuleCatalog.Info(o.Option).Group == group))
+                    {
+                        var info = ModuleCatalog.Info(option.Option);
+                        <AppCheckBox @bind-Value="option.On" Label="@info.Title" />
+                        <p class="help">@info.Description</p>
+                    }
+                    @if (group == ModuleCatalog.BillingGroup && !options!.Any(o => o.On && o.Option == AppOption.BillingPrepayment) && choices.Any(c => c.On && c.Module == AppModule.OperatingCosts))
+                    {
+                        <Notice Level="NoticeLevel.Info">Ohne Vorauszahlungen gibt es keine jährliche Abrechnung. Die Nebenkostenabrechnung brauchen Sie dann vermutlich nicht: Sie können sie unter „Nebenkostenabrechnung“ ausschalten.</Notice>
+                    }
+                </section>
+            }
+            else if (step < Last)
+            {
+                var choice = choices[step - 1];
+                var info = ModuleCatalog.Info(choice.Module);
+                <section>
+                    <h2>@info.Title</h2>
+                    <p class="module-summary">@info.Summary</p>
+                    <p class="help">@info.Purpose</p>
+                    <h3>Was gehört dazu?</h3>
+                    <ul>
+                        @foreach (var item in info.Includes)
+                        {
+                            <li>@item</li>
+                        }
+                    </ul>
+                    @if (info.Requires.Length > 0)
+                    {
+                        <p class="small">Dafür wird auch @string.Join(", ", info.Requires.Select(r => ModuleCatalog.Info(r).Title)) eingeschaltet.</p>
+                    }
+                    <fieldset>
+                        <legend>Brauchen Sie „@info.Title“?</legend>
+                        <AppRadioGroup T="bool" Value="choice.On" ValueChanged="on => Set(choice, on)" ValueExpression="() => choice.On"
+                                       Items="YesNo" Text="AnswerText" />
+                    </fieldset>
+                </section>
+            }
+            else
+            {
+                <section>
+                    <h2>Zusammenfassung</h2>
+                    <p class="help">Das haben Sie gewählt. Mit „Einrichtung abschließen“ wird es gespeichert.</p>
+                    <ul>
+                        @foreach (var choice in choices)
+                        {
+                            <li>
+                                <strong>@ModuleCatalog.Info(choice.Module).Title</strong>: @(choice.On ? "an" : "aus")
+                            </li>
+                        }
+                    </ul>
+                    <p class="help">
+                        <strong>Ihre Auswahl:</strong>
+                        @string.Join(", ", options!.Where(o => o.On).Select(o => ModuleCatalog.Info(o.Option).Title))
+                    </p>
+                    <p class="help">
+                        Tipp für den Anfang: Tragen Sie zuerst unter <a href="/verwaltung/einstellungen/vermieter">Einstellungen &rarr; Vermieter</a>
+                        Ihre Absenderdaten ein und legen Sie dann Ihr erstes <a href="/verwaltung/objekte/neu">Objekt</a> an.
+                    </p>
+                </section>
+            }
+
+            <div class="form-actions">
+                @if (step > 0)
+                {
+                    <MudButton Variant="Variant.Outlined" OnClick="() => GoTo(step - 1)">Zurück</MudButton>
+                }
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(step == Last ? "Einrichtung abschließen" : "Weiter")</MudButton>
+                @if (!State.SetupCompleted)
+                {
+                    <MudButton Variant="Variant.Text" OnClick="LaterAsync">Später</MudButton>
+                }
+            </div>
+        </EditForm>
+    }
+</InteractiveShell>
+
+@code {
+    private static readonly bool[] YesNo = [true, false];
+
+    private List<ModuleChoice>? choices;
+    private List<OptionChoice>? options;
+    private int step;
+
+    private static readonly IReadOnlyList<string> Groups = ModuleCatalog.Options.Select(o => o.Group).Distinct().ToList();
+
+    private int Last => choices!.Count + 1 + Groups.Count;
+
+    private static string GroupQuestion(string group) => group == ModuleCatalog.RentModelGroup
+        ? "Welche Mietmodelle verwenden Sie? Die Vergleichsmiete (normale Miete mit Erhöhung nach § 558 BGB) ist immer dabei."
+        : "Wie rechnen Sie die Nebenkosten mit Ihren Mietern ab? Wählen Sie alles, was vorkommt.";
+
+    private static string AnswerText(bool on) => on ? "Ja, einschalten" : "Nein, nicht benötigt";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var selection = await State.GetAsync();
+        choices = ModuleCatalog.All.Select(info => new ModuleChoice(info.Module) { On = selection.Enabled.Contains(info.Module) }).ToList();
+        options = ModuleCatalog.Options.Select(info => new OptionChoice(info.Option) { On = selection.EnabledOptions.Contains(info.Option) }).ToList();
+    }
+
+    private void GoTo(int target) => step = Math.Clamp(target, 0, Last);
+
+    private void Set(ModuleChoice choice, bool on)
+    {
+        choice.On = on;
+        if (on)
+        {
+            // Switching on a module also switches on what it needs.
+            foreach (var required in ModuleCatalog.WithRequirements([choice.Module]))
+            {
+                choices!.First(c => c.Module == required).On = true;
+            }
+        }
+        else
+        {
+            // Switching off a module also switches off what needs it.
+            foreach (var other in choices!.Where(c => c.On && ModuleCatalog.WithRequirements([c.Module]).Contains(choice.Module)))
+            {
+                other.On = false;
+            }
+        }
+    }
+
+    private async Task NextAsync()
+    {
+        if (step < Last)
+        {
+            step++;
+            return;
+        }
+
+        await State.SaveAsync(choices!.Where(c => c.On).Select(c => c.Module), completeSetup: true, options!.Where(o => o.On).Select(o => o.Option));
+        Notify.Success("Die Einrichtung ist abgeschlossen.");
+        Navigation.NavigateTo("/verwaltung");
+    }
+
+    private async Task LaterAsync()
+    {
+        await State.SkipSetupAsync();
+        Navigation.NavigateTo("/verwaltung");
+    }
+
+    private sealed class OptionChoice(AppOption option)
+    {
+        public AppOption Option { get; } = option;
+
+        public bool On { get; set; }
+    }
+
+    private sealed class ModuleChoice(AppModule module)
+    {
+        public AppModule Module { get; } = module;
+
+        public bool On { get; set; }
+    }
+}

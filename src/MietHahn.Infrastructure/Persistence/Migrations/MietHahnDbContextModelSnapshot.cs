@@ -282,6 +282,62 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("landlord_profiles", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Admin.ModuleSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.PrimitiveCollection<List<string>>("DisabledModules")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("disabled_modules");
+
+                    b.PrimitiveCollection<List<string>>("DisabledOptions")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("disabled_options")
+                        .HasDefaultValueSql("'{}'");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<DateTimeOffset?>("SetupCompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("setup_completed_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_module_settings");
+
+                    b.ToTable("module_settings", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Bank.BankAccount", b =>
                 {
                     b.Property<Guid>("Id")

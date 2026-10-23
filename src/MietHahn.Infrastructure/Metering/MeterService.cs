@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.Metering;
 using MietHahn.Application.Todos;
@@ -331,6 +332,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
 }
 
 /// <summary>Dashboard: expired or soon-to-expire calibration periods (90 days).</summary>
+[Module(AppModule.Metering)]
 internal sealed class CalibrationDueTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

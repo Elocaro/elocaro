@@ -18,11 +18,14 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
 
     protected virtual IDictionary<string, string?>? Configuration => null;
 
+    /// <summary>Whether the setup wizard counts as done; the dashboard otherwise leads admins to it.</summary>
+    protected virtual bool SetupCompleted => true;
+
     protected virtual void ConfigureServices(IServiceCollection services)
     {
     }
 
-    public async ValueTask InitializeAsync() => App = await MietHahnWebFactory.WithDatabaseAsync(postgres, Configuration, ConfigureServices);
+    public async ValueTask InitializeAsync() => App = await MietHahnWebFactory.WithDatabaseAsync(postgres, Configuration, ConfigureServices, SetupCompleted);
 
     /// <summary>
     /// Creates an account with the given role directly (with password, with 2FA enabled if 2FA is mandatory) and signs it in via

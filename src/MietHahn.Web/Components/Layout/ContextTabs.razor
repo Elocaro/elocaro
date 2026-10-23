@@ -1,4 +1,6 @@
+@using MietHahn.Application.Admin
 @inject NavigationManager Navigation
+@inject IModuleState Modules
 
 @* Tab bar of the current page (see AdminNavModel.TabsFor). *@
 @if (tabs is not null)
@@ -9,5 +11,5 @@
 @code {
     private NavTabSet? tabs;
 
-    protected override void OnParametersSet() => tabs = AdminNavModel.TabsFor(new Uri(Navigation.Uri).AbsolutePath);
+    protected override void OnParametersSet() => tabs = AdminNavModel.TabsFor(new Uri(Navigation.Uri).AbsolutePath, Modules);
 }

@@ -1,7 +1,9 @@
 @page "/verwaltung/vertraege/{Id:guid}"
 @rendermode InteractiveServer
 @using MudBlazor
+@using MietHahn.Application.Admin
 @inject ILeaseService Admin
+@inject IModuleState State
 @inject IPersonService People
 @inject Notifier Notify
 @inject Confirmations Confirm
@@ -203,14 +205,20 @@ else
     <EditForm Model="data" OnValidSubmit="SaveDataAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
-            <AppSelect @bind-Value="data.BillingType" Label="Nebenkosten" Items="Enum.GetValues<BillingType>()" Text="@(v => Labels.From(v))" />
+            @if (BillingChoices.Count > 1)
+            {
+                <AppSelect @bind-Value="data.BillingType" Label="Nebenkosten" Items="BillingChoices" Text="@(v => Labels.From(v))" />
+            }
             <AppNumberField T="int" @bind-Value="data.DueOnWorkingDay" Label="Fällig am … Werktag" Min="1" Max="10" />
             <AppSelect @bind-Value="data.PaymentMethod" Label="Zahlungsart" Items="Enum.GetValues<PaymentMethod>()" Text="@(v => Labels.From(v))" />
             <AppNumberField T="int" @bind-Value="data.NoticePeriodMonths" Label="Kündigungsfrist Mieter (Monate)" Min="1" Max="24" />
             <AppNumberField T="decimal?" @bind-Value="data.Deposit" Label="Kaution" Suffix="€" />
             <AppTextField @bind-Value="data.DepositNote" Label="Kaution – Notiz" />
         </div>
-        <AppCheckBox @bind-Value="data.HeatingCostsConsumptionBased" Label="Heizkosten trotz Pauschale verbrauchsabhängig abrechnen" />
+        @if (data.BillingType != BillingType.Prepayment)
+        {
+            <AppCheckBox @bind-Value="data.HeatingCostsConsumptionBased" Label="Heizkosten trotz Pauschale verbrauchsabhängig abrechnen" />
+        }
         <AppTextField @bind-Value="data.Notes" Label="Notizen" Lines="2" />
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Angaben speichern</MudButton>
     </EditForm>
@@ -229,6 +237,11 @@ else
 </InteractiveShell>
 
 @code {
+    /// <summary>The kinds of billing on offer: the ones in use plus the current one of this lease.</summary>
+    private IReadOnlyList<BillingType> BillingChoices => Enum.GetValues<BillingType>()
+        .Where(b => State.IsVisible(ModuleCatalog.Of(b)) || b == data.BillingType)
+        .ToList();
+
     private LeaseDetails? lease;
     private IReadOnlyList<PersonOption> people = [];
     private IReadOnlyList<string>? errors;

@@ -55,6 +55,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 app.UseTwoFactorRequirement();
+app.UseModuleGate();
 app.UseAntiforgery();
 
 app.MapStaticAssets().AllowAnonymous();

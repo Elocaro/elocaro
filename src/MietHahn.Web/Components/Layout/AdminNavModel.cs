@@ -1,4 +1,5 @@
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Web.Components.Common;
 
 namespace MietHahn.Web.Components.Layout;
@@ -81,13 +82,39 @@ public static class AdminNavModel
         new("Benutzer", AppIcons.Users, $"{Root}/benutzer", Policies.UserManagement, [$"{Root}/benutzer"], [], "System"),
         new("Einstellungen", AppIcons.Finance, $"{Root}/einstellungen/vermieter", Policies.System,
             [$"{Root}/einstellungen", $"{Root}/system"],
-            [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Fristen", $"{Root}/einstellungen/fristen"),
+            [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Module", $"{Root}/einstellungen/module"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Fristen", $"{Root}/einstellungen/fristen"),
              new("E-Mail-Versand", $"{Root}/system/mails"), new("Hintergrundjobs", $"{Root}/system/jobs"),
              new("Datensicherung", $"{Root}/system/datensicherung"), new("Belegauslesung", $"{Root}/system/belegauslesung")], "System"),
     ];
 
     /// <summary>The area a path belongs to, or null (e.g. account pages).</summary>
     public static NavArea? AreaOf(string path) => Areas.FirstOrDefault(area => area.Contains(path));
+
+    /// <summary>The areas whose module is on.</summary>
+    public static IEnumerable<NavArea> VisibleAreas(IModuleState modules) => Areas.Where(area => IsOn(area.Href, modules));
+
+    /// <summary>The tabs without those of switched-off modules; a group disappears with its last page.</summary>
+    public static NavTab[] Visible(IEnumerable<NavTab> tabs, IModuleState modules) =>
+        tabs.Select(tab => tab.IsGroup ? tab with { Children = Visible(tab.Children!, modules) } : tab)
+            .Where(tab => tab.IsGroup ? tab.Children!.Length > 0 : IsOn(tab.Href, modules))
+            .Select(tab => tab.IsGroup ? tab with { Href = tab.Children![0].Href } : tab)
+            .ToArray();
+
+    private static bool IsOn(string href, IModuleState modules) =>
+        (ModuleCatalog.OwnerOf(href) is not { } owner || modules.IsEnabled(owner.Module))
+        && (ModuleCatalog.OptionOf(href) is not { } option || modules.IsVisible(option.Option));
+
+    /// <summary>The tabs of the page at <paramref name="path"/>: workspace of a property or lease, else the siblings of its area.</summary>
+    public static NavTabSet? TabsFor(string path, IModuleState modules)
+    {
+        if (TabsFor(path) is not { } set)
+        {
+            return null;
+        }
+
+        var tabs = Visible(set.Tabs, modules);
+        return tabs.Length > 1 || (tabs.Length == 1 && set.Tabs.Length == 1) ? set with { Tabs = tabs } : null;
+    }
 
     /// <summary>The tabs of the page at <paramref name="path"/>: workspace of a property or lease, else the siblings of its area.</summary>
     public static NavTabSet? TabsFor(string path)

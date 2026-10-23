@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
+using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.People;
 using MietHahn.Application.Receipts;
@@ -333,6 +334,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
 }
 
 /// <summary>Dashboard: due, unpaid receipts and receipts that have not been split.</summary>
+[Module(AppModule.Receipts)]
 internal sealed class ReceiptTodos(MietHahnDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

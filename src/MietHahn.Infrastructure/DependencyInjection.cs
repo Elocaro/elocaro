@@ -247,6 +247,7 @@ public static class DependencyInjection
         services.AddScoped<ITodoSource, DocumentExpiryTodos>();
         services.AddScoped<IPersonalDataSource, DocumentPersonalData>();
         services.AddScoped<ITenantAccounts, TenantAccounts>();
+        services.AddSingleton<IModuleState, ModuleStateService>();
         services.AddScoped<IFinanceSettings, FinanceSettingsService>();
         services.AddScoped<ITodoSource, FinanceTodos>();
         services.AddScoped<IDunning, DunningService>();
@@ -329,6 +330,7 @@ public static class DependencyInjection
         }
 
         services.AddSingleton<JobRunLog>();
+        services.AddSingleton<ModuleJobGate>();
         services.AddQuartz(q =>
         {
             q.SchedulerName = "MietHahn";
@@ -340,6 +342,7 @@ public static class DependencyInjection
                 s.PerformSchemaValidation = true;
             });
             q.AddJobListener<JobRunLog>();
+            q.AddTriggerListener<ModuleJobGate>();
 
             q.ScheduleInterval<MailOutboxJob>(MailOutboxJob.Key, "Versendet fällige E-Mails aus der Outbox", TimeSpan.FromSeconds(30));
             q.ScheduleDaily<JobLogCleanupJob>(JobLogCleanupJob.Key, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);

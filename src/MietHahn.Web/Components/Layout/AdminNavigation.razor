@@ -1,9 +1,11 @@
 @using MietHahn.Application.Accounts
+@using MietHahn.Application.Admin
 @inject NavigationManager Navigation
+@inject IModuleState Modules
 
 @* Main navigation of the administration (sidebar and menu sheet on smartphones); entries only appear with the matching permission. *@
 <ul class="navigation">
-    @foreach (var group in AdminNavModel.Areas.GroupBy(a => a.Group))
+    @foreach (var group in AdminNavModel.VisibleAreas(Modules).GroupBy(a => a.Group))
     {
         var policies = group.Select(a => a.Policy).Distinct().ToList();
         var items = group.ToList();

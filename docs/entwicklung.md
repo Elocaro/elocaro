@@ -48,6 +48,7 @@ Fachbegriffe folgen einem festen Glossar, damit derselbe Begriff überall gleich
 | Vermieter / Verwalter / Hausmeister / Handwerker | `Landlord` / `Manager` / `Caretaker` / `Tradesperson` |
 | Verwaltung (Bereich) / Recht / Richtlinie | `Admin` / `AccessRight` / `Policies` |
 | Dateiablage / Dokument / Aufgabe (Dashboard) | `FileStore` / `Document` / `TodoItem` |
+| Modul (ein-/ausschaltbarer Fachbereich) / Einrichtungsassistent | `AppModule` / `SetupWizard` |
 | Ergebnis / Regelverletzung | `Result` / `RuleViolationException` |
 
 Rein deutsche Rechtsbegriffe ohne gängige Übersetzung behalten ihren Kern (z. B. `Section35a`, `BetrKvNumber`).
@@ -632,3 +633,18 @@ dotnet test -- --report-trx --results-directory testergebnisse --coverage --cove
 | `.github/dependabot.yml` | wöchentlich | NuGet (gruppiert: .NET-Plattform, Testpakete; Quartz-Major-Updates ausgeschlossen, siehe Architektur), Docker-Basisimages, Compose-Images, Actions |
 
 Vor dem Push lokal dasselbe prüfen: `dotnet format --verify-no-changes && dotnet build -c Release && dotnet test`. Workflows lassen sich mit [actionlint](https://github.com/rhysd/actionlint) prüfen. Release-Ablauf und Branch-Schutz stehen in [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Neues Modul
+
+Ein schaltbares Fachmodul braucht drei Dinge:
+
+1. einen Wert in `AppModule` und einen Eintrag in `ModuleCatalog` (`MietHahn.Application/Admin/ModuleCatalog.cs`): Titel, Beschreibung, „Wofür?“, Inhalte, Abhängigkeiten, URL-Präfixe und Job-Namen. `ModuleCatalogTests` prüft die Vollständigkeit.
+2. Seiten und Downloads über die URL-Präfixe (bzw. `EntityPages` für Unterseiten eines Objekts oder Vertrags) zuordnen. `UseModuleGate` antwortet für abgeschaltete Module mit 404, `AdminNavModel` blendet Bereiche und Tabs aus.
+3. Todo-Quellen mit `[Module(AppModule.X)]` an der Klasse kennzeichnen (das Dashboard überspringt sie bei abgeschaltetem Modul); Quartz-Jobs über ihren Schlüsselnamen in `ModuleInfo.Jobs` eintragen (`ModuleJobGate` unterdrückt sie).
+
+Kern-Seiten (Objekte, Personen, Verträge, Mieterkonto, Benutzer, Einstellungen) gehören zu keinem Modul.
+Tests, die einen Administrator auf dem Dashboard erwarten, laufen mit abgeschlossener Einrichtung (`MietHahnWebFactory.CompleteSetupAsync`).
+
+## Neue Option
+
+Eine Auswahl innerhalb eines Bereichs (z. B. ein weiteres Mietmodell) ist ein Wert in `AppOption` mit Eintrag in `ModuleCatalog.Options` (Gruppe, Titel, Beschreibung, optional URL-Präfixe und Job-Namen). Formulare fragen `IModuleState.IsVisible(option)`: wahr, wenn die Option an ist **oder** noch Verträge sie verwenden (`UsageCount`, gezählt in `ModuleStateService`; `LeaseService` aktualisiert die Zählung nach jeder Änderung). Für neue Datenquellen die Zählung in `CountUsageAsync` ergänzen.
