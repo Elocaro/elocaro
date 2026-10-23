@@ -106,6 +106,57 @@ public class ModuleOptionPagesTests(PostgresFixture postgres) : AccountTestBase(
     }
 }
 
+public class LeaseFormOptionTests(PostgresFixture postgres) : AccountTestBase(postgres)
+{
+    [Fact]
+    public async Task Deposit_and_guarantor_fields_follow_the_profile_and_dunning_settings_follow_the_module()
+    {
+        var (browser, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = browser;
+        var full = (await browser.GetAsync("/verwaltung/vertraege/neu")).Document.Body!.TextContent;
+        Assert.Contains("Kaution – Notiz", full, StringComparison.Ordinal);
+        Assert.Contains("Bürge", full, StringComparison.Ordinal);
+        Assert.Contains("Karenzzeit", (await browser.GetAsync("/verwaltung/finanzen/einstellungen")).Document.Body!.TextContent, StringComparison.Ordinal);
+
+        await App.WithScopeAsync(async sp =>
+        {
+            await sp.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>().Where(m => m != AppModule.Dunning), completeSetup: true, [AppOption.BillingPrepayment]);
+            return true;
+        });
+
+        var reduced = (await browser.GetAsync("/verwaltung/vertraege/neu")).Document.Body!.TextContent;
+        Assert.DoesNotContain("Kaution – Notiz", reduced, StringComparison.Ordinal);
+        Assert.DoesNotContain("Bürge", reduced, StringComparison.Ordinal);
+        Assert.DoesNotContain("Karenzzeit", (await browser.GetAsync("/verwaltung/finanzen/einstellungen")).Document.Body!.TextContent, StringComparison.Ordinal);
+    }
+}
+
+public class TaxOptionPagesTests(PostgresFixture postgres) : AccountTestBase(postgres)
+{
+    [Fact]
+    public async Task Tax_parts_can_be_switched_off_one_by_one_and_the_area_stays_while_pages_remain()
+    {
+        var (browser, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = browser;
+        Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/verwaltung/finanzen/darlehen")).Status);
+        Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/verwaltung/finanzen/datev")).Status);
+
+        await App.WithScopeAsync(async sp =>
+        {
+            await sp.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>(), completeSetup: true, [AppOption.TaxDepreciation]);
+            return true;
+        });
+
+        Assert.Equal(HttpStatusCode.NotFound, (await browser.GetAsync("/verwaltung/finanzen/darlehen")).Status);
+        Assert.Equal(HttpStatusCode.NotFound, (await browser.GetAsync("/verwaltung/finanzen/datev")).Status);
+        var lines = await browser.GetAsync("/verwaltung/finanzen/anlage-v-zeilen");
+        Assert.Equal(HttpStatusCode.OK, lines.Status);
+        var sidebar = lines.Document.QuerySelector(".sidebar")!;
+        Assert.Contains("Darlehen & Steuer", sidebar.TextContent, StringComparison.Ordinal);
+        Assert.Contains("/verwaltung/finanzen/anlage-v-zeilen", sidebar.InnerHtml, StringComparison.Ordinal);
+    }
+}
+
 public class ModuleWizardTests(PostgresFixture postgres) : AccountTestBase(postgres)
 {
     protected override bool SetupCompleted => false;

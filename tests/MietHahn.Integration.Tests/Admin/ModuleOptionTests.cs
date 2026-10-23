@@ -65,7 +65,21 @@ public class ModuleOptionTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.False(State.IsVisible(AppOption.RentModelIndex));
     }
 
-    private async Task<Guid> CreateLeaseAsync(RentModel model, BillingType billing)
+    [Fact]
+    public async Task Deposit_stays_visible_while_a_lease_has_one()
+    {
+        await State.SaveAsync(Enum.GetValues<AppModule>(), completeSetup: true, [AppOption.BillingPrepayment], Ct);
+        Assert.False(State.IsVisible(AppOption.LeaseDeposit));
+        Assert.False(State.IsVisible(AppOption.RoomRental));
+
+        await CreateLeaseAsync(RentModel.Standard, BillingType.Prepayment, deposit: 1500m);
+
+        Assert.True(State.IsVisible(AppOption.LeaseDeposit));
+        Assert.Equal(1, State.UsageCount(AppOption.LeaseDeposit));
+        Assert.False(State.IsVisible(AppOption.LeaseGuarantor));
+    }
+
+    private async Task<Guid> CreateLeaseAsync(RentModel model, BillingType billing, decimal? deposit = null)
     {
         await using var scope = environment.Services.CreateAsyncScope();
         var properties = scope.ServiceProvider.GetRequiredService<IPropertyService>();
@@ -78,6 +92,7 @@ public class ModuleOptionTests(PostgresFixture postgres) : IAsyncLifetime
             Start = new DateOnly(2026, 3, 1),
             TenantIds = [tenant],
             BaseRent = 650m,
+            Data = new LeaseInput { Deposit = deposit, BillingType = billing },
             BillingType = billing,
             OperatingCostFlatRate = billing == BillingType.FlatRate ? 40m : null,
             RentModel = model,

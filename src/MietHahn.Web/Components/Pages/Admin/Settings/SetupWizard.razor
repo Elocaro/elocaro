@@ -113,11 +113,12 @@
                     </ul>
                     <p class="help">
                         <strong>Ihre Auswahl:</strong>
-                        @string.Join(", ", options!.Where(o => o.On).Select(o => ModuleCatalog.Info(o.Option).Title))
+                        @string.Join(", ", options!.Where(o => o.On && Groups.Contains(ModuleCatalog.Info(o.Option).Group)).Select(o => ModuleCatalog.Info(o.Option).Title))
                     </p>
                     <p class="help">
                         Tipp für den Anfang: Tragen Sie zuerst unter <a href="/verwaltung/einstellungen/vermieter">Einstellungen &rarr; Vermieter</a>
                         Ihre Absenderdaten ein und legen Sie dann Ihr erstes <a href="/verwaltung/objekte/neu">Objekt</a> an.
+                        Prüfen Sie unter <a href="/verwaltung/system/mails">Einstellungen &rarr; E-Mail-Versand</a> mit einer Test-Mail, ob Mails ankommen.
                     </p>
                 </section>
             }
@@ -144,13 +145,21 @@
     private List<OptionChoice>? options;
     private int step;
 
-    private static readonly IReadOnlyList<string> Groups = ModuleCatalog.Options.Select(o => o.Group).Distinct().ToList();
+    /// <summary>The question groups to ask: those of the core and of the modules that were switched on.</summary>
+    private IReadOnlyList<string> Groups => ModuleCatalog.Options
+        .Where(o => o.Module is not { } module || choices!.Any(c => c.On && c.Module == module))
+        .Select(o => o.Group).Distinct().ToList();
 
     private int Last => choices!.Count + 1 + Groups.Count;
 
-    private static string GroupQuestion(string group) => group == ModuleCatalog.RentModelGroup
-        ? "Welche Mietmodelle verwenden Sie? Die Vergleichsmiete (normale Miete mit Erhöhung nach § 558 BGB) ist immer dabei."
-        : "Wie rechnen Sie die Nebenkosten mit Ihren Mietern ab? Wählen Sie alles, was vorkommt.";
+    private static string GroupQuestion(string group) => group switch
+    {
+        ModuleCatalog.RentModelGroup => "Welche Mietmodelle verwenden Sie? Die Vergleichsmiete (normale Miete mit Erhöhung nach § 558 BGB) ist immer dabei.",
+        ModuleCatalog.UnitsGroup => "Was vermieten Sie? Wohnungen sind immer dabei.",
+        ModuleCatalog.LeaseGroup => "Welche Angaben möchten Sie im Mietvertrag erfassen?",
+        ModuleCatalog.TaxGroup => "Welche Teile der Steuer-Vorbereitung brauchen Sie? Die Anlage V selbst ist immer dabei.",
+        _ => "Wie rechnen Sie die Nebenkosten mit Ihren Mietern ab? Wählen Sie alles, was vorkommt.",
+    };
 
     private static string AnswerText(bool on) => on ? "Ja, einschalten" : "Nein, nicht benötigt";
 

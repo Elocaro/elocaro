@@ -91,7 +91,21 @@ public static class AdminNavModel
     public static NavArea? AreaOf(string path) => Areas.FirstOrDefault(area => area.Contains(path));
 
     /// <summary>The areas whose module is on.</summary>
-    public static IEnumerable<NavArea> VisibleAreas(IModuleState modules) => Areas.Where(area => IsOn(area.Href, modules));
+    public static IEnumerable<NavArea> VisibleAreas(IModuleState modules)
+    {
+        foreach (var area in Areas)
+        {
+            if (IsOn(area.Href, modules))
+            {
+                yield return area;
+            }
+            else if (Visible(area.Tabs, modules) is [{ } first, ..])
+            {
+                // The area's own entry page is off, but other pages remain: lead to the first of them.
+                yield return area with { Href = first.Href };
+            }
+        }
+    }
 
     /// <summary>The tabs without those of switched-off modules; a group disappears with its last page.</summary>
     public static NavTab[] Visible(IEnumerable<NavTab> tabs, IModuleState modules) =>

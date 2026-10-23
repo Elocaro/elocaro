@@ -1,8 +1,13 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using MietHahn.Application.Accounts;
 using MietHahn.Application.Admin;
 using MietHahn.Domain.Admin;
 using MietHahn.Domain.Leases;
+using MietHahn.Domain.Properties;
+using MietHahn.Domain.Tax;
+using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Admin;
@@ -123,6 +128,56 @@ internal sealed class ModuleStateService(IServiceScopeFactory scopes, TimeProvid
         foreach (var row in billing)
         {
             result[ModuleCatalog.Of(row.Key)] = row.Count;
+        }
+
+        var rooms = await db.Set<Room>().CountAsync(cancellationToken);
+        if (rooms > 0)
+        {
+            result[AppOption.RoomRental] = rooms;
+        }
+
+        foreach (var row in await db.Set<Unit>().GroupBy(u => u.Type).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken))
+        {
+            if (row.Key == UnitType.ParkingSpace)
+            {
+                result[AppOption.UnitParking] = row.Count;
+            }
+            else if (row.Key == UnitType.Commercial)
+            {
+                result[AppOption.UnitCommercial] = row.Count;
+            }
+        }
+
+        var deposits = await db.Set<Lease>().CountAsync(l => l.Deposit != null && l.Deposit > 0, cancellationToken);
+        if (deposits > 0)
+        {
+            result[AppOption.LeaseDeposit] = deposits;
+        }
+
+        var guarantors = await db.Set<LeaseParty>().CountAsync(p => p.Role == PartyRole.Guarantor, cancellationToken);
+        if (guarantors > 0)
+        {
+            result[AppOption.LeaseGuarantor] = guarantors;
+        }
+
+        var loans = await db.Set<Loan>().CountAsync(cancellationToken);
+        if (loans > 0)
+        {
+            result[AppOption.TaxLoans] = loans;
+        }
+
+        var depreciation = await db.Set<PropertyAcquisition>().CountAsync(cancellationToken) + await db.Set<MaintenanceDistribution>().CountAsync(cancellationToken);
+        if (depreciation > 0)
+        {
+            result[AppOption.TaxDepreciation] = depreciation;
+        }
+
+        var owners = await db.Set<IdentityUserRole<Guid>>()
+            .Join(db.Set<Role>(), ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+            .CountAsync(name => name == Roles.Owner, cancellationToken);
+        if (owners > 0)
+        {
+            result[AppOption.TaxOwnerPortal] = owners;
         }
 
         return result;

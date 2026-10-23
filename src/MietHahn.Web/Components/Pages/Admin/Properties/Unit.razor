@@ -1,6 +1,8 @@
 @page "/verwaltung/einheiten/{Id:guid}"
 @rendermode InteractiveServer
 @using MudBlazor
+@using MietHahn.Application.Admin
+@inject IModuleState State
 @inject IPropertyService Admin
 @inject IDialogService Dialogs
 @inject NavigationManager Navigation
@@ -37,6 +39,8 @@ else
     </section>
     <LeaseHistory RentalUnitId="Id" />
 }
+@if (unit.IsSharedFlat || State.IsVisible(AppOption.RoomRental))
+{
 <section>
     <h2>Zimmer (WG)</h2>
     @if (unit.IsSharedFlat)
@@ -65,6 +69,7 @@ else
     }
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddRoomAsync">Zimmer hinzufügen</MudButton>
 </section>
+}
 
     </MudTabPanel>
     <MudTabPanel Text="Flächen">

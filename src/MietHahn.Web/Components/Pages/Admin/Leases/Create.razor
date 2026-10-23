@@ -33,7 +33,10 @@
     <div class="form-grid">
         <PersonSelect @bind-Value="form.Tenant1" Label="Mieter" Required="true" People="people" />
         <PersonSelect @bind-Value="form.Tenant2" Label="Weiterer Mieter" Hint="Gesamtschuldnerisch; weitere später im Vertrag." People="people" />
-        <PersonSelect @bind-Value="form.Guarantor" Label="Bürge" People="people" />
+        @if (State.IsVisible(AppOption.LeaseGuarantor))
+        {
+            <PersonSelect @bind-Value="form.Guarantor" Label="Bürge" People="people" />
+        }
     </div>
     <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="AddPersonAsync">Neue Person anlegen</MudButton>
 
@@ -74,8 +77,11 @@
         <AppNumberField T="int" @bind-Value="form.DueOnWorkingDay" Label="Fällig am … Werktag" Min="1" Max="10" />
         <AppSelect @bind-Value="form.PaymentMethod" Label="Zahlungsart" Items="Enum.GetValues<PaymentMethod>()" Text="@(v => Labels.From(v))" />
         <AppNumberField T="int" @bind-Value="form.NoticePeriodMonths" Label="Kündigungsfrist Mieter (Monate)" Min="1" Max="24" />
-        <AppNumberField T="decimal?" @bind-Value="form.Deposit" Label="Kaution" Suffix="€" />
-        <AppTextField @bind-Value="form.DepositNote" Label="Kaution – Notiz" Hint="z. B. „Bürgschaft Sparkasse“" />
+        @if (State.IsVisible(AppOption.LeaseDeposit))
+        {
+            <AppNumberField T="decimal?" @bind-Value="form.Deposit" Label="Kaution" Suffix="€" />
+            <AppTextField @bind-Value="form.DepositNote" Label="Kaution – Notiz" Hint="z. B. „Bürgschaft Sparkasse“" />
+        }
     </div>
     <AppTextField @bind-Value="form.Notes" Label="Notizen" Lines="2" />
 

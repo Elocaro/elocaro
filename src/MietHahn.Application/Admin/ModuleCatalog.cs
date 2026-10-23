@@ -29,10 +29,56 @@ public enum AppOption
     BillingPrepayment,
     BillingFlatRate,
     BillingInclusive,
+    TaxLoans,
+    TaxDepreciation,
+    TaxDatev,
+    TaxOwnerPortal,
+    RoomRental,
+    UnitParking,
+    UnitCommercial,
+    LeaseDeposit,
+    LeaseGuarantor,
 }
 
-/// <param name="Question">Short question for the wizard that the options of one <paramref name="Group"/> answer together.</param>
-public sealed record OptionInfo(AppOption Option, string Group, string Title, string Description, string[] Prefixes, string[] Jobs, AppModule? Module);
+/// <param name="Group">Options of one group are asked together in the wizard.</param>
+/// <param name="Prefixes">URL prefixes that only exist while the option is on.</param>
+/// <param name="EntityPages">Sub-pages of an entity, see <see cref="ModuleInfo"/>.</param>
+/// <param name="Jobs">Quartz job keys (names) that only make sense with the option.</param>
+/// <param name="Module">The module the option belongs to; null for the core.</param>
+public sealed record OptionInfo(AppOption Option, string Group, string Title, string Description, string[] Prefixes, (string Root, string Segment)[] EntityPages, string[] Jobs, AppModule? Module)
+{
+    public bool Owns(string path) => PathRules.Owns(Prefixes, EntityPages, path);
+}
+
+internal static class PathRules
+{
+    /// <summary>Whether the path (without query) is one of the prefixes or a sub-page of an entity.</summary>
+    public static bool Owns(string[] prefixes, (string Root, string Segment)[] entityPages, string path)
+    {
+        path = path.TrimEnd('/');
+        if (prefixes.Any(prefix => path.Equals(prefix, StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        foreach (var (root, segment) in entityPages)
+        {
+            if (!path.StartsWith(root + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var parts = path[(root.Length + 1)..].Split('/');
+            if (parts.Length >= 2 && Guid.TryParse(parts[0], out _) && parts[1].Equals(segment, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
 
 /// <summary>Description of a module for the settings page and the setup wizard.</summary>
 /// <param name="Summary">One sentence: what the module does.</param>
@@ -56,31 +102,7 @@ public sealed record ModuleInfo(
     string[] Jobs)
 {
     /// <summary>Whether the path (without query) belongs to this module.</summary>
-    public bool Owns(string path)
-    {
-        path = path.TrimEnd('/');
-        if (Prefixes.Any(prefix => path.Equals(prefix, StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase)))
-        {
-            return true;
-        }
-
-        foreach (var (root, segment) in EntityPages)
-        {
-            if (!path.StartsWith(root + "/", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var parts = path[(root.Length + 1)..].Split('/');
-            if (parts.Length >= 2 && Guid.TryParse(parts[0], out _) && parts[1].Equals(segment, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    public bool Owns(string path) => PathRules.Owns(Prefixes, EntityPages, path);
 }
 
 public static class ModuleCatalog
@@ -164,24 +186,54 @@ public static class ModuleCatalog
 
     public const string RentModelGroup = "Mietmodelle";
     public const string BillingGroup = "Abrechnung der Nebenkosten";
+    public const string TaxGroup = "Steuer";
+    public const string UnitsGroup = "Vermietete Einheiten";
+    public const string LeaseGroup = "Angaben im Mietvertrag";
 
     public static readonly IReadOnlyList<OptionInfo> Options =
     [
         new(AppOption.RentModelGraduated, RentModelGroup, "Staffelmiete",
             "Die Miete steigt zu festen Terminen um feste Beträge (§ 557a BGB). MietHahn übernimmt die Staffeln automatisch.",
-            [], ["graduated-rent"], AppModule.RentIncreases),
+            [], [], ["graduated-rent"], AppModule.RentIncreases),
         new(AppOption.RentModelIndex, RentModelGroup, "Indexmiete",
             "Die Miete folgt dem Verbraucherpreisindex (§ 557b BGB). Schaltet die Seite „Verbraucherpreisindex“ und die Indexfelder frei.",
-            [$"{Admin}/vpi"], [], AppModule.RentIncreases),
+            [$"{Admin}/vpi"], [], [], AppModule.RentIncreases),
         new(AppOption.BillingPrepayment, BillingGroup, "Vorauszahlung mit jährlicher Abrechnung",
             "Mieter zahlen monatlich Vorauszahlungen für Betriebs- und Heizkosten, einmal im Jahr folgt die Abrechnung.",
-            [], [], null),
+            [], [], [], null),
         new(AppOption.BillingFlatRate, BillingGroup, "Betriebskostenpauschale",
             "Eine feste Pauschale ohne Abrechnung, z. B. bei WG-Zimmern.",
-            [], [], null),
+            [], [], [], null),
         new(AppOption.BillingInclusive, BillingGroup, "Inklusivmiete (Warmmiete)",
             "Die Nebenkosten sind in der Miete enthalten, es gibt keine Vorauszahlung.",
-            [], [], null),
+            [], [], [], null),
+        new(AppOption.TaxLoans, TaxGroup, "Darlehen",
+            "Darlehen für Objekte mit Tilgungsplan, Jahresbescheinigungen, Sondertilgungen und Zinsen für die Anlage V.",
+            [$"{Admin}/finanzen/darlehen"], [], [], AppModule.Tax),
+        new(AppOption.TaxDepreciation, TaxGroup, "Abschreibung (AfA) und Erhaltungsaufwand",
+            "Anschaffungskosten und Abschreibung je Objekt sowie größere Reparaturen, die auf mehrere Jahre verteilt werden.",
+            [], [($"{Admin}/objekte", "afa"), ($"{Admin}/objekte", "erhaltungsaufwand")], [], AppModule.Tax),
+        new(AppOption.TaxDatev, TaxGroup, "DATEV-Export",
+            "Buchungen und Belege für den Steuerberater im DATEV-Format ausgeben.",
+            [$"{Admin}/finanzen/datev"], [], [], AppModule.Tax),
+        new(AppOption.TaxOwnerPortal, TaxGroup, "Eigentümer-Portal",
+            "Miteigentümer sehen ihre Objekte und die Anlage V in einem eigenen Zugang.",
+            ["/eigentuemer"], [], [], AppModule.Tax),
+        new(AppOption.RoomRental, UnitsGroup, "Zimmerweise Vermietung (WG)",
+            "Eine Wohnung wird in einzelne Zimmer aufgeteilt, die einzeln vermietet werden.",
+            [$"{Admin}/zimmer"], [], [], null),
+        new(AppOption.UnitParking, UnitsGroup, "Garagen und Stellplätze als eigene Einheit",
+            "Stellplätze erscheinen als Art einer Einheit und können eigene Verträge haben.",
+            [], [], [], null),
+        new(AppOption.UnitCommercial, UnitsGroup, "Gewerbeeinheiten",
+            "Gewerbe erscheint als Art einer Einheit. MietHahn rechnet dafür keine gewerblichen Besonderheiten wie Umsatzsteuer.",
+            [], [], [], null),
+        new(AppOption.LeaseDeposit, LeaseGroup, "Kaution",
+            "Kautionsbetrag und Notiz im Mietvertrag. MietHahn verwaltet kein Kautionskonto.",
+            [], [], [], null),
+        new(AppOption.LeaseGuarantor, LeaseGroup, "Bürgen",
+            "Bürgen als weitere Vertragspartei neben den Mietern.",
+            [], [], [], null),
     ];
 
     public static OptionInfo Info(AppOption option) => Options.First(o => o.Option == option);
@@ -190,8 +242,7 @@ public static class ModuleCatalog
     public static OptionInfo? OptionOf(string path)
     {
         path = path.TrimEnd('/');
-        return Options.FirstOrDefault(o => o.Prefixes.Any(prefix => path.Equals(prefix, StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase)));
+        return Options.FirstOrDefault(o => o.Owns(path));
     }
 
     public static OptionInfo? OptionOfJob(string jobName) => Options.FirstOrDefault(o => o.Jobs.Contains(jobName));

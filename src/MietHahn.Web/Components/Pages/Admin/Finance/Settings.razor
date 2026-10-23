@@ -1,6 +1,8 @@
 @page "/verwaltung/finanzen/einstellungen"
 @rendermode InteractiveServer
 @using MudBlazor
+@using MietHahn.Application.Admin
+@inject IModuleState State
 @inject IFinanceSettings Admin
 @inject ITenantAccounts Accounts
 @inject Notifier Notify
@@ -21,6 +23,8 @@
                 <AppRadioGroup @bind-Value="data.Allocation" Items="Enum.GetValues<AllocationOrder>()" Text="@(v => Labels.From(v))" />
                 <span class="field-hint">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
             </fieldset>
+            @if (State.IsEnabled(AppModule.Dunning))
+            {
             <section id="mahnwesen" aria-labelledby="dunning-heading">
                 <h2 id="dunning-heading">Mahnwesen</h2>
                 <Notice Level="NoticeLevel.Info">
@@ -49,6 +53,7 @@
                     <Notice Level="NoticeLevel.Info">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</Notice>
                 }
             </section>
+            }
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
     }

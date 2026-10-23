@@ -51,4 +51,20 @@ public class ModuleCatalogTests
     [InlineData("/verwaltung/vertraege/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/konto")]
     [InlineData("/verwaltung/bankfremd")]
     public void Core_pages_belong_to_no_module(string path) => Assert.Null(ModuleCatalog.OwnerOf(path));
+
+    [Theory]
+    [InlineData("/verwaltung/vpi", AppOption.RentModelIndex)]
+    [InlineData("/verwaltung/finanzen/darlehen/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11", AppOption.TaxLoans)]
+    [InlineData("/verwaltung/finanzen/datev/buchungen.csv", AppOption.TaxDatev)]
+    [InlineData("/eigentuemer/objekte/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/anlage-v", AppOption.TaxOwnerPortal)]
+    [InlineData("/verwaltung/objekte/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/afa", AppOption.TaxDepreciation)]
+    [InlineData("/verwaltung/objekte/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/erhaltungsaufwand", AppOption.TaxDepreciation)]
+    public void Pages_belong_to_their_option(string path, AppOption option) =>
+        Assert.Equal(option, ModuleCatalog.OptionOf(path)?.Option);
+
+    [Theory]
+    [InlineData("/verwaltung/objekte/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/anlage-v")]
+    [InlineData("/verwaltung/finanzen/anlage-v-zeilen")]
+    [InlineData("/verwaltung/vertraege")]
+    public void Core_pages_belong_to_no_option(string path) => Assert.Null(ModuleCatalog.OptionOf(path));
 }

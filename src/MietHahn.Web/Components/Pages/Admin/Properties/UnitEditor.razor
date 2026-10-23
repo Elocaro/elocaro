@@ -1,8 +1,10 @@
+@using MietHahn.Application.Admin
+@inject IModuleState State
 @* Fields of a unit; sits inside an EditForm with Model = Data. WithFeatures = false: only name, location and type (quick creation). *@
 <div class="form-grid">
     <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Wohnung 1“" />
     <AppTextField @bind-Value="Data.Location" Label="Lage" Hint="z. B. „EG links“" />
-    <AppSelect @bind-Value="Data.Type" Label="Art" Items="Enum.GetValues<UnitType>()" Text="@(v => Labels.From(v))" />
+    <AppSelect @bind-Value="Data.Type" Label="Art" Items="Types" Text="@(v => Labels.From(v))" />
     @if (WithFeatures)
     {
         <AppNumberField T="decimal?" @bind-Value="Data.RoomCount" Label="Zimmeranzahl" Hint="z. B. 2,5" />
@@ -25,4 +27,13 @@
 
     [Parameter]
     public bool WithFeatures { get; set; } = true;
+}
+
+@code {
+    /// <summary>Unit types on offer: apartments and other units always, parking spaces and commercial units when used.</summary>
+    private IReadOnlyList<UnitType> Types => Enum.GetValues<UnitType>()
+        .Where(t => t is UnitType.Apartment or UnitType.Miscellaneous || t == Data.Type
+            || (t == UnitType.ParkingSpace && State.IsVisible(AppOption.UnitParking))
+            || (t == UnitType.Commercial && State.IsVisible(AppOption.UnitCommercial)))
+        .ToList();
 }

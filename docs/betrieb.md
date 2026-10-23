@@ -142,6 +142,11 @@ Zusätzlich lässt sich einstellen, was Sie innerhalb eines Bereichs überhaupt 
 |---|---|---|
 | Welche Mietmodelle verwenden Sie? | Staffelmiete, Indexmiete (die Vergleichsmiete ist immer dabei) | Das Vertragsformular bietet nur die gewählten Modelle an und fragt das Modell schon beim Anlegen, sobald es mehr als eines gibt. Indexfelder, die Seite „Verbraucherpreisindex“ und der Staffel-Job gibt es nur bei aktivem Modell. |
 | Wie rechnen Sie Nebenkosten ab? | Vorauszahlung, Betriebskostenpauschale, Inklusivmiete | Das Vertragsformular zeigt nur die passenden Felder: bei Vorauszahlung Betriebs- und Heizkosten-Vorauszahlung, bei Pauschale die Pauschale, bei Inklusivmiete keine. |
+| Welche Teile der Steuer nutzen Sie? | Darlehen, Abschreibung (AfA) und Erhaltungsaufwand, DATEV-Export, Eigentümer-Portal (die Anlage V ist immer dabei) | Seiten, Tabs und Downloads der abgewählten Teile entfallen (404). Der Bereich „Darlehen & Steuer“ bleibt, solange eine Seite darin übrig ist. |
+| Was vermieten Sie? | Zimmerweise (WG), Garagen/Stellplätze, Gewerbe (Wohnungen sind immer dabei) | Die Einheitenart-Auswahl bietet nur Gewähltes an. Die Zimmer-Verwaltung der Wohnung erscheint nur bei WG-Vermietung. |
+| Welche Angaben im Mietvertrag? | Kaution, Bürgen | Die Felder fehlen in Anlegen-Formular und Vertragsdetails, wenn nicht gewählt. |
+
+Zusätzlich blendet die Heizungsseite eines Objekts Abschnitte nach dem Brennstoff aus: die Aufteilung Heizung/Warmwasser nur bei gemeinsamer Anlage, die Heizöl-Angaben nur bei Heizöl, die CO₂-Aufteilung nur bei Gas und Öl. Die Mahnwesen-Einstellungen unter Finanzen gibt es nur, solange das Modul Mahnwesen an ist.
 
 Eine abgeschaltete Option bleibt sichtbar, solange ein Vertrag sie noch verwendet. Die Seite nennt dann die Anzahl der Verträge. Bestehende Beträge und Verträge werden nie verändert oder gelöscht.
 

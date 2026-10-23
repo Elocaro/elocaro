@@ -137,11 +137,14 @@ else
         }
     </ul>
     <details class="disclosure">
-        <summary>Mieter oder Bürgen hinzufügen</summary>
+        <summary>@(PartyRoles.Count > 1 ? "Mieter oder Bürgen hinzufügen" : "Mieter hinzufügen")</summary>
         <EditForm Model="newParty" OnValidSubmit="AddPartyAsync" novalidate class="form-grid">
             <DataAnnotationsValidator />
             <PersonSelect @bind-Value="newParty.PersonId" Label="Person" People="people" Required="true" />
-            <AppSelect @bind-Value="newParty.Role" Label="Rolle" Items="Enum.GetValues<PartyRole>()" Text="@(v => Labels.From(v))" />
+            @if (PartyRoles.Count > 1)
+            {
+                <AppSelect @bind-Value="newParty.Role" Label="Rolle" Items="PartyRoles" Text="@(v => Labels.From(v))" />
+            }
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
         </EditForm>
     </details>
@@ -212,8 +215,11 @@ else
             <AppNumberField T="int" @bind-Value="data.DueOnWorkingDay" Label="Fällig am … Werktag" Min="1" Max="10" />
             <AppSelect @bind-Value="data.PaymentMethod" Label="Zahlungsart" Items="Enum.GetValues<PaymentMethod>()" Text="@(v => Labels.From(v))" />
             <AppNumberField T="int" @bind-Value="data.NoticePeriodMonths" Label="Kündigungsfrist Mieter (Monate)" Min="1" Max="24" />
-            <AppNumberField T="decimal?" @bind-Value="data.Deposit" Label="Kaution" Suffix="€" />
-            <AppTextField @bind-Value="data.DepositNote" Label="Kaution – Notiz" />
+            @if (State.IsVisible(AppOption.LeaseDeposit) || data.Deposit is not null)
+            {
+                <AppNumberField T="decimal?" @bind-Value="data.Deposit" Label="Kaution" Suffix="€" />
+                <AppTextField @bind-Value="data.DepositNote" Label="Kaution – Notiz" />
+            }
         </div>
         @if (data.BillingType != BillingType.Prepayment)
         {
@@ -237,6 +243,10 @@ else
 </InteractiveShell>
 
 @code {
+    private IReadOnlyList<PartyRole> PartyRoles => Enum.GetValues<PartyRole>()
+        .Where(r => r != PartyRole.Guarantor || State.IsVisible(AppOption.LeaseGuarantor))
+        .ToList();
+
     /// <summary>The kinds of billing on offer: the ones in use plus the current one of this lease.</summary>
     private IReadOnlyList<BillingType> BillingChoices => Enum.GetValues<BillingType>()
         .Where(b => State.IsVisible(ModuleCatalog.Of(b)) || b == data.BillingType)
