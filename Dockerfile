@@ -13,12 +13,14 @@ COPY src/MietHahn.Web/MietHahn.Web.csproj src/MietHahn.Web/
 # Publish only for the target architecture (amd64 or arm64) so that no foreign native libraries
 # (e.g. SkiaSharp for Windows/macOS) end up in the image.
 ARG TARGETARCH
+# Release version (tag without "v"); shown on the "Über MietHahn" page
+ARG VERSION=0.0.0-dev
 RUN case "$TARGETARCH" in arm64) echo linux-arm64 ;; *) echo linux-x64 ;; esac > /tmp/rid \
  && dotnet restore src/MietHahn.Web/MietHahn.Web.csproj -r "$(cat /tmp/rid)"
 
 COPY src/ src/
 RUN dotnet publish src/MietHahn.Web/MietHahn.Web.csproj -c Release -o /app --no-restore \
-      -r "$(cat /tmp/rid)" --self-contained false /p:UseAppHost=false /p:DebugType=none
+      -r "$(cat /tmp/rid)" --self-contained false /p:UseAppHost=false /p:DebugType=none /p:Version="$VERSION" /p:InformationalVersion="$VERSION"
 
 # Prepare the data directory; the runtime image has no shell for mkdir/chown.
 RUN mkdir -p /data/files

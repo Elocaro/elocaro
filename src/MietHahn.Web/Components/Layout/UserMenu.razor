@@ -9,6 +9,7 @@
             <div class="account-menu">
                 <p class="account-menu-name">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</p>
                 <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
+                <a href="/ueber">Über MietHahn</a>
                 <ThemeSwitch />
                 <form method="post" action="/konto/abmelden">
                     <AntiforgeryToken />
@@ -24,6 +25,7 @@
             </summary>
             <div class="user-menu-content">
                 <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
+                <a href="/ueber">Über MietHahn</a>
                 <ThemeSwitch />
                 <form method="post" action="/konto/abmelden">
                     <AntiforgeryToken />

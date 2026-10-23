@@ -1,5 +1,7 @@
 # Drittanbieter-Komponenten
 
+MietHahn selbst steht unter der AGPL-3.0 (siehe `LICENSE`). Die folgenden Komponenten sind nach erster Durchsicht mit ihr vereinbar (keine Rechtsberatung).
+
 MietHahn nutzt folgende Open-Source-Komponenten (als NuGet-Pakete bzw. Container-Images, unverändert):
 
 | Komponente | Lizenz | Verwendung |

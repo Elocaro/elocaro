@@ -1,0 +1,27 @@
+@page "/ueber"
+@attribute [AllowAnonymous]
+@layout MietHahn.Web.Components.Layout.AccountLayout
+@using MietHahn.Web.Display
+
+<PageTitle>Über MietHahn – MietHahn</PageTitle>
+
+<h1>Über MietHahn</h1>
+
+<p>Selbst betriebene Verwaltung für private Vermieter: Objekte, Mieter, Mieteingänge, Nebenkosten- und Heizkostenabrechnung, Steuer und Mieterportal.</p>
+
+<dl class="details">
+    <dt>Version</dt><dd id="app-version">@AppInfo.Version</dd>
+    <dt>Lizenz</dt><dd>@AppInfo.LicenseName</dd>
+    <dt>Quellcode</dt><dd><a href="@AppInfo.SourceUrl" rel="noopener">@AppInfo.SourceUrl</a></dd>
+</dl>
+
+<p class="help">
+    MietHahn unterliegt der GNU Affero General Public License. Wer eine veränderte Fassung im Netz anbietet, muss Nutzern den Quellcode dieser Fassung zur Verfügung stellen.
+    Die verwendeten Komponenten stehen in den Drittanbieter-Hinweisen des Projekts (<code>THIRD-PARTY-NOTICES.md</code>).
+</p>
+
+<Notice Level="NoticeLevel.Info">
+    MietHahn ersetzt keine Rechts- oder Steuerberatung. Vorlagen, Berechnungen und Hinweise sind Arbeitshilfen; prüfen Sie Texte und Beträge, bevor Sie sie verwenden oder versenden.
+</Notice>
+
+<p><a href="/">Zurück</a></p>
