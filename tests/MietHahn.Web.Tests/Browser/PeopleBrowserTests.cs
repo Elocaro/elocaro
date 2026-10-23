@@ -117,14 +117,23 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         {
             await OpenTabAsync(page, "Zugang");
             await page.GetByRole(AriaRole.Button, new() { Name = "Zugang einrichten und einladen" }).ClickAsync();
+            var box = page.GetByRole(AriaRole.Dialog);
+            await Assertions.Expect(box).ToContainTextAsync("rohr@example.de");
+            await box.GetByRole(AriaRole.Button, new() { Name = "Ja, einladen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Zugang wurde eingerichtet.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("rohr@example.de (Handwerker)");
+            await Assertions.Expect(page.Locator("#access-state")).ToContainTextAsync("Einladung wird versendet");
+
+            await page.GetByRole(AriaRole.Button, new() { Name = "Einladung erneut senden" }).ClickAsync();
+            await box.GetByRole(AriaRole.Button, new() { Name = "Ja, senden" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "Die Einladung wird erneut versendet.");
         });
 
         await App.WithDbAsync(async db =>
         {
-            var mail = await db.Set<OutgoingMail>().SingleAsync(TestContext.Current.CancellationToken);
-            Assert.Equal(["rohr@example.de"], mail.To);
+            var mails = await db.Set<OutgoingMail>().ToListAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(2, mails.Count);
+            Assert.All(mails, mail => Assert.Equal(["rohr@example.de"], mail.To));
         });
     }
 

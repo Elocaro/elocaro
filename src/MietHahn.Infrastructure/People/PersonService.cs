@@ -17,6 +17,7 @@ internal sealed class PersonService(
     IEnumerable<IPersonReference> referenceSources,
     IAccessLog accesses,
     IAccountService accounts,
+    MietHahn.Application.Admin.ILandlordProfileService landlord,
     UserManager<ApplicationUser> userManager,
     TimeProvider clock) : IPersonService
 {
@@ -83,7 +84,7 @@ internal sealed class PersonService(
         if (person.UserId is { } userId && await userManager.FindByIdAsync(userId.ToString()) is { } account)
         {
             var role = (await userManager.GetRolesAsync(account)).FirstOrDefault() ?? "";
-            access = new AccessView(userId, account.Email ?? "", role, account.Locked);
+            access = new AccessView(userId, account.Email ?? "", role, account.Locked, account.LastSignInAt, await LastInvitationAsync(account.Email, cancellationToken));
         }
 
         return new PersonDetails(
@@ -179,7 +180,7 @@ internal sealed class PersonService(
                 ContactType.Tradesperson => Roles.Tradesperson,
                 _ => owner ? Roles.Owner : Roles.Tenant,
             };
-            var invitation = await accounts.InviteAsync(person.Email, person.DisplayName, role, cancellationToken);
+            var invitation = await accounts.InviteAsync(person.Email, person.DisplayName, role, await LandlordNameAsync(cancellationToken), cancellationToken);
             if (!invitation.Succeeded)
             {
                 return Result.Failed([.. invitation.Errors]);
@@ -191,6 +192,39 @@ internal sealed class PersonService(
         person.UserId = userId;
         await db.SaveChangesAsync(cancellationToken);
         return Result.Ok(userId);
+    }
+
+    public async Task<Result> ResendInvitationAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var person = await db.Set<Person>().AsNoTracking().SingleOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (person is null)
+        {
+            return Command.NotFound;
+        }
+
+        if (person.UserId is not { } userId)
+        {
+            return Result.Failed("Die Person hat noch keinen Zugang.");
+        }
+
+        var result = await accounts.ResendInvitationAsync(userId, await LandlordNameAsync(cancellationToken), cancellationToken);
+        return result.Succeeded ? Result.Ok(userId) : Result.Failed([.. result.Errors]);
+    }
+
+    private async Task<string?> LandlordNameAsync(CancellationToken cancellationToken) => (await landlord.GetAsync(cancellationToken))?.Name;
+
+    private async Task<InvitationDelivery?> LastInvitationAsync(string? email, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return null;
+        }
+
+        var recent = await db.Set<MietHahn.Domain.Communication.OutgoingMail>().AsNoTracking()
+            .Where(m => m.Template != null && m.Template.StartsWith("invitation"))
+            .OrderByDescending(m => m.CreatedAt).Take(50).ToListAsync(cancellationToken);
+        var mail = recent.FirstOrDefault(m => m.To.Contains(email, StringComparer.OrdinalIgnoreCase));
+        return mail is null ? null : new InvitationDelivery(mail.Status, mail.SentAt ?? mail.CreatedAt);
     }
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)

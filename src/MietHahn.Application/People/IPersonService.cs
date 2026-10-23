@@ -28,6 +28,9 @@ public interface IPersonService
     /// </summary>
     Task<Result> SetUpAccessAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>Sends the invitation again to a person who has an account but has not signed in yet.</summary>
+    Task<Result> ResendInvitationAsync(Guid id, CancellationToken cancellationToken = default);
+
     /// <summary>Only possible without references (leases ...); otherwise anonymize after the retention period.</summary>
     Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
@@ -67,7 +70,12 @@ public sealed record AddressVersion(Period Validity, string SingleLine);
 
 public sealed record BankDetailsView(Guid Id, string Iban, string? AccountHolder, string? Bic);
 
-public sealed record AccessView(Guid UserId, string Email, string Role, bool Locked);
+/// <summary>The last invitation mail of an account: when it was queued or sent and how far delivery is.</summary>
+public sealed record InvitationDelivery(MietHahn.Domain.Communication.MailStatus Status, DateTimeOffset At);
+
+/// <param name="LastSignInAt">When the person signed in last; <c>null</c> = never (the invitation is still open).</param>
+/// <param name="Invitation">The latest invitation mail, if any.</param>
+public sealed record AccessView(Guid UserId, string Email, string Role, bool Locked, DateTimeOffset? LastSignInAt = null, InvitationDelivery? Invitation = null);
 
 public sealed record PersonDetails(
     Guid Id,

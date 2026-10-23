@@ -167,6 +167,37 @@ else
                     <StatusChip Level="StatusLevel.Error">gesperrt</StatusChip>
                 }
             </p>
+            @if (access.LastSignInAt is { } lastSignIn)
+            {
+                <p class="small" id="access-state">Angemeldet, zuletzt am @Format.Timestamp(lastSignIn).</p>
+            }
+            else
+            {
+                <p id="access-state">
+                    @switch (access.Invitation)
+                    {
+                        case { Status: MietHahn.Domain.Communication.MailStatus.Sent } sent:
+                            <StatusChip Level="StatusLevel.Warning">Einladung gesendet, noch nicht angemeldet</StatusChip>
+                            <span class="small">Versendet am @Format.Timestamp(sent.At). Der Link ist sieben Tage gültig.</span>
+                            break;
+                        case { Status: MietHahn.Domain.Communication.MailStatus.Failed } failed:
+                            <StatusChip Level="StatusLevel.Error">Einladung nicht zugestellt</StatusChip>
+                            <span class="small">Letzter Versuch am @Format.Timestamp(failed.At). Unter <a href="/verwaltung/system/mails">Einstellungen → E-Mail-Versand</a> steht der Grund.</span>
+                            break;
+                        case { }:
+                            <StatusChip>Einladung wird versendet</StatusChip>
+                            <span class="small">Die Mail geht in den nächsten Minuten raus.</span>
+                            break;
+                        default:
+                            <StatusChip>noch nicht angemeldet</StatusChip>
+                            break;
+                    }
+                </p>
+                @if (!access.Locked)
+                {
+                    <MudButton Variant="Variant.Outlined" OnClick="ResendInvitationAsync">Einladung erneut senden</MudButton>
+                }
+            }
         }
         else
         {
@@ -266,7 +297,21 @@ else
         }
     }
 
-    private Task SetUpAccessAsync() => ExecuteAsync(Admin.SetUpAccessAsync(Id), "Der Zugang wurde eingerichtet.");
+    private async Task SetUpAccessAsync()
+    {
+        if (await Confirm.AskAsync("Zugang einrichten und einladen", $"{person!.DisplayName} erhält eine E-Mail an {person.Data.Email} mit einem Anmeldelink.", "Ja, einladen"))
+        {
+            await ExecuteAsync(Admin.SetUpAccessAsync(Id), "Der Zugang wurde eingerichtet. Die Einladung geht in den nächsten Minuten per E-Mail raus.");
+        }
+    }
+
+    private async Task ResendInvitationAsync()
+    {
+        if (await Confirm.AskAsync("Einladung erneut senden", $"{person!.DisplayName} erhält eine neue Einladung an {person.Access!.Email}. Der bisherige Link bleibt bis zum Ablauf gültig.", "Ja, senden"))
+        {
+            await ExecuteAsync(Admin.ResendInvitationAsync(Id), "Die Einladung wird erneut versendet.");
+        }
+    }
 
     private async Task AnonymizeAsync()
     {

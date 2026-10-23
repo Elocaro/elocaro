@@ -15,6 +15,14 @@ public interface IAccountService
     /// </summary>
     Task<AccountResult> InviteAsync(string email, string displayName, string role, CancellationToken cancellationToken = default);
 
+    /// <summary>As above; the mail names the landlord on whose behalf the invitation is sent, so that tenants recognize the sender.</summary>
+    Task<AccountResult> InviteAsync(string email, string displayName, string role, string? invitedBy, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends the invitation of an account again (new link). Only for accounts that have not signed in yet.
+    /// </summary>
+    Task<AccountResult> ResendInvitationAsync(Guid userId, string? invitedBy = null, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Sends a sign-in link (valid 15 minutes) if a matching, authorized account exists.
     /// Deliberately gives no information about whether the address is known.

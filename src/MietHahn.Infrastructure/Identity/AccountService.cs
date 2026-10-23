@@ -46,7 +46,10 @@ internal sealed class AccountService(
         return AccountResult.Ok(user.Id);
     }
 
-    public async Task<AccountResult> InviteAsync(string email, string displayName, string role, CancellationToken cancellationToken = default)
+    public Task<AccountResult> InviteAsync(string email, string displayName, string role, CancellationToken cancellationToken = default) =>
+        InviteAsync(email, displayName, role, null, cancellationToken);
+
+    public async Task<AccountResult> InviteAsync(string email, string displayName, string role, string? invitedBy, CancellationToken cancellationToken = default)
     {
         if (!Roles.All.Contains(role))
         {
@@ -72,23 +75,60 @@ internal sealed class AccountService(
             await userManager.AddClaimsAsync(user, Permissions.ManagerDefault.Select(r => new System.Security.Claims.Claim(Permissions.ClaimType, r.ToString())));
         }
 
-        if (Roles.RequiresPassword(role))
-        {
-            var token = await userManager.GenerateUserTokenAsync(user, TokenProviders.Invitation, TokenProviders.Invitation);
-            var link = app.Value.Link($"konto/einladung?benutzer={user.Id}&code={Uri.EscapeDataString(token)}");
-            await mail.EnqueueAsync(new MailRequest([email], "invitation-password",
-                new { DisplayName = user.DisplayName, Role = Roles.DisplayName(role), Link = link.ToString(), ValidDays = InvitationValidity.Days }), cancellationToken);
-        }
-        else
-        {
-            var link = await CreateMagicLinkAsync(user.Id, InvitationValidity, cancellationToken);
-            await mail.EnqueueAsync(new MailRequest([email], "invitation-link",
-                new { DisplayName = user.DisplayName, Role = Roles.DisplayName(role), Link = link.ToString(), ValidDays = InvitationValidity.Days }), cancellationToken);
-        }
+        await SendInvitationAsync(user, role, invitedBy, cancellationToken);
 
         await audit.LogAsync(nameof(ApplicationUser), user.Id, AuditAction.Created,
             [new("Email", null, user.Email), new("Rolle", null, role)], cancellationToken);
         return AccountResult.Ok(user.Id);
+    }
+
+    public async Task<AccountResult> ResendInvitationAsync(Guid userId, string? invitedBy = null, CancellationToken cancellationToken = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return AccountResult.Failed("Das Konto gibt es nicht.");
+        }
+
+        if (user.LastSignInAt is not null)
+        {
+            return AccountResult.Failed("Die Person hat sich bereits angemeldet. Eine neue Einladung ist nicht nötig; auf der Anmeldeseite lässt sich ein neuer Link anfordern.");
+        }
+
+        if (user.Locked)
+        {
+            return AccountResult.Failed("Das Konto ist gesperrt.");
+        }
+
+        var role = (await userManager.GetRolesAsync(user)).FirstOrDefault() ?? "";
+        await SendInvitationAsync(user, role, invitedBy, cancellationToken);
+        await audit.LogAsync(nameof(ApplicationUser), user.Id, AuditAction.Modified, [new("Einladung", null, "erneut gesendet")], cancellationToken);
+        return AccountResult.Ok(user.Id);
+    }
+
+    private async Task SendInvitationAsync(ApplicationUser user, string role, string? invitedBy, CancellationToken cancellationToken)
+    {
+        object Model(string link, bool password) => new
+        {
+            DisplayName = user.DisplayName,
+            Role = Roles.DisplayName(role),
+            Link = link,
+            ValidDays = InvitationValidity.Days,
+            Landlord = string.IsNullOrWhiteSpace(invitedBy) ? null : invitedBy,
+            Password = password,
+        };
+
+        if (Roles.RequiresPassword(role))
+        {
+            var token = await userManager.GenerateUserTokenAsync(user, TokenProviders.Invitation, TokenProviders.Invitation);
+            var link = app.Value.Link($"konto/einladung?benutzer={user.Id}&code={Uri.EscapeDataString(token)}");
+            await mail.EnqueueAsync(new MailRequest([user.Email!], "invitation-password", Model(link.ToString(), true)), cancellationToken);
+        }
+        else
+        {
+            var link = await CreateMagicLinkAsync(user.Id, InvitationValidity, cancellationToken);
+            await mail.EnqueueAsync(new MailRequest([user.Email!], "invitation-link", Model(link.ToString(), false)), cancellationToken);
+        }
     }
 
     public async Task RequestMagicLinkAsync(string email, CancellationToken cancellationToken = default)

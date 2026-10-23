@@ -126,6 +126,61 @@ public class PeopleTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Invitation_names_the_landlord_and_the_access_shows_its_delivery_state()
+    {
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<MietHahn.Application.Admin.ILandlordProfileService>().SaveAsync(
+                new MietHahn.Application.Admin.LandlordProfileInput { Name = "Hausverwaltung Beispiel", Street = "Weg 1", PostalCode = "50667", City = "Köln" }, Ct);
+        }
+
+        var anna = await AnnaAsync();
+        Assert.Null((await WithAsync(v => v.GetAsync(anna, Ct)))!.Access);
+        Validate(await WithAsync(v => v.SetUpAccessAsync(anna, Ct)));
+
+        var access = (await WithAsync(v => v.GetAsync(anna, Ct)))!.Access!;
+        Assert.Null(access.LastSignInAt);
+        Assert.Equal(MietHahn.Domain.Communication.MailStatus.Pending, access.Invitation!.Status);
+
+        await using var read = environment.Services.CreateAsyncScope();
+        var mails = await read.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<MietHahn.Domain.Communication.OutgoingMail>().AsNoTracking().ToListAsync(Ct);
+        var mail = Assert.Single(mails);
+        Assert.Contains("Hausverwaltung Beispiel", mail.Subject);
+        Assert.Contains("Hausverwaltung Beispiel", mail.Html);
+    }
+
+    [Fact]
+    public async Task Invitation_can_be_sent_again_until_the_person_has_signed_in()
+    {
+        var anna = await AnnaAsync();
+        Assert.False((await WithAsync(v => v.ResendInvitationAsync(anna, Ct))).Succeeded);
+        Validate(await WithAsync(v => v.SetUpAccessAsync(anna, Ct)));
+
+        Validate(await WithAsync(v => v.ResendInvitationAsync(anna, Ct)));
+
+        await using (var read = environment.Services.CreateAsyncScope())
+        {
+            var mails = await read.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<MietHahn.Domain.Communication.OutgoingMail>().AsNoTracking().ToListAsync(Ct);
+            Assert.Equal(2, mails.Count);
+            Assert.All(mails, m => Assert.Equal(["anna@example.de"], m.To));
+        }
+
+        var userId = (await WithAsync(v => v.GetAsync(anna, Ct)))!.Access!.UserId;
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<MietHahn.Infrastructure.Identity.ApplicationUser>>();
+            var user = (await manager.FindByIdAsync(userId.ToString()))!;
+            user.LastSignInAt = DateTimeOffset.UtcNow;
+            await manager.UpdateAsync(user);
+        }
+
+        var late = await WithAsync(v => v.ResendInvitationAsync(anna, Ct));
+        Assert.False(late.Succeeded);
+        Assert.Contains("bereits angemeldet", late.Errors.Single());
+        Assert.NotNull((await WithAsync(v => v.GetAsync(anna, Ct)))!.Access!.LastSignInAt);
+    }
+
+    [Fact]
     public async Task Gdpr_access_report_contains_all_stored_data()
     {
         var anna = await AnnaAsync();
