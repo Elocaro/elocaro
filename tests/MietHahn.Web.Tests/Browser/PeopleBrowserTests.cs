@@ -22,6 +22,27 @@ public class PeopleBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
     }
 
     [Fact]
+    public async Task New_person_form_shows_only_the_common_fields_until_more_details_are_opened()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await GotoInteractiveAsync(page, "/verwaltung/personen/neu");
+            var main = page.Locator("main");
+            await Assertions.Expect(main.GetByLabel("Nachname bzw. Name")).ToBeVisibleAsync();
+            await Assertions.Expect(main.GetByLabel("E-Mail")).ToBeVisibleAsync();
+            await Assertions.Expect(main.GetByLabel("Telefon")).ToBeVisibleAsync();
+            await Assertions.Expect(main.GetByLabel("Firma")).ToHaveCountAsync(0);
+            await Assertions.Expect(main.GetByLabel("Geburtsdatum")).ToHaveCountAsync(0);
+
+            await main.GetByRole(AriaRole.Button, new() { Name = "Weitere Angaben" }).ClickAsync();
+            await Assertions.Expect(main.GetByLabel("Firma")).ToBeVisibleAsync();
+            await Assertions.Expect(main.GetByLabel("Straße und Hausnummer")).ToBeVisibleAsync();
+        });
+    }
+
+    [Fact]
     public async Task Bank_details_are_validated_added_and_removed_after_confirmation()
     {
         var id = await CreatePersonAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt" });
