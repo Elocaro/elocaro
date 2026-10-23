@@ -83,6 +83,7 @@ Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gil
 | Seitenkopf | `PageHeader` | Jede Seite außer Anmeldung und Fehlerseiten; genau ein `<h1>`; Aktionen im `Actions`-Slot (höchstens eine Hauptaktion, wenige Nebenaktionen, Rest im Menü) |
 | Formularfeld | `FormField` + `Input*` | Beschriftung immer sichtbar; Pflicht und Hinweis über Parameter |
 | Geld, Fläche | `InputAmount`, `InputArea` | Nie `type="text"` für Zahlen |
+| Datum, Monat | `AppDateField` (TT.MM.JJJJ), `AppMonthField` (MM.JJJJ) | Platzhalter mit Format; Eingabe mit und ohne Punkte (`01112026`, `1.2.27`, ISO) wird gelesen (`LenientDateConverter`) und im Normalformat angezeigt; Unlesbares meldet einen Fehler unter dem Feld statt still zu verschwinden. „(Monat)“-Felder nehmen `AppMonthField`, nie den Tageskalender |
 | Tabelle | `.table-wrapper > .data-table` | Immer im Wrapper; Zahlen in `td.number`; Sortieren mit `SortHeader`, Blättern mit `Pagination` |
 | Hinweis | `Notice` (Level Info/Success/Warning/Error), `StatusMessage` (nach Weiterleitung), `ErrorList` (Fehler aus Diensten) | Kein eigenes `class="message …"`; `role` setzt `Notice` selbst |
 | Leerer Zustand | `EmptyState` | Unterscheiden: „Keine Treffer für …“ (Filter aktiv) und „Noch keine …“ |

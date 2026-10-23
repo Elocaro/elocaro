@@ -103,7 +103,7 @@
                         Forderungen &rarr; Einstellungen festlegen.
                     </p>
                     <div class="form-grid">
-                        <AppDateField @bind-Value="accountingStart" Label="Buchhaltung ab (Monat)" />
+                        <AppMonthField @bind-Value="accountingMonth" Label="Buchhaltung ab (Monat)" />
                     </div>
                 }
                 <Notice Level="NoticeLevel.Info">
@@ -122,7 +122,7 @@
     private List<ModuleChoice>? choices;
     private List<OptionChoice>? options;
     private bool accountingOpen;
-    private DateOnly? accountingStart;
+    private string? accountingMonth;
     private int step;
 
     /// <summary>The question groups to ask: those of the core and of the modules that were switched on.</summary>
@@ -193,7 +193,7 @@
     private async Task FinishAsync()
     {
         await State.SaveAsync(choices!.Where(c => c.On).Select(c => c.Module), completeSetup: true, options!.Where(o => o.On).Select(o => o.Option));
-        if (accountingOpen && accountingStart is not null)
+        if (accountingOpen && DateOnly.TryParseExact(accountingMonth + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var accountingStart))
         {
             var finance = await Finance.GetAsync();
             finance.AccountingStart = accountingStart;

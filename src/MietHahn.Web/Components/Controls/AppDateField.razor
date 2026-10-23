@@ -1,9 +1,10 @@
 @using System.Linq.Expressions
 @using MudBlazor
-@* Date input (day, month, year) with a calendar. Value is a DateOnly?; the validation message of the model is shown below. *@
+@* Date input (TT.MM.JJJJ, typed with or without dots) with a calendar. Value is a DateOnly?; the validation message of the model is shown below. *@
 <div class="app-field">
-    <MudDatePicker Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="Clearable"
-                   Editable="true" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" />
+    <MudDatePicker @key="generation" Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="Clearable"
+                   Editable="true" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" Placeholder="TT.MM.JJJJ" DateFormat="dd.MM.yyyy" Converter="converter"
+                   TextChanged="OnTextChanged" Error="errorText is not null" ErrorText="@errorText" />
     @if (ValueExpression is not null && EditContext is not null)
     {
         <ValidationMessage For="ValueExpression" />
@@ -46,6 +47,11 @@
     private DateTime? current;
     private DateOnly? lastValue;
 
+    // The picker keeps the text as typed ("01112026"); a new key makes it show the date in the normal format after each change.
+    private int generation;
+    private string? errorText;
+    private readonly LenientDateConverter converter = new();
+
     protected override void OnParametersSet()
     {
         if (Value != lastValue)
@@ -55,9 +61,15 @@
         }
     }
 
+    // Typed text that cannot be read as a date is reported instead of silently dropped.
+    private void OnTextChanged(string? typed) =>
+        errorText = converter.LastReadFailed || (!string.IsNullOrWhiteSpace(typed) && LenientDateConverter.Read(typed, monthOnly: false) is null) ? "Bitte ein Datum wie 01.11.2026 eingeben." : null;
+
     private async Task OnDateChanged(DateTime? date)
     {
         current = date;
+        errorText = null;
+        generation++;
         await ValueChanged.InvokeAsync(date is null ? null : DateOnly.FromDateTime(date.Value));
     }
 }

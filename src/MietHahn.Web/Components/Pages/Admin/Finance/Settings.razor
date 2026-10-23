@@ -15,7 +15,7 @@
         <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
-                <AppDateField @bind-Value="data.AccountingStart" Label="Buchhaltung ab (Monat)"
+                <AppMonthField @bind-Value="AccountingMonth" Label="Buchhaltung ab (Monat)"
                               Hint="Ab diesem Monat entstehen die Monatsmieten automatisch. Rückstände aus der Zeit davor als „Saldovortrag“ im Mieterkonto erfassen." />
             </div>
             <fieldset class="field">
@@ -67,6 +67,13 @@
 
 @code {
     private FinanceSettingsInput? data;
+
+    /// <summary>The accounting start as "yyyy-MM" for the month field; always the first day of the month.</summary>
+    private string? AccountingMonth
+    {
+        get => data!.AccountingStart?.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+        set => data!.AccountingStart = DateOnly.TryParseExact(value + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var month) ? month : null;
+    }
 
     protected override async Task OnInitializedAsync() => data = await Admin.GetAsync();
 

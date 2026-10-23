@@ -2,6 +2,7 @@ using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Web.Components.Common;
+using MietHahn.Web.Components.Controls;
 using MietHahn.Web.Display;
 
 namespace MietHahn.Web.Tests.Components;
@@ -29,6 +30,50 @@ public class BuildingBlocksTests : BunitContext
     public void Invalid_amounts_are_detected(string text)
     {
         Assert.False(InputAmount.Read(text, out _));
+    }
+
+    [Theory]
+    [InlineData("01.11.2026", 2026, 11, 1)]
+    [InlineData("1.11.2026", 2026, 11, 1)]
+    [InlineData("01112026", 2026, 11, 1)]
+    [InlineData("011126", 2026, 11, 1)]
+    [InlineData("1.2.27", 2027, 2, 1)]
+    [InlineData("2026-11-01", 2026, 11, 1)]
+    [InlineData("  29.02.2028 ", 2028, 2, 29)]
+    public void Typed_dates_are_read_leniently(string text, int year, int month, int day)
+    {
+        Assert.Equal(new DateTime(year, month, day), LenientDateConverter.Read(text));
+    }
+
+    [Theory]
+    [InlineData("11.2026", 2026, 11)]
+    [InlineData("1.2026", 2026, 1)]
+    [InlineData("112026", 2026, 11)]
+    [InlineData("11/2026", 2026, 11)]
+    [InlineData("2026-11", 2026, 11)]
+    public void Typed_months_are_read_leniently_as_first_of_month(string text, int year, int month)
+    {
+        Assert.Equal(new DateTime(year, month, 1), LenientDateConverter.Read(text, monthOnly: true));
+    }
+
+    [Theory]
+    [InlineData("31.02.2026")]
+    [InlineData("morgen")]
+    [InlineData("13.2026")]
+    [InlineData("01.01.")]
+    public void Unusable_dates_are_a_conversion_error_not_null(string text)
+    {
+        Assert.Null(LenientDateConverter.Read(text, monthOnly: text.StartsWith("13", StringComparison.Ordinal)));
+        Assert.Throws<FormatException>(() => LenientDateConverter.Day.ConvertBack(text));
+    }
+
+    [Fact]
+    public void Empty_date_is_null_without_error()
+    {
+        Assert.Null(LenientDateConverter.Day.ConvertBack("  "));
+        Assert.Equal("", LenientDateConverter.Day.Convert(null));
+        Assert.Equal("01.11.2026", LenientDateConverter.Day.Convert(new DateTime(2026, 11, 1)));
+        Assert.Equal("11.2026", LenientDateConverter.Month.Convert(new DateTime(2026, 11, 1)));
     }
 
     [Fact]

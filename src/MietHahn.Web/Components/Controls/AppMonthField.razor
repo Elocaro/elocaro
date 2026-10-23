@@ -2,8 +2,9 @@
 @using MudBlazor
 @* Month input (e.g. "Januar 2026") with a calendar. Value is text in the form "yyyy-MM" (empty = none), as the models use it. *@
 <div class="app-field">
-    <MudDatePicker Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="true" Editable="true"
-                   OpenTo="OpenTo.Month" FixDay="1" DateFormat="MM.yyyy" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" />
+    <MudDatePicker @key="generation" Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="true" Editable="true"
+                   OpenTo="OpenTo.Month" FixDay="1" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" Placeholder="MM.JJJJ" DateFormat="MM.yyyy" Converter="converter"
+                   TextChanged="OnTextChanged" Error="errorText is not null" ErrorText="@errorText" />
     @if (ValueExpression is not null && EditContext is not null)
     {
         <ValidationMessage For="ValueExpression" />
@@ -14,6 +15,11 @@
     private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
     private DateTime? current;
     private string? lastValue;
+
+    // The picker keeps the text as typed; a new key makes it show the month in the normal format after each change.
+    private int generation;
+    private string? errorText;
+    private readonly LenientDateConverter converter = new(monthOnly: true);
 
     [Parameter]
     public string? Value { get; set; }
@@ -50,9 +56,15 @@
         }
     }
 
+    // Typed text that cannot be read as a date is reported instead of silently dropped.
+    private void OnTextChanged(string? typed) =>
+        errorText = converter.LastReadFailed || (!string.IsNullOrWhiteSpace(typed) && LenientDateConverter.Read(typed, monthOnly: true) is null) ? "Bitte einen Monat wie 11.2026 eingeben." : null;
+
     private async Task OnDateChanged(DateTime? date)
     {
         current = date;
+        errorText = null;
+        generation++;
         await ValueChanged.InvokeAsync(date?.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
     }
 }
