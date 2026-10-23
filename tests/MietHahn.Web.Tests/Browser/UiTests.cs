@@ -91,6 +91,81 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     }
 
     [Fact]
+    public async Task Quick_search_closes_with_escape_and_backdrop_and_survives_fast_typing()
+    {
+        await App.WithScopeAsync(async sp =>
+        {
+            var people = sp.GetRequiredService<IPersonService>();
+            for (var i = 1; i <= 12; i++)
+            {
+                await people.CreateAsync(new PersonInput { FirstName = "Erika" + i, LastName = "Musterfrau" }, null, TestContext.Current.CancellationToken);
+            }
+
+            return true;
+        });
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await GotoInteractiveAsync(page, "/verwaltung/benutzer");
+
+        // Keystrokes around the debounce time: searches overlap with the next input and with the page's own loading.
+        await page.Keyboard.PressAsync("Control+k");
+        var input = page.GetByLabel("Suchbegriff");
+        await input.PressSequentiallyAsync("Musterfrau", new() { Delay = 190 });
+        await Assertions.Expect(page.Locator(".quick-search-results")).ToContainTextAsync("Erika1");
+
+        await input.PressSequentiallyAsync(" gibtesnicht", new() { Delay = 190 });
+        await Assertions.Expect(page.Locator(".quick-search-empty")).ToContainTextAsync("Keine Treffer");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator(".quick-search")).ToHaveCountAsync(0);
+
+        await page.Keyboard.PressAsync("Control+k");
+        await Assertions.Expect(input).ToBeFocusedAsync();
+        await page.Locator(".quick-search-backdrop").ClickAsync(new() { Position = new() { X = 5, Y = 5 } });
+        await Assertions.Expect(page.Locator(".quick-search")).ToHaveCountAsync(0);
+
+        // The connection is still alive: the search works once more.
+        await page.Keyboard.PressAsync("Control+k");
+        await page.GetByLabel("Suchbegriff").PressSequentiallyAsync("Musterfr");
+        await Assertions.Expect(page.Locator(".quick-search-results")).ToContainTextAsync("Musterfrau");
+    }
+
+    [Theory]
+    [InlineData("/verwaltung", "Was ist zu tun?")]
+    [InlineData("/verwaltung/personen", "Personen")]
+    public async Task Info_button_opens_a_dialog_that_closes_with_button_escape_and_backdrop(string path, string title)
+    {
+        var page = await SignedInAsAdminAsync(mobile: false); // ends on the (static) start page
+        if (path != "/verwaltung")
+        {
+            await GotoInteractiveAsync(page, path);
+        }
+
+        var dialog = page.Locator("dialog.info-dialog");
+        var info = page.GetByRole(AriaRole.Button, new() { Name = "Info zu dieser Seite" });
+
+        await info.ClickAsync();
+        await Assertions.Expect(dialog).ToBeVisibleAsync();
+        await Assertions.Expect(dialog.Locator("h2")).ToHaveTextAsync(title);
+        await Assertions.Expect(dialog).ToContainTextAsync("keine Rechts- oder Steuerberatung");
+        if (Environment.GetEnvironmentVariable("MIETHAHN_TOUR_DIR") is { } directory)
+        {
+            Directory.CreateDirectory(directory);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(directory, "info-" + path.Trim('/').Replace('/', '_') + ".png") });
+        }
+
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Schließen" }).ClickAsync();
+        await Assertions.Expect(dialog).ToBeHiddenAsync();
+
+        await info.ClickAsync();
+        await Assertions.Expect(dialog).ToBeVisibleAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(dialog).ToBeHiddenAsync();
+
+        await info.ClickAsync();
+        await page.Mouse.ClickAsync(5, 5);
+        await Assertions.Expect(dialog).ToBeHiddenAsync();
+    }
+
+    [Fact]
     public async Task User_menu_offers_account_and_sign_out()
     {
         var page = await SignedInAsAdminAsync(mobile: false);

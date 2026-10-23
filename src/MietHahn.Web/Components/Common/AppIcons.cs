@@ -43,6 +43,7 @@ public static class AppIcons
     public static string Search => Icons.Material.Filled.Search;
     public static string Home => Icons.Material.Outlined.Home;
     public static string Account => Icons.Material.Outlined.AccountCircle;
+    public static string Close => Icons.Material.Filled.Close;
     public static string Info => Icons.Material.Outlined.Info;
     public static string Success => Icons.Material.Outlined.CheckCircle;
     public static string Warning => Icons.Material.Outlined.Warning;

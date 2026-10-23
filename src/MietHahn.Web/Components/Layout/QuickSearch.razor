@@ -8,9 +8,8 @@
 @inject IModuleState Modules
 @inject IAuthorizationService Authorization
 @inject AuthenticationStateProvider AuthenticationState
-@inject IPersonService People
-@inject IPropertyService Properties
-@inject ILeaseService Leases
+@inject IServiceScopeFactory Scopes
+@inject ILogger<QuickSearch> Logger
 @inject NavigationManager Navigation
 
 @* Quick search (Ctrl+K): jumps to pages, properties, people and leases. Interactive island in the static layout. *@
@@ -27,9 +26,13 @@
         <div class="quick-search-panel">
             <input @ref="input" type="search" class="quick-search-input" placeholder="Objekt, Person, Vertrag oder Seite suchen" aria-label="Suchbegriff"
                    autocomplete="off" @oninput="OnInputAsync" />
-            @if (results.Count == 0)
+            @if (failed)
             {
-                <p class="small quick-search-empty">@(query.Length < 2 ? "Mindestens zwei Zeichen eingeben." : "Keine Treffer.")</p>
+                <p class="small quick-search-empty" role="status">Die Suche ist gerade nicht erreichbar. Bitte erneut versuchen.</p>
+            }
+            else if (results.Count == 0)
+            {
+                <p class="small quick-search-empty" role="status">@(query.Length < 2 ? "Mindestens zwei Zeichen eingeben." : searching ? "Suche läuft …" : "Keine Treffer.")</p>
             }
             else
             {
@@ -63,6 +66,8 @@
     private bool focus;
     private CancellationTokenSource? cancellation;
     private bool canMasterData;
+    private bool searching;
+    private bool failed;
 
     [Parameter]
     public bool Compact { get; set; }
@@ -86,6 +91,8 @@
 
         query = "";
         results = [];
+        failed = false;
+        searching = false;
         selected = 0;
         open = true;
         focus = true;
@@ -111,11 +118,21 @@
         try
         {
             await Task.Delay(200, token);
+            searching = true;
             await SearchAsync(token);
         }
         catch (OperationCanceledException)
         {
             // a newer keystroke replaced this search
+        }
+        catch (Exception ex)
+        {
+            // A failing search must never take the whole circuit (and with it the open dialog) down.
+            Logger.LogWarning(ex, "Die Schnellsuche ist fehlgeschlagen.");
+            results = [];
+            failed = true;
+            searching = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -126,14 +143,20 @@
         {
             if (canMasterData)
             {
-                found.AddRange((await Properties.ListAsync(null, token))
+                // Own scope and DbContext: the page and the second search island use the circuit's context at the same time.
+                await using var scope = Scopes.CreateAsyncScope();
+                var properties = scope.ServiceProvider.GetRequiredService<IPropertyService>();
+                var people = scope.ServiceProvider.GetRequiredService<IPersonService>();
+                var leases = scope.ServiceProvider.GetRequiredService<ILeaseService>();
+
+                found.AddRange((await properties.ListAsync(null, token))
                     .Where(p => Matches(p.Name, query) || Matches(p.Address, query))
-                    .Take(5).Select(p => new Hit(p.Name, p.Address, $"/verwaltung/objekte/{p.Id}", AppIcons.Property)));
-                found.AddRange((await People.SearchAsync(new PersonQuery(query, PersonFilter.All), token))
+                    .Take(5).Select(p => new Hit(p.Name, p.Address ?? "", $"/verwaltung/objekte/{p.Id}", AppIcons.Property)));
+                found.AddRange((await people.SearchAsync(new PersonQuery(query, PersonFilter.All), token))
                     .Take(5).Select(p => new Hit(p.DisplayName, p.Email ?? p.City ?? "Person", $"/verwaltung/personen/{p.Id}", AppIcons.People)));
-                found.AddRange((await Leases.ListAsync(false, token))
+                found.AddRange((await leases.ListAsync(false, token))
                     .Where(l => Matches(l.Tenant, query) || Matches(l.RentalUnit, query) || Matches(l.Property, query))
-                    .Take(5).Select(l => new Hit($"{l.RentalUnit}, {l.Property}", l.Tenant, $"/verwaltung/vertraege/{l.Id}", AppIcons.Lease)));
+                    .Take(5).Select(l => new Hit($"{l.RentalUnit}, {l.Property}", l.Tenant ?? "", $"/verwaltung/vertraege/{l.Id}", AppIcons.Lease)));
             }
 
             found.AddRange(pages.Where(p => Matches(p.Hit.Hint + " " + p.Hit.Label, query)).Select(p => p.Hit).Take(5));
@@ -141,11 +164,13 @@
 
         token.ThrowIfCancellationRequested();
         results = found;
+        failed = false;
+        searching = false;
         selected = 0;
         await InvokeAsync(StateHasChanged);
     }
 
-    private static bool Matches(string text, string term) => text.Contains(term, StringComparison.CurrentCultureIgnoreCase);
+    private static bool Matches(string? text, string term) => text?.Contains(term, StringComparison.CurrentCultureIgnoreCase) ?? false;
 
     private void OnKeyDown(KeyboardEventArgs args)
     {

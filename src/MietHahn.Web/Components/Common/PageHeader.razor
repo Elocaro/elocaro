@@ -1,4 +1,5 @@
 @* Heading with page title and optional actions (buttons/links on the right, or below on smartphones). *@
+@inject NavigationManager Navigation
 <PageTitle>@Title – MietHahn</PageTitle>
 <div class="page-header">
     <div class="page-header-title">
@@ -12,13 +13,33 @@
             <p class="small">@Subtitle</p>
         }
     </div>
-    @if (Actions is not null)
+    @if (Actions is not null || info is not null)
     {
-        <div class="page-header-actions">@Actions</div>
+        <div class="page-header-actions">
+            @if (info is not null)
+            {
+                <InfoDialog Info="info" PageId="pageId" />
+            }
+            @Actions
+        </div>
     }
 </div>
 
 @code {
+    private PageInfo? info;
+    private string? pageId;
+
+    protected override void OnParametersSet()
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath;
+        info = ShowInfo ? PageInfoCatalog.For(path) : null;
+        pageId = path.Split('/').FirstOrDefault(part => Guid.TryParse(part, out _));
+    }
+
+    /// <summary>false: no info button even if the page has an entry.</summary>
+    [Parameter]
+    public bool ShowInfo { get; set; } = true;
+
     [Parameter, EditorRequired]
     public string Title { get; set; } = "";
 

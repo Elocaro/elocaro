@@ -23,6 +23,33 @@
         }
     });
 
+    // Info dialogs (Components/Common/InfoDialog.razor): native <dialog>, so focus handling and Esc come from the browser.
+    document.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) {
+            return;
+        }
+
+        const opener = target.closest('[data-info-dialog]');
+        if (opener) {
+            const dialog = document.getElementById(opener.getAttribute('data-info-dialog'));
+            if (dialog && typeof dialog.showModal === 'function' && !dialog.open) {
+                dialog.showModal();
+            }
+            return;
+        }
+
+        if (target.closest('[data-info-close]')) {
+            target.closest('dialog')?.close();
+            return;
+        }
+
+        // A click on the backdrop lands on the dialog element itself.
+        if (target instanceof HTMLDialogElement && target.classList.contains('info-dialog')) {
+            target.close();
+        }
+    });
+
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeMenus(null);

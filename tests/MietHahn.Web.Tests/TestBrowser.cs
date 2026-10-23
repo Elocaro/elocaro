@@ -108,7 +108,23 @@ public sealed class TestBrowser(HttpClient http) : IDisposable
         }
 
         var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        return new Page(response.StatusCode, url, response.Headers.Location, html, Parser.ParseDocument(html));
+        var document = Parser.ParseDocument(html);
+
+        // The info dialogs of the page header are help texts, not page content: tests look at what the page itself shows.
+        foreach (var dialog in document.QuerySelectorAll("dialog.info-dialog").ToList())
+        {
+            dialog.Remove();
+        }
+
+        foreach (var template in document.QuerySelectorAll("blazor-ssr template").OfType<IHtmlTemplateElement>())
+        {
+            foreach (var dialog in template.Content.QuerySelectorAll("dialog.info-dialog").ToList())
+            {
+                dialog.Remove();
+            }
+        }
+
+        return new Page(response.StatusCode, url, response.Headers.Location, html, document);
     }
 }
 

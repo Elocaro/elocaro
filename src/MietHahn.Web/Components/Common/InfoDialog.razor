@@ -1,0 +1,50 @@
+@* Info button with a dialog (native <dialog>, opened by shell.js): works on static and interactive pages alike. *@
+<button type="button" class="info-button" data-info-dialog="@DialogId" aria-haspopup="dialog" aria-label="@($"Info zu dieser Seite: {Info.Title}")">
+    <Icon Path="@AppIcons.Info" />
+    <span class="info-button-text">Info</span>
+</button>
+<dialog id="@DialogId" class="info-dialog" aria-labelledby="@($"{DialogId}-title")">
+    <div class="info-dialog-header">
+        <h2 id="@($"{DialogId}-title")">@Info.Title</h2>
+        <button type="button" class="info-dialog-close" data-info-close="" aria-label="Schließen"><Icon Path="@AppIcons.Close" /></button>
+    </div>
+    <div class="info-dialog-body">
+        <p class="info-intro">@Info.Intro</p>
+        @foreach (var section in Info.Sections)
+        {
+            <section>
+                <h3>@section.Heading</h3>
+                <ul>
+                    @foreach (var item in section.Items)
+                    {
+                        <li>@item</li>
+                    }
+                </ul>
+            </section>
+        }
+        @if (Info.Links is { Length: > 0 })
+        {
+            <p class="info-links">
+                <strong>Siehe auch:</strong>
+                @foreach (var link in Info.Links)
+                {
+                    <a href="@Resolve(link.Href)">@link.Text</a>
+                }
+            </p>
+        }
+        <p class="small info-note">Allgemeine Hinweise zur Orientierung, keine Rechts- oder Steuerberatung.</p>
+    </div>
+</dialog>
+
+@code {
+    [Parameter, EditorRequired]
+    public PageInfo Info { get; set; } = default!;
+
+    /// <summary>The id of the page (first id in its path); replaces <c>{id}</c> in the links of the info.</summary>
+    [Parameter]
+    public string? PageId { get; set; }
+
+    private string Resolve(string href) => PageId is null ? href : href.Replace("{id}", PageId, StringComparison.Ordinal);
+
+    private string DialogId => "info-" + Math.Abs(Info.Title.GetHashCode(StringComparison.Ordinal)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+}
