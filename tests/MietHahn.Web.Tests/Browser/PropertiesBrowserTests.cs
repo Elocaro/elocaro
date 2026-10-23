@@ -33,13 +33,13 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await page.GetByLabel("PLZ").FillAsync("123");
             await page.GetByLabel("Ort").FillAsync("Köln");
             await page.GetByLabel("Baujahr").FillAsync("1200");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Objekt anlegen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Objekt anlegen", Exact = true }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Die Postleitzahl hat 5 Ziffern.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Baujahr zwischen 1500 und 2100");
 
             await page.GetByLabel("PLZ").FillAsync("50667");
             await page.GetByLabel("Baujahr").FillAsync("1965");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Objekt anlegen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Objekt anlegen", Exact = true }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/objekte/*?meldung=objekt-angelegt");
             await ExpectSnackbarAsync(page, "Das Objekt wurde angelegt.");
@@ -108,8 +108,11 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await Assertions.Expect(dialog).ToContainTextAsync("Bezeichnung");
             await dialog.GetByLabel("Bezeichnung").FillAsync("Wohnung 4");
             await dialog.GetByLabel("Lage").FillAsync("OG");
+            await dialog.GetByLabel("Wohnfläche").FillAsync("55,5");
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Einheit wurde hinzugefügt.");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("55,5");
+            await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("Keine Wohnfläche");
             await page.GetByRole(AriaRole.Link, new() { Name = "Wohnung 4" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/einheiten/*");

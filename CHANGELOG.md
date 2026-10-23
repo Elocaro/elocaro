@@ -11,6 +11,9 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Version der Anwendung aus dem Release-Tag (`VERSION`-Build-Argument im Dockerfile).
 
 ### Geändert
+- Einheit anlegen: Wohnfläche und Gültigkeitsdatum direkt im Dialog.
+- Portal: Verträge mit künftigem Mietbeginn zeigen die Miete ab Beginn statt 0 €.
+- Texte durchgängig in Sie-Form (mit Architekturtest), klarere Hinweise zu Buchhaltungsbeginn und Vorjahresabweichung.
 - `global.json` zurück auf .NET SDK 10.
 
 ## [0.1.0] – noch nicht veröffentlicht

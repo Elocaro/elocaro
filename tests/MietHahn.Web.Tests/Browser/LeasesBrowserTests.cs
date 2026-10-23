@@ -50,7 +50,7 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         {
             await Assertions.Expect(page.GetByLabel("Mietobjekt", new() { Exact = true }).First).ToHaveValueAsync("Lindenweg 3 – Wohnung 1 (frei)");
 
-            await page.GetByRole(AriaRole.Button, new() { Name = "Vertrag anlegen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Vertrag anlegen", Exact = true }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte den Mieter wählen.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte die Kaltmiete angeben.");
 
@@ -60,7 +60,7 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await page.GetByLabel("Betriebskosten-Vorauszahlung").FillAsync("180");
             await page.GetByLabel("Heizkosten-Vorauszahlung").FillAsync("90,5");
             await page.GetByLabel("Kaution", new() { Exact = true }).FillAsync("1950");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Vertrag anlegen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Vertrag anlegen", Exact = true }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/vertraege/*?meldung=angelegt");
             await ExpectSnackbarAsync(page, "Der Eintrag wurde angelegt.");

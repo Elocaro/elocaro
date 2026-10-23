@@ -192,11 +192,11 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await part2.GetByLabel("Betrag", new() { Exact = true }).FillAsync("100,16");
             await SelectAsync(page, "Kostenart", "3. Entwässerung", part2);
             await SelectAsync(page, "Objekt", "Lindenweg 3", part2);
-            await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen", Exact = true }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Die Teilbeträge ergeben 300,49 €, der Umsatz beträgt 300,50 € (Differenz 0,01 €)");
 
             await part2.GetByLabel("Betrag", new() { Exact = true }).FillAsync("");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen", Exact = true }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Umsatz wurde zugeordnet.");
             await Assertions.Expect(page.Locator("table.data-table").First).ToContainTextAsync("Wasserversorgung");
             await Assertions.Expect(page.Locator("table.data-table").First).ToContainTextAsync("100,17 €");
@@ -221,7 +221,7 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Forderung" }).First.ClickAsync();
             await second.Locator(".mud-select", new() { Has = page.Locator("[aria-label='Mietverhältnis oder Forderung']") }).Locator(".mud-input").First.ClickAsync();
             await page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Forderung" }).Nth(1).ClickAsync();
-            await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen", Exact = true }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Umsatz wurde zugeordnet.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("auf Forderung");
             await Assertions.Expect(page.Locator("tfoot")).ToContainTextAsync("1.300,00 €");

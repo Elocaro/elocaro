@@ -2,13 +2,17 @@
 @inject IPropertyService Admin
 @inject Notifier Notify
 
-@* Dialog "add unit" (name, location, type); the details are entered on the unit page afterwards. *@
+@* Dialog "add unit" (name, location, type, living area); the details are entered on the unit page afterwards. *@
 <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
     <DataAnnotationsValidator />
     <MudDialog>
         <DialogContent>
             <ErrorList Errors="errors" />
             <UnitEditor Data="data" WithFeatures="false" />
+            <div class="form-grid">
+                <AppNumberField T="decimal?" @bind-Value="area.Area" Label="Wohnfläche" Suffix="m²" Hint="Für Umlage und Mietvertrag nötig; lässt sich auch später unter Flächen eintragen." />
+                <AppDateField @bind-Value="area.From" Label="Fläche gültig ab" Hint="Meist Baujahr oder ein Stichtag vor dem ersten Mietbeginn." />
+            </div>
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="Cancel">Abbrechen</MudButton>
@@ -19,6 +23,7 @@
 
 @code {
     private readonly UnitInput data = new();
+    private readonly AreaInput area = new() { From = new DateOnly(DateTime.Today.Year - 1, 1, 1) };
     private IReadOnlyList<string>? errors;
 
     [Parameter, EditorRequired]
@@ -31,7 +36,22 @@
 
     private async Task SaveAsync()
     {
+        if (area.Area is not null && area.From is null)
+        {
+            errors = ["Bitte angeben, ab wann die Fläche gilt."];
+            return;
+        }
+
         var result = await Admin.CreateUnitAsync(PropertyId, data);
+        if (result.Succeeded && area.Area is not null && result.Id is { } unitId)
+        {
+            var areaResult = await Admin.SetUnitAreaAsync(unitId, area);
+            if (!areaResult.Succeeded)
+            {
+                Notify.Warning("Die Einheit wurde angelegt, die Fläche nicht: " + string.Join(" ", areaResult.Errors));
+            }
+        }
+
         if (result.Succeeded)
         {
             Notify.Success("Die Einheit wurde hinzugefügt.");
