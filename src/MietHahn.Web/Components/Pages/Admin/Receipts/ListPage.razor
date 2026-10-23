@@ -38,8 +38,8 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Datum">@Format.Date(context.InvoiceDate)</MudTd>
-                <MudTd DataLabel="Lieferant"><a href="/verwaltung/belege/@context.Id">@context.Supplier</a>@if (context.InvoiceNumber is not null) {<span class="small"> @context.InvoiceNumber</span>}</MudTd>
-                <MudTd DataLabel="Kostenarten">@string.Join(", ", context.CostTypes)<span class="small"> @string.Join(", ", context.Properties)</span></MudTd>
+                <MudTd DataLabel="Lieferant"><a href="/verwaltung/belege/@context.Id">@context.Supplier</a>@if (context.InvoiceNumber is not null) {<span class="small">&#32;@context.InvoiceNumber</span>}</MudTd>
+                <MudTd DataLabel="Kostenarten">@string.Join(", ", context.CostTypes)<span class="small">&#32;@string.Join(", ", context.Properties)</span></MudTd>
                 <MudTd DataLabel="Betrag" Style="text-align:right">@Format.Money(context.Gross)</MudTd>
                 <MudTd DataLabel="Status">
                     @if (context.Allocated != context.Gross)

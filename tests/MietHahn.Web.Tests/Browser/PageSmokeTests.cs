@@ -272,11 +272,21 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             foreach (var path in Routes().Concat(OptionalRoutes()))
             {
                 await page.GotoAsync(BaseUrl + path);
-                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                try
+                {
+                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 5000 });
+                }
+                catch (TimeoutException)
+                {
+                    // Pages with a permanent connection never become idle; the screenshot is taken anyway.
+                }
+
                 await page.WaitForTimeoutAsync(300);
+                var height = await page.EvaluateAsync<int>("() => { const c = document.querySelector('main.content') ?? document.querySelector('main'); return c ? c.scrollHeight : 0; }");
                 var name = path.Replace(ids["property"], "P", StringComparison.Ordinal).Trim('/').Replace("verwaltung/", "", StringComparison.Ordinal);
                 name = new string(name.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_').ToArray());
                 await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{(mobile ? "m" : "d")}{index++:00}-{name[..Math.Min(name.Length, 60)]}.png") });
+                await File.AppendAllTextAsync(Path.Combine(directory, "heights.txt"), $"{(mobile ? "m" : "d")} {height,6}px {path}\n", TestContext.Current.CancellationToken);
             }
         }
     }

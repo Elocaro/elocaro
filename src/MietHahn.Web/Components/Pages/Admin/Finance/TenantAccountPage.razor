@@ -18,210 +18,233 @@ else if (account is null)
 }
 else
 {
+    <PageHeader Title="@($"Mieterkonto {account.Tenant}")" Subtitle="@($"{account.RentalUnit} · alle Forderungen und Zahlungen dieses Mietverhältnisses")" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag" />
 
-<PageHeader Title="@($"Mieterkonto {account.Tenant}")" Subtitle="@account.RentalUnit" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag" />
+    <ErrorList Errors="errors" />
 
-<ErrorList Errors="errors" />
-
-@if (account.AccountingStart is null)
-{
-    <Notice Level="NoticeLevel.Info">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></Notice>
-}
-
-<dl class="details">
-    <dt>Saldo</dt>
-    <dd><strong>@Format.Money(Math.Abs(account.Balance))</strong> @(account.Balance > 0 ? "Rückstand" : account.Balance < 0 ? "Guthaben des Mieters" : "ausgeglichen")</dd>
-    <dt>Davon fällig</dt><dd>@Format.Money(account.Due)</dd>
-    <dt>Verrechnung</dt><dd>@Labels.From(account.Allocation)</dd>
-</dl>
-
-<div class="form-row">
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshAsync">Monatsmieten jetzt aktualisieren</MudButton>
-    <span class="field-hint">Passiert sonst jede Nacht automatisch, z. B. nach einer Mieterhöhung.</span>
-</div>
-
-<section>
-    <h2>Buchungen</h2>
-    @if (account.Entries.Count == 0)
+    @if (account.AccountingStart is null)
     {
-        <EmptyState Compact="true" Text="Noch keine Buchungen." />
+        <Notice Level="NoticeLevel.Info">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></Notice>
     }
-    else
-    {
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Datum</th><th>Buchung</th><th class="number">Soll</th><th class="number">Haben</th><th class="number">Saldo</th><th>Offen</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var b in account.Entries.Reverse())
-                        {
-                            <tr>
-                                <td>@Format.Date(b.Date)</td>
-                                <td>@b.Text</td>
-                                <td class="number">@(b.Debit == 0 ? "" : Format.Money(b.Debit))</td>
-                                <td class="number">@(b.Credit == 0 ? "" : Format.Money(b.Credit))</td>
-                                <td class="number">@Format.Money(b.Balance)</td>
-                                <td>
-                                    @if (b.Open is 0m)
-                                    {
-                                        <StatusChip Level="StatusLevel.Success">bezahlt</StatusChip>
-                                    }
-                                    else if (b.Open is { } open && open == b.Debit)
-                                    {
-                                        <StatusChip Level="StatusLevel.Warning">offen</StatusChip>
-                                    }
-                                    else if (b.Open is { } part)
-                                    {
-                                        <StatusChip Level="StatusLevel.Warning">@Format.Money(part) offen</StatusChip>
-                                    }
-                                </td>
-                                <td>
-                                    @if (!b.Automatic && b.Origin is null or PaymentOrigin.Manual)
-                                    {
-                                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(b)" aria-label="@($"{b.Text} löschen")">Löschen</MudButton>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-    }
-</section>
 
-<section>
-    <h2>Zahlung erfassen</h2>
-    <EditForm Model="payment" OnValidSubmit="PaymentAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppDateField @bind-Value="payment.Date" Label="Datum" Required="true" />
-            <AppNumberField T="decimal?" @bind-Value="payment.Amount" Label="Betrag" Suffix="€" Required="true" />
-            <AppTextField @bind-Value="payment.Purpose" Label="Verwendungszweck" />
-            <AppSelect T="Guid?" @bind-Value="payment.ChargeId" Label="Zahlt auf (optional)" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“)." Items="openChargeIds" Text="ChargeText" EmptyText="– automatisch verrechnen –" />
-        </div>
-        <AppCheckBox @bind-Value="payment.Payout" Label="Auszahlung an den Mieter (z. B. Guthaben überwiesen)" />
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zahlung buchen</MudButton>
-    </EditForm>
-</section>
+    <div class="summary-card">
+        <dl class="details">
+            <dt>Saldo</dt>
+            <dd><strong>@Format.Money(Math.Abs(account.Balance))</strong> @(account.Balance > 0 ? "Rückstand" : account.Balance < 0 ? "Guthaben des Mieters" : "ausgeglichen")</dd>
+            <dt>Davon fällig</dt><dd>@Format.Money(account.Due)</dd>
+            <dt>Verrechnung</dt><dd>@Labels.From(account.Allocation)</dd>
+        </dl>
+    </div>
+    <details class="explain">
+        <summary>So funktioniert das Mieterkonto</summary>
+        <p>Jeden Monat entsteht je Bestandteil (Kaltmiete, Vorauszahlungen) eine Sollstellung („Soll“). Jede Zahlung („Haben“) wird nach der eingestellten Verrechnung auf offene Forderungen angerechnet. Ein positiver Saldo ist ein Rückstand, ein negativer ein Guthaben des Mieters. „Fällig“ zählt nur, was bis heute zu zahlen war.</p>
+    </details>
 
-<section>
-    <h2>Sonstige Forderung oder Gutschrift</h2>
-    <EditForm Model="charge" OnValidSubmit="ChargeAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppSelect @bind-Value="charge.Kind" Label="Art" Items="Enum.GetValues<ChargeType>().Where(a => a != ChargeType.Rent).ToList()" Text="@(v => Labels.From(v))" />
-            <AppDateField @bind-Value="charge.Due" Label="Fällig am" Required="true" />
-            <AppNumberField T="decimal?" @bind-Value="charge.Amount" Label="Betrag" Suffix="€" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht." />
-            <AppTextField @bind-Value="charge.Name" Label="Bezeichnung" Hint="z. B. „Nachzahlung Betriebskosten 2025“" />
-        </div>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Buchen</MudButton>
-    </EditForm>
-</section>
-
-<section id="mahnwesen" aria-labelledby="dunning-heading">
-    <h2 id="dunning-heading">Mahnwesen</h2>
-    @if (dunning is not null)
-    {
-        @if (dunning.TerminationHint is { } hint)
-        {
-            <Notice Level="NoticeLevel.Info">
-                <strong>Hinweis Kündigungsrelevanz:</strong> Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
-                (§ 543 Abs. 2 Nr. 3 BGB). Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
-            </Notice>
-        }
-
-        @if (dunning.Proposal is { } proposal)
-        {
-            <Notice Level="NoticeLevel.Info">
-                Mahnvorschlag: <strong>@Labels.From(proposal.Level)</strong> über @Format.Money(proposal.Principal).
-                <a href="/verwaltung/finanzen/mahnungen/@proposal.Id">Prüfen und freigeben</a>
-            </Notice>
-        }
-
-        @if (dunning.Issued.Count > 0)
-        {
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead><tr><th>Datum</th><th>Stufe</th><th class="number">Gesamt</th><th>Zahlbar bis</th><th>Versand</th><th></th></tr></thead>
-                    <tbody>
-                        @foreach (var m in dunning.Issued)
-                        {
-                            <tr>
-                                <td>@Format.Date(m.Date)</td>
-                                <td>@Labels.From(m.Level)</td>
-                                <td class="number">@Format.Money(m.Principal + m.Fee + m.Interest)</td>
-                                <td>@Format.Date(m.Deadline)</td>
-                                <td>@(m.SentByMail ? "E-Mail" : "Post (PDF)")</td>
-                                <td><a href="/verwaltung/finanzen/mahnungen/@m.Id">Ansehen</a></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-        else if (dunning.Proposal is null)
-        {
-            <p class="small">Bisher wurde nicht gemahnt.</p>
-        }
-
-        <h3>Mahnsperre</h3>
-        @if (dunning.Holds.Count > 0)
-        {
-            <ul>
-                @foreach (var h in dunning.Holds)
+    <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+        <MudTabPanel Text="@($"Buchungen ({account.Entries.Count})")">
+            <section>
+                <div class="form-row search-bar">
+                    <AppSelect T="int?" @bind-Value="year" Label="Jahr" Items="years" Text="@(y => y?.ToString() ?? "")" EmptyText="Alle Jahre" />
+                    <AppCheckBox @bind-Value="onlyOpen" Label="Nur offene Posten" />
+                    <MudButton Variant="Variant.Outlined" OnClick="RefreshAsync">Monatsmieten aktualisieren</MudButton>
+                </div>
+                <p class="help">Die Monatsmieten werden jede Nacht automatisch angelegt, z. B. nach einer Mieterhöhung. „Monatsmieten aktualisieren“ erledigt das sofort.</p>
+                @if (account.Entries.Count == 0)
                 {
-                    <li>
-                        @h.Reason (@(h.Until is { } until ? "bis " + Format.Date(until) : "bis auf Weiteres"))
-                        <MudButton Variant="Variant.Outlined" OnClick="() => EndHoldAsync(h)">Aufheben</MudButton>
-                    </li>
+                    <EmptyState Compact="true" Text="Noch keine Buchungen." />
                 }
-            </ul>
-        }
-        else
-        {
-            <p class="small">Keine aktive Mahnsperre. Mit einer Sperre (z. B. Ratenvereinbarung) gibt es keine Mahnvorschläge für dieses Mietverhältnis.</p>
-        }
+                else
+                {
+                    <MudTable T="AccountEntry" Items="VisibleEntries" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+                        <HeaderContent>
+                            <MudTh>Datum</MudTh>
+                            <MudTh>Buchung</MudTh>
+                            <MudTh Style="text-align: right">Soll</MudTh>
+                            <MudTh Style="text-align: right">Haben</MudTh>
+                            <MudTh Style="text-align: right">Saldo</MudTh>
+                            <MudTh>Offen</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Datum">@Format.Date(context.Date)</MudTd>
+                            <MudTd DataLabel="Buchung">@context.Text</MudTd>
+                            <MudTd DataLabel="Soll" Style="text-align: right">@(context.Debit == 0 ? "" : Format.Money(context.Debit))</MudTd>
+                            <MudTd DataLabel="Haben" Style="text-align: right">@(context.Credit == 0 ? "" : Format.Money(context.Credit))</MudTd>
+                            <MudTd DataLabel="Saldo" Style="text-align: right">@Format.Money(context.Balance)</MudTd>
+                            <MudTd DataLabel="Offen">
+                                @if (context.Open is 0m)
+                                {
+                                    <StatusChip Level="StatusLevel.Success">bezahlt</StatusChip>
+                                }
+                                else if (context.Open is { } open && open == context.Debit)
+                                {
+                                    <StatusChip Level="StatusLevel.Warning">offen</StatusChip>
+                                }
+                                else if (context.Open is { } part)
+                                {
+                                    <StatusChip Level="StatusLevel.Warning">@Format.Money(part) offen</StatusChip>
+                                }
+                            </MudTd>
+                            <MudTd>
+                                @if (!context.Automatic && context.Origin is null or PaymentOrigin.Manual)
+                                {
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(context)" aria-label="@($"{context.Text} löschen")">Löschen</MudButton>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <EmptyState Text="Keine Buchungen in dieser Auswahl." />
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+                        </PagerContent>
+                    </MudTable>
+                }
+            </section>
+        </MudTabPanel>
 
-        <EditForm Model="hold" OnValidSubmit="HoldAsync" novalidate>
-            <DataAnnotationsValidator />
-            <div class="form-grid">
-                <AppTextField @bind-Value="hold.Reason" Label="Grund" Required="true" />
-                <AppDateField @bind-Value="hold.Until" Label="Bis (optional)" Hint="Leer = bis zur Aufhebung." />
-            </div>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Mahnsperre setzen</MudButton>
-        </EditForm>
-    }
-</section>
+        <MudTabPanel Text="Zahlung &amp; Forderung">
+            <section>
+                <h2>Zahlung erfassen</h2>
+                <p class="help">Für Zahlungen, die nicht über den Bankimport kommen (Barzahlung, Überweisung auf ein anderes Konto). Ohne Auswahl bei „Zahlt auf“ wird nach der eingestellten Verrechnung gebucht.</p>
+                <EditForm Model="payment" OnValidSubmit="PaymentAsync" novalidate>
+                    <DataAnnotationsValidator />
+                    <div class="form-grid">
+                        <AppDateField @bind-Value="payment.Date" Label="Datum" Required="true" />
+                        <AppNumberField T="decimal?" @bind-Value="payment.Amount" Label="Betrag" Suffix="€" Required="true" />
+                        <AppTextField @bind-Value="payment.Purpose" Label="Verwendungszweck" />
+                        <AppSelect T="Guid?" @bind-Value="payment.ChargeId" Label="Zahlt auf (optional)" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“)." Items="openChargeIds" Text="ChargeText" EmptyText="– automatisch verrechnen –" />
+                    </div>
+                    <AppCheckBox @bind-Value="payment.Payout" Label="Auszahlung an den Mieter (z. B. Guthaben überwiesen)" />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zahlung buchen</MudButton>
+                </EditForm>
+            </section>
 
-<section>
-    <h2>Mieten je Jahr</h2>
-    @if (account.AnnualValues.Count == 0)
-    {
-        <EmptyState Compact="true" Text="Noch keine Monatsmieten." />
-    }
-    else
-    {
-        <p class="small">Soll nach Leistungsmonat, davon bezahlt (für die Nebenkostenabrechnung) und im Kalenderjahr zugeflossen (Zahlungsdatum, § 11 EStG).</p>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Jahr</th><th>Bestandteil</th><th class="number">Soll</th><th class="number">davon bezahlt</th><th class="number">Zufluss im Jahr</th></tr></thead>
-                <tbody>
-                    @foreach (var w in account.AnnualValues)
+            <section>
+                <h2>Sonstige Forderung oder Gutschrift</h2>
+                <p class="help">Einmalige Posten außerhalb der Monatsmiete, z. B. eine Nachzahlung aus der Nebenkostenabrechnung, Schadenersatz oder eine Erstattung.</p>
+                <EditForm Model="charge" OnValidSubmit="ChargeAsync" novalidate>
+                    <DataAnnotationsValidator />
+                    <div class="form-grid">
+                        <AppSelect @bind-Value="charge.Kind" Label="Art" Items="Enum.GetValues<ChargeType>().Where(a => a != ChargeType.Rent).ToList()" Text="@(v => Labels.From(v))" />
+                        <AppDateField @bind-Value="charge.Due" Label="Fällig am" Required="true" />
+                        <AppNumberField T="decimal?" @bind-Value="charge.Amount" Label="Betrag" Suffix="€" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht." />
+                        <AppTextField @bind-Value="charge.Name" Label="Bezeichnung" Hint="z. B. „Nachzahlung Betriebskosten 2025“" />
+                    </div>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Buchen</MudButton>
+                </EditForm>
+            </section>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Mahnwesen">
+            <section id="mahnwesen" aria-labelledby="dunning-heading">
+                <h2 id="dunning-heading">Mahnwesen</h2>
+                <p class="help">MietHahn erkennt Rückstände und schlägt eine Mahnung vor. Versendet wird erst nach Ihrer Freigabe.</p>
+                @if (dunning is not null)
+                {
+                    @if (dunning.TerminationHint is { } hint)
                     {
-                        <tr>
-                            <td>@w.Year</td>
-                            <td>@Labels.From(w.Component)</td>
-                            <td class="number">@Format.Money(w.Debit)</td>
-                            <td class="number">@Format.Money(w.Settled)</td>
-                            <td class="number">@Format.Money(w.Inflow)</td>
-                        </tr>
+                        <Notice Level="NoticeLevel.Info">
+                            <strong>Hinweis Kündigungsrelevanz:</strong> Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
+                            (§ 543 Abs. 2 Nr. 3 BGB). Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
+                        </Notice>
                     }
-                </tbody>
-            </table>
-        </div>
-    }
-</section>
+
+                    @if (dunning.Proposal is { } proposal)
+                    {
+                        <Notice Level="NoticeLevel.Info">
+                            Mahnvorschlag: <strong>@Labels.From(proposal.Level)</strong> über @Format.Money(proposal.Principal).
+                            <a href="/verwaltung/finanzen/mahnungen/@proposal.Id">Prüfen und freigeben</a>
+                        </Notice>
+                    }
+
+                    @if (dunning.Issued.Count > 0)
+                    {
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead><tr><th>Datum</th><th>Stufe</th><th class="number">Gesamt</th><th>Zahlbar bis</th><th>Versand</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var m in dunning.Issued)
+                                    {
+                                        <tr>
+                                            <td>@Format.Date(m.Date)</td>
+                                            <td>@Labels.From(m.Level)</td>
+                                            <td class="number">@Format.Money(m.Principal + m.Fee + m.Interest)</td>
+                                            <td>@Format.Date(m.Deadline)</td>
+                                            <td>@(m.SentByMail ? "E-Mail" : "Post (PDF)")</td>
+                                            <td><a href="/verwaltung/finanzen/mahnungen/@m.Id">Ansehen</a></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else if (dunning.Proposal is null)
+                    {
+                        <p class="small">Bisher wurde nicht gemahnt.</p>
+                    }
+
+                    <h3>Mahnsperre</h3>
+                    @if (dunning.Holds.Count > 0)
+                    {
+                        <ul>
+                            @foreach (var h in dunning.Holds)
+                            {
+                                <li>
+                                    @h.Reason (@(h.Until is { } until ? "bis " + Format.Date(until) : "bis auf Weiteres"))
+                                    <MudButton Variant="Variant.Outlined" OnClick="() => EndHoldAsync(h)">Aufheben</MudButton>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="small">Keine aktive Mahnsperre. Mit einer Sperre (z. B. Ratenvereinbarung) gibt es keine Mahnvorschläge für dieses Mietverhältnis.</p>
+                    }
+
+                    <EditForm Model="hold" OnValidSubmit="HoldAsync" novalidate>
+                        <DataAnnotationsValidator />
+                        <div class="form-grid">
+                            <AppTextField @bind-Value="hold.Reason" Label="Grund" Required="true" />
+                            <AppDateField @bind-Value="hold.Until" Label="Bis (optional)" Hint="Leer = bis zur Aufhebung." />
+                        </div>
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Mahnsperre setzen</MudButton>
+                    </EditForm>
+                }
+            </section>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Mieten je Jahr">
+            <section>
+                <h2>Mieten je Jahr</h2>
+                @if (account.AnnualValues.Count == 0)
+                {
+                    <EmptyState Compact="true" Text="Noch keine Monatsmieten." />
+                }
+                else
+                {
+                    <p class="help">Soll nach Leistungsmonat, davon bezahlt (für die Nebenkostenabrechnung) und im Kalenderjahr zugeflossen (Zahlungsdatum, § 11 EStG).</p>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr><th>Jahr</th><th>Bestandteil</th><th class="number">Soll</th><th class="number">davon bezahlt</th><th class="number">Zufluss im Jahr</th></tr></thead>
+                            <tbody>
+                                @foreach (var w in account.AnnualValues)
+                                {
+                                    <tr>
+                                        <td>@w.Year</td>
+                                        <td>@Labels.From(w.Component)</td>
+                                        <td class="number">@Format.Money(w.Debit)</td>
+                                        <td class="number">@Format.Money(w.Settled)</td>
+                                        <td class="number">@Format.Money(w.Inflow)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+        </MudTabPanel>
+    </MudTabs>
 }
 </InteractiveShell>
 
@@ -233,10 +256,16 @@ else
     private ChargeInput charge = new();
     private DunningHoldInput hold = new();
     private IReadOnlyList<Guid?> openChargeIds = [];
+    private IReadOnlyList<int?> years = [];
+    private int? year;
+    private bool onlyOpen;
     private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
+
+    private IEnumerable<AccountEntry> VisibleEntries => account is null ? [] : account.Entries.Reverse()
+        .Where(b => (year is null || b.Date.Year == year) && (!onlyOpen || b.Open > 0));
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -247,6 +276,7 @@ else
         {
             dunning = await Dunning.ForLeaseAsync(Id);
             openChargeIds = account.Entries.Where(b => b.Open > 0).Select(b => (Guid?)b.Id).ToList();
+            years = account.Entries.Select(b => (int?)b.Date.Year).Distinct().OrderDescending().ToList();
         }
 
         loaded = true;

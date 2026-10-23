@@ -16,7 +16,7 @@ else
                     <tr>
                         <td>
                             <a href="@BasePath/@row.Id">@row.Title</a>
-                            <span class="small"> @Labels.From(row.Category)@(row.Urgency == MietHahn.Domain.Tickets.TicketUrgency.High ? " · dringend" : "")</span>
+                            <span class="small">&#32;@Labels.From(row.Category)@(row.Urgency == MietHahn.Domain.Tickets.TicketUrgency.High ? " · dringend" : "")</span>
                         </td>
                         <td>@row.Property@(row.Unit is null ? "" : $", {row.Unit}")</td>
                         <td><StatusChip Level="Labels.Level(row.Status)">@Labels.From(row.Status)</StatusChip></td>

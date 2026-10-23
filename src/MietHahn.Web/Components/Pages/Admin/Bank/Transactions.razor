@@ -33,12 +33,12 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Buchung">@Format.Date(context.BookingDate)</MudTd>
-                <MudTd DataLabel="Gegenseite">@context.CounterpartyName<span class="small"> @context.CounterpartyIban</span></MudTd>
+                <MudTd DataLabel="Gegenseite">@context.CounterpartyName<span class="small">&#32;@context.CounterpartyIban</span></MudTd>
                 <MudTd DataLabel="Verwendungszweck">
                     @context.Purpose
                     @if (context.BookingText is not null)
                     {
-                        <span class="small"> (@context.BookingText)</span>
+                        <span class="small">&#32;(@context.BookingText)</span>
                     }
                     @if (context.Note is not null)
                     {

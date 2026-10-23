@@ -28,9 +28,9 @@ var income = u.Amount > 0;
     <h2>Umsatz</h2>
     <dl class="details">
         <dt>Status</dt>
-        <dd><StatusChip Level="Labels.Level(u.Status)">@Labels.From(u.Status)</StatusChip>@if (u.Note is not null) {<span class="small"> Notiz: @u.Note</span>}</dd>
+        <dd><StatusChip Level="Labels.Level(u.Status)">@Labels.From(u.Status)</StatusChip>@if (u.Note is not null) {<span class="small">&#32;Notiz: @u.Note</span>}</dd>
         <dt>Gegenseite</dt>
-        <dd>@(u.CounterpartyName ?? "–")<span class="small"> @u.CounterpartyIban</span></dd>
+        <dd>@(u.CounterpartyName ?? "–")<span class="small">&#32;@u.CounterpartyIban</span></dd>
         <dt>Verwendungszweck</dt>
         <dd>@u.Purpose</dd>
         <dt>Betrag</dt>

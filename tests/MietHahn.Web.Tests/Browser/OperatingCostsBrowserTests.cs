@@ -85,14 +85,14 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            var box = page.GetByLabel("(Grundsteuer) vereinbart");
+            var box = page.GetByLabel("(Grundsteuer)");
             await box.UncheckAsync();
             await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die vereinbarten Kostenarten wurden gespeichert.");
         });
 
         await GotoInteractiveAsync(page, $"/verwaltung/vertraege/{lease}/kostenarten");
-        await Assertions.Expect(page.GetByLabel("(Grundsteuer) vereinbart")).Not.ToBeCheckedAsync();
+        await Assertions.Expect(page.GetByLabel("(Grundsteuer)")).Not.ToBeCheckedAsync();
     }
 
     [Fact]

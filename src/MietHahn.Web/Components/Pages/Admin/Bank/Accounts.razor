@@ -21,7 +21,7 @@
                 <MudTh>Konto</MudTh><MudTh>IBAN</MudTh><MudTh>Art</MudTh><MudTh>Objekte</MudTh><MudTh>Umsätze</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Konto"><a href="/verwaltung/bank/konten/@context.Id">@context.Name</a>@if (context.Bank is not null) {<span class="small"> @context.Bank</span>}</MudTd>
+                <MudTd DataLabel="Konto"><a href="/verwaltung/bank/konten/@context.Id">@context.Name</a>@if (context.Bank is not null) {<span class="small">&#32;@context.Bank</span>}</MudTd>
                 <MudTd DataLabel="IBAN">@context.Iban</MudTd>
                 <MudTd DataLabel="Art">@Labels.From(context.Type)</MudTd>
                 <MudTd DataLabel="Objekte">@(context.Properties.Count == 0 ? "alle" : string.Join(", ", context.Properties))</MudTd>

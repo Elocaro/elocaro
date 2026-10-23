@@ -46,6 +46,7 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
             await Assertions.Expect(page.Locator("h1")).ToContainTextAsync("Sparkasse");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
+            await OpenTabAsync(page, "Unterlagen der Bank");
             var section = page.Locator("section", new() { HasText = "Jahreszinsbescheinigung" });
             await section.GetByLabel("Jahr").FillAsync("2024");
             await section.GetByLabel("Zinsen laut Bescheinigung").FillAsync("6543,21");
@@ -53,12 +54,14 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
             await ExpectSnackbarAsync(page, "Die Bescheinigung wurde gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("6.543,21");
 
+            await OpenTabAsync(page, "Zahlungen & Kosten");
             var extra = page.Locator("section", new() { HasText = "Sondertilgungen" });
             await extra.GetByLabel("Datum").FillAsync("01.06.2024");
             await extra.GetByLabel("Betrag").FillAsync("5000");
             await extra.GetByRole(AriaRole.Button, new() { Name = "Hinzufügen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Sondertilgung wurde hinzugefügt.");
 
+            await OpenTabAsync(page, "Unterlagen der Bank");
             await page.GetByRole(AriaRole.Button, new() { Name = "Bescheinigung 2024 entfernen" }).ClickAsync();
             await page.GetByRole(AriaRole.Button, new() { Name = "Ja, entfernen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Bescheinigung wurde entfernt.");

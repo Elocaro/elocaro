@@ -25,7 +25,7 @@
                 <MudTh>Name</MudTh><MudTh>Art</MudTh><MudTh>Fassung</MudTh><MudTh>Geändert</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Name"><a href="/verwaltung/einstellungen/vorlagen/@context.Id">@context.Name</a>@if (context.Description is not null) {<span class="small"> @context.Description</span>}</MudTd>
+                <MudTd DataLabel="Name"><a href="/verwaltung/einstellungen/vorlagen/@context.Id">@context.Name</a>@if (context.Description is not null) {<span class="small">&#32;@context.Description</span>}</MudTd>
                 <MudTd DataLabel="Art">@Labels.From(context.Kind)</MudTd>
                 <MudTd DataLabel="Fassung">@context.Revision</MudTd>
                 <MudTd DataLabel="Geändert">@(context.ChangedAt is { } at ? Format.Timestamp(at) : "–")</MudTd>

@@ -26,13 +26,13 @@ else
 
     <div class="table-wrapper">
         <table class="data-table" id="agreement" data-nostack>
-            <thead><tr><th>Vereinbart</th><th>Kostenart</th></tr></thead>
+            <thead><tr><th>Nr. (BetrKV)</th><th>Kostenart (Haken = vereinbart)</th></tr></thead>
             <tbody>
                 @foreach (var row in agreement.Rows)
                 {
                     <tr>
-                        <td><AppCheckBox Value="agreed.Contains(row.CostType)" ValueChanged="@(on => Toggle(row.CostType, on))" Label="@($"{row.Name} vereinbart")" /></td>
-                        <td>@(row.BetrKvNumber is { } n ? $"{n}. " : "")@row.Name</td>
+                        <td>@(row.BetrKvNumber is { } n ? $"{n}." : "")</td>
+                        <td><AppCheckBox Value="agreed.Contains(row.CostType)" ValueChanged="@(on => Toggle(row.CostType, on))" Label="@row.Name" /></td>
                     </tr>
                 }
             </tbody>

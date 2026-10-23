@@ -93,12 +93,12 @@
                                     <td>
                                         @if (outcome.Succeeded)
                                         {
-                                            <a href="/verwaltung/dokumente/@outcome.DocumentId">Dokument</a><span class="small"> @(outcome.Mailed ? "· E-Mail im Versand" : "")</span>
-                                            @if (outcome.Message is not null) {<span class="small"> @outcome.Message</span>}
+                                            <a href="/verwaltung/dokumente/@outcome.DocumentId">Dokument</a><span class="small">&#32;@(outcome.Mailed ? "· E-Mail im Versand" : "")</span>
+                                            @if (outcome.Message is not null) {<span class="small">&#32;@outcome.Message</span>}
                                         }
                                         else
                                         {
-                                            <StatusChip Level="StatusLevel.Error">fehlgeschlagen</StatusChip><span class="small"> @outcome.Message</span>
+                                            <StatusChip Level="StatusLevel.Error">fehlgeschlagen</StatusChip><span class="small">&#32;@outcome.Message</span>
                                         }
                                     </td>
                                 </tr>

@@ -29,12 +29,15 @@ else
     </Notice>
 }
 
-<p class="small">
+<details class="explain">
+    <summary>So werden die Heizkosten verteilt</summary>
+    <p>
     Die Heizkosten werden nach der Heizkostenverordnung verteilt: 50 bis 70 % nach Verbrauch (Heizung: Wärmemengenzähler der Wohnungen in kWh,
     Warmwasser: Warmwasserzähler in m³), der Rest nach Fläche (Heizung: Heizfläche, Warmwasser: Wohnfläche). Eine Abrechnung ausschließlich nach Verbrauch
     ist nicht zulässig. Brennstoff, Betriebsstrom, Wartung, Abgasmessung, Reinigung und Zählermiete einer gemeinsamen Anlage buchen Sie unter der Kostenart
     „6. Verbundene Heizungs- und Warmwasseranlagen“ (Art der Position wählen); die Kostenarten 4 und 5 gelten nur für Heizung bzw. nur für Warmwasser.
-</p>
+    </p>
+</details>
 
 <EditForm Model="Data" OnValidSubmit="SaveAsync" novalidate>
     <DataAnnotationsValidator />

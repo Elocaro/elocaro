@@ -17,7 +17,7 @@ else if (detail is null)
 }
 else
 {
-<PageHeader Title="@detail.Input.Bank" Subtitle="@detail.PropertyName" Back="/verwaltung/finanzen/darlehen" BackText="Alle Darlehen" />
+<PageHeader Title="@detail.Input.Bank" Subtitle="@($"Darlehen für {detail.PropertyName}: Tilgungsplan, Zinsen als Werbungskosten, Zahlungen und Unterlagen der Bank")" Back="/verwaltung/finanzen/darlehen" BackText="Alle Darlehen" />
 
 <ErrorList Errors="errors" />
 
@@ -34,225 +34,235 @@ else
     </Notice>
 }
 
-<section>
-    <h2>Zinsen und Restschuld je Jahr</h2>
-    <p class="small">Eine Jahreszinsbescheinigung der Bank ersetzt den berechneten Wert. Als Werbungskosten zählt der Anteil Vermietung (@Format.Number(detail.Input.SharePercent ?? 100m) %).</p>
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead><tr><th>Jahr</th><th class="number">Zinsen (Plan)</th><th class="number">Zinsen (Bescheinigung)</th><th class="number">Tilgung</th><th class="number">Restschuld</th></tr></thead>
-            <tbody>
-                @foreach (var year in detail.Years)
-                {
-                    <tr>
-                        <td>@year.Year</td>
-                        <td class="number">@Format.Money(year.PlanInterest)</td>
-                        <td class="number">@(year.CertificateInterest is { } certificate ? Format.Money(certificate) : "–")</td>
-                        <td class="number">@Format.Money(year.Repayment)</td>
-                        <td class="number">@Format.Money(year.ClosingBalance)</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</section>
-
-<section>
-    <h2>Darlehensdaten</h2>
-    <EditForm Model="Data" OnValidSubmit="UpdateAsync" novalidate>
-        <DataAnnotationsValidator />
-        <LoanEditor Data="Data!" Properties="properties" />
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-    </EditForm>
-</section>
-
-<section>
-    <h2>Tilgungsplan der Bank (CSV)</h2>
-    <p class="small">Die Zinsen des Plans werden je Jahr summiert und wie eine Jahreszinsbescheinigung übernommen. Vorhandene Werte derselben Jahre werden ersetzt.</p>
-    <AppFileUpload Text="CSV-Datei wählen" Accept=".csv,.txt" OnSelected="PlanSelectedAsync" />
-    @if (plan is not null)
-    {
-        <ErrorList Errors="plan.Errors" />
-        @foreach (var warning in plan.Warnings)
-        {
-            <Notice Level="NoticeLevel.Warning">@warning</Notice>
-        }
-
-        @if (plan.Years.Count > 0)
-        {
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Zinsen &amp; Restschuld">
+        <section>
+            <h2>Zinsen und Restschuld je Jahr</h2>
+            <p class="small">Eine Jahreszinsbescheinigung der Bank ersetzt den berechneten Wert. Als Werbungskosten zählt der Anteil Vermietung (@Format.Number(detail.Input.SharePercent ?? 100m) %).</p>
             <div class="table-wrapper">
                 <table class="data-table">
-                    <thead><tr><th>Jahr</th><th class="number">Raten</th><th class="number">Zinsen</th><th class="number">Restschuld</th></tr></thead>
+                    <thead><tr><th>Jahr</th><th class="number">Zinsen (Plan)</th><th class="number">Zinsen (Bescheinigung)</th><th class="number">Tilgung</th><th class="number">Restschuld</th></tr></thead>
                     <tbody>
-                        @foreach (var year in plan.Years)
+                        @foreach (var year in detail.Years)
                         {
                             <tr>
                                 <td>@year.Year</td>
-                                <td class="number">@year.Instalments</td>
-                                <td class="number">@Format.Money(year.Interest)</td>
-                                <td class="number">@(year.ClosingBalance is { } balance ? Format.Money(balance) : "–")</td>
+                                <td class="number">@Format.Money(year.PlanInterest)</td>
+                                <td class="number">@(year.CertificateInterest is { } certificate ? Format.Money(certificate) : "–")</td>
+                                <td class="number">@Format.Money(year.Repayment)</td>
+                                <td class="number">@Format.Money(year.ClosingBalance)</td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-        }
+        </section>
 
-        @if (plan.CanImport)
+        <section>
+            <h2>Tilgungsplan</h2>
+            <details class="disclosure">
+                <summary>@detail.Plan.Payments.Count Raten anzeigen</summary>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Fällig</th><th class="number">Zinsen</th><th class="number">Tilgung</th><th class="number">Sondertilgung</th><th class="number">Restschuld</th></tr></thead>
+                        <tbody>
+                            @foreach (var payment in detail.Plan.Payments)
+                            {
+                                <tr>
+                                    <td>@Format.Date(payment.Date)</td>
+                                    <td class="number">@Format.Money(payment.Interest)</td>
+                                    <td class="number">@Format.Money(payment.Repayment)</td>
+                                    <td class="number">@Format.Money(payment.ExtraRepayment)</td>
+                                    <td class="number">@Format.Money(payment.Balance)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </section>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Zahlungen &amp; Kosten">
+        @if (detail.Booked.Count > 0)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ImportPlanAsync">Als Jahreswerte übernehmen</MudButton>
+            <section>
+                <h2>Gebuchte Raten</h2>
+                <p class="small">Aus den Bankumsätzen zugeordnet; der Zinsanteil stammt aus dem Tilgungsplan oder wurde bei der Zuordnung eingegeben.</p>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Datum</th><th class="number">Rate</th><th class="number">Zinsen</th><th class="number">Tilgung</th></tr></thead>
+                        <tbody>
+                            @foreach (var rate in detail.Booked)
+                            {
+                                <tr>
+                                    <td><a href="/verwaltung/bank/umsaetze/@rate.TransactionId/zuordnen">@Format.Date(rate.Date)</a></td>
+                                    <td class="number">@Format.Money(rate.Amount)</td>
+                                    <td class="number">@Format.Money(rate.Interest)</td>
+                                    <td class="number">@Format.Money(rate.Repayment)</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot><tr><td>Summe</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Amount))</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Interest))</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Repayment))</td></tr></tfoot>
+                    </table>
+                </div>
+            </section>
         }
-    }
-</section>
 
-<section>
-    <h2>Jahreszinsbescheinigung</h2>
-    @if (detail.Certificates.Count > 0)
-    {
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead><tr><th>Jahr</th><th class="number">Zinsen</th><th class="number">Restschuld</th><th></th></tr></thead>
-                    <tbody>
-                        @foreach (var certificate in detail.Certificates)
-                        {
-                            <tr>
-                                <td>@certificate.Year</td>
-                                <td class="number">@Format.Money(certificate.Interest)</td>
-                                <td class="number">@(certificate.ClosingBalance is { } balance ? Format.Money(balance) : "–")</td>
-                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCertificateAsync(certificate)" aria-label="@($"Bescheinigung {certificate.Year} entfernen")">Entfernen</MudButton></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-    }
+        <section>
+            <h2>Sondertilgungen</h2>
+            <p class="small">Eine Sondertilgung mindert die Restschuld nach der Rate der Periode, in die sie fällt.</p>
+            @if (detail.ExtraPayments.Count > 0)
+            {
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr><th>Datum</th><th class="number">Betrag</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var extra in detail.ExtraPayments)
+                                {
+                                    <tr>
+                                        <td>@Format.Date(extra.Date)</td>
+                                        <td class="number">@Format.Money(extra.Amount)</td>
+                                        <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveExtraAsync(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")">Entfernen</MudButton></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+            }
 
-    <EditForm Model="Certificate" OnValidSubmit="SaveCertificateAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppNumberField T="int?" @bind-Value="Certificate.Year" Label="Jahr" Required="true" />
-            <AppNumberField T="decimal?" @bind-Value="Certificate.Interest" Label="Zinsen laut Bescheinigung" Suffix="€" Required="true" />
-            <AppNumberField T="decimal?" @bind-Value="Certificate.ClosingBalance" Label="Restschuld zum 31.12." Suffix="€" />
-        </div>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-    </EditForm>
-</section>
+            <EditForm Model="Extra" OnValidSubmit="AddExtraAsync" novalidate>
+                <DataAnnotationsValidator />
+                <div class="form-grid">
+                    <AppDateField @bind-Value="Extra.Date" Label="Datum" Required="true" />
+                    <AppNumberField T="decimal?" @bind-Value="Extra.Amount" Label="Betrag" Suffix="€" Required="true" />
+                </div>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
+            </EditForm>
+        </section>
 
-@if (detail.Booked.Count > 0)
-{
-    <section>
-        <h2>Gebuchte Raten</h2>
-        <p class="small">Aus den Bankumsätzen zugeordnet; der Zinsanteil stammt aus dem Tilgungsplan oder wurde bei der Zuordnung eingegeben.</p>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Datum</th><th class="number">Rate</th><th class="number">Zinsen</th><th class="number">Tilgung</th></tr></thead>
-                <tbody>
-                    @foreach (var rate in detail.Booked)
-                    {
-                        <tr>
-                            <td><a href="/verwaltung/bank/umsaetze/@rate.TransactionId/zuordnen">@Format.Date(rate.Date)</a></td>
-                            <td class="number">@Format.Money(rate.Amount)</td>
-                            <td class="number">@Format.Money(rate.Interest)</td>
-                            <td class="number">@Format.Money(rate.Repayment)</td>
-                        </tr>
-                    }
-                </tbody>
-                <tfoot><tr><td>Summe</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Amount))</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Interest))</td><td class="number">@Format.Money(detail.Booked.Sum(r => r.Repayment))</td></tr></tfoot>
-            </table>
-        </div>
-    </section>
-}
+        <section>
+            <h2>Finanzierungskosten</h2>
+            <p class="small">Einmalige Kosten wie Disagio, Bereitstellungszinsen oder Grundschuldbestellung sind im Zahlungsjahr Werbungskosten.</p>
+            @if (detail.Costs.Count > 0)
+            {
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr><th>Datum</th><th>Art</th><th>Beschreibung</th><th class="number">Betrag</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var cost in detail.Costs)
+                                {
+                                    <tr>
+                                        <td>@Format.Date(cost.Date)</td>
+                                        <td>@KindText(cost.Kind)</td>
+                                        <td>@cost.Description</td>
+                                        <td class="number">@Format.Money(cost.Amount)</td>
+                                        <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+            }
 
-<section>
-    <h2>Sondertilgungen</h2>
-    <p class="small">Eine Sondertilgung mindert die Restschuld nach der Rate der Periode, in die sie fällt.</p>
-    @if (detail.ExtraPayments.Count > 0)
-    {
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead><tr><th>Datum</th><th class="number">Betrag</th><th></th></tr></thead>
-                    <tbody>
-                        @foreach (var extra in detail.ExtraPayments)
-                        {
-                            <tr>
-                                <td>@Format.Date(extra.Date)</td>
-                                <td class="number">@Format.Money(extra.Amount)</td>
-                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveExtraAsync(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")">Entfernen</MudButton></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-    }
+            <EditForm Model="Cost" OnValidSubmit="AddCostAsync" novalidate>
+                <DataAnnotationsValidator />
+                <div class="form-grid">
+                    <AppDateField @bind-Value="Cost.Date" Label="Datum" Required="true" />
+                    <AppSelect T="FinancingCostKind" @bind-Value="Cost.Kind" Label="Art" Items="Enum.GetValues<FinancingCostKind>()" Text="KindText" />
+                    <AppNumberField T="decimal?" @bind-Value="Cost.Amount" Label="Betrag" Suffix="€" Required="true" />
+                    <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
+                </div>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
+            </EditForm>
+        </section>
+    </MudTabPanel>
 
-    <EditForm Model="Extra" OnValidSubmit="AddExtraAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppDateField @bind-Value="Extra.Date" Label="Datum" Required="true" />
-            <AppNumberField T="decimal?" @bind-Value="Extra.Amount" Label="Betrag" Suffix="€" Required="true" />
-        </div>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
-    </EditForm>
-</section>
+    <MudTabPanel Text="Unterlagen der Bank">
+        <section>
+            <h2>Tilgungsplan der Bank (CSV)</h2>
+            <p class="small">Die Zinsen des Plans werden je Jahr summiert und wie eine Jahreszinsbescheinigung übernommen. Vorhandene Werte derselben Jahre werden ersetzt.</p>
+            <AppFileUpload Text="CSV-Datei wählen" Accept=".csv,.txt" OnSelected="PlanSelectedAsync" />
+            @if (plan is not null)
+            {
+                <ErrorList Errors="plan.Errors" />
+                @foreach (var warning in plan.Warnings)
+                {
+                    <Notice Level="NoticeLevel.Warning">@warning</Notice>
+                }
 
-<section>
-    <h2>Finanzierungskosten</h2>
-    <p class="small">Einmalige Kosten wie Disagio, Bereitstellungszinsen oder Grundschuldbestellung sind im Zahlungsjahr Werbungskosten.</p>
-    @if (detail.Costs.Count > 0)
-    {
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead><tr><th>Datum</th><th>Art</th><th>Beschreibung</th><th class="number">Betrag</th><th></th></tr></thead>
-                    <tbody>
-                        @foreach (var cost in detail.Costs)
-                        {
-                            <tr>
-                                <td>@Format.Date(cost.Date)</td>
-                                <td>@KindText(cost.Kind)</td>
-                                <td>@cost.Description</td>
-                                <td class="number">@Format.Money(cost.Amount)</td>
-                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-    }
+                @if (plan.Years.Count > 0)
+                {
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr><th>Jahr</th><th class="number">Raten</th><th class="number">Zinsen</th><th class="number">Restschuld</th></tr></thead>
+                            <tbody>
+                                @foreach (var year in plan.Years)
+                                {
+                                    <tr>
+                                        <td>@year.Year</td>
+                                        <td class="number">@year.Instalments</td>
+                                        <td class="number">@Format.Money(year.Interest)</td>
+                                        <td class="number">@(year.ClosingBalance is { } balance ? Format.Money(balance) : "–")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
 
-    <EditForm Model="Cost" OnValidSubmit="AddCostAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppDateField @bind-Value="Cost.Date" Label="Datum" Required="true" />
-            <AppSelect T="FinancingCostKind" @bind-Value="Cost.Kind" Label="Art" Items="Enum.GetValues<FinancingCostKind>()" Text="KindText" />
-            <AppNumberField T="decimal?" @bind-Value="Cost.Amount" Label="Betrag" Suffix="€" Required="true" />
-            <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
-        </div>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
-    </EditForm>
-</section>
+                @if (plan.CanImport)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ImportPlanAsync">Als Jahreswerte übernehmen</MudButton>
+                }
+            }
+        </section>
 
-<section>
-    <h2>Tilgungsplan</h2>
-    <details class="disclosure">
-        <summary>@detail.Plan.Payments.Count Raten anzeigen</summary>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Fällig</th><th class="number">Zinsen</th><th class="number">Tilgung</th><th class="number">Sondertilgung</th><th class="number">Restschuld</th></tr></thead>
-                <tbody>
-                    @foreach (var payment in detail.Plan.Payments)
-                    {
-                        <tr>
-                            <td>@Format.Date(payment.Date)</td>
-                            <td class="number">@Format.Money(payment.Interest)</td>
-                            <td class="number">@Format.Money(payment.Repayment)</td>
-                            <td class="number">@Format.Money(payment.ExtraRepayment)</td>
-                            <td class="number">@Format.Money(payment.Balance)</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </details>
-</section>
+        <section>
+            <h2>Jahreszinsbescheinigung</h2>
+            @if (detail.Certificates.Count > 0)
+            {
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr><th>Jahr</th><th class="number">Zinsen</th><th class="number">Restschuld</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var certificate in detail.Certificates)
+                                {
+                                    <tr>
+                                        <td>@certificate.Year</td>
+                                        <td class="number">@Format.Money(certificate.Interest)</td>
+                                        <td class="number">@(certificate.ClosingBalance is { } balance ? Format.Money(balance) : "–")</td>
+                                        <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCertificateAsync(certificate)" aria-label="@($"Bescheinigung {certificate.Year} entfernen")">Entfernen</MudButton></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+            }
+
+            <EditForm Model="Certificate" OnValidSubmit="SaveCertificateAsync" novalidate>
+                <DataAnnotationsValidator />
+                <div class="form-grid">
+                    <AppNumberField T="int?" @bind-Value="Certificate.Year" Label="Jahr" Required="true" />
+                    <AppNumberField T="decimal?" @bind-Value="Certificate.Interest" Label="Zinsen laut Bescheinigung" Suffix="€" Required="true" />
+                    <AppNumberField T="decimal?" @bind-Value="Certificate.ClosingBalance" Label="Restschuld zum 31.12." Suffix="€" />
+                </div>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+            </EditForm>
+        </section>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Darlehensdaten">
+        <section>
+            <h2>Darlehensdaten</h2>
+            <EditForm Model="Data" OnValidSubmit="UpdateAsync" novalidate>
+                <DataAnnotationsValidator />
+                <LoanEditor Data="Data!" Properties="properties" />
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+            </EditForm>
+        </section>
+    </MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 

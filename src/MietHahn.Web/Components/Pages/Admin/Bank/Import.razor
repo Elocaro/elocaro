@@ -52,7 +52,7 @@ else
                     {
                         <tr class="@(line.Duplicate ? "row-dimmed" : "")">
                             <td>@Format.Date(line.Transaction.BookingDate)</td>
-                            <td>@line.Transaction.CounterpartyName<span class="small"> @line.Transaction.CounterpartyIban</span></td>
+                            <td>@line.Transaction.CounterpartyName<span class="small">&#32;@line.Transaction.CounterpartyIban</span></td>
                             <td>@line.Transaction.Purpose</td>
                             <td class="number">@Format.Money(line.Transaction.Amount)</td>
                             <td>@if (line.Duplicate) {<StatusChip>schon vorhanden</StatusChip>}</td>

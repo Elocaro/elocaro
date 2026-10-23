@@ -30,6 +30,8 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 - Neue Unterseite eines Objekts oder Vertrags: Tab in `PropertyTabs`/`LeaseTabs` ergänzen, eine neue Gruppe nur für wirklich eigenständige Themen.
 - Auf breiten Bildschirmen blendet der Seitenkopf den Zurück-Link aus, sobald eine Tab-Leiste da ist (der Tab führt dorthin); auf dem Handy bleibt er als Pfeil.
 
+**Lange Seiten gliedern.** Eine Seite hat höchstens zwei, drei Bildschirmhöhen. Wird sie länger, weil mehrere fachliche Themen untereinander stehen (Mieterkonto: Buchungen, Zahlung erfassen, Mahnwesen, Mieten je Jahr; Darlehen; DATEV-Export), kommen die Themen in `MudTabs` (Wichtigstes zuerst, Einrichtung zuletzt oder bei der Erstnutzung zuerst). Lange Tabellen werden gepaged (`MudTable` mit `MudTablePager`) und bekommen Filter (Jahr, „nur offene“). Auf dem Dashboard zeigt jeder Bereich die vier dringendsten Einträge, der Rest klappt auf.
+
 **Detailseiten** (Objekt, Vertrag, Person): Kopf mit Kerndaten als `.summary-card`, darunter `MudTabs` (`Class="detail-tabs"`) statt einer langen Abschnittsliste. Je Tab ein fachlicher Abschnitt (z. B. Miete, Parteien & Haushalt, Kündigung, Angaben, Dokumente, Verlauf). Ohne Daten bleibt ein Tab sichtbar mit `EmptyState`; ausgeblendet wird nur, was fachlich nicht möglich ist (`Visible`).
 
 **Anlegen, Bearbeiten, Einladen:** Es gibt keine eigenen „Bearbeiten“-Seiten. Stammdaten werden im Tab *Angaben* der Detailseite bearbeitet (Objekt, Person, Einheit, Bankkonto, Beleg); die Schaltfläche „Bearbeiten“ im Seitenkopf springt dorthin. Kleine Formulare (Person einladen, Umsatz ignorieren, Zimmer, IBAN …) sind Dialoge, nicht Seiten oder Formulare über der Liste.
@@ -87,6 +89,8 @@ Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gil
 | Status in Tabelle/Detail | `StatusChip` (`StatusLevel`: Neutral, Success, Warning, Error) | Kein eigenes `class="status …"`; Zuordnung Enum → Stufe in `Labels.Level(…)` |
 | Icon | `Icon` mit `AppIcons.*` | Nur Icons aus `AppIcons` (eine Stelle kennt die Quelle); dekorativ, außer mit `Label` |
 | Marke, Sprunglink | `BrandMark`, `SkipLink` | In jedem Layout |
+| Erklärung | `PageHeader.Subtitle`, `p.help`, `details.explain` | Jede Seite sagt im Untertitel, wozu sie da ist. Kurze Hilfe zu einem Abschnitt als `<p class="help">` direkt unter der Überschrift; längere Hintergründe (Rechtsgrundlage, Rechenweg) als einklappbares `<details class="explain">` mit sprechender Überschrift, nicht als Textblock vor dem Formular |
+| Gruppe in langer Liste | `details.group` | Eine Liste mit vielen Zeilen wird nach einem fachlichen Merkmal gruppiert (Beispiel Offene Posten: ein Block je Mietverhältnis mit Summe in der Kopfzeile; bis drei Gruppen offen, sonst zugeklappt) |
 | Verlauf | `ChangeHistory` | Auf Detailseiten von Stammdaten |
 | Datum, Geld, Zahl | `Format.*`, Enum-Texte `Labels.*` | Nie `ToString("dd.MM.yyyy")` o. ä. in Seiten |
 

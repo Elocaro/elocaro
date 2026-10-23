@@ -57,7 +57,7 @@
                         @foreach (var m in overview.Proposals)
                         {
                             <tr>
-                                <td><a href="/verwaltung/vertraege/@m.LeaseId/konto">@m.Tenant</a><span class="small"> @m.RentalUnit</span></td>
+                                <td><a href="/verwaltung/vertraege/@m.LeaseId/konto">@m.Tenant</a><span class="small">&#32;@m.RentalUnit</span></td>
                                 <td>
                                     @Labels.From(m.Level)
                                     @if (m.TerminationRelevant)
@@ -96,7 +96,7 @@
                         {
                             <tr>
                                 <td>@Format.Date(m.Date)</td>
-                                <td><a href="/verwaltung/vertraege/@m.LeaseId/konto">@m.Tenant</a><span class="small"> @m.RentalUnit</span></td>
+                                <td><a href="/verwaltung/vertraege/@m.LeaseId/konto">@m.Tenant</a><span class="small">&#32;@m.RentalUnit</span></td>
                                 <td>@Labels.From(m.Level)</td>
                                 <td class="number">@Format.Money(m.Principal + m.Fee + m.Interest)</td>
                                 <td>@Format.Date(m.Deadline)</td>
@@ -132,7 +132,7 @@
                             @foreach (var h in overview.Holds)
                             {
                                 <tr>
-                                    <td><a href="/verwaltung/vertraege/@h.LeaseId/konto">@h.Tenant</a><span class="small"> @h.RentalUnit</span></td>
+                                    <td><a href="/verwaltung/vertraege/@h.LeaseId/konto">@h.Tenant</a><span class="small">&#32;@h.RentalUnit</span></td>
                                     <td>@h.Reason</td>
                                     <td>@(h.Until is { } until ? Format.Date(until) : "bis auf Weiteres")</td>
                                     <td><MudButton Variant="Variant.Outlined" OnClick="() => EndHoldAsync(h)" aria-label="@($"Mahnsperre für {h.Tenant} aufheben")">Aufheben</MudButton></td>

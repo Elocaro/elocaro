@@ -30,7 +30,7 @@
                     <div class="work-card-transaction">
                         <span class="work-card-amount @(u.Amount < 0 ? "negative" : null)">@Format.Money(u.Amount)</span>
                         <div>
-                            <strong>@u.CounterpartyName</strong><span class="small"> @u.CounterpartyIban</span>
+                            <strong>@u.CounterpartyName</strong><span class="small">&#32;@u.CounterpartyIban</span>
                             <div class="small">@Format.Date(u.BookingDate) · @u.Purpose</div>
                         </div>
                     </div>

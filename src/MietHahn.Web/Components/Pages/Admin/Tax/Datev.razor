@@ -13,140 +13,148 @@
 
     @if (settings is not null)
     {
-        <section>
-            <h2>Stammdaten</h2>
-            <EditForm Model="settings" OnValidSubmit="SaveSettingsAsync" novalidate>
-                <DataAnnotationsValidator />
-                <div class="form-grid">
-                    <AppNumberField T="int" @bind-Value="settings.ConsultantNumber" Label="Beraternummer" Required="true" />
-                    <AppNumberField T="int" @bind-Value="settings.ClientNumber" Label="Mandantennummer" Required="true" />
-                    <AppSelect T="DatevChart" @bind-Value="settings.Chart" Label="Kontenrahmen" Items="Enum.GetValues<DatevChart>()" Text="@(v => v == DatevChart.Skr03 ? "SKR 03" : "SKR 04")" />
-                    <AppNumberField T="int" @bind-Value="settings.AccountLength" Label="Sachkontenlänge" Min="4" Max="8" />
-                    <AppNumberField T="int" @bind-Value="settings.FiscalYearStartMonth" Label="Wirtschaftsjahr beginnt im Monat" Min="1" Max="12" Hint="1 = Kalenderjahr" />
-                    <AppTextField @bind-Value="settings.DictationCode" Label="Diktatkürzel" Hint="optional, höchstens 2 Zeichen" />
-                </div>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined">Speichern</MudButton>
-            </EditForm>
-        </section>
+        <p class="help">Der DATEV-Export liefert Ihrem Steuerberater die Buchungen des Zeitraums in einer Datei, die DATEV direkt einlesen kann. Beim ersten Mal tragen Sie unter „Einrichtung“ die Nummern ein, die Ihnen der Steuerberater nennt.</p>
 
-        <section>
-            <h2>Kontenzuordnung</h2>
-            <p class="small">Die Konten sind Vorschläge für den gewählten Kontenrahmen. Bitte mit dem Steuerberater abstimmen und bei Bedarf ändern.</p>
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead><tr><th>Posten</th><th>Konto</th></tr></thead>
-                    <tbody>
-                        @foreach (var row in accounts)
+        <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true" @bind-ActivePanelIndex="tab">
+            <MudTabPanel Text="Export">
+                <section>
+                    <h2>Export</h2>
+                    <div class="form-row">
+                        <AppDateField @bind-Value="from" Label="Von" />
+                        <AppDateField @bind-Value="to" Label="Bis" />
+                        <AppCheckBox @bind-Value="fixedPosting" Label="Festschreiben (Buchungen im Stapel als festgeschrieben kennzeichnen)" />
+                        <AppCheckBox @bind-Value="includeExported" Label="Bereits exportierte Buchungen erneut aufnehmen" />
+                    </div>
+                    <div class="form-row">
+                        <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">Vorschau</MudButton>
+                        @if (preview is { Bookings.Count: > 0 })
                         {
-                            <tr>
-                                <td>@row.Label@(row.IsDefault ? "" : " (angepasst)")</td>
-                                <td><AppNumberField T="int" Value="edited[row.Key]" ValueChanged="v => edited[row.Key] = v" Label="@("Konto " + row.Label)" Min="1" Max="99999999" /></td>
-                            </tr>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportAsync" Disabled="!preview.SettingsComplete">Export erstellen</MudButton>
+                            <a class="button" href="/verwaltung/finanzen/datev/buchungen.csv?von=@from?.ToString("yyyy-MM-dd")&bis=@to?.ToString("yyyy-MM-dd")">Alle Buchungen als CSV</a>
                         }
-                    </tbody>
-                </table>
-            </div>
-            <div class="form-row">
-                <MudButton Variant="Variant.Outlined" OnClick="SaveAccountsAsync">Konten speichern</MudButton>
-                <MudButton Variant="Variant.Text" OnClick="ResetAccountsAsync">Auf Vorschläge zurücksetzen</MudButton>
-            </div>
-        </section>
+                    </div>
 
-        <section>
-            <h2>Export</h2>
-            <div class="form-row">
-                <AppDateField @bind-Value="from" Label="Von" />
-                <AppDateField @bind-Value="to" Label="Bis" />
-                <AppCheckBox @bind-Value="fixedPosting" Label="Festschreiben (Buchungen im Stapel als festgeschrieben kennzeichnen)" />
-                <AppCheckBox @bind-Value="includeExported" Label="Bereits exportierte Buchungen erneut aufnehmen" />
-            </div>
-            <div class="form-row">
-                <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">Vorschau</MudButton>
-                @if (preview is { Bookings.Count: > 0 })
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportAsync" Disabled="!preview.SettingsComplete">Export erstellen</MudButton>
-                    <a class="button" href="/verwaltung/finanzen/datev/buchungen.csv?von=@from?.ToString("yyyy-MM-dd")&bis=@to?.ToString("yyyy-MM-dd")">Alle Buchungen als CSV</a>
-                }
-            </div>
+                    @if (preview is not null)
+                    {
+                        @if (!preview.SettingsComplete)
+                        {
+                            <Notice Level="NoticeLevel.Warning">Berater- und Mandantennummer fehlen noch; ohne sie lässt sich kein Export erstellen.</Notice>
+                        }
 
-            @if (preview is not null)
-            {
-                @if (!preview.SettingsComplete)
-                {
-                    <Notice Level="NoticeLevel.Warning">Berater- und Mandantennummer fehlen noch; ohne sie lässt sich kein Export erstellen.</Notice>
-                }
+                        @foreach (var warning in preview.Warnings)
+                        {
+                            <Notice Level="NoticeLevel.Warning">@warning</Notice>
+                        }
 
-                @foreach (var warning in preview.Warnings)
-                {
-                    <Notice Level="NoticeLevel.Warning">@warning</Notice>
-                }
+                        @if (preview.AlreadyExported > 0)
+                        {
+                            <p class="small">@preview.AlreadyExported Buchung(en) stecken schon in einem früheren Export und werden übersprungen.</p>
+                        }
 
-                @if (preview.AlreadyExported > 0)
-                {
-                    <p class="small">@preview.AlreadyExported Buchung(en) stecken schon in einem früheren Export und werden übersprungen.</p>
-                }
+                        @if (preview.Bookings.Count == 0)
+                        {
+                            <EmptyState Text="Im Zeitraum gibt es nichts Neues zu exportieren." />
+                        }
+                        else
+                        {
+                            <p><strong>@preview.Bookings.Count Buchungen</strong>, Summe @Format.Money(preview.Total)</p>
+                            <div class="table-wrapper">
+                                <table class="data-table">
+                                    <thead><tr><th>Datum</th><th>Text</th><th>Konto</th><th>Gegenkonto</th><th>S/H</th><th>Betrag</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var booking in preview.Bookings.Take(200))
+                                        {
+                                            <tr>
+                                                <td>@Format.Date(booking.Date)</td>
+                                                <td>@booking.Text@(booking.DocumentNumber.Length > 0 ? $" · {booking.DocumentNumber}" : "")</td>
+                                                <td>@booking.Account</td>
+                                                <td>@booking.CounterAccount</td>
+                                                <td>@(booking.Debit ? "S" : "H")</td>
+                                                <td>@Format.Money(booking.Amount)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            @if (preview.Bookings.Count > 200)
+                            {
+                                <p class="small">Angezeigt werden die ersten 200 Buchungen.</p>
+                            }
+                        }
+                    }
+                </section>
 
-                @if (preview.Bookings.Count == 0)
-                {
-                    <EmptyState Text="Im Zeitraum gibt es nichts Neues zu exportieren." />
-                }
-                else
-                {
-                    <p><strong>@preview.Bookings.Count Buchungen</strong>, Summe @Format.Money(preview.Total)</p>
+                <section>
+                    <h2>Exportprotokoll</h2>
+                    @if (exports.Count == 0)
+                    {
+                        <EmptyState Compact="true" Text="Noch nichts exportiert." />
+                    }
+                    else
+                    {
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead><tr><th>Erstellt</th><th>Zeitraum</th><th>Buchungen</th><th>Summe</th><th>Von</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var export in exports)
+                                    {
+                                        <tr>
+                                            <td>@Format.Timestamp(export.At)</td>
+                                            <td>@Format.Date(export.From) bis @Format.Date(export.To)@(export.FixedPosting ? " · festgeschrieben" : "")</td>
+                                            <td>@export.Count</td>
+                                            <td>@Format.Money(export.Total)</td>
+                                            <td>@export.By</td>
+                                            <td><a href="/verwaltung/finanzen/datev/@(export.Id).csv">Herunterladen</a></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </section>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Einrichtung">
+                <section>
+                    <h2>Stammdaten</h2>
+                    <EditForm Model="settings" OnValidSubmit="SaveSettingsAsync" novalidate>
+                        <DataAnnotationsValidator />
+                        <div class="form-grid">
+                            <AppNumberField T="int" @bind-Value="settings.ConsultantNumber" Label="Beraternummer" Required="true" />
+                            <AppNumberField T="int" @bind-Value="settings.ClientNumber" Label="Mandantennummer" Required="true" />
+                            <AppSelect T="DatevChart" @bind-Value="settings.Chart" Label="Kontenrahmen" Items="Enum.GetValues<DatevChart>()" Text="@(v => v == DatevChart.Skr03 ? "SKR 03" : "SKR 04")" />
+                            <AppNumberField T="int" @bind-Value="settings.AccountLength" Label="Sachkontenlänge" Min="4" Max="8" />
+                            <AppNumberField T="int" @bind-Value="settings.FiscalYearStartMonth" Label="Wirtschaftsjahr beginnt im Monat" Min="1" Max="12" Hint="1 = Kalenderjahr" />
+                            <AppTextField @bind-Value="settings.DictationCode" Label="Diktatkürzel" Hint="optional, höchstens 2 Zeichen" />
+                        </div>
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined">Speichern</MudButton>
+                    </EditForm>
+                </section>
+
+                <section>
+                    <h2>Kontenzuordnung</h2>
+                    <p class="small">Die Konten sind Vorschläge für den gewählten Kontenrahmen. Bitte mit dem Steuerberater abstimmen und bei Bedarf ändern.</p>
                     <div class="table-wrapper">
                         <table class="data-table">
-                            <thead><tr><th>Datum</th><th>Text</th><th>Konto</th><th>Gegenkonto</th><th>S/H</th><th>Betrag</th></tr></thead>
+                            <thead><tr><th>Posten</th><th>Konto</th></tr></thead>
                             <tbody>
-                                @foreach (var booking in preview.Bookings.Take(200))
+                                @foreach (var row in accounts)
                                 {
                                     <tr>
-                                        <td>@Format.Date(booking.Date)</td>
-                                        <td>@booking.Text@(booking.DocumentNumber.Length > 0 ? $" · {booking.DocumentNumber}" : "")</td>
-                                        <td>@booking.Account</td>
-                                        <td>@booking.CounterAccount</td>
-                                        <td>@(booking.Debit ? "S" : "H")</td>
-                                        <td>@Format.Money(booking.Amount)</td>
+                                        <td>@row.Label@(row.IsDefault ? "" : " (angepasst)")</td>
+                                        <td><AppNumberField T="int" Value="edited[row.Key]" ValueChanged="v => edited[row.Key] = v" Label="@("Konto " + row.Label)" Min="1" Max="99999999" /></td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
-                    @if (preview.Bookings.Count > 200)
-                    {
-                        <p class="small">Angezeigt werden die ersten 200 Buchungen.</p>
-                    }
-                }
-            }
-        </section>
-
-        <section>
-            <h2>Exportprotokoll</h2>
-            @if (exports.Count == 0)
-            {
-                <EmptyState Compact="true" Text="Noch nichts exportiert." />
-            }
-            else
-            {
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead><tr><th>Erstellt</th><th>Zeitraum</th><th>Buchungen</th><th>Summe</th><th>Von</th><th></th></tr></thead>
-                        <tbody>
-                            @foreach (var export in exports)
-                            {
-                                <tr>
-                                    <td>@Format.Timestamp(export.At)</td>
-                                    <td>@Format.Date(export.From) bis @Format.Date(export.To)@(export.FixedPosting ? " · festgeschrieben" : "")</td>
-                                    <td>@export.Count</td>
-                                    <td>@Format.Money(export.Total)</td>
-                                    <td>@export.By</td>
-                                    <td><a href="/verwaltung/finanzen/datev/@(export.Id).csv">Herunterladen</a></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
+                    <div class="form-row">
+                        <MudButton Variant="Variant.Outlined" OnClick="SaveAccountsAsync">Konten speichern</MudButton>
+                        <MudButton Variant="Variant.Text" OnClick="ResetAccountsAsync">Auf Vorschläge zurücksetzen</MudButton>
+                    </div>
+                </section>
+            </MudTabPanel>
+        </MudTabs>
     }
 </InteractiveShell>
 
@@ -161,6 +169,7 @@
     private DateOnly? to;
     private bool fixedPosting;
     private bool includeExported;
+    private int tab;
 
     protected override async Task OnInitializedAsync()
     {
@@ -168,6 +177,7 @@
         from = new DateOnly(today.Year - 1, 1, 1);
         to = new DateOnly(today.Year - 1, 12, 31);
         await LoadAsync();
+        tab = settings is { ConsultantNumber: 0 } ? 1 : 0; // first visit: set up first
     }
 
     private async Task LoadAsync()

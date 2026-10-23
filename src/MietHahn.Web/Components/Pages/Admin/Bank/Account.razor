@@ -59,7 +59,7 @@ else
                     @foreach (var import in imports)
                     {
                         <tr>
-                            <td>@Format.Timestamp(import.Timestamp)<span class="small"> @import.CreatedBy</span></td>
+                            <td>@Format.Timestamp(import.Timestamp)<span class="small">&#32;@import.CreatedBy</span></td>
                             <td>
                                 @if (import.Status == ImportStatus.Preview)
                                 {
@@ -69,7 +69,7 @@ else
                                 {
                                     @import.FileName
                                 }
-                                <span class="small"> @Labels.From(import.Format)@(import.Profile is null ? "" : $" ({import.Profile})")</span>
+                                <span class="small">&#32;@Labels.From(import.Format)@(import.Profile is null ? "" : $" ({import.Profile})")</span>
                             </td>
                             <td>@(import.From is null ? "–" : $"{Format.Date(import.From)} – {Format.Date(import.To)}")</td>
                             <td class="number">@import.Read</td>

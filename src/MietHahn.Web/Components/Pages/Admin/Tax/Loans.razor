@@ -21,7 +21,7 @@
                 <MudTh>Bank</MudTh><MudTh>Objekt</MudTh><MudTh Style="text-align:right">Betrag</MudTh><MudTh Style="text-align:right">Sollzins</MudTh><MudTh>Zinsbindung bis</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Bank"><a href="/verwaltung/finanzen/darlehen/@context.Id">@context.Bank</a><span class="small"> @context.LoanNumber</span></MudTd>
+                <MudTd DataLabel="Bank"><a href="/verwaltung/finanzen/darlehen/@context.Id">@context.Bank</a><span class="small">&#32;@context.LoanNumber</span></MudTd>
                 <MudTd DataLabel="Objekt">@context.PropertyName</MudTd>
                 <MudTd DataLabel="Betrag" Style="text-align:right">@Format.Money(context.Principal)</MudTd>
                 <MudTd DataLabel="Sollzins" Style="text-align:right">@Format.Number(context.InterestRatePercent) %</MudTd>

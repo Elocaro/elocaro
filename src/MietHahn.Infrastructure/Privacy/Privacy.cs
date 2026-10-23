@@ -64,7 +64,7 @@ internal sealed class Privacy(
             ["userAccount"] = await AccountAsync(person.UserId),
             ["references"] = await ReferencesAsync([personId], cancellationToken),
             // Change log in plain text (including otherwise masked values such as IBAN): the person is entitled to it.
-            ["changeLog"] = log.Select(p => new { p.Timestamp, p.User, p.EntityType, p.Action, p.Purpose, Changes = JsonDocument.Parse(p.Changes).RootElement }),
+            ["changeLog"] = log.Select(p => new { p.Timestamp, p.User, p.EntityType, p.Action, p.Purpose, Changes = JsonElement.Parse(p.Changes) }),
         };
         foreach (var source in dataSources)
         {

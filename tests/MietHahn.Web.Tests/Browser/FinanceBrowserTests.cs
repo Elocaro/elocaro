@@ -88,6 +88,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await GotoInteractiveAsync(page, $"/verwaltung/vertraege/{lease}/konto");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("(anteilig");
 
+            await OpenTabAsync(page, "Zahlung & Forderung");
             await page.GetByLabel("Datum", new() { Exact = true }).FillAsync(German(today));
             await page.GetByLabel("Betrag", new() { Exact = true }).First.FillAsync("100,5");
             await page.GetByLabel("Verwendungszweck").FillAsync("Miete");
@@ -95,6 +96,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await ExpectSnackbarAsync(page, "Die Zahlung wurde gebucht.");
             await Assertions.Expect(page.Locator("tbody").First).ToContainTextAsync("100,50 €");
 
+            await OpenTabAsync(page, "Buchungen");
             // Monthly rents have no delete button, the payment does (after confirming).
             await Assertions.Expect(page.Locator("button[aria-label$='löschen']")).ToHaveCountAsync(1);
             await page.Locator("button[aria-label$='löschen']").ClickAsync();
@@ -157,10 +159,14 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
+            await OpenTabAsync(page, "Zahlung & Forderung");
             await SelectAsync(page, "Art", "Nachzahlung (Abrechnung)");
             await page.GetByLabel("Fällig am").FillAsync(German(today.AddDays(-20)));
-            await page.GetByLabel("Betrag", new() { Exact = true }).Last.FillAsync("212,4");
             await page.GetByLabel("Bezeichnung").FillAsync("Nachzahlung Betriebskosten 2025");
+            var amount = page.Locator("section", new() { HasText = "Sonstige Forderung" }).GetByLabel("Betrag", new() { Exact = true });
+            await amount.FillAsync("212,4");
+            await amount.BlurAsync();
+            await Assertions.Expect(amount).ToHaveValueAsync("212,4");
             await page.GetByRole(AriaRole.Button, new() { Name = "Buchen", Exact = true }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Buchung wurde angelegt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Nachzahlung Betriebskosten 2025");
@@ -258,6 +264,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await Assertions.Expect(page.Locator("#mahnwesen")).ToContainTextAsync("Mahnvorschlag:");
+            await OpenTabAsync(page, "Mahnwesen");
             await page.GetByLabel("Grund").FillAsync("Ratenvereinbarung");
             await page.GetByRole(AriaRole.Button, new() { Name = "Mahnsperre setzen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Mahnsperre wurde gesetzt.");

@@ -3,7 +3,7 @@
 @using MietHahn.Application.Todos
 @inject IEnumerable<ITodoSource> Sources
 
-<PageHeader Title="Was ist zu tun?" />
+<PageHeader Title="Was ist zu tun?" Subtitle="Aufgaben und Fristen aus allen Bereichen, die dringendsten zuerst." />
 
 @if (todos is null)
 {
@@ -34,29 +34,48 @@ else
                     <h2>@area.Key</h2>
                     <span class="count-badge" aria-label="@area.Count() Aufgaben">@area.Count()</span>
                 </header>
+                @{
+                    var ordered = area.OrderByDescending(a => a.Urgency).ThenBy(a => a.Due).ToList();
+                }
                 <ul class="todos">
-                    @foreach (var todo in area.OrderByDescending(a => a.Urgency).ThenBy(a => a.Due))
+                    @foreach (var todo in ordered.Take(VisiblePerArea))
                     {
-                        <li class="todo todo-@todo.Urgency.ToString().ToLowerInvariant()">
-                            <a href="@todo.Link">@todo.Title</a>
-                            @if (todo.Due is { } due)
-                            {
-                                <span class="small">fällig am @Format.Date(due)</span>
-                            }
-                            @if (todo.Details is not null)
-                            {
-                                <p class="small">@todo.Details</p>
-                            }
-                        </li>
+                        @TodoItemView(todo)
                     }
                 </ul>
+                @if (ordered.Count > VisiblePerArea)
+                {
+                    <details class="todos-more">
+                        <summary>@(ordered.Count - VisiblePerArea) weitere anzeigen</summary>
+                        <ul class="todos">
+                            @foreach (var todo in ordered.Skip(VisiblePerArea))
+                            {
+                                @TodoItemView(todo)
+                            }
+                        </ul>
+                    </details>
+                }
             </section>
         }
     </div>
 }
 
 @code {
+    private const int VisiblePerArea = 4;
+
     private IReadOnlyList<TodoItem>? todos;
+
+    private RenderFragment TodoItemView(TodoItem todo) => @<li class="todo todo-@todo.Urgency.ToString().ToLowerInvariant()">
+        <a href="@todo.Link">@todo.Title</a>
+        @if (todo.Due is { } due)
+        {
+            <span class="small">fällig am @Format.Date(due)</span>
+        }
+        @if (todo.Details is not null)
+        {
+            <p class="small">@todo.Details</p>
+        }
+    </li>;
 
     private int Count(Urgency urgency) => todos?.Count(t => t.Urgency == urgency) ?? 0;
 

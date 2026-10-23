@@ -5,7 +5,7 @@
 @inject IStatements Statements
 
 <InteractiveShell>
-    <PageHeader Title="Freigegebene Abrechnungen" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
+    <PageHeader Title="Freigegebene Abrechnungen" Subtitle="Alle abgeschlossenen Nebenkostenabrechnungen dieses Objekts, je Abrechnungsjahr." Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
         <Actions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung")">Abrechnungs-Assistent</MudButton>
         </Actions>

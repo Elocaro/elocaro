@@ -21,7 +21,7 @@
                 <MudTh>Wartung</MudTh><MudTh>Objekt</MudTh><MudTh>Nächste Fälligkeit</MudTh><MudTh>Abstand</MudTh><MudTh>Zuletzt erledigt</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Wartung"><a href="/verwaltung/fristen/wartung/@context.Id">@context.Title</a>@if (!context.Active) { <span class="small"> (abgeschlossen)</span> }</MudTd>
+                <MudTd DataLabel="Wartung"><a href="/verwaltung/fristen/wartung/@context.Id">@context.Title</a>@if (!context.Active) { <span class="small">&#32;(abgeschlossen)</span> }</MudTd>
                 <MudTd DataLabel="Objekt">@(context.PropertyName ?? "alle")</MudTd>
                 <MudTd DataLabel="Nächste Fälligkeit">@(context.Active ? Format.Date(context.DueOn) : "–")</MudTd>
                 <MudTd DataLabel="Abstand">@Labels.Interval(context.IntervalMonths)</MudTd>

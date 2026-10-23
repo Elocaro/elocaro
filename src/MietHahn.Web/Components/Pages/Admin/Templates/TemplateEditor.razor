@@ -105,7 +105,7 @@ else
                         {
                             <tr>
                                 <td>@revision.Number @if (revision.IsCurrent) {<StatusChip>aktuell</StatusChip>}</td>
-                                <td>@Format.Timestamp(revision.Timestamp)<span class="small"> @revision.CreatedBy</span></td>
+                                <td>@Format.Timestamp(revision.Timestamp)<span class="small">&#32;@revision.CreatedBy</span></td>
                                 <td>@if (!revision.IsCurrent) {<MudButton Variant="Variant.Text" OnClick="() => LoadAsync(revision.Id)">In den Editor laden</MudButton>}</td>
                             </tr>
                         }

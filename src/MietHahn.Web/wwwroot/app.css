@@ -568,7 +568,12 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .panel { display: flex; flex-direction: column; min-width: 0; margin: 0; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--shape-xl); overflow: hidden; }
 .panel > header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.9rem 1.25rem 0.5rem; }
 .panel > header h2 { margin: 0; font-size: 1.1rem; }
-.panel .todos { padding: 0 0.5rem 0.75rem; max-height: 22rem; overflow-y: auto; }
+.panel .todos { padding: 0 0.5rem 0.75rem; }
+.panel .todos-more { padding: 0 0.5rem 0.75rem; }
+.panel .todos-more > summary { display: flex; align-items: center; min-height: 2.75rem; padding: 0 0.75rem; cursor: pointer; font-weight: 600; color: var(--md-primary); border-radius: var(--shape-full); }
+.panel .todos-more > summary:hover { background: color-mix(in srgb, var(--md-primary) 10%, transparent); }
+.panel .todos-more[open] > summary { margin-bottom: 0.5rem; }
+.panel .todos-more .todos { padding: 0; }
 .panel .todo { background: transparent; border: none; border-left: 4px solid var(--md-outline-variant); border-radius: var(--shape-sm); }
 .panel .todo:hover { background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); }
 .panel .todo-urgent { border-left-color: var(--md-error); }
@@ -744,3 +749,29 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .ticket-thread p { margin: 0.25rem 0 0; white-space: pre-wrap; }
 .emergency { border-left: 4px solid var(--md-error); background: var(--md-surface-container-low); padding: 0.75rem 1rem; border-radius: var(--shape-lg); margin-bottom: 1rem; }
 .emergency p { margin: 0.25rem 0 0; white-space: pre-wrap; }
+
+/* Razor drops the blank between neighbouring inline elements, so secondary text and chips keep a small gap themselves. */
+:is(a, strong, b, span:not(.small), small, .status) + :is(small, .status) { margin-inline-start: 0.4em; }
+strong + a { margin-inline-start: 0.35em; }
+
+/* Explanations: short help text under headings and a collapsible "how does this work" box */
+.help { margin: 0 0 1rem; max-width: 70ch; color: var(--md-on-surface-variant); font-size: 0.95rem; }
+h2 + .help, h3 + .help { margin-top: -0.25rem; }
+.explain { margin: 0 0 1rem; padding: 0 1rem; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); }
+.explain > summary { display: flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; cursor: pointer; font-weight: 600; color: var(--md-primary); }
+.explain[open] > summary { margin-bottom: 0.25rem; }
+.explain > :not(summary) { max-width: 70ch; }
+.explain > :last-child { margin-bottom: 0.75rem; }
+
+/* Groups of a long list (one block per lease, loan year ...) */
+.group { margin: 0 0 0.75rem; background: var(--md-surface-container-lowest); border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); }
+.group > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1rem; min-height: 3rem; padding: 0.6rem 1rem; cursor: pointer; font-weight: 600; }
+.group > summary .group-sum { margin-left: auto; font-variant-numeric: tabular-nums; }
+.group[open] > summary { border-bottom: 1px solid var(--md-outline-variant); }
+.group .table-wrapper { border: none; border-radius: 0 0 var(--shape-lg) var(--shape-lg); }
+.group-link { margin: 0; padding: 0.6rem 1rem; border-top: 1px solid var(--md-outline-variant); }
+p.small:has(+ :is(.empty-state, .table-wrapper, .mud-table, .group, .explain)) { margin-bottom: 0.75rem; }
+@media (max-width: 480px) {
+    .data-table th, .data-table td { padding-inline: 0.5rem; }
+    .data-table td.small { white-space: normal; font-size: 0.8rem; }
+}
