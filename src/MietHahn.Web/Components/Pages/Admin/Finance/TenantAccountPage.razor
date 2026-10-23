@@ -287,7 +287,15 @@ else
     private async Task RefreshAsync()
     {
         var count = await Accounts.GenerateChargesAsync(Id);
-        Notify.Success(count == 0 ? "Die Monatsmieten sind aktuell." : $"{count} Sollstellungen angelegt oder angeglichen.");
+        if (account?.AccountingStart is null)
+        {
+            Notify.Warning("Es ist noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten (Forderungen → Einstellungen).");
+        }
+        else
+        {
+            Notify.Success(count == 0 ? "Die Monatsmieten sind aktuell." : $"{count} Sollstellungen angelegt oder angeglichen.");
+        }
+
         await LoadAsync();
     }
 

@@ -61,7 +61,7 @@ var result = w.Preview.Result;
         <section id="step-1">
             <div class="form-row search-bar" role="search">
                 <AppNumberField T="int" Value="year" ValueChanged="OnYearChanged" Label="Abrechnungsjahr" Min="2000" Max="2100" />
-                <AppNumberField T="decimal" Value="threshold" ValueChanged="OnThresholdChanged" Label="Abweichung zum Vorjahr (± %)" Min="1" Max="500" />
+                <AppNumberField T="decimal" Value="threshold" ValueChanged="OnThresholdChanged" Label="Abweichung zum Vorjahr (± %)" Hint="Kostenarten, die stärker vom Vorjahr abweichen, werden zur Prüfung markiert." Min="1" Max="500" />
             </div>
             <dl class="summary">
                 <dt>Objekt</dt><dd>@w.Preview.PropertyName</dd>

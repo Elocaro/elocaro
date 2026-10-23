@@ -28,6 +28,12 @@ public class UiRulesTests
     }
 
     [Fact]
+    public void User_texts_address_the_user_formally()
+    {
+        AssertNoMatch(@"(?<![A-Za-zäöüß])(Lege|Füge|Trage|Wähle|Gib|Klicke|Erfasse|Starte) [a-zäöüß]", "Address the user with \"Sie\" (Legen Sie …, Fügen Sie … hinzu)");
+    }
+
+    [Fact]
     public void Status_labels_use_StatusChip()
     {
         AssertNoMatch(@"class=""status[ ""-]", "Use <StatusChip Level=\"…\"> instead of a hand-written status span", except: "Common/StatusChip.razor");
