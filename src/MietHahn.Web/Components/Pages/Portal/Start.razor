@@ -106,7 +106,7 @@ else
                     {
                         <li class="todo">
                             <a href="/portal/vertrag/@lease.Id">@lease.RentalUnit</a>
-                            <span class="small">@lease.Property · @Labels.From(lease.Status) · Miete @Format.Money(lease.MonthlyRent) im Monat</span>
+                            <span class="small">@lease.Property · @Labels.From(lease.Status) · Miete @(lease.Status == MietHahn.Domain.Leases.LeaseStatus.Future ? $"ab {Format.Date(lease.RentDate)}: " : "")@Format.Money(lease.MonthlyRent) im Monat</span>
                         </li>
                     }
                 </ul>

@@ -22,6 +22,9 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock) : I
 {
     private DateOnly Today => GermanTime.Today(clock.GetUtcNow());
 
+    /// <summary>A lease that has not begun yet shows the rent that applies from its start, not 0 €.</summary>
+    private static DateOnly RentDate(Lease lease, DateOnly today) => lease.Start > today ? lease.Start : today;
+
     public async Task<IReadOnlyList<PortalLeaseRow>> LeasesAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
         var leases = await OwnLeases(await PersonIdsAsync(user, cancellationToken)).AsNoTracking().Include(v => v.Components).ToListAsync(cancellationToken);
@@ -35,7 +38,8 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock) : I
         return leases
             .OrderBy(v => v.StatusAt(today) == LeaseStatus.Active ? 0 : 1)
             .ThenByDescending(v => v.Start)
-            .Select(v => new PortalLeaseRow(v.Id, units.GetValueOrDefault(v.RentalUnitId)?.Name ?? "", units.GetValueOrDefault(v.RentalUnitId)?.Property ?? "", v.Start, v.End, v.StatusAt(today), v.MonthlyRentOn(today)))
+            .Select(v => new PortalLeaseRow(v.Id, units.GetValueOrDefault(v.RentalUnitId)?.Name ?? "", units.GetValueOrDefault(v.RentalUnitId)?.Property ?? "", v.Start, v.End, v.StatusAt(today),
+                v.MonthlyRentOn(RentDate(v, today)), RentDate(v, today)))
             .ToList();
     }
 
@@ -50,6 +54,7 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock) : I
         }
 
         var today = Today;
+        var rentDate = RentDate(lease, today);
         var unit = (await RentalUnit.GetAsync(db, cancellationToken)).GetValueOrDefault(lease.RentalUnitId);
         var personIds = lease.Tenant.Select(p => p.PersonId).ToList();
         var names = await db.Set<Person>().AsNoTracking().Where(p => personIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.DisplayName, cancellationToken);
@@ -62,12 +67,13 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock) : I
             lease.FixedTermUntil,
             lease.StatusAt(today),
             lease.Tenant.Select(p => names.GetValueOrDefault(p.PersonId, "?")).ToList(),
-            lease.ComponentsAt(today).OrderBy(c => c.Kind).Select(c => new PortalRentComponent(c.Kind, c.Name, c.Amount)).ToList(),
-            lease.MonthlyRentOn(today),
+            lease.ComponentsAt(rentDate).OrderBy(c => c.Kind).Select(c => new PortalRentComponent(c.Kind, c.Name, c.Amount)).ToList(),
+            lease.MonthlyRentOn(rentDate),
             lease.BillingType,
             lease.DueOnWorkingDay,
             lease.PaymentMethod,
-            lease.Deposit);
+            lease.Deposit,
+            rentDate);
     }
 
     public async Task<PortalContacts?> ContactsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

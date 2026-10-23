@@ -29,7 +29,8 @@ public interface ITenantPortal
     Task<IReadOnlySet<Guid>> ReadDocumentsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 }
 
-public sealed record PortalLeaseRow(Guid Id, string RentalUnit, string Property, DateOnly Start, DateOnly? End, LeaseStatus Status, decimal MonthlyRent);
+/// <param name="RentDate">The day the rent is shown for: today, or the lease start while the lease has not begun yet.</param>
+public sealed record PortalLeaseRow(Guid Id, string RentalUnit, string Property, DateOnly Start, DateOnly? End, LeaseStatus Status, decimal MonthlyRent, DateOnly RentDate);
 
 public sealed record PortalRentComponent(RentComponentType Kind, string? Name, decimal Amount);
 
@@ -47,7 +48,8 @@ public sealed record PortalLease(
     BillingType BillingType,
     int DueOnWorkingDay,
     PaymentMethod PaymentMethod,
-    decimal? Deposit);
+    decimal? Deposit,
+    DateOnly RentDate);
 
 public sealed record PortalContact(string Role, string Name, string? Phone, string? Email);
 

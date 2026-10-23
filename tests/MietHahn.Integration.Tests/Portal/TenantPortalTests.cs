@@ -12,6 +12,7 @@ using MietHahn.Application.Portal;
 using MietHahn.Application.Properties;
 using MietHahn.Domain.Communication;
 using MietHahn.Domain.Documents;
+using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
 using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Persistence;
@@ -71,6 +72,30 @@ public class TenantPortalTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.NotNull(lease);
         Assert.Equal(["Anna Schmidt"], lease.Tenants);
         Assert.Equal(2, lease.Components.Count);
+    }
+
+    [Fact]
+    public async Task A_lease_that_has_not_begun_shows_the_rent_from_its_start()
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var properties = scope.ServiceProvider.GetRequiredService<IPropertyService>();
+        var unit = Validate(await properties.CreateUnitAsync(house, new UnitInput { Name = "Wohnung 3" }, Ct));
+        var people = scope.ServiceProvider.GetRequiredService<IPersonService>();
+        var carla = Validate(await people.CreateAsync(new PersonInput { FirstName = "Carla", LastName = "Neu", Email = "carla@example.de" }, null, Ct));
+        var start = Today.AddMonths(1);
+        var lease = Validate(await scope.ServiceProvider.GetRequiredService<ILeaseService>().CreateAsync(
+            new LeaseCreation { RentalUnitId = unit, Start = start, TenantIds = [carla], BaseRent = 800m, OperatingCostPrepayment = 100m }, Ct));
+        var account = await TenantAccountAsync(carla, "carla@example.de");
+
+        var row = Assert.Single(await WithAsync<ITenantPortal, IReadOnlyList<PortalLeaseRow>>(p => p.LeasesAsync(account, Ct)));
+        Assert.Equal(LeaseStatus.Future, row.Status);
+        Assert.Equal(900m, row.MonthlyRent);
+        Assert.Equal(start, row.RentDate);
+
+        var detail = await WithAsync<ITenantPortal, PortalLease?>(p => p.GetLeaseAsync(account, lease, Ct));
+        Assert.NotNull(detail);
+        Assert.Equal(900m, detail.MonthlyRent);
+        Assert.Equal(2, detail.Components.Count);
     }
 
     [Fact]
