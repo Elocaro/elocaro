@@ -661,11 +661,6 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
     .page-header { position: static; }
 }
 
-/* Assistant steps (wizard): one row of chips, the current step highlighted */
-.wizard-steps { display: flex; gap: 0.5rem; padding: 0; margin: 0 0 1.25rem; list-style: none; overflow-x: auto; scrollbar-width: none; }
-.wizard-steps li { flex: none; }
-.wizard-steps .mud-button-root { border: 1px solid var(--md-outline-variant); white-space: nowrap; }
-.wizard-step-current .mud-button-root { background: var(--md-primary-container); border-color: transparent; color: var(--md-on-primary-container); }
 
 /* Buttons side by side or below fields keep their distance */
 .content .mud-button-root + .mud-button-root:not(.mud-icon-button), .content .button + .button { margin-left: 0.5rem; }
@@ -795,6 +790,14 @@ p.small:has(+ :is(.empty-state, .table-wrapper, .mud-table, .group, .explain)) {
 .wizard-progress::-webkit-progress-bar { background: var(--md-surface-container-highest); }
 .wizard-progress::-webkit-progress-value { background: var(--md-primary); border-radius: var(--shape-full); }
 .wizard-progress::-moz-progress-bar { background: var(--md-primary); border-radius: var(--shape-full); }
+.wizard-badge { display: inline-block; min-width: 1.25rem; margin-left: 0.4rem; padding: 0 0.4rem; border-radius: var(--shape-full); background: var(--md-warning-container); color: var(--md-on-warning-container); font-size: 0.75rem; font-weight: 700; line-height: 1.25rem; text-align: center; }
+.wizard-jump { margin-top: 0.6rem; }
+.wizard-jump > summary { display: flex; align-items: center; min-height: 2.75rem; cursor: pointer; font-weight: 600; color: var(--md-primary); }
+.wizard-jump ol { margin: 0 0 0.5rem; padding: 0; list-style: none; }
+.wizard-jump button { display: flex; align-items: center; justify-content: flex-start; width: 100%; min-height: 2.75rem; padding: 0.25rem 0.75rem; border: 0; border-radius: var(--shape-md); background: none; color: var(--md-on-surface-variant); font: inherit; text-align: left; cursor: pointer; }
+.wizard-jump button:disabled { cursor: default; opacity: 0.6; }
+.wizard-jump .is-done button { color: var(--md-on-surface); }
+.wizard-jump .is-current button { background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight: 600; }
 .wizard-card { padding: 1.25rem; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--shape-xl); }
 .wizard-card > h2 { margin: 0 0 0.5rem; font-size: 1.4rem; outline: none; }
 .wizard-card > h2:focus-visible { outline: 2px solid var(--md-focus); outline-offset: 4px; border-radius: var(--shape-sm); }
@@ -815,6 +818,7 @@ p.small:has(+ :is(.empty-state, .table-wrapper, .mud-table, .group, .explain)) {
 @media (min-width: 62rem) {
     .wizard { grid-template-columns: 17rem minmax(0, 1fr); }
     .wizard-rail { display: block; position: sticky; top: 1rem; }
+    .wizard-jump { display: none; }
     .wizard-rail ol { margin: 0; padding: 0; list-style: none; }
     .wizard-section-item { position: relative; padding-bottom: 0.25rem; }
     .wizard-section-item:not(:last-child)::before { content: ""; position: absolute; left: 1.5rem; top: 2.9rem; bottom: -0.1rem; width: 2px; background: var(--md-outline-variant); }

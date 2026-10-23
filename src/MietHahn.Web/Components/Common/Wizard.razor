@@ -21,7 +21,7 @@
                             }
                         </span>
                         <span class="wizard-section-label">
-                            <span>@group.Title@if (state == "done"){<span class="visually-hidden"> (erledigt)</span>}</span>
+                            <span>@group.Title@if (state == "done"){<span class="visually-hidden"> (erledigt)</span>}@if (group.Count == 1) { @BadgeOf(Steps[group.First]) }</span>
                             @if (state == "current" && group.Count > 1)
                             {
                                 <small>@(Current - group.First + 1) von @group.Count</small>
@@ -35,7 +35,7 @@
                             {
                                 var index = i;
                                 <li class="@(index == Current ? "is-current" : index < Current ? "is-done" : null)" aria-current="@(index == Current ? "step" : null)">
-                                    <button type="button" @onclick="() => GoToAsync(index)" disabled="@(!CanVisit(index))">@Steps[index].Title</button>
+                                    <button type="button" @onclick="() => GoToAsync(index)" disabled="@(!CanVisit(index))">@Steps[index].Title @BadgeOf(Steps[index])</button>
                                 </li>
                             }
                         </ol>
@@ -55,6 +55,18 @@
                 }
             </p>
             <progress class="wizard-progress" max="@Steps.Count" value="@(Current + 1)" aria-label="@ProgressLabel"></progress>
+            <details class="wizard-jump">
+                <summary>@StepsLabel</summary>
+                <ol>
+                    @for (var i = 0; i < Steps.Count; i++)
+                    {
+                        var index = i;
+                        <li class="@(index == Current ? "is-current" : index < furthest ? "is-done" : null)" aria-current="@(index == Current ? "step" : null)">
+                            <button type="button" @onclick="() => GoToAsync(index)" disabled="@(!CanVisit(index))">@(index + 1). @Steps[index].Title @BadgeOf(Steps[index])</button>
+                        </li>
+                    }
+                </ol>
+            </details>
         </div>
 
         <EditForm Model="Model ?? placeholder" OnValidSubmit="NextAsync" novalidate>
@@ -75,10 +87,10 @@
                 <span class="wizard-spacer"></span>
                 @if (Current > 0)
                 {
-                    <MudButton Variant="Variant.Outlined" StartIcon="@AppIcons.Back" OnClick="() => MoveToAsync(Current - 1)" Disabled="busy">@BackText</MudButton>
+                    <MudButton Variant="Variant.Outlined" StartIcon="@AppIcons.Back" OnClick="() => MoveToAsync(Current - 1)" Disabled="busy" id="wizard-back">@BackText</MudButton>
                 }
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="wizard-next"
-                           EndIcon="@(IsLast ? AppIcons.Check : AppIcons.Next)" Disabled="busy">@(IsLast ? FinishText : NextText)</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="wizard-next" id="wizard-next"
+                           EndIcon="@(IsLast ? AppIcons.Check : AppIcons.Next)" Disabled="@(busy || (IsLast && FinishDisabled))">@(IsLast ? FinishText : NextText)</MudButton>
             </div>
         </EditForm>
     </div>
@@ -113,6 +125,10 @@
     /// <summary>Called after "Finish" in the last step.</summary>
     [Parameter]
     public EventCallback OnFinish { get; set; }
+
+    /// <summary>Keeps "Finish" disabled in the last step, e.g. while required data is missing.</summary>
+    [Parameter]
+    public bool FinishDisabled { get; set; }
 
     /// <summary>"Later": leaves the wizard without finishing. Shown only when both text and handler are set.</summary>
     [Parameter]
@@ -160,6 +176,27 @@
             await heading.FocusAsync();
         }
     }
+
+    private static RenderFragment BadgeOf(WizardStepInfo step) => builder =>
+    {
+        if (step.Badge is null)
+        {
+            return;
+        }
+
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "wizard-badge");
+        builder.AddAttribute(2, "aria-hidden", step.BadgeLabel is null ? null : "true");
+        builder.AddContent(3, step.Badge);
+        builder.CloseElement();
+        if (step.BadgeLabel is not null)
+        {
+            builder.OpenElement(4, "span");
+            builder.AddAttribute(5, "class", "visually-hidden");
+            builder.AddContent(6, " (" + step.BadgeLabel + ")");
+            builder.CloseElement();
+        }
+    };
 
     private bool CanVisit(int index) => FreeNavigation || index <= furthest;
 

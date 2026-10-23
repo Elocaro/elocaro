@@ -7,4 +7,6 @@ namespace MietHahn.Web.Components.Common;
 /// current. Without a section the step stands for itself.
 /// </param>
 /// <param name="Description">Optional sentence below the heading.</param>
-public sealed record WizardStepInfo(string Title, string? Section = null, string? Description = null);
+/// <param name="Badge">Short marker in the step list, e.g. the number of open findings; null = none.</param>
+/// <param name="BadgeLabel">Spoken form of the badge for screen readers, e.g. "2 Hinweise".</param>
+public sealed record WizardStepInfo(string Title, string? Section = null, string? Description = null, string? Badge = null, string? BadgeLabel = null);

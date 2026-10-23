@@ -65,7 +65,7 @@ public class StatementPagesTests(PostgresFixture postgres) : AccountTestBase(pos
         var first = await admin.GetAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026");
         Assert.Contains("Lindenweg 3", first.Document.QuerySelector("#step-1")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("31.12.2027", first.Document.QuerySelector("#step-1")!.TextContent, StringComparison.Ordinal);
-        Assert.Equal(6, first.Document.QuerySelectorAll(".wizard-steps li").Length);
+        Assert.Equal(6, first.Document.QuerySelectorAll(".wizard-rail > ol > li").Length);
 
         var costs = await admin.GetAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026&schritt=2");
         var checklist = costs.Document.QuerySelector("#cost-checklist")!.TextContent;

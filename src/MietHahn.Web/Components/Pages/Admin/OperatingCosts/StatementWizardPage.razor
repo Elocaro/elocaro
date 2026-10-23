@@ -2,7 +2,6 @@
 @using MietHahn.Application.Statements
 @using MietHahn.Domain.Statements
 @rendermode InteractiveServer
-@using MudBlazor
 @inject IStatements Statements
 @inject NavigationManager Navigation
 @inject TimeProvider Clock
@@ -31,18 +30,6 @@ else
 var w = wizard!;
 var result = w.Preview.Result;
 
-<nav aria-label="Schritte">
-    <ol class="wizard-steps">
-        @foreach (var item in Steps)
-        {
-            var count = w.Findings.Count(f => f.Step == item.Step && f.Severity != FindingSeverity.Info);
-            <li class="@(item.Step == step ? "wizard-step-current" : "")">
-                <MudButton Variant="Variant.Text" Color="@(item.Step == step ? Color.Primary : Color.Default)" OnClick="() => GoTo(item.Step)" aria-current="@(item.Step == step ? "step" : null)">@((int)item.Step). @item.Title@(count > 0 ? $" ({count})" : "")</MudButton>
-            </li>
-        }
-    </ol>
-</nav>
-
 @if (w.Deadline is { } deadline)
 {
     <Notice Level="@(deadline.Level >= DeadlineLevel.Warning ? NoticeLevel.Error : NoticeLevel.Info)" id="deadline">
@@ -65,11 +52,13 @@ var result = w.Preview.Result;
     </Notice>
 }
 
+<Wizard Steps="StepsOf(w)" @bind-Current="StepIndex" FreeNavigation="true" Model="Release"
+        FinishText="@(w.Released is null ? "Abrechnung freigeben" : "Neue Fassung freigeben")" OnFinish="ReleaseAsync" FinishDisabled="w.HasErrors"
+        StepsLabel="Alle Schritte" ProgressLabel="Fortschritt der Abrechnung">
 @switch (step)
 {
     case WizardStep.PeriodAndProperty:
         <section id="step-1">
-            <h2>1. Zeitraum und Objekt</h2>
             <div class="form-row search-bar" role="search">
                 <AppNumberField T="int" Value="year" ValueChanged="OnYearChanged" Label="Abrechnungsjahr" Min="2000" Max="2100" />
                 <AppNumberField T="decimal" Value="threshold" ValueChanged="OnThresholdChanged" Label="Abweichung zum Vorjahr (± %)" Min="1" Max="500" />
@@ -85,8 +74,6 @@ var result = w.Preview.Result;
 
     case WizardStep.Costs:
         <section id="step-2">
-            <h2>2. Checkliste Kosten</h2>
-            <p class="small">Erfasste Kostenarten @Format.Period(result.BillingPeriod) im Vergleich zum Vorjahr. Fehlende wiederkehrende Kostenarten sind markiert.</p>
             @Findings(WizardStep.Costs)
             <div class="table-wrapper">
                 <table class="data-table" id="cost-checklist">
@@ -111,7 +98,6 @@ var result = w.Preview.Result;
 
     case WizardStep.Meters:
         <section id="step-3">
-            <h2>3. Zählerstände vollständig?</h2>
             @Findings(WizardStep.Meters)
             @if (!w.Findings.Any(f => f.Step == WizardStep.Meters))
             {
@@ -123,7 +109,6 @@ var result = w.Preview.Result;
 
     case WizardStep.Occupancy:
         <section id="step-4">
-            <h2>4. Personen und Belegung prüfen</h2>
             @Findings(WizardStep.Occupancy)
             @if (!w.Findings.Any(f => f.Step == WizardStep.Occupancy))
             {
@@ -150,7 +135,6 @@ var result = w.Preview.Result;
 
     case WizardStep.Calculation:
         <section id="step-5">
-            <h2>5. Berechnung und Vorschau</h2>
             @Findings(WizardStep.Calculation)
             <div class="table-wrapper">
                 <table class="data-table" id="totals">
@@ -199,7 +183,6 @@ var result = w.Preview.Result;
 
     default:
         <section id="step-6">
-            <h2>6. Freigabe</h2>
             @if (w.HasErrors)
             {
                 <Notice Level="NoticeLevel.Error">Die Abrechnung kann nicht freigegeben werden, solange Angaben fehlen:</Notice>
@@ -220,36 +203,21 @@ var result = w.Preview.Result;
                     Mit der Freigabe wird die Abrechnung @Format.Period(result.BillingPeriod) eingefroren (Gesamtkosten @Format.Money(result.TotalCosts), davon Mieter @Format.Money(result.TenantTotal)).
                     Sie lässt sich danach nicht mehr ändern; spätere Korrekturen erzeugen eine neue Fassung mit Differenz-Abrechnung.
                 </p>
-                <EditForm Model="Release" OnValidSubmit="ReleaseAsync" novalidate>
-                    @if (w.HasWarnings)
-                    {
-                        <AppCheckBox @bind-Value="Release.Acknowledge" Label="Ich habe die Hinweise geprüft." />
-                    }
-                    <AppTextField @bind-Value="Release.Note" Label="@(w.Released is null ? "Bemerkung (optional)" : "Begründung der Korrektur")" Required="@(w.Released is not null)" />
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(w.Released is null ? "Abrechnung freigeben" : "Neue Fassung freigeben")</MudButton>
-                </EditForm>
+                @if (w.HasWarnings)
+                {
+                    <AppCheckBox @bind-Value="Release.Acknowledge" Label="Ich habe die Hinweise geprüft." />
+                }
+                <AppTextField @bind-Value="Release.Note" Label="@(w.Released is null ? "Bemerkung (optional)" : "Begründung der Korrektur")" Required="@(w.Released is not null)" />
             }
         </section>
         break;
 }
-
-<p class="wizard-nav">
-    @if (step > WizardStep.PeriodAndProperty)
-    {
-        <MudButton Variant="Variant.Outlined" id="back" OnClick="() => GoTo(step - 1)">Zurück</MudButton>
-    }
-    @if (step < WizardStep.Release)
-    {
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" id="next" OnClick="() => GoTo(step + 1)">Weiter</MudButton>
-    }
-</p>
+</Wizard>
 }
 }
 </InteractiveShell>
 
 @code {
-    private sealed record StepInfo(WizardStep Step, string Title);
-
     private sealed record CostRow(string Name, decimal Current, decimal? Previous, string Change, string Status, bool Missing);
 
     private sealed class ReleaseInput
@@ -259,16 +227,6 @@ var result = w.Preview.Result;
         [System.ComponentModel.DataAnnotations.StringLength(2000)]
         public string? Note { get; set; }
     }
-
-    private static readonly StepInfo[] Steps =
-    [
-        new(WizardStep.PeriodAndProperty, "Zeitraum"),
-        new(WizardStep.Costs, "Kosten"),
-        new(WizardStep.Meters, "Zähler"),
-        new(WizardStep.Occupancy, "Belegung"),
-        new(WizardStep.Calculation, "Berechnung"),
-        new(WizardStep.Release, "Freigabe"),
-    ];
 
     private StatementWizard? wizard;
     private IReadOnlyList<string>? errors;
@@ -292,6 +250,13 @@ var result = w.Preview.Result;
 
     private ReleaseInput Release { get; set; } = new();
 
+    /// <summary>Index of the current step in the wizard frame (the domain steps are numbered from 1).</summary>
+    private int StepIndex
+    {
+        get => (int)step - 1;
+        set => step = (WizardStep)(value + 1);
+    }
+
     // The query string only provides the start values (see ADR 0005).
     protected override async Task OnInitializedAsync()
     {
@@ -314,7 +279,27 @@ var result = w.Preview.Result;
         wizard = await Statements.PrepareAsync(PropertyId, Period.CalendarYear(year), threshold is > 0 and <= 500 ? threshold : PlausibilityChecker.DefaultThresholdPercent);
     }
 
-    private void GoTo(WizardStep target) => step = target;
+    /// <summary>The six steps; findings that need attention show as a badge in the step list.</summary>
+    private static IReadOnlyList<WizardStepInfo> StepsOf(StatementWizard w)
+    {
+        WizardStepInfo Step(WizardStep target, string title, string? description = null)
+        {
+            var count = w.Findings.Count(f => f.Step == target && f.Severity != FindingSeverity.Info);
+            return new(title, Description: description, Badge: count > 0 ? count.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
+                BadgeLabel: count > 0 ? (count == 1 ? "1 Hinweis" : $"{count} Hinweise") : null);
+        }
+
+        var period = Format.Period(w.Preview.Result.BillingPeriod);
+        return
+        [
+            Step(WizardStep.PeriodAndProperty, "Zeitraum und Objekt"),
+            Step(WizardStep.Costs, "Checkliste Kosten", $"Erfasste Kostenarten {period} im Vergleich zum Vorjahr. Fehlende wiederkehrende Kostenarten sind markiert."),
+            Step(WizardStep.Meters, "Zählerstände vollständig?"),
+            Step(WizardStep.Occupancy, "Personen und Belegung prüfen"),
+            Step(WizardStep.Calculation, "Berechnung und Vorschau"),
+            Step(WizardStep.Release, "Freigabe"),
+        ];
+    }
 
     private async Task OnYearChanged(int value)
     {
@@ -327,8 +312,6 @@ var result = w.Preview.Result;
         threshold = value;
         await LoadAsync();
     }
-
-    private static string Num(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
     private static decimal MonthsOf(Period period) => Math.Max(1, (period.To!.Value.Year - period.From.Year) * 12 + period.To.Value.Month - period.From.Month + 1);
 

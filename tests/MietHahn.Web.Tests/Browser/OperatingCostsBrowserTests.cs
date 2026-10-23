@@ -43,6 +43,25 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
         });
     }
 
+    /// <summary>Screenshot of the page in light and dark when <c>MIETHAHN_TOUR_DIR</c> is set (to look at the design).</summary>
+    private static async Task SnapAsync(IPage page, string name)
+    {
+        if (Environment.GetEnvironmentVariable("MIETHAHN_TOUR_DIR") is not { } directory)
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(directory);
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await page.EmulateMediaAsync(new() { ColorScheme = scheme });
+            await page.WaitForTimeoutAsync(400);
+            await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{name}-{scheme}.png"), FullPage = true });
+        }
+
+        await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Light });
+    }
+
     private async Task<IPage> OpenAsync(string path)
     {
         var page = await SignedInAsAdminAsync(mobile: false);
@@ -120,13 +139,20 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await Assertions.Expect(page.Locator("#step-1")).ToContainTextAsync("Lindenweg 3");
+            await SnapAsync(page, "statement-1");
             await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
             await Assertions.Expect(page.Locator("#step-2")).ToBeVisibleAsync();
-            await page.GetByRole(AriaRole.Button, new() { Name = "5. Berechnung" }).ClickAsync();
+            for (var i = 0; i < 3; i++)
+            {
+                await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
+            }
+
             await Assertions.Expect(page.Locator("#totals")).ToContainTextAsync("Anna Schmidt");
-            await page.GetByRole(AriaRole.Button, new() { Name = "6. Freigabe" }).ClickAsync();
+            await SnapAsync(page, "statement-5");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
 
             await Assertions.Expect(page.Locator("#step-6")).ToBeVisibleAsync();
+            await SnapAsync(page, "statement-6");
             await page.GetByLabel("Ich habe die Hinweise geprüft.").CheckAsync();
 
             await page.GetByLabel("Bemerkung (optional)").FillAsync("Erstfassung");

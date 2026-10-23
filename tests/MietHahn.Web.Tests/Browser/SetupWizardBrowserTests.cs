@@ -33,8 +33,18 @@ public class SetupWizardBrowserTests(PostgresFixture postgres) : BrowserTestBasi
         await page.GetByRole(AriaRole.Button, new() { Name = "Zurück" }).ClickAsync();
         await Assertions.Expect(heading).ToHaveTextAsync("Willkommen");
 
-        // Turn off the first module, then walk to the end.
-        await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
+        // Turn off the first module, then walk to the end. On the phone the step list is a disclosure and takes the jump.
+        if (mobile)
+        {
+            await page.Locator(".wizard-jump > summary").ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "2. Bank & Zahlungsabgleich" }).ClickAsync();
+            await Assertions.Expect(heading).ToHaveTextAsync("Bank & Zahlungsabgleich");
+        }
+        else
+        {
+            await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
+        }
+
         await page.GetByLabel("Nein, nicht benötigt").CheckAsync();
         var steps = 2;
         var finish = page.GetByRole(AriaRole.Button, new() { Name = "Einrichtung abschließen" });
