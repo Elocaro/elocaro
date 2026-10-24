@@ -1,7 +1,11 @@
 @page "/verwaltung/einstellungen/rechtsstaende"
+@rendermode InteractiveServer
+@using MudBlazor
 @using MietHahn.Application.Admin
 @inject ILegalReferences References
+@inject Notifier Notify
 
+<InteractiveShell>
 <PageHeader Title="Rechtsstände" Subtitle="Werte aus Gesetz und Statistik, auf die sich Abrechnungen, Mahnungen und Mieterhöhungen stützen." />
 
 @if (items is null)
@@ -50,6 +54,23 @@ else
                             {
                                 <p class="small">@item.Note</p>
                             }
+                            @if (item.CheckedOn is { } checkedOn)
+                            {
+                                <p class="small">Geprüft am @Format.Date(checkedOn) von @item.CheckedBy@(item.CheckSource is null ? "" : $" (Quelle: {item.CheckSource})").</p>
+                            }
+                            @if (item.Value is not null)
+                            {
+                                @if (marking == item.Key)
+                                {
+                                    <AppTextField @bind-Value="source" Label="Verglichen mit" Hint="z. B. Gesetzestext, Bundesbank, Destatis" />
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => MarkAsync(item.Key)">Vermerken</MudButton>
+                                    <MudButton Variant="Variant.Text" OnClick="() => marking = null">Abbrechen</MudButton>
+                                }
+                                else
+                                {
+                                    <MudButton Variant="Variant.Text" OnClick="() => Start(item.Key)">Als geprüft vermerken</MudButton>
+                                }
+                            }
                         </td>
                         <td>@(item.NextCheck is { } next ? Format.Date(next) : "–")</td>
                     </tr>
@@ -62,9 +83,33 @@ else
         MietHahn ist keine Rechts- und keine Steuerberatung. Die Werte sind Arbeitshilfen; die maßgebliche Quelle steht jeweils dabei.
     </p>
 }
+</InteractiveShell>
 
 @code {
     private IReadOnlyList<LegalReference>? items;
+    private string? marking;
+    private string? source;
 
     protected override async Task OnInitializedAsync() => items = await References.OverviewAsync();
+
+    private void Start(string key)
+    {
+        marking = key;
+        source = null;
+    }
+
+    private async Task MarkAsync(string key)
+    {
+        var result = await References.MarkCheckedAsync(key, source);
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Prüfvermerk wurde gespeichert.");
+            marking = null;
+            items = await References.OverviewAsync();
+        }
+        else
+        {
+            Notify.Error(string.Join(' ', result.Errors));
+        }
+    }
 }

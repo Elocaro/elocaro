@@ -72,6 +72,27 @@ public class LegalReferencesTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_check_note_settles_the_carbon_levels_for_a_year_but_not_the_placeholder_and_ends_when_the_value_changes()
+    {
+        await MarkAsync("carbon", "Gesetzestext");
+        await MarkAsync("degree-days", null);
+
+        var carbon = await ReferenceAsync("carbon");
+        Assert.Equal(LegalReferenceStatus.Current, carbon.Status);
+        Assert.Equal((new DateOnly(2026, 3, 1), "Gesetzestext"), (carbon.CheckedOn, carbon.CheckSource));
+        Assert.NotNull(carbon.CheckedBy);
+        Assert.Equal(LegalReferenceStatus.Check, (await ReferenceAsync("degree-days")).Status);
+        Assert.NotNull((await ReferenceAsync("degree-days")).CheckedOn);
+
+        environment.Clock.SetUtcNow(new DateTimeOffset(2027, 3, 2, 9, 0, 0, TimeSpan.Zero));
+        Assert.Equal(LegalReferenceStatus.Check, (await ReferenceAsync("carbon")).Status);
+
+        await using var scope = environment.Services.CreateAsyncScope();
+        Assert.False((await scope.ServiceProvider.GetRequiredService<ILegalReferences>().MarkCheckedAsync("base-rate", null, Ct)).Succeeded); // value missing
+        Assert.False((await scope.ServiceProvider.GetRequiredService<ILegalReferences>().MarkCheckedAsync("unbekannt", null, Ct)).Succeeded);
+    }
+
+    [Fact]
     public async Task Only_what_the_enabled_modules_need_is_listed()
     {
         await using var scope = environment.Services.CreateAsyncScope();
@@ -102,6 +123,13 @@ public class LegalReferencesTests(PostgresFixture postgres) : IAsyncLifetime
     {
         await using var scope = environment.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<ILegalReferences>().OverviewAsync(Ct);
+    }
+
+    private async Task MarkAsync(string key, string? source)
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var result = await scope.ServiceProvider.GetRequiredService<ILegalReferences>().MarkCheckedAsync(key, source, Ct);
+        Assert.True(result.Succeeded, string.Join(", ", result.Errors));
     }
 
     private async Task<LegalReference> ReferenceAsync(string key) => (await OverviewAsync()).Single(r => r.Key == key);

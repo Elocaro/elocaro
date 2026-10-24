@@ -8,6 +8,12 @@ public interface ILegalReferences
 {
     /// <summary>The references that matter for the modules and options in use.</summary>
     Task<IReadOnlyList<LegalReference>> OverviewAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Notes that the current value was compared with its source (who, when, against what). A checked table counts as current until
+    /// it changes or a year has passed.
+    /// </summary>
+    Task<Common.Result> MarkCheckedAsync(string key, string? source, CancellationToken cancellationToken = default);
 }
 
 public enum LegalReferenceStatus
@@ -38,4 +44,7 @@ public sealed record LegalReference(
     LegalReferenceStatus Status,
     DateOnly? NextCheck,
     string Link,
-    string? Note);
+    string? Note,
+    string? CheckedBy = null,
+    DateOnly? CheckedOn = null,
+    string? CheckSource = null);

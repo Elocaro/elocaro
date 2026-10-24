@@ -60,6 +60,9 @@ public class BankFileParserTests
     [InlineData("dkb.csv", "DKB")]
     [InlineData("ing.csv", "ING")]
     [InlineData("comdirect.csv", "comdirect")]
+    [InlineData("commerzbank.csv", "Commerzbank")]
+    [InlineData("deutschebank.csv", "Deutsche Bank")]
+    [InlineData("n26.csv", "N26")]
     public void Csv_profile_is_detected_and_parsed(string file, string profile)
     {
         var read = Read(file);

@@ -3,7 +3,9 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Admin;
+using MietHahn.Application.Common;
 using MietHahn.Application.Todos;
+using MietHahn.Domain.Admin;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Heating;
 using MietHahn.Domain.Leases;
@@ -13,7 +15,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Admin;
 
-internal sealed class LegalReferences(MietHahnDbContext db, IModuleState modules, TimeProvider clock) : ILegalReferences
+internal sealed class LegalReferences(MietHahnDbContext db, IModuleState modules, TimeProvider clock, ICurrentUser currentUser) : ILegalReferences
 {
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
 
@@ -38,7 +40,52 @@ internal sealed class LegalReferences(MietHahnDbContext db, IModuleState modules
             result.Add(DegreeDays(today));
         }
 
-        return result;
+        var checks = await db.Set<LegalReferenceCheck>().AsNoTracking().ToDictionaryAsync(c => c.Key, cancellationToken);
+        return result.Select(r => WithCheck(r, checks.GetValueOrDefault(r.Key), today)).ToList();
+    }
+
+    public Task<Result> MarkCheckedAsync(string key, string? source, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            var reference = (await OverviewAsync(cancellationToken)).FirstOrDefault(r => r.Key == key) ?? throw new NotFoundException();
+            if (reference.Value is null)
+            {
+                throw new RuleViolationException("Ein fehlender Wert lässt sich nicht als geprüft vermerken.");
+            }
+
+            var today = GermanTime.Today(clock.GetUtcNow());
+            var by = currentUser.Identifier;
+            var existing = await db.Set<LegalReferenceCheck>().FirstOrDefaultAsync(c => c.Key == key, cancellationToken);
+            if (existing is null)
+            {
+                db.Add(new LegalReferenceCheck(key, Fingerprint(reference), today, by, source));
+            }
+            else
+            {
+                existing.Renew(Fingerprint(reference), today, by, source);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+            return Guid.Empty;
+        });
+
+    private static string Fingerprint(LegalReference reference) => $"{reference.Value}|{reference.AsOf}";
+
+    /// <summary>
+    /// A note for the very value that is shown is displayed. For the CO₂ levels it also settles the "check" state for a year: the
+    /// landlord took the responsibility of comparing them with the law. The degree days are a placeholder and stay "check".
+    /// </summary>
+    private static LegalReference WithCheck(LegalReference reference, LegalReferenceCheck? check, DateOnly today)
+    {
+        if (check is null || check.Fingerprint != Fingerprint(reference))
+        {
+            return reference;
+        }
+
+        var shown = reference with { CheckedBy = check.CheckedBy, CheckedOn = check.CheckedOn, CheckSource = check.Source };
+        return reference.Key == "carbon" && reference.Status == LegalReferenceStatus.Check && check.CheckedOn.AddYears(1) >= today
+            ? shown with { Status = LegalReferenceStatus.Current, Note = null }
+            : shown;
     }
 
     /// <summary>The Basiszinssatz (§ 247 BGB) changes on 1 January and 1 July.</summary>

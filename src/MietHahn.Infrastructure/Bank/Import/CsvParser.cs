@@ -303,5 +303,45 @@ internal static class CsvDefaults
             BookingTextColumn = "Vorgang",
             ParsePattern = @"^(?:(?:Auftraggeber|Empfänger):\s*(?<name>.*?)\s+)?Buchungstext:\s*(?<zweck>.*?)(?:\s+Ref\.\s.*)?$",
         },
+        new("Commerzbank", "Buchungstag")
+        {
+            IsDefault = true,
+            ValueDateColumn = "Wertstellung",
+            AmountColumn = "Betrag",
+            PurposeColumn = "Buchungstext",
+            BookingTextColumn = "Umsatzart",
+            CurrencyColumn = "Währung|Waehrung",
+            ParsePattern = @"^(?:(?:Auftraggeber|Empfänger):\s*(?<name>.*?)\s+)?Buchungstext:\s*(?<zweck>.*?)(?:\s+Ref\.\s.*)?$",
+        },
+        new("Deutsche Bank", "Buchungstag")
+        {
+            IsDefault = true,
+            ValueDateColumn = "Wert",
+            AmountColumn = "Betrag",
+            DebitColumn = "Soll",
+            CreditColumn = "Haben",
+            NameColumn = "Begünstigter / Auftraggeber|Beguenstigter / Auftraggeber",
+            IbanColumn = "IBAN",
+            BicColumn = "BIC",
+            PurposeColumn = "Verwendungszweck",
+            BookingTextColumn = "Umsatzart",
+            EndToEndColumn = "Kundenreferenz",
+            MandateReferenceColumn = "Mandatsreferenz",
+            CreditorIdColumn = "Gläubiger ID|Glaeubiger ID",
+            CurrencyColumn = "Währung|Waehrung",
+        },
+        new("N26", "Booking Date|Datum")
+        {
+            IsDefault = true,
+            Delimiter = ',',
+            DateFormat = "yyyy-MM-dd",
+            DecimalSeparator = '.',
+            ValueDateColumn = "Value Date",
+            AmountColumn = "Amount (EUR)|Betrag (EUR)",
+            NameColumn = "Partner Name|Empfänger",
+            IbanColumn = "Partner Iban|Kontonummer",
+            PurposeColumn = "Payment Reference|Verwendungszweck",
+            BookingTextColumn = "Type|Transaktionstyp",
+        },
     ];
 }
