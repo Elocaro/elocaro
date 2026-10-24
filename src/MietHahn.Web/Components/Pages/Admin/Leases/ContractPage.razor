@@ -7,6 +7,7 @@
 @inject ILeaseService Leases
 @inject ILeaseContracts Contracts
 @inject IDocumentTemplates Templates
+@inject IDocumentReadiness Readiness
 @inject TemplatePreviews Previews
 @inject Notifier Notify
 @inject Confirmations Confirm
@@ -28,19 +29,16 @@ else
 
     <section>
         <h2>Entwurf erstellen</h2>
-        @if (templates.Count == 0)
-        {
-            <p class="small">Es gibt noch keine Vorlage für Mietverträge. <a href="/verwaltung/einstellungen/vorlagen">Unter Vorlagen die Standardvorlagen anlegen.</a></p>
-        }
-        else
+        <ReadinessNotice Issues="readiness" OnFixed="ReloadAsync" />
+        @if (templates.Count > 0)
         {
             <p class="small">Der Vertrag wird aus den Stammdaten dieses Vertrags erzeugt (Parteien, Fläche, Miete, Kaution, Kostenarten). Für ein WG-Zimmer die Vorlage „Zimmervertrag“ wählen.</p>
             <div class="form-grid">
                 <AppSelect T="Guid" @bind-Value="templateId" Label="Vorlage" Items="templates.Select(t => t.Id)" Text="@(id => templates.FirstOrDefault(t => t.Id == id)?.Name ?? "")" />
             </div>
             <div class="form-row">
-                <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">Vorschau</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync">Entwurf als PDF erstellen</MudButton>
+                <MudButton Variant="Variant.Outlined" Disabled="Blocked" OnClick="PreviewAsync">Vorschau</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="Blocked" OnClick="CreateAsync">Entwurf als PDF erstellen</MudButton>
             </div>
             @if (previewId is not null)
             {
@@ -102,6 +100,7 @@ else
 @code {
     private LeaseDetails? lease;
     private IReadOnlyList<TemplateRow> templates = [];
+    private IReadOnlyList<ReadinessIssue> readiness = [];
     private IReadOnlyList<ContractRow> rows = [];
     private IReadOnlyList<string>? errors;
     private Guid templateId;
@@ -114,11 +113,20 @@ else
     [Parameter]
     public Guid Id { get; set; }
 
+    private bool Blocked => readiness.Any(i => i.Blocking);
+
+    private async Task ReloadAsync()
+    {
+        await OnInitializedAsync();
+        StateHasChanged();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         lease = await Leases.GetAsync(Id);
         if (lease is not null)
         {
+            readiness = await Readiness.CheckAsync(TemplateKind.Contract, Id);
             templates = (await Templates.ListAsync()).Where(t => t.Kind == TemplateKind.Contract).ToList();
             // A shared-flat room gets the room contract by default.
             templateId = (lease.RoomId is not null ? templates.FirstOrDefault(t => t.Name.Contains("Zimmer", StringComparison.Ordinal)) : templates.FirstOrDefault())?.Id

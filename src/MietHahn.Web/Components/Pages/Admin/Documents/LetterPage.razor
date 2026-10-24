@@ -5,7 +5,9 @@
 @using MietHahn.Domain.Documents
 @using MietHahn.Web.Documents
 @attribute [Authorize(Policy = Policies.MasterData)]
+@using MietHahn.Application.Documents
 @inject IDocumentTemplates Templates
+@inject IDocumentReadiness Readiness
 @inject ILetters Letters
 @inject IPropertyService PropertyService
 @inject TemplatePreviews Previews
@@ -23,12 +25,11 @@
     }
     else if (templates.Count == 0)
     {
-        <EmptyState Text="Es gibt noch keine Vorlage für Schreiben.">
-            <a href="/verwaltung/einstellungen/vorlagen">Zu den Vorlagen</a>
-        </EmptyState>
+        <ReadinessNotice Issues="readiness" OnFixed="ReloadAsync" />
     }
     else
     {
+        <ReadinessNotice Issues="readiness" OnFixed="ReloadAsync" />
         <div class="form-grid">
             <AppSelect T="Guid" Value="templateId" ValueChanged="v => templateId = v" Label="Vorlage" Required="true" Items="templates.Select(t => t.Id)"
                        Text="@(id => templates.FirstOrDefault(t => t.Id == id)?.Name ?? "")" />
@@ -61,8 +62,8 @@
                 </fieldset>
 
                 <div class="form-row">
-                    <MudButton Variant="Variant.Outlined" Disabled="@(selected.Count == 0 || templateId == Guid.Empty)" OnClick="PreviewAsync">Vorschau für den ersten Empfänger</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(selected.Count == 0 || templateId == Guid.Empty)" OnClick="CreateAsync">
+                    <MudButton Variant="Variant.Outlined" Disabled="@(Blocked || selected.Count == 0 || templateId == Guid.Empty)" OnClick="PreviewAsync">Vorschau für den ersten Empfänger</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(Blocked || selected.Count == 0 || templateId == Guid.Empty)" OnClick="CreateAsync">
                         @selected.Count @(selected.Count == 1 ? "Schreiben" : "Schreiben") erzeugen
                     </MudButton>
                 </div>
@@ -125,8 +126,19 @@
     private bool shareWithTenants;
     private bool loaded;
 
+    private IReadOnlyList<ReadinessIssue> readiness = [];
+
+    private bool Blocked => readiness.Any(i => i.Blocking);
+
+    private async Task ReloadAsync()
+    {
+        await OnInitializedAsync();
+        StateHasChanged();
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        readiness = await Readiness.CheckAsync(TemplateKind.Letter);
         templates = (await Templates.ListAsync()).Where(t => t.Kind == TemplateKind.Letter).ToList();
         properties = await PropertyService.ListAsync(null);
         if (templates.Count > 0)

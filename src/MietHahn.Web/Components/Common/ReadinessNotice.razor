@@ -1,0 +1,36 @@
+@using MietHahn.Application.Documents
+@using MudBlazor
+@inject IDocumentTemplates Templates
+@inject Notifier Notify
+@* What is missing before a document can be created (IDocumentReadiness). A missing template is fixed here with one click;
+   everything else links to the page where it is entered. Blocking issues are errors, the rest are warnings. *@
+@foreach (var issue in Issues)
+{
+    <Notice Level="issue.Blocking ? NoticeLevel.Error : NoticeLevel.Warning" id="@($"readiness-{issue.Kind.ToString().ToLowerInvariant()}")">
+        @issue.Message
+        @if (issue.Kind == ReadinessIssueKind.Template)
+        {
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="InstallTemplatesAsync">Standardvorlagen anlegen</MudButton>
+        }
+        else
+        {
+            <a href="@issue.Link">@issue.LinkText</a>
+        }
+    </Notice>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ReadinessIssue> Issues { get; set; } = [];
+
+    /// <summary>Raised after the default templates were installed, so the page can check again.</summary>
+    [Parameter]
+    public EventCallback OnFixed { get; set; }
+
+    private async Task InstallTemplatesAsync()
+    {
+        var installed = await Templates.InstallDefaultsAsync();
+        Notify.Success(installed.Created == 0 ? "Die Standardvorlagen sind schon vorhanden." : $"{installed.Created} Standardvorlagen angelegt. Bitte die Texte vor dem Einsatz prüfen.");
+        await OnFixed.InvokeAsync();
+    }
+}

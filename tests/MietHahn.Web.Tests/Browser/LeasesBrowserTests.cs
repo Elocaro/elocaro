@@ -206,4 +206,26 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             Assert.Contains($"beginn={end.AddDays(1):yyyy-MM-dd}", link, StringComparison.Ordinal);
         });
     }
+    [Fact]
+    public async Task Contract_page_shows_what_is_missing_up_front_and_installs_the_templates_with_one_click()
+    {
+        var (apartment, anna, _) = await MasterDataAsync();
+        var id = await LeaseAsync(apartment, anna, Today.AddMonths(-3));
+        var page = await OpenAsync($"/verwaltung/vertraege/{id}/vertragsdokument");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            // Nothing set up yet: the notices say so before anything is clicked, and the action is not offered.
+            await Assertions.Expect(page.Locator("#readiness-landlordprofile")).ToContainTextAsync("kein Vermieterprofil");
+            await Assertions.Expect(page.Locator("#readiness-landlordprofile").GetByRole(AriaRole.Link, new() { Name = "Vermieterprofil anlegen" })).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#readiness-template")).ToContainTextAsync("keine Vorlage für Mietverträge");
+
+            await page.Locator("#readiness-template").GetByRole(AriaRole.Button, new() { Name = "Standardvorlagen anlegen" }).ClickAsync();
+            await Assertions.Expect(page.Locator("#readiness-template")).ToHaveCountAsync(0);
+            await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Entwurf als PDF erstellen" })).ToBeDisabledAsync();
+            await Assertions.Expect(page.Locator("#readiness-landlordprofile")).ToBeVisibleAsync();
+            // The living area is only a warning (and only once the blocking issues are gone, the page shows both kinds together).
+            await Assertions.Expect(page.Locator("#readiness-livingarea")).ToContainTextAsync("Wohnfläche");
+        });
+    }
 }

@@ -166,6 +166,7 @@ public static class DependencyInjection
         services.AddScoped<MailOutbox>();
         services.AddScoped<IMailService, MailService>();
         services.AddScoped<ITodoSource, MailTodos>();
+        services.AddScoped<ITodoSource, Admin.SetupChecklistTodos>();
     }
 
     private static void AddFileStore(IServiceCollection services, IConfiguration configuration)
@@ -239,6 +240,7 @@ public static class DependencyInjection
         services.AddScoped<ITodoSource, CalibrationDueTodos>();
         services.AddScoped<IDocumentLibrary, DocumentLibrary>();
         services.AddScoped<IDocumentTemplates, DocumentTemplates>();
+        services.AddScoped<IDocumentReadiness, DocumentReadiness>();
         services.AddScoped<ILetters, Letters>();
         services.AddScoped<ILeaseContracts, LeaseContracts>();
         services.AddScoped<IRentIncreases, RentIncreases>();

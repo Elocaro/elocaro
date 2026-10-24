@@ -6,6 +6,7 @@
 @using MietHahn.Web.Documents
 @inject IRentIncreases Increases
 @inject IDocumentTemplates Templates
+@inject IDocumentReadiness Readiness
 @inject TemplatePreviews Previews
 @inject Notifier Notify
 @inject Confirmations Confirm
@@ -42,10 +43,7 @@ else
             <AppSelect T="Guid" Value="input.TemplateId ?? Guid.Empty" ValueChanged="v => input.TemplateId = v" Label="Vorlage" Items="KindTemplates.Select(t => t.Id)" Text="@(id => templates.FirstOrDefault(t => t.Id == id)?.Name ?? "")" />
             <AppDateField @bind-Value="input.PlannedDeclaration" Label="Voraussichtlicher Zugang beim Mieter" Hint="Danach richten sich die Termine im Schreiben; maßgeblich ist später der tatsächliche Zugang." />
         </div>
-        @if (KindTemplates.Count() == 0)
-        {
-            <p class="small">Es gibt noch keine Vorlage für Mieterhöhungen. <a href="/verwaltung/einstellungen/vorlagen">Unter Vorlagen die Standardvorlagen anlegen.</a></p>
-        }
+        <ReadinessNotice Issues="readiness" OnFixed="ReloadAsync" />
 
         @switch (input.Kind)
         {
@@ -126,8 +124,8 @@ else
 
         <div class="form-row">
             <MudButton Variant="Variant.Outlined" OnClick="CheckAsync">Prüfen</MudButton>
-            <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">Vorschau</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync">Schreiben erzeugen</MudButton>
+            <MudButton Variant="Variant.Outlined" Disabled="Blocked" OnClick="PreviewAsync">Vorschau</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="Blocked" OnClick="CreateAsync">Schreiben erzeugen</MudButton>
         </div>
 
         </EditForm>
@@ -245,11 +243,24 @@ else
 
     private IEnumerable<TemplateRow> KindTemplates => templates.Where(t => t.Name.Contains(Keyword(input.Kind), StringComparison.Ordinal) || !templates.Any(o => o.Name.Contains(Keyword(input.Kind), StringComparison.Ordinal)));
 
+    private IReadOnlyList<ReadinessIssue> readiness = [];
+
+    private bool Blocked => readiness.Any(i => i.Blocking);
+
+    private async Task ReloadAsync()
+    {
+        templates = (await Templates.ListAsync()).Where(t => t.Kind == TemplateKind.RentIncrease).ToList();
+        SelectTemplate();
+        readiness = await Readiness.CheckAsync(TemplateKind.RentIncrease, Id);
+        StateHasChanged();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         overview = await Increases.OverviewAsync(Id);
         if (overview is not null)
         {
+            readiness = await Readiness.CheckAsync(TemplateKind.RentIncrease, Id);
             templates = (await Templates.ListAsync()).Where(t => t.Kind == TemplateKind.RentIncrease).ToList();
             input.Kind = overview.Model switch
             {
