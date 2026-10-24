@@ -61,6 +61,7 @@ public class SetupWizardBrowserTests(PostgresFixture postgres) : BrowserTestBasi
         await next.ClickAsync();
 
         await Assertions.Expect(heading).ToHaveTextAsync("Erstes Objekt");
+        await page.GetByLabel("Erstes Objekt jetzt anlegen").CheckAsync();
         await page.GetByLabel("Bezeichnung", new() { Exact = true }).FillAsync("Lindenweg 3");
         await page.GetByLabel("Straße und Hausnummer", new() { Exact = true }).FillAsync("Lindenweg 3");
         await page.GetByLabel("PLZ", new() { Exact = true }).FillAsync("50667");
@@ -172,5 +173,29 @@ public class SetupWizardFirstRunBrowserTests(PostgresFixture postgres) : Browser
         await Assertions.Expect(page.Locator("main")).ToContainTextAsync("So geht es los");
         await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Vermieterprofil anlegen");
         await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("Alles erledigt");
+    }
+
+    [Fact]
+    public async Task An_untouched_property_step_is_skipped_with_next_instead_of_asking_for_required_fields()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await page.GotoAsync(BaseUrl + "/verwaltung/einrichtung");
+        await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
+        var next = page.GetByRole(AriaRole.Button, new() { Name = "Weiter", Exact = true });
+        for (var i = 0; i < 3; i++)
+        {
+            await next.ClickAsync();
+        }
+
+        await page.GetByLabel("Name", new() { Exact = true }).FillAsync("Hausverwaltung Beispiel");
+        await page.GetByLabel("Straße und Hausnummer", new() { Exact = true }).FillAsync("Weg 1");
+        await page.GetByLabel("PLZ", new() { Exact = true }).FillAsync("50667");
+        await page.GetByLabel("Ort", new() { Exact = true }).FillAsync("Köln");
+        await next.ClickAsync();
+
+        await Assertions.Expect(page.Locator("#wizard-heading")).ToHaveTextAsync("Erstes Objekt");
+        await next.ClickAsync();
+
+        await Assertions.Expect(page.Locator("#wizard-heading")).ToHaveTextAsync("Buchhaltung und Vorlagen");
     }
 }

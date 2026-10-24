@@ -104,8 +104,9 @@
                     break;
 
                 case StepKey.Property:
-                    <AppCheckBox @bind-Value="skipProperty" Label="Das erste Objekt lege ich später an" />
-                    @if (!skipProperty)
+                    <AppCheckBox @bind-Value="createProperty" Label="Erstes Objekt jetzt anlegen" />
+                    <p class="help">Ohne Haken überspringt „Weiter“ diesen Schritt; Sie können das Objekt jederzeit unter Objekte anlegen.</p>
+                    @if (createProperty)
                     {
                         <p class="help">Ein Haus oder eine Wohnanlage mit seinen Wohnungen. Mieter und Verträge kommen danach.</p>
                         <div class="form-grid">
@@ -182,7 +183,7 @@
                         {
                             <li>Vermieterprofil: @(string.IsNullOrWhiteSpace(profileInput.Name) ? "–" : profileInput.Name)</li>
                         }
-                        @if (needsProperty && !skipProperty)
+                        @if (needsProperty && createProperty)
                         {
                             <li>Objekt „@propertyInput.Name“ mit @unitRows.Count(r => !string.IsNullOrWhiteSpace(r.Name)) Wohnung(en)</li>
                         }
@@ -194,7 +195,7 @@
                         {
                             <li>Mieten buchen ab @accountingMonth</li>
                         }
-                        @if (!needsProfile && !(needsProperty && !skipProperty) && !installTemplates && string.IsNullOrWhiteSpace(accountingMonth))
+                        @if (!needsProfile && !(needsProperty && createProperty) && !installTemplates && string.IsNullOrWhiteSpace(accountingMonth))
                         {
                             <li>Nur die Auswahl der Funktionen wird gespeichert.</li>
                         }
@@ -219,7 +220,7 @@
     private string? accountingMonth;
     private bool needsProfile;
     private bool needsProperty;
-    private bool skipProperty;
+    private bool createProperty;
     private Guid? createdProperty;
     private Profile profile = Profile.Few;
     private int step;
@@ -285,7 +286,7 @@
     private object? CurrentModel => Key switch
     {
         StepKey.Profile => profileInput,
-        StepKey.Property when !skipProperty => propertyInput,
+        StepKey.Property when createProperty => propertyInput,
         _ => null,
     };
 
@@ -402,7 +403,7 @@
             needsProfile = false;
         }
 
-        if (needsProperty && !skipProperty && !string.IsNullOrWhiteSpace(propertyInput.Name))
+        if (needsProperty && createProperty && !string.IsNullOrWhiteSpace(propertyInput.Name))
         {
             await CreatePropertyAsync(problems);
         }

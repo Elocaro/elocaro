@@ -168,7 +168,7 @@ Nach der Ersteinrichtung (Administrator und Zwei-Faktor-Anmeldung) führt das Da
 2. **Funktionen:** Jedes Modul mit Kurzbeschreibung und „Was gehört dazu?“; hier schalten Sie ein und aus.
 3. **Ihre Vermietung:** die Optionen der eingeschalteten Module (Mietmodelle, Abrechnungsarten, Steuer, Einheitenarten, Vertragsangaben, Mahnwesen), siehe Tabelle unten.
 4. **Ihre Absenderdaten** (nur, solange es kein Vermieterprofil gibt): Name und Anschrift für Briefkopf und Fußzeile.
-5. **Erstes Objekt** (nur, solange es kein Objekt gibt; „später“ möglich): Haus mit Anschrift und Wohnungen samt Wohnfläche.
+5. **Erstes Objekt** (nur, solange es kein Objekt gibt): Mit dem Haken „Erstes Objekt jetzt anlegen“ erscheinen Haus mit Anschrift und Wohnungen samt Wohnfläche; ohne Haken überspringt „Weiter“ den Schritt.
 6. **Buchhaltung und Vorlagen:** Beginn der automatischen Monatsmieten (nur, solange er fehlt) und die Standardvorlagen, wenn das Modul „Dokumente & Schreiben“ an ist.
 7. **Zusammenfassung:** zeigt, was gespeichert und angelegt wird.
 

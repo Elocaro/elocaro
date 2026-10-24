@@ -68,6 +68,8 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
             Assert.Equal(650m + 150m + 80m, lease.MonthlyRentOn(new DateOnly(2026, 1, 1)));
             Assert.Equal(1950m, lease.Deposit);
             Assert.Single(lease.Tenant);
+            var deposit = await db.Set<MietHahn.Domain.Deposits.DepositEntry>().AsNoTracking().SingleAsync(Ct);
+            Assert.Equal((MietHahn.Domain.Deposits.DepositEntryKind.Received, 1950m, new DateOnly(2024, 1, 1)), (deposit.Kind, deposit.Amount, deposit.Date));
         }
 
         var second = await WithAsync(i => i.ImportAsync(template, Ct));
@@ -78,6 +80,7 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
         await using var check = environment.Services.CreateAsyncScope();
         var dbCheck = check.ServiceProvider.GetRequiredService<MietHahnDbContext>();
         Assert.Equal(1, await dbCheck.Set<Lease>().CountAsync(Ct));
+        Assert.Equal(1, await dbCheck.Set<MietHahn.Domain.Deposits.DepositEntry>().CountAsync(Ct));
         Assert.Equal(1, await dbCheck.Set<MietHahn.Domain.People.Person>().CountAsync(Ct));
     }
 
@@ -120,6 +123,24 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
         await using var scope = environment.Services.CreateAsyncScope();
         var charges = await scope.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<Charge>().AsNoTracking().OrderBy(c => c.Amount).ToListAsync(Ct);
         Assert.Equal([(ChargeType.Refund, -40m), (ChargeType.BalanceCarriedForward, 125.5m)], charges.Select(c => (c.Kind, c.Amount)));
+    }
+
+    [Fact]
+    public async Task The_deposit_column_says_how_much_has_come_in_and_without_it_the_whole_deposit_counts_as_paid()
+    {
+        var withColumn = Header.TrimEnd() + ";Kaution eingegangen\r\n" +
+                         "Haus;Weg 1;50667;Köln;W1;;50;Anna;Eins;;01.01.2025;500;;;1500;;500\r\n" +
+                         "Haus;;;;W2;;60;Ben;Zwei;;01.01.2025;600;;;1800;;0\r\n";
+
+        var preview = await WithAsync(i => i.PreviewAsync(Encoding.UTF8.GetBytes(withColumn), Ct));
+        Assert.True(preview.CanImport, string.Join(" | ", preview.Rows.SelectMany(r => r.Errors)));
+        Assert.Contains("Kaution 500,00 € als eingegangen", preview.Rows[0].Actions);
+        Assert.DoesNotContain(preview.Rows[1].Actions, a => a.StartsWith("Kaution", StringComparison.Ordinal));
+
+        Assert.True((await WithAsync(i => i.ImportAsync(Encoding.UTF8.GetBytes(withColumn), Ct))).Succeeded);
+        await using var scope = environment.Services.CreateAsyncScope();
+        var entries = await scope.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<MietHahn.Domain.Deposits.DepositEntry>().AsNoTracking().ToListAsync(Ct);
+        Assert.Equal([500m], entries.Select(e => e.Amount));
     }
 
     [Fact]

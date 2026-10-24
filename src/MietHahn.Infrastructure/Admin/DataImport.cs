@@ -7,6 +7,7 @@ using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
 using MietHahn.Domain.Common;
+using MietHahn.Domain.Deposits;
 using MietHahn.Domain.Finance;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
@@ -25,6 +26,7 @@ internal sealed class DataImport(
     IPersonService people,
     ILeaseService leases,
     ITenantAccounts accounts,
+    IDeposits deposits,
     TimeProvider clock) : IDataImport
 {
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
@@ -201,6 +203,11 @@ internal sealed class DataImport(
                 }
             }
 
+            if (newLease && DepositReceivedOf(line) is { } received and > 0)
+            {
+                actions.Add($"Kaution {received.ToString("0.00", German)} € als eingegangen");
+            }
+
             var balance = newLease && line.Balance is { } value && value != 0;
             if (balance)
             {
@@ -222,6 +229,9 @@ internal sealed class DataImport(
             ? string.Equals(person.Email, line.Email, StringComparison.OrdinalIgnoreCase)
             : string.Equals(person.LastName, line.LastName, StringComparison.OrdinalIgnoreCase)
               && string.Equals(person.FirstName ?? "", line.FirstName ?? "", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Deposit paid in: the column "Kaution eingegangen", or without it the whole agreed deposit (a stock taken over has usually been paid).</summary>
+    private static decimal? DepositReceivedOf(ImportLine line) => line.DepositReceived ?? line.Deposit;
 
     private static string Key(string text) => text.Trim().ToUpperInvariant();
 
@@ -301,6 +311,17 @@ internal sealed class DataImport(
                 HeatingCostPrepayment = line.HeatingCosts,
                 Data = new LeaseInput { Deposit = line.Deposit },
             }, cancellationToken), Where("Vertrag"));
+
+            if (DepositReceivedOf(line) is { } received and > 0)
+            {
+                Require(await deposits.AddAsync(leaseId, new DepositEntryInput
+                {
+                    Kind = DepositEntryKind.Received,
+                    Date = line.Start,
+                    Amount = received,
+                    Note = "Aus dem Import übernommen",
+                }, cancellationToken), Where("Kaution"));
+            }
 
             if (plan.Balance)
             {

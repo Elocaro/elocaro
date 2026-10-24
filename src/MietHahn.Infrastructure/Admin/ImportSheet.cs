@@ -23,6 +23,7 @@ internal sealed record ImportLine(
     decimal? OperatingCosts,
     decimal? HeatingCosts,
     decimal? Deposit,
+    decimal? DepositReceived,
     decimal? Balance,
     IReadOnlyList<string> Errors)
 {
@@ -33,9 +34,9 @@ internal sealed record ImportLine(
 internal static partial class ImportSheet
 {
     public const string Template =
-        "Objekt;Straße;PLZ;Ort;Einheit;Lage;Wohnfläche;Vorname;Nachname;E-Mail;Mietbeginn;Kaltmiete;Betriebskosten;Heizkosten;Kaution;Saldo\r\n" +
-        "Lindenweg 3;Lindenweg 3;50667;Köln;Wohnung 1;EG links;55,5;Anna;Beispiel;anna@example.de;01.01.2024;650,00;150,00;80,00;1950,00;0,00\r\n" +
-        "Lindenweg 3;Lindenweg 3;50667;Köln;Wohnung 2;1. OG;62;;;;;;;;;\r\n";
+        "Objekt;Straße;PLZ;Ort;Einheit;Lage;Wohnfläche;Vorname;Nachname;E-Mail;Mietbeginn;Kaltmiete;Betriebskosten;Heizkosten;Kaution;Kaution eingegangen;Saldo\r\n" +
+        "Lindenweg 3;Lindenweg 3;50667;Köln;Wohnung 1;EG links;55,5;Anna;Beispiel;anna@example.de;01.01.2024;650,00;150,00;80,00;1950,00;1950,00;0,00\r\n" +
+        "Lindenweg 3;Lindenweg 3;50667;Köln;Wohnung 2;1. OG;62;;;;;;;;;;\r\n";
 
     private static readonly string[] DateFormats = ["d.M.yyyy", "dd.MM.yyyy", "d.M.yy", "yyyy-MM-dd", "ddMMyyyy"];
 
@@ -55,7 +56,8 @@ internal static partial class ImportSheet
         ["baseRent"] = ["kaltmiete", "nettokaltmiete", "grundmiete", "miete"],
         ["operatingCosts"] = ["betriebskosten", "nebenkosten", "betriebskostenvorauszahlung", "nebenkostenvorauszahlung", "bk"],
         ["heatingCosts"] = ["heizkosten", "heizkostenvorauszahlung", "heizung"],
-        ["deposit"] = ["kaution"],
+        ["deposit"] = ["kaution", "kautionvereinbart"],
+        ["depositReceived"] = ["kautioneingegangen", "kautiongezahlt", "kautionbezahlt", "kautioneingang"],
         ["balance"] = ["saldo", "rueckstand", "saldovortrag", "offenerbetrag"],
     };
 
@@ -162,6 +164,7 @@ internal static partial class ImportSheet
         var operating = Number("operatingCosts", "Betriebskosten");
         var heating = Number("heatingCosts", "Heizkosten");
         var deposit = Number("deposit", "Kaution");
+        var depositReceived = Number("depositReceived", "Kaution eingegangen");
         var balance = Number("balance", "Saldo");
         var lastName = Text("lastName");
         if (lastName is not null)
@@ -181,7 +184,7 @@ internal static partial class ImportSheet
             errors.Add("Mietbeginn, Miete oder Saldo sind angegeben, aber ohne Mieter (Spalte „Nachname“).");
         }
 
-        foreach (var (value, label) in new[] { (baseRent, "Kaltmiete"), (operating, "Betriebskosten"), (heating, "Heizkosten"), (deposit, "Kaution") })
+        foreach (var (value, label) in new[] { (baseRent, "Kaltmiete"), (operating, "Betriebskosten"), (heating, "Heizkosten"), (deposit, "Kaution"), (depositReceived, "Kaution eingegangen") })
         {
             if (value is < 0)
             {
@@ -197,7 +200,7 @@ internal static partial class ImportSheet
         }
 
         return new ImportLine(number, property ?? "", Text("street"), Text("postalCode"), Text("city"), unit ?? "", Text("location"), area,
-            Text("firstName"), lastName, email, start, baseRent, operating, heating, deposit, balance, errors);
+            Text("firstName"), lastName, email, start, baseRent, operating, heating, deposit, depositReceived, balance, errors);
     }
 
     /// <summary>German (1.234,56 / 650,5) and plain (650.5) numbers, optionally with € and spaces.</summary>
