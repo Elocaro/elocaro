@@ -235,9 +235,56 @@ Belegbare Aussagen für die Außendarstellung: alle Daten exportierbar (Vollexpo
 
 Die UX-Befunde P1–P14 sind reproduzierbar (Schritte oben), aber von **einem** Prüfer mit Entwicklerwissen erhoben. Für belastbare Zahlen (Aufgabenerfolg, Zeit, Fehler) empfiehlt sich ein Test mit fünf Vermietern ohne Vorkenntnis an den Aufgaben der Tabelle 3.3 (Think-aloud, Bildschirmaufzeichnung). Er ersetzt die geschätzten Werte dieses Berichts.
 
+## 9. Zweite Prüfung vor der Veröffentlichung (24.10.2026)
+
+Anlass: Ziel „die einfachste und vollständigste Software zur Unterstützung von Vermietern und Mietern“. Geprüft wurden der Stand nach den Umsetzungen der Phasen 1 bis 3, die Wettbewerber mit aktuellen Quellen und der Code gegen eine Funktionsliste.
+
+### 9.1 Neuer Durchlauf (Stand a2ae2f1)
+
+- **Technik:** Alle 32 Seiten der Verwaltung (mit Beispieldaten) antworten fehlerfrei und unter 2,5 s (Debug-Build). Gesamttestlauf zuvor grün (1407 Tests).
+- **Gefunden und behoben:**
+  1. Der Datenimport buchte keine eingegangene Kaution, das Dashboard meldete deshalb für jeden übernommenen Vertrag „Kaution offen“ (jetzt: Spalte „Kaution eingegangen“, ohne sie gilt die ganze Kaution als gezahlt).
+  2. Der Objektschritt im Einrichtungsassistenten blockierte „Weiter“ mit Pflichtfeld-Fehlern (jetzt: Haken „Erstes Objekt jetzt anlegen“, ohne Haken wird übersprungen).
+  3. Barrierefreiheit (axe-core): ungültige Struktur der Kennzahlen und der Seitenleiste, Namen von Schnellsuche und Benutzermenü ohne den sichtbaren Text, Textlinks ohne Unterstreichung. Alles behoben.
+  4. **Lücke Wohnungsgeberbestätigung (§ 19 BMG):** Sie muss binnen zwei Wochen nach Ein- und Auszug ausgestellt werden (Ordnungswidrigkeit bis 1.000 €). Es gab keine Vorlage. Jetzt als Standardvorlagen für Einzug und Auszug, dazu „Bestätigung der Kündigung“ und ein Hinweis auf der Übergabeprotokoll-Seite.
+- **Offen geblieben (klein):** Die Zeilen-pro-Seite-Auswahl der Tabellen hat keinen Namen für Screenreader (Komponente der Bibliothek); die Seitenleiste hat weiter zwölf Bereiche (#94).
+
+### 9.2 Wo Wettbewerber heute besser sind
+
+| Bereich | Wettbewerber | MietHahn | Wirkung auf das Ziel | Issue |
+|---|---|---|---|---|
+| **Betrieb ohne Technik** | SaaS, Anmeldung genügt | Selbst betriebener Server | größte Hürde für Kleinvermieter | Hosting-Pilot (#100), Skript (erledigt) |
+| **Bankanbindung** | immocloud über finAPI, hellohousing | FinTS direkt, nur gegen Beispieldaten getestet, photoTAN fehlt; CSV-Import als Rückweg | Automatik ist ein Kernversprechen | #107 |
+| **Native Apps und Push** | immocloud iOS/Android (Android laut Quelle schwächer bewertet), objego | Installierbare Web-App ohne Service Worker, keine Push-Nachrichten | Fristen und Nachrichten erreichen nur, wer die Seite öffnet | #105 |
+| **Digitale Unterschrift** | immocloud (Zusatzoption) | Drucken, unterschreiben, hochladen | Medienbruch beim Vertrag | #106 |
+| **Belege per E-Mail** | immocloud (ab Manager) | Hochladen oder fotografieren | Komfort bei vielen Belegen | #108 |
+| **Support** | immocloud Telefon, WhatsApp, Chat | Community, kein Support-Kanal | Vertrauen bei Einsteigern | #102 |
+| **Anwender-Hilfe** | Hilfeseiten, Changelogs | Seiteninfos in der App; Handbuch fehlt | „einfach“ braucht erklärte Abläufe | #111 |
+| **Zähler: Mieter meldet selbst** | in den Quellen nicht belegt; üblich bei Versorgern | fehlt im Portal | größter manueller Aufwand vor der Abrechnung | #104 |
+
+Was die Wettbewerber **nicht** besser machen (nach den Quellen): Mieterportal gibt es bei immocloud erst ab 15 Einheiten (hier immer), mehrere Benutzer erst ab 30 Einheiten (hier immer), Funktionsstufen mit harten Preissprüngen, Preise netto. Gleichauf oder besser: Indexmieten-Assistent, CO₂-Kostenaufteilung und Heizkosten in der Abrechnung (immocloud hat sie im Oktober 2026 nachgezogen), Eigentümergruppen, Mietzuordnung mit Begründung (immocloud kündigt KI-Vorschläge an).
+
+### 9.3 Fachlich noch nicht vollständig
+
+| Lücke | Hinweis | Issue |
+|---|---|---|
+| Mieterhöhung nach Modernisierung (§ 559 BGB) | häufiger Fall bei Sanierung; Vorlagen gibt es für §§ 557a, 557b, 558, 560 | #109 |
+| Mietbescheinigung, Mietschuldenfreiheit, Kautionsrückzahlung | häufige Mieterwünsche; im Briefmodell fehlen Miete und Kaution | #110 |
+| **Heizkosten: Platzhalter-Gradtagszahlen, ungeprüfte CO₂-Tabelle** | **Blocker für den Vertrieb der Heizkostenabrechnung** (siehe Abschnitt 6.1, Seite „Rechtsstände“) | #88 |
+| Rechtlich geprüfte Vorlagen | bisher nur „vor dem Einsatz prüfen“ | #86 |
+| Belegeinsicht für Mieter (§ 259 BGB) im Portal | kleine Ergänzung zum Konto | in #104 aufnehmen, wenn das Portal erweitert wird |
+
+### 9.4 Einordnung zum Ziel
+
+- **Vollständig:** Für private Vermieter mit Wohnraum deckt MietHahn den Ablauf von Einzug bis Auszug, Miete, Nebenkosten, Heizkosten, Kaution, Steuer und Mieterportal ab, mit mehr eingebauter Führung (Checkliste, Voraussetzungen vorab, Erklärungen je Seite) als die recherchierten Wettbewerber. Es bleiben die Lücken in 9.3 und die Bankanbindung.
+- **Einfach:** Die Bedienung ist nach dem zweiten Durchlauf ohne Fehlversuch möglich; die größte Hürde ist nicht die Oberfläche, sondern der Betrieb (Server, Domain, Mailversand). Ob die Oberfläche für Erstnutzer einfach genug ist, belegt nur der Test mit echten Vermietern (#90).
+- **Ehrlich zu sagen:** Funktionsumfang und Rechtstexte sind hinter ihren Anbietern bei Support, Apps und geprüften Texten. Das lässt sich im Nebenprojekt nur teilweise schließen; die Reihenfolge der Issues #104 bis #111 folgt dem Nutzen für das Ziel.
+
 ## Quellen
 
-- Eigener Test (Playwright, axe-core 4.x), Commit 59527c2
+- Eigener Test (Playwright, axe-core 4.x), Commits 59527c2 und a2ae2f1
+- [immocloud Changelog](https://www.immocloud.de/funktionen/changelog/), [immocloud Tarife und Schwächen](https://www.hausverwaltungschecker.de/immocloud/), [hellohousing Übersicht](https://trusted.de/hellohousing)
+- [Haus & Grund: Wohnungsgeberbestätigung](https://www.hausundgrund.de/wohnungsgeberbestaetigung), [ImmoScout24: Wohnungsgeberbestätigung](https://www.immobilienscout24.de/wissen/vermieten/wohnungsgeberbestaetigung.html)
 - [Trustpilot: vermietet.de](https://de.trustpilot.com/review/vermietet.de)
 - [ohnehausverwaltung.de: immocloud](https://ohnehausverwaltung.de/immocloud-erfahrungen-kosten-funktionen-2026-lohnt-sich-die-software-fuer-vermieter/), [objego](https://ohnehausverwaltung.de/objego-erfahrungen-2025-test-der-vermieter-software/), [WISO Vermieter](https://ohnehausverwaltung.de/wiso-vermieter-erfahrungen-kosten-lohnt-sich-2026/), [vermietet.de](https://ohnehausverwaltung.de/vermietet-de-erfahrungen-kosten-lohnt-sich/)
 - [softwareabc24.de: vermietet.de](https://www.softwareabc24.de/hausverwaltung-software/vermietet-de), [Vermieter-Software-Ranking](https://www.softwareabc24.de/vermieter-software/)

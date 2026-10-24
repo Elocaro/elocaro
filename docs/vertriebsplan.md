@@ -30,6 +30,10 @@ Abgeleitet aus der [Produkt- und UX-Bewertung](produktbewertung.md) (Befunde P1�
 
 **Gefundene Blocker für den Vertrieb der Heizkostenabrechnung:** Die Gradtagszahlen im Code sind ein **Platzhalter** („nicht aus einer amtlichen Tabelle“), die CO₂-Stufentabelle ist von Hand erfasst und ungeprüft. Beides steht auf der Seite „Rechtsstände“ als „prüfen“. Vor einem öffentlichen Start klären (Tabelle ersetzen, prüfen, `Verified = true`).
 
+## Ergebnis der zweiten Prüfung (24.10.2026)
+
+Weitere Lücken gegenüber den Wettbewerbern sind als Issues erfasst: Zählerstände durch Mieter (#104), Web-Push/Service Worker (#105), digitale Unterschrift (#106), zuverlässige Bankanbindung (#107), Belege per E-Mail (#108), Mieterhöhung nach Modernisierung (#109), Bescheinigungen (#110), Anwenderhandbuch (#111). Details: [produktbewertung.md](produktbewertung.md), Abschnitt 9.
+
 ## Übersicht
 
 | Phase | Ergebnis | Arbeitspakete | Aufwand gesamt |
