@@ -35,7 +35,7 @@ internal sealed class SetupChecklistTodos(MietHahnDbContext db, ILandlordProfile
         }
 
         var property = await db.Set<Property>().AsNoTracking().OrderBy(p => p.CreatedAt).Select(p => new { p.Id }).FirstOrDefaultAsync(cancellationToken);
-        steps.Add((property is not null, "Erstes Objekt anlegen", "/verwaltung/objekte/neu", "Das Haus mit Anschrift; Wohnungen und Zimmer kommen danach."));
+        steps.Add((property is not null, "Erstes Objekt anlegen", "/verwaltung/objekte/neu", "Das Haus mit Anschrift; Wohnungen und Zimmer kommen danach. Haben Sie schon eine Tabelle, übernehmen Sie sie unter Einstellungen → Daten importieren."));
 
         var units = await db.Set<Unit>().AsNoTracking().Include(e => e.Areas).Include(e => e.Room).ToListAsync(cancellationToken);
         var firstUnit = units.OrderBy(e => e.CreatedAt).FirstOrDefault();

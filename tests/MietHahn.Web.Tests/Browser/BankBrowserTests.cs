@@ -74,7 +74,7 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Mietkonto"); // the new page, not the old one
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
-            await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "februar.xml", MimeType = "application/xml", Buffer = TestFile("camt053_v02.xml") });
+            await UploadFileAsync(page, "februar.xml", TestFile("camt053_v02.xml"), "application/xml");
             await page.GetByRole(AriaRole.Button, new() { Name = "Vorschau anzeigen" }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/bank/importe/*");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("4 neue Umsätze");
@@ -102,7 +102,7 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await page.WaitForURLAsync("**/verwaltung/bank/konten/*");
             await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Mietkonto");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
-            await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "februar.xml", MimeType = "application/xml", Buffer = TestFile("camt053_v02.xml") });
+            await UploadFileAsync(page, "februar.xml", TestFile("camt053_v02.xml"), "application/xml");
             await page.GetByRole(AriaRole.Button, new() { Name = "Vorschau anzeigen" }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/bank/importe/*");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("0 neue Umsätze, 4 schon vorhanden");
@@ -122,7 +122,7 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "export.csv", MimeType = "text/csv", Buffer = csv });
+            await UploadFileAsync(page, "export.csv", csv);
             await page.GetByRole(AriaRole.Button, new() { Name = "Vorschau anzeigen" }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Das Dateiformat wurde nicht erkannt.");
 
@@ -139,7 +139,7 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await ExpectSnackbarAsync(page, "Das Profil wurde angelegt.");
 
             await GotoInteractiveAsync(page, $"/verwaltung/bank/konten/{account}");
-            await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "export.csv", MimeType = "text/csv", Buffer = csv });
+            await UploadFileAsync(page, "export.csv", csv);
             await SelectAsync(page, "CSV-Profil", "Hausbank");
             await page.GetByRole(AriaRole.Button, new() { Name = "Vorschau anzeigen" }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/bank/importe/*");

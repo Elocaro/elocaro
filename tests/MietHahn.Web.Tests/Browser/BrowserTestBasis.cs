@@ -113,6 +113,23 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         return page;
     }
 
+    /// <summary>
+    /// Chooses a file in the page's file upload. The file input only reacts once the interactive connection is fully up, so the file is
+    /// offered again until the page shows its name.
+    /// </summary>
+    protected static async Task UploadFileAsync(IPage page, string name, byte[] content, string mimeType = "text/csv")
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
+        for (var attempt = 0; attempt < 10 && await page.Locator(".file-upload-name").CountAsync() == 0; attempt++)
+        {
+            await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = name, MimeType = mimeType, Buffer = content });
+            await page.WaitForTimeoutAsync(500);
+        }
+
+        await Assertions.Expect(page.Locator(".file-upload-name")).ToHaveTextAsync(name);
+    }
+
     /// <summary>A snackbar with this text is visible (the animation may briefly show two).</summary>
     protected static Task ExpectSnackbarAsync(IPage page, string text)
     {

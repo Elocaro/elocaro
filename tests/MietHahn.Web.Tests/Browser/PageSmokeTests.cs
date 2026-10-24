@@ -147,7 +147,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/vertraege/{ids["lease"]}/konto", $"/verwaltung/vertraege/{ids["lease"]}/auszug",
             $"/verwaltung/vertraege/{ids["lease"]}/kostenarten", $"/verwaltung/vertraege/{ids["lease"]}/vertragsdokument", $"/verwaltung/vertraege/{ids["lease"]}/mieterhoehung", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/einzug", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/auszug", "/verwaltung/vpi",
             "/verwaltung/dokumente", "/verwaltung/dokumente/neu", "/verwaltung/tickets/routinen", "/verwaltung/aushaenge", "/verwaltung/aushaenge/neu", "/verwaltung/nachrichten", "/verwaltung/nachrichten/neu",
-            "/verwaltung/fristen", "/verwaltung/fristen/wartung", $"/verwaltung/fristen/wartung/{ids["task"]}", "/verwaltung/einstellungen/fristen", "/verwaltung/einstellungen/rechtsstaende",
+            "/verwaltung/fristen", "/verwaltung/fristen/wartung", $"/verwaltung/fristen/wartung/{ids["task"]}", "/verwaltung/einstellungen/fristen", "/verwaltung/einstellungen/rechtsstaende", "/verwaltung/einstellungen/import",
             $"/verwaltung/objekte/{p}/zaehler", $"/verwaltung/objekte/{p}/ablesung", $"/verwaltung/zaehler/{ids["meter"]}",
             "/verwaltung/bank/konten", "/verwaltung/bank/konten/neu", $"/verwaltung/bank/konten/{ids["account"]}", "/verwaltung/bank/umsaetze", "/verwaltung/bank/zuordnung",
             $"/verwaltung/bank/umsaetze/{ids["transaction"]}/zuordnen", "/verwaltung/bank/regeln", "/verwaltung/bank/regeln/neu", $"/verwaltung/bank/regeln/{ids["rule"]}", "/verwaltung/bank/csv-profile",

@@ -520,6 +520,17 @@ public static class PageInfoCatalog
                 "Das Standardprofil gilt für alle Objekte. Für Objekte mit anderem Eigentümer oder anderer Gesellschaft legen Sie weitere Profile an und wählen sie am Objekt.",
                 "IBAN und Steuernummer erscheinen in Schreiben und Abrechnungen. Prüfen Sie sie sorgfältig.")]), $"{Admin}/einstellungen/vermieter");
 
+        Add(new("Daten importieren",
+            "Bestand aus einer Tabelle übernehmen, statt alles von Hand einzugeben.",
+            [new("So geht es",
+                "Laden Sie die Vorlage, tragen Sie je vermietete oder leere Einheit eine Zeile ein und speichern Sie als „CSV (Trennzeichen-getrennt)“.",
+                "Die Prüfung zeigt je Zeile, was angelegt wird und was nicht stimmt. Erst ohne Fehler lässt sich importieren; es wird alles oder nichts übernommen.",
+                "Ein zweiter Lauf mit derselben Datei legt nichts doppelt an: Objekte, Einheiten, Personen (nach E-Mail oder Name) und Verträge werden wiedererkannt."),
+             new("Gut zu wissen",
+                "Die Wohnfläche gilt ab Jahresbeginn vor dem ersten Mietbeginn, damit frühere Abrechnungen sie finden.",
+                "Ein Saldo wird als Saldovortrag (offen) oder als Guthaben im Mieterkonto gebucht.")],
+            [new("Objekte", $"{Admin}/objekte"), new("Verträge", $"{Admin}/vertraege")]), $"{Admin}/einstellungen/import");
+
         Add(new("Rechtsstände",
             "Die Werte aus Gesetz und Statistik, auf die sich Abrechnungen, Mahnungen und Mieterhöhungen stützen, mit Stand und Quelle.",
             [new("Gut zu wissen",

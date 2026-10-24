@@ -124,15 +124,7 @@ public class FirstHourBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
             await page.GetByRole(AriaRole.Button, new() { Name = "Anlegen", Exact = true }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/bank/konten/*?meldung=angelegt");
             var csv = $"Buchungstag;Valuta;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Betrag;Waehrung\n{German(Today)};{German(Today)};Anna Beispiel;Miete {firstOfLastMonth:MM}/{firstOfLastMonth:yyyy} Wohnung 1 Lindenweg;650,00;EUR\n";
-            await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
-            // The file input only reacts once the interactive connection is fully up; offer the file again until the page shows its name.
-            for (var attempt = 0; attempt < 10 && await page.Locator(".file-upload-name").CountAsync() == 0; attempt++)
-            {
-                await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "umsaetze.csv", MimeType = "text/csv", Buffer = Encoding.UTF8.GetBytes(csv) });
-                await page.WaitForTimeoutAsync(500);
-            }
-
-            await Assertions.Expect(page.Locator(".file-upload-name")).ToHaveTextAsync("umsaetze.csv");
+            await UploadFileAsync(page, "umsaetze.csv", Encoding.UTF8.GetBytes(csv));
             await page.GetByRole(AriaRole.Button, new() { Name = "Vorschau anzeigen" }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("650,00 €");
             await page.GetByRole(AriaRole.Button, new() { Name = "1 Umsätze importieren" }).ClickAsync();

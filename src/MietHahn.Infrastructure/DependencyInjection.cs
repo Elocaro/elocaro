@@ -168,6 +168,7 @@ public static class DependencyInjection
         services.AddScoped<ITodoSource, MailTodos>();
         services.AddScoped<ITodoSource, Admin.SetupChecklistTodos>();
         services.AddScoped<ILegalReferences, Admin.LegalReferences>();
+        services.AddScoped<IDataImport, Admin.DataImport>();
         services.AddScoped<ITodoSource, Admin.LegalReferenceTodos>();
     }
 
