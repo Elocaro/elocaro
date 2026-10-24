@@ -1,0 +1,12 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Pflichtangaben nach § 19 Abs. 3 BMG. Das bundeseinheitliche Formular der Meldebehörde ist ebenfalls zulässig. Frist: zwei Wochen nach dem Einzug. }}
+<p><strong>Wohnungsgeberbestätigung nach § 19 Bundesmeldegesetz (Einzug)</strong></p>
+<p>Hiermit bestätige ich als Wohnungsgeber den Einzug in die folgende Wohnung:</p>
+<table style="border-collapse:collapse;width:100%;">
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;width:35%;"><strong>Wohnungsgeber</strong></td><td style="padding:4px 0;">{{ sender_name }} (Anschrift siehe Briefkopf)</td></tr>
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;"><strong>Eigentümer</strong></td><td style="padding:4px 0;">[nur ausfüllen, wenn der Wohnungsgeber nicht der Eigentümer ist: Name und Anschrift des Eigentümers]</td></tr>
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;"><strong>Datum des Einzugs</strong></td><td style="padding:4px 0;">{{ date lease_start }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;"><strong>Anschrift der Wohnung</strong></td><td style="padding:4px 0;">{{ property_street }}, {{ property_postal_code }} {{ property_city }} ({{ rental_unit }})</td></tr>
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;"><strong>Meldepflichtige Person(en)</strong></td><td style="padding:4px 0;">{{ tenant_name }}<br>[weitere einziehende Personen ergänzen]</td></tr>
+</table>
+<p>Ich bestätige, dass die genannten Personen zum angegebenen Zeitpunkt in die Wohnung eingezogen sind. Mir ist bekannt, dass ordnungswidrig handelt, wer die Bestätigung nicht, nicht richtig oder nicht rechtzeitig ausstellt oder sich als Wohnungsgeber eine Bestätigung ausstellen lässt, ohne dass ein Einzug stattfindet (§ 19 und § 54 BMG).</p>
+<p><br>{{ sender_name }}<br>Ort, Datum: ______________________ &nbsp;&nbsp;&nbsp; Unterschrift: ______________________</p>

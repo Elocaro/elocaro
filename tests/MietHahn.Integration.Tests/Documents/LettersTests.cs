@@ -86,6 +86,24 @@ public class LettersTests(PostgresFixture postgres, GotenbergFixture gotenberg) 
     }
 
     [Fact]
+    public async Task Residence_confirmation_names_landlord_tenant_address_and_move_in_date()
+    {
+        var confirmation = (await WithAsync<IDocumentTemplates, IReadOnlyList<TemplateRow>>(t => t.ListAsync(Ct))).Single(t => t.Name == "Wohnungsgeberbestätigung Einzug (§ 19 BMG)").Id;
+
+        var run = await WithAsync<ILetters, LetterRunResult>(l => l.CreateAsync(new LetterRequest { TemplateId = confirmation, PropertyId = house, LeaseIds = [leases[1]] }, Ct));
+
+        Assert.Equal(1, run.Created);
+        await using var scope = environment.Services.CreateAsyncScope();
+        var document = await scope.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<Document>().SingleAsync(Ct);
+        var text = await PdfTextAsync(document.FileId);
+        Assert.Contains("Wohnungsgeberbestätigung nach § 19 Bundesmeldegesetz (Einzug)", text, StringComparison.Ordinal);
+        Assert.Contains("Andy Hahn", text, StringComparison.Ordinal);
+        Assert.Contains("Vorname2 Muster2", text, StringComparison.Ordinal);
+        Assert.Contains("Lindenweg 3, 50667 Köln", text, StringComparison.Ordinal);
+        Assert.Contains("01.01.2025", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Mail_goes_only_to_tenants_with_an_address_and_the_rest_is_reported()
     {
         var run = await WithAsync<ILetters, LetterRunResult>(l => l.CreateAsync(new LetterRequest { TemplateId = templateId, PropertyId = house, LeaseIds = leases, SendByMail = true }, Ct));

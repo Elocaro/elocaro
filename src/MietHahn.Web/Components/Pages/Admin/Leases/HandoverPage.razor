@@ -38,6 +38,10 @@ else
     @if (view.Status == HandoverStatus.Completed)
     {
         <Notice Level="NoticeLevel.Success">Unterschrieben am @Format.Timestamp(view.SignedAt) von @view.SignedByName. Das Protokoll ist bei den Dokumenten des Vertrags abgelegt und im Mieterportal sichtbar.</Notice>
+        <Notice Level="NoticeLevel.Info" id="residence-confirmation-hint">
+            Wohnungsgeberbestätigung nicht vergessen: Sie muss binnen zwei Wochen nach @(Type == HandoverType.MoveOut ? "dem Auszug" : "dem Einzug") ausgestellt werden (§ 19 BMG).
+            Die Vorlage „Wohnungsgeberbestätigung @(Type == HandoverType.MoveOut ? "Auszug" : "Einzug")“ erzeugen Sie unter <a href="/verwaltung/dokumente/schreiben">Schreiben an Mieter</a>.
+        </Notice>
         <div class="form-row">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/dateien/{view.DocumentFileId}")">Protokoll (PDF)</MudButton>
             <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/dokumente/{view.DocumentId}")">Zum Dokument</MudButton>

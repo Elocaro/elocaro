@@ -1,0 +1,11 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Pflichtangaben nach § 19 Abs. 3 BMG. Frist: zwei Wochen nach dem Auszug. }}
+<p><strong>Wohnungsgeberbestätigung nach § 19 Bundesmeldegesetz (Auszug)</strong></p>
+<p>Hiermit bestätige ich als Wohnungsgeber den Auszug aus der folgenden Wohnung:</p>
+<table style="border-collapse:collapse;width:100%;">
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;width:35%;"><strong>Wohnungsgeber</strong></td><td style="padding:4px 0;">{{ sender_name }} (Anschrift siehe Briefkopf)</td></tr>
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;"><strong>Datum des Auszugs</strong></td><td style="padding:4px 0;">{{ if lease_end }}{{ date lease_end }}{{ else }}[Datum des Auszugs eintragen]{{ end }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;"><strong>Anschrift der Wohnung</strong></td><td style="padding:4px 0;">{{ property_street }}, {{ property_postal_code }} {{ property_city }} ({{ rental_unit }})</td></tr>
+<tr><td style="padding:4px 8px 4px 0;vertical-align:top;"><strong>Ausziehende Person(en)</strong></td><td style="padding:4px 0;">{{ tenant_name }}<br>[weitere ausziehende Personen ergänzen]</td></tr>
+</table>
+<p>Ich bestätige, dass die genannten Personen zum angegebenen Zeitpunkt aus der Wohnung ausgezogen sind. Mir ist bekannt, dass ordnungswidrig handelt, wer die Bestätigung nicht, nicht richtig oder nicht rechtzeitig ausstellt (§ 19 und § 54 BMG).</p>
+<p><br>{{ sender_name }}<br>Ort, Datum: ______________________ &nbsp;&nbsp;&nbsp; Unterschrift: ______________________</p>

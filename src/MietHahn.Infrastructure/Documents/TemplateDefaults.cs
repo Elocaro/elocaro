@@ -26,6 +26,9 @@ internal static class TemplateDefaults
         new("Information Staffelmiete (§ 557a BGB)", TemplateKind.RentIncrease, "Freiwillige Information über die nächste Staffel", "Information zur Staffelmiete", Read("rent-graduated")),
         new("Anpassung Betriebskostenpauschale (§ 560 BGB)", TemplateKind.RentIncrease, "Erhöhung der Pauschale bei vertraglichem Vorbehalt, mit Begründung", "Anpassung der Betriebskostenpauschale nach § 560 BGB", Read("rent-flat-rate")),
         new("Ankündigung von Arbeiten", TemplateKind.Letter, "Serienbrief an die Mieter eines Objekts; Art und Zeitraum ergänzen", "Ankündigung von Arbeiten am Haus {{ property_name }}", Read("letter-announcement")),
+        new("Wohnungsgeberbestätigung Einzug (§ 19 BMG)", TemplateKind.Letter, "Bestätigung für das Einwohnermeldeamt, zwei Wochen nach dem Einzug auszustellen", "Wohnungsgeberbestätigung (Einzug) {{ rental_unit }}", Read("letter-landlord-confirmation-move-in")),
+        new("Wohnungsgeberbestätigung Auszug (§ 19 BMG)", TemplateKind.Letter, "Bestätigung für das Einwohnermeldeamt, zwei Wochen nach dem Auszug auszustellen", "Wohnungsgeberbestätigung (Auszug) {{ rental_unit }}", Read("letter-landlord-confirmation-move-out")),
+        new("Bestätigung der Kündigung", TemplateKind.Letter, "Bestätigt den Eingang der Mieterkündigung mit Ende des Mietverhältnisses und Hinweisen zur Übergabe", "Bestätigung Ihrer Kündigung {{ rental_unit }}", Read("letter-termination-confirmation")),
         new("Allgemeines Schreiben", TemplateKind.Letter, "Leerer Brief mit Anrede und Grußformel", "Mitteilung zu Ihrem Mietverhältnis", Read("letter-general")),
     ];
 
