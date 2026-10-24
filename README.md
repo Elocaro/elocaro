@@ -86,6 +86,10 @@ dotnet run --project src/MietHahn.Web
 
 Details zu lokaler Datenbank, Migrationen und Konventionen stehen in [docs/entwicklung.md](docs/entwicklung.md).
 
+## Unterstützen
+
+MietHahn ist ein Nebenprojekt und bleibt frei nutzbar. Fehlerberichte und Erfahrungen helfen am meisten; wer das Projekt außerdem tragen möchte, findet die Wege in [docs/foerderung.md](docs/foerderung.md): regelmäßige Unterstützung, [Feature-Sponsoring](docs/feature-sponsoring.md) und das geplante [Rechtsstände-Abo](docs/rechtsstaende-abo.md).
+
 ## Lizenz
 
 MietHahn steht unter der [GNU Affero General Public License v3.0](LICENSE). Drittanbieter-Komponenten und ihre Lizenzen: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Version, Lizenz und Quellcode-Link zeigt auch die Seite „Über MietHahn“ (`/ueber`).

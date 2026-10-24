@@ -6,6 +6,7 @@ namespace MietHahn.Web.Display;
 public static class AppInfo
 {
     public const string SourceUrl = "https://github.com/TheR00st3r/MietHahn";
+    public const string SupportUrl = SourceUrl + "/blob/HEAD/docs/foerderung.md";
     public const string LicenseName = "GNU Affero General Public License v3.0";
 
     /// <summary>The release version (from the tag at build time); "Entwicklung" for local builds.</summary>

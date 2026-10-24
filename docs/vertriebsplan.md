@@ -42,6 +42,10 @@ Abgeleitet aus der [Produkt- und UX-Bewertung](produktbewertung.md) (Befunde P1�
 
 Kritischer Pfad: **AP-01 → AP-03 → AP-04 → (Phase 1) → AP-24 Testgruppe → Phase 4.** Phase 2 startet parallel zu Phase 1, weil juristische Prüfung und Bankpiloten Vorlauf brauchen.
 
+## Entscheidung zur Monetarisierung (24.10.2026)
+
+MietHahn bleibt vorerst ein **Nebenprojekt** mit kleiner zusätzlicher Einnahmequelle. Es bleibt bei AGPL-3.0, ohne Shop und ohne gesperrte Funktionen. Vorbereitet sind: Unterstützen ([foerderung.md](foerderung.md)), Feature-Sponsoring ([feature-sponsoring.md](feature-sponsoring.md)), Rechtsstände-Abo als Konzept ([rechtsstaende-abo.md](rechtsstaende-abo.md)). Hosting ist nur als Pilot für Bekannte gedacht (Phase 4 ruht). Ein Lizenz-Shop (Open Core oder Lizenzschlüssel) wäre nur mit Lizenzwechsel vor dem ersten öffentlichen Release möglich und ist nicht geplant.
+
 ## Entscheidungen, die vorher fallen müssen
 
 | # | Frage | Optionen | Empfehlung | Blockiert |
