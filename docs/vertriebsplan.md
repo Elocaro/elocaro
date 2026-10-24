@@ -6,6 +6,30 @@ Abgeleitet aus der [Produkt- und UX-Bewertung](produktbewertung.md) (Befunde P1�
 
 **Aufwand:** S ≈ bis 1 Tag · M ≈ 2–4 Tage · L ≈ 1–2 Wochen (eine Person, inkl. Tests und Doku nach CLAUDE.md).
 
+## Stand der Umsetzung (24.10.2026)
+
+| Paket | Stand | Issue |
+|---|---|---|
+| AP-01 `global.json` | erledigt | #71 |
+| AP-02 Lizenz AGPL-3.0, „Über MietHahn“ | erledigt | #72 |
+| AP-03 Release | vorbereitet (Version, Changelog); **Tag v0.1.0 und öffentliche Pakete stehen aus (Freigabe)** | #73 |
+| AP-04 Installationsskript | erledigt | #74 |
+| AP-05 Auftritt | README, SECURITY.md, Vorlagen erledigt; **Repository öffentlich stellen und Discussions stehen aus (Freigabe)** | #75 |
+| AP-10 bis AP-19 (Phase 1) | erledigt, Gesamttestlauf grün | #76 bis #85 |
+| AP-20 Rechtsprüfung, AP-21 Marke, AP-24 Testgruppe, AP-25 Rahmen | extern, offen | #86, #87, #90, #91 |
+| AP-22 Rechtsstände | Übersicht und Hinweise erledigt; Prüfvermerk je Tabelle offen | #88 |
+| AP-23 Bankdaten | Matcher erledigt; Echtexporte, FinTS-Pilot, photoTAN offen | #89 |
+| AP-30 Import | erledigt (CSV; kein `.xlsx`) | #92 |
+| AP-31 Beispieldaten | erledigt; öffentliche Demo-Instanz offen | #93 |
+| AP-32 Navigation | offen, bewusst nach der Testgruppe | #94 |
+| AP-33 Portal-Konto | erledigt | #95 |
+| AP-34 Plattformen | Anleitung erledigt; Vorlagen fehlen (ungeprüft) | #96 |
+| AP-35 Kaution | erledigt (ohne Bankkonto-Zinsen, ohne Portal) | #97 |
+| AP-36 Kennzahlen | Übersicht erledigt; Cashflow je Jahr offen | #98 |
+| AP-40 bis AP-44 (Phase 4) | nicht begonnen | #99 bis #103 |
+
+**Gefundene Blocker für den Vertrieb der Heizkostenabrechnung:** Die Gradtagszahlen im Code sind ein **Platzhalter** („nicht aus einer amtlichen Tabelle“), die CO₂-Stufentabelle ist von Hand erfasst und ungeprüft. Beides steht auf der Seite „Rechtsstände“ als „prüfen“. Vor einem öffentlichen Start klären (Tabelle ersetzen, prüfen, `Verified = true`).
+
 ## Übersicht
 
 | Phase | Ergebnis | Arbeitspakete | Aufwand gesamt |
