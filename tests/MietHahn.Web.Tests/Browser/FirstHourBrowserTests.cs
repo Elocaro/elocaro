@@ -141,6 +141,8 @@ public class FirstHourBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
             // 9. Nothing of the setup is left on the dashboard but the bank-free steps are done: the checklist is gone.
             await page.GotoAsync(BaseUrl + "/verwaltung");
             await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("So geht es los");
+            await Assertions.Expect(page.Locator("#kpis")).ToContainTextAsync("1 von 1 vermietet");
+            await Assertions.Expect(page.Locator("#kpis")).ToContainTextAsync("Mieteingang im");
         });
     }
 }

@@ -1,9 +1,29 @@
 @page "/verwaltung"
 @attribute [StreamRendering]
+@using MietHahn.Application.Admin
 @using MietHahn.Application.Todos
 @inject IEnumerable<ITodoSource> Sources
+@inject IPortfolioFigures Portfolio
 
 <PageHeader Title="Was ist zu tun?" Subtitle="Aufgaben und Fristen aus allen Bereichen, die dringendsten zuerst." />
+
+@if (figures is not null)
+{
+    <dl class="kpis" aria-label="Kennzahlen" id="kpis">
+        <div class="kpi">
+            <dt>Mieteingang im @Format.Month(figures.Month)</dt>
+            <dd>@Format.Money(figures.PaidThisMonth)<small> von @Format.Money(figures.MonthlyRent) Soll</small></dd>
+        </div>
+        <a class="kpi @(figures.Arrears > 0 ? "is-warning" : null)" href="/verwaltung/finanzen/offene-posten">
+            <dt>Rückstände</dt>
+            <dd>@Format.Money(figures.Arrears)<small>@(figures.ArrearsLeases == 0 ? " keine" : $" bei {figures.ArrearsLeases} Mietverhältnis{(figures.ArrearsLeases == 1 ? "" : "sen")}")</small></dd>
+        </a>
+        <div class="kpi @(figures.Vacant > 0 ? "is-info" : null)">
+            <dt>Belegung</dt>
+            <dd>@figures.Occupied von @figures.Units vermietet<small>@(figures.Vacant == 0 ? "" : $" · {figures.Vacant} leer")</small></dd>
+        </div>
+    </dl>
+}
 
 @if (todos is null)
 {
@@ -64,6 +84,7 @@ else
     private const int VisiblePerArea = 4;
 
     private IReadOnlyList<TodoItem>? todos;
+    private PortfolioFigures? figures;
 
     private RenderFragment TodoItemView(TodoItem todo) => @<li class="todo todo-@todo.Urgency.ToString().ToLowerInvariant()">
         <a href="@todo.Link">@todo.Title</a>
@@ -84,6 +105,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        figures = await Portfolio.FiguresAsync(HttpContext.User);
         var all = new List<TodoItem>();
         foreach (var source in Sources)
         {

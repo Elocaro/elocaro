@@ -899,3 +899,11 @@ p.small:has(+ :is(.empty-state, .table-wrapper, .mud-table, .group, .explain)) {
 .wizard-group { margin-bottom: 1rem; }
 .data-table tr.row-error td { background: color-mix(in srgb, var(--md-error) 8%, transparent); }
 .field-error { margin: 0.25rem 0 0; color: var(--md-error); font-size: 0.875rem; }
+.kpis { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); margin: 0 0 1rem; }
+.kpi { display: block; padding: 0.75rem 1rem; background: var(--md-surface-container); border-radius: var(--shape-lg); color: inherit; text-decoration: none; }
+a.kpi:hover { background: var(--md-surface-container-high); }
+.kpi dt { margin: 0; color: var(--md-on-surface-variant); font-size: 0.8125rem; font-weight: 600; }
+.kpi dd { margin: 0.15rem 0 0; font-size: 1.25rem; font-weight: 700; }
+.kpi dd small { font-size: 0.8125rem; font-weight: 400; color: var(--md-on-surface-variant); }
+.kpi.is-warning { background: var(--md-warning-container); }
+.kpi.is-info { background: var(--md-info-container); }
