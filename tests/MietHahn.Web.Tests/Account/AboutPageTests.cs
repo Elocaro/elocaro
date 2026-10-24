@@ -30,4 +30,29 @@ public class AboutPageTests(PostgresFixture postgres) : AccountTestBase(postgres
             Assert.Contains(page.Document.QuerySelectorAll("a"), a => a.GetAttribute("href") == "/ueber");
         }
     }
+
+    [Fact]
+    public async Task Help_is_linked_in_the_user_menu_and_opens_for_landlords_and_tenants()
+    {
+        var (landlord, _) = await SignedInAsAsync(MietHahn.Application.Accounts.Roles.Admin);
+        using (landlord)
+        {
+            var start = await landlord.GetAsync("/verwaltung");
+            Assert.Contains(start.Document.QuerySelectorAll("a"), a => a.GetAttribute("href") == "/verwaltung/hilfe");
+
+            var page = await landlord.GetAsync("/verwaltung/hilfe");
+            Assert.Equal(HttpStatusCode.OK, page.Status);
+            Assert.Contains("Sollstellung", page.Text);
+            Assert.Contains("Erste Schritte", page.Text);
+        }
+
+        var (tenant, _) = await SignedInAsAsync(MietHahn.Application.Accounts.Roles.Tenant);
+        using (tenant)
+        {
+            var page = await tenant.GetAsync("/portal/hilfe");
+            Assert.Equal(HttpStatusCode.OK, page.Status);
+            Assert.Contains("Kaution", page.Text);
+            Assert.DoesNotContain("Sollstellung", page.Text);
+        }
+    }
 }

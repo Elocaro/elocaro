@@ -1,4 +1,5 @@
 @using System.Security.Claims
+@using MietHahn.Application.Accounts
 @using MietHahn.Infrastructure.Identity
 @using MietHahn.Web.Account
 
@@ -9,6 +10,7 @@
             <div class="account-menu">
                 <p class="account-menu-name">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</p>
                 <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
+                <a href="@HelpLink(context.User)">Hilfe</a>
                 <a href="/ueber">Über MietHahn</a>
                 <ThemeSwitch />
                 <form method="post" action="/konto/abmelden">
@@ -25,6 +27,7 @@
             </summary>
             <div class="user-menu-content">
                 <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
+                <a href="@HelpLink(context.User)">Hilfe</a>
                 <a href="/ueber">Über MietHahn</a>
                 <ThemeSwitch />
                 <form method="post" action="/konto/abmelden">
@@ -38,6 +41,8 @@
 </AuthorizeView>
 
 @code {
+    private static string HelpLink(ClaimsPrincipal user) => user.IsInRole(Roles.Tenant) ? "/portal/hilfe" : "/verwaltung/hilfe";
+
     /// <summary>Flat variant for the menu sheet on smartphones (no dropdown).</summary>
     [Parameter]
     public bool Inline { get; set; }

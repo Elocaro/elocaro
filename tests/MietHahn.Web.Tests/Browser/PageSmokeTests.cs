@@ -142,7 +142,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
         return
         [
             "/verwaltung", "/verwaltung/personen", "/verwaltung/personen?q=Schmidt", "/verwaltung/personen/neu", $"/verwaltung/personen/{ids["person"]}",
-            "/verwaltung/datenschutz",
+            "/verwaltung/datenschutz", "/verwaltung/hilfe",
             "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{p}", $"/verwaltung/einheiten/{ids["unit"]}", $"/verwaltung/zimmer/{ids["room"]}",
             "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/vertraege/{ids["lease"]}/konto", $"/verwaltung/vertraege/{ids["lease"]}/auszug",
             $"/verwaltung/vertraege/{ids["lease"]}/kostenarten", $"/verwaltung/vertraege/{ids["lease"]}/vertragsdokument", $"/verwaltung/vertraege/{ids["lease"]}/mieterhoehung", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/einzug", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/auszug", "/verwaltung/vpi",

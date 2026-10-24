@@ -45,6 +45,7 @@ Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, Zwei-Fak
 
 ## Dokumentation
 
+- [Anwenderhandbuch](docs/handbuch.md): erste Schritte und die häufigsten Aufgaben für Vermieter (auch in der Anwendung unter „Hilfe“)
 - [Betrieb](docs/betrieb.md): Installation auf einem VPS, Update, Backup & Restore, Vollexport, Sicherheit
 - [Installation auf anderen Plattformen](docs/installation-plattformen.md): Portainer, Coolify, Synology, Unraid, Proxmox, ARM
 - [Marktanalyse](docs/marktanalyse.md) und [Produktbewertung](docs/produktbewertung.md): was bestehende Software gut und schlecht macht, wie MietHahn dasteht
