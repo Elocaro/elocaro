@@ -1,0 +1,12 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Abrechnung und Rückzahlung der Kaution. Verrechnete Forderungen und den Zeitpunkt der Rückzahlung prüfen und ergänzen. }}
+<p>{{ salutation }}</p>
+<p>das Mietverhältnis über {{ rental_unit }} ({{ property_street }}, {{ property_postal_code }} {{ property_city }}) endet{{ if lease_end }} am {{ date lease_end }}{{ else }} am [Datum eintragen]{{ end }}. Wir rechnen Ihre Mietkaution wie folgt ab:</p>
+<table style="border-collapse:collapse;width:100%;">
+<tr><td style="padding:4px 8px 4px 0;width:60%;">Eingegangene Kaution</td><td style="padding:4px 0;text-align:right;">{{ money deposit_received }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;">Zinsen</td><td style="padding:4px 0;text-align:right;">{{ money deposit_interest }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;">Verrechnet (z. B. offene Forderungen, Schäden)</td><td style="padding:4px 0;text-align:right;">− {{ money deposit_deducted }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;">Bereits zurückgezahlt</td><td style="padding:4px 0;text-align:right;">− {{ money deposit_refunded }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;"><strong>Zu erstattender Betrag</strong></td><td style="padding:4px 0;text-align:right;"><strong>{{ money deposit_balance }}</strong></td></tr>
+</table>
+<p>[Erläuterung zu verrechneten Beträgen oder einem Einbehalt für die noch ausstehende Betriebskostenabrechnung ergänzen.] Wir überweisen den Betrag auf das uns bekannte Konto; bitte teilen Sie uns Ihre aktuelle Bankverbindung mit, falls sie sich geändert hat.</p>
+{{ include 'Grußformel' }}

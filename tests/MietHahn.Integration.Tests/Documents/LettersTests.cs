@@ -104,6 +104,26 @@ public class LettersTests(PostgresFixture postgres, GotenbergFixture gotenberg) 
     }
 
     [Fact]
+    public async Task Rent_certificate_and_deposit_statement_use_the_current_amounts_of_the_lease()
+    {
+        var names = new[] { "Mietbescheinigung", "Kautionsabrechnung und -rückzahlung" };
+        var rows = await WithAsync<IDocumentTemplates, IReadOnlyList<TemplateRow>>(t => t.ListAsync(Ct));
+        foreach (var name in names)
+        {
+            var run = await WithAsync<ILetters, LetterRunResult>(l => l.CreateAsync(new LetterRequest { TemplateId = rows.Single(t => t.Name == name).Id, PropertyId = house, LeaseIds = [leases[0]] }, Ct));
+            Assert.Equal(1, run.Created);
+        }
+
+        await using var scope = environment.Services.CreateAsyncScope();
+        var documents = await scope.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<Document>().ToListAsync(Ct);
+        var certificate = await PdfTextAsync(documents.Single(d => d.Title.StartsWith("Mietbescheinigung", StringComparison.Ordinal)).FileId);
+        Assert.True(certificate.Contains("500,00", StringComparison.Ordinal), certificate);
+        Assert.Contains("Gesamtmiete monatlich", certificate, StringComparison.Ordinal);
+        var statement = await PdfTextAsync(documents.Single(d => d.Title.StartsWith("Abrechnung Ihrer Mietkaution", StringComparison.Ordinal)).FileId);
+        Assert.Contains("Zu erstattender Betrag", statement, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Mail_goes_only_to_tenants_with_an_address_and_the_rest_is_reported()
     {
         var run = await WithAsync<ILetters, LetterRunResult>(l => l.CreateAsync(new LetterRequest { TemplateId = templateId, PropertyId = house, LeaseIds = leases, SendByMail = true }, Ct));

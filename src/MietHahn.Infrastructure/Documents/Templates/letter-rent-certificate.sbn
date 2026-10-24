@@ -1,0 +1,12 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Mietbescheinigung z. B. für Wohngeld oder Behörden. Angaben vor dem Versand prüfen; manche Behörden verlangen ein eigenes Formular. }}
+<p><strong>Mietbescheinigung</strong></p>
+<p>Hiermit bescheinige ich als Vermieter für das Mietverhältnis über die Wohnung {{ property_street }}, {{ property_postal_code }} {{ property_city }} ({{ rental_unit }}) mit {{ tenant_name }} als Mieter, Mietbeginn {{ date lease_start }}{{ if lease_end }}, Mietende {{ date lease_end }}{{ end }}, die folgenden Angaben (Stand {{ date today }}):</p>
+<table style="border-collapse:collapse;width:100%;">
+{{ if living_area }}<tr><td style="padding:4px 8px 4px 0;width:60%;">Wohnfläche</td><td style="padding:4px 0;text-align:right;">{{ number living_area 2 }} m²</td></tr>{{ end }}
+<tr><td style="padding:4px 8px 4px 0;width:60%;">Grundmiete (Kaltmiete) monatlich</td><td style="padding:4px 0;text-align:right;">{{ money base_rent }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;">Betriebskosten (Vorauszahlung bzw. Pauschale) monatlich</td><td style="padding:4px 0;text-align:right;">{{ money operating_costs }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;">Heizkosten (Vorauszahlung) monatlich</td><td style="padding:4px 0;text-align:right;">{{ money heating_costs }}</td></tr>
+<tr><td style="padding:4px 8px 4px 0;"><strong>Gesamtmiete monatlich</strong></td><td style="padding:4px 0;text-align:right;"><strong>{{ money total_rent }}</strong></td></tr>
+</table>
+<p>[Falls verlangt: enthaltene Kosten für Heizung, Warmwasser, Möblierung oder Stellplatz einzeln ergänzen.]</p>
+<p><br>{{ sender_name }}<br>Ort, Datum: ______________________ &nbsp;&nbsp;&nbsp; Unterschrift: ______________________</p>

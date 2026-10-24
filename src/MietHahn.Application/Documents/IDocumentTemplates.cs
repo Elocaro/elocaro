@@ -90,7 +90,19 @@ public sealed record LetterModel(
     DateOnly Today,
     string? SenderBank = null,
     string? SenderIban = null,
-    string? SenderBic = null);
+    string? SenderBic = null,
+    decimal BaseRent = 0,
+    decimal OperatingCosts = 0,
+    decimal HeatingCosts = 0,
+    decimal TotalRent = 0,
+    decimal? Deposit = null,
+    decimal DepositReceived = 0,
+    decimal DepositInterest = 0,
+    decimal DepositDeducted = 0,
+    decimal DepositRefunded = 0,
+    decimal DepositBalance = 0,
+    decimal? OpenArrears = null,
+    decimal? LivingArea = null);
 
 /// <summary>Documented placeholders and sample data per template kind.</summary>
 public static class TemplateCatalog
@@ -141,6 +153,10 @@ public static class TemplateCatalog
         new("sender_bank", "Bank des Vermieters (leer, wenn nicht hinterlegt)", "Sparkasse KölnBonn"),
         new("sender_iban", "IBAN des Vermieters (leer, wenn nicht hinterlegt)", "DE89 3704 0044 0532 0130 00"),
         new("sender_bic", "BIC des Vermieters (leer, wenn nicht hinterlegt)", "COLSDE33XXX"),
+        new("base_rent, operating_costs, heating_costs, total_rent", "Kaltmiete, Betriebskosten- und Heizkostenvorauszahlung bzw. -pauschale, Gesamtmiete heute (mit „money“ formatieren)", "500,00 €"),
+        new("living_area", "Wohnfläche in m² heute (leer, wenn nicht erfasst)", "60"),
+        new("deposit, deposit_received, deposit_interest, deposit_deducted, deposit_refunded, deposit_balance", "Kaution: vereinbart (leer, wenn keine), eingegangen, Zinsen, verrechnet, zurückgezahlt, noch zu erstatten", "1.500,00 €"),
+        new("open_arrears", "Fällige, unbezahlte Forderungen heute (leer, wenn die Buchhaltung des Vertrags noch nicht läuft)", "0,00 €"),
     ];
 
     private static readonly IReadOnlyList<Placeholder> RentIncreasePlaceholders =
@@ -217,7 +233,8 @@ public static class TemplateCatalog
     ];
 
     private static readonly LetterModel LetterSample = new("Sehr geehrte Frau Muster,", "Erika Muster", "Wohnung 1, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
-        new DateOnly(2024, 4, 1), null, "Hans Vermieter", new DateOnly(2026, 10, 20), "Sparkasse KölnBonn", "DE89 3704 0044 0532 0130 00", "COLSDE33XXX");
+        new DateOnly(2024, 4, 1), null, "Hans Vermieter", new DateOnly(2026, 10, 20), "Sparkasse KölnBonn", "DE89 3704 0044 0532 0130 00", "COLSDE33XXX",
+        500m, 100m, 60m, 660m, 1500m, 1500m, 12.5m, 0m, 0m, 1512.5m, 0m, 60m);
 
     // Two samples so that both sides of the conditions (apartment/room, open/fixed, standard/graduated/index) get exercised when checking a text.
     private static readonly IReadOnlyList<ContractModel> ContractSamples =

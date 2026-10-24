@@ -1,0 +1,8 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Bescheinigung über das Fehlen von Mietrückständen, z. B. für einen neuen Vermieter. Nur ausstellen, wenn die Aussage stimmt. }}
+<p>{{ salutation }}</p>
+<p><strong>Bescheinigung über Mietschuldenfreiheit</strong></p>
+{{ if open_arrears == null }}<p>[Die Buchhaltung dieses Mietvertrags ist in MietHahn noch nicht gestartet. Bitte den Stand selbst prüfen und den passenden Satz wählen.]</p>
+{{ end }}{{ if open_arrears == null || open_arrears == 0 }}<p>hiermit bescheinige ich, dass {{ tenant_name }} als Mieter der Wohnung {{ property_street }}, {{ property_postal_code }} {{ property_city }} ({{ rental_unit }}) seit dem {{ date lease_start }} die Miete und die Nebenkostenvorauszahlungen bis zum {{ date today }} vollständig und pünktlich gezahlt hat. Mietrückstände bestehen nicht.</p>
+{{ else }}<p>zum {{ date today }} bestehen aus dem Mietverhältnis über die Wohnung {{ rental_unit }} noch fällige Forderungen von {{ money open_arrears }}. Eine Bescheinigung über Mietschuldenfreiheit kann deshalb derzeit nicht ausgestellt werden.</p>
+{{ end }}<p>Diese Bescheinigung bezieht sich nicht auf die noch ausstehende Betriebskostenabrechnung für das laufende bzw. letzte Abrechnungsjahr.</p>
+{{ include 'Grußformel' }}

@@ -29,6 +29,9 @@ internal static class TemplateDefaults
         new("Wohnungsgeberbestätigung Einzug (§ 19 BMG)", TemplateKind.Letter, "Bestätigung für das Einwohnermeldeamt, zwei Wochen nach dem Einzug auszustellen", "Wohnungsgeberbestätigung (Einzug) {{ rental_unit }}", Read("letter-landlord-confirmation-move-in")),
         new("Wohnungsgeberbestätigung Auszug (§ 19 BMG)", TemplateKind.Letter, "Bestätigung für das Einwohnermeldeamt, zwei Wochen nach dem Auszug auszustellen", "Wohnungsgeberbestätigung (Auszug) {{ rental_unit }}", Read("letter-landlord-confirmation-move-out")),
         new("Bestätigung der Kündigung", TemplateKind.Letter, "Bestätigt den Eingang der Mieterkündigung mit Ende des Mietverhältnisses und Hinweisen zur Übergabe", "Bestätigung Ihrer Kündigung {{ rental_unit }}", Read("letter-termination-confirmation")),
+        new("Mietbescheinigung", TemplateKind.Letter, "Bescheinigt Miete, Nebenkosten und Wohnfläche, z. B. für Wohngeld oder Behörden", "Mietbescheinigung {{ rental_unit }}", Read("letter-rent-certificate")),
+        new("Mietschuldenfreiheitsbescheinigung", TemplateKind.Letter, "Bescheinigt, dass keine Mietrückstände bestehen (Saldo aus dem Mieterkonto)", "Bescheinigung über Mietschuldenfreiheit {{ rental_unit }}", Read("letter-no-arrears")),
+        new("Kautionsabrechnung und -rückzahlung", TemplateKind.Letter, "Stellt Eingang, Zinsen, Verrechnungen und den zu erstattenden Betrag der Kaution dar", "Abrechnung Ihrer Mietkaution {{ rental_unit }}", Read("letter-deposit-refund")),
         new("Allgemeines Schreiben", TemplateKind.Letter, "Leerer Brief mit Anrede und Grußformel", "Mitteilung zu Ihrem Mietverhältnis", Read("letter-general")),
     ];
 

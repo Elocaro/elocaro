@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Common;
 using MietHahn.Application.Communication;
 using MietHahn.Application.Documents;
+using MietHahn.Application.Finance;
+using MietHahn.Application.Leases;
 using MietHahn.Domain.Admin;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Documents;
@@ -16,7 +18,7 @@ using MietHahn.Infrastructure.Templates;
 
 namespace MietHahn.Infrastructure.Documents;
 
-internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocumentLibrary documents, IMailSender mail, TimeProvider clock) : ILetters
+internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocumentLibrary documents, IMailSender mail, TimeProvider clock, ITenantAccounts tenantAccounts, IDeposits deposits) : ILetters
 {
     public async Task<IReadOnlyList<LetterRecipient>> RecipientsAsync(Guid propertyId, CancellationToken cancellationToken = default)
     {
@@ -150,7 +152,7 @@ internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocument
     private async Task<Prepared> PrepareAsync(DocumentTemplate template, Guid leaseId, CancellationToken cancellationToken)
     {
         var today = GermanTime.Today(clock.GetUtcNow());
-        var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).SingleOrDefaultAsync(v => v.Id == leaseId, cancellationToken)
+        var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).SingleOrDefaultAsync(v => v.Id == leaseId, cancellationToken)
             ?? throw new RuleViolationException("Der Mietvertrag wurde nicht gefunden.");
         var landlord = await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
             ?? throw new RuleViolationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.");
@@ -159,11 +161,22 @@ internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocument
             ?? throw new RuleViolationException("Die Mietsache wurde nicht gefunden.");
         var property = await db.Set<Property>().AsNoTracking().SingleAsync(o => o.Id == rentalUnit.PropertyId, cancellationToken);
 
+        var baseRent = lease.AmountAt(RentComponentType.BaseRent, today) ?? 0;
+        var operating = (lease.AmountAt(RentComponentType.OperatingCostPrepayment, today) ?? 0) + (lease.AmountAt(RentComponentType.OperatingCostFlatRate, today) ?? 0);
+        var heating = lease.AmountAt(RentComponentType.HeatingCostPrepayment, today) ?? 0;
+        var account = await tenantAccounts.GetAsync(leaseId, cancellationToken);
+        var deposit = await deposits.GetAsync(leaseId, cancellationToken);
+        decimal? area = lease.RoomId is { } roomId
+            ? (await db.Set<Room>().AsNoTracking().Include(r => r.Areas).SingleOrDefaultAsync(r => r.Id == roomId, cancellationToken))?.AreaOn(today)?.Area
+            : (await db.Set<Unit>().AsNoTracking().Include(e => e.Areas).SingleOrDefaultAsync(e => e.Id == lease.UnitId, cancellationToken))?.AreaOn(today)?.LivingArea;
         var salutation = LetterParts.SalutationOf(people);
         var model = new LetterModel(
             salutation, string.Join(" und ", people.Select(p => p.DisplayName)), $"{rentalUnit.Name}, {property.Name}",
             property.Name, property.Street, property.PostalCode, property.City, lease.Start, lease.End, landlord.Name, today,
-            landlord.Bank, landlord.Iban is null ? null : Iban.Format(landlord.Iban), landlord.Bic);
+            landlord.Bank, landlord.Iban is null ? null : Iban.Format(landlord.Iban), landlord.Bic,
+            baseRent, operating, heating, lease.MonthlyRentOn(today), lease.Deposit,
+            deposit?.Account.Received ?? 0, deposit?.Account.Interest ?? 0, deposit?.Account.Deducted ?? 0, deposit?.Account.Refunded ?? 0, deposit?.Account.Balance ?? 0,
+            account?.AccountingStart is null ? null : account.Due, area);
 
         string subject;
         try
