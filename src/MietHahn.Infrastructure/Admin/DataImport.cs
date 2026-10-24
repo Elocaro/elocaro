@@ -100,9 +100,13 @@ internal sealed class DataImport(
             // property
             existingProperties.TryGetValue(propertyKey, out var property);
             var newProperty = property is null && propertiesInFile.Add(propertyKey);
-            if (property is not null || !newProperty)
+            if (property is not null)
             {
                 actions.Add("Objekt vorhanden");
+            }
+            else if (!newProperty)
+            {
+                actions.Add("Objekt wie oben");
             }
             else
             {
@@ -123,7 +127,7 @@ internal sealed class DataImport(
             var setArea = false;
             if (existingUnit is null && !newUnit)
             {
-                actions.Add("Einheit vorhanden");
+                actions.Add("Einheit wie oben");
             }
             else if (existingUnit is null)
             {
@@ -169,7 +173,7 @@ internal sealed class DataImport(
                 }
                 else
                 {
-                    actions.Add("Mieter vorhanden");
+                    actions.Add("Mieter wie oben");
                 }
 
                 if (line.Start is { } start && errors.Count == 0)

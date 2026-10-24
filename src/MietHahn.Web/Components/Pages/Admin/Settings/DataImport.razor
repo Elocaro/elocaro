@@ -4,6 +4,7 @@
 @using MietHahn.Application.Admin
 @using MietHahn.Web.Components.Controls
 @inject IDataImport Import
+@inject IDemoData Demo
 @inject Confirmations Confirm
 @inject Notifier Notify
 
@@ -11,6 +12,18 @@
     <PageHeader Title="Daten importieren" Subtitle="Bestand aus einer Tabelle übernehmen: Objekte, Wohnungen, Mieter, Verträge und offene Salden." />
 
     <ErrorList Errors="errors" />
+
+    @if (canLoadDemo)
+    {
+        <section id="demo-data">
+            <h2>Erst einmal ausprobieren?</h2>
+            <p class="help">
+                Die Beispieldaten legen ein Haus mit vier Wohnungen, drei Mieter mit unterschiedlichem Zahlungsverhalten und einen Beispiel-Vermieter an.
+                Das ist für eine Probe-Installation gedacht: Es gibt kein „Entfernen“. Zum Neuanfang wird die Datenbank geleert (siehe Betrieb).
+            </p>
+            <MudButton Variant="Variant.Outlined" OnClick="LoadDemoAsync" Disabled="busy" id="demo-start">Beispieldaten laden</MudButton>
+        </section>
+    }
 
     @if (result is { Succeeded: true } done)
     {
@@ -110,6 +123,36 @@
     private DataImportResult? result;
     private IReadOnlyList<string>? errors;
     private bool busy;
+    private bool canLoadDemo;
+
+    protected override async Task OnInitializedAsync() => canLoadDemo = await Demo.CanLoadAsync();
+
+    private async Task LoadDemoAsync()
+    {
+        if (!await Confirm.AskAsync("Beispieldaten laden", "Es werden ein Beispielhaus mit Wohnungen, Mietern, Verträgen und Zahlungen angelegt. Das lässt sich nicht einzeln wieder entfernen. Fortfahren?", "Ja, laden"))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            result = await Demo.LoadAsync();
+            if (result.Succeeded)
+            {
+                Notify.Success("Die Beispieldaten wurden geladen.");
+                canLoadDemo = false;
+            }
+            else
+            {
+                errors = result.Errors;
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
 
     private int ErrorRows => preview?.Rows.Count(r => r.Errors.Count > 0) ?? 0;
 

@@ -170,6 +170,7 @@ public static class DependencyInjection
         services.AddScoped<ILegalReferences, Admin.LegalReferences>();
         services.AddScoped<IDataImport, Admin.DataImport>();
         services.AddScoped<IPortfolioFigures, Admin.PortfolioFiguresService>();
+        services.AddScoped<IDemoData, Admin.DemoData>();
         services.AddScoped<ITodoSource, Admin.LegalReferenceTodos>();
     }
 

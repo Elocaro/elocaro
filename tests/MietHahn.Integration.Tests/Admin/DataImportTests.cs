@@ -36,13 +36,13 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
         var preview = await WithAsync(i => i.PreviewAsync(template, Ct));
 
         Assert.True(preview.CanImport, string.Join(" | ", preview.Rows.SelectMany(r => r.Errors).Concat(preview.FileErrors)));
-        Assert.Equal(new DataImportSummary(1, 2, 1, 1, 0, 1), preview.Summary);
+        Assert.Equal(new DataImportSummary(1, 2, 1, 1, 0, 0), preview.Summary);
         Assert.Equal(2, preview.Rows.Count);
         Assert.Contains("Objekt neu", preview.Rows[0].Actions);
         Assert.Contains("Einheit neu", preview.Rows[0].Actions);
         Assert.Contains("Mieter neu", preview.Rows[0].Actions);
         Assert.Contains("Vertrag neu ab 01.01.2024", preview.Rows[0].Actions);
-        Assert.Contains("Objekt vorhanden", preview.Rows[1].Actions);
+        Assert.Contains("Objekt wie oben", preview.Rows[1].Actions);
         Assert.Null(preview.Rows[1].Tenant);
         Assert.Empty(await WithAsync<IPropertyService, IReadOnlyList<PropertyOverview>>(p => p.ListAsync(null, Ct)));
     }
@@ -55,7 +55,7 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
         var first = await WithAsync(i => i.ImportAsync(template, Ct));
 
         Assert.True(first.Succeeded, string.Join(" | ", first.Errors));
-        Assert.Equal(new DataImportSummary(1, 2, 1, 1, 0, 1), first.Summary);
+        Assert.Equal(new DataImportSummary(1, 2, 1, 1, 0, 0), first.Summary);
         var house = Assert.Single(await WithAsync<IPropertyService, IReadOnlyList<PropertyOverview>>(p => p.ListAsync(null, Ct)));
         Assert.Equal(("Lindenweg 3", 2), (house.Name, house.Units));
         Assert.Equal(55.5m + 62m, house.LivingArea);

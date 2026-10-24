@@ -51,4 +51,23 @@ public class DataImportBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         var house = Assert.Single(houses);
         Assert.Equal(("Lindenweg 3", 2, 117.5m), (house.Name, house.Units, house.LivingArea ?? 0));
     }
+
+    [Fact]
+    public async Task Example_data_can_be_loaded_once_and_fill_the_dashboard()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await GotoInteractiveAsync(page, "/verwaltung/einstellungen/import");
+            await page.Locator("#demo-start").ClickAsync();
+            await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, laden" }).ClickAsync();
+            await Assertions.Expect(page.Locator("#import-done")).ToContainTextAsync("1 Objekt(e), 4 Einheit(en), 3 Person(en), 3 Vertrag/Verträge");
+            await Assertions.Expect(page.Locator("#demo-data")).ToHaveCountAsync(0);
+
+            await page.GotoAsync(BaseUrl + "/verwaltung");
+            await Assertions.Expect(page.Locator("#kpis")).ToContainTextAsync("3 von 4 vermietet");
+            await Assertions.Expect(page.Locator("#kpis")).Not.ToContainTextAsync("Rückstände0,00");
+        });
+    }
 }
