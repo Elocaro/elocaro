@@ -42,6 +42,29 @@ public class PaymentMatcherTests
     }
 
     [Fact]
+    public void Amount_unit_and_month_without_a_name_are_at_least_a_medium_suggestion()
+    {
+        var anna = Lease(Guid.NewGuid(), "Wohnung 2", "Anna", "Schmidt", 770m, [Rent(2026, 3, 770m)]);
+
+        var best = PaymentMatcher.Suggest(Income(770m, null, null, "Miete 03/2026 Wohnung 2"), new MatchContext([], [anna], []))[0];
+
+        Assert.Equal(anna.LeaseId, best.LeaseId);
+        Assert.InRange(best.Score, 50, 69);
+        Assert.Equal("mittel", best.Confidence);
+        Assert.Contains(best.Reasons, r => r.StartsWith("Betrag, Mietobjekt und Zeitraum", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Amount_alone_does_not_get_the_combination_bonus()
+    {
+        var anna = Lease(Guid.NewGuid(), "Wohnung 2", "Anna", "Schmidt", 770m, [Rent(2026, 3, 770m)]);
+
+        var suggestions = PaymentMatcher.Suggest(Income(770m, null, null, "Überweisung"), new MatchContext([], [anna], []));
+
+        Assert.All(suggestions, s => Assert.DoesNotContain(s.Reasons, r => r.StartsWith("Betrag, Mietobjekt", StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public void Unrelated_transactions_get_no_suggestion()
     {
         var anna = Lease(Guid.NewGuid(), "Wohnung 2", "Anna", "Schmidt", 770m, [Rent(2026, 3, 770m)], IbanA);

@@ -241,6 +241,13 @@ public static class PaymentMatcher
             reasons.Add("Miete im Verwendungszweck");
         }
 
+        // Without a counter name or IBAN (exports that lack the column) amount, unit and month together are still a solid hint.
+        if (amountPoints >= 18 && TextMatching.ContainsUnit(transaction.Purpose, lease.UnitName) && leaseMonths.Count > 0)
+        {
+            score += 7;
+            reasons.Add("Betrag, Mietobjekt und Zeitraum passen zusammen");
+        }
+
         // Booking far outside the lease term
         if (transaction.BookingDate < lease.Start.AddDays(-31))
         {
