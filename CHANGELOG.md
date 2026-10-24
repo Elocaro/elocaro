@@ -19,6 +19,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Version der Anwendung aus dem Release-Tag (`VERSION`-Build-Argument im Dockerfile).
 
 ### Geändert
+- Barrierefreiheit: gültige Struktur der Kennzahlen und der Seitenleiste, Namen von Schnellsuche und Benutzermenü enthalten den sichtbaren Text, Links im Fließtext sind unterstrichen.
 - Datenimport und Beispieldaten buchen die Kaution als eingegangen (Spalte „Kaution eingegangen“), damit das Dashboard nicht für jeden übernommenen Vertrag „Kaution offen“ meldet.
 - Einrichtungsassistent: Das erste Objekt wird mit dem Haken „Erstes Objekt jetzt anlegen“ erfasst; ohne Haken überspringt „Weiter“ den Schritt, statt Pflichtfeld-Fehler zu zeigen.
 - Zahlungszuordnung: Betrag, Mietobjekt und Zeitraum im Verwendungszweck ergeben auch ohne Namen der Gegenseite mindestens „mittel“.

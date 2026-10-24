@@ -9,20 +9,20 @@
 
 @if (figures is not null)
 {
-    <dl class="kpis" aria-label="Kennzahlen" id="kpis">
+    <div class="kpis" role="group" aria-label="Kennzahlen" id="kpis">
         <div class="kpi">
-            <dt>Mieteingang im @Format.Month(figures.Month)</dt>
-            <dd>@Format.Money(figures.PaidThisMonth)<small> von @Format.Money(figures.MonthlyRent) Soll</small></dd>
+            <p class="kpi-label">Mieteingang im @Format.Month(figures.Month)</p>
+            <p class="kpi-value">@Format.Money(figures.PaidThisMonth)<small> von @Format.Money(figures.MonthlyRent) Soll</small></p>
         </div>
         <a class="kpi @(figures.Arrears > 0 ? "is-warning" : null)" href="/verwaltung/finanzen/offene-posten">
-            <dt>Rückstände</dt>
-            <dd>@Format.Money(figures.Arrears)<small>@(figures.ArrearsLeases == 0 ? " keine" : $" bei {figures.ArrearsLeases} Mietverhältnis{(figures.ArrearsLeases == 1 ? "" : "sen")}")</small></dd>
+            <span class="kpi-label">Rückstände</span>
+            <span class="kpi-value">@Format.Money(figures.Arrears)<small>@(figures.ArrearsLeases == 0 ? " keine" : $" bei {figures.ArrearsLeases} Mietverhältnis{(figures.ArrearsLeases == 1 ? "" : "sen")}")</small></span>
         </a>
         <div class="kpi @(figures.Vacant > 0 ? "is-info" : null)">
-            <dt>Belegung</dt>
-            <dd>@figures.Occupied von @figures.Units vermietet<small>@(figures.Vacant == 0 ? "" : $" · {figures.Vacant} leer")</small></dd>
+            <p class="kpi-label">Belegung</p>
+            <p class="kpi-value">@figures.Occupied von @figures.Units vermietet<small>@(figures.Vacant == 0 ? "" : $" · {figures.Vacant} leer")</small></p>
         </div>
-    </dl>
+    </div>
 }
 
 @if (todos is null)

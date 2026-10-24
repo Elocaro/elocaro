@@ -20,7 +20,7 @@
         else
         {
         <details class="user-menu">
-            <summary aria-label="Benutzermenü">
+            <summary aria-label="@($"{context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name}, Benutzermenü")">
                 <span class="user-name">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</span>
             </summary>
             <div class="user-menu-content">
