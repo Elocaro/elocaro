@@ -175,6 +175,10 @@ public static class TemplateCatalog
         new("old_index, new_index, old_index_month, new_index_month, index_change_percent", "Indexmiete: Indexstände, Monate und Veränderung in %", "116,3 → 121,0"),
         new("next_steps", "Staffelmiete: kommende Stufen (Liste: from, base_rent)", ""),
         new("cost_reason", "Pauschale: Erläuterung der gestiegenen Kosten", ""),
+        new("is_modernisation, modernisation_description", "Modernisierung (§ 559 BGB): Art der Erhöhung und Beschreibung der Maßnahme", ""),
+        new("modernisation_costs, maintenance_share, chargeable_costs", "Modernisierung: aufgewendete Kosten, Instandhaltungsanteil, umlagefähige Kosten", "8.000,00 €"),
+        new("cap_per_square_metre, earlier_increases, living_area", "Modernisierung: Kappungsgrenze je m² (3 € bzw. 2 €), bereits ausgeschöpfte Erhöhungen der letzten sechs Jahre, Wohnfläche", "3,00 €"),
+        new("is_simplified, is_extended", "Modernisierung: vereinfachtes Verfahren (§ 559c), Beginn um sechs Monate verschoben", ""),
     ];
 
     private static readonly IReadOnlyList<RentIncreaseModel> RentIncreaseSamples =
@@ -204,6 +208,18 @@ public static class TemplateCatalog
             false, false, false, true, 80m, 95m, 15m, 18.8m, new DateOnly(2026, 5, 1), null, null, new DateOnly(2022, 4, 1),
             false, false, false, null, null, null, null, null, null, [], null, null, null, 20, 0m, 0m,
             null, null, null, null, null, [], "Die Energiekosten der Wohnung sind seit Mietbeginn gestiegen."),
+        new(new DateOnly(2026, 3, 10), "Sehr geehrte Frau Muster,", "Erika Muster", "Wohnung 1, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
+            "Hans Vermieter", "Musterweg 1, 12345 Musterstadt", "DE89 3704 0044 0532 0130 00", "Sparkasse KölnBonn",
+            false, false, false, false, 500m, 533.33m, 33.33m, 6.7m, new DateOnly(2026, 6, 1), null, null, new DateOnly(2022, 4, 1),
+            false, false, false, null, null, null, null, 60m, null, [], null, null, null, 20, 0m, 0m,
+            null, null, null, null, null, [], null,
+            true, "Austausch der Fenster gegen Fenster mit Wärmeschutzverglasung (Energieeinsparung, § 555b Nr. 1 BGB).", 6000m, 1000m, 5000m, 3m, 0m, false, false),
+        new(new DateOnly(2026, 3, 10), "Sehr geehrter Herr Muster,", "Max Muster", "Wohnung 2, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
+            "Hans Vermieter", "Musterweg 1, 12345 Musterstadt", null, null,
+            false, false, false, false, 300m, 310m, 10m, 3.3m, new DateOnly(2026, 12, 1), null, null, new DateOnly(2022, 4, 1),
+            false, false, false, null, null, null, null, 15m, null, [], null, null, null, 20, 0m, 0m,
+            null, null, null, null, null, [], null,
+            true, "Einbau einer Fußbodenheizung.", 9000m, 2700m, 6300m, 2m, 10m, true, true),
     ];
 
     private static readonly IReadOnlyList<Placeholder> ContractPlaceholders =

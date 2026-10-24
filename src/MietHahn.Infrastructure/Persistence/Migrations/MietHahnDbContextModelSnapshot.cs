@@ -3354,6 +3354,10 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("document_id");
 
+                    b.Property<bool>("EffectiveExtended")
+                        .HasColumnType("boolean")
+                        .HasColumnName("effective_extended");
+
                     b.Property<DateOnly>("EffectiveFrom")
                         .HasColumnType("date")
                         .HasColumnName("effective_from");
@@ -3385,6 +3389,16 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("LeaseId")
                         .HasColumnType("uuid")
                         .HasColumnName("lease_id");
+
+                    b.Property<decimal?>("MaintenanceShare")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("maintenance_share");
+
+                    b.Property<decimal?>("ModernisationCosts")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("modernisation_costs");
 
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")

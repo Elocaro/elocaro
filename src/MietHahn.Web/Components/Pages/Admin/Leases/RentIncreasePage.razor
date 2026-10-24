@@ -112,6 +112,16 @@ else
                 }
 
                 break;
+            case RentIncreaseKind.Modernisation:
+                <p class="small">Mieterhöhung nach Modernisierung (§ 559 BGB): 8 % der umlagefähigen Kosten im Jahr, begrenzt auf 3 € je m² in sechs Jahren (2 € bei einer Miete unter 7 €/m²). Sie braucht keine Zustimmung; mit dem erfassten Zugang wird die neue Miete im Vertrag eingetragen.</p>
+                <AppTextField @bind-Value="input.ModernisationDescription" Label="Durchgeführte Maßnahme" Lines="4" Required="true" Hint="Art und Umfang der Maßnahme und ihr Nutzen, z. B. Energieeinsparung durch neue Fenster" />
+                <div class="form-grid">
+                    <AppNumberField T="decimal?" @bind-Value="input.ModernisationCosts" Label="Kosten für diese Wohnung" Suffix="€" Required="true" Hint="Anteil der Gesamtkosten, der auf die Wohnung entfällt" />
+                    <AppNumberField T="decimal?" @bind-Value="input.MaintenanceShare" Label="Davon Instandhaltung" Suffix="€" Hint="Nicht umlagefähig; ohne Angabe 0 €. Im vereinfachten Verfahren pauschal 30 %." />
+                </div>
+                <AppCheckBox @bind-Value="input.Simplified" Label="Vereinfachtes Verfahren (§ 559c): Kosten bis 10.000 €, einmal in fünf Jahren, kein Härteeinwand" />
+                <AppCheckBox @bind-Value="input.AnnouncedProperly" Label="Die Maßnahme wurde angekündigt (§ 555c) und die Kosten liegen höchstens 10 % über der Ankündigung" />
+                break;
             default:
                 <p class="small">Anpassung der Betriebskostenpauschale nach § 560 BGB. Bisherige Pauschale: @Format.Money(overview.FlatRate).</p>
                 <div class="form-grid">
@@ -280,6 +290,7 @@ else
         RentIncreaseKind.Index => "Indexmiete",
         RentIncreaseKind.Graduated => "Staffel",
         RentIncreaseKind.FlatRate => "Pauschale",
+        RentIncreaseKind.Modernisation => "Modernisierung",
         _ => "Vergleichsmiete",
     };
 

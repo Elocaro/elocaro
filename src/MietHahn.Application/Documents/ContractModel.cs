@@ -132,4 +132,13 @@ public sealed record RentIncreaseModel(
     DateOnly? NewIndexMonth,
     decimal? IndexChangePercent,
     IReadOnlyList<ContractStep> NextSteps,
-    string? CostReason);
+    string? CostReason,
+    bool IsModernisation = false,
+    string? ModernisationDescription = null,
+    decimal? ModernisationCosts = null,
+    decimal? MaintenanceShare = null,
+    decimal? ChargeableCosts = null,
+    decimal? CapPerSquareMetre = null,
+    decimal? EarlierIncreases = null,
+    bool IsSimplified = false,
+    bool IsExtended = false);

@@ -232,6 +232,50 @@ public class RentIncreasesTests(PostgresFixture postgres, GotenbergFixture goten
         Assert.False((await WithAsync<IRentIncreases, Result>(r => r.WithdrawAsync(second, Ct))).Succeeded);
     }
 
+    [Fact]
+    public async Task Modernisation_levy_is_calculated_with_the_cap_and_enters_the_rent_from_the_third_month()
+    {
+        var input = new RentIncreaseInput
+        {
+            Kind = RentIncreaseKind.Modernisation,
+            TemplateId = TemplateId("Modernisierung"),
+            ModernisationDescription = "Austausch der Fenster (Energieeinsparung).",
+            ModernisationCosts = 6000m,
+            MaintenanceShare = 1000m,
+        };
+        var check = await WithAsync<IRentIncreases, RentIncreaseCheck>(r => r.CheckAsync(standardLease, input, Ct));
+        Assert.True(check.IsAllowed, string.Join(" ", check.Errors));
+        Assert.Equal((533.33m, new DateOnly(2026, 6, 1)), (check.NewAmount, check.EffectiveFrom));
+
+        var id = Validate(await WithAsync<IRentIncreases, Result>(r => r.CreateDraftAsync(standardLease, input, Ct)));
+        var row = Assert.Single((await Overview(standardLease)).Increases);
+        var text = await PdfTextAsync(row.DocumentId!.Value);
+        Assert.Contains("Austausch der Fenster", text, StringComparison.Ordinal);
+        Assert.Contains("5.000,00", text, StringComparison.Ordinal);
+        Assert.Contains("533,33", text, StringComparison.Ordinal);
+        Assert.Contains("Härte", text, StringComparison.Ordinal);
+
+        Validate(await WithAsync<IRentIncreases, Result>(r => r.DeclareAsync(id, new DateOnly(2026, 3, 14), Ct)));
+        var lease = (await WithAsync<ILeaseService, LeaseDetails?>(l => l.GetAsync(standardLease, Ct)))!;
+        Assert.Contains(lease.Components, c => c.Kind == RentComponentType.BaseRent && c.Amount == 533.33m && c.Validity.From == new DateOnly(2026, 6, 1));
+        Assert.Equal(RentIncreaseStatus.InForce, (await Overview(standardLease)).Increases.Single().Status);
+
+        // The first levy counts against the cap of the next one.
+        var second = await WithAsync<IRentIncreases, RentIncreaseCheck>(r => r.CheckAsync(standardLease, input, Ct));
+        Assert.True(second.IsAllowed);
+    }
+
+    [Fact]
+    public async Task Modernisation_without_description_or_costs_is_refused()
+    {
+        var input = new RentIncreaseInput { Kind = RentIncreaseKind.Modernisation, TemplateId = TemplateId("Modernisierung") };
+
+        var check = await WithAsync<IRentIncreases, RentIncreaseCheck>(r => r.CheckAsync(standardLease, input, Ct));
+
+        Assert.False(check.IsAllowed);
+        Assert.False((await WithAsync<IRentIncreases, Result>(r => r.CreateDraftAsync(standardLease, input, Ct))).Succeeded);
+    }
+
     private RentIncreaseInput ComparativeInput() => new()
     {
         Kind = RentIncreaseKind.Comparative,

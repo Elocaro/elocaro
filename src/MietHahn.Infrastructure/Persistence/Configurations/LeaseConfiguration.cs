@@ -112,6 +112,8 @@ internal sealed class RentIncreaseConfiguration : IEntityTypeConfiguration<RentI
         builder.Property(r => r.NewAmount).HasPrecision(12, 2);
         builder.Property(r => r.ComparativeRentAmount).HasPrecision(12, 2);
         builder.Property(r => r.CapLimit).HasPrecision(12, 2);
+        builder.Property(r => r.ModernisationCosts).HasPrecision(12, 2);
+        builder.Property(r => r.MaintenanceShare).HasPrecision(12, 2);
         builder.Property(r => r.IndexOldValue).HasPrecision(8, 1);
         builder.Property(r => r.IndexNewValue).HasPrecision(8, 1);
         builder.HasOne<Lease>().WithMany().HasForeignKey(r => r.LeaseId).OnDelete(DeleteBehavior.Restrict);

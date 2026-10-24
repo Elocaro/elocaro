@@ -173,6 +173,13 @@ internal sealed class RentIncreases(MietHahnDbContext db, IPdfGenerator pdf, IDo
                     increase.Declare(received, effective, null);
                     break;
 
+                case RentIncreaseKind.Modernisation:
+                    var modernisationFrom = ModernisationLevy.EffectiveFrom(received, increase.EffectiveExtended);
+                    var delta = increase.NewAmount - increase.CurrentAmount;
+                    lease.SetComponent(RentComponentType.BaseRent, modernisationFrom, (lease.AmountAt(RentComponentType.BaseRent, modernisationFrom) ?? increase.CurrentAmount) + delta);
+                    increase.Declare(received, modernisationFrom, null);
+                    break;
+
                 case RentIncreaseKind.FlatRate:
                     var flatFrom = IndexedRent.EffectiveFrom(received);
                     lease.SetComponent(RentComponentType.OperatingCostFlatRate, flatFrom, increase.NewAmount);
@@ -262,6 +269,8 @@ internal sealed class RentIncreases(MietHahnDbContext db, IPdfGenerator pdf, IDo
                 return await PlanIndexAsync(context, planned, current, baseModel, errors, warnings, cancellationToken);
             case RentIncreaseKind.Graduated:
                 return PlanGraduated(context, planned, baseModel, errors, warnings);
+            case RentIncreaseKind.Modernisation:
+                return await PlanModernisationAsync(context, input, planned, current, baseModel, errors, warnings, cancellationToken);
             default:
                 return PlanFlatRate(context, input, planned, baseModel, errors, warnings);
         }
@@ -461,6 +470,64 @@ internal sealed class RentIncreases(MietHahnDbContext db, IPdfGenerator pdf, IDo
                 r.IndexOldValue = model.OldIndex;
                 r.IndexNewMonth = newest?.Month;
                 r.IndexNewValue = newest?.Value;
+            });
+    }
+
+    private async Task<Plan> PlanModernisationAsync(Context context, RentIncreaseInput input, DateOnly planned, decimal current, RentIncreaseModel baseModel, List<string> errors, List<string> warnings, CancellationToken cancellationToken)
+    {
+        var lease = context.Lease;
+        if (lease.RentModel == RentModel.Graduated)
+        {
+            warnings.Add("Bei einer Staffelmiete ist eine Mieterhöhung wegen Modernisierung nur eingeschränkt möglich (§ 557a Abs. 2 BGB): bitte prüfen.");
+        }
+
+        if (string.IsNullOrWhiteSpace(input.ModernisationDescription))
+        {
+            errors.Add("Die Erklärung muss die Modernisierungsmaßnahme bezeichnen und die Mieterhöhung berechnen und erläutern (§ 559b Abs. 1 BGB): bitte die Maßnahme beschreiben.");
+        }
+
+        var effective = ModernisationLevy.EffectiveFrom(planned, !input.AnnouncedProperly);
+        var since = effective.AddYears(-ModernisationLevy.CapYears);
+        var earlier = (await db.Set<RentIncrease>().AsNoTracking()
+            .Where(r => r.LeaseId == lease.Id && r.Kind == RentIncreaseKind.Modernisation && r.Status == RentIncreaseStatus.InForce && r.EffectiveFrom > since)
+            .Select(r => new { r.NewAmount, r.CurrentAmount }).ToListAsync(cancellationToken)).Sum(r => r.NewAmount - r.CurrentAmount);
+        var costs = input.ModernisationCosts ?? 0m;
+        var assessment = ModernisationLevy.Assess(current, context.Area, costs, input.MaintenanceShare ?? 0m, input.Simplified, earlier);
+        errors.AddRange(assessment.Errors);
+        warnings.AddRange(assessment.Warnings);
+        if (!input.AnnouncedProperly)
+        {
+            warnings.Add("Ohne ordnungsgemäße Ankündigung (§ 555c BGB) oder bei über 10 % höheren Kosten beginnt die Erhöhung sechs Monate später (§ 559b Abs. 2 BGB).");
+        }
+
+        warnings.Add("Die Mieterhöhung setzt eine Modernisierung nach § 555b Nr. 1, 3, 4, 5 oder 6 BGB voraus (Energieeinsparung, Wasser, Gebrauchswert, allgemeine Wohnverhältnisse, bauliche Änderungen auf Grund Umständen, die der Vermieter nicht zu vertreten hat). Reine Instandhaltung ist nicht umlagefähig.");
+        var maintenance = input.Simplified ? Math.Round(costs * ModernisationLevy.SimplifiedMaintenanceShare, 2, MidpointRounding.AwayFromZero) : input.MaintenanceShare ?? 0m;
+        var newRent = current + assessment.AllowedIncrease;
+        var model = baseModel with
+        {
+            IsModernisation = true,
+            CurrentAmount = current,
+            NewAmount = newRent,
+            IncreaseAmount = assessment.AllowedIncrease,
+            IncreasePercent = current > 0 ? Math.Round(assessment.AllowedIncrease / current * 100, 1, MidpointRounding.AwayFromZero) : 0m,
+            EffectiveFrom = effective,
+            LastIncrease = lease.LastBaseRentChange(planned),
+            LivingArea = context.Area,
+            ModernisationDescription = input.ModernisationDescription?.Trim(),
+            ModernisationCosts = costs,
+            MaintenanceShare = maintenance,
+            ChargeableCosts = assessment.ChargeableCosts,
+            CapPerSquareMetre = assessment.CapPerSquareMetre,
+            EarlierIncreases = earlier,
+            IsSimplified = input.Simplified,
+            IsExtended = !input.AnnouncedProperly,
+        };
+        return new Plan(errors, warnings, current, assessment.IsAllowed ? newRent : null, planned, effective, null, $"Modernisierung, {assessment.ChargeableCosts:N0} € umlagefähig".Replace(",", ".", StringComparison.Ordinal), model, null, null,
+            r =>
+            {
+                r.ModernisationCosts = costs;
+                r.MaintenanceShare = maintenance;
+                r.EffectiveExtended = !input.AnnouncedProperly;
             });
     }
 

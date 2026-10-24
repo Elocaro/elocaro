@@ -55,6 +55,7 @@ public static class Labels
         RentIncreaseKind.Index => "Indexanpassung (§ 557b)",
         RentIncreaseKind.Graduated => "Staffel-Information (§ 557a)",
         RentIncreaseKind.FlatRate => "Pauschale (§ 560)",
+        RentIncreaseKind.Modernisation => "Modernisierung (§ 559)",
         _ => "Vergleichsmiete (§ 558)",
     };
 

@@ -1,0 +1,28 @@
+{{# BASISVORLAGE Mieterhöhung nach Modernisierung (§§ 559, 559b BGB). Kein Rechtsrat, vor dem Einsatz rechtlich prüfen lassen: Voraussetzung ist eine Modernisierung nach § 555b Nr. 1, 3, 4, 5 oder 6 BGB; Berechnung und Erläuterung sind Wirksamkeitsvoraussetzung. Härteeinwand beachten. }}
+<p>{{ salutation }}</p>
+<p>an Ihrer Wohnung ({{ rental_unit }}, {{ property_street }}, {{ property_postal_code }} {{ property_city }}) wurde die folgende Modernisierungsmaßnahme durchgeführt. Wir erklären deshalb die Erhöhung der monatlichen Grundmiete nach § 559 BGB.</p>
+<h3>Durchgeführte Maßnahme</h3>
+<p>{{ text_to_html modernisation_description }}</p>
+<h3>Berechnung</h3>
+<table>
+  <tbody>
+    <tr><td>Für Ihre Wohnung aufgewendete Kosten</td><td class="number">{{ money modernisation_costs }}</td></tr>
+    <tr><td>abzüglich Anteil für Instandhaltung (nicht umlagefähig, § 559 Abs. 2 BGB){{ if is_simplified }}, pauschal 30 % (§ 559c BGB){{ end }}</td><td class="number">− {{ money maintenance_share }}</td></tr>
+    <tr><td>Umlagefähige Kosten</td><td class="number">{{ money chargeable_costs }}</td></tr>
+    <tr><td>Jährliche Erhöhung: 8 % der umlagefähigen Kosten</td><td class="number">{{ money chargeable_costs * 0.08 }}</td></tr>
+    <tr><td>Monatliche Erhöhung (ein Zwölftel)</td><td class="number">{{ money increase_amount }}</td></tr>
+  </tbody>
+</table>
+{{ if increase_amount < chargeable_costs * 0.08 / 12 }}<p>Die Erhöhung ist durch die Kappungsgrenze des § 559 Abs. 3a BGB begrenzt: Innerhalb von sechs Jahren steigt die monatliche Miete durch Modernisierung höchstens um {{ money cap_per_square_metre }} je Quadratmeter Wohnfläche{{ if living_area }} ({{ number living_area 2 }} m²){{ end }}{{ if earlier_increases > 0 }}; davon wurden durch frühere Modernisierungen bereits {{ money earlier_increases }} ausgeschöpft{{ end }}.</p>{{ end }}
+<table>
+  <tbody>
+    <tr><td>Bisherige Grundmiete</td><td class="number">{{ money current_amount }}</td></tr>
+    <tr><td>Erhöhung</td><td class="number">{{ money increase_amount }} ({{ number increase_percent 1 }} %)</td></tr>
+    <tr><td><strong>Neue Grundmiete</strong></td><td class="number"><strong>{{ money new_amount }}</strong></td></tr>
+  </tbody>
+</table>
+<p>Die erhöhte Miete schulden Sie ab dem <strong>{{ date effective_from }}</strong> (Beginn des dritten Monats nach Zugang dieser Erklärung{{ if is_extended }}, wegen der fehlenden oder abweichenden Ankündigung der Maßnahme um sechs Monate verschoben, § 559b Abs. 2 BGB{{ end }}). Ihre Zustimmung ist nicht erforderlich.</p>
+{{ if is_simplified }}<p>Wir haben das vereinfachte Verfahren nach § 559c BGB gewählt; ein Einwand wegen einer finanziellen Härte ist dabei ausgeschlossen.</p>{{ else }}<p>Wenn die Mieterhöhung für Sie oder Ihre Familie eine finanzielle Härte bedeutet, die auch unter Würdigung unserer Interessen nicht zu rechtfertigen ist, teilen Sie uns die Gründe bitte bis zum Ablauf des Monats, der auf den Zugang dieser Erklärung folgt, in Textform mit (§ 559 Abs. 4 und 5 BGB).</p>{{ end }}
+{{ if sender_iban }}<p>Bitte überweisen Sie die neue Miete auf das bekannte Konto ({{ sender_iban }}{{ if sender_bank }}, {{ sender_bank }}{{ end }}).</p>{{ end }}
+
+{{ include 'Grußformel' }}

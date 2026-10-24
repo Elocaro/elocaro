@@ -15,6 +15,9 @@ public enum RentIncreaseKind
 
     /// <summary>Adjustment of the operating cost flat rate (§ 560 Abs. 1 BGB).</summary>
     FlatRate = 3,
+
+    /// <summary>Increase after modernisation (§§ 559 to 559c BGB); effective without consent.</summary>
+    Modernisation = 4,
 }
 
 public enum RentIncreaseStatus
@@ -120,6 +123,14 @@ public sealed class RentIncrease : Entity
 
     public decimal? IndexNewValue { get; set; }
 
+    /// <summary>Modernisation: costs spent for the flat and the share of maintenance deducted from them.</summary>
+    public decimal? ModernisationCosts { get; set; }
+
+    public decimal? MaintenanceShare { get; set; }
+
+    /// <summary>Modernisation: not announced or over 10 % dearer, so the increase starts six months later (§ 559b Abs. 2 Satz 2).</summary>
+    public bool EffectiveExtended { get; set; }
+
     public Guid? TemplateRevisionId { get; set; }
 
     /// <summary>The letter in the document library.</summary>
@@ -149,7 +160,7 @@ public sealed class RentIncrease : Entity
         DeclaredOn = received;
         EffectiveFrom = effectiveFrom;
         ConsentDeadline = consentDeadline;
-        Status = Kind is RentIncreaseKind.Index or RentIncreaseKind.FlatRate ? RentIncreaseStatus.InForce : RentIncreaseStatus.Declared;
+        Status = Kind is RentIncreaseKind.Index or RentIncreaseKind.FlatRate or RentIncreaseKind.Modernisation ? RentIncreaseStatus.InForce : RentIncreaseStatus.Declared;
     }
 
     public void Agree(DateOnly on)

@@ -76,6 +76,22 @@ public sealed class RentIncreaseInput
 
     [StringLength(4000)]
     public string? CostReason { get; set; }
+
+    /// <summary>Modernisation: the work and its effect (§ 555b), as shown in the letter.</summary>
+    [StringLength(4000)]
+    public string? ModernisationDescription { get; set; }
+
+    /// <summary>Modernisation: costs spent for this flat (share of the whole building already apportioned).</summary>
+    public decimal? ModernisationCosts { get; set; }
+
+    /// <summary>Modernisation: share of the costs that is maintenance (not chargeable). Ignored in the simplified procedure.</summary>
+    public decimal? MaintenanceShare { get; set; }
+
+    /// <summary>Modernisation: simplified procedure up to 10,000 € (§ 559c).</summary>
+    public bool Simplified { get; set; }
+
+    /// <summary>Modernisation: the work was announced (§ 555c) and the costs are at most 10 % above the announcement.</summary>
+    public bool AnnouncedProperly { get; set; } = true;
 }
 
 public sealed class ComparableFlatInput
