@@ -21,7 +21,7 @@ public class ModuleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var (browser, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = browser;
         Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/verwaltung/vpi")).Status);
-        Assert.Contains("Bank", (await browser.GetAsync("/verwaltung")).Document.QuerySelector(".sidebar")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Geld", (await browser.GetAsync("/verwaltung")).Document.QuerySelector(".sidebar")!.TextContent, StringComparison.Ordinal);
 
         await SaveAsync(AppModule.Tickets);
 
@@ -30,8 +30,8 @@ public class ModuleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var start = await browser.GetAsync("/verwaltung");
         Assert.Equal(HttpStatusCode.OK, start.Status);
         var sidebar = start.Document.QuerySelector(".sidebar")!.TextContent;
-        Assert.DoesNotContain("Bank", sidebar, StringComparison.Ordinal);
-        Assert.Contains("Tickets", sidebar, StringComparison.Ordinal);
+        Assert.DoesNotContain("/verwaltung/bank", start.Document.QuerySelector(".sidebar")!.InnerHtml, StringComparison.Ordinal); // the area leads to the first page that is left
+        Assert.Contains("Kommunikation", sidebar, StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/verwaltung/objekte")).Status);
     }
 
@@ -175,9 +175,10 @@ public class TaxOptionPagesTests(PostgresFixture postgres) : AccountTestBase(pos
         Assert.Equal(HttpStatusCode.NotFound, (await browser.GetAsync("/verwaltung/finanzen/datev")).Status);
         var lines = await browser.GetAsync("/verwaltung/finanzen/anlage-v-zeilen");
         Assert.Equal(HttpStatusCode.OK, lines.Status);
-        var sidebar = lines.Document.QuerySelector(".sidebar")!;
-        Assert.Contains("Darlehen & Steuer", sidebar.TextContent, StringComparison.Ordinal);
-        Assert.Contains("/verwaltung/finanzen/anlage-v-zeilen", sidebar.InnerHtml, StringComparison.Ordinal);
+        Assert.Contains("Geld", lines.Document.QuerySelector(".sidebar")!.TextContent, StringComparison.Ordinal);
+        var tabs = lines.Document.QuerySelector(".tab-bar")!;
+        Assert.Contains("Darlehen & Steuer", tabs.TextContent, StringComparison.Ordinal);
+        Assert.Contains("/verwaltung/finanzen/anlage-v-zeilen", tabs.InnerHtml, StringComparison.Ordinal);
     }
 }
 

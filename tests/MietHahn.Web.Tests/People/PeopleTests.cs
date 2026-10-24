@@ -58,7 +58,7 @@ public class PeopleTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("Hans Schmidt", person.Text, StringComparison.Ordinal);
         Assert.Contains("Frühere und künftige Anschriften", person.Text, StringComparison.Ordinal);
         Assert.Contains("Wohnung 1, Lindenweg 3, 50667 Köln", person.Text, StringComparison.Ordinal); // from tomorrow
-        App.Clock.Advance(TimeSpan.FromDays(1));
+        App.Clock.Advance(TimeSpan.FromHours(26)); // not 24: the day of the clock change has 25 hours
         Assert.Contains("Wohnung 1, Lindenweg 3, 50667 Köln (seit", (await admin.GetAsync(person.Path)).Text, StringComparison.Ordinal);
 
         Assert.Contains("Schmidt, Anna", (await admin.GetAsync("/verwaltung/personen?q=3704")).Text, StringComparison.Ordinal);

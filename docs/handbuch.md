@@ -5,8 +5,8 @@ Dieses Handbuch ist für Vermieter, die MietHahn benutzen. Betrieb und Installat
 ## Erste Schritte
 
 1. **Vermieterprofil** (Einstellungen → Vermieter): Name, Anschrift, Bankverbindung. Sie stehen auf allen Schreiben.
-2. **Objekt und Einheiten** (Objekte → Neu): das Haus, dann die Wohnungen mit Wohnfläche.
-3. **Mieter und Vertrag** (Verträge → Neu): Mieter, Mietbeginn, Kaltmiete, Betriebskostenvorauszahlung, Kaution.
+2. **Objekt und Einheiten** (Bestand → Objekte → Neu): das Haus, dann die Wohnungen mit Wohnfläche.
+3. **Mieter und Vertrag** (Bestand → Verträge → Neu): Mieter, Mietbeginn, Kaltmiete, Betriebskostenvorauszahlung, Kaution.
 4. **Zahlungen** (Bank): Konto anlegen, Umsätze importieren; MietHahn ordnet sie den Forderungen zu.
 5. **Mieterzugang** (Personen → Mieter → Portalzugang): damit der Mieter Konto, Dokumente und Meldungen selbst sieht.
 
@@ -16,13 +16,13 @@ Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. W
 
 | Aufgabe | Wo | Kurz |
 |---|---|---|
-| Mieter anlegen | Personen → Neu | Name, Anrede, Anschrift, E-Mail; danach im Vertrag wählen |
-| Zahlung zuordnen | Bank → Zuordnen | Vorschlag bestätigen; mit Regeln geht es künftig automatisch. Barzahlungen im Mieterkonto des Vertrags |
+| Mieter anlegen | Bestand → Personen → Neu | Name, Anrede, Anschrift, E-Mail; danach im Vertrag wählen |
+| Zahlung zuordnen | Geld → Bank → Zuordnen | Vorschlag bestätigen; mit Regeln geht es künftig automatisch. Barzahlungen im Mieterkonto des Vertrags |
 | Nebenkosten abrechnen | Belege, dann Objekt → Abrechnung | Zeitraum, Kostenarten, Verteilung prüfen; Zugang beim Mieter binnen zwölf Monaten nach Ende des Zeitraums |
 | Miete erhöhen | Vertrag → Vertrag → Mieterhöhung | Verfahren wählen; Fristen und Grenzen werden gerechnet, das Schreiben entsteht als PDF |
 | Zählerstände | Objekt → Zähler | Ablese-Runde, CSV-Import oder Meldung der Mieter im Portal prüfen und übernehmen |
 | Mieterwechsel | Vertrag → Ein- & Auszug | Mieterwechsel, Übergabe Auszug mit Protokoll, Kaution abrechnen, danach neuer Vertrag |
-| Bescheinigungen | Dokumente → Schreiben an Mieter | Wohnungsgeberbestätigung, Mietbescheinigung, Mietschuldenfreiheit, Kautionsabrechnung |
+| Bescheinigungen | Kommunikation → Dokumente → Schreiben an Mieter | Wohnungsgeberbestätigung, Mietbescheinigung, Mietschuldenfreiheit, Kautionsabrechnung |
 
 ## Begriffe
 

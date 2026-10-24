@@ -21,7 +21,7 @@ Abgeleitet aus der [Produkt- und UX-Bewertung](produktbewertung.md) (Befunde P1�
 | AP-23 Bankdaten | Matcher erledigt; Echtexporte, FinTS-Pilot, photoTAN offen | #89 |
 | AP-30 Import | erledigt (CSV; kein `.xlsx`) | #92 |
 | AP-31 Beispieldaten | erledigt; öffentliche Demo-Instanz offen | #93 |
-| AP-32 Navigation | offen, bewusst nach der Testgruppe | #94 |
+| AP-32 Navigation | umgesetzt (sechs Bereiche, zwei Tab-Zeilen); der Klicktest mit Nutzern steht noch aus (Testgruppe) | #94 |
 | AP-33 Portal-Konto | erledigt | #95 |
 | AP-34 Plattformen | Anleitung erledigt; Vorlagen fehlen (ungeprüft) | #96 |
 | AP-35 Kaution | erledigt (ohne Bankkonto-Zinsen, ohne Portal) | #97 |

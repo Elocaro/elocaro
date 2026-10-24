@@ -4,6 +4,9 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Geändert
+- Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
+
 ### Hinzugefügt
 - Rechtsstände: Prüfvermerk (wer, wann, gegen welche Quelle); die CO₂-Stufentabelle gilt mit Vermerk ein Jahr als geprüft.
 - Kontoauszug-CSV: Profile für Commerzbank, Deutsche Bank und N26.

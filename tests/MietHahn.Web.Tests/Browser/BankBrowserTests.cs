@@ -97,7 +97,7 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await Assertions.Expect(page.Locator("tbody tr")).ToHaveCountAsync(3);
 
             // The same file again: nothing new, the import is blocked, discarding works.
-            await page.Locator(".tab-bar").GetByRole(AriaRole.Link, new() { Name = "Konten" }).ClickAsync();
+            await page.Locator(".sub-tabs").GetByRole(AriaRole.Link, new() { Name = "Bankkonten" }).ClickAsync();
             await page.GetByRole(AriaRole.Link, new() { Name = "Mietkonto" }).First.ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/bank/konten/*");
             await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Mietkonto");

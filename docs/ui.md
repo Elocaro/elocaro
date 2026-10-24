@@ -17,7 +17,7 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 | Bereich | Desktop (ab 900 px) | Smartphone |
 |---|---|---|
 | Kopfleiste (`.top-bar`) | feststehend: Marke, Benutzermenü | entfällt, der Seitenkopf ist die App-Leiste |
-| Hauptnavigation | Seitenleiste (`.sidebar`), eigener Scroll, nach Bereichen gruppiert | Untere Leiste (`.bottom-bar`): Aufgaben, Objekte, Verträge, Forderungen, **Menü** (Blatt mit allen Bereichen und Benutzermenü) |
+| Hauptnavigation | Seitenleiste (`.sidebar`), eigener Scroll, nach Bereichen gruppiert | Untere Leiste (`.bottom-bar`): Aufgaben, Bestand, Geld, Kommunikation, **Menü** (Blatt mit allen Bereichen und Benutzermenü) |
 | Tabs (`TabBar`, `ContextTabs`) | unter der Kopfleiste, feststehend | gleiche Leiste, seitlich wischbar, aktiver Tab wird sichtbar gehalten |
 | Seitenkopf (`PageHeader`) | `position: sticky` im Inhaltsbereich | Zurück als Icon links vom Titel; die gefüllte Hauptaktion wird zur schwebenden Schaltfläche über der unteren Leiste |
 | Tabellen | `MudTable` füllt die freie Höhe, Kopfzeile bleibt stehen | Karten (`Breakpoint.Sm`) |
@@ -25,6 +25,7 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 
 **Navigationsmodell** (`Layout/AdminNavModel.cs`): einzige Stelle, die weiß, was zusammengehört.
 - *Bereiche* (Seitenleiste, unteres Menü) mit Berechtigung; jeder Bereich kennt seine Seiten (`Prefixes`) und Geschwisterseiten (`Tabs`). `ContextTabs` zeigt die Tabs des Bereichs automatisch, eine neue Seite braucht also nur einen Eintrag dort, keinen eigenen Navigationscode.
+- Die Seitenleiste hat **sechs Bereiche** (höchstens sieben, `NavigationModelTests`): *Übersicht* · *Bestand* (Objekte, Personen, Verträge) · *Kommunikation* (Tickets, Mitteilungen, Dokumente, Fristen) · *Geld* (Bank, Forderungen, Belege, Darlehen & Steuer) · *Benutzer* · *Einstellungen*. Die Seitenadressen blieben unverändert; ein Bereich fasst nur die bisherigen Seiten unter Tabs zusammen. Gruppen lassen sich nicht schachteln: höchstens zwei Tab-Zeilen (Bereichs-Tabs, darunter die Seiten der aktiven Gruppe).
 - *Arbeitsbereiche* einzelner Objekte (`/verwaltung/objekte/{id}/…`) und Verträge (`/verwaltung/vertraege/{id}/…`): Tabs wie Zähler, Heizkosten, Mieterkonto, Übergabe. Solche Verweise gehören **nicht** als Schaltflächen in den Seitenkopf. Im `Actions`-Slot stehen nur Aktionen an der Seite selbst (Bearbeiten, Neu); seltene und riskante Aktionen in ein `MudMenu` („Weitere Aktionen“).
 - Zusammengehörige Seiten stehen als **Gruppe** unter einem Tab (`NavTab.Group`): Objekt = Übersicht · Zähler · *Nebenkosten* (Umlageschlüssel, Heizkosten, Vorschau, Abrechnungs-Assistent, Abrechnungen) · *Steuer* (AfA, Erhaltungsaufwand, Anlage V); Vertrag = Übersicht · *Konto* (Mieterkonto, Kostenarten) · *Vertrag* (Vertragsdokument, Mieterhöhung) · *Ein- & Auszug*. Solange die Gruppe aktiv ist, zeigt `TabBar` eine zweite Zeile mit ihren Seiten.
 - Neue Unterseite eines Objekts oder Vertrags: Tab in `PropertyTabs`/`LeaseTabs` ergänzen, eine neue Gruppe nur für wirklich eigenständige Themen.
