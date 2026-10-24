@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- Belege per E-Mail: Anhänge aus einem IMAP-Postfach werden als offene Belege (Betrag fehlt) abgelegt; Absenderfreigabe, Größenlimit, optional Belegauslesung.
 - Mieterhöhung nach Modernisierung (§§ 559 bis 559c BGB) im Mieterhöhungs-Assistenten: Umlage, Kappungsgrenze, vereinfachtes Verfahren, Fristen, Vorlage mit Härtehinweis.
 - Hilfe in der Anwendung (Benutzermenü): Erste Schritte, Aufgaben, häufige Fragen und Glossar für Vermieter, eigene Hilfe für Mieter im Portal; Anwenderhandbuch `docs/handbuch.md`.
 - Schreiben: Vorlagen „Mietbescheinigung“, „Mietschuldenfreiheitsbescheinigung“ und „Kautionsabrechnung und -rückzahlung“; das Briefmodell kennt Miete, Nebenkosten, Wohnfläche, Kaution und offene Forderungen.

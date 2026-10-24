@@ -98,6 +98,24 @@ RECEIPT_AI_ACCEPT_EXTERNAL=true
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
+## Belege per E-Mail (optional)
+
+MietHahn kann ein Postfach abrufen und die Anhänge (PDF, JPG, PNG) als **offene Belege** ablegen: ohne Betrag und Kostenart, mit dem Hinweis „Betrag fehlt“ in der Belegliste und auf der Übersicht. Beträge und Kostenart ergänzen Sie danach wie bei jedem Beleg.
+
+Voraussetzung ist ein eigenes Postfach mit IMAP-Zugang (z. B. `belege@ihre-domain.de`); ein Mailserver gehört nicht zu MietHahn. Einstellungen (Umgebungsvariablen mit `__` statt `:`):
+
+| Schlüssel | Bedeutung |
+|---|---|
+| `ReceiptInbox__Enabled` | `true` schaltet den Abruf ein (alle fünf Minuten) |
+| `ReceiptInbox__Host`, `Port`, `Security` | IMAP-Server, Standard Port 993 und `SslOnConnect` |
+| `ReceiptInbox__UserName`, `Password` | Zugangsdaten des Postfachs |
+| `ReceiptInbox__AllowedSenders__0` … | erlaubte Absender: Adresse oder `@domain`; **ohne Eintrag wird nichts abgerufen** |
+| `ReceiptInbox__ProcessedFolder` | Ordner für verarbeitete Mails (Standard `MietHahn-verarbeitet`), leer = nur als gelesen markieren |
+| `ReceiptInbox__MaxAttachmentMegabytes` | Größenlimit je Anhang, Standard 15 |
+| `ReceiptInbox__Extract` | `true` liest die Daten mit der [Belegauslesung](#belegauslesung-optional-ki) aus (nur wenn diese bereit ist; Dokumente verlassen dann ggf. den Server) |
+
+**Sicherheit:** Die Absenderadresse einer Mail lässt sich fälschen. Verwenden Sie eine nicht öffentliche Adresse und ein Postfach, dessen Server SPF/DKIM prüft und Spam aussortiert. Mails anderer Absender, ohne verwertbaren Anhang oder mit zu großen Dateien werden nicht übernommen (nur im Log vermerkt). Eine Virenprüfung führt MietHahn nicht durch; setzen Sie sie am Mailserver ein.
+
 ## Gesundheit & Logs
 
 ```bash

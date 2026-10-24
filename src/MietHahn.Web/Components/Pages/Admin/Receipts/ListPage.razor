@@ -42,7 +42,11 @@
                 <MudTd DataLabel="Kostenarten">@string.Join(", ", context.CostTypes)<span class="small">&#32;@string.Join(", ", context.Properties)</span></MudTd>
                 <MudTd DataLabel="Betrag" Style="text-align:right">@Format.Money(context.Gross)</MudTd>
                 <MudTd DataLabel="Status">
-                    @if (context.Allocated != context.Gross)
+                    @if (context.Incomplete)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">Betrag fehlt</StatusChip>
+                    }
+                    else if (context.Allocated != context.Gross)
                     {
                         <StatusChip Level="StatusLevel.Warning">@Format.Money(context.Gross - context.Allocated) nicht aufgeteilt</StatusChip>
                     }

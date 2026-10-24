@@ -74,7 +74,8 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             b.Items.Select(p => CostTypes.Find(p.CostType)?.Name ?? p.CostType).Distinct().ToList(),
             b.Items.Select(p => properties.GetValueOrDefault(p.PropertyId, "?")).Distinct().ToList(),
             b.PaidOn,
-            b.Files.Count)).ToList();
+            b.Files.Count,
+            b.Incomplete)).ToList();
     }
 
     public async Task<ReceiptDetails?> GetAsync(Guid id, CancellationToken cancellationToken = default)
@@ -110,6 +111,11 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             ArgumentNullException.ThrowIfNull(data);
             ArgumentNullException.ThrowIfNull(fileIds);
             var receipt = new Receipt(data.InvoiceDate ?? throw new RuleViolationException("Bitte das Rechnungsdatum angeben."), data.Gross ?? 0m);
+            if (data.Incomplete)
+            {
+                receipt.MarkIncomplete();
+            }
+
             await ApplyAsync(receipt, data, cancellationToken);
             await ValidateFilesAsync(fileIds, cancellationToken);
             foreach (var fileId in fileIds)
@@ -352,7 +358,14 @@ internal sealed class ReceiptTodos(MietHahnDbContext db, TimeProvider clock) : I
             b.DueOn < today ? Urgency.Urgent : Urgency.Soon, b.InvoiceNumber is null ? null : $"Rechnung {b.InvoiceNumber}", b.DueOn)));
 
         var receipts = await db.Set<Receipt>().AsNoTracking().Include(b => b.Items).ToListAsync(cancellationToken);
-        var open = receipts.Count(b => !b.IsFullyAllocated);
+        var incomplete = receipts.Count(b => b.Incomplete);
+        if (incomplete > 0)
+        {
+            todos.Add(new TodoItem("Belege", incomplete == 1 ? "1 Beleg per E-Mail eingegangen: Betrag ergänzen" : $"{incomplete} Belege per E-Mail eingegangen: Beträge ergänzen", "/verwaltung/belege",
+                Urgency.Soon, "Die Belege warten ohne Betrag und Kostenart."));
+        }
+
+        var open = receipts.Count(b => !b.IsFullyAllocated && !b.Incomplete);
         if (open > 0)
         {
             todos.Add(new TodoItem("Belege", $"{open} Belege ohne vollständige Kostenaufteilung", "/verwaltung/belege?aufteilen=true", Urgency.Info,

@@ -64,6 +64,9 @@ public sealed class Receipt : Entity
 
     public string? Note { get; set; }
 
+    /// <summary>Received without amount (e.g. by mail): waits to be completed. Cleared as soon as an amount is entered.</summary>
+    public bool Incomplete { get; private set; }
+
     public List<ReceiptFile> Files { get; private set; } = [];
 
     public List<CostItem> Items { get; private set; } = [];
@@ -71,6 +74,8 @@ public sealed class Receipt : Entity
     public decimal Allocated => Items.Sum(p => p.Amount);
 
     public bool IsFullyAllocated => Items.Count > 0 && Allocated == Gross;
+
+    public void MarkIncomplete() => Incomplete = true;
 
     public void SetServicePeriod(DateOnly? from, DateOnly? to)
     {
@@ -132,7 +137,12 @@ public sealed class Receipt : Entity
 
     public void Validate()
     {
-        if (Gross == 0 || decimal.Round(Gross, 2) != Gross)
+        if (Gross != 0)
+        {
+            Incomplete = false;
+        }
+
+        if ((Gross == 0 && !Incomplete) || decimal.Round(Gross, 2) != Gross)
         {
             throw new RuleViolationException("Bitte einen Rechnungsbetrag ungleich 0 mit höchstens zwei Nachkommastellen angeben.");
         }

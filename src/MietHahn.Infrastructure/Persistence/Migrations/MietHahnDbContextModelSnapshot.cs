@@ -5690,6 +5690,10 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("gross");
 
+                    b.Property<bool>("Incomplete")
+                        .HasColumnType("boolean")
+                        .HasColumnName("incomplete");
+
                     b.Property<DateOnly>("InvoiceDate")
                         .HasColumnType("date")
                         .HasColumnName("invoice_date");

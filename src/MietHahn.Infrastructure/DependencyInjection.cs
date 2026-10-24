@@ -202,6 +202,7 @@ public static class DependencyInjection
     private static void AddReceiptExtraction(IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<ReceiptExtractionOptions>(configuration.GetSection(ReceiptExtractionOptions.Section));
+        services.Configure<ReceiptInboxOptions>(configuration.GetSection(ReceiptInboxOptions.Section));
         services.AddHttpClient<ClaudeReceiptExtractor>().ConfigureHttpClient(http => http.Timeout = Timeout.InfiniteTimeSpan);
         services.AddHttpClient<OllamaReceiptExtractor>().ConfigureHttpClient(http => http.Timeout = Timeout.InfiniteTimeSpan);
         services.AddScoped<NoReceiptExtractor>();
@@ -272,6 +273,7 @@ public static class DependencyInjection
         services.AddScoped<IMatchRules, MatchRules>();
         services.AddScoped<ITodoSource, BankTodos>();
         services.AddScoped<IReceiptService, ReceiptService>();
+        services.AddScoped<ReceiptInbox>();
         services.AddScoped<ICostAllocation, CostAllocationService>();
         services.AddScoped<ICostSubtypes, CostSubtypeService>();
         services.AddScoped<IOperatingCosts, OperatingCostService>();
@@ -366,6 +368,7 @@ public static class DependencyInjection
             q.ScheduleInterval<NoticeNotificationJob>(NoticeNotificationJob.Key, "Informiert Mieter per Mail über neue Aushänge im Portal", TimeSpan.FromMinutes(10));
             q.ScheduleDaily<ConsumptionNotificationJob>(ConsumptionNotificationJob.Key, "Schickt Mietern die monatliche Verbrauchsinformation (Heizung, Warmwasser) per Mail", 8, 15);
             q.ScheduleDaily<ReadingReminderJob>(ReadingReminderJob.Key, "Erinnert Mieter ab dem 15. Dezember, die Zählerstände zum Jahreswechsel im Portal zu melden", 8, 25);
+            q.ScheduleInterval<ReceiptInboxJob>(ReceiptInboxJob.Key, "Holt Belege aus dem Beleg-Postfach ab (nur wenn eingerichtet)", TimeSpan.FromMinutes(5));
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);

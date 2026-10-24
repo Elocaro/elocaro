@@ -42,6 +42,9 @@ public sealed record ReceiptQuery(
 
 public sealed class ReceiptInput
 {
+    /// <summary>The receipt arrives without amount (mail inbox): zero is allowed until the amount is entered.</summary>
+    public bool Incomplete { get; set; }
+
     public Guid? SupplierId { get; set; }
 
     [StringLength(200)]
@@ -131,7 +134,8 @@ public sealed record ReceiptRow(
     IReadOnlyList<string> CostTypes,
     IReadOnlyList<string> Properties,
     DateOnly? PaidOn,
-    int Files);
+    int Files,
+    bool Incomplete = false);
 
 public sealed record ReceiptDetails(
     Guid Id,
