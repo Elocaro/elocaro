@@ -17,6 +17,12 @@ public interface ITenantPortal
     /// <summary>Read-only contract data; <c>null</c> if the lease does not belong to the tenant.</summary>
     Task<PortalLease?> GetLeaseAsync(ClaimsPrincipal user, Guid leaseId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The tenant account (charges and payments) of each of the tenant's own leases, current ones first. Only what the tenant needs:
+    /// no internal notes, no bank data of others.
+    /// </summary>
+    Task<IReadOnlyList<PortalAccount>> AccountsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+
     Task<PortalContacts?> ContactsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
     /// <summary>Stores a change request; nothing changes until an administrator approves it.</summary>
@@ -31,6 +37,14 @@ public interface ITenantPortal
 
 /// <param name="RentDate">The day the rent is shown for: today, or the lease start while the lease has not begun yet.</param>
 public sealed record PortalLeaseRow(Guid Id, string RentalUnit, string Property, DateOnly Start, DateOnly? End, LeaseStatus Status, decimal MonthlyRent, DateOnly RentDate);
+
+/// <param name="Balance">Positive = arrears of the tenant, negative = credit.</param>
+/// <param name="Due">Part of the balance that is already due.</param>
+/// <param name="AccountingStart">Since when the account is kept; <c>null</c> = not yet.</param>
+/// <param name="Entries">Newest first.</param>
+public sealed record PortalAccount(Guid LeaseId, string RentalUnit, string Property, decimal Balance, decimal Due, DateOnly? AccountingStart, IReadOnlyList<PortalAccountEntry> Entries);
+
+public sealed record PortalAccountEntry(DateOnly Date, string Text, decimal Debit, decimal Credit, decimal Balance, bool IsPayment);
 
 public sealed record PortalRentComponent(RentComponentType Kind, string? Name, decimal Amount);
 

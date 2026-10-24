@@ -18,7 +18,7 @@ using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Portal;
 
-internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock) : ITenantPortal
+internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock, MietHahn.Application.Finance.ITenantAccounts accounts) : ITenantPortal
 {
     private DateOnly Today => GermanTime.Today(clock.GetUtcNow());
 
@@ -74,6 +74,36 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock) : I
             lease.PaymentMethod,
             lease.Deposit,
             rentDate);
+    }
+
+    public async Task<IReadOnlyList<PortalAccount>> AccountsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    {
+        var leases = await OwnLeases(await PersonIdsAsync(user, cancellationToken)).AsNoTracking().ToListAsync(cancellationToken);
+        if (leases.Count == 0)
+        {
+            return [];
+        }
+
+        var today = Today;
+        var units = await RentalUnit.GetAsync(db, cancellationToken);
+        var result = new List<PortalAccount>();
+        foreach (var lease in leases.OrderBy(v => v.StatusAt(today) == LeaseStatus.Active ? 0 : 1).ThenByDescending(v => v.Start))
+        {
+            var unit = units.GetValueOrDefault(lease.RentalUnitId);
+            var account = await accounts.GetAsync(lease.Id, cancellationToken);
+            result.Add(new PortalAccount(
+                lease.Id,
+                unit?.Name ?? "",
+                unit?.Property ?? "",
+                account?.Balance ?? 0,
+                account?.Due ?? 0,
+                account?.AccountingStart,
+                (account?.Entries ?? []).Where(e => e.Date <= today.AddDays(31))
+                    .OrderByDescending(e => e.Date).ThenByDescending(e => e.EntryType)
+                    .Select(e => new PortalAccountEntry(e.Date, e.Text, e.Debit, e.Credit, e.Balance, e.EntryType == MietHahn.Application.Finance.EntryType.Payment)).ToList()));
+        }
+
+        return result;
     }
 
     public async Task<PortalContacts?> ContactsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)

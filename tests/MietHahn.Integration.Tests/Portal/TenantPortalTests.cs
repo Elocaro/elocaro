@@ -99,6 +99,46 @@ public class TenantPortalTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Tenant_sees_the_account_of_their_own_lease_with_charges_and_payments_only()
+    {
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<MietHahn.Application.Finance.IFinanceSettings>().SaveAsync(
+                new MietHahn.Application.Finance.FinanceSettingsInput { AccountingStart = Today }, Ct);
+            var accounts = scope.ServiceProvider.GetRequiredService<MietHahn.Application.Finance.ITenantAccounts>();
+            await accounts.GenerateChargesAsync(null, Ct);
+            Validate(await accounts.RecordPaymentAsync(leaseAnna, new MietHahn.Application.Finance.PaymentInput { Date = Today.AddDays(2), Amount = 300m, Purpose = "Teilzahlung" }, Ct));
+        }
+
+        var own = await WithAsync<ITenantPortal, IReadOnlyList<PortalAccount>>(p => p.AccountsAsync(annaAccount, Ct));
+
+        var account = Assert.Single(own);
+        Assert.Equal(leaseAnna, account.LeaseId);
+        Assert.Equal("Wohnung 1", account.RentalUnit);
+        Assert.Equal(Today, account.AccountingStart);
+        Assert.Equal(770m - 300m, account.Balance);
+        Assert.Contains(account.Entries, e => !e.IsPayment && e.Debit > 0);
+        var payment = Assert.Single(account.Entries, e => e.IsPayment);
+        Assert.Equal(300m, payment.Credit);
+        Assert.Equal(account.Entries.OrderByDescending(e => e.Date).Select(e => e.Date), account.Entries.Select(e => e.Date));
+
+        // The other tenant sees only their own (not yet booked) account, never Anna's payment.
+        var other = Assert.Single(await WithAsync<ITenantPortal, IReadOnlyList<PortalAccount>>(p => p.AccountsAsync(benAccount, Ct)));
+        Assert.Equal(leaseBen, other.LeaseId);
+        Assert.DoesNotContain(other.Entries, e => e.IsPayment);
+    }
+
+    [Fact]
+    public async Task The_account_is_empty_for_unlinked_accounts_and_other_roles()
+    {
+        var unlinked = Account(await AccountAsync("frei2@example.de", Roles.Tenant), Roles.Tenant);
+        var admin = Account(await AccountAsync("chef2@example.de", Roles.Admin), Roles.Admin);
+
+        Assert.Empty(await WithAsync<ITenantPortal, IReadOnlyList<PortalAccount>>(p => p.AccountsAsync(unlinked, Ct)));
+        Assert.Empty(await WithAsync<ITenantPortal, IReadOnlyList<PortalAccount>>(p => p.AccountsAsync(admin, Ct)));
+    }
+
+    [Fact]
     public async Task A_foreign_lease_id_is_not_found()
     {
         Assert.Null(await WithAsync<ITenantPortal, PortalLease?>(p => p.GetLeaseAsync(annaAccount, leaseBen, Ct)));

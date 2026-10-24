@@ -96,6 +96,24 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
     }
 
     [Fact]
+    public async Task Account_page_opens_for_tenants_and_explains_a_missing_accounting_start()
+    {
+        var (tenant, _, _) = await TenantWithLeasesAsync();
+        using var _ = tenant;
+
+        var page = await tenant.GetAsync("/portal/konto", followRedirects: false);
+
+        Assert.Equal(HttpStatusCode.OK, page.Status);
+        Assert.Contains("Konto", page.TextWithStreaming, StringComparison.Ordinal);
+        Assert.Contains("noch nicht geführt", page.TextWithStreaming, StringComparison.Ordinal);
+        Assert.Contains(page.Document.QuerySelectorAll("a"), a => a.GetAttribute("href") == "/portal/konto");
+
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var __ = admin;
+        Assert.Equal("/konto/zugriff-verweigert", (await admin.GetAsync("/portal/konto", followRedirects: false)).RedirectLocation!.AbsolutePath);
+    }
+
+    [Fact]
     public async Task Tenant_cannot_open_the_administration()
     {
         var (tenant, _, _) = await TenantWithLeasesAsync();
