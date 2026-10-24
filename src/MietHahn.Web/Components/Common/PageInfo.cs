@@ -520,6 +520,14 @@ public static class PageInfoCatalog
                 "Das Standardprofil gilt für alle Objekte. Für Objekte mit anderem Eigentümer oder anderer Gesellschaft legen Sie weitere Profile an und wählen sie am Objekt.",
                 "IBAN und Steuernummer erscheinen in Schreiben und Abrechnungen. Prüfen Sie sie sorgfältig.")]), $"{Admin}/einstellungen/vermieter");
 
+        Add(new("Rechtsstände",
+            "Die Werte aus Gesetz und Statistik, auf die sich Abrechnungen, Mahnungen und Mieterhöhungen stützen, mit Stand und Quelle.",
+            [new("Gut zu wissen",
+                "Der Basiszinssatz ändert sich zum 1.1. und 1.7., der Verbraucherpreisindex erscheint monatlich: beide pflegen Sie selbst. Die Übersicht erinnert, wenn ein Wert fehlt oder veraltet ist.",
+                "Stufentabelle (CO₂) und Gradtagszahlen sind mitgeliefert. Steht dort „prüfen“, vergleichen Sie sie vor dem Versand einer Heizkostenabrechnung mit der amtlichen Quelle.",
+                "MietHahn ist keine Rechtsberatung: Die maßgebliche Quelle steht bei jedem Wert.")],
+            [new("Forderungen: Einstellungen", $"{Admin}/finanzen/einstellungen"), new("Verbraucherpreisindex", $"{Admin}/vpi")]), $"{Admin}/einstellungen/rechtsstaende");
+
         Add(new("Module",
             "Schalten Sie ab, was Sie nicht brauchen. Die Daten bleiben erhalten.",
             [new("Gut zu wissen",

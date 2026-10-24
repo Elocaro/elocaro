@@ -167,6 +167,8 @@ public static class DependencyInjection
         services.AddScoped<IMailService, MailService>();
         services.AddScoped<ITodoSource, MailTodos>();
         services.AddScoped<ITodoSource, Admin.SetupChecklistTodos>();
+        services.AddScoped<ILegalReferences, Admin.LegalReferences>();
+        services.AddScoped<ITodoSource, Admin.LegalReferenceTodos>();
     }
 
     private static void AddFileStore(IServiceCollection services, IConfiguration configuration)

@@ -82,7 +82,7 @@ public static class AdminNavModel
         new("Benutzer", AppIcons.Users, $"{Root}/benutzer", Policies.UserManagement, [$"{Root}/benutzer"], [], "System"),
         new("Einstellungen", AppIcons.Finance, $"{Root}/einstellungen/vermieter", Policies.System,
             [$"{Root}/einstellungen", $"{Root}/system"],
-            [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Module", $"{Root}/einstellungen/module"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Fristen", $"{Root}/einstellungen/fristen"),
+            [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Module", $"{Root}/einstellungen/module"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Fristen", $"{Root}/einstellungen/fristen"), new("Rechtsstände", $"{Root}/einstellungen/rechtsstaende"),
              new("E-Mail-Versand", $"{Root}/system/mails"), new("Hintergrundjobs", $"{Root}/system/jobs"),
              new("Datensicherung", $"{Root}/system/datensicherung"), new("Belegauslesung", $"{Root}/system/belegauslesung")], "System"),
     ];

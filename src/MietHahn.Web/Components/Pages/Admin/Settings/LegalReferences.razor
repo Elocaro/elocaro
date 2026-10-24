@@ -1,0 +1,70 @@
+@page "/verwaltung/einstellungen/rechtsstaende"
+@using MietHahn.Application.Admin
+@inject ILegalReferences References
+
+<PageHeader Title="Rechtsstände" Subtitle="Werte aus Gesetz und Statistik, auf die sich Abrechnungen, Mahnungen und Mieterhöhungen stützen." />
+
+@if (items is null)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (items.Count == 0)
+{
+    <EmptyState Text="Mit den eingeschalteten Modulen sind keine Rechtsstände nötig." />
+}
+else
+{
+    @if (items.Any(i => i.Status != LegalReferenceStatus.Current))
+    {
+        <Notice Level="NoticeLevel.Warning" id="legal-attention">
+            @items.Count(i => i.Status != LegalReferenceStatus.Current) von @items.Count Werten brauchen einen Blick, bevor Sie sich darauf verlassen.
+        </Notice>
+    }
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr><th>Wert</th><th>Inhalt</th><th>Stand</th><th>Zustand</th><th>Nächste Prüfung</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    <tr id="@($"legal-{item.Key}")">
+                        <td><a href="@item.Link">@item.Title</a><p class="small">@item.Source</p></td>
+                        <td>@(item.Value ?? "–")</td>
+                        <td>@(item.AsOf ?? "–")</td>
+                        <td>
+                            @switch (item.Status)
+                            {
+                                case LegalReferenceStatus.Current:
+                                    <StatusChip Level="StatusLevel.Success">aktuell</StatusChip>
+                                    break;
+                                case LegalReferenceStatus.Check:
+                                    <StatusChip Level="StatusLevel.Warning">prüfen</StatusChip>
+                                    break;
+                                default:
+                                    <StatusChip Level="StatusLevel.Error">fehlt</StatusChip>
+                                    break;
+                            }
+                            @if (item.Note is not null)
+                            {
+                                <p class="small">@item.Note</p>
+                            }
+                        </td>
+                        <td>@(item.NextCheck is { } next ? Format.Date(next) : "–")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <p class="small">
+        MietHahn ist keine Rechts- und keine Steuerberatung. Die Werte sind Arbeitshilfen; die maßgebliche Quelle steht jeweils dabei.
+    </p>
+}
+
+@code {
+    private IReadOnlyList<LegalReference>? items;
+
+    protected override async Task OnInitializedAsync() => items = await References.OverviewAsync();
+}
