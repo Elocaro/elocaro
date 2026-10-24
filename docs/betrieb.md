@@ -162,7 +162,17 @@ Zusätzlich blendet die Heizungsseite eines Objekts Abschnitte nach dem Brennsto
 
 Eine abgeschaltete Option bleibt sichtbar, solange ein Vertrag sie noch verwendet. Die Seite nennt dann die Anzahl der Verträge. Bestehende Beträge und Verträge werden nie verändert oder gelöscht.
 
-Nach der Ersteinrichtung (Administrator und Zwei-Faktor-Anmeldung) führt das Dashboard einmalig in den **Einrichtungsassistenten**: Er stellt jedes Modul kurz vor und fragt, ob Sie es brauchen. „Später“ überspringt ihn; unter Einstellungen → Module lässt er sich jederzeit erneut starten (`/verwaltung/einrichtung`). Bestehende Installationen behalten beim Update alle Module und werden nicht zum Assistenten geleitet.
+Nach der Ersteinrichtung (Administrator und Zwei-Faktor-Anmeldung) führt das Dashboard einmalig in den **Einrichtungsassistenten**. Er hat höchstens sieben Schritte und blendet die Navigation aus, bis er fertig ist:
+
+1. **Willkommen:** Die Frage „Wie vermieten Sie?“ (einige Wohnungen, größerer Bestand/Hausmeister, WG-Zimmer) setzt eine Vorauswahl der Funktionen und Optionen. Nichts ist pauschal eingeschaltet.
+2. **Funktionen:** Jedes Modul mit Kurzbeschreibung und „Was gehört dazu?“; hier schalten Sie ein und aus.
+3. **Ihre Vermietung:** die Optionen der eingeschalteten Module (Mietmodelle, Abrechnungsarten, Steuer, Einheitenarten, Vertragsangaben, Mahnwesen), siehe Tabelle unten.
+4. **Ihre Absenderdaten** (nur, solange es kein Vermieterprofil gibt): Name und Anschrift für Briefkopf und Fußzeile.
+5. **Erstes Objekt** (nur, solange es kein Objekt gibt; „später“ möglich): Haus mit Anschrift und Wohnungen samt Wohnfläche.
+6. **Buchhaltung und Vorlagen:** Beginn der automatischen Monatsmieten (nur, solange er fehlt) und die Standardvorlagen, wenn das Modul „Dokumente & Schreiben“ an ist.
+7. **Zusammenfassung:** zeigt, was gespeichert und angelegt wird.
+
+„Später“ überspringt den Assistenten ohne Änderung; die Übersicht zeigt dann die Checkliste „So geht es los“. Unter Einstellungen → Module lässt er sich jederzeit erneut starten (`/verwaltung/einrichtung`; ohne die Einstiegsfrage). Bestehende Installationen behalten beim Update alle Module und werden nicht zum Assistenten geleitet.
 
 ## Bankumsätze zuordnen
 

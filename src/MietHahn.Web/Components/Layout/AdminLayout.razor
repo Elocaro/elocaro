@@ -4,7 +4,7 @@
 @inject IModuleState Modules
 
 <SkipLink />
-<div class="app app-admin">
+<div class="@("app app-admin" + (IsFocus ? " is-focus" : ""))">
     <header class="top-bar">
         <BrandMark Href="/verwaltung" />
         <QuickSearch @rendermode="InteractiveServer" />
@@ -24,5 +24,8 @@
 
 @code {
     // With a tab bar the "back to the list" link of a page is redundant on wide screens (the tab leads there).
+    // The setup wizard takes the whole window: no navigation that leads away in the middle of it.
+    private bool IsFocus => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/verwaltung/einrichtung", StringComparison.OrdinalIgnoreCase);
+
     private bool HasTabs => AdminNavModel.TabsFor(new Uri(Navigation.Uri).AbsolutePath, Modules) is not null;
 }

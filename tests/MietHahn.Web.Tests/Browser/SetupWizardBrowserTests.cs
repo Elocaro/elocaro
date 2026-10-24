@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using MietHahn.Application.Admin;
+using MietHahn.Application.Documents;
+using MietHahn.Application.Properties;
 
 namespace MietHahn.Web.Tests.Browser;
 
@@ -13,7 +15,7 @@ public class SetupWizardBrowserTests(PostgresFixture postgres) : BrowserTestBasi
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Wizard_leads_through_the_steps_with_progress_and_saves_at_the_end(bool mobile)
+    public async Task Wizard_leads_through_few_steps_with_progress_and_creates_the_first_data(bool mobile)
     {
         var page = await SignedInAsAdminAsync(mobile);
         await page.GotoAsync(BaseUrl + "/verwaltung/einrichtung");
@@ -21,52 +23,74 @@ public class SetupWizardBrowserTests(PostgresFixture postgres) : BrowserTestBasi
 
         var heading = page.Locator("#wizard-heading");
         var count = page.Locator(".wizard-count");
+        var next = page.GetByRole(AriaRole.Button, new() { Name = "Weiter", Exact = true });
         await Assertions.Expect(heading).ToHaveTextAsync("Willkommen");
-        await Assertions.Expect(count).ToContainTextAsync("Schritt 1 von");
+        await Assertions.Expect(count).ToContainTextAsync("Schritt 1 von 7");
         await Shot(page, "01-welcome");
 
-        await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
-        await Assertions.Expect(count).ToContainTextAsync("Schritt 2 von");
-        await Assertions.Expect(heading).ToHaveTextAsync("Bank & Zahlungsabgleich");
-        await Shot(page, "02-first-module");
+        // The navigation that leads away is hidden while the wizard runs.
+        if (!mobile)
+        {
+            await Assertions.Expect(page.Locator(".sidebar")).ToBeHiddenAsync();
+        }
+
+        await next.ClickAsync();
+        await Assertions.Expect(heading).ToHaveTextAsync("Funktionen");
+        await Assertions.Expect(count).ToContainTextAsync("Schritt 2 von 7");
+        await Shot(page, "02-features");
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Zurück" }).ClickAsync();
         await Assertions.Expect(heading).ToHaveTextAsync("Willkommen");
+        await next.ClickAsync();
 
-        // Turn off the first module, then walk to the end. On the phone the step list is a disclosure and takes the jump.
-        if (mobile)
-        {
-            await page.Locator(".wizard-jump > summary").ClickAsync();
-            await page.GetByRole(AriaRole.Button, new() { Name = "2. Bank & Zahlungsabgleich" }).ClickAsync();
-            await Assertions.Expect(heading).ToHaveTextAsync("Bank & Zahlungsabgleich");
-        }
-        else
-        {
-            await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
-        }
+        // Turn off a module, then walk on: options, sender data, first property, books, summary.
+        await page.GetByLabel("Bank & Zahlungsabgleich").UncheckAsync();
+        await next.ClickAsync();
+        await Assertions.Expect(heading).ToHaveTextAsync("Ihre Vermietung");
+        await next.ClickAsync();
 
-        await page.GetByLabel("Nein, nicht benötigt").CheckAsync();
-        var steps = 2;
-        var finish = page.GetByRole(AriaRole.Button, new() { Name = "Einrichtung abschließen" });
-        while (!await finish.IsVisibleAsync())
-        {
-            await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
-            steps++;
-            await Assertions.Expect(count).ToContainTextAsync($"Schritt {steps} von");
-            if (steps == 7)
-            {
-                await Shot(page, "03-middle");
-            }
-        }
+        // Required sender data keep the wizard on this step.
+        await Assertions.Expect(heading).ToHaveTextAsync("Ihre Absenderdaten");
+        await next.ClickAsync();
+        await Assertions.Expect(heading).ToHaveTextAsync("Ihre Absenderdaten");
+        await Assertions.Expect(page.Locator(".wizard-card")).ToContainTextAsync("Bitte den Namen angeben.");
+        await page.GetByLabel("Name", new() { Exact = true }).FillAsync("Hausverwaltung Beispiel");
+        await page.GetByLabel("Straße und Hausnummer", new() { Exact = true }).FillAsync("Weg 1");
+        await page.GetByLabel("PLZ", new() { Exact = true }).FillAsync("50667");
+        await page.GetByLabel("Ort", new() { Exact = true }).FillAsync("Köln");
+        await next.ClickAsync();
+
+        await Assertions.Expect(heading).ToHaveTextAsync("Erstes Objekt");
+        await page.GetByLabel("Bezeichnung", new() { Exact = true }).FillAsync("Lindenweg 3");
+        await page.GetByLabel("Straße und Hausnummer", new() { Exact = true }).FillAsync("Lindenweg 3");
+        await page.GetByLabel("PLZ", new() { Exact = true }).FillAsync("50667");
+        await page.GetByLabel("Ort", new() { Exact = true }).FillAsync("Köln");
+        await page.GetByLabel("Wohnung 1", new() { Exact = true }).FillAsync("Wohnung 1");
+        await page.GetByLabel("Wohnfläche 1").FillAsync("55,5");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Weitere Wohnung" }).ClickAsync();
+        await page.GetByLabel("Wohnung 2", new() { Exact = true }).FillAsync("Wohnung 2");
+        await next.ClickAsync();
+
+        await Assertions.Expect(heading).ToHaveTextAsync("Buchhaltung und Vorlagen");
+        await next.ClickAsync();
 
         await Assertions.Expect(heading).ToHaveTextAsync("Zusammenfassung");
-        await Assertions.Expect(page.Locator(".wizard-progress")).ToHaveAttributeAsync("value", steps.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        await Assertions.Expect(count).ToContainTextAsync("Schritt 7 von 7");
+        await Assertions.Expect(page.Locator(".wizard-card")).ToContainTextAsync("Objekt „Lindenweg 3“ mit 2 Wohnung(en)");
         await Shot(page, "04-summary");
 
-        await finish.ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Einrichtung abschließen" }).ClickAsync();
         await page.WaitForURLAsync("**/verwaltung");
+
         Assert.False(await App.WithScopeAsync(sp => Task.FromResult(sp.GetRequiredService<IModuleState>().IsEnabled(AppModule.Bank))));
         Assert.True(await App.WithScopeAsync(sp => Task.FromResult(sp.GetRequiredService<IModuleState>().IsEnabled(AppModule.Tickets))));
+        Assert.Equal("Hausverwaltung Beispiel", (await App.WithScopeAsync(sp => sp.GetRequiredService<ILandlordProfileService>().GetAsync(TestContext.Current.CancellationToken)))?.Name);
+        var properties = await App.WithScopeAsync(sp => sp.GetRequiredService<IPropertyService>().ListAsync(null, TestContext.Current.CancellationToken));
+        var house = Assert.Single(properties);
+        Assert.Equal("Lindenweg 3", house.Name);
+        Assert.Equal(2, house.Units);
+        Assert.Equal(55.5m, house.LivingArea);
+        Assert.NotEmpty(await App.WithScopeAsync(sp => sp.GetRequiredService<IDocumentTemplates>().ListAsync(TestContext.Current.CancellationToken)));
     }
 
     private static async Task Shot(IPage page, string name)
@@ -95,5 +119,58 @@ public class SetupWizardBrowserTests(PostgresFixture postgres) : BrowserTestBasi
         {
             await page.SetViewportSizeAsync(size, 780);
         }
+    }
+}
+
+/// <summary>The first start: the question "Wie vermieten Sie?" sets a starting point, "Später" is offered, and what exists is not asked again.</summary>
+public class SetupWizardFirstRunBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
+{
+    protected override bool SetupCompleted => false;
+
+    [Fact]
+    public async Task The_answer_about_the_kind_of_letting_sets_a_starting_point_and_can_be_changed()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await page.GotoAsync(BaseUrl + "/verwaltung/einrichtung");
+        await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
+        var next = page.GetByRole(AriaRole.Button, new() { Name = "Weiter", Exact = true });
+
+        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Später" })).ToBeVisibleAsync();
+        await page.GetByLabel("Ich vermiete einzelne Zimmer (WG)").CheckAsync();
+        await next.ClickAsync();
+        await Assertions.Expect(page.GetByLabel("Tickets & Hausmeister")).Not.ToBeCheckedAsync();
+        await Assertions.Expect(page.GetByLabel("Bank & Zahlungsabgleich")).ToBeCheckedAsync();
+
+        await next.ClickAsync();
+        await Assertions.Expect(page.Locator("#wizard-heading")).ToHaveTextAsync("Ihre Vermietung");
+        await Assertions.Expect(page.GetByLabel("Zimmerweise Vermietung (WG)")).ToBeCheckedAsync();
+        await Assertions.Expect(page.GetByLabel("Staffelmiete")).Not.ToBeCheckedAsync();
+        await Assertions.Expect(page.GetByLabel("Vorauszahlung mit jährlicher Abrechnung")).ToBeCheckedAsync();
+
+        // Going back and choosing another answer starts from that answer's defaults, and every module can still be changed.
+        await page.GetByRole(AriaRole.Button, new() { Name = "Zurück" }).ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Zurück" }).ClickAsync();
+        await page.GetByLabel("Ich habe einen größeren Bestand oder einen Hausmeister").CheckAsync();
+        await next.ClickAsync();
+        await Assertions.Expect(page.GetByLabel("Tickets & Hausmeister")).ToBeCheckedAsync();
+        await page.GetByLabel("Tickets & Hausmeister").UncheckAsync();
+        await next.ClickAsync();
+        await Assertions.Expect(page.GetByLabel("Staffelmiete")).ToBeCheckedAsync();
+        await Assertions.Expect(page.GetByLabel("Zimmerweise Vermietung (WG)")).Not.ToBeCheckedAsync();
+    }
+
+    [Fact]
+    public async Task Later_leaves_the_wizard_without_changing_anything_and_the_dashboard_shows_the_first_steps()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await page.GotoAsync(BaseUrl + "/verwaltung/einrichtung");
+        await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Später" }).ClickAsync();
+        await page.WaitForURLAsync("**/verwaltung");
+
+        await Assertions.Expect(page.Locator("main")).ToContainTextAsync("So geht es los");
+        await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Vermieterprofil anlegen");
+        await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("Alles erledigt");
     }
 }

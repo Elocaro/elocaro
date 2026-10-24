@@ -29,6 +29,9 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
     {
     }
 
+    /// <summary>Whether the setup wizard counts as done; false lets a test walk through the first start.</summary>
+    protected virtual bool SetupCompleted => true;
+
     protected IBrowser Browser { get; private set; } = null!;
 
     protected string BaseUrl { get; private set; } = "";
@@ -38,7 +41,11 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         App = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), Configuration, ConfigureServices, postgres);
         App.UseKestrel(0);
         App.StartServer();
-        await App.CompleteSetupAsync();
+        if (SetupCompleted)
+        {
+            await App.CompleteSetupAsync();
+        }
+
         BaseUrl = App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First().Replace("127.0.0.1", "localhost", StringComparison.Ordinal);
 
         // Many browser tests run in parallel, each with its own app and database; allow for the load.
@@ -101,7 +108,8 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         await page.WaitForURLAsync("**/konto/anmelden/zwei-faktor**");
         await page.FillAsync("#code", Totp.Code(key!, DateTimeOffset.UtcNow));
         await page.ClickAsync("button[type=submit]");
-        await page.WaitForURLAsync("**/verwaltung");
+        // Before the setup wizard was completed the sign-in leads to the wizard.
+        await page.WaitForURLAsync(SetupCompleted ? "**/verwaltung" : "**/verwaltung/einrichtung");
         return page;
     }
 
