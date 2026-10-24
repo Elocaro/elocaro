@@ -106,6 +106,96 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock, Mie
         return result;
     }
 
+    public async Task<IReadOnlyList<PortalMeter>> MetersAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    {
+        var meters = await OwnMetersAsync(user, cancellationToken);
+        if (meters.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = meters.Select(m => m.Meter.Id).ToList();
+        var pending = (await db.Set<MietHahn.Domain.Metering.ReadingReport>().AsNoTracking()
+                .Where(r => ids.Contains(r.MeterId) && r.Status == MietHahn.Domain.Metering.ReadingReportStatus.Open).OrderBy(r => r.CreatedAt).ToListAsync(cancellationToken))
+            .GroupBy(r => r.MeterId).ToDictionary(g => g.Key, g => g.Last());
+        return meters.Select(m =>
+        {
+            var last = m.Meter.Readings.MaxBy(s => s.Date);
+            return new PortalMeter(m.Meter.Id, m.Meter.Name, m.Meter.Type, m.Meter.Number, m.Meter.MeasurementUnit, m.RentalUnit, last?.Value, last?.Date,
+                pending.TryGetValue(m.Meter.Id, out var report) ? (report.Value, report.Date) : null);
+        }).ToList();
+    }
+
+    public Task<Result> ReportReadingAsync(ClaimsPrincipal user, Guid meterId, PortalReadingInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var meter = (await OwnMetersAsync(user, cancellationToken)).Select(m => m.Meter).FirstOrDefault(m => m.Id == meterId) ?? throw new NotFoundException();
+            var date = input.Date ?? throw new RuleViolationException("Bitte das Ablesedatum angeben.");
+            var value = input.Value ?? throw new RuleViolationException("Bitte den Zählerstand angeben.");
+            var today = Today;
+            if (date > today)
+            {
+                throw new RuleViolationException("Das Ablesedatum liegt in der Zukunft.");
+            }
+
+            if (date < today.AddDays(-60))
+            {
+                throw new RuleViolationException("Das Ablesedatum liegt mehr als 60 Tage zurück. Bitte lesen Sie den Zähler aktuell ab.");
+            }
+
+            if (date < meter.InstalledOn)
+            {
+                throw new RuleViolationException("Das Ablesedatum liegt vor dem Einbau des Zählers.");
+            }
+
+            var last = meter.Readings.MaxBy(s => s.Date);
+            if (last is not null && (date < last.Date || value < last.Value))
+            {
+                throw new RuleViolationException($"Der Stand darf nicht kleiner sein als der letzte Stand ({last.Value:#,##0.###} am {last.Date:dd.MM.yyyy}). Bitte prüfen Sie die Ablesung; bei einem Zählertausch melden Sie sich beim Vermieter.");
+            }
+
+            foreach (var old in await db.Set<MietHahn.Domain.Metering.ReadingReport>().Where(r => r.MeterId == meterId && r.Status == MietHahn.Domain.Metering.ReadingReportStatus.Open).ToListAsync(cancellationToken))
+            {
+                old.Reject("Durch eine neue Meldung ersetzt.", clock.GetUtcNow());
+            }
+
+            var report = new MietHahn.Domain.Metering.ReadingReport(meterId, date, value, user.FindFirstValue(AccountClaims.DisplayName) ?? user.Identity?.Name ?? "Mieter", input.Note);
+            db.Add(report);
+            await db.SaveChangesAsync(cancellationToken);
+            return report.Id;
+        });
+
+    /// <summary>The active meters of the running leases of the tenant: of the apartment, or of the own room.</summary>
+    private async Task<List<(MietHahn.Domain.Metering.Meter Meter, string RentalUnit)>> OwnMetersAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
+    {
+        var today = Today;
+        var leases = (await OwnLeases(await PersonIdsAsync(user, cancellationToken)).AsNoTracking().ToListAsync(cancellationToken))
+            .Where(v => v.StatusAt(today) is LeaseStatus.Active or LeaseStatus.Terminated).ToList();
+        if (leases.Count == 0)
+        {
+            return [];
+        }
+
+        var unitIds = leases.Select(v => v.UnitId).Distinct().ToList();
+        var candidates = await db.Set<MietHahn.Domain.Metering.Meter>().AsNoTracking().Include(m => m.Readings)
+            .Where(m => m.RemovedOn == null && m.UnitId != null && unitIds.Contains(m.UnitId.Value)).ToListAsync(cancellationToken);
+        var units = await RentalUnit.GetAsync(db, cancellationToken);
+        var result = new List<(MietHahn.Domain.Metering.Meter, string)>();
+        foreach (var lease in leases)
+        {
+            foreach (var meter in candidates.Where(m => lease.RoomId is null ? m.UnitId == lease.UnitId && m.RoomId is null : m.RoomId == lease.RoomId))
+            {
+                if (result.All(r => r.Item1.Id != meter.Id))
+                {
+                    result.Add((meter, units.GetValueOrDefault(lease.RentalUnitId)?.Name ?? ""));
+                }
+            }
+        }
+
+        return result.OrderBy(r => r.Item1.Order).ThenBy(r => r.Item1.Name, StringComparer.CurrentCulture).ToList();
+    }
+
     public async Task<PortalContacts?> ContactsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
         var personIds = await PersonIdsAsync(user, cancellationToken);

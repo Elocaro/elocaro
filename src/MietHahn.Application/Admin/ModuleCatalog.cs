@@ -142,9 +142,9 @@ public static class ModuleCatalog
         new(AppModule.Metering, "Zähler & Verbrauch",
             "Zähler und Zählerstände erfassen, importieren und Mietern ihren Verbrauch im Portal zeigen.",
             "Sinnvoll bei verbrauchsabhängiger Abrechnung (Wasser, Heizung, Strom) oder wenn Mieter ihren Verbrauch einsehen sollen.",
-            ["Zähler und Ablesungen", "CSV-Import von Funkablesesystemen", "Monatliche Verbrauchsinformation", "Verbrauch im Mieterportal"],
-            [], $"{Admin}/objekte", [$"{Admin}/zaehler", "/portal/verbrauch"],
-            [($"{Admin}/objekte", "zaehler"), ($"{Admin}/objekte", "ablesung"), ($"{Admin}/objekte", "zaehlerimport")], ["consumption-information"]),
+            ["Zähler und Ablesungen", "CSV-Import von Funkablesesystemen", "Monatliche Verbrauchsinformation", "Verbrauch im Mieterportal", "Zählerstände durch Mieter melden"],
+            [], $"{Admin}/objekte", [$"{Admin}/zaehler", "/portal/verbrauch", "/portal/zaehler"],
+            [($"{Admin}/objekte", "zaehler"), ($"{Admin}/objekte", "ablesung"), ($"{Admin}/objekte", "zaehlerimport")], ["consumption-information", "meter-reading-reminder"]),
 
         new(AppModule.RentIncreases, "Mieterhöhung & Indexmiete",
             "Mieterhöhungen vorbereiten, Staffelmieten übernehmen und Indexmieten mit dem Verbraucherpreisindex (VPI) anpassen.",

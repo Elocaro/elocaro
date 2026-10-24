@@ -96,6 +96,22 @@ public class PortalPagesTests(PostgresFixture postgres) : AccountTestBase(postgr
     }
 
     [Fact]
+    public async Task Meters_page_opens_for_tenants_and_shows_the_empty_state_without_meters()
+    {
+        var (tenant, _, _) = await TenantWithLeasesAsync();
+        using var _ = tenant;
+
+        var page = await tenant.GetAsync("/portal/zaehler", followRedirects: false);
+
+        Assert.Equal(HttpStatusCode.OK, page.Status);
+        Assert.Contains("Zählerstände melden", page.Text, StringComparison.Ordinal);
+
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var __ = admin;
+        Assert.Equal("/konto/zugriff-verweigert", (await admin.GetAsync("/portal/zaehler", followRedirects: false)).RedirectLocation!.AbsolutePath);
+    }
+
+    [Fact]
     public async Task Account_page_opens_for_tenants_and_explains_a_missing_accounting_start()
     {
         var (tenant, _, _) = await TenantWithLeasesAsync();

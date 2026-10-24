@@ -120,3 +120,70 @@ internal sealed class ConsumptionNotificationJob(ConsumptionNotifications notifi
         await notifications.SendAsync(context.CancellationToken);
     }
 }
+
+/// <summary>
+/// Yearly reminder by mail to the tenants with a portal account and own meters to report the readings at the turn of the year:
+/// from 15 December on, once per lease and year.
+/// </summary>
+internal sealed class ReadingReminders(MietHahnDbContext db, IMailSender mail, IOptions<ApplicationOptions> app, TimeProvider clock)
+{
+    /// <returns>Number of mails queued.</returns>
+    public async Task<int> SendAsync(CancellationToken cancellationToken = default)
+    {
+        var now = clock.GetUtcNow();
+        var today = GermanTime.Today(now);
+        if (today is not { Month: 12, Day: >= 15 })
+        {
+            return 0;
+        }
+
+        var done = (await db.Set<ReadingReminder>().AsNoTracking().Where(r => r.Year == today.Year).Select(r => r.LeaseId).ToListAsync(cancellationToken)).ToHashSet();
+        var leases = (await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).ToListAsync(cancellationToken))
+            .Where(v => !done.Contains(v.Id) && v.Start <= today && (v.End is null || v.End >= today)).ToList();
+        var meters = await db.Set<Meter>().AsNoTracking().Where(m => m.RemovedOn == null && m.UnitId != null).Select(m => new { m.UnitId, m.RoomId }).ToListAsync(cancellationToken);
+        var link = app.Value.Link("/portal/zaehler").ToString();
+        var sent = 0;
+        foreach (var lease in leases)
+        {
+            if (!meters.Any(m => m.UnitId == lease.UnitId && (lease.RoomId is null ? m.RoomId is null : m.RoomId == lease.RoomId)))
+            {
+                continue;
+            }
+
+            var ids = lease.Tenant.Select(p => p.PersonId).ToList();
+            var recipients = await db.Set<Person>().AsNoTracking().Where(p => ids.Contains(p.Id) && p.UserId != null && p.Email != null && p.AnonymizedAt == null).ToListAsync(cancellationToken);
+            foreach (var recipient in recipients)
+            {
+                await mail.EnqueueAsync(new MailRequest(
+                    [recipient.Email!],
+                    "reading-reminder",
+                    new
+                    {
+                        Salutation = LetterParts.SalutationOf([recipient]),
+                        today.Year,
+                        Link = link,
+                        SenderName = (await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken))?.Name ?? "Ihre Hausverwaltung",
+                    },
+                    Reference: $"reading-reminder:{lease.Id}:{today.Year}"), cancellationToken);
+                sent++;
+            }
+
+            db.Add(new ReadingReminder(lease.Id, today.Year, now));
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return sent;
+    }
+}
+
+[DisallowConcurrentExecution]
+internal sealed class ReadingReminderJob(ReadingReminders reminders) : IJob
+{
+    public static readonly JobKey Key = new("meter-reading-reminder", "portal");
+
+    public async Task Execute(IJobExecutionContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        await reminders.SendAsync(context.CancellationToken);
+    }
+}

@@ -51,3 +51,28 @@ internal sealed class ConsumptionInformationDispatchConfiguration : IEntityTypeC
         builder.HasIndex(d => new { d.LeaseId, d.Year, d.Month }).IsUnique().HasFilter("NOT deleted");
     }
 }
+
+internal sealed class ReadingReportConfiguration : IEntityTypeConfiguration<ReadingReport>
+{
+    public void Configure(EntityTypeBuilder<ReadingReport> builder)
+    {
+        builder.ToTable("reading_reports");
+        builder.Property(r => r.Value).HasPrecision(14, 3);
+        builder.Property(r => r.ReportedBy).HasMaxLength(200);
+        builder.Property(r => r.Note).HasMaxLength(1000);
+        builder.Property(r => r.DecisionNote).HasMaxLength(500);
+        builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+        builder.HasOne<MietHahn.Domain.Metering.Meter>().WithMany().HasForeignKey(r => r.MeterId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(r => new { r.MeterId, r.Status });
+    }
+}
+
+internal sealed class ReadingReminderConfiguration : IEntityTypeConfiguration<ReadingReminder>
+{
+    public void Configure(EntityTypeBuilder<ReadingReminder> builder)
+    {
+        builder.ToTable("reading_reminders");
+        builder.HasOne<MietHahn.Domain.Leases.Lease>().WithMany().HasForeignKey(d => d.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(d => new { d.LeaseId, d.Year }).IsUnique().HasFilter("NOT deleted");
+    }
+}

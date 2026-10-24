@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @inject IMeterService Admin
+@inject IReadingReports Reports
 @inject IPropertyService Properties
 @inject TimeProvider Clock
 @inject Notifier Notify
@@ -28,6 +29,37 @@ else
     </PageHeader>
 
     <ErrorList Errors="errors" />
+
+    @if (reports.Count > 0)
+    {
+        <section>
+            <h2>Gemeldete Stände prüfen</h2>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Zähler</th><th>Gemeldet von</th><th class="number">Gemeldeter Stand</th><th class="number">Vorher</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var r in reports)
+                        {
+                            <tr>
+                                <td><a href="/verwaltung/zaehler/@r.MeterId">@r.MeterName</a> <span class="small">@r.Assignment</span></td>
+                                <td>@r.ReportedBy<br /><span class="small">@Format.Date(r.Date)@(r.Note is null ? "" : " · " + r.Note)</span></td>
+                                <td class="number">@Format.Quantity(r.Value, Labels.From(r.Unit))</td>
+                                <td class="number">@Format.Quantity(r.PreviousValue, Labels.From(r.Unit))<br /><span class="small">@Format.Date(r.PreviousDate)</span></td>
+                                <td>
+                                    @foreach (var w in r.Warnings)
+                                    {
+                                        <StatusChip Level="StatusLevel.Warning">@w</StatusChip>
+                                    }
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="() => AcceptAsync(r)">@(r.Warnings.Count > 0 ? "Trotzdem übernehmen" : "Übernehmen")</MudButton>
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="() => RejectAsync(r)">Ablehnen</MudButton>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
 
     @if (meter.Count == 0)
     {
@@ -81,6 +113,7 @@ else
 @code {
     private PropertyDetails? property;
     private IReadOnlyList<MeterRow> meter = [];
+    private IReadOnlyList<ReadingReportRow> reports = [];
     private IReadOnlyList<string>? errors;
     private DateOnly today;
     private MeterCreation creation = new();
@@ -97,6 +130,7 @@ else
         if (property is not null)
         {
             meter = await Admin.ListAsync(PropertyId);
+            reports = await Reports.OpenAsync(PropertyId);
         }
 
         loaded = true;
@@ -118,5 +152,30 @@ else
             creation = new MeterCreation { InstalledOn = today };
             meter = await Admin.ListAsync(PropertyId);
         }
+    }
+
+    private async Task AcceptAsync(ReadingReportRow row)
+    {
+        var result = await Reports.AcceptAsync(row.Id, confirmed: row.Warnings.Count > 0);
+        errors = result.Succeeded ? null : [.. result.Errors, .. result.Warnings];
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Stand wurde übernommen.");
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task RejectAsync(ReadingReportRow row)
+    {
+        var result = await Reports.RejectAsync(row.Id, null);
+        errors = result.Succeeded ? null : result.Errors;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        meter = await Admin.ListAsync(PropertyId);
+        reports = await Reports.OpenAsync(PropertyId);
     }
 }

@@ -39,6 +39,7 @@ public class ModuleCatalogTests
     [InlineData("/verwaltung/vpi", AppModule.RentIncreases)]
     [InlineData("/verwaltung/bank/konten/neu", AppModule.Bank)]
     [InlineData("/portal/verbrauch", AppModule.Metering)]
+    [InlineData("/portal/zaehler", AppModule.Metering)]
     [InlineData("/verwaltung/objekte/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/heizung", AppModule.OperatingCosts)]
     [InlineData("/verwaltung/vertraege/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/mieterhoehung", AppModule.RentIncreases)]
     public void Pages_belong_to_their_module(string path, AppModule module) =>

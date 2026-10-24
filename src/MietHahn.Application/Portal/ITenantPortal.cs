@@ -23,6 +23,15 @@ public interface ITenantPortal
     /// </summary>
     Task<IReadOnlyList<PortalAccount>> AccountsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
+    /// <summary>The active meters of the tenant's own homes (apartment, own room) with the last reading and an open report, if any.</summary>
+    Task<IReadOnlyList<PortalMeter>> MetersAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reports a reading as a proposal for the landlord (replaces an open report of the same meter). Only for the tenant's own meters;
+    /// a value below the last reading, a future date or one before the installation is refused.
+    /// </summary>
+    Task<Result> ReportReadingAsync(ClaimsPrincipal user, Guid meterId, PortalReadingInput input, CancellationToken cancellationToken = default);
+
     Task<PortalContacts?> ContactsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
     /// <summary>Stores a change request; nothing changes until an administrator approves it.</summary>
@@ -45,6 +54,30 @@ public sealed record PortalLeaseRow(Guid Id, string RentalUnit, string Property,
 public sealed record PortalAccount(Guid LeaseId, string RentalUnit, string Property, decimal Balance, decimal Due, DateOnly? AccountingStart, IReadOnlyList<PortalAccountEntry> Entries);
 
 public sealed record PortalAccountEntry(DateOnly Date, string Text, decimal Debit, decimal Credit, decimal Balance, bool IsPayment);
+
+public sealed class PortalReadingInput
+{
+    [Required(ErrorMessage = "Bitte das Ablesedatum angeben.")]
+    public DateOnly? Date { get; set; }
+
+    [Required(ErrorMessage = "Bitte den Zählerstand angeben.")]
+    public decimal? Value { get; set; }
+
+    [StringLength(500)]
+    public string? Note { get; set; }
+}
+
+/// <param name="Pending">An open report of the tenant for this meter (value and date), not yet confirmed by the landlord.</param>
+public sealed record PortalMeter(
+    Guid Id,
+    string Name,
+    MietHahn.Domain.Metering.MeterType Type,
+    string Number,
+    MietHahn.Domain.Metering.MeasurementUnit Unit,
+    string RentalUnit,
+    decimal? LastValue,
+    DateOnly? LastDate,
+    (decimal Value, DateOnly Date)? Pending);
 
 public sealed record PortalRentComponent(RentComponentType Kind, string? Name, decimal Amount);
 

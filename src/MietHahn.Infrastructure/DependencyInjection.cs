@@ -237,6 +237,8 @@ public static class DependencyInjection
         services.AddScoped<RentStepApplication>();
         services.AddScoped<ITodoSource, RentModelTodos>();
         services.AddScoped<IMeterService, MeterService>();
+        services.AddScoped<IReadingReports, ReadingReports>();
+        services.AddScoped<ReadingReminders>();
         services.AddScoped<IMeterImport, MeterImport>();
         services.AddScoped<IConsumptionInformation, ConsumptionInformation>();
         services.AddScoped<ConsumptionNotifications>();
@@ -363,6 +365,7 @@ public static class DependencyInjection
             q.ScheduleInterval<DocumentNotificationJob>(DocumentNotificationJob.Key, "Informiert Mieter per Mail über neue Dokumente im Portal", TimeSpan.FromMinutes(10));
             q.ScheduleInterval<NoticeNotificationJob>(NoticeNotificationJob.Key, "Informiert Mieter per Mail über neue Aushänge im Portal", TimeSpan.FromMinutes(10));
             q.ScheduleDaily<ConsumptionNotificationJob>(ConsumptionNotificationJob.Key, "Schickt Mietern die monatliche Verbrauchsinformation (Heizung, Warmwasser) per Mail", 8, 15);
+            q.ScheduleDaily<ReadingReminderJob>(ReadingReminderJob.Key, "Erinnert Mieter ab dem 15. Dezember, die Zählerstände zum Jahreswechsel im Portal zu melden", 8, 25);
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
