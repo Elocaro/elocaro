@@ -125,6 +125,15 @@ public static class Labels
         _ => "Ausgabe (Kostenart und Objekt)",
     };
 
+    public static string From(MietHahn.Domain.Deposits.DepositEntryKind value) => value switch
+    {
+        MietHahn.Domain.Deposits.DepositEntryKind.Received => "Eingang",
+        MietHahn.Domain.Deposits.DepositEntryKind.Interest => "Zinsen",
+        MietHahn.Domain.Deposits.DepositEntryKind.Refund => "Rückzahlung",
+        MietHahn.Domain.Deposits.DepositEntryKind.Deduction => "Verrechnung",
+        _ => value.ToString(),
+    };
+
     public static string From(ChargeType value) => value switch
     {
         ChargeType.Rent => "Miete",

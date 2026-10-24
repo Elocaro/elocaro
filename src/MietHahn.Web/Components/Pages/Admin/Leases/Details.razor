@@ -202,6 +202,9 @@ else
 </section>
 
     </MudTabPanel>
+    <MudTabPanel Text="Kaution" Visible="@(State.IsVisible(AppOption.LeaseDeposit) || lease.Data.Deposit is not null)">
+        <DepositSection LeaseId="Id" />
+    </MudTabPanel>
     <MudTabPanel Text="Angaben">
 <section>
     <h2>Angaben</h2>

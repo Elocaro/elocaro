@@ -171,6 +171,8 @@ public static class DependencyInjection
         services.AddScoped<IDataImport, Admin.DataImport>();
         services.AddScoped<IPortfolioFigures, Admin.PortfolioFiguresService>();
         services.AddScoped<IDemoData, Admin.DemoData>();
+        services.AddScoped<IDeposits, Leases.Deposits>();
+        services.AddScoped<ITodoSource, Leases.DepositTodos>();
         services.AddScoped<ITodoSource, Admin.LegalReferenceTodos>();
     }
 

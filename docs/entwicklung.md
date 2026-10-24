@@ -261,6 +261,14 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - **VPI** (`CpiValue`, `/verwaltung/vpi`): manuelle Pflege oder CSV-Import (GENESIS 61111-0002: „2026;Januar;121,2“, auch „2026-01;121,2“ oder „01.2026;121,2“; Platzhalter „...“ werden übersprungen). Ein Abruf über die GENESIS-API braucht Zugangsdaten und ist noch nicht angebunden.
 - Das Vertragsmodul implementiert `IOccupancyLookup` (Objektübersicht, Leerstand), `IPersonReference` (Mieter/Bürge) und `IPersonalDataSource` (DSGVO-Abschnitt `leases`).
 
+### Kaution
+
+- `DepositEntry` (Tabelle `deposit_entries`, je Buchung: Art Eingang/Zinsen/Rückzahlung/Verrechnung, Datum, Betrag, Hinweis) und `DepositAccount` (Bestand = Eingang + Zinsen − Rückzahlung − Verrechnung; offen = vereinbart − Eingang). Der vereinbarte Betrag und die Form (Sparbuch, Bürgschaft …) stehen weiter am Vertrag (`Lease.Deposit`, `DepositNote`).
+- `IDeposits` (Infrastructure/Leases/Deposits.cs): Rückzahlung und Verrechnung dürfen den Bestand nicht übersteigen, eine Verrechnung braucht einen Hinweis („wogegen“), das Löschen einer Buchung ist gesperrt, wenn danach Rückzahlungen den Eingang überstiegen.
+- Tab *Kaution* im Vertrag (`DepositSection`), sichtbar bei der Option „Kaution“ oder wenn eine Kaution vereinbart ist.
+- Dashboard (`DepositTodos`, Bereich „Kaution“): offene Kaution nach der dritten Rate (zwei Monate nach Mietbeginn, § 551 Abs. 2 BGB) und Rückzahlung oder Verrechnung drei Monate nach Mietende (übliche Prüffrist, keine gesetzliche).
+- Noch nicht: Kautionskonto bei der Bank (Anlageart je Konto, Zinsberechnung), Anzeige im Mieterportal.
+
 ### Zähler
 
 - `Meter` (Namespace `Metering`, damit er nicht mit der Klasse kollidiert) mit Typ, Messeinheit, Zuordnung (Haus, Einheit oder Zimmer), optionalem Hauptzähler und Eichfrist (Standard nach MessEV: Kaltwasser 6, Warmwasser/Wärme 5, Gas/Strom 8 Jahre bis Jahresende). Einbau legt den Anfangsstand an.

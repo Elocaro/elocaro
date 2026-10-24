@@ -228,4 +228,40 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await Assertions.Expect(page.Locator("#readiness-livingarea")).ToContainTextAsync("Wohnfläche");
         });
     }
+
+    [Fact]
+    public async Task Deposit_tab_books_payments_refuses_a_refund_above_the_balance_and_needs_a_reason_for_a_set_off()
+    {
+        var (apartment, anna, _) = await MasterDataAsync();
+        var id = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<ILeaseService>().CreateAsync(
+            new LeaseCreation { RentalUnitId = apartment, Start = Today.AddMonths(-6), TenantIds = [anna], BaseRent = 650m, Data = new LeaseInput { Deposit = 1950m } },
+            TestContext.Current.CancellationToken)).Id!.Value);
+        var page = await OpenAsync($"/verwaltung/vertraege/{id}");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await OpenTabAsync(page, "Kaution");
+            var section = page.Locator("#deposit");
+            await Assertions.Expect(section).ToContainTextAsync("noch offen: 1.950,00 €");
+
+            await section.GetByLabel("Datum").FillAsync(German(Today));
+            await section.GetByLabel("Betrag").FillAsync("650");
+            await section.GetByLabel("Hinweis").FillAsync("Rate 1");
+            await section.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "Die Kautionsbuchung wurde gespeichert.");
+            await Assertions.Expect(section.Locator("#deposit-balance")).ToHaveTextAsync("650,00 €");
+            await Assertions.Expect(section).ToContainTextAsync("noch offen: 1.300,00 €");
+
+            await SelectAsync(page, "Art", "Rückzahlung", section);
+            await section.GetByLabel("Datum").FillAsync(German(Today));
+            await section.GetByLabel("Betrag").FillAsync("700");
+            await section.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
+            await Assertions.Expect(section).ToContainTextAsync("Es sind nur 650,00 € Kaution vorhanden");
+
+            await SelectAsync(page, "Art", "Verrechnung", section);
+            await section.GetByLabel("Betrag").FillAsync("100");
+            await section.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
+            await Assertions.Expect(section).ToContainTextAsync("wogegen verrechnet wird");
+        });
+    }
 }
