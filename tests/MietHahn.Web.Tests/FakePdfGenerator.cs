@@ -16,4 +16,6 @@ internal sealed class FakePdfGenerator(IFileStore fileStore) : IPdfGenerator
         using var content = new MemoryStream(Pdf);
         return await fileStore.SaveAsync(content, fileName, cancellationToken);
     }
+
+    public Task<byte[]> MergeAsync(IReadOnlyList<byte[]> documents, CancellationToken cancellationToken = default) => Task.FromResult(Pdf);
 }

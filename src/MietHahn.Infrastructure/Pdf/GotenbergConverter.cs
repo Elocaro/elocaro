@@ -48,6 +48,33 @@ internal sealed class GotenbergConverter(HttpClient http, IOptions<PdfOptions> o
         return await response.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 
+    /// <summary>Joins PDFs; Gotenberg sorts the files by name, so they are numbered.</summary>
+    public async Task<byte[]> MergeAsync(IReadOnlyList<byte[]> documents, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(documents);
+        using var form = new MultipartFormDataContent();
+        for (var i = 0; i < documents.Count; i++)
+        {
+            var part = new ByteArrayContent(documents[i]);
+            part.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+            form.Add(part, "files", $"{i + 1:000}.pdf");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Value.PdfA))
+        {
+            Field(form, "pdfa", options.Value.PdfA);
+        }
+
+        using var response = await http.PostAsync(new Uri("forms/pdfengines/merge", UriKind.Relative), form, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errors = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException($"Gotenberg meldet {(int)response.StatusCode}: {errors}");
+        }
+
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
     private static void StoredFile(MultipartFormDataContent form, string name, string content)
     {
         var part = new ByteArrayContent(Encoding.UTF8.GetBytes(content));

@@ -11,6 +11,8 @@ using MietHahn.Web.Finance;
 using MietHahn.Web.Notices;
 using MietHahn.Web.Operations;
 using MietHahn.Web.People;
+using MietHahn.Web.Push;
+using MietHahn.Web.Signatures;
 using MietHahn.Web.Tickets;
 using MudBlazor.Services;
 
@@ -73,6 +75,8 @@ app.MapCareChecksEndpoint();
 app.MapNoticePdfEndpoint();
 app.MapDatevEndpoints();
 app.MapContractorFileEndpoint();
+app.MapSignatureDocumentEndpoint();
+app.MapPushEndpoints();
 app.MapCalendarEndpoint();
 app.MapAnlageVEndpoints();
 app.MapDunningPreviewEndpoint();

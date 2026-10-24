@@ -17,6 +17,7 @@
     </dl>
 
     <ul class="account-actions">
+        <li><a href="/konto/benachrichtigungen">Benachrichtigungen auf diesem Gerät</a></li>
         @if (hasPassword)
         {
             <li><a href="/konto/sicherheit/zwei-faktor">@(user.TwoFactorEnabled ? "Zwei-Faktor-Anmeldung anzeigen" : "Zwei-Faktor-Anmeldung einrichten")</a></li>

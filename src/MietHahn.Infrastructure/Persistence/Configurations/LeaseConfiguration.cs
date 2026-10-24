@@ -151,3 +151,23 @@ internal sealed class HandoverProtocolConfiguration : IEntityTypeConfiguration<H
         builder.HasIndex(p => new { p.LeaseId, p.Type }).IsUnique().HasFilter("NOT deleted");
     }
 }
+
+internal sealed class SignatureRequestConfiguration : IEntityTypeConfiguration<SignatureRequest>
+{
+    public void Configure(EntityTypeBuilder<SignatureRequest> builder)
+    {
+        builder.ToTable("signature_requests");
+        builder.Property(s => s.Role).HasConversion<string>().HasMaxLength(20);
+        builder.Property(s => s.SignerName).HasMaxLength(200);
+        builder.Property(s => s.Email).HasMaxLength(254);
+        builder.Property(s => s.TokenHash).HasMaxLength(64);
+        builder.Property(s => s.TypedName).HasMaxLength(200);
+        builder.Property(s => s.DocumentHash).HasMaxLength(64);
+        builder.Property(s => s.IpAddress).HasMaxLength(64);
+        builder.Property(s => s.UserAgent).HasMaxLength(300);
+        builder.HasOne<LeaseContract>().WithMany().HasForeignKey(s => s.ContractId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Files.StoredFile>().WithMany().HasForeignKey(s => s.SignatureFileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(s => s.TokenHash);
+        builder.HasIndex(s => s.ContractId);
+    }
+}

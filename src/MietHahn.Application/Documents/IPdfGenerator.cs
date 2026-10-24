@@ -10,6 +10,9 @@ public interface IPdfGenerator
 
     /// <summary>Renders the document and stores it immutably in the file store.</summary>
     Task<StoredFile> GenerateAndStoreAsync(PdfRequest job, string fileName, CancellationToken cancellationToken = default);
+
+    /// <summary>Joins PDFs in the given order into one.</summary>
+    Task<byte[]> MergeAsync(IReadOnlyList<byte[]> documents, CancellationToken cancellationToken = default);
 }
 
 /// <param name="Template">Name of an embedded template (<c>Pdf/Templates/{name}.sbn</c>) – or <c>null</c> if <paramref name="TemplateText"/> is set.</param>

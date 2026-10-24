@@ -116,6 +116,16 @@ Voraussetzung ist ein eigenes Postfach mit IMAP-Zugang (z. B. `belege@ihre-domai
 
 **Sicherheit:** Die Absenderadresse einer Mail lässt sich fälschen. Verwenden Sie eine nicht öffentliche Adresse und ein Postfach, dessen Server SPF/DKIM prüft und Spam aussortiert. Mails anderer Absender, ohne verwertbaren Anhang oder mit zu großen Dateien werden nicht übernommen (nur im Log vermerkt). Eine Virenprüfung führt MietHahn nicht durch; setzen Sie sie am Mailserver ein.
 
+## Benachrichtigungen auf dem Gerät (Web-Push)
+
+MietHahn ist als Web-App installierbar. Jeder Benutzer kann unter *Konto & Sicherheit → Benachrichtigungen auf diesem Gerät* Hinweise einschalten, die auch ohne geöffnete Seite erscheinen: neue Nachrichten, Meldungen (Tickets), Fristen, neue Dokumente und Aushänge, Zählerstand-Erinnerungen, Verbrauchsinformation und die Warnung zur Datensicherung. Sie folgen den bestehenden Benachrichtigungs-Mails: wer eine solche Mail bekäme und Push eingeschaltet hat, bekommt zusätzlich den Hinweis.
+
+- **Datenschutz:** Die Push-Nachricht selbst ist leer. Das Gerät holt Titel und Kurztext nach dem Aufwecken vom eigenen Server (nur mit gültiger Anmeldung); beim Push-Dienst des Browser-Herstellers (Google, Mozilla, Apple, Microsoft) liegt kein Inhalt. Die Hinweise sind absichtlich allgemein („Neue Nachricht“).
+- **Abschalten:** Pro Gerät am selben Schalter. Ungültig gewordene Geräte entfernt MietHahn selbst.
+- **iPhone/iPad:** Push geht nur für Web-Apps, die zum Home-Bildschirm hinzugefügt wurden (Teilen → „Zum Home-Bildschirm“).
+- **Technik:** Der Server erzeugt beim ersten Aufruf ein VAPID-Schlüsselpaar (privater Schlüssel durch Data Protection geschützt in der Datenbank; bei Verlust der Schlüsselringe müssen Geräte neu abonnieren). Die Absenderkennung ist `Push__Contact` (Standard: die Absenderadresse der Mails). Zugelassen sind nur die Push-Dienste von Google, Mozilla, Apple und Microsoft; weitere Hosts über `Push__AllowedHosts__0` …. Der Versand läuft über den Job `push-dispatch` (jede Minute). Bei Verbindungen ohne HTTPS (außer `localhost`) stehen Service Worker und Push nicht zur Verfügung.
+- **Offline:** Ein Service Worker zeigt bei fehlender Verbindung eine Hinweisseite statt der Browser-Fehlerseite; die Anwendung selbst benötigt weiterhin eine Verbindung.
+
 ## Gesundheit & Logs
 
 ```bash
@@ -352,6 +362,8 @@ Für `localhost` stellt Caddy ein Zertifikat seiner internen CA aus (Browserwarn
 - **Modernisierung (§ 559 BGB):** Maßnahme beschreiben, die auf die Wohnung entfallenden Kosten und den Instandhaltungsanteil eingeben. MietHahn rechnet 8 % der umlagefähigen Kosten im Jahr, begrenzt auf 3 € je m² in sechs Jahren (2 € bei einer Miete unter 7 €/m², frühere Erhöhungen zählen mit). Das **vereinfachte Verfahren** (§ 559c, bis 10.000 €, pauschal 30 % Abzug) ist eine Option. Wurde die Maßnahme nicht angekündigt oder wurden die angekündigten Kosten um mehr als 10 % überschritten, beginnt die Erhöhung sechs Monate später. Die Erhöhung braucht keine Zustimmung: mit dem erfassten Zugang steht die neue Miete im Vertrag. Das Schreiben enthält Berechnung, Kappungsgrenze, Fristen und den Hinweis zum Härteeinwand; **die Vorlage muss rechtlich geprüft werden**.
 - Nach „Schreiben erzeugen“ liegt das PDF bei den Dokumenten des Vertrags. Nach dem Versand das Datum des **Zugangs** erfassen; daraus berechnet MietHahn die Termine (Zustimmung bis Ende des zweiten Kalendermonats, Wirkung ab dem dritten). Stimmt der Mieter zu, **Zustimmung erfassen**: die neue Miete steht dann ab dem Wirkungstag im Vertrag. Bei Indexmiete und Pauschale wird die neue Miete schon mit dem Zugang eingetragen, weil keine Zustimmung nötig ist.
 - Die Texte sind **Basisvorlagen und keine Rechtsberatung** (Einstellungen → Vorlagen → Standardvorlagen). Bitte rechtlich prüfen lassen; das Gutachten oder die Mietspiegelauszüge sind dem Schreiben beizufügen.
+
+Mieter können den Entwurf auch **digital unterschreiben** (einfache elektronische Unterschrift mit persönlichem Link und Protokollseite); Voraussetzungen und Grenzen stehen in [digitale-unterschrift.md](digitale-unterschrift.md).
 
 ## Übergabeprotokoll
 

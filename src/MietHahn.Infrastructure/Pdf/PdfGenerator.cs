@@ -30,6 +30,8 @@ internal sealed class PdfGenerator(
         return await fileStore.SaveAsync(content, fileName, cancellationToken);
     }
 
+    public Task<byte[]> MergeAsync(IReadOnlyList<byte[]> documents, CancellationToken cancellationToken = default) => gotenberg.MergeAsync(documents, cancellationToken);
+
     /// <summary>Generates the HTML of the document and footer (without Gotenberg; also for preview and tests).</summary>
     internal async Task<(string Html, string Footer, LandlordProfile Sender)> GenerateHtmlAsync(PdfRequest job, CancellationToken cancellationToken)
     {

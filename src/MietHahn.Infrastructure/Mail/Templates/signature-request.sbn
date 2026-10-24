@@ -1,0 +1,6 @@
+{{ capture subject }}Bitte unterschreiben Sie: {{ title }}{{ end }}
+<p>{{ salutation }}</p>
+<p>der Vertrag <strong>{{ title }}</strong> liegt zur Unterschrift bereit. Sie können ihn über den folgenden persönlichen Link lesen und direkt am Bildschirm unterschreiben:</p>
+<p><a href="{{ link }}">Vertrag lesen und unterschreiben</a></p>
+<p>Der Link gilt bis zum {{ expires_on }} und nur für Sie. Bitte leiten Sie ihn nicht weiter.</p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

@@ -6,6 +6,7 @@
 @using MietHahn.Web.Documents
 @inject ILeaseService Leases
 @inject ILeaseContracts Contracts
+@inject IContractSignatures Signatures
 @inject IDocumentTemplates Templates
 @inject IDocumentReadiness Readiness
 @inject TemplatePreviews Previews
@@ -78,6 +79,77 @@ else
         }
     </section>
 
+    @if (draft is not null)
+    {
+        <section>
+            <h2>Digitale Unterschrift</h2>
+            @if (signatureRows.Count == 0)
+            {
+                <p class="small">Jeder Mieter erhält einen persönlichen Link per E-Mail, liest den Entwurf und unterschreibt am Bildschirm (Name, optional gezeichnet). Wenn alle unterschrieben haben, wird der Vertrag mit einer Protokollseite (Zeitpunkt, IP-Adresse, Prüfsumme) als unterschrieben abgelegt.</p>
+                <Notice Level="NoticeLevel.Info">Das ist eine einfache elektronische Signatur, keine qualifizierte (§ 126a BGB) und keine eigenhändige Unterschrift. Ein unbefristeter Wohnraummietvertrag braucht keine Schriftform. Bei einer Befristung über ein Jahr kann der Vertrag ohne Schriftform (§ 550 BGB) als unbefristet gelten: dann besser auf Papier unterschreiben lassen. Siehe docs/digitale-unterschrift.md.</Notice>
+                <AppCheckBox @bind-Value="includeLandlord" Label="Ich unterschreibe auch (Sie erhalten einen eigenen Link)" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="StartSigningAsync">Zur Unterschrift senden</MudButton>
+            }
+            else
+            {
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Wer</th><th>Stand</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var signer in signatureRows)
+                            {
+                                <tr>
+                                    <td>@signer.SignerName<br><span class="small">@(signer.Role == SignerRole.Tenant ? "Mieter" : "Vermieter")@(signer.Email is null ? "" : " · " + signer.Email)</span></td>
+                                    <td>
+                                        @if (signer.SignedAt is { } at)
+                                        {
+                                            <StatusChip Level="StatusLevel.Success">unterschrieben</StatusChip><span class="small">&#32;@Format.Timestamp(at)</span>
+                                        }
+                                        else if (signer.Expired)
+                                        {
+                                            <StatusChip Level="StatusLevel.Error">Link abgelaufen</StatusChip>
+                                        }
+                                        else
+                                        {
+                                            <StatusChip Level="StatusLevel.Warning">offen</StatusChip><span class="small">&#32;bis @Format.Timestamp(signer.ExpiresAt)</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (signer.SignedAt is null)
+                                        {
+                                            <MudButton Variant="Variant.Text" OnClick="() => ReissueAsync(signer.Id)">Neuer Link@(signer.Email is null ? "" : " senden")</MudButton>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (signatureRows.All(s => s.SignedAt is not null))
+                {
+                    <Notice Level="NoticeLevel.Warning">Alle haben unterschrieben, der Vertrag ist aber noch nicht abgelegt (z. B. war der PDF-Dienst nicht erreichbar).</Notice>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CompleteSigningAsync">Vertrag jetzt ablegen</MudButton>
+                }
+                else if (signatureRows.All(s => s.SignedAt is null))
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="CancelSigningAsync">Anfrage zurückziehen</MudButton>
+                }
+            }
+
+            @if (signatureLinks.Count > 0)
+            {
+                <Notice Level="NoticeLevel.Info">Die Links werden nur jetzt angezeigt. Mieter mit E-Mail-Adresse haben ihn per Mail erhalten.</Notice>
+                @foreach (var link in signatureLinks)
+                {
+                    <div class="field">
+                        <label for="@($"link-{link.RequestId}")">@link.SignerName@(link.Mailed ? " (per E-Mail gesendet)" : "")</label>
+                        <input id="@($"link-{link.RequestId}")" type="text" readonly value="@link.Url" />
+                    </div>
+                }
+            }
+        </section>
+    }
+
     @if (signing is not null)
     {
         <section>
@@ -109,6 +181,10 @@ else
     private FileSelection? signedFile;
     private readonly SignedContractInput signedData = new();
     private bool loaded;
+    private ContractRow? draft;
+    private IReadOnlyList<SignatureRow> signatureRows = [];
+    private IReadOnlyList<SignatureLink> signatureLinks = [];
+    private bool includeLandlord;
 
     [Parameter]
     public Guid Id { get; set; }
@@ -132,10 +208,54 @@ else
             templateId = (lease.RoomId is not null ? templates.FirstOrDefault(t => t.Name.Contains("Zimmer", StringComparison.Ordinal)) : templates.FirstOrDefault())?.Id
                 ?? templates.FirstOrDefault()?.Id ?? Guid.Empty;
             rows = await Contracts.ListAsync(Id);
+            await LoadSignaturesAsync();
             signedData.SignedOn = DateOnly.FromDateTime(DateTime.Today);
         }
 
         loaded = true;
+    }
+
+    private async Task LoadSignaturesAsync()
+    {
+        draft = rows.FirstOrDefault(r => r.Status == ContractStatus.Draft);
+        signatureRows = draft is null ? [] : await Signatures.ListAsync(draft.Id);
+    }
+
+    private async Task StartSigningAsync()
+    {
+        var result = await Signatures.StartAsync(draft!.Id, includeLandlord);
+        errors = result.Succeeded ? null : result.Errors;
+        signatureLinks = result.Links;
+        await LoadSignaturesAsync();
+    }
+
+    private async Task ReissueAsync(Guid requestId)
+    {
+        var result = await Signatures.ReissueAsync(requestId);
+        errors = result.Succeeded ? null : result.Errors;
+        signatureLinks = result.Links;
+        await LoadSignaturesAsync();
+    }
+
+    private async Task CancelSigningAsync()
+    {
+        var result = await Signatures.CancelAsync(draft!.Id);
+        errors = result.Succeeded ? null : result.Errors;
+        signatureLinks = [];
+        await LoadSignaturesAsync();
+    }
+
+    private async Task CompleteSigningAsync()
+    {
+        var result = await Signatures.CompleteAsync(draft!.Id);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Der unterschriebene Vertrag wurde abgelegt.");
+        }
+
+        rows = await Contracts.ListAsync(Id);
+        await LoadSignaturesAsync();
     }
 
     private async Task PreviewAsync()
@@ -153,6 +273,7 @@ else
         if (result.Succeeded)
         {
             rows = await Contracts.ListAsync(Id);
+            await LoadSignaturesAsync();
             Notify.Success("Der Entwurf wurde erstellt. Ein früherer offener Entwurf ist ersetzt.");
         }
     }
@@ -178,6 +299,7 @@ else
         {
             signing = null;
             rows = await Contracts.ListAsync(Id);
+            await LoadSignaturesAsync();
             Notify.Success("Der unterschriebene Vertrag wurde abgelegt.");
         }
     }
@@ -192,6 +314,7 @@ else
         var result = await Contracts.WithdrawAsync(row.Id);
         errors = result.Succeeded ? null : result.Errors;
         rows = await Contracts.ListAsync(Id);
+        await LoadSignaturesAsync();
         if (signing == row.Id)
         {
             signing = null;

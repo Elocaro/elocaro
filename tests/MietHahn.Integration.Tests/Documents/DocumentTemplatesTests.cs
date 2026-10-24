@@ -196,5 +196,8 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
 
         public Task<StoredFile> GenerateAndStoreAsync(PdfRequest job, string fileName, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
+
+        public Task<byte[]> MergeAsync(IReadOnlyList<byte[]> documents, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }

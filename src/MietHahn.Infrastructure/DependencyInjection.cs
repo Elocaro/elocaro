@@ -19,6 +19,7 @@ using MietHahn.Application.Heating;
 using MietHahn.Application.Leases;
 using MietHahn.Application.Metering;
 using MietHahn.Application.Notices;
+using MietHahn.Application.Notifications;
 using MietHahn.Application.OperatingCosts;
 using MietHahn.Application.Operations;
 using MietHahn.Application.People;
@@ -161,7 +162,11 @@ public static class DependencyInjection
     {
         services.Configure<MailOptions>(configuration.GetSection(MailOptions.Section));
         services.TryAddSingleton<ScribanRenderer>();
-        services.AddScoped<IMailSender, MailSender>();
+        services.AddScoped<MailSender>();
+        services.AddScoped<IMailSender>(sp => new Notifications.PushingMailSender(sp.GetRequiredService<MailSender>(), sp.GetRequiredService<IPushNotifications>(), sp.GetRequiredService<UserManager<ApplicationUser>>()));
+        services.Configure<Notifications.PushOptions>(configuration.GetSection(Notifications.PushOptions.Section));
+        services.AddHttpClient(Notifications.PushNotifications.ClientName, http => http.Timeout = TimeSpan.FromSeconds(10));
+        services.AddScoped<IPushNotifications, Notifications.PushNotifications>();
         services.TryAddScoped<ISmtpSender, MailKitSmtpSender>();
         services.AddScoped<MailOutbox>();
         services.AddScoped<IMailService, MailService>();
@@ -252,6 +257,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentTemplates, DocumentTemplates>();
         services.AddScoped<IDocumentReadiness, DocumentReadiness>();
         services.AddScoped<ILetters, Letters>();
+        services.AddScoped<IContractSignatures, ContractSignatures>();
         services.AddScoped<ILeaseContracts, LeaseContracts>();
         services.AddScoped<IRentIncreases, RentIncreases>();
         services.AddScoped<IHandovers, Handovers>();
@@ -369,6 +375,7 @@ public static class DependencyInjection
             q.ScheduleDaily<ConsumptionNotificationJob>(ConsumptionNotificationJob.Key, "Schickt Mietern die monatliche Verbrauchsinformation (Heizung, Warmwasser) per Mail", 8, 15);
             q.ScheduleDaily<ReadingReminderJob>(ReadingReminderJob.Key, "Erinnert Mieter ab dem 15. Dezember, die Zählerstände zum Jahreswechsel im Portal zu melden", 8, 25);
             q.ScheduleInterval<ReceiptInboxJob>(ReceiptInboxJob.Key, "Holt Belege aus dem Beleg-Postfach ab (nur wenn eingerichtet)", TimeSpan.FromMinutes(5));
+            q.ScheduleInterval<Notifications.PushDispatchJob>(Notifications.PushDispatchJob.Key, "Schickt Hinweise an Geräte, die Benachrichtigungen eingeschaltet haben", TimeSpan.FromMinutes(1));
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);

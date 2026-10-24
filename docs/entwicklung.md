@@ -341,6 +341,14 @@ Bedienung und Registrierung: [banking-fints.md](banking-fints.md). Technik:
 - **Ablauf** (`ILeaseContracts`/`LeaseContracts`, Seite `/verwaltung/vertraege/{id}/vertragsdokument`): *Entwurf* (`CreateDraftAsync`: PDF im Dateispeicher, `LeaseContract` mit Verweis auf die Vorlagenfassung; ein früherer offener Entwurf wird verworfen, ein Teilindex erlaubt höchstens einen je Mietvertrag) → *unterschrieben hochladen* (`ConcludeAsync`: Datei als `Document` der Kategorie Mietvertrag am Mietvertrag, optional im Portal freigegeben, mit der Fassung) → Status `Concluded`. Verwerfen ist nur für offene Entwürfe möglich. Der Mietvertrag selbst (Sollstellungen, Mieterkonto) ist unabhängig davon angelegt; der Status steht nur am Vertragsdokument.
 - **Tests:** `LeaseContractsTests` prüft mit echten PDFs, dass ein Zimmervertrag Pauschale, Gemeinschaftsflächen und Möblierung aus den Stammdaten enthält, ein Wohnungsvertrag Fläche, Miete, Kaution, Kostenarten und Anlagen, und den Ablauf Entwurf → Unterschrift.
 
+### Web-Push und Service Worker (#105)
+
+`IPushNotifications` (`Infrastructure/Notifications`): VAPID-Schlüssel in `push_keys` (privat mit Data Protection geschützt), Geräte in `push_subscriptions` (nur Push-Dienste von Google/Mozilla/Apple/Microsoft, sonst SSRF-Gefahr), Hinweise in `push_messages`. Die Push-Nachricht ist leer; der Service Worker (`wwwroot/sw.js`) holt Titel und Text von `/push/ausstehend`. `PushingMailSender` dekoriert `IMailSender`: Mails mit bekannter Vorlage erzeugen zusätzlich einen Hinweis für Empfänger mit Abo; neue Hinweise also über Mailvorlage und Zuordnung in `PushingMailSender`. Versand im Job `push-dispatch`. Seite `/konto/benachrichtigungen`, Betrieb in betrieb.md.
+
+### Digitale Unterschrift (#106)
+
+Technik, Nachweise und rechtliche Einordnung stehen in [digitale-unterschrift.md](digitale-unterschrift.md). `IPdfGenerator.MergeAsync` fügt PDFs über Gotenberg zusammen; Fakes in Tests müssen sie implementieren.
+
 ### Mieterhöhungs-Assistent (#44)
 
 - **Reine Regeln** (`Domain.Leases.ComparativeRent`, `IndexedRent`): Wirkung eines Verlangens nach § 558 ab dem Beginn des dritten Kalendermonats nach Zugang (`EffectiveFrom`), Zustimmungsfrist bis zum Ende des zweiten Kalendermonats (`ConsentDeadline`), frühester Zugang (`EarliestDeclaration`: Miete 15 Monate unverändert, zusätzlich ein Jahr nach einer früheren Erhöhung), Kappungsgrenze (`CapLimit`: Miete vor drei Jahren plus 20 % bzw. 15 %, auf den Cent abgerundet), Höchstmiete = niedrigere von Kappungsgrenze und Vergleichsmiete. `Assess` liefert Fehler, Hinweise (Mietpreisbremse bei Neuvermietung) und die Termine. Die Kappungsgrenze (20 oder 15 %) stellt man am Objekt ein (`Property.RentCapPercent`, Gemeinde mit Verordnung).
