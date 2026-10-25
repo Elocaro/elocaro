@@ -24,6 +24,20 @@ Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. W
 | Mieterwechsel | Vertrag → Ein- & Auszug | Mieterwechsel, Übergabe Auszug mit Protokoll, Kaution abrechnen, danach neuer Vertrag |
 | Bescheinigungen | Kommunikation → Dokumente → Schreiben an Mieter | Wohnungsgeberbestätigung, Mietbescheinigung, Mietschuldenfreiheit, Kautionsabrechnung |
 
+## So sieht es aus
+
+Umsätze zuordnen (Geld → Bank → Zuordnen): Vorschläge mit Begründung, bestätigen oder ändern.
+
+![Umsätze zuordnen](bilder/umsaetze-zuordnen.png)
+
+Nebenkostenabrechnung (Bestand → Objekt → Nebenkosten → Abrechnungs-Assistent): Schritt für Schritt mit Prüfhinweisen.
+
+![Abrechnungs-Assistent](bilder/abrechnungs-assistent.png)
+
+Auf dem Handy führt die untere Leiste zu Aufgaben, Bestand, Geld und Kommunikation.
+
+![Aufgaben auf dem Handy](bilder/handy-aufgaben.png)
+
 ## Begriffe
 
 Sollstellung, Offener Posten, Saldovortrag, Umlageschlüssel und weitere Begriffe sind in der Hilfe der Anwendung (Abschnitt „Begriffe einfach erklärt“) beschrieben.
