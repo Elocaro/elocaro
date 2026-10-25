@@ -83,6 +83,9 @@ public sealed class ReceiptInput
     [Range(typeof(decimal), "0", "100000000", ParseLimitsInInvariantCulture = true)]
     public decimal? Co2Kg { get; set; }
 
+    /// <summary>Annual statement of a supplier: replaces the cost calculated from a supply contract.</summary>
+    public bool SupplierStatement { get; set; }
+
     [StringLength(2000)]
     public string? Note { get; set; }
 }

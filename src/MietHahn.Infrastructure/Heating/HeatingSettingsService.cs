@@ -59,6 +59,7 @@ internal sealed class HeatingSettingsService(MietHahnDbContext db) : IHeatingSet
             settings.ConsumptionPercent = input.ConsumptionPercent ?? throw new RuleViolationException("Bitte den verbrauchsabhängigen Anteil angeben.");
             settings.JointPlant = input.JointPlant;
             settings.HotWaterHeatMeterId = input.HotWaterHeatMeterId;
+            settings.SplitBasis = input.SplitBasis;
             settings.HotWaterFormulaFactor = input.HotWaterFormulaFactor ?? 2.5m;
             settings.HotWaterTemperature = input.HotWaterTemperature ?? 60m;
             settings.FuelKwhPerUnit = input.FuelKwhPerUnit;
@@ -86,6 +87,7 @@ internal sealed class HeatingSettingsService(MietHahnDbContext db) : IHeatingSet
         ConsumptionPercent = s.ConsumptionPercent,
         JointPlant = s.JointPlant,
         HotWaterHeatMeterId = s.HotWaterHeatMeterId,
+        SplitBasis = s.SplitBasis,
         HotWaterFormulaFactor = s.HotWaterFormulaFactor,
         HotWaterTemperature = s.HotWaterTemperature,
         FuelKwhPerUnit = s.FuelKwhPerUnit,

@@ -37,6 +37,35 @@ internal sealed class MeterConsumptionSource(IReadOnlyList<Zaehler> meters) : IC
         return Sum([meter], [.. meters.Where(m => m.Type == meter.Type)], period);
     }
 
+    /// <summary>Consumption of the chosen meters (each metering point once, also across replacements).</summary>
+    public ConsumptionQuantity MetersQuantity(IReadOnlyCollection<Guid> meterIds, Period period)
+    {
+        var chosen = meters.Where(m => meterIds.Contains(m.Id)).ToList();
+        if (chosen.Count == 0)
+        {
+            return new ConsumptionQuantity(null, false, "Die gewählten Zähler wurden nicht gefunden.");
+        }
+
+        return Sum(chosen, [.. meters.Where(m => m.Type == chosen[0].Type)], period);
+    }
+
+    /// <summary>Consumption of all meters of the type that are assigned to a unit or a room (e.g. the flat electricity meters).</summary>
+    public ConsumptionQuantity AssignedQuantity(MeterType type, Period period)
+    {
+        var ofType = meters.Where(m => m.Type == type).ToList();
+        var assigned = ofType.Where(m => m.UnitId is not null || m.RoomId is not null).ToList();
+        return assigned.Count == 0 ? new ConsumptionQuantity(0m) : Sum(assigned, ofType, period);
+    }
+
+    /// <summary>Unit the meters of the type count in, for fuel quantities (m³ or kWh).</summary>
+    public string? FuelUnit(IReadOnlyCollection<Guid> meterIds) =>
+        meters.FirstOrDefault(m => meterIds.Contains(m.Id))?.MeasurementUnit switch
+        {
+            MeasurementUnit.CubicMeters => "m³",
+            MeasurementUnit.KilowattHours => "kWh",
+            _ => null,
+        };
+
     private static ConsumptionQuantity Sum(List<Zaehler> assigned, List<Zaehler> ofType, Period period)
     {
         decimal total = 0;

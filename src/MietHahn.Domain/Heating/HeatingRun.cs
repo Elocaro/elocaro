@@ -367,7 +367,22 @@ internal sealed partial class HeatingRun
         }
 
         const string Formula = "Anteil Warmwasser = Wärmemenge des Warmwassers ÷ Brennstoffenergie der gemeinsamen Anlage (§ 9 HeizkostenV)";
-        if (fuelKwh is not { } fuel || fuel <= 0m)
+        const string MeterFormula = "Anteil Warmwasser = Wärmemenge des Warmwassers ÷ (Wärmemenge der Heizung + Wärmemenge des Warmwassers), jeweils aus Wärmezählern";
+        decimal? heatingHeat = null;
+        if (settings.SplitBasis == HotWaterSplitBasis.MeterSum)
+        {
+            if (settings.HeatingHeat?.Value is { } measuredHeating)
+            {
+                heatingHeat = measuredHeating;
+            }
+            else
+            {
+                Problem(ProblemSeverity.Error, $"Wärmezähler der Heizung: {settings.HeatingHeat?.Note ?? "Verbrauch nicht ermittelbar."} Ersatzweise gilt die Brennstoffenergie.", HeatingCostCalculator.HotWaterKey);
+            }
+        }
+
+        var byMeters = heatingHeat is not null;
+        if (!byMeters && (fuelKwh is not { } fuel0 || fuel0 <= 0m))
         {
             Problem(ProblemSeverity.Error, "Die Brennstoffmenge fehlt (Beleg: Menge in kWh; Heizöl: Tankbestand). Ohne sie lässt sich die gemeinsame Anlage nicht in Heizung und Warmwasser aufteilen; die Kosten werden vorläufig der Heizung zugerechnet.", HeatingCostCalculator.HeatKey);
             return new Split(0m, new ProtocolEntry("Aufteilung Heizung/Warmwasser (§ 9 HeizkostenV)", Formula, "Brennstoffmenge fehlt", 0m));
@@ -405,6 +420,27 @@ internal sealed partial class HeatingRun
             method = $"Formel Q = {Num(settings.HotWaterFormulaFactor)} × V × (t − 10): {Num(settings.HotWaterFormulaFactor)} × {Num(volume.Value)} m³ × ({Num(settings.HotWaterTemperature)} − 10) °C = {Num(heat.Value)} kWh";
         }
 
+        if (byMeters)
+        {
+            var total = heatingHeat!.Value + heat.Value;
+            if (total <= 0m)
+            {
+                Problem(ProblemSeverity.Error, "Die Wärmezähler zeigen keinen Verbrauch; die Kosten werden vorläufig der Heizung zugerechnet.", HeatingCostCalculator.HotWaterKey);
+                return new Split(0m, new ProtocolEntry("Aufteilung Heizung/Warmwasser (§ 9 HeizkostenV)", MeterFormula, "Kein Wärmeverbrauch", 0m));
+            }
+
+            var meterRatio = heat.Value / total;
+            return new Split(
+                meterRatio,
+                new ProtocolEntry(
+                    "Aufteilung Heizung/Warmwasser (§ 9 HeizkostenV)",
+                    MeterFormula,
+                    $"{method}; Wärme Heizung {Num(heatingHeat.Value)} kWh ({settings.HeatingHeat!.Note}); {Num(heat.Value)} ÷ ({Num(heatingHeat.Value)} + {Num(heat.Value)})",
+                    decimal.Round(meterRatio * 100m, 4),
+                    "Ergebnis in Prozent. Wärmeverluste der Anlage (Kessel, Leitungen) werden bei dieser Basis nicht dem Warmwasser zugerechnet."));
+        }
+
+        var fuel = fuelKwh!.Value;
         var ratio = heat.Value / fuel;
         if (ratio > 1m)
         {

@@ -291,6 +291,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
         receipt.FuelQuantity = data.FuelQuantity;
         receipt.FuelUnit = TrimToNull(data.FuelUnit);
         receipt.Co2Kg = data.Co2Kg;
+        receipt.SupplierStatement = data.SupplierStatement;
         receipt.Note = TrimToNull(data.Note);
         receipt.Validate();
     }
@@ -333,6 +334,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
         FuelQuantity = b.FuelQuantity,
         FuelUnit = b.FuelUnit,
         Co2Kg = b.Co2Kg,
+        SupplierStatement = b.SupplierStatement,
         Note = b.Note,
     };
 

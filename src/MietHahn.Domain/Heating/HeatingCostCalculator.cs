@@ -19,6 +19,11 @@ public sealed record HeatingParameters
     /// <summary>Heat quantity of the hot water circuit in kWh from the heat meter; <c>null</c> = no meter, the formula applies.</summary>
     public ConsumptionQuantity? HotWaterHeat { get; init; }
 
+    public HotWaterSplitBasis SplitBasis { get; init; }
+
+    /// <summary>Heat quantity of the heating meters of the units in kWh (for <see cref="HotWaterSplitBasis.MeterSum"/>); <c>null</c> = not determined.</summary>
+    public ConsumptionQuantity? HeatingHeat { get; init; }
+
     /// <summary>Factor of the formula Q = factor · V · (t − 10 °C) for the heat quantity of the hot water (§ 9 para. 2).</summary>
     public decimal HotWaterFormulaFactor { get; init; } = 2.5m;
 

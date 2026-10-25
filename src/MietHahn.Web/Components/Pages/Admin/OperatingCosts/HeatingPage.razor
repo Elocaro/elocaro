@@ -62,6 +62,8 @@ else
                 <AppNumberField T="decimal?" @bind-Value="Data.HotWaterFormulaFactor" Label="Formelfaktor (kWh je m³ und K)" Hint="Standard 2,5 (Heizwert). Bei Abrechnung nach Brennwert den Faktor prüfen." />
                 <AppNumberField T="decimal?" @bind-Value="Data.HotWaterTemperature" Label="Warmwassertemperatur (°C)" Hint="Standard 60 °C." />
             </div>
+            <AppRadioGroup T="HotWaterSplitBasis" @bind-Value="Data.SplitBasis" Items="Enum.GetValues<HotWaterSplitBasis>()" Text="Labels.From" />
+            <p class="small">Die Summe der Wärmezähler nimmt die Wärmezähler der Wohnungen als Heizungswärme; der Zähler im Warmwasserkreis (oder die Formel) liefert die Warmwasserwärme. Die Brennstoffenergie braucht die Brennstoffmenge am Beleg.</p>
             <p class="small">Ohne Zähler im Warmwasserkreis gilt die Formel Q = Faktor × V × (t − 10 °C) mit dem Warmwasserverbrauch V aller Wohnungen.</p>
         </section>
     }

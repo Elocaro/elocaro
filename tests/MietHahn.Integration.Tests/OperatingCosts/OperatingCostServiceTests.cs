@@ -294,6 +294,78 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
         await Assert.ThrowsAsync<RuleViolationException>(() => WithAsync<IOperatingCosts, OperatingCostPreview?>(s => s.PreviewAsync(house, new Period(new DateOnly(2026, 1, 1), new DateOnly(2027, 3, 1)), Ct)));
     }
 
+    [Fact]
+    public async Task Supply_contract_replaces_advance_receipts_with_consumption_times_tariff_and_a_supplier_statement_wins()
+    {
+        await StartAccountingAsync();
+        await SetRuleAsync("betrkv-02", AllocationKey.LivingArea);
+        var advance = await ReceiptAsync("Stadtwerke", "betrkv-02", 500m);
+        var main = Validate(await WithAsync<IMeterService, Result>(s => s.CreateAsync(
+            house,
+            new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Hauptzähler", Number = "H-1" }, InstalledOn = new DateOnly(2025, 12, 31), InitialReading = 1000m },
+            Ct)));
+        await ReadingAsync(main, new DateOnly(2026, 12, 31), 1183m);
+        Validate(await WithAsync<ISupplyContracts, Result>(s => s.CreateAsync(
+            house,
+            new SupplyContractInput
+            {
+                Name = "Wasser",
+                CostType = "betrkv-02",
+                MeterType = MeterType.ColdWater,
+                MeterIds = [main],
+                Tariff = new SupplyTariffInput { From = new DateOnly(2020, 1, 1), UnitPrice = 4m, BaseFeePerMonth = 12m },
+            },
+            Ct)));
+
+        var derived = await PreviewAsync();
+
+        // 183 m³ × 4.00 € + 12 × 12.00 € = 876.00 €; the advance receipt (500.00 €) is not a cost.
+        Assert.Equal(876m, derived.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Total);
+        Assert.Contains(derived.Hints, h => h.Contains("nicht angesetzt", StringComparison.Ordinal) && h.Contains("876,00", StringComparison.Ordinal));
+        Assert.Contains(derived.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Items.Select(i => i.Description), d => d.Contains("183 m³ × 4 €", StringComparison.Ordinal));
+        Assert.NotEqual(Guid.Empty, advance);
+
+        // The annual statement of the supplier replaces the calculation (and the advance receipt stays out).
+        Validate(await WithAsync<IReceiptService, Result>(s => s.CreateAsync(
+            new ReceiptInput { SupplierName = "Stadtwerke", InvoiceDate = new DateOnly(2027, 5, 10), Gross = 900m, SupplierStatement = true },
+            [],
+            new CostItemInput { CostType = "betrkv-02", PropertyId = house, From = new DateOnly(2026, 1, 1), To = new DateOnly(2026, 12, 31) },
+            Ct)));
+
+        var actual = await PreviewAsync();
+
+        Assert.Equal(900m, actual.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Total);
+        Assert.Contains(actual.Hints, h => h.Contains("Jahresabrechnung des Versorgers", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Supply_contract_without_readings_falls_back_to_the_receipts_with_a_hint()
+    {
+        await StartAccountingAsync();
+        await SetRuleAsync("betrkv-02", AllocationKey.LivingArea);
+        await ReceiptAsync("Stadtwerke", "betrkv-02", 500m);
+        var main = Validate(await WithAsync<IMeterService, Result>(s => s.CreateAsync(
+            house,
+            new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Hauptzähler", Number = "H-1" }, InstalledOn = new DateOnly(2025, 12, 31), InitialReading = 1000m },
+            Ct)));
+        Validate(await WithAsync<ISupplyContracts, Result>(s => s.CreateAsync(
+            house,
+            new SupplyContractInput
+            {
+                Name = "Wasser",
+                CostType = "betrkv-02",
+                MeterType = MeterType.ColdWater,
+                MeterIds = [main],
+                Tariff = new SupplyTariffInput { From = new DateOnly(2020, 1, 1), UnitPrice = 4m },
+            },
+            Ct)));
+
+        var preview = await PreviewAsync();
+
+        Assert.Equal(500m, preview.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Total);
+        Assert.Contains(preview.Hints, h => h.StartsWith("Fehlt:", StringComparison.Ordinal) && h.Contains("Es gelten die Belege", StringComparison.Ordinal));
+    }
+
     // ---- helpers ---------------------------------------------------------------------------------------------------
 
     private static decimal Share(BillingResult result, Guid lease, string type) =>

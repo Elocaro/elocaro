@@ -340,6 +340,18 @@ public static class Labels
         _ => "Wohnfläche",
     };
 
+    public static string From(SupplyBasis value) => value switch
+    {
+        SupplyBasis.CommonArea => "Allgemeinverbrauch (Hauptzähler minus Zähler der Wohnungen)",
+        _ => "Gesamter Verbrauch der gewählten Zähler",
+    };
+
+    public static string From(PriceUnit value) => value switch
+    {
+        PriceUnit.KilowattHour => "€ je kWh",
+        _ => "€ je m³",
+    };
+
     public static string From(SharedFlatBilling value) => value switch
     {
         SharedFlatBilling.ByRoom => "Auf die Zimmer verteilen (nach Fläche, je Zimmer eine Abrechnung)",
@@ -363,6 +375,12 @@ public static class Labels
         HeatingFuel.Oil => "Heizöl (Tankbestand)",
         HeatingFuel.Other => "Sonstiges / nicht fossil (kWh laut Beleg)",
         _ => "Gas (kWh laut Versorger)",
+    };
+
+    public static string From(HotWaterSplitBasis value) => value switch
+    {
+        HotWaterSplitBasis.MeterSum => "Summe der Wärmezähler (Warmwasser ÷ Heizung plus Warmwasser)",
+        _ => "Brennstoffenergie (Warmwasser ÷ Brennstoff, § 9 Abs. 2)",
     };
 
     public static string From(OilValuation value) => value switch

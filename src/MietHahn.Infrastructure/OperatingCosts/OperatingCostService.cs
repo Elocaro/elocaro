@@ -86,17 +86,20 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
         var meters = await db.Set<Zaehler>().AsNoTracking().Include(z => z.Readings).Where(z => z.PropertyId == propertyId).ToListAsync(cancellationToken);
 
         var source = new MeterConsumptionSource(meters);
+        var heating = await db.Set<HeatingSettings>().AsNoTracking().SingleOrDefaultAsync(h => h.PropertyId == propertyId, cancellationToken)
+            ?? new HeatingSettings(propertyId);
+        var (receiptCosts, statementReceipts) = await CostsAsync(propertyId, billingPeriod, cancellationToken);
+        var contracts = await db.Set<SupplyContract>().AsNoTracking().Include(c => c.Tariffs).Where(c => c.PropertyId == propertyId).AsSplitQuery().ToListAsync(cancellationToken);
+        var supply = SupplyCostDerivation.Apply(contracts, receiptCosts, statementReceipts, source, billingPeriod, heating.FuelKwhPerUnit);
         var input = new BillingInput(
             billingPeriod,
             [.. units.Select(ToBillingUnit)],
             billingLeases,
-            await CostsAsync(propertyId, billingPeriod, cancellationToken),
+            supply.Costs,
             [.. rules.Select(r => r.ToBillingRule())],
             source);
-        var heating = await db.Set<HeatingSettings>().AsNoTracking().SingleOrDefaultAsync(h => h.PropertyId == propertyId, cancellationToken)
-            ?? new HeatingSettings(propertyId);
 
-        var hints = new List<string>();
+        var hints = new List<string>(supply.Hints);
         if (billingLeases.Any(v => v.ReceivesStatement) && (settings.AccountingStart is not { } accountingStart || accountingStart > start))
         {
             hints.Add(settings.AccountingStart is { } from
@@ -140,6 +143,8 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             Fuel = settings.Fuel,
             JointPlant = settings.JointPlant,
             HotWaterHeat = settings.HotWaterHeatMeterId is { } meter ? source.MeterQuantity(meter, period) : null,
+            SplitBasis = settings.SplitBasis,
+            HeatingHeat = settings.SplitBasis == HotWaterSplitBasis.MeterSum ? source.AssignedQuantity(MeterType.Heat, period) : null,
             HotWaterFormulaFactor = settings.HotWaterFormulaFactor,
             HotWaterTemperature = settings.HotWaterTemperature,
             FuelKwhPerUnit = settings.FuelKwhPerUnit,
@@ -159,7 +164,7 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             [.. unit.Room.OrderBy(z => z.Order).Select(z => new BillingRoom(z.Id, z.Name, [.. z.Areas.Select(a => new RoomAreaState(a.Validity, a.AllocationArea))]))],
             unit.SharedFlatBilling);
 
-    private async Task<List<BillingCost>> CostsAsync(Guid propertyId, Period billingPeriod, CancellationToken cancellationToken)
+    private async Task<(List<BillingCost> Costs, HashSet<Guid> StatementReceipts)> CostsAsync(Guid propertyId, Period billingPeriod, CancellationToken cancellationToken)
     {
         var end = billingPeriod.To!.Value;
         var items = await db.Set<CostItem>().AsNoTracking()
@@ -171,7 +176,8 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
         var suppliers = await db.Set<Person>().AsNoTracking().Where(p => supplierIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.DisplayName, cancellationToken);
         var subtypes = await db.Set<CostSubtype>().AsNoTracking().IgnoreQueryFilters().ToDictionaryAsync(a => a.Id, a => a.Name, cancellationToken);
 
-        return [.. items.OrderBy(p => p.BillingPeriod.From).ThenBy(p => p.Id).Select(p =>
+        var statements = receipts.Values.Where(b => b.SupplierStatement).Select(b => b.Id).ToHashSet();
+        return ([.. items.OrderBy(p => p.BillingPeriod.From).ThenBy(p => p.Id).Select(p =>
         {
             var receipt = receipts[p.ReceiptId];
             var supplier = receipt.SupplierId is { } id ? suppliers.GetValueOrDefault(id) : receipt.SupplierName;
@@ -192,6 +198,6 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
                 receipt.FuelQuantity,
                 receipt.FuelUnit,
                 receipt.Co2Kg);
-        })];
+        })], statements);
     }
 }

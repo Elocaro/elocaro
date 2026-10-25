@@ -46,6 +46,44 @@ public class OperatingCostPagesTests(PostgresFixture postgres) : AccountTestBase
     }
 
     [Fact]
+    public async Task Supply_contract_page_lists_contracts_with_tariffs_and_meters()
+    {
+        await SeedAsync();
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        var empty = await admin.GetAsync($"/verwaltung/objekte/{house}/versorgung");
+        Assert.Contains("Noch keine Versorgungsverträge", empty.Document.Body!.TextContent, StringComparison.Ordinal);
+
+        var created = await App.WithScopeAsync(async sp =>
+        {
+            var meter = (await sp.GetRequiredService<MietHahn.Application.Metering.IMeterService>().CreateAsync(
+                house,
+                new MietHahn.Application.Metering.MeterCreation { Data = new MietHahn.Application.Metering.MeterInput { Type = MietHahn.Domain.Metering.MeterType.ColdWater, Name = "Hauptzähler", Number = "H-1" }, InstalledOn = new DateOnly(2024, 1, 1), InitialReading = 10m },
+                Ct)).Id!.Value;
+            return await sp.GetRequiredService<ISupplyContracts>().CreateAsync(
+                house,
+                new SupplyContractInput
+                {
+                    Name = "Wasser und Abwasser",
+                    Supplier = "Stadtwerke",
+                    CostType = "betrkv-02",
+                    MeterType = MietHahn.Domain.Metering.MeterType.ColdWater,
+                    MeterIds = [meter],
+                    Tariff = new SupplyTariffInput { From = new DateOnly(2025, 1, 1), UnitPrice = 4.5m, BaseFeePerMonth = 10m },
+                },
+                Ct);
+        });
+        Assert.True(created.Succeeded, string.Join(", ", created.Errors));
+
+        var page = await admin.GetAsync(empty.Path);
+        var text = page.Document.Body!.TextContent;
+        Assert.Contains("Wasser und Abwasser", text, StringComparison.Ordinal);
+        Assert.Contains("Stadtwerke", text, StringComparison.Ordinal);
+        Assert.Contains("H-1", text, StringComparison.Ordinal);
+        Assert.Contains("4,5", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Preview_shows_cost_types_tenant_statement_vacancy_and_the_calculation_protocol()
     {
         await SeedAsync();

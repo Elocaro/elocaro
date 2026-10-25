@@ -8,6 +8,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Heizkosten: Basis der Aufteilung Heizung/Warmwasser (§ 9 HeizkostenV) wählbar, entweder Brennstoffenergie oder Summe der Wärmezähler (Wohnungszähler plus Warmwasser-Wärmezähler).
+- Versorgungsverträge: Kosten für Wasser, Abwasser, Strom und Gas werden aus Zählerverbrauch und Tarif (Preis, Grundpreis, mehrere Tarife mit Stichtag) berechnet statt aus Abschlägen oder verspäteten Rechnungen. Beleg-Markierung „Jahresabrechnung des Versorgers“ ersetzt die Berechnung; ohne Verbrauch oder Tarif gelten weiter die Belege.
 - Datenimport: optionale Spalten für Mietmodell (Staffel, Index), Indexbasis, Staffeln, Befristung und Personenzahl; bestehende Verträge lassen sich damit vollständiger übernehmen.
 - Rechtsstände: Prüfvermerk (wer, wann, gegen welche Quelle); die CO₂-Stufentabelle gilt mit Vermerk ein Jahr als geprüft.
 - Kontoauszug-CSV: Profile für Commerzbank, Deutsche Bank und N26.

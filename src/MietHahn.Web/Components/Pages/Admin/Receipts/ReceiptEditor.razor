@@ -20,6 +20,7 @@
         <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Co2Kg))"><AppNumberField T="decimal?" @bind-Value="Data.Co2Kg" Label="CO₂ (kg)" Hint="Pflichtangabe des Lieferanten (CO2KostAufG)" /></UncertainMark>
     </div>
 </details>
+<AppCheckBox @bind-Value="Data.SupplierStatement" Label="Jahresabrechnung des Versorgers (keine Abschlagsrechnung)" />
 <AppTextField @bind-Value="Data.Note" Label="Notiz" Lines="2" />
 
 @code {

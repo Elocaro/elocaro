@@ -16,6 +16,7 @@ internal sealed class HeatingSettingsConfiguration : IEntityTypeConfiguration<He
         builder.Property(h => h.HotWaterFormulaFactor).HasPrecision(6, 3);
         builder.Property(h => h.HotWaterTemperature).HasPrecision(5, 1);
         builder.Property(h => h.FuelKwhPerUnit).HasPrecision(10, 4);
+        builder.Property(h => h.SplitBasis).HasConversion<string>().HasMaxLength(20);
         builder.Property(h => h.OilValuation).HasConversion<string>().HasMaxLength(20);
         builder.Property(h => h.OilOpeningPricePerLiter).HasPrecision(10, 4);
         builder.Property(h => h.CarbonSpecialCase).HasConversion<string>().HasMaxLength(30);

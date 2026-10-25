@@ -27,6 +27,8 @@ public sealed class HeatingSettingsInput
     /// <summary>Heat meter in the hot water circuit; empty = formula of § 9 para. 2.</summary>
     public Guid? HotWaterHeatMeterId { get; set; }
 
+    public HotWaterSplitBasis SplitBasis { get; set; }
+
     [Range(typeof(decimal), "0.1", "10", ErrorMessage = "Der Faktor liegt zwischen 0,1 und 10 (Standard 2,5).", ParseLimitsInInvariantCulture = true)]
     public decimal? HotWaterFormulaFactor { get; set; } = 2.5m;
 

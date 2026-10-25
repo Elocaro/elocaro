@@ -62,6 +62,12 @@ public sealed class Receipt : Entity
 
     public decimal? Co2Kg { get; set; }
 
+    /// <summary>
+    /// Annual statement of a supplier (not an advance invoice). Replaces the cost derived from a supply contract
+    /// for the period it covers; advance invoices are ignored while such a contract exists.
+    /// </summary>
+    public bool SupplierStatement { get; set; }
+
     public string? Note { get; set; }
 
     /// <summary>Received without amount (e.g. by mail): waits to be completed. Cleared as soon as an amount is entered.</summary>

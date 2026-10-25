@@ -281,6 +281,7 @@ public static class DependencyInjection
         services.AddScoped<IReceiptService, ReceiptService>();
         services.AddScoped<ReceiptInbox>();
         services.AddScoped<ICostAllocation, CostAllocationService>();
+        services.AddScoped<ISupplyContracts, SupplyContractService>();
         services.AddScoped<ICostSubtypes, CostSubtypeService>();
         services.AddScoped<IOperatingCosts, OperatingCostService>();
         services.AddScoped<IHeatingSettings, HeatingSettingsService>();

@@ -153,6 +153,7 @@ public static class AdminNavModel
         new("Übersicht", id, Exact: true),
         new("Zähler", $"{id}/zaehler", Also: [$"{id}/ablesung"]),
         NavTab.Group("Nebenkosten", Policies.Finance,
+            new("Versorgungsverträge", $"{id}/versorgung"),
             new("Umlageschlüssel", $"{id}/umlageschluessel"),
             new("Heizkosten", $"{id}/heizung"),
             new("Vorschau", $"{id}/nebenkosten"),

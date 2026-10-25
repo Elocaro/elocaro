@@ -146,6 +146,16 @@ public static class PageInfoCatalog
             ]), $"{Admin}/objekte/{{id}}/zaehlerimport");
 
         // ---- Operating costs
+        Add(new("Versorgungsverträge",
+            "Wasser, Abwasser, Strom und Gas rechnet MietHahn nach Verbrauch und Preis, nicht nach den Zahlungen an den Versorger.",
+            [
+                new("Gut zu wissen",
+                    "Die Rechnungen der Versorger kommen oft Monate nach dem Jahresende. Mit dem Tarif lässt sich die Abrechnung trotzdem rechnen.",
+                    "Abschlagsrechnungen sind keine Kosten. Erfassen Sie später die Jahresabrechnung als Beleg mit der Markierung „Jahresabrechnung des Versorgers“; sie ersetzt die Berechnung.",
+                    "Ändert sich der Preis, legen Sie einen neuen Tarif mit Stichtag an; im Abrechnungszeitraum wird tagesgenau geteilt.",
+                    "Der Verbrauch kommt aus den Zählerständen der gewählten Zähler. Der Tarif muss den ganzen Abrechnungszeitraum abdecken, sonst gelten die Belege."),
+            ]), $"{Admin}/objekte/{{id}}/versorgung");
+
         Add(new("Umlageschlüssel",
             "Der Umlageschlüssel bestimmt, wie eine Kostenart auf die Mieter verteilt wird, etwa nach Wohnfläche, Personenzahl, Verbrauch oder je Einheit.",
             [

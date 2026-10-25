@@ -15,6 +15,16 @@ public enum HeatingFuel
     Other = 2,
 }
 
+/// <summary>Basis of the split of the joint plant's costs into heating and hot water (§ 9 HeizkostenV).</summary>
+public enum HotWaterSplitBasis
+{
+    /// <summary>Heat quantity of the hot water ÷ energy of the fuel (§ 9 para. 2).</summary>
+    FuelEnergy = 0,
+
+    /// <summary>Heat quantity of the hot water ÷ (heat quantity of the heating meters + heat quantity of the hot water), all from heat meters.</summary>
+    MeterSum = 1,
+}
+
 /// <summary>Valuation of the oil consumption.</summary>
 public enum OilValuation
 {
@@ -70,6 +80,9 @@ public sealed class HeatingSettings : Entity
 
     /// <summary>Heat meter in the hot water circuit (§ 9 para. 2); without it the formula Q = factor · V · (t − 10) applies.</summary>
     public Guid? HotWaterHeatMeterId { get; set; }
+
+    /// <summary>What the heat quantity of the hot water is divided by (fuel energy or the sum of the heat meters).</summary>
+    public HotWaterSplitBasis SplitBasis { get; set; }
 
     /// <summary>Factor of the formula for the heat quantity of the hot water (kWh per m³ and Kelvin); 2.5 as stated in § 9 para. 2.</summary>
     public decimal HotWaterFormulaFactor { get; set; } = 2.5m;

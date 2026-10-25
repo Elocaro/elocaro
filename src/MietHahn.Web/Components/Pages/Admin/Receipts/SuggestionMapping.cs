@@ -60,6 +60,7 @@ internal static class SuggestionMapping
             FuelQuantity = source.FuelQuantity,
             FuelUnit = source.FuelUnit,
             Co2Kg = source.Co2Kg,
+            SupplierStatement = source.SupplierStatement,
             Note = source.Note,
         };
     }

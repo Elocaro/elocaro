@@ -169,6 +169,44 @@ public class HeatingGoldenMasterTests
     }
 
     [Fact]
+    public void Meter_sum_basis_divides_the_hot_water_heat_by_the_heat_of_heating_and_hot_water_meters()
+    {
+        // Heating meters 7,000 + 9,000 + 4,000 = 20,000 kWh, hot water 6,000 kWh: share = 6,000 ÷ 26,000 = 23.0769 %.
+        // Total 3,600.00 € → hot water 830.77 €, heating 2,769.23 €.
+        var parameters = new HeatingParameters
+        {
+            HotWaterHeat = new ConsumptionQuantity(6000m, false, "Wärmezähler WW"),
+            SplitBasis = HotWaterSplitBasis.MeterSum,
+            HeatingHeat = new ConsumptionQuantity(20000m, false, "Zähler der Wohnungen"),
+        };
+
+        var result = Run(House(), parameters);
+
+        Assert.Equal(2769.23m, result.CostTypes.Single(t => t.CostType == Heat).Total);
+        Assert.Equal(830.77m, result.CostTypes.Single(t => t.CostType == HotWater).Total);
+        var entry = Assert.Single(result.Sections.Single(s => s.Id == "heating").Entries, e => e.Title.StartsWith("Aufteilung Heizung/Warmwasser", StringComparison.Ordinal));
+        Assert.Contains("Wärmezählern", entry.Formula, StringComparison.Ordinal);
+        Assert.Equal(23.0769m, entry.Result);
+        Assert.False(result.HasErrors);
+    }
+
+    [Fact]
+    public void Meter_sum_basis_without_heating_heat_falls_back_to_the_fuel_energy_and_reports_it()
+    {
+        var parameters = new HeatingParameters
+        {
+            HotWaterHeat = new ConsumptionQuantity(6000m, false, "Wärmezähler WW"),
+            SplitBasis = HotWaterSplitBasis.MeterSum,
+            HeatingHeat = new ConsumptionQuantity(null, false, "Der Einheit ist kein Zähler vom Typ „Wärme“ zugeordnet."),
+        };
+
+        var result = Run(House(), parameters);
+
+        Assert.Equal(720.00m, result.CostTypes.Single(t => t.CostType == HotWater).Total); // 6,000 ÷ 30,000 = 20 %
+        Assert.Contains(result.Problems, p => p.Severity == ProblemSeverity.Error && p.Text.Contains("Wärmezähler der Heizung", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Formula_factor_and_temperature_can_be_changed()
     {
         // Q = 2.6 × 120 × (55 − 10) = 14,040 kWh; 14,040 ÷ 30,000 = 46.8 %

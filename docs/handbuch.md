@@ -30,7 +30,7 @@ Umsätze zuordnen (Geld → Bank → Zuordnen): Vorschläge mit Begründung, bes
 
 ![Umsätze zuordnen](bilder/umsaetze-zuordnen.png)
 
-Nebenkostenabrechnung (Bestand → Objekt → Nebenkosten → Abrechnungs-Assistent): Schritt für Schritt mit Prüfhinweisen.
+Nebenkostenabrechnung (Bestand → Objekt → Nebenkosten → Abrechnungs-Assistent): Schritt für Schritt mit Prüfhinweisen. Wasser, Abwasser, Strom und Gas rechnet MietHahn nach Verbrauch und Tarif (Objekt → Nebenkosten → Versorgungsverträge): Preis je Einheit und Grundpreis eintragen, die Kosten ergeben sich aus den Zählerständen. Abschlagsrechnungen zählen nicht; die Jahresabrechnung des Versorgers erfassen Sie später als Beleg mit der Markierung „Jahresabrechnung des Versorgers“, sie ersetzt die Berechnung.
 
 ![Abrechnungs-Assistent](bilder/abrechnungs-assistent.png)
 
