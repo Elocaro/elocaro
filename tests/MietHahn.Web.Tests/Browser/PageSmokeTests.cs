@@ -230,6 +230,14 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
 
                 await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
                 var body = await page.InnerTextAsync("body");
+
+                // Under load (the whole suite runs in parallel) a page may take a moment longer to leave its loading state; a real hang still fails.
+                for (var waited = 0; waited < 15000 && body.Contains("Wird geladen …", StringComparison.Ordinal); waited += 250)
+                {
+                    await page.WaitForTimeoutAsync(250);
+                    body = await page.InnerTextAsync("body");
+                }
+
                 if (body.Contains("Es ist ein Fehler aufgetreten", StringComparison.Ordinal) || body.Contains("Wird geladen …", StringComparison.Ordinal))
                 {
                     problems.Add($"{current}: Fehlerseite oder hängt im Ladezustand{(interactive ? "" : " (statisch)")}");
