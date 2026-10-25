@@ -44,9 +44,16 @@
     [SupplyParameterFromQuery(Name = "person")]
     private Guid? PersonId { get; set; }
 
+    [SupplyParameterFromQuery(Name = "kategorie")]
+    private DocumentCategory? Category { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         data = new DocumentInput { PropertyId = PropertyId, UnitId = UnitId, LeaseId = LeaseId, PersonId = PersonId };
+        if (Category is { } category)
+        {
+            data.Category = category;
+        }
         context = new EditContext(data);
         selection = await Storage.ReferenceOptionsAsync();
     }
