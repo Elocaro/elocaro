@@ -45,12 +45,12 @@
     private Guid? PersonId { get; set; }
 
     [SupplyParameterFromQuery(Name = "kategorie")]
-    private DocumentCategory? Category { get; set; }
+    private string? Category { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         data = new DocumentInput { PropertyId = PropertyId, UnitId = UnitId, LeaseId = LeaseId, PersonId = PersonId };
-        if (Category is { } category)
+        if (Enum.TryParse<DocumentCategory>(Category, out var category) && Enum.IsDefined(category))
         {
             data.Category = category;
         }
