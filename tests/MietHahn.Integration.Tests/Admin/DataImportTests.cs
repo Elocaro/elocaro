@@ -144,6 +144,44 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Rent_model_index_steps_fixed_term_and_persons_are_taken_over()
+    {
+        var file = Header.TrimEnd() + ";Mietmodell;Indexmonat;Indexwert;Staffeln;Befristet bis;Personen\r\n" +
+                   "Haus;Weg 1;50667;Köln;W1;;50;Anna;Eins;;01.01.2025;500;;;;;Index;01.2024;116,3;;;2\r\n" +
+                   "Haus;;;;W2;;60;Ben;Zwei;;01.01.2025;600;;;;;Staffelmiete;;;01.01.2026=630|01.01.2027=660;31.12.2028;1\r\n";
+
+        var preview = await WithAsync(i => i.PreviewAsync(Encoding.UTF8.GetBytes(file), Ct));
+        Assert.True(preview.CanImport, string.Join(" | ", preview.Rows.SelectMany(r => r.Errors)));
+        Assert.Contains(preview.Rows[0].Actions, a => a.StartsWith("Indexmiete (Basis 01/2024", StringComparison.Ordinal));
+        Assert.Contains("Staffelmiete mit 2 Staffel(n)", preview.Rows[1].Actions);
+
+        Assert.True((await WithAsync(i => i.ImportAsync(Encoding.UTF8.GetBytes(file), Ct))).Succeeded);
+        await using var scope = environment.Services.CreateAsyncScope();
+        var leases = await scope.ServiceProvider.GetRequiredService<MietHahnDbContext>().Set<Lease>().AsNoTracking().Include(v => v.RentSteps).Include(v => v.People).AsSplitQuery().ToListAsync(Ct);
+        var index = leases.Single(v => v.RentModel == RentModel.Index);
+        Assert.Equal((new DateOnly(2024, 1, 1), 116.3m), (index.IndexBaseMonth, index.IndexBaseValue));
+        var graduated = leases.Single(v => v.RentModel == RentModel.Graduated);
+        Assert.Equal([630m, 660m], graduated.RentSteps.OrderBy(r => r.From).Select(r => r.BaseRent));
+        Assert.Equal(new DateOnly(2028, 12, 31), graduated.FixedTermUntil);
+    }
+
+    [Fact]
+    public async Task Incomplete_rent_model_columns_are_reported()
+    {
+        var file = Header.TrimEnd() + ";Mietmodell;Indexmonat;Indexwert;Staffeln\r\n" +
+                   "Haus;Weg 1;50667;Köln;W1;;50;Anna;Eins;;01.01.2025;500;;;;;Index;;;\r\n" +
+                   "Haus;;;;W2;;60;Ben;Zwei;;01.01.2025;600;;;;;Staffel;;;\r\n" +
+                   "Haus;;;;W3;;60;Cem;Drei;;01.01.2025;600;;;;;Mondmiete;;;\r\n";
+
+        var preview = await WithAsync(i => i.PreviewAsync(Encoding.UTF8.GetBytes(file), Ct));
+
+        Assert.False(preview.CanImport);
+        Assert.Contains(preview.Rows[0].Errors, e => e.Contains("Indexmonat", StringComparison.Ordinal));
+        Assert.Contains(preview.Rows[1].Errors, e => e.Contains("Staffeln", StringComparison.Ordinal));
+        Assert.Contains(preview.Rows[2].Errors, e => e.Contains("Mondmiete", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Errors_in_the_file_are_reported_per_row_and_nothing_is_written()
     {
         var rows = "Haus;Weg 1;50667;Köln;W1;;abc;Anna;Eins;;01.01.2025;500;;;;\r\n" +

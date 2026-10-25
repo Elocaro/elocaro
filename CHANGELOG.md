@@ -8,6 +8,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Datenimport: optionale Spalten für Mietmodell (Staffel, Index), Indexbasis, Staffeln, Befristung und Personenzahl; bestehende Verträge lassen sich damit vollständiger übernehmen.
 - Rechtsstände: Prüfvermerk (wer, wann, gegen welche Quelle); die CO₂-Stufentabelle gilt mit Vermerk ein Jahr als geprüft.
 - Kontoauszug-CSV: Profile für Commerzbank, Deutsche Bank und N26.
 - Web-Push für die installierte Web-App (VAPID, leere Push-Nachricht, Inhalte vom eigenen Server), je Gerät abschaltbar; Service Worker mit Offline-Hinweis.

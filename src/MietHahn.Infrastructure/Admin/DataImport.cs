@@ -198,6 +198,19 @@ internal sealed class DataImport(
                     {
                         newLease = true;
                         actions.Add($"Vertrag neu ab {start.ToString("dd.MM.yyyy", German)}");
+                        if (line.Model == RentModel.Index)
+                        {
+                            actions.Add($"Indexmiete (Basis {line.IndexMonth?.ToString("MM'/'yyyy", CultureInfo.InvariantCulture)} = {line.IndexValue?.ToString("0.0", German)})");
+                        }
+                        else if (line.Model == RentModel.Graduated)
+                        {
+                            actions.Add($"Staffelmiete mit {line.Steps.Count} Staffel(n)");
+                        }
+
+                        if (line.FixedUntil is { } until)
+                        {
+                            actions.Add($"befristet bis {until.ToString("dd.MM.yyyy", German)}");
+                        }
                         leasesInFile[unitKey] = [start];
                     }
                 }
@@ -309,8 +322,20 @@ internal sealed class DataImport(
                 BaseRent = line.BaseRent,
                 OperatingCostPrepayment = line.OperatingCosts,
                 HeatingCostPrepayment = line.HeatingCosts,
+                People = line.People ?? 1,
+                FixedTermUntil = line.FixedUntil,
                 Data = new LeaseInput { Deposit = line.Deposit },
             }, cancellationToken), Where("Vertrag"));
+
+            if (line.Model != RentModel.Standard)
+            {
+                Require(await leases.SetRentModelAsync(leaseId, new RentModelInput { Model = line.Model, IndexBaseMonth = line.IndexMonth, IndexBaseValue = line.IndexValue }, cancellationToken), Where("Mietmodell"));
+            }
+
+            foreach (var (from, rent) in line.Steps)
+            {
+                Require(await leases.AddRentStepAsync(leaseId, new RentStepInput { From = from, BaseRent = rent }, cancellationToken), Where("Staffel"));
+            }
 
             if (DepositReceivedOf(line) is { } received and > 0)
             {

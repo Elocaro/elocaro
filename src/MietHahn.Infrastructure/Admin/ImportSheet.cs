@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using MietHahn.Domain.Leases;
 using MietHahn.Infrastructure.Bank.Import;
 
 namespace MietHahn.Infrastructure.Admin;
@@ -28,6 +29,21 @@ internal sealed record ImportLine(
     IReadOnlyList<string> Errors)
 {
     public bool HasTenant => !string.IsNullOrWhiteSpace(LastName);
+
+    /// <summary>Standard, Staffel- or Indexmiete; empty column = standard.</summary>
+    public RentModel Model { get; init; }
+
+    /// <summary>Index rent: month (first day) and value of the base index.</summary>
+    public DateOnly? IndexMonth { get; init; }
+
+    public decimal? IndexValue { get; init; }
+
+    public DateOnly? FixedUntil { get; init; }
+
+    public int? People { get; init; }
+
+    /// <summary>Graduated rent: the steps, from the second rent on.</summary>
+    public IReadOnlyList<(DateOnly From, decimal Rent)> Steps { get; init; } = [];
 }
 
 /// <summary>Reads the import CSV: any usual delimiter and encoding, German numbers and dates, tolerant column names.</summary>
@@ -37,6 +53,8 @@ internal static partial class ImportSheet
         "Objekt;Straße;PLZ;Ort;Einheit;Lage;Wohnfläche;Vorname;Nachname;E-Mail;Mietbeginn;Kaltmiete;Betriebskosten;Heizkosten;Kaution;Kaution eingegangen;Saldo\r\n" +
         "Lindenweg 3;Lindenweg 3;50667;Köln;Wohnung 1;EG links;55,5;Anna;Beispiel;anna@example.de;01.01.2024;650,00;150,00;80,00;1950,00;1950,00;0,00\r\n" +
         "Lindenweg 3;Lindenweg 3;50667;Köln;Wohnung 2;1. OG;62;;;;;;;;;;\r\n";
+
+    private static readonly string[] MonthFormats = ["MM.yyyy", "M.yyyy", "yyyy-MM", "d.M.yyyy"];
 
     private static readonly string[] DateFormats = ["d.M.yyyy", "dd.MM.yyyy", "d.M.yy", "yyyy-MM-dd", "ddMMyyyy"];
 
@@ -59,6 +77,12 @@ internal static partial class ImportSheet
         ["deposit"] = ["kaution", "kautionvereinbart"],
         ["depositReceived"] = ["kautioneingegangen", "kautiongezahlt", "kautionbezahlt", "kautioneingang"],
         ["balance"] = ["saldo", "rueckstand", "saldovortrag", "offenerbetrag"],
+        ["model"] = ["mietmodell", "modell", "mietart"],
+        ["indexMonth"] = ["indexmonat", "indexbasismonat", "basisindexmonat"],
+        ["indexValue"] = ["indexwert", "indexbasiswert", "basisindex"],
+        ["fixedUntil"] = ["befristetbis", "befristung", "mietende"],
+        ["people"] = ["personen", "bewohner", "anzahlpersonen"],
+        ["steps"] = ["staffeln", "mietstaffeln"],
     };
 
     public static (IReadOnlyList<ImportLine> Lines, IReadOnlyList<string> FileErrors) Read(byte[] content)
@@ -192,6 +216,88 @@ internal static partial class ImportSheet
             }
         }
 
+        var model = RentModel.Standard;
+        if (Text("model") is { } modelText)
+        {
+            switch (Normalize(modelText))
+            {
+                case "standard" or "festmiete":
+                    break;
+                case "staffel" or "staffelmiete":
+                    model = RentModel.Graduated;
+                    break;
+                case "index" or "indexmiete":
+                    model = RentModel.Index;
+                    break;
+                default:
+                    errors.Add($"Das Mietmodell „{modelText}“ ist unbekannt (Standard, Staffel oder Index).");
+                    break;
+            }
+        }
+
+        DateOnly? indexMonth = null;
+        if (Text("indexMonth") is { } monthText)
+        {
+            if (DateOnly.TryParseExact(monthText, MonthFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var month))
+            {
+                indexMonth = new DateOnly(month.Year, month.Month, 1);
+            }
+            else
+            {
+                errors.Add($"Indexmonat „{monthText}“ ist kein Monat (erwartet: MM.JJJJ).");
+            }
+        }
+
+        var indexValue = Number("indexValue", "Indexwert");
+        var fixedUntil = Date("fixedUntil", "Befristet bis");
+        int? people = null;
+        if (Text("people") is { } peopleText)
+        {
+            if (int.TryParse(peopleText, NumberStyles.None, CultureInfo.InvariantCulture, out var count) && count is >= 1 and <= 30)
+            {
+                people = count;
+            }
+            else
+            {
+                errors.Add($"Personen „{peopleText}“ ist keine Anzahl zwischen 1 und 30.");
+            }
+        }
+
+        var steps = new List<(DateOnly, decimal)>();
+        if (Text("steps") is { } stepsText)
+        {
+            foreach (var part in stepsText.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var pair = part.Split('=', 2, StringSplitOptions.TrimEntries);
+                if (pair.Length == 2 && DateOnly.TryParseExact(pair[0], DateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var from) && TryNumber(pair[1], out var rent) && rent > 0)
+                {
+                    steps.Add((from, rent));
+                }
+                else
+                {
+                    errors.Add($"Staffel „{part}“ ist ungültig (erwartet: TT.MM.JJJJ=Betrag, mehrere mit | getrennt).");
+                }
+            }
+        }
+
+        if (lastName is not null)
+        {
+            if (model == RentModel.Index && (indexMonth is null || indexValue is null))
+            {
+                errors.Add("Bei einer Indexmiete fehlen Indexmonat und Indexwert des Ausgangsindex.");
+            }
+
+            if (model == RentModel.Graduated && steps.Count == 0)
+            {
+                errors.Add("Bei einer Staffelmiete fehlt die Spalte „Staffeln“.");
+            }
+
+            if (fixedUntil is { } until && start is { } begin && until <= begin)
+            {
+                errors.Add("„Befristet bis“ liegt nicht nach dem Mietbeginn.");
+            }
+        }
+
         var email = Text("email");
         if (email is not null && !email.Contains('@', StringComparison.Ordinal))
         {
@@ -200,7 +306,15 @@ internal static partial class ImportSheet
         }
 
         return new ImportLine(number, property ?? "", Text("street"), Text("postalCode"), Text("city"), unit ?? "", Text("location"), area,
-            Text("firstName"), lastName, email, start, baseRent, operating, heating, deposit, depositReceived, balance, errors);
+            Text("firstName"), lastName, email, start, baseRent, operating, heating, deposit, depositReceived, balance, errors)
+        {
+            Model = model,
+            IndexMonth = indexMonth,
+            IndexValue = indexValue,
+            FixedUntil = fixedUntil,
+            People = people,
+            Steps = [.. steps.OrderBy(s => s.Item1)],
+        };
     }
 
     /// <summary>German (1.234,56 / 650,5) and plain (650.5) numbers, optionally with € and spaces.</summary>
