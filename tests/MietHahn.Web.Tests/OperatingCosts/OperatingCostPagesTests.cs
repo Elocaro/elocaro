@@ -108,6 +108,7 @@ public class OperatingCostPagesTests(PostgresFixture postgres) : AccountTestBase
         Assert.Contains("600,00 €", row, StringComparison.Ordinal);
         Assert.Contains("400,00 €", row, StringComparison.Ordinal);
         Assert.Contains("Leerstand Wohnung 2", page.Document.QuerySelector("#landlord")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains("1.000,00 €", page.Document.QuerySelector("#cost-chart")!.TextContent, StringComparison.Ordinal);
         var statement = page.Document.QuerySelector($"#tenant-{leaseAnna}")!;
         Assert.Contains("Anna Schmidt", statement.TextContent, StringComparison.Ordinal);
         Assert.Contains("Summe Betriebskosten", statement.TextContent, StringComparison.Ordinal);

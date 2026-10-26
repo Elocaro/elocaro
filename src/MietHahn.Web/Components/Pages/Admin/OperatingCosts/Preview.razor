@@ -70,6 +70,7 @@ var result = preview.Result;
     }
     else
     {
+        <CostSplitChart Types="result.CostTypes" Previous="previousTotals" />
         <div class="table-wrapper">
             <table class="data-table">
                 <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Kosten</th><th class="number">Mieter</th><th class="number">Vermieter</th></tr></thead>
@@ -267,6 +268,7 @@ var result = preview.Result;
 
 @code {
     private OperatingCostPreview? preview;
+    private IReadOnlyDictionary<string, decimal>? previousTotals;
     private string? errorText;
     private int year;
     private bool loaded;
@@ -302,6 +304,8 @@ var result = preview.Result;
         }
 
         preview = await OperatingCosts.PreviewAsync(PropertyId, year);
+        var before = preview is null ? null : await OperatingCosts.PreviewAsync(PropertyId, year - 1);
+        previousTotals = before is { Result.CostTypes.Count: > 0 } ? before.Result.CostTypes.ToDictionary(t => t.CostType, t => t.Total) : null;
     }
 
     private static string TypeName(string key) => Domain.Receipts.CostTypes.Find(key)?.Name ?? key;

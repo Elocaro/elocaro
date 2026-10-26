@@ -936,3 +936,14 @@ main p a, main .help a, main .small a, .message a { text-decoration: underline; 
 .plan-key--vacant { background: repeating-linear-gradient(135deg, transparent 0 3px, var(--md-outline) 3px 4px); }
 .plan-key--today { width: 2px; background: var(--md-primary); border: 0; border-radius: 0; }
 @media (max-width: 700px) { .plan-row { grid-template-columns: 6.5rem 1fr; } }
+
+.cost-chart { margin: 0 0 var(--spacing); }
+.cost-chart-row { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr 6rem; gap: 0.5rem; align-items: center; margin: 0.25rem 0; }
+.cost-chart-track { position: relative; display: flex; height: 1rem; background: var(--md-surface-container-high); border-radius: var(--shape-xs); }
+.cost-chart-bar.tenant, .swatch.tenant { background: var(--md-primary); }
+.cost-chart-bar.landlord, .swatch.landlord { background: var(--md-tertiary); }
+.cost-chart-bar { height: 100%; }
+.cost-chart-prev { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--md-on-surface); }
+.cost-chart-value { text-align: right; font-variant-numeric: tabular-nums; }
+.swatch { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 2px; vertical-align: middle; }
+@media (max-width: 600px) { .cost-chart-row { grid-template-columns: 1fr 5rem; } .cost-chart-label { grid-column: 1 / -1; } }

@@ -1,0 +1,38 @@
+@using MietHahn.Domain.OperatingCosts
+
+<figure class="cost-chart" id="cost-chart" aria-label="Kosten je Kostenart nach Mieter und Vermieter">
+    <figcaption class="small">Kosten je Kostenart: <span class="swatch tenant"></span> Mieter <span class="swatch landlord"></span> Vermieter@(Previous is null ? "" : " | Strich = Vorjahr")</figcaption>
+    @foreach (var type in Types)
+    {
+        var tenant = Share(type.TenantTotal);
+        var landlord = Share(type.LandlordTotal);
+        <div class="cost-chart-row">
+            <span class="cost-chart-label">@type.Name</span>
+            <span class="cost-chart-track" title="@($"Mieter {Format.Money(type.TenantTotal)}, Vermieter {Format.Money(type.LandlordTotal)}")">
+                <span class="cost-chart-bar tenant" style="width:@Css(tenant)%"></span><span class="cost-chart-bar landlord" style="width:@Css(landlord)%"></span>
+                @if (PreviousOf(type.CostType) is { } before)
+                {
+                    <span class="cost-chart-prev" style="left:@Css(Share(before))%" title="@($"Vorjahr {Format.Money(before)}")"></span>
+                }
+            </span>
+            <span class="cost-chart-value">@Format.Money(type.Total)</span>
+        </div>
+    }
+</figure>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CostTypeResult> Types { get; set; } = [];
+
+    /// <summary>Totals of the previous year by cost type, or <c>null</c> without comparison.</summary>
+    [Parameter]
+    public IReadOnlyDictionary<string, decimal>? Previous { get; set; }
+
+    private decimal Max => Math.Max(1m, Math.Max(Types.Max(t => t.Total), Previous?.Values.DefaultIfEmpty(0).Max() ?? 0));
+
+    private decimal Share(decimal amount) => Math.Clamp(amount / Max * 100m, 0m, 100m);
+
+    private decimal? PreviousOf(string costType) => Previous is not null && Previous.TryGetValue(costType, out var value) ? value : null;
+
+    private static string Css(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}
