@@ -289,6 +289,11 @@ internal sealed partial class HeatingRun
                 continue;
             }
 
+            // The consumption measured for the flat was caused by the occupants: vacant rooms take none of it while any room is rented
+            // (the area-based part below keeps them, the landlord bears it).
+            var occupied = rooms.Select(r => LeaseAt(unit.Id, r.Id, segment.From) is not null).ToList();
+            var consumptionAreas = occupied.Any(o => o) ? [.. areas.Select((a, i) => occupied[i] ? a : 0m)] : areas;
+            var consumptionTotal = consumptionAreas.Sum();
             for (var i = 0; i < rooms.Count; i++)
             {
                 var party = OccupantParty(registry, unit, rooms[i], LeaseAt(unit.Id, rooms[i].Id, segment.From));
@@ -304,7 +309,10 @@ internal sealed partial class HeatingRun
                     party.Add(Basis.WaterArea, new WeightPart(segment, $"{Num(state.LivingArea)} m², Zimmeranteil {Num(areas[i])} von {Num(areaTotal)} m²", true, segment.Days, state.LivingArea * segment.Days * share));
                 }
 
-                dayShares[party] = dayShares.GetValueOrDefault(party) + (segment.Days * share);
+                if (consumptionTotal > 0 && consumptionAreas[i] > 0)
+                {
+                    dayShares[party] = dayShares.GetValueOrDefault(party) + (segment.Days * consumptionAreas[i] / consumptionTotal);
+                }
             }
         }
 

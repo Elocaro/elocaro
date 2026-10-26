@@ -129,9 +129,10 @@ public class OperatingCostGoldenMasterTests
         // Σ consumption: 0.10×365 + 0.20×365 + 0.15×365 + 0.25×365 = 36.5 + 73 + 54.75 + 91.25 = 255.5 m³; 2,555.00 € ÷ 255.5 = 10.00 €/m³.
         // A 36.5 m³ → 365.00    B 0.20×165 = 33 m³ → 330.00    C 0.20×200 = 40 m³ → 400.00
         // D 0.15×59 = 8.85 m³ → 88.50    vacancy 0.15×61 = 9.15 m³ → 91.50    E 0.15×245 = 36.75 m³ → 367.50
-        // WG 0.25 m³/day split by room area 25 %/25 %/50 %: R1 0.0625×365 = 22.8125 m³ → 228.125; Z2 vacant 0.0625×181 = 11.3125 m³ → 113.125;
-        // R2 0.0625×184 = 11.5 m³ → 115.00; R3 0.125×365 = 45.625 m³ → 456.25
-        // Rounded down 2,554.99 € → 1 cent to the first of two equal fractional parts (.5): R1 (lease before vacancy) → 228.13, vacancy 113.12.
+        // WG 0.25 m³/day: the consumption was caused by the occupants, a vacant room takes none of it. Until 30.06. (181 days) Zimmer 2 is vacant:
+        // R1 and R3 share by room area 25:50 = 1/3 : 2/3, from 01.07. (184 days) all three rooms 25 %/25 %/50 %.
+        // R1 0.25×181×1/3 = 15.0833 + 0.0625×184 = 11.5 → 26.5833 m³ → 265.83    R2 0.0625×184 = 11.5 m³ → 115.00
+        // R3 0.25×181×2/3 = 30.1667 + 0.125×184 = 23 → 53.1667 m³ → 531.67      Σ WG = 91.25 m³ → 912.50; vacant Zimmer 2: nothing
         Assert.Equal(365.00m, Line(result, A, "betrkv-02").Share);
         Assert.Equal(330.00m, Line(result, B, "betrkv-02").Share);
         Assert.Equal(400.00m, Line(result, C, "betrkv-02").Share);
@@ -139,9 +140,9 @@ public class OperatingCostGoldenMasterTests
         Assert.Equal(367.50m, Line(result, E, "betrkv-02").Share);
         var landlord = result.CostTypes.Single(t => t.CostType == "betrkv-02").Landlord.ToDictionary(p => p.Label, p => p.Amount);
         Assert.Equal(91.50m, landlord["Leerstand Wohnung 3"]);
-        Assert.Equal(113.12m, landlord["Leerstand WG, Zimmer 2"]);
-        Assert.Equal(228.13m, landlord["R1"]);
-        Assert.Equal(456.25m, landlord["R3"]);
+        Assert.DoesNotContain("Leerstand WG, Zimmer 2", landlord.Keys);
+        Assert.Equal(265.83m, landlord["R1"]);
+        Assert.Equal(531.67m, landlord["R3"]);
         Assert.Contains("Verbrauch (Kaltwasser)", result.CostTypes.Single(t => t.CostType == "betrkv-02").Key, StringComparison.Ordinal);
     }
 
@@ -260,15 +261,15 @@ public class OperatingCostGoldenMasterTests
     {
         var result = Run();
 
-        // R1 304.17 + 228.13 + 365.00 + 45.63 + 60.33 + 184.00 = 1,187.26; R2 153.33 + 115.00 + 184.00 + 23.00 + 184.00 = 659.33;
-        // R3 608.33 + 456.25 + 730.00 + 91.25 + 120.67 + 368.00 = 2,374.50
-        Assert.Equal([1187.26m, 659.33m, 2374.50m], new[] { R1, R2, R3 }.Select(l => result.FlatRates.Single(f => f.LeaseId == Id(l)).ActualCosts));
+        // R1 304.17 + 265.83 + 365.00 + 45.63 + 60.33 + 184.00 = 1,224.96; R2 153.33 + 115.00 + 184.00 + 23.00 + 184.00 = 659.33;
+        // R3 608.33 + 531.67 + 730.00 + 91.25 + 120.67 + 368.00 = 2,449.92
+        Assert.Equal([1224.96m, 659.33m, 2449.92m], new[] { R1, R2, R3 }.Select(l => result.FlatRates.Single(f => f.LeaseId == Id(l)).ActualCosts));
         Assert.DoesNotContain(result.Tenants, t => t.LeaseId == Id(R1));
 
         // Flat rate paid: R1 12 × 40 = 480; R2 6 × 40 = 240; R3 12 × 60 = 720
         Assert.Equal([480m, 240m, 720m], new[] { R1, R2, R3 }.Select(l => result.FlatRates.Single(f => f.LeaseId == Id(l)).Paid));
-        Assert.Equal(707.26m, result.FlatRates.Single(f => f.LeaseId == Id(R1)).Difference); // 1,187.26 − 480.00
-        Assert.Equal(1654.50m, result.FlatRates.Single(f => f.LeaseId == Id(R3)).Difference); // 2,374.50 − 720.00
+        Assert.Equal(744.96m, result.FlatRates.Single(f => f.LeaseId == Id(R1)).Difference); // 1,224.96 − 480.00
+        Assert.Equal(1729.92m, result.FlatRates.Single(f => f.LeaseId == Id(R3)).Difference); // 2,449.92 − 720.00
     }
 
     [Fact]
@@ -281,12 +282,13 @@ public class OperatingCostGoldenMasterTests
 
         // 3,650.00 + 2,555.00 + 4,044.00 + 730.00 + 2,748.00 + 605.00 = 14,332.00 €
         Assert.Equal(14332.00m, result.TotalCosts);
-        // Tenants 9,111.27 € (A–E); landlord: flat-rate rooms 4,221.09 € + vacancy Wohnung 3 471.74 € + vacancy WG room 2 527.90 € = 5,220.73 €
+        // Tenants 9,111.27 € (A–E); landlord: flat-rate rooms 4,334.21 € + vacancy Wohnung 3 471.74 € + vacancy WG room 2 414.78 € = 5,220.73 €
+        // (the vacant room takes no water consumption: 113.12 € less vacancy, the same more for the occupied rooms)
         Assert.Equal(9111.27m, result.TenantTotal);
         Assert.Equal(5220.73m, result.LandlordTotal);
         Assert.Equal(471.74m, result.Landlord.Where(p => p.Reason == LandlordReason.Vacancy && p.Label == "Leerstand Wohnung 3").Sum(p => p.Amount));
-        Assert.Equal(527.90m, result.Landlord.Where(p => p.Reason == LandlordReason.Vacancy && p.Label == "Leerstand WG, Zimmer 2").Sum(p => p.Amount));
-        Assert.Equal(4221.09m, result.Landlord.Where(p => p.Reason == LandlordReason.SharedFlatFlatRate).Sum(p => p.Amount));
+        Assert.Equal(414.78m, result.Landlord.Where(p => p.Reason == LandlordReason.Vacancy && p.Label == "Leerstand WG, Zimmer 2").Sum(p => p.Amount));
+        Assert.Equal(4334.21m, result.Landlord.Where(p => p.Reason == LandlordReason.SharedFlatFlatRate).Sum(p => p.Amount));
     }
 
     [Fact]

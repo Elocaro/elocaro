@@ -197,6 +197,25 @@ public class HeatingRulesTests
     }
 
     [Fact]
+    public void Shared_flat_by_room_gives_a_vacant_room_no_consumption_but_its_area_share()
+    {
+        var input = Input(
+            [Unit(4, "WG", 90m, null, SharedFlatBilling.ByRoom, Room(41, "Zimmer 1", 30m), Room(42, "Zimmer 2", 60m))],
+            [Lease(21, "R1", 4, D(2024, 1, 1), room: 41)],
+            [HeatCost(101, "betrkv-04", 1000m, HeatingCostKind.Other)],
+            [],
+            Totals((4, MeterType.Heat, 3000m)));
+
+        var result = Run(input, Plain);
+
+        // Zimmer 2 is vacant all year. The measured consumption (70 % = 700.00 €) was caused by R1 alone; the area part (30 % = 300.00 €)
+        // is split by room area 30 : 60 → R1 100.00 €, vacancy Zimmer 2 200.00 € (landlord).
+        Assert.Equal(800.00m, HeatingLine(result, 21, HeatingCostCalculator.HeatKey).Share);
+        var landlord = result.CostTypes.Single(t => t.CostType == HeatingCostCalculator.HeatKey).Landlord;
+        Assert.Equal(200.00m, landlord.Where(p => p.Reason == LandlordReason.Vacancy).Sum(p => p.Amount));
+    }
+
+    [Fact]
     public void Shared_flat_with_flat_rate_is_not_billed_and_warns_about_the_reduction_right()
     {
         var input = Input(

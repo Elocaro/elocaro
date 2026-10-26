@@ -531,6 +531,15 @@ internal sealed class CalculationRun
 
         var unitPart = UnitPart(unit, segment, rule);
         var areas = rooms.Select(r => r.Areas.FirstOrDefault(a => a.Validity.Contains(day))?.AllocationArea ?? 0m).ToList();
+
+        // Metered consumption was caused by the occupants: a vacant room takes none of it (as long as any room is rented).
+        // Area-based shares (property tax, insurance ...) keep the vacant rooms, the landlord bears them.
+        var occupied = rooms.Select(r => LeaseAt(unit.Id, r.Id, day) is not null).ToList();
+        if (rule.Key == AllocationKey.Consumption && occupied.Any(o => o))
+        {
+            areas = [.. areas.Select((a, i) => occupied[i] ? a : 0m)];
+        }
+
         var areaTotal = areas.Sum();
         if (areaTotal <= 0)
         {
@@ -542,6 +551,11 @@ internal sealed class CalculationRun
 
         for (var i = 0; i < rooms.Count; i++)
         {
+            if (areas[i] == 0m && rule.Key == AllocationKey.Consumption && !occupied[i])
+            {
+                continue;
+            }
+
             var lease = LeaseAt(unit.Id, rooms[i].Id, day);
             var share = areas[i] / areaTotal;
             AddPart(
