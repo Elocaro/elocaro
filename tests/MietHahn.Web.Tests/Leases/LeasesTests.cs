@@ -28,6 +28,27 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
         });
 
     [Fact]
+    public async Task Room_lease_page_offers_the_other_rooms_of_the_shared_flat()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        var (property, _, anna, _) = await MasterDataAsync();
+        var (room1, room2) = await App.WithScopeAsync(async sp =>
+        {
+            var properties = sp.GetRequiredService<IPropertyService>();
+            var ct = TestContext.Current.CancellationToken;
+            var wg = (await properties.CreateUnitAsync(property, new UnitInput { Name = "WG" }, ct)).Id!.Value;
+            return ((await properties.CreateRoomAsync(wg, new RoomInput { Name = "Zimmer 1" }, ct)).Id!.Value, (await properties.CreateRoomAsync(wg, new RoomInput { Name = "Zimmer 2" }, ct)).Id!.Value);
+        });
+        var id = await CreateLeaseAsync(room1, new DateOnly(Today.Year, Today.Month, 1), anna, 350m);
+
+        var lease = await admin.GetAsync($"/verwaltung/vertraege/{id}");
+
+        Assert.Contains("Weiteres Zimmer", lease.Text, StringComparison.Ordinal);
+        Assert.NotEqual(Guid.Empty, room2);
+    }
+
+    [Fact]
     public async Task Lease_with_two_tenants_rent_increase_and_termination_are_shown()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);

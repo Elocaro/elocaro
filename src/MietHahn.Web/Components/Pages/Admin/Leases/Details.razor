@@ -248,7 +248,7 @@ else
     @if (lease.AvailableRooms is { Count: > 0 })
     {
         <EditForm Model="newRoom" OnValidSubmit="AddRoomAsync" novalidate>
-            <AppSelect @bind-Value="newRoom.RoomId" Label="Weiteres Zimmer" Items="lease.AvailableRooms.Select(z => (Guid?)z.Id).ToList()" Text="@(v => lease.AvailableRooms.First(z => z.Id == v).Name)" />
+            <AppSelect @bind-Value="newRoom.RoomId" Label="Weiteres Zimmer" Items="lease.AvailableRooms.Select(z => (Guid?)z.Id).ToList()" Text="RoomText" EmptyText="– bitte wählen –" />
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined">Zimmer hinzufügen</MudButton>
         </EditForm>
     }
@@ -345,6 +345,8 @@ else
     private Task RevokeTerminationAsync() => ExecuteAsync(Admin.RevokeTerminationAsync(Id), "Die Kündigung wurde aufgehoben.");
 
     private readonly RoomModel newRoom = new();
+
+    private string RoomText(Guid? id) => lease?.AvailableRooms?.FirstOrDefault(z => z.Id == id)?.Name ?? "";
 
     private Task AddRoomAsync() => ExecuteAsync(Admin.AddRoomAsync(Id, newRoom.RoomId!.Value), "Das Zimmer wurde hinzugefügt.", () => newRoom.RoomId = null);
 

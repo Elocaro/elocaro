@@ -4,6 +4,9 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Behoben
+- Die Vertragsseite eines Zimmervertrags warf beim Öffnen eine Exception (Auswahl „Weiteres Zimmer“ ohne Vorauswahl).
+
 ### Geändert
 - Abrechnungs-PDF (geprüft an der Abrechnung 2025): Anschrift und Mietobjekt nennen alle Zimmer eines Vertrags, Rechenzähler stehen mit ihrem errechneten Verbrauch in den Zählerständen, die Einheiten (€, kWh, %) stehen hinter den Ergebnissen der Heizkostenanlage, der Hinweis auf eine Korrektur folgt dem Einleitungssatz (Closes #135).
 - Mehrzimmerverträge: Belegungsprüfung der Abrechnung, Vermietungsstand und Kennzahlen zählen alle Zimmer des Vertrags; ein später gelöschter Vertrag lässt eine freigegebene Abrechnung weiter anzeigen.
