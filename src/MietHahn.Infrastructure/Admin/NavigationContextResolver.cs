@@ -6,6 +6,7 @@ using MietHahn.Domain.Metering;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Statements;
+using MietHahn.Domain.Tax;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Admin;
@@ -25,6 +26,12 @@ internal sealed class NavigationContextResolver(IServiceScopeFactory scopes) : I
     public async Task<PageContext?> ResolveAsync(string path, CancellationToken cancellationToken = default)
     {
         var parts = path.Trim('/').Split('/');
+        if (parts is ["verwaltung", "finanzen", "darlehen", { } loan, ..] && Guid.TryParse(loan, out var loanId))
+        {
+            await using var loanScope = scopes.CreateAsyncScope();
+            return await LoanAsync(loanScope.ServiceProvider.GetRequiredService<MietHahnDbContext>(), loanId, cancellationToken);
+        }
+
         if (parts.Length < 3 || !parts[0].Equals("verwaltung", StringComparison.OrdinalIgnoreCase) || !Guid.TryParse(parts[2], out var id))
         {
             return null;
@@ -115,6 +122,18 @@ internal sealed class NavigationContextResolver(IServiceScopeFactory scopes) : I
         var tenant = string.Join(", ", lease.Tenants.Select(t => tenants.SingleOrDefault(p => p.Id == t)?.DisplayName).Where(n => n is not null));
         var label = tenant.Length > 0 ? $"{unit.Name} · {tenant}" : unit.Name;
         return new([Leases, PropertyStep(unit.PropertyId, propertyName), new(label, $"{Root}/vertraege/{id}")], null);
+    }
+
+    /// <summary>A loan belongs to a property but lives under Geld: the trail names the property, the tabs stay those of Geld.</summary>
+    private static async Task<PageContext?> LoanAsync(MietHahnDbContext db, Guid id, CancellationToken cancellationToken)
+    {
+        var loan = await db.Set<Loan>().AsNoTracking().Where(d => d.Id == id).Select(d => new { d.Bank, d.PropertyId }).SingleOrDefaultAsync(cancellationToken);
+        if (loan is null || await PropertyAsync(db, loan.PropertyId, cancellationToken) is not { } property)
+        {
+            return null;
+        }
+
+        return new([.. property.Trail, new($"Darlehen {loan.Bank}", $"{Root}/finanzen/darlehen/{id}")], null);
     }
 
     private static async Task<PageContext?> PersonAsync(MietHahnDbContext db, Guid id, CancellationToken cancellationToken)

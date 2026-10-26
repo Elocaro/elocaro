@@ -15,7 +15,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Mehrzimmerverträge: Belegungsprüfung der Abrechnung, Vermietungsstand und Kennzahlen zählen alle Zimmer des Vertrags; ein später gelöschter Vertrag lässt eine freigegebene Abrechnung weiter anzeigen.
 - Zahlenfelder verstehen Punkt und Komma als Dezimalzeichen (0.090527 und 0,090527 sind gleich); ein einzelner Punkt vor genau drei Ziffern (1.000) gilt weiter als Tausendertrenner (Closes #139).
 - Nebenkosten- und Heizkostenabrechnung: Der gemessene Verbrauch einer WG-Wohnung wird nur noch auf vermietete Zimmer verteilt; ein leeres Zimmer nimmt keinen Verbrauch auf, Flächenanteile (Grundsteuer, Versicherung, Grundkosten) bleiben beim Vermieter.
-- Orientierung in der Verwaltung: Eine Ortszeile über den Tabs nennt die Namen (Objekt › Einheit › Zimmer, Vertrag mit Objekt und Mieter, Person) und verlinkt jede Ebene. Einheit, Zimmer, Zähler und Abrechnung behalten die Tabs ihres Objekts.
+- Orientierung in der Verwaltung: Eine Ortszeile über den Tabs nennt die Namen (Objekt › Einheit › Zimmer, Vertrag mit Objekt und Mieter, Person) und verlinkt jede Ebene. Einheit, Zimmer, Zähler und Abrechnung behalten die Tabs ihres Objekts, ein Darlehen nennt sein Objekt. „Kassenbuch importieren“ steht im Menü der Objektseite statt im Seitenkopf.
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt

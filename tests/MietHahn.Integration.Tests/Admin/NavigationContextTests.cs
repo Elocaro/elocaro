@@ -3,6 +3,7 @@ using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
+using MietHahn.Application.Tax;
 using MietHahn.Integration.Tests.Infrastructure;
 
 namespace MietHahn.Integration.Tests.Admin;
@@ -47,6 +48,27 @@ public class NavigationContextTests(PostgresFixture postgres) : IAsyncLifetime
 
         Assert.Equal(propertyId, context!.PropertyId);
         Assert.Equal(["Objekte", "Lindenweg 3"], context.Trail.Select(s => s.Label));
+    }
+
+    [Fact]
+    public async Task A_loan_names_its_property_but_keeps_the_tabs_of_Geld()
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var loanId = Id(await scope.ServiceProvider.GetRequiredService<ILoanService>().CreateAsync(new LoanInput
+        {
+            PropertyId = propertyId,
+            Bank = "Sparkasse",
+            Principal = 200000m,
+            DisbursementDate = new DateOnly(2020, 1, 1),
+            FirstPaymentDate = new DateOnly(2020, 2, 1),
+            InterestRatePercent = 1.5m,
+            Instalment = 900m,
+        }, Ct));
+
+        var context = await ResolveAsync($"/verwaltung/finanzen/darlehen/{loanId}");
+
+        Assert.Null(context!.PropertyId);
+        Assert.Equal(["Objekte", "Lindenweg 3", "Darlehen Sparkasse"], context.Trail.Select(s => s.Label));
     }
 
     [Fact]

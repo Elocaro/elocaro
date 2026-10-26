@@ -26,15 +26,19 @@ else
 
 <PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/verwaltung/objekte" BackText="Alle Objekte">
     <Actions>
-        @if (ModuleState.IsEnabled(AppModule.Receipts))
-        {
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/belegimport")">Kassenbuch importieren</MudButton>
-        }
         <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
-        @if (property.Units.Count == 0)
+        @if (ModuleState.IsEnabled(AppModule.Receipts) || property.Units.Count == 0)
         {
+            @* Rare actions in a menu; links to sub-pages belong in the workspace tabs, not in the header (docs/ui.md). *@
             <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
-                <MudMenuItem OnClick="DeleteAsync">Objekt löschen</MudMenuItem>
+                @if (ModuleState.IsEnabled(AppModule.Receipts))
+                {
+                    <MudMenuItem Href="@($"/verwaltung/objekte/{Id}/belegimport")">Kassenbuch importieren</MudMenuItem>
+                }
+                @if (property.Units.Count == 0)
+                {
+                    <MudMenuItem OnClick="DeleteAsync">Objekt löschen</MudMenuItem>
+                }
             </MudMenu>
         }
     </Actions>
