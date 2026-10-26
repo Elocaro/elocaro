@@ -151,6 +151,7 @@ public static class AdminNavModel
     private static NavTab[] PropertyTabs(string id) =>
     [
         new("Übersicht", id, Exact: true),
+        new("Belegung", $"{id}/belegung"),
         new("Zähler", $"{id}/zaehler", Also: [$"{id}/ablesung"]),
         NavTab.Group("Nebenkosten", Policies.Finance,
             new("Versorgungsverträge", $"{id}/versorgung"),

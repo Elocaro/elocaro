@@ -431,6 +431,10 @@ Technik, Nachweise und rechtliche Einordnung stehen in [digitale-unterschrift.md
 - **Dienste:** `ICostAllocation` (Schlüssel, WG-Modus, Vertragsvereinbarung), `ICostSubtypes`, `IOperatingCosts.PreviewAsync(Objekt, Jahr | Zeitraum)` (`OperatingCostService` baut aus Belegen, Schlüsseln, Verträgen, Mieterkonto und Zählern den `BillingInput`; Zähler über `MeterConsumptionSource` mit `ConsumptionCalculator`, Messstellen über Zählertausch hinweg; Zähler sind der Einheit zugeordnet, Zimmerzähler werden nicht ausgewertet). Es wird nichts gespeichert.
 - **Oberfläche** (Recht Finanzen): `/verwaltung/objekte/{id}/umlageschluessel` (Schlüssel, Verlauf, Beenden, WG-Modus, Unterarten), `/verwaltung/objekte/{id}/nebenkosten?jahr=` (Vorschau: Kostenarten, Vermieteranteil, Abrechnung je Mieter mit Protokoll, Pauschalvergleich, fehlende Daten, Heizkosten und CO₂-Aufteilung), `/verwaltung/objekte/{id}/heizung` (Heizungseinstellungen), `/verwaltung/vertraege/{id}/kostenarten`. Abrechnungsassistent siehe *Abrechnungs-Assistent* (#32), PDF, Versand und Vorauszahlungsanpassung siehe *Abrechnungs-PDF & Versand* (#33).
 
+### Belegungsplan (#124)
+
+`IOccupancyPlan` (`OccupancyPlanService`) liefert je Wohnung ohne Zimmer und je WG-Zimmer die Verträge des gewählten Jahres als Balken (auf das Jahr gekürzt; Mieter, Vertragszeitraum, Gesamtmiete am Beginn des sichtbaren Teils; „offen“ = unbefristet ohne Kündigung, „beendet“ = Ende vor heute). Leerstand ist die Lücke zwischen den Balken. Seite `/verwaltung/objekte/{id}/belegung` (`OccupancyTimeline.razor`, statisch, Jahr über `?jahr=`): reines HTML/CSS (`.plan*` in `app.css`, Farbrollen über Tokens), Balken verlinken auf den Vertrag, darunter dieselben Daten als Tabelle (`details.explain`).
+
 ### Daten korrigieren statt löschen (#116)
 
 Tippfehler lassen sich an den wichtigsten Stellen **an Ort und Stelle** korrigieren (Dialog „Bearbeiten“ neben „Entfernen“); die Änderungen stehen im Änderungsprotokoll, Verweise anderer Datensätze bleiben gültig.

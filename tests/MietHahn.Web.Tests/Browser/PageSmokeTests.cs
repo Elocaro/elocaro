@@ -154,7 +154,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             "/verwaltung/finanzen/offene-posten", "/verwaltung/finanzen/mahnungen", "/verwaltung/finanzen/einstellungen", "/verwaltung/finanzen/darlehen", $"/verwaltung/finanzen/darlehen/{ids["loan"]}",
             "/verwaltung/belege", "/verwaltung/belege/neu", $"/verwaltung/belege/{ids["receipt"]}",
             $"/verwaltung/objekte/{p}/anlage-v?jahr={year}", "/verwaltung/finanzen/anlage-v-zeilen?jahr=" + year, "/verwaltung/finanzen/datev", $"/verwaltung/objekte/{p}/afa", $"/verwaltung/objekte/{p}/erhaltungsaufwand",
-            $"/verwaltung/objekte/{p}/abrechnungen", $"/verwaltung/objekte/{p}/versorgung", $"/verwaltung/objekte/{p}/umlageschluessel", $"/verwaltung/objekte/{p}/heizung", $"/verwaltung/objekte/{p}/nebenkosten?jahr={year}",
+            $"/verwaltung/objekte/{p}/abrechnungen", $"/verwaltung/objekte/{p}/belegung", $"/verwaltung/objekte/{p}/versorgung", $"/verwaltung/objekte/{p}/umlageschluessel", $"/verwaltung/objekte/{p}/heizung", $"/verwaltung/objekte/{p}/nebenkosten?jahr={year}",
             $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=2", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=5",
             "/verwaltung/benutzer", $"/verwaltung/benutzer/{ids["user"]}",
             "/verwaltung/einstellungen/vermieter", "/verwaltung/einstellungen/vorlagen", "/verwaltung/einstellungen/vorlagen/neu", "/verwaltung/dokumente/schreiben", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/verwaltung/system/datensicherung", "/verwaltung/system/belegauslesung",

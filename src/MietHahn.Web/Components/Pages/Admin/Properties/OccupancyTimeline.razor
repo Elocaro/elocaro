@@ -1,0 +1,146 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/belegung"
+@using MietHahn.Domain.Common
+@inject IOccupancyPlan Plan
+@inject TimeProvider Clock
+
+<PageTitle>Belegung – MietHahn</PageTitle>
+@if (plan is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+    <PageHeader Title="Belegung" Subtitle="@($"{plan.PropertyName}: Verträge und Leerstand je Wohnung und Zimmer im Jahresverlauf")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@plan.PropertyName" />
+
+    <nav class="plan-years" aria-label="Jahr wählen">
+        <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/belegung?jahr=@(year - 1)">‹ @(year - 1)</a>
+        <strong aria-current="page">@year</strong>
+        <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/belegung?jahr=@(year + 1)">@(year + 1) ›</a>
+        @if (year != today.Year)
+        {
+            <a class="button button-text" href="/verwaltung/objekte/@PropertyId/belegung">Heute</a>
+        }
+    </nav>
+
+    @if (plan.Rows.Count == 0)
+    {
+        <EmptyState Text="Noch keine Wohnungen oder Zimmer im Objekt." />
+    }
+    else
+    {
+        <div class="plan-scroll">
+            <div class="plan" id="occupancy-plan">
+                <div class="plan-row plan-head">
+                    <div class="plan-label"></div>
+                    <div class="plan-track" aria-hidden="true">
+                        @for (var month = 1; month <= 12; month++)
+                        {
+                            <span class="plan-month" style="@($"left:{Left(new DateOnly(year, month, 1))}%")">@Months[month - 1]</span>
+                        }
+                    </div>
+                </div>
+                @foreach (var row in plan.Rows)
+                {
+                    <div class="plan-row">
+                        <div class="plan-label">
+                            @if (row.Group is not null)
+                            {
+                                <span class="small">@row.Group</span>
+                            }
+                            @row.Label
+                        </div>
+                        <div class="plan-track">
+                            @for (var month = 2; month <= 12; month++)
+                            {
+                                <span class="plan-gridline" style="@($"left:{Left(new DateOnly(year, month, 1))}%")" aria-hidden="true"></span>
+                            }
+                            @if (today.Year == year)
+                            {
+                                <span class="plan-today" style="@($"left:{Left(today)}%")" aria-hidden="true"></span>
+                            }
+                            @foreach (var bar in row.Bars)
+                            {
+                                <a class="@BarClass(bar)" href="/verwaltung/vertraege/@bar.LeaseId" style="@($"left:{Left(bar.Period.From)}%;width:{Width(bar.Period)}%")" title="@Title(bar)">
+                                    <span>@bar.Tenant</span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        <p class="plan-legend small">
+            <span class="plan-key plan-key--open"></span> unbefristet laufend
+            <span class="plan-key plan-key--term"></span> befristet oder gekündigt
+            <span class="plan-key plan-key--ended"></span> beendet
+            <span class="plan-key plan-key--vacant"></span> Leerstand
+            <span class="plan-key plan-key--today"></span> heute
+        </p>
+
+        <details class="explain">
+            <summary>Als Tabelle</summary>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Mietobjekt</th><th>Mieter</th><th>Zeitraum</th><th class="number">Miete gesamt</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in plan.Rows)
+                        {
+                            @if (row.Bars.Count == 0)
+                            {
+                                <tr><td>@Name(row)</td><td><StatusChip Level="StatusLevel.Warning">Leerstand</StatusChip></td><td>@year</td><td class="number"></td></tr>
+                            }
+
+                            @foreach (var bar in row.Bars)
+                            {
+                                <tr>
+                                    <td>@Name(row)</td>
+                                    <td><a href="/verwaltung/vertraege/@bar.LeaseId">@bar.Tenant</a></td>
+                                    <td>@Format.Period(new Period(bar.LeaseStart, bar.LeaseEnd))</td>
+                                    <td class="number">@Format.Money(bar.Rent)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    }
+}
+
+@code {
+    private static readonly string[] Months = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+
+    private OccupancyPlan? plan;
+    private DateOnly today;
+    private int year;
+    private DateOnly yearStart;
+    private int yearDays;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "jahr")]
+    public int? Year { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        today = GermanTime.Today(Clock.GetUtcNow());
+        year = Year is >= 2000 and <= 2100 ? Year.Value : today.Year;
+        yearStart = new DateOnly(year, 1, 1);
+        yearDays = DateTime.IsLeapYear(year) ? 366 : 365;
+        plan = await Plan.GetAsync(PropertyId, Period.CalendarYear(year));
+    }
+
+    private string Left(DateOnly day) => Percent((day.DayNumber - yearStart.DayNumber) / (double)yearDays);
+
+    private string Width(Period period) => Percent(period.Days / (double)yearDays);
+
+    private static string Percent(double fraction) => (fraction * 100).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string BarClass(OccupancyBar bar) => bar.Ended ? "plan-bar plan-bar--ended" : bar.Open ? "plan-bar plan-bar--open" : "plan-bar plan-bar--term";
+
+    private static string Name(OccupancyRow row) => row.Group is null ? row.Label : $"{row.Group}, {row.Label}";
+
+    private static string Title(OccupancyBar bar) =>
+        $"{bar.Tenant}: {Format.Period(new Period(bar.LeaseStart, bar.LeaseEnd))}, Miete gesamt {Format.Money(bar.Rent)}";
+}

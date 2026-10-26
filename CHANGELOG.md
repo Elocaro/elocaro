@@ -9,6 +9,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Belegungsplan: Zeitleiste je Wohnung und WG-Zimmer mit Verträgen, Mieterwechseln und Leerstand im Jahresverlauf (Objekt → Belegung, Closes #124).
 - Bearbeiten statt nur Löschen: Mietzeit (Beginn, Befristung), noch nicht übernommene Staffeln, manuelle Zahlungen und Forderungen, Kautionsbuchungen, Belegpositionen, Zählerstände sowie Versorgungsverträge und Tarife lassen sich im Dialog „Bearbeiten“ korrigieren (Closes #116).
 - Zählerabweichung: Die Vorschau prüft beim Versorgungsvertrag, ob der Hauptzähler und die Summe der Zähler der Wohnungen zusammenpassen (Hinweis ab 10 % Differenz). Im Vertrag lässt sich wählen, ob die Differenz auf die Wohnungen nach Verbrauch verteilt wird oder der Vermieter ihren Anteil trägt (Closes #114).
 - Rechenzähler: Ein Zähler, der für mehrere Wohnungen zählt, lässt sich mit anderen Zählern verrechnen (addieren/abziehen), um den Verbrauch je Wohnung zu ermitteln, z. B. Kaltwasser 1. OG aus dem Zähler „1. und 2. OG“ minus dem Zähler „2. OG“ (Closes #113).

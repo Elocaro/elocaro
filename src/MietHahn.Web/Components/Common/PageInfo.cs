@@ -145,6 +145,15 @@ public static class PageInfoCatalog
                     "Prüfen Sie nach dem Import die Stände in der Zählerliste, bevor Sie abrechnen."),
             ]), $"{Admin}/objekte/{{id}}/zaehlerimport");
 
+        Add(new("Belegung",
+            "Die Zeitleiste zeigt je Wohnung und WG-Zimmer, wer wann gemietet hat und wo Leerstand war.",
+            [
+                new("Gut zu wissen",
+                    "Grün sind unbefristet laufende Verträge, gelb befristete oder gekündigte, grau beendete. Schraffierte Flächen sind Leerstand.",
+                    "Ein Klick auf einen Balken öffnet den Vertrag; die senkrechte Linie zeigt den heutigen Tag.",
+                    "Wechseln Sie mit den Pfeilen oben das Jahr. Unter „Als Tabelle“ stehen dieselben Angaben als Liste."),
+            ]), $"{Admin}/objekte/{{id}}/belegung");
+
         // ---- Operating costs
         Add(new("Versorgungsverträge",
             "Wasser, Abwasser, Strom und Gas rechnet MietHahn nach Verbrauch und Preis, nicht nach den Zahlungen an den Versorger.",
