@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Behoben
+- Mehrzimmerverträge nennen alle Zimmer: Vertragsseite, Vertragsliste, Mieterkonto und der Zimmervertrag (PDF, mit Fläche und Gemeinschaftsanteil aller Zimmer); als „getrennt vermietet“ erscheinen nur die übrigen Zimmer.
 - Die Vertragsseite eines Zimmervertrags warf beim Öffnen eine Exception (Auswahl „Weiteres Zimmer“ ohne Vorauswahl).
 
 ### Geändert

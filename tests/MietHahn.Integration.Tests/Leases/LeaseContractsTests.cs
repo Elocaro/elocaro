@@ -23,6 +23,7 @@ public class LeaseContractsTests(PostgresFixture postgres, GotenbergFixture gote
     private Guid roomLease;
     private Guid apartmentTemplate;
     private Guid roomTemplate;
+    private Guid room2;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -52,7 +53,7 @@ public class LeaseContractsTests(PostgresFixture postgres, GotenbergFixture gote
 
         var flat = Validate(await properties.CreateUnitAsync(house, new UnitInput { Name = "WG Nord" }, Ct));
         var room1 = Validate(await properties.CreateRoomAsync(flat, new RoomInput { Name = "Zimmer 1", Furnishing = Furnishing.PartlyFurnished, FurnishingList = "Bett\nSchrank" }, Ct));
-        Validate(await properties.CreateRoomAsync(flat, new RoomInput { Name = "Zimmer 2" }, Ct));
+        room2 = Validate(await properties.CreateRoomAsync(flat, new RoomInput { Name = "Zimmer 2" }, Ct));
         Validate(await properties.CreateRoomAsync(flat, new RoomInput { Name = "Zimmer 3" }, Ct));
         Validate(await properties.SetRoomAreaAsync(room1, new AreaInput { From = new DateOnly(2020, 1, 1), Area = 14m, SecondaryArea = 11.5m }, Ct));
         var ben = Validate(await people.CreateAsync(new PersonInput { FirstName = "Ben", LastName = "Weber" }, null, Ct));
@@ -122,6 +123,18 @@ public class LeaseContractsTests(PostgresFixture postgres, GotenbergFixture gote
         Assert.Contains("80,00 €", text, StringComparison.Ordinal); // flat rate
         Assert.Contains("480,00 €", text, StringComparison.Ordinal); // total: 400 + 80
         Assert.DoesNotContain("Wasserversorgung", text, StringComparison.Ordinal); // no statement with a list of cost types
+    }
+
+    [Fact]
+    public async Task Room_contract_over_two_rooms_names_both_and_lists_only_the_other_rooms_as_separately_let()
+    {
+        Validate(await WithAsync<ILeaseService, Result>(l => l.AddRoomAsync(roomLease, room2, Ct)));
+
+        var contract = Validate(await WithAsync<ILeaseContracts, Result>(c => c.CreateDraftAsync(roomLease, roomTemplate, Ct)));
+
+        var text = await PdfTextAsync((await WithAsync<ILeaseContracts, IReadOnlyList<ContractRow>>(c => c.ListAsync(roomLease, Ct))).Single(r => r.Id == contract).DraftFileId);
+        Assert.Contains("die Zimmer Zimmer 1 und Zimmer 2", text.ReplaceLineEndings(" "), StringComparison.Ordinal);
+        Assert.Contains("getrennt vermietet: Zimmer 3", text.ReplaceLineEndings(" "), StringComparison.Ordinal);
     }
 
     [Fact]

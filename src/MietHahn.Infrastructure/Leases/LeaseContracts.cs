@@ -162,7 +162,7 @@ internal sealed class LeaseContracts(MietHahnDbContext db, IPdfGenerator pdf, ID
 
     private async Task<ContractModel> ModelAsync(Guid leaseId, DateOnly today, CancellationToken cancellationToken)
     {
-        var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).Include(v => v.RentSteps).Include(v => v.People)
+        var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).Include(v => v.RentSteps).Include(v => v.People).Include(v => v.ExtraRooms)
             .SingleOrDefaultAsync(v => v.Id == leaseId, cancellationToken) ?? throw new RuleViolationException("Der Mietvertrag wurde nicht gefunden.");
         var landlord = await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
             ?? throw new RuleViolationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter).");
@@ -185,7 +185,7 @@ internal sealed class LeaseContracts(MietHahnDbContext db, IPdfGenerator pdf, ID
 
         var start = lease.Start;
         var area = unit.AreaOn(start) ?? unit.AreaOn(today);
-        var roomArea = room?.AreaOn(start) ?? room?.AreaOn(today);
+        var rooms = unit.Room.Where(z => lease.RoomIds.Contains(z.Id)).OrderBy(z => z.Order).ToList();
         decimal Amount(RentComponentType kind) => lease.AmountAt(kind, start) ?? 0m;
         var others = lease.ComponentsAt(start).Where(b => b.Kind == RentComponentType.Miscellaneous).Select(b => new ContractComponent(b.Name ?? "Sonstiges", b.Amount)).ToList();
         var baseRent = Amount(RentComponentType.BaseRent);
@@ -195,9 +195,9 @@ internal sealed class LeaseContracts(MietHahnDbContext db, IPdfGenerator pdf, ID
             today, landlord.Name, $"{landlord.Street}, {landlord.PostalCode} {landlord.City}", tenants, guarantors, string.Join(" und ", tenants.Select(t => t.Name)),
             property.Name, property.Street, property.PostalCode, property.City, property.YearBuilt, HeatingText(property.HeatingType),
             unit.Name, unit.Location, unit.RoomCount, area?.LivingArea, unit.Bathroom, unit.Balcony, unit.FittedKitchen, unit.Amenities, unit.EnergyStandard,
-            room is not null, room?.Name, roomArea?.Area, roomArea?.CommonAreaShare, room is null ? null : FurnishingText(room.Furnishing),
+            room is not null, RoomNames(unit, lease), rooms.Sum(r => r.AreaOn(start)?.Area ?? r.AreaOn(today)?.Area ?? 0m) is var totalArea and > 0m ? totalArea : null, rooms.Sum(r => r.AreaOn(start)?.CommonAreaShare ?? r.AreaOn(today)?.CommonAreaShare ?? 0m) is var totalShare and > 0m ? totalShare : null, room is null ? null : FurnishingText(room.Furnishing),
             room?.FurnishingList?.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [],
-            unit.Room.Where(z => z.Id != lease.RoomId).OrderBy(z => z.Order).Select(z => z.Name).ToList(),
+            unit.Room.Where(z => !lease.RoomIds.Contains(z.Id)).OrderBy(z => z.Order).Select(z => z.Name).ToList(),
             start, lease.FixedTermUntil, lease.FixedTermUntil is not null, lease.NoticePeriodMonths,
             lease.BillingType == BillingType.Prepayment, lease.BillingType == BillingType.FlatRate, lease.BillingType == BillingType.Inclusive, lease.HeatingCostsConsumptionBased,
             lease.RentModel == RentModel.Graduated, lease.RentModel == RentModel.Index,
@@ -210,6 +210,9 @@ internal sealed class LeaseContracts(MietHahnDbContext db, IPdfGenerator pdf, ID
             lease.OccupantCountOn(start), lease.Notes,
             landlord.Iban is null ? null : Iban.Format(landlord.Iban), landlord.Bank);
     }
+
+    private static string RoomNames(Unit unit, Lease lease) =>
+        string.Join(" und ", unit.Room.Where(z => lease.RoomIds.Contains(z.Id)).OrderBy(z => z.Order).Select(z => z.Name));
 
     private static string FileName(string title, string tenants)
     {

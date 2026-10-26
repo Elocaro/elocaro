@@ -10,7 +10,7 @@
 <p>– nachfolgend „Mieter“ –</p>
 
 <h3>§ 1 Mietsache</h3>
-<p>(1) Vermietet wird im Haus {{ property_street }}, {{ property_postal_code }} {{ property_city }} in der Wohnung <strong>{{ unit_name }}</strong>{{ if unit_location }} ({{ unit_location }}){{ end }} das Zimmer <strong>{{ room_name }}</strong>{{ if room_area }} mit ca. {{ number room_area 2 }} m²{{ end }}.</p>
+<p>(1) Vermietet wird im Haus {{ property_street }}, {{ property_postal_code }} {{ property_city }} in der Wohnung <strong>{{ unit_name }}</strong>{{ if unit_location }} ({{ unit_location }}){{ end }} {{ if room_name | string.contains ' und ' }}die Zimmer{{ else }}das Zimmer{{ end }} <strong>{{ room_name }}</strong>{{ if room_area }} mit ca. {{ number room_area 2 }} m²{{ end }}.</p>
 <p>(2) Der Mieter darf die Gemeinschaftsflächen der Wohnung (z. B. Küche, Bad, Flur{{ if amenities }}, {{ amenities }}{{ end }}) gemeinsam mit den anderen Bewohnern mitbenutzen{{ if common_area_share }}. Auf den Mieter entfällt rechnerisch ein Anteil von ca. {{ number common_area_share 2 }} m² der Gemeinschaftsflächen{{ end }}.{{ if other_rooms.size > 0 }} Die übrigen Zimmer der Wohnung sind getrennt vermietet:{{ for r in other_rooms }} {{ r }}{{ if !for.last }},{{ end }}{{ end }}.{{ end }}</p>
 <p>(3) Das Zimmer wird {{ furnishing }} überlassen.{{ if furnishing_list.size > 0 }} Mitvermietet sind folgende Gegenstände, die sich bei Einzug in ordnungsgemäßem Zustand befinden und bei Auszug zurückzugeben sind:</p>
 <ul>

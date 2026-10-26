@@ -32,7 +32,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
         return leases
             .Select(v => new LeaseOverview(
                 v.Id,
-                rentalUnits.GetValueOrDefault(v.RentalUnitId)?.Name ?? "–",
+                RentalUnit.LabelOf(v.RentalUnitId, v.ExtraRooms.Select(r => r.RoomId), rentalUnits),
                 rentalUnits.GetValueOrDefault(v.RentalUnitId)?.Property ?? "–",
                 TenantText(v, names),
                 v.Start,
@@ -66,7 +66,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
             lease.UnitId,
             lease.RoomId,
             rentalUnit?.PropertyId ?? Guid.Empty,
-            rentalUnit?.Name ?? "–",
+            RentalUnit.LabelOf(lease.RentalUnitId, lease.ExtraRooms.Select(r => r.RoomId), await RentalUnit.GetAsync(db, cancellationToken)),
             rentalUnit?.Property ?? "–",
             lease.Term,
             lease.FixedTermUntil,
