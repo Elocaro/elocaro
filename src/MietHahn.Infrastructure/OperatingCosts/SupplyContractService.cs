@@ -36,6 +36,7 @@ internal sealed class SupplyContractService(MietHahnDbContext db) : ISupplyContr
                 c.Basis,
                 c.PriceUnit,
                 c.HeatingKind,
+                c.Deviation,
                 [.. c.MeterIds.Select(id => numbers.GetValueOrDefault(id, "?"))],
                 [.. c.Tariffs.OrderByDescending(t => t.Validity.From).Select(t => new SupplyTariffView(t.Id, t.Validity, t.UnitPrice, t.BaseFeePerMonth, t.Note))]))],
             [.. meters.Where(m => m.RemovedOn is null || contracts.Any(c => c.MeterIds.Contains(m.Id)))
@@ -63,7 +64,7 @@ internal sealed class SupplyContractService(MietHahnDbContext db) : ISupplyContr
                 throw new RuleViolationException("Alle gewählten Zähler müssen die gewählte Zählerart haben.");
             }
 
-            var contract = new SupplyContract(propertyId, input.Name, input.Supplier, input.CostType, input.MeterType, input.Basis, input.PriceUnit, input.MeterIds, input.HeatingKind);
+            var contract = new SupplyContract(propertyId, input.Name, input.Supplier, input.CostType, input.MeterType, input.Basis, input.PriceUnit, input.MeterIds, input.HeatingKind, input.Deviation);
             Tariff(contract, input.Tariff);
             db.Add(contract);
             await db.SaveChangesAsync(cancellationToken);

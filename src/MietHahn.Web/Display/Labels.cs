@@ -346,6 +346,12 @@ public static class Labels
         _ => "Gesamter Verbrauch der gewählten Zähler",
     };
 
+    public static string From(DeviationHandling value) => value switch
+    {
+        DeviationHandling.Landlord => "Der Vermieter trägt den Anteil der Differenz",
+        _ => "Auf die Einheiten nach Verbrauch verteilen",
+    };
+
     public static string From(PriceUnit value) => value switch
     {
         PriceUnit.KilowattHour => "€ je kWh",

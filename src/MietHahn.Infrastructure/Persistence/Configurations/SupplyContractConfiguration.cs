@@ -16,6 +16,7 @@ internal sealed class SupplyContractConfiguration : IEntityTypeConfiguration<Sup
         builder.Property(c => c.MeterType).HasConversion<string>().HasMaxLength(20);
         builder.Property(c => c.Basis).HasConversion<string>().HasMaxLength(20);
         builder.Property(c => c.PriceUnit).HasConversion<string>().HasMaxLength(20);
+        builder.Property(c => c.Deviation).HasConversion<string>().HasMaxLength(20).HasDefaultValue(DeviationHandling.DistributeToUnits);
         builder.Property(c => c.HeatingKind).HasConversion<string>().HasMaxLength(30);
         builder.HasOne<Property>().WithMany().HasForeignKey(c => c.PropertyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(c => c.Tariffs).WithOne().HasForeignKey(t => t.ContractId).OnDelete(DeleteBehavior.Cascade);

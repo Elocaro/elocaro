@@ -9,6 +9,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Zählerabweichung: Die Vorschau prüft beim Versorgungsvertrag, ob der Hauptzähler und die Summe der Zähler der Wohnungen zusammenpassen (Hinweis ab 10 % Differenz). Im Vertrag lässt sich wählen, ob die Differenz auf die Wohnungen nach Verbrauch verteilt wird oder der Vermieter ihren Anteil trägt (Closes #114).
 - Rechenzähler: Ein Zähler, der für mehrere Wohnungen zählt, lässt sich mit anderen Zählern verrechnen (addieren/abziehen), um den Verbrauch je Wohnung zu ermitteln, z. B. Kaltwasser 1. OG aus dem Zähler „1. und 2. OG“ minus dem Zähler „2. OG“ (Closes #113).
 - Wohnungen: Kostenarten markieren, die die Mieter selbst bezahlen (z. B. Müll): Die Wohnung nimmt dann an der Umlage dieser Kostenart nicht teil, weder Mieter noch Vermieter tragen einen Anteil (Closes #117).
 - Heizkosten: Basis der Aufteilung Heizung/Warmwasser (§ 9 HeizkostenV) wählbar, entweder Brennstoffenergie oder Summe der Wärmezähler (Wohnungszähler plus Warmwasser-Wärmezähler).

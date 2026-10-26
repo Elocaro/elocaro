@@ -4962,6 +4962,14 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
 
+                    b.Property<string>("Deviation")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("DistributeToUnits")
+                        .HasColumnName("deviation");
+
                     b.Property<string>("HeatingKind")
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")

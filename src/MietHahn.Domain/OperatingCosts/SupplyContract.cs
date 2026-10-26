@@ -15,6 +15,16 @@ public enum SupplyBasis
     CommonArea = 1,
 }
 
+/// <summary>What happens with the difference between the main meter and the sum of the meters of the units (leaks, garden, common use, meter tolerance).</summary>
+public enum DeviationHandling
+{
+    /// <summary>The whole cost is allocated over the consumption of the unit meters (the difference is spread proportionally).</summary>
+    DistributeToUnits = 0,
+
+    /// <summary>The landlord bears the share of the cost that belongs to the difference; tenants pay only what their meters measured.</summary>
+    Landlord = 1,
+}
+
 /// <summary>Unit in which the supplier states the price.</summary>
 public enum PriceUnit
 {
@@ -44,7 +54,8 @@ public sealed class SupplyContract : Entity
         SupplyBasis basis,
         PriceUnit priceUnit,
         IEnumerable<Guid> meterIds,
-        HeatingCostKind? heatingKind = null)
+        HeatingCostKind? heatingKind = null,
+        DeviationHandling deviation = DeviationHandling.DistributeToUnits)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -89,6 +100,7 @@ public sealed class SupplyContract : Entity
         PriceUnit = priceUnit;
         MeterIds = meters;
         HeatingKind = heatingKind;
+        Deviation = deviation;
     }
 
     public Guid PropertyId { get; private set; }
@@ -105,6 +117,9 @@ public sealed class SupplyContract : Entity
     public SupplyBasis Basis { get; private set; }
 
     public PriceUnit PriceUnit { get; private set; }
+
+    /// <summary>Handling of the difference between the main meters and the meters of the units (only with <see cref="SupplyBasis.MainMeter"/>).</summary>
+    public DeviationHandling Deviation { get; set; }
 
     /// <summary>For heating costs: the kind (fuel, operating power ...) of the calculated cost.</summary>
     public HeatingCostKind? HeatingKind { get; private set; }

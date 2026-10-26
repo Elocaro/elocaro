@@ -43,7 +43,7 @@ else
         <h2>@contract.Name@(contract.Supplier is { } supplier ? $" · {supplier}" : "")</h2>
         <p class="small">
             @contract.CostTypeName@(contract.HeatingKind is { } kind ? $" ({Labels.From(kind)})" : "") · @Labels.From(contract.MeterType) · @Labels.From(contract.Basis) ·
-            Zähler: @string.Join(", ", contract.Meters) · Preis @Labels.From(contract.PriceUnit)
+            Zähler: @string.Join(", ", contract.Meters) · Preis @Labels.From(contract.PriceUnit)@(contract.Deviation == DeviationHandling.Landlord ? " · Differenz zu Wohnungszählern: Vermieter" : "")
         </p>
         <div class="table-wrapper">
             <table class="data-table">

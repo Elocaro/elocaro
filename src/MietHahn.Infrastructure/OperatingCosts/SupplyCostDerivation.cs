@@ -73,14 +73,30 @@ internal static class SupplyCostDerivation
             }
 
             var fuelUnit = source.FuelUnit(contract.MeterIds);
+            hints.AddRange(DeviationHints(contract, source, billingPeriod));
             foreach (var part in result.Parts.Where(p => p.Amount != 0))
             {
                 var fuel = contract.HeatingKind == HeatingCostKind.Fuel;
+                var amount = part.Amount;
+                if (contract.Deviation == DeviationHandling.Landlord && contract.Basis == SupplyBasis.MainMeter
+                    && Deviation(contract, source, part.Period) is { Main: > 0m, Units: > 0m } deviation && deviation.Units < deviation.Main)
+                {
+                    // The landlord bears the share of the difference: tenants pay for what their meters measured.
+                    amount = decimal.Round(part.Amount * deviation.Units / deviation.Main, 2, MidpointRounding.AwayFromZero);
+                    costs.Add(new BillingCost(
+                        Guid.NewGuid(),
+                        contract.CostType,
+                        $"{part.Description}: Anteil der Differenz zwischen Hauptzähler ({deviation.Main:0.###}) und Zählern der Einheiten ({deviation.Units:0.###}), trägt der Vermieter",
+                        part.Amount - amount,
+                        part.Period,
+                        false));
+                }
+
                 costs.Add(new BillingCost(
                     part.TariffId,
                     contract.CostType,
                     part.Description,
-                    part.Amount,
+                    amount,
                     part.Period,
                     true,
                     null,
@@ -97,6 +113,41 @@ internal static class SupplyCostDerivation
 
         return new Outcome([.. costs.OrderBy(c => c.BillingPeriod.From).ThenBy(c => c.Id)], hints);
     }
+
+    /// <summary>Main meter vs. sum of the meters assigned to units in the period (meter units); <c>null</c> if not determinable or not applicable.</summary>
+    private static (decimal Main, decimal Units)? Deviation(SupplyContract contract, MeterConsumptionSource source, Period period)
+    {
+        var main = source.MetersQuantity(contract.MeterIds, period);
+        var units = source.AssignedQuantity(contract.MeterType, period);
+        return main.Value is { } m && units.Value is { } u && u > 0m ? (m, u) : null;
+    }
+
+    /// <summary>Plausibility check: the main meter and the sum of the unit meters should be close (leaks, garden, meter tolerance).</summary>
+    private static List<string> DeviationHints(SupplyContract contract, MeterConsumptionSource source, Period period)
+    {
+        var hints = new List<string>();
+        if (contract.Basis != SupplyBasis.MainMeter || Deviation(contract, source, period) is not { } d || d.Main <= 0m)
+        {
+            return hints;
+        }
+
+        var difference = d.Main - d.Units;
+        var percent = Math.Abs(difference) / d.Main * 100m;
+        var text = $"{contract.Name}: Hauptzähler {d.Main:N2} und Zähler der Einheiten zusammen {d.Units:N2} (Differenz {difference:N2}, {percent:0.#} %)";
+        if (difference < 0m && percent > DeviationTolerancePercent)
+        {
+            hints.Add($"Plausibilität: {text}. Die Zähler der Einheiten zeigen mehr als der Hauptzähler: Stände und Zählerzuordnung prüfen.");
+        }
+        else if (percent > DeviationTolerancePercent)
+        {
+            hints.Add($"Plausibilität: {text}. Auffällig: mögliche Leckage, Gartenverbrauch oder fehlende Zähler. {(contract.Deviation == DeviationHandling.Landlord ? "Den Anteil der Differenz trägt der Vermieter." : "Die Differenz wird auf die Einheiten nach Verbrauch verteilt (im Vertrag umstellbar auf „trägt der Vermieter“).")}");
+        }
+
+        return hints;
+    }
+
+    /// <summary>Difference above which the plausibility check reports (meter tolerance and common use stay below).</summary>
+    private const decimal DeviationTolerancePercent = 10m;
 
     private static bool Matches(SupplyContract contract, BillingCost cost) =>
         cost.CostType == contract.CostType

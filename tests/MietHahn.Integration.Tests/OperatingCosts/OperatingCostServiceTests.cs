@@ -368,6 +368,50 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
     }
 
     [Fact]
+    public async Task Supply_contract_reports_a_deviation_between_main_meter_and_unit_meters_and_can_leave_its_share_with_the_landlord()
+    {
+        await StartAccountingAsync();
+        await SetRuleAsync("betrkv-02", AllocationKey.Consumption, meter: MeterType.ColdWater);
+        var houseMeter = await MeterAsync(null, "H-1", new DateOnly(2025, 12, 31), 0m);
+        var meter1 = await MeterAsync(apartment1, "W-1", new DateOnly(2025, 12, 31), 0m);
+        var meter2 = await MeterAsync(apartment2, "W-2", new DateOnly(2025, 12, 31), 0m);
+        await ReadingAsync(houseMeter, new DateOnly(2026, 12, 31), 183m);
+        await ReadingAsync(meter1, new DateOnly(2026, 12, 31), 100m);
+        await ReadingAsync(meter2, new DateOnly(2026, 12, 31), 50m);
+
+        async Task CreateContractAsync(DeviationHandling deviation) =>
+            Validate(await WithAsync<ISupplyContracts, Result>(s => s.CreateAsync(
+                house,
+                new SupplyContractInput
+                {
+                    Name = "Wasser",
+                    CostType = "betrkv-02",
+                    MeterType = MeterType.ColdWater,
+                    MeterIds = [houseMeter],
+                    Deviation = deviation,
+                    Tariff = new SupplyTariffInput { From = new DateOnly(2020, 1, 1), UnitPrice = 4m, BaseFeePerMonth = 12m },
+                },
+                Ct)));
+
+        await CreateContractAsync(DeviationHandling.DistributeToUnits);
+        var distributed = await PreviewAsync();
+
+        // 183 m³ × 4.00 € + 12 × 12.00 € = 876.00 €, all allocated over the unit meters; the check reports 33 m³ (18 %).
+        Assert.Equal(876m, distributed.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Total);
+        Assert.Contains(distributed.Hints, h => h.StartsWith("Plausibilität:", StringComparison.Ordinal) && h.Contains("18", StringComparison.Ordinal));
+        Assert.Empty(distributed.Result.NonAllocable);
+
+        // The landlord bears the difference: tenants pay 150/183 of the cost (718.03 €), 157.97 € stay with the landlord.
+        var existing = await WithAsync<ISupplyContracts, SupplyOverview>(async s => (await s.GetAsync(house, Ct))!);
+        Validate(await WithAsync<ISupplyContracts, Result>(s => s.RemoveAsync(existing.Contracts.Single().Id, Ct)));
+        await CreateContractAsync(DeviationHandling.Landlord);
+        var landlord = await PreviewAsync();
+
+        Assert.Equal(718.03m, landlord.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Total);
+        Assert.Equal(157.97m, Assert.Single(landlord.Result.NonAllocable).Amount);
+    }
+
+    [Fact]
     public async Task Supply_contract_without_readings_falls_back_to_the_receipts_with_a_hint()
     {
         await StartAccountingAsync();

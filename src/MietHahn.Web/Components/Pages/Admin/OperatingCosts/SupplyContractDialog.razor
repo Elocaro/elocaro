@@ -50,6 +50,11 @@
                 </fieldset>
             }
 
+            @if (data.Basis == SupplyBasis.MainMeter && hasUnitMeters)
+            {
+                <AppSelect T="DeviationHandling" @bind-Value="data.Deviation" Label="Differenz Hauptzähler zu Wohnungszählern" Items="Enum.GetValues<DeviationHandling>()" Text="Labels.From" Hint="Zeigt der Hauptzähler mehr als die Wohnungszähler zusammen (Leitungsverlust, Garten, Zählertoleranz)?" />
+            }
+
             <h3>3. Tarif</h3>
             <div class="form-grid">
                 <AppDateField @bind-Value="data.Tariff.From" Label="Gilt ab" Required="true" />
@@ -88,6 +93,8 @@
 
     /// <summary>The usual types supply the whole house (main meters); only the free choice offers the meters of the flats too.</summary>
     private IReadOnlyList<MeterOption> meters => [.. AllMeters.Where(m => m.Type == data.MeterType && (preset.Custom || m.IsHouseMeter))];
+
+    private bool hasUnitMeters => AllMeters.Any(m => m.Type == data.MeterType && !m.IsHouseMeter);
 
     private bool IsHeating => MietHahn.Domain.Receipts.CostTypes.Find(data.CostType) is { } type && CostGroups.Of(type.Key) == CostGroup.Heating;
 
