@@ -7,6 +7,7 @@
 @inject IPersonService People
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject IDialogService Dialogs
 @inject MietHahn.Application.Finance.ITenantAccounts Accounts
 
 <InteractiveShell>
@@ -63,11 +64,12 @@ else
                         <td>@Labels.From(b.Kind)@(b.Name is null ? "" : $" ({b.Name})")</td>
                         <td class="small">@Format.Period(b.Validity)</td>
                         <td class="number">@Format.Money(b.Amount)</td>
+                        <td><MudButton Variant="Variant.Text" OnClick="() => EditComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} bearbeiten")">Bearbeiten</MudButton></td>
                     </tr>
                 }
             </tbody>
             <tfoot>
-                <tr><th colspan="2">Monatlich gesamt</th><th class="number">@Format.Money(lease.MonthlyRent)</th></tr>
+                <tr><th colspan="2">Monatlich gesamt</th><th class="number">@Format.Money(lease.MonthlyRent)</th><th></th></tr>
             </tfoot>
         </table>
     </div>
@@ -102,7 +104,7 @@ else
         <h3>Verlauf</h3>
         <div class="table-wrapper">
             <table class="data-table">
-                <thead><tr><th>Bestandteil</th><th>Zeitraum</th><th class="number">Betrag</th></tr></thead>
+                <thead><tr><th>Bestandteil</th><th>Zeitraum</th><th class="number">Betrag</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var b in lease.Components)
                     {
@@ -110,6 +112,10 @@ else
                             <td>@Labels.From(b.Kind)@(b.Name is null ? "" : $" ({b.Name})")</td>
                             <td>@Format.Period(b.Validity)</td>
                             <td class="number">@Format.Money(b.Amount)</td>
+                            <td>
+                                <MudButton Variant="Variant.Text" OnClick="() => EditComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} {Format.Period(b.Validity)} bearbeiten")">Bearbeiten</MudButton>
+                                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} {Format.Period(b.Validity)} löschen")">Löschen</MudButton>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -169,15 +175,19 @@ else
             </EditForm>
         </details>
     }
-    @if (lease.People.Count > 1)
-    {
-        <ul class="small">
-            @foreach (var entry in lease.People)
-            {
-                <li>@Format.Period(entry.Validity): @entry.Count</li>
-            }
-        </ul>
-    }
+    <ul class="small">
+        @foreach (var entry in lease.People)
+        {
+            <li>
+                @Format.Period(entry.Validity): @entry.Count
+                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => EditOccupantAsync(entry)" aria-label="@($"Personenanzahl {Format.Period(entry.Validity)} bearbeiten")">Bearbeiten</MudButton>
+                @if (lease.People.Count > 1)
+                {
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" OnClick="() => RemoveOccupantAsync(entry)" aria-label="@($"Personenanzahl {Format.Period(entry.Validity)} löschen")">Löschen</MudButton>
+                }
+            </li>
+        }
+    </ul>
 </section>
 
     </MudTabPanel>
@@ -343,6 +353,41 @@ else
     private Task TerminateAsync() => ExecuteAsync(Admin.TerminateAsync(Id, termination), "Die Kündigung wurde erfasst.", () => termination = new());
 
     private Task RevokeTerminationAsync() => ExecuteAsync(Admin.RevokeTerminationAsync(Id), "Die Kündigung wurde aufgehoben.");
+
+    private async Task EditComponentAsync(ComponentVersion component)
+    {
+        var dialog = await Dialogs.ShowAsync<ComponentDialog>("Mietbestandteil bearbeiten", new DialogParameters { ["LeaseId"] = Id, ["Component"] = component }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveComponentAsync(ComponentVersion component)
+    {
+        if (await Confirm.AskAsync("Eintrag löschen", $"Soll der Eintrag {Labels.From(component.Kind)} {Format.Period(component.Validity)} gelöscht werden?", "Ja, löschen"))
+        {
+            await ExecuteAsync(Admin.RemoveComponentAsync(Id, component.Id), "Der Eintrag wurde gelöscht.");
+            await Accounts.GenerateChargesAsync(Id);
+        }
+    }
+
+    private async Task EditOccupantAsync(OccupantCountView entry)
+    {
+        var dialog = await Dialogs.ShowAsync<OccupantCountDialog>("Personenanzahl bearbeiten", new DialogParameters { ["LeaseId"] = Id, ["Entry"] = entry }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveOccupantAsync(OccupantCountView entry)
+    {
+        if (await Confirm.AskAsync("Eintrag löschen", $"Soll der Eintrag {Format.Period(entry.Validity)} gelöscht werden?", "Ja, löschen"))
+        {
+            await ExecuteAsync(Admin.RemoveOccupantCountAsync(Id, entry.Id), "Der Eintrag wurde gelöscht.");
+        }
+    }
 
     private readonly RoomModel newRoom = new();
 

@@ -81,7 +81,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
             }).ToList(),
             lease.ComponentsAt(referenceDate).Select(Entry).ToList(),
             lease.Components.OrderBy(b => b.Kind).ThenByDescending(b => b.Validity.From).Select(Entry).ToList(),
-            lease.People.OrderByDescending(p => p.Validity.From).Select(p => new OccupantCountView(p.Validity, p.Count)).ToList(),
+            lease.People.OrderByDescending(p => p.Validity.From).Select(p => new OccupantCountView(p.Id, p.Validity, p.Count)).ToList(),
             lease.MonthlyRentOn(referenceDate),
             referenceDate,
             NextDueDate(lease, today),
@@ -263,6 +263,31 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
                 input.Amount ?? throw new RuleViolationException("Bitte den Betrag angeben."),
                 input.Name);
         }, cancellationToken);
+
+    public Task<Result> CorrectComponentAsync(Guid id, Guid componentId, ComponentCorrection input, CancellationToken cancellationToken = default) =>
+        WithLeaseAsync(id, lease =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            lease.CorrectComponent(
+                componentId,
+                input.From ?? throw new RuleViolationException("Bitte den Beginn angeben."),
+                input.To,
+                input.Amount ?? throw new RuleViolationException("Bitte den Betrag angeben."),
+                input.Name);
+        }, cancellationToken);
+
+    public Task<Result> RemoveComponentAsync(Guid id, Guid componentId, CancellationToken cancellationToken = default) =>
+        WithLeaseAsync(id, lease => lease.RemoveComponent(componentId), cancellationToken);
+
+    public Task<Result> CorrectOccupantCountAsync(Guid id, Guid entryId, OccupantCountCorrection input, CancellationToken cancellationToken = default) =>
+        WithLeaseAsync(id, lease =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            lease.CorrectOccupantCount(entryId, input.From ?? throw new RuleViolationException("Bitte den Beginn angeben."), input.To, input.Count);
+        }, cancellationToken);
+
+    public Task<Result> RemoveOccupantCountAsync(Guid id, Guid entryId, CancellationToken cancellationToken = default) =>
+        WithLeaseAsync(id, lease => lease.RemoveOccupantCount(entryId), cancellationToken);
 
     public Task<Result> EndComponentAsync(Guid id, RentComponentType kind, DateOnly lastDay, CancellationToken cancellationToken = default) =>
         WithLeaseAsync(id, lease => lease.EndComponent(kind, lastDay), cancellationToken);

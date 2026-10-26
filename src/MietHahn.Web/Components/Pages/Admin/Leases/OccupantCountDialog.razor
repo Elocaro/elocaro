@@ -1,0 +1,54 @@
+@using MudBlazor
+@inject ILeaseService Leases
+@inject Notifier Notify
+
+@* Dialog "edit persons entry": corrects count and period of an entry of the persons history. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <div class="form-grid">
+                <AppDateField @bind-Value="data.From" Label="Gültig ab" Required="true" />
+                <AppDateField @bind-Value="data.To" Label="Gültig bis" Hint="Leer = unbefristet" />
+                <AppNumberField T="int" @bind-Value="data.Count" Label="Personenanzahl" Min="1" Max="20" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private OccupantCountCorrection data = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid LeaseId { get; set; }
+
+    [Parameter, EditorRequired]
+    public OccupantCountView Entry { get; set; } = default!;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized() => data = new OccupantCountCorrection { From = Entry.Validity.From, To = Entry.Validity.To, Count = Entry.Count };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Leases.CorrectOccupantCountAsync(LeaseId, Entry.Id, data);
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Eintrag wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(Entry.Id));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

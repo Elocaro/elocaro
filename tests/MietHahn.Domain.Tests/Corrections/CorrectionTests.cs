@@ -143,4 +143,36 @@ public class CorrectionTests
         Assert.Throws<RuleViolationException>(() => contract.UpdateTariff(second.Id, D(2023, 1, 1), 4m, 5m, null)); // before the previous tariff starts
         Assert.Throws<RuleViolationException>(() => contract.Update(" ", null, "betrkv-02", MeterType.ColdWater, SupplyBasis.MainMeter, PriceUnit.CubicMeter, [meter], null, DeviationHandling.Landlord));
     }
+
+    [Fact]
+    public void A_rent_history_entry_can_be_corrected_in_place_but_not_into_an_overlap()
+    {
+        var lease = NewLease();
+        lease.SetComponent(RentComponentType.BaseRent, D(2026, 7, 1), 700m);
+        var first = lease.Components.Single(b => b.Validity.To is not null);
+        var second = lease.Components.Single(b => b.Validity.To is null);
+
+        lease.CorrectComponent(first.Id, D(2026, 1, 1), D(2026, 6, 30), 660m, null);
+        Assert.Equal(660m, lease.AmountAt(RentComponentType.BaseRent, D(2026, 3, 1)));
+
+        Assert.Throws<RuleViolationException>(() => lease.CorrectComponent(first.Id, D(2026, 1, 1), D(2026, 8, 31), 660m, null)); // overlaps the later entry
+        Assert.Throws<RuleViolationException>(() => lease.CorrectComponent(first.Id, D(2025, 12, 1), D(2026, 6, 30), 660m, null)); // before the lease
+        Assert.Throws<RuleViolationException>(() => lease.CorrectComponent(first.Id, D(2026, 1, 1), D(2026, 6, 30), -1m, null));
+
+        lease.RemoveComponent(second.Id);
+        Assert.Null(lease.AmountAt(RentComponentType.BaseRent, D(2026, 9, 1)));
+    }
+
+    [Fact]
+    public void A_persons_entry_can_be_corrected_and_the_last_one_stays()
+    {
+        var lease = NewLease();
+        var entry = lease.People.Single();
+
+        lease.CorrectOccupantCount(entry.Id, D(2026, 1, 1), null, 3);
+        Assert.Equal(3, lease.OccupantCountOn(D(2026, 5, 1)));
+
+        Assert.Throws<RuleViolationException>(() => lease.CorrectOccupantCount(entry.Id, D(2026, 1, 1), null, 0));
+        Assert.Throws<RuleViolationException>(() => lease.RemoveOccupantCount(entry.Id));
+    }
 }

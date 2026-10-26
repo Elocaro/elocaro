@@ -102,6 +102,33 @@ public sealed class ComponentInput
     public string? Name { get; set; }
 }
 
+/// <summary>Correction of an entry of the rent history.</summary>
+public sealed class ComponentCorrection
+{
+    [Required(ErrorMessage = "Bitte den Beginn angeben.")]
+    public DateOnly? From { get; set; }
+
+    public DateOnly? To { get; set; }
+
+    [Required(ErrorMessage = "Bitte den Betrag angeben.")]
+    [Range(typeof(decimal), "0", "100000", ErrorMessage = "Bitte einen Betrag zwischen 0 und 100.000 € angeben.", ParseLimitsInInvariantCulture = true)]
+    public decimal? Amount { get; set; }
+
+    [StringLength(100)]
+    public string? Name { get; set; }
+}
+
+public sealed class OccupantCountCorrection
+{
+    [Required(ErrorMessage = "Bitte den Beginn angeben.")]
+    public DateOnly? From { get; set; }
+
+    public DateOnly? To { get; set; }
+
+    [Range(1, 20, ErrorMessage = "Bitte eine Personenanzahl zwischen 1 und 20 angeben.")]
+    public int Count { get; set; } = 1;
+}
+
 public sealed class OccupantCountInput
 {
     [Required(ErrorMessage = "Bitte angeben, ab wann die Anzahl gilt.")]

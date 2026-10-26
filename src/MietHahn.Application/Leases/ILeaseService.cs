@@ -33,6 +33,15 @@ public interface ILeaseService
 
     Task<Result> EndComponentAsync(Guid id, RentComponentType kind, DateOnly lastDay, CancellationToken cancellationToken = default);
 
+    /// <summary>Corrects an entry of the rent history in place (amount, name, period).</summary>
+    Task<Result> CorrectComponentAsync(Guid id, Guid componentId, ComponentCorrection input, CancellationToken cancellationToken = default);
+
+    Task<Result> RemoveComponentAsync(Guid id, Guid componentId, CancellationToken cancellationToken = default);
+
+    Task<Result> CorrectOccupantCountAsync(Guid id, Guid entryId, OccupantCountCorrection input, CancellationToken cancellationToken = default);
+
+    Task<Result> RemoveOccupantCountAsync(Guid id, Guid entryId, CancellationToken cancellationToken = default);
+
     Task<Result> SetOccupantCountAsync(Guid id, OccupantCountInput input, CancellationToken cancellationToken = default);
 
     Task<Result> AddPartyAsync(Guid id, Guid personId, PartyRole role, CancellationToken cancellationToken = default);
@@ -80,7 +89,7 @@ public sealed record LeasePartyView(Guid PersonId, string Name, PartyRole Role, 
 
 public sealed record ComponentVersion(Guid Id, RentComponentType Kind, string? Name, Period Validity, decimal Amount);
 
-public sealed record OccupantCountView(Period Validity, int Count);
+public sealed record OccupantCountView(Guid Id, Period Validity, int Count);
 
 public sealed record LeaseDetails(
     Guid Id,

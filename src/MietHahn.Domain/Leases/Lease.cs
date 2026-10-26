@@ -225,6 +225,75 @@ public sealed class Lease : Entity
         current.EndValidity(lastDay);
     }
 
+    /// <summary>Corrects an entry of the history in place (amount, name, period); the periods of one kind must not overlap.</summary>
+    public void CorrectComponent(Guid componentId, DateOnly from, DateOnly? to, decimal amount, string? name)
+    {
+        var component = Components.SingleOrDefault(b => b.Id == componentId) ?? throw new RuleViolationException("Der Eintrag wurde nicht gefunden.");
+        if (amount < 0)
+        {
+            throw new RuleViolationException("Beträge dürfen nicht negativ sein.");
+        }
+
+        var period = CheckedPeriod(from, to);
+        if (Components.Any(b => b.Id != componentId && b.Kind == component.Kind && b.Validity.Overlaps(period)))
+        {
+            throw new RuleViolationException("Der Zeitraum überschneidet sich mit einem anderen Eintrag dieses Bestandteils.");
+        }
+
+        component.Correct(period, decimal.Round(amount, 2), name);
+    }
+
+    public void RemoveComponent(Guid componentId)
+    {
+        var component = Components.SingleOrDefault(b => b.Id == componentId) ?? throw new RuleViolationException("Der Eintrag wurde nicht gefunden.");
+        Components.Remove(component);
+    }
+
+    /// <summary>Corrects an entry of the persons history in place.</summary>
+    public void CorrectOccupantCount(Guid entryId, DateOnly from, DateOnly? to, int count)
+    {
+        var entry = People.SingleOrDefault(p => p.Id == entryId) ?? throw new RuleViolationException("Der Eintrag wurde nicht gefunden.");
+        if (count is < 1 or > 20)
+        {
+            throw new RuleViolationException("Bitte eine Personenanzahl zwischen 1 und 20 angeben.");
+        }
+
+        var period = CheckedPeriod(from, to);
+        if (People.Any(p => p.Id != entryId && p.Validity.Overlaps(period)))
+        {
+            throw new RuleViolationException("Der Zeitraum überschneidet sich mit einem anderen Eintrag.");
+        }
+
+        entry.Correct(period, count);
+    }
+
+    public void RemoveOccupantCount(Guid entryId)
+    {
+        var entry = People.SingleOrDefault(p => p.Id == entryId) ?? throw new RuleViolationException("Der Eintrag wurde nicht gefunden.");
+        if (People.Count == 1)
+        {
+            throw new RuleViolationException("Mindestens ein Eintrag zur Personenanzahl muss bleiben.");
+        }
+
+        People.Remove(entry);
+    }
+
+    private Period CheckedPeriod(DateOnly from, DateOnly? to)
+    {
+        if (to < from)
+        {
+            throw new RuleViolationException("Das Ende liegt vor dem Beginn.");
+        }
+
+        ValidateWithinLease(from);
+        if (to is { } last)
+        {
+            ValidateWithinLease(last);
+        }
+
+        return new Period(from, to);
+    }
+
     public OccupantCount SetOccupantCount(DateOnly from, int count)
     {
         ValidateWithinLease(from);
@@ -631,6 +700,13 @@ public sealed class RentComponent : Entity, ITimeDependent
     internal void SetTo(DateOnly? to) => Validity = new Period(Validity.From, to);
 
     internal void SetFrom(DateOnly from) => Validity = new Period(from, Validity.To);
+
+    internal void Correct(Period validity, decimal amount, string? name)
+    {
+        Validity = validity;
+        Amount = amount;
+        Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+    }
 }
 
 /// <summary>Number of persons living in the rental object (allocation by persons).</summary>
@@ -658,4 +734,10 @@ public sealed class OccupantCount : Entity, ITimeDependent
     internal void SetFrom(DateOnly from) => Validity = new Period(from, Validity.To);
 
     internal void SetTo(DateOnly? to) => Validity = new Period(Validity.From, to);
+
+    internal void Correct(Period validity, int count)
+    {
+        Validity = validity;
+        Count = count;
+    }
 }
