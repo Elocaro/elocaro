@@ -126,7 +126,7 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
         var first = await WithAsync(t => t.InstallDefaultsAsync(Ct));
         var second = await WithAsync(t => t.InstallDefaultsAsync(Ct));
 
-        Assert.Equal((22, 0, 0, 22), (first.Created, first.Existing, second.Created, second.Existing));
+        Assert.Equal((23, 0, 0, 23), (first.Created, first.Existing, second.Created, second.Existing));
         var rows = await WithAsync(t => t.ListAsync(Ct));
         string[] expected =
         [
@@ -134,7 +134,7 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
             "Anpassung Betriebskostenpauschale (§ 560 BGB)", "Bankverbindung", "Grußformel", "Information Staffelmiete (§ 557a BGB)", "Mieterhöhung Indexmiete (§ 557b BGB)",
             "Mieterhöhung Vergleichsmiete (§ 558 BGB)", "Mietvertrag Wohnraum", "Zimmervertrag WG",
             "Wohnungsgeberbestätigung Einzug (§ 19 BMG)", "Wohnungsgeberbestätigung Auszug (§ 19 BMG)", "Bestätigung der Kündigung",
-            "Mietbescheinigung", "Mietschuldenfreiheitsbescheinigung", "Kautionsabrechnung und -rückzahlung", "Mieterhöhung Modernisierung (§ 559 BGB)", "Änderung des Umlageschlüssels (§ 556a Abs. 2 BGB)",
+            "Mietbescheinigung", "Mietschuldenfreiheitsbescheinigung", "Kautionsabrechnung und -rückzahlung", "Mieterhöhung Modernisierung (§ 559 BGB)", "Änderung des Umlageschlüssels (§ 556a Abs. 2 BGB)", "Information Vermieterwechsel (§ 566 BGB)",
         ];
         Assert.Equal(expected.Order(StringComparer.Ordinal), rows.Select(r => r.Name).Order(StringComparer.Ordinal));
         Assert.All(rows, r => Assert.Equal(1, r.Revision));
