@@ -38,12 +38,19 @@ public sealed class MeterCreation
 {
     public MeterInput Data { get; set; } = new();
 
-    [Required(ErrorMessage = "Bitte das Einbaudatum angeben.")]
+    /// <summary>Installation date; required for a physical meter, optional for a calculated meter.</summary>
     public DateOnly? InstalledOn { get; set; }
 
-    [Required(ErrorMessage = "Bitte den Anfangsstand angeben.")]
+    /// <summary>Reading at installation; required for a physical meter, not used for a calculated meter.</summary>
     public decimal? InitialReading { get; set; }
+
+    /// <summary>Not empty: a calculated meter, whose consumption is the signed sum of the consumption of these meters.</summary>
+    public List<MeterTermInput> Terms { get; set; } = [];
 }
+
+/// <param name="MeterId">Source meter of a calculated meter.</param>
+/// <param name="Subtract"><c>true</c> = the consumption is subtracted, otherwise added.</param>
+public sealed record MeterTermInput(Guid MeterId, bool Subtract);
 
 public sealed class ReadingInput
 {

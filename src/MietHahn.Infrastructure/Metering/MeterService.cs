@@ -38,7 +38,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
         var property = await db.Set<Property>().AsNoTracking().Where(o => o.Id == meter.PropertyId).Select(o => o.Name).SingleAsync(cancellationToken);
         var meteringPoint = MeteringPoint(meter, all);
         var years = Enumerable.Range(Today.Year - 2, 3).Reverse()
-            .Select(j => new AnnualConsumption(j, ConsumptionCalculator.Calculate(meteringPoint, Period.CalendarYear(j))))
+            .Select(j => new AnnualConsumption(j, MeterConsumption.Calculate(meteringPoint, all, Period.CalendarYear(j))))
             .Where(j => j.Consumption.Quantity is not null || j.Year >= meteringPoint.Min(z => z.InstalledOn).Year)
             .ToList();
         var subMeters = all.Where(z => z.MainMeterId is not null && meteringPoint.Any(m => m.Id == z.MainMeterId)).ToList();
@@ -52,7 +52,8 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
             meteringPoint.Select(m => Row(m, names)).ToList(),
             years,
             Sorted(subMeters.Where(u => u.RemovedOn is null)).Select(u => Row(u, names)).ToList(),
-            subMeters.Count == 0 ? null : Balance(Today.Year - 1, meteringPoint, subMeters, all));
+            subMeters.Count == 0 ? null : Balance(Today.Year - 1, meteringPoint, subMeters, all),
+            meter.IsDerived ? [.. meter.Terms.Select(t => new MeterTermView(t.SourceMeterId, all.FirstOrDefault(m => m.Id == t.SourceMeterId) is { } source ? $"{source.Name} (Nr. {source.Number})" : "?", t.Sign < 0))] : null);
     }
 
     public async Task<Result> CreateAsync(Guid propertyId, MeterCreation creation, CancellationToken cancellationToken = default)
@@ -66,13 +67,31 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
         return await Command.ExecuteAsync(async () =>
         {
             var data = creation.Data;
+            List<(ZaehlerEntitaet Source, int Sign)>? terms = null;
+            if (creation.Terms.Count > 0)
+            {
+                var ids = creation.Terms.Select(t => t.MeterId).Distinct().ToList();
+                var sources = await db.Set<ZaehlerEntitaet>().AsNoTracking().Include(z => z.Terms).Where(z => z.PropertyId == propertyId && ids.Contains(z.Id)).ToListAsync(cancellationToken);
+                if (sources.Count != ids.Count)
+                {
+                    throw new RuleViolationException("Ein gewählter Zähler gehört nicht zum Objekt.");
+                }
+
+                terms = [.. creation.Terms.Select(t => (sources.First(z => z.Id == t.MeterId), t.Subtract ? -1 : 1))];
+            }
+
             var meter = new ZaehlerEntitaet(
                 propertyId,
                 data.Type,
                 data.Name,
                 data.Number,
-                creation.InstalledOn ?? throw new RuleViolationException("Bitte das Einbaudatum angeben."),
-                creation.InitialReading ?? throw new RuleViolationException("Bitte den Anfangsstand angeben."));
+                creation.InstalledOn ?? (terms is null ? throw new RuleViolationException("Bitte das Einbaudatum angeben.") : terms.Min(t => t.Source.InstalledOn)),
+                terms is null ? creation.InitialReading ?? throw new RuleViolationException("Bitte den Anfangsstand angeben.") : 0m);
+            if (terms is not null)
+            {
+                meter.SetTerms(terms);
+            }
+
             await ApplyAsync(meter, data, cancellationToken);
             if (data.Order == 0)
             {
@@ -165,7 +184,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
     {
         var today = Today;
         var meter = await WithReadings()
-            .Where(z => z.PropertyId == propertyId && z.RemovedOn == null && z.InstalledOn <= today && (unitId == null || z.UnitId == unitId))
+            .Where(z => z.PropertyId == propertyId && z.RemovedOn == null && !z.Terms.Any() && z.InstalledOn <= today && (unitId == null || z.UnitId == unitId))
             .ToListAsync(cancellationToken);
         var names = await AssignmentNamesAsync(propertyId, cancellationToken);
         return meter.OrderBy(z => z.Order).ThenBy(z => z.Name, StringComparer.CurrentCulture).Select(z => Row(z, names)).ToList();
@@ -180,7 +199,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
         }
 
         var all = await WithReadings().Where(z => z.PropertyId == meter.PropertyId && z.Type == meter.Type).ToListAsync(cancellationToken);
-        return ConsumptionCalculator.Calculate(MeteringPoint(meter, all), period);
+        return MeterConsumption.Calculate(MeteringPoint(meter, all), all, period);
     }
 
     /// <summary>All meters of the metering point (chain via predecessor/successor), oldest first.</summary>
@@ -204,7 +223,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
     {
         var period = Period.CalendarYear(year);
         var hints = new List<string>();
-        var mainConsumption = ConsumptionCalculator.Calculate(main, period);
+        var mainConsumption = MeterConsumption.Calculate(main, all, period);
         if (mainConsumption.MissingReason is not null)
         {
             hints.Add(mainConsumption.MissingReason);
@@ -214,7 +233,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
         var complete = true;
         foreach (var meteringPoint in subMeters.Select(u => MeteringPoint(u, all)).DistinctBy(m => m[0].Id))
         {
-            var consumption = ConsumptionCalculator.Calculate(meteringPoint, period);
+            var consumption = MeterConsumption.Calculate(meteringPoint, all, period);
             if (consumption.Quantity is { } quantity)
             {
                 total += quantity;
@@ -279,7 +298,7 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
 
     private IQueryable<ZaehlerEntitaet> WithReadings(bool tracking = false)
     {
-        var query = db.Set<ZaehlerEntitaet>().Include(z => z.Readings);
+        var query = db.Set<ZaehlerEntitaet>().Include(z => z.Readings).Include(z => z.Terms);
         return tracking ? query : query.AsNoTracking();
     }
 
@@ -307,12 +326,13 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
         z.RoomId is { } room ? names.GetValueOrDefault(room, "?") : z.UnitId is { } unit ? names.GetValueOrDefault(unit, "?") : "Haus",
         z.UnitId,
         z.Location,
-        z.Readings.MaxBy(s => s.Date) is { } lastReading ? Entry(lastReading) : null,
+        !z.IsDerived && z.Readings.MaxBy(s => s.Date) is { } lastReading ? Entry(lastReading) : null,
         z.CalibrationDueDate,
         z.InstalledOn,
         z.RemovedOn,
         z.MainMeterId,
-        z.Order);
+        z.Order,
+        z.IsDerived);
 
     private static ReadingView Entry(MeterReading s) => new(s.Id, s.Date, s.Value, s.Kind, s.ReadBy, s.PhotoFileId, s.Note);
 

@@ -114,6 +114,35 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
     }
 
     [Fact]
+    public async Task Consumption_key_uses_a_calculated_meter_for_a_unit_without_its_own_meter()
+    {
+        await StartAccountingAsync();
+        await ReceiptAsync("Stadtwerke", "betrkv-02", 732m);
+        await SetRuleAsync("betrkv-02", AllocationKey.Consumption, meter: MeterType.ColdWater);
+        // Hauptzähler of the house counts both flats; only Wohnung 2 has its own meter: Wohnung 1 = Hauptzähler − Zähler Wohnung 2.
+        var houseMeter = await MeterAsync(null, "H-1", new DateOnly(2025, 12, 31), 0m);
+        var meter2 = await MeterAsync(apartment2, "W-2", new DateOnly(2025, 12, 31), 0m);
+        await ReadingAsync(houseMeter, new DateOnly(2026, 6, 14), 100m);
+        await ReadingAsync(houseMeter, new DateOnly(2026, 12, 31), 183m);
+        await ReadingAsync(meter2, new DateOnly(2026, 6, 14), 33m);
+        await ReadingAsync(meter2, new DateOnly(2026, 12, 31), 83m);
+        Validate(await WithAsync<IMeterService, Result>(s => s.CreateAsync(
+            house,
+            new MeterCreation
+            {
+                Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser Wohnung 1 (berechnet)", Number = "RZ-1", AssignmentId = apartment1 },
+                Terms = [new MeterTermInput(houseMeter, false), new MeterTermInput(meter2, true)],
+            },
+            Ct)));
+
+        var result = (await PreviewAsync()).Result;
+
+        // Wohnung 1: 183 − 83 = 100 m³; Wohnung 2: Ben 33 + Clara 50 = 83 m³; 732.00 € ÷ 183 m³ = 4.00 €/m³
+        Assert.False(result.HasErrors);
+        Assert.Equal([400m, 132m, 200m], new[] { leaseAnna, leaseBen, leaseClara }.Select(l => Share(result, l, "betrkv-02")));
+    }
+
+    [Fact]
     public async Task Missing_meter_or_reading_is_reported_as_an_error()
     {
         await StartAccountingAsync();
@@ -425,7 +454,7 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
         Validate(await WithAsync<ITenantAccounts, Result>(s => s.RecordPaymentAsync(leaseBen, new PaymentInput { Date = new DateOnly(2026, 7, 1), Amount = 5 * 550m + 256.66m }, Ct)));
     }
 
-    private async Task<Guid> MeterAsync(Guid unit, string number, DateOnly installed, decimal initial) =>
+    private async Task<Guid> MeterAsync(Guid? unit, string number, DateOnly installed, decimal initial) =>
         Validate(await WithAsync<IMeterService, Result>(s => s.CreateAsync(
             house,
             new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser", Number = number, AssignmentId = unit }, InstalledOn = installed, InitialReading = initial },

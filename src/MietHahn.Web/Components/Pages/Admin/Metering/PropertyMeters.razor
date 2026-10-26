@@ -99,10 +99,25 @@ else
             <EditForm Model="creation" OnValidSubmit="CreateAsync" novalidate>
                 <DataAnnotationsValidator />
                 <MeterEditor Data="creation.Data" Units="property.Units" MainMeter="meter" />
-                <div class="form-grid">
-                    <AppDateField @bind-Value="creation.InstalledOn" Label="Eingebaut am" Required="true" Hint="Bei vorhandenen Zählern: Tag der ersten Ablesung" />
-                    <AppNumberField T="decimal?" @bind-Value="creation.InitialReading" Label="Stand an diesem Tag" Required="true" />
-                </div>
+                <AppCheckBox @bind-Value="derived" Label="Rechenzähler: Der Verbrauch ergibt sich aus anderen Zählern (z. B. Hauptzähler 1. und 2. OG minus Zähler 2. OG)" />
+                @if (derived)
+                {
+                    <fieldset class="field">
+                        <legend>Zähler, aus denen berechnet wird</legend>
+                        @foreach (var source in meter.Where(m => !m.IsDerived && m.Type == creation.Data.Type && m.RemovedOn is null))
+                        {
+                            <AppSelect T="int" Value="signs.GetValueOrDefault(source.Id)" ValueChanged="@(v => signs[source.Id] = v)" Label="@($"{source.Name} (Nr. {source.Number})")" Items="termChoices" Text="TermText" />
+                        }
+                        <span class="field-hint">Beispiel Kaltwasser 1. OG: Zähler „1. und 2. OG“ addieren, Zähler „2. OG“ abziehen. Es gibt keine eigenen Stände; der Verbrauch wird aus den Zählerständen der gewählten Zähler berechnet.</span>
+                    </fieldset>
+                }
+                else
+                {
+                    <div class="form-grid">
+                        <AppDateField @bind-Value="creation.InstalledOn" Label="Eingebaut am" Required="true" Hint="Bei vorhandenen Zählern: Tag der ersten Ablesung" />
+                        <AppNumberField T="decimal?" @bind-Value="creation.InitialReading" Label="Stand an diesem Tag" Required="true" />
+                    </div>
+                }
                 <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zähler anlegen</MudButton>
             </EditForm>
         </details>
@@ -136,12 +151,28 @@ else
         loaded = true;
     }
 
+    private bool derived;
+    private readonly Dictionary<Guid, int> signs = [];
+    private static readonly int[] termChoices = [0, 1, -1];
+
+    private static string TermText(int sign) => sign switch { 1 => "+ addieren", -1 => "− abziehen", _ => "– nicht verwenden –" };
+
     private async Task CreateAsync()
     {
-        if (creation.InstalledOn is null || creation.InitialReading is null)
+        if (derived)
         {
-            errors = ["Bitte Einbaudatum und Stand angeben."];
-            return;
+            creation.Terms = [.. signs.Where(s => s.Value != 0).Select(s => new MeterTermInput(s.Key, s.Value < 0))];
+            creation.InstalledOn = null;
+            creation.InitialReading = null;
+        }
+        else
+        {
+            creation.Terms = [];
+            if (creation.InstalledOn is null || creation.InitialReading is null)
+            {
+                errors = ["Bitte Einbaudatum und Stand angeben."];
+                return;
+            }
         }
 
         var result = await Admin.CreateAsync(PropertyId, creation);
@@ -150,6 +181,8 @@ else
         {
             Notify.Success("Der Zähler wurde angelegt.");
             creation = new MeterCreation { InstalledOn = today };
+            derived = false;
+            signs.Clear();
             meter = await Admin.ListAsync(PropertyId);
         }
     }

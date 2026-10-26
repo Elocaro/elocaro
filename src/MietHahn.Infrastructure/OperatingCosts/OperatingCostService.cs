@@ -83,7 +83,7 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
 
         var rules = await db.Set<CostAllocationRule>().AsNoTracking().Include(r => r.Shares)
             .Where(r => r.PropertyId == propertyId).ToListAsync(cancellationToken);
-        var meters = await db.Set<Zaehler>().AsNoTracking().Include(z => z.Readings).Where(z => z.PropertyId == propertyId).ToListAsync(cancellationToken);
+        var meters = await db.Set<Zaehler>().AsNoTracking().Include(z => z.Readings).Include(z => z.Terms).Where(z => z.PropertyId == propertyId).ToListAsync(cancellationToken);
 
         var source = new MeterConsumptionSource(meters);
         var heating = await db.Set<HeatingSettings>().AsNoTracking().SingleOrDefaultAsync(h => h.PropertyId == propertyId, cancellationToken)

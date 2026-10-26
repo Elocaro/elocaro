@@ -54,7 +54,8 @@ public sealed record MeterRow(
     DateOnly InstalledOn,
     DateOnly? RemovedOn,
     Guid? MainMeterId,
-    int Order);
+    int Order,
+    bool IsDerived = false);
 
 public sealed record AnnualConsumption(int Year, Consumption Consumption);
 
@@ -70,4 +71,8 @@ public sealed record MeterDetails(
     IReadOnlyList<MeterRow> MeteringPoint,
     IReadOnlyList<AnnualConsumption> AnnualConsumptions,
     IReadOnlyList<MeterRow> SubMeters,
-    SubMeterBalance? Balance);
+    SubMeterBalance? Balance,
+    IReadOnlyList<MeterTermView>? Terms = null);
+
+/// <summary>A source meter of a calculated meter; <paramref name="Subtract"/> = its consumption is subtracted.</summary>
+public sealed record MeterTermView(Guid MeterId, string Label, bool Subtract);

@@ -358,6 +358,7 @@ internal sealed class StatementDispatchService(
     {
         var unitId = lease.UnitId;
         var meters = await db.Set<Zaehler>().AsNoTracking().Include(m => m.Readings)
+            .Where(m => !m.Terms.Any())
             .Where(m => (m.UnitId == unitId && m.RoomId == null || lease.RoomId != null && m.RoomId == lease.RoomId) && m.InstalledOn <= period.To && (m.RemovedOn == null || m.RemovedOn >= period.From))
             .OrderBy(m => m.Type).ThenBy(m => m.Number).ToListAsync(cancellationToken);
         var rows = new List<object>();

@@ -100,6 +100,59 @@ public sealed class Meter : Entity
 
     public List<MeterReading> Readings { get; private set; } = [];
 
+    /// <summary>
+    /// Calculated meter (e.g. cold water of the 1st floor = main meter of 1st and 2nd floor minus meter of the 2nd floor): its consumption is
+    /// the signed sum of the consumption of the source meters; it has no readings of its own.
+    /// </summary>
+    public List<MeterTerm> Terms { get; private set; } = [];
+
+    public bool IsDerived => Terms.Count > 0;
+
+    /// <summary>Makes this a calculated meter from the source meters (<c>Sign</c> +1 adds, −1 subtracts).</summary>
+    public void SetTerms(IEnumerable<(Meter Source, int Sign)> terms)
+    {
+        var list = terms.ToList();
+        if (list.Count < 2)
+        {
+            throw new RuleViolationException("Ein Rechenzähler braucht mindestens zwei Zähler, aus denen er berechnet wird.");
+        }
+
+        if (list.Select(t => t.Source.Id).Distinct().Count() != list.Count)
+        {
+            throw new RuleViolationException("Ein Zähler darf nur einmal vorkommen.");
+        }
+
+        if (list.All(t => t.Sign < 0))
+        {
+            throw new RuleViolationException("Mindestens ein Zähler muss addiert werden.");
+        }
+
+        foreach (var (source, sign) in list)
+        {
+            if (source.Id == Id || source.PropertyId != PropertyId)
+            {
+                throw new RuleViolationException("Die Zähler gehören nicht zum Objekt.");
+            }
+
+            if (source.Type != Type)
+            {
+                throw new RuleViolationException($"Der Zähler „{source.Name}“ hat nicht die Zählerart des Rechenzählers.");
+            }
+
+            if (source.IsDerived)
+            {
+                throw new RuleViolationException($"Der Zähler „{source.Name}“ ist selbst ein Rechenzähler. Bitte dessen Quellzähler verwenden.");
+            }
+
+            if (sign is not (1 or -1))
+            {
+                throw new RuleViolationException("Das Vorzeichen eines Zählers ist + oder −.");
+            }
+        }
+
+        Terms = [.. list.Select(t => new MeterTerm(Id, t.Source.Id, t.Sign))];
+    }
+
     public bool IsActiveOn(DateOnly day) => day >= InstalledOn && (RemovedOn is null || day <= RemovedOn);
 
     public void Assign(Guid? unitId, Guid? roomId)
@@ -122,6 +175,11 @@ public sealed class Meter : Entity
         if (kind is ReadingType.Installation or ReadingType.Removal)
         {
             throw new RuleViolationException("Einbau- und Ausbaustände entstehen beim Ein- bzw. Ausbau des Zählers.");
+        }
+
+        if (IsDerived)
+        {
+            throw new RuleViolationException("Ein Rechenzähler hat keine eigenen Stände: Sein Verbrauch ergibt sich aus den Zählern, aus denen er berechnet wird.");
         }
 
         if (!IsActiveOn(date))
@@ -190,6 +248,11 @@ public sealed class Meter : Entity
         if (RemovedOn is not null)
         {
             throw new RuleViolationException("Der Zähler ist bereits ausgebaut.");
+        }
+
+        if (IsDerived)
+        {
+            throw new RuleViolationException("Ein Rechenzähler lässt sich nicht tauschen. Bitte den Zähler tauschen, aus dem er berechnet wird.");
         }
 
         if (date < InstalledOn || Readings.Any(s => s.Date > date))

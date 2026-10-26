@@ -80,7 +80,7 @@ internal sealed class MeterConsumptionSource(IReadOnlyList<Zaehler> meters) : IC
                 continue;
             }
 
-            var consumption = ConsumptionCalculator.Calculate(chain, period);
+            var consumption = MeterConsumption.Calculate(chain, ofType, period);
             if (consumption.Quantity is not { } quantity)
             {
                 return new ConsumptionQuantity(null, false, consumption.MissingReason);
@@ -96,7 +96,7 @@ internal sealed class MeterConsumptionSource(IReadOnlyList<Zaehler> meters) : IC
     }
 
     /// <summary>Heat in kWh (meters in MWh are converted), water in m³ (liters are converted).</summary>
-    private static decimal UnitFactor(Zaehler meter) => (meter.Type, meter.MeasurementUnit) switch
+    internal static decimal UnitFactor(Zaehler meter) => (meter.Type, meter.MeasurementUnit) switch
     {
         (MeterType.Heat, MeasurementUnit.MegawattHours) => 1000m,
         (MeterType.ColdWater or MeterType.HotWater, MeasurementUnit.Liters) => 0.001m,

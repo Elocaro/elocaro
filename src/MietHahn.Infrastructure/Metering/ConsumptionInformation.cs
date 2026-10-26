@@ -92,7 +92,7 @@ internal sealed class ConsumptionInformation(MietHahnDbContext db, TimeProvider 
             return null;
         }
 
-        var meters = await db.Set<ZaehlerEntitaet>().AsNoTracking().Include(z => z.Readings)
+        var meters = await db.Set<ZaehlerEntitaet>().AsNoTracking().Include(z => z.Readings).Include(z => z.Terms)
             .Where(z => z.PropertyId == unit.PropertyId && Types.Contains(z.Type)).ToListAsync(cancellationToken);
         if (!meters.Any(z => z.UnitId == unit.Id && z.RoomId == null))
         {
@@ -157,7 +157,7 @@ internal sealed class ConsumptionInformation(MietHahnDbContext db, TimeProvider 
         decimal total = 0;
         foreach (var end in ends)
         {
-            var consumption = ConsumptionCalculator.Calculate(MeterService.MeteringPoint(end, context.Meters), period);
+            var consumption = MeterConsumption.Calculate(MeterService.MeteringPoint(end, context.Meters), context.Meters, period);
             if (consumption.Quantity is not { } quantity)
             {
                 return (null, consumption.MissingReason);

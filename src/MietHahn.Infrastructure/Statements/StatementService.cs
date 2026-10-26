@@ -166,7 +166,7 @@ internal sealed class StatementService(MietHahnDbContext db, IOperatingCosts ope
     {
         var end = period.To!.Value;
         var meters = await db.Set<Meter>().AsNoTracking().Include(m => m.Readings)
-            .Where(m => m.PropertyId == propertyId && m.InstalledOn <= end && (m.RemovedOn == null || m.RemovedOn >= period.From))
+            .Where(m => m.PropertyId == propertyId && !m.Terms.Any() && m.InstalledOn <= end && (m.RemovedOn == null || m.RemovedOn >= period.From))
             .OrderBy(m => m.Order).ThenBy(m => m.Number)
             .ToListAsync(cancellationToken);
         var findings = new List<PlausibilityFinding>();

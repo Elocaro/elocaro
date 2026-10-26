@@ -3986,6 +3986,66 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("meter_readings", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Metering.MeterTerm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("MeterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meter_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<int>("Sign")
+                        .HasColumnType("integer")
+                        .HasColumnName("sign");
+
+                    b.Property<Guid>("SourceMeterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_meter_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_meter_terms");
+
+                    b.HasIndex("SourceMeterId")
+                        .HasDatabaseName("ix_meter_terms_source_meter_id");
+
+                    b.HasIndex("MeterId", "SourceMeterId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_meter_terms_meter_id_source_meter_id")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("meter_terms", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Metering.ReadingReminder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8948,6 +9008,23 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_meter_readings_stored_file_photo_file_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Metering.MeterTerm", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Metering.Meter", null)
+                        .WithMany("Terms")
+                        .HasForeignKey("MeterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_meter_terms_meters_meter_id");
+
+                    b.HasOne("MietHahn.Domain.Metering.Meter", null)
+                        .WithMany()
+                        .HasForeignKey("SourceMeterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_meter_terms_meters_source_meter_id");
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Metering.ReadingReminder", b =>
                 {
                     b.HasOne("MietHahn.Domain.Leases.Lease", null)
@@ -9627,6 +9704,8 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("MietHahn.Domain.Metering.Meter", b =>
                 {
                     b.Navigation("Readings");
+
+                    b.Navigation("Terms");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.OperatingCosts.CostAllocationRule", b =>

@@ -37,6 +37,20 @@ else
     {
         <dt>Lage</dt><dd>@meter.Meter.Location</dd>
     }
+    @if (meter.Terms is { Count: > 0 } terms)
+    {
+        <dt>Berechnet aus</dt>
+        <dd>
+            @foreach (var term in terms)
+            {
+                <span>@(term.Subtract ? "−" : "+") <a href="/verwaltung/zaehler/@term.MeterId">@term.Label</a></span>
+                @if (term != terms[^1])
+                {
+                    <span> </span>
+                }
+            }
+        </dd>
+    }
     @if (meter.MeteringPoint.Count > 1)
     {
         <dt>Messstelle</dt>
@@ -57,7 +71,11 @@ else
 
 <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
     <MudTabPanel Text="Stände">
-@if (meter.Meter.RemovedOn is null)
+@if (meter.Meter.IsDerived)
+{
+    <Notice Level="NoticeLevel.Info">Rechenzähler: Er hat keine eigenen Stände. Der Verbrauch wird aus den Zählerständen der Zähler berechnet, aus denen er sich zusammensetzt (siehe oben).</Notice>
+}
+else if (meter.Meter.RemovedOn is null)
 {
     <section>
         <h2>Stand erfassen</h2>
@@ -89,6 +107,8 @@ else
     </section>
 }
 
+@if (!meter.Meter.IsDerived)
+{
 <section>
     <h2>Stände</h2>
         <div class="table-wrapper">
@@ -124,6 +144,7 @@ else
             </table>
         </div>
 </section>
+}
 
     </MudTabPanel>
     <MudTabPanel Text="Verbrauch">

@@ -179,7 +179,7 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock, Mie
 
         var unitIds = leases.Select(v => v.UnitId).Distinct().ToList();
         var candidates = await db.Set<MietHahn.Domain.Metering.Meter>().AsNoTracking().Include(m => m.Readings)
-            .Where(m => m.RemovedOn == null && m.UnitId != null && unitIds.Contains(m.UnitId.Value)).ToListAsync(cancellationToken);
+            .Where(m => m.RemovedOn == null && !m.Terms.Any() && m.UnitId != null && unitIds.Contains(m.UnitId.Value)).ToListAsync(cancellationToken);
         var units = await RentalUnit.GetAsync(db, cancellationToken);
         var result = new List<(MietHahn.Domain.Metering.Meter, string)>();
         foreach (var lease in leases)

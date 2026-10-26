@@ -54,6 +54,58 @@ public class MeterServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_calculated_meter_has_the_consumption_of_its_source_meters_added_and_subtracted()
+    {
+        // Hauptwasserzähler "1. und 2. OG" (main) minus Zähler 2. OG = Wohnung 1
+        var secondFloor = await CreateAsync("Kaltwasser 2. OG", "WZ-2OG", apartment2, null, 50m);
+        await ReadingAsync(main, new DateOnly(2026, 12, 31), 1180m);
+        await ReadingAsync(secondFloor, new DateOnly(2026, 12, 31), 100m);
+
+        var firstFloor = Validate(await WithAsync(v => v.CreateAsync(
+            propertyId,
+            new MeterCreation
+            {
+                Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser 1. OG (berechnet)", Number = "RZ-1OG", AssignmentId = apartment1 },
+                Terms = [new MeterTermInput(main, false), new MeterTermInput(secondFloor, true)],
+            },
+            Ct)));
+
+        var consumption = (await WithAsync(v => v.ConsumptionAsync(firstFloor, Period.CalendarYear(2026), Ct)))!;
+
+        // Hauptzähler 1,180 − 1,000 = 180 m³; 2. OG 100 − 50 = 50 m³ → 130 m³
+        Assert.Equal(130m, consumption.Quantity);
+        var details = (await WithAsync(v => v.GetAsync(firstFloor, Ct)))!;
+        Assert.True(details.Meter.IsDerived);
+        Assert.Null(details.Meter.LastReading);
+        Assert.Equal([("Hauptwasserzähler (Nr. HWZ-1)", false), ("Kaltwasser 2. OG (Nr. WZ-2OG)", true)], details.Terms!.Select(t => (t.Label, t.Subtract)));
+
+        // No own readings, no replacement, not in the reading round.
+        var reading = await WithAsync(v => v.RecordReadingAsync(firstFloor, new ReadingInput { Date = new DateOnly(2026, 6, 1), Value = 5m, Confirmed = true }, null, Ct));
+        Assert.False(reading.Succeeded);
+        Assert.DoesNotContain(await WithAsync(v => v.RoundAsync(propertyId, null, Ct)), z => z.Id == firstFloor);
+    }
+
+    [Fact]
+    public async Task A_calculated_meter_needs_two_meters_of_the_same_kind_and_at_least_one_to_add()
+    {
+        var other = await CreateAsync("Kaltwasser 2. OG", "WZ-2OG", apartment2, null, 50m);
+        var heat = Validate(await WithAsync(v => v.CreateAsync(
+            propertyId,
+            new MeterCreation { Data = new MeterInput { Type = MeterType.Heat, Name = "Wärme", Number = "W-1" }, InstalledOn = YearEnd, InitialReading = 1m },
+            Ct)));
+
+        Task<Result> Derived(params MeterTermInput[] terms) => WithAsync(v => v.CreateAsync(
+            propertyId,
+            new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Berechnet", Number = "RZ-X" }, Terms = [.. terms] },
+            Ct));
+
+        Assert.False((await Derived(new MeterTermInput(main, false))).Succeeded);
+        Assert.False((await Derived(new MeterTermInput(main, true), new MeterTermInput(other, true))).Succeeded);
+        Assert.False((await Derived(new MeterTermInput(main, false), new MeterTermInput(heat, true))).Succeeded);
+        Assert.True((await Derived(new MeterTermInput(main, false), new MeterTermInput(other, true))).Succeeded);
+    }
+
+    [Fact]
     public async Task Unusual_readings_require_confirmation()
     {
         var meter = await CreateAsync("Kaltwasser Bad", "WZ-1", apartment1, main, 10m);

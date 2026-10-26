@@ -25,6 +25,17 @@ internal sealed class MeterConfiguration : IEntityTypeConfiguration<Meter>
         builder.HasOne<Meter>().WithMany().HasForeignKey(z => z.MainMeterId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Meter>().WithMany().HasForeignKey(z => z.PredecessorId).OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(z => z.Readings).WithOne().HasForeignKey(s => s.MeterId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(z => z.Terms).WithOne().HasForeignKey(t => t.MeterId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class MeterTermConfiguration : IEntityTypeConfiguration<MeterTerm>
+{
+    public void Configure(EntityTypeBuilder<MeterTerm> builder)
+    {
+        builder.ToTable("meter_terms");
+        builder.HasOne<Meter>().WithMany().HasForeignKey(t => t.SourceMeterId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(t => new { t.MeterId, t.SourceMeterId }).IsUnique().HasFilter("NOT deleted");
     }
 }
 

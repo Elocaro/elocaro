@@ -9,6 +9,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Rechenzähler: Ein Zähler, der für mehrere Wohnungen zählt, lässt sich mit anderen Zählern verrechnen (addieren/abziehen), um den Verbrauch je Wohnung zu ermitteln, z. B. Kaltwasser 1. OG aus dem Zähler „1. und 2. OG“ minus dem Zähler „2. OG“ (Closes #113).
 - Wohnungen: Kostenarten markieren, die die Mieter selbst bezahlen (z. B. Müll): Die Wohnung nimmt dann an der Umlage dieser Kostenart nicht teil, weder Mieter noch Vermieter tragen einen Anteil (Closes #117).
 - Heizkosten: Basis der Aufteilung Heizung/Warmwasser (§ 9 HeizkostenV) wählbar, entweder Brennstoffenergie oder Summe der Wärmezähler (Wohnungszähler plus Warmwasser-Wärmezähler).
 - Versorgungsverträge: Kosten für Wasser, Abwasser, Strom und Gas werden aus Zählerverbrauch und Tarif (Preis, Grundpreis, mehrere Tarife mit Stichtag) berechnet statt aus Abschlägen oder verspäteten Rechnungen. Beleg-Markierung „Jahresabrechnung des Versorgers“ ersetzt die Berechnung; ohne Verbrauch oder Tarif gelten weiter die Belege.
