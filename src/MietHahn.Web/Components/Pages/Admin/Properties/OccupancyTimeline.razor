@@ -12,6 +12,8 @@ else
 {
     <PageHeader Title="Belegung" Subtitle="@($"{plan.PropertyName}: Verträge und Leerstand je Wohnung und Zimmer im Jahresverlauf")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@plan.PropertyName" />
 
+    <HouseOverview PropertyId="PropertyId" />
+
     <nav class="plan-years" aria-label="Jahr wählen">
         <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/belegung?jahr=@(year - 1)">‹ @(year - 1)</a>
         <strong aria-current="page">@year</strong>

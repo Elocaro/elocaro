@@ -1,0 +1,107 @@
+@using MietHahn.Application.Finance
+@using MietHahn.Application.Properties
+@inject IPropertyService Properties
+@inject ITenantAccounts Accounts
+
+@if (floors.Count > 0)
+{
+    <section id="house-overview" aria-label="Haus heute">
+        <h2>Haus heute</h2>
+        <div class="house" role="list">
+            @foreach (var floor in floors)
+            {
+                <div class="house-floor" role="listitem">
+                    <div class="house-floor-name">@floor.Name</div>
+                    <div class="house-units">
+                        @foreach (var unit in floor.Units)
+                        {
+                            <a class="house-unit" href="/verwaltung/einheiten/@unit.Id">
+                                <strong>@unit.Name</strong>
+                                @if (unit.RentalUnits.Any(r => r.IsRoom))
+                                {
+                                    <span class="house-rooms">
+                                        @foreach (var room in unit.RentalUnits.Where(r => r.IsRoom))
+                                        {
+                                            <span class="house-room @Css(room)" title="@Title(room)">@room.Name</span>
+                                        }
+                                    </span>
+                                }
+                                else
+                                {
+                                    var rental = unit.RentalUnits.FirstOrDefault();
+                                    <span class="house-room @(rental is null ? "state-empty" : Css(rental))" title="@(rental is null ? "" : Title(rental))">@(rental?.Occupancy?.Tenant ?? "leer")</span>
+                                }
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <p class="small house-legend"><span class="house-room state-rented">vermietet</span> <span class="house-room state-ending">Mietende absehbar</span> <span class="house-room state-arrears">Rückstand</span> <span class="house-room state-empty">leer</span></p>
+    </section>
+}
+
+@code {
+    private sealed record Floor(string Name, int Rank, List<UnitRow> Units);
+
+    private List<Floor> floors = [];
+    private Dictionary<Guid, decimal> arrears = [];
+
+    [Parameter, EditorRequired]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var property = await Properties.GetAsync(PropertyId);
+        if (property is null)
+        {
+            return;
+        }
+
+        var open = await Accounts.OpenItemsAsync();
+        arrears = open.Where(i => i.DaysOverdue > 0).GroupBy(i => i.LeaseId).ToDictionary(g => g.Key, g => g.Sum(i => i.Open));
+        floors = [.. property.Units
+            .GroupBy(u => string.IsNullOrWhiteSpace(u.Location) ? "Ohne Geschoss" : u.Location!.Trim())
+            .Select(g => new Floor(g.Key, Rank(g.Key), [.. g.OrderBy(u => u.Name, StringComparer.CurrentCulture)]))
+            .OrderByDescending(f => f.Rank)];
+    }
+
+    /// <summary>Order of the floors from the roof down: attic, upper floors by number, ground floor, basement.</summary>
+    internal static int Rank(string name)
+    {
+        var text = name.ToLowerInvariant();
+        var digits = new string([.. text.Where(char.IsDigit)]);
+        var number = int.TryParse(digits, out var n) ? n : 0;
+        if (text.Contains("dach", StringComparison.Ordinal) || text.StartsWith("dg", StringComparison.Ordinal))
+        {
+            return 100 + number;
+        }
+
+        if (text.Contains("unter", StringComparison.Ordinal) || text.Contains("keller", StringComparison.Ordinal) || text.StartsWith("ug", StringComparison.Ordinal))
+        {
+            return -1 - number;
+        }
+
+        if (text.Contains("erd", StringComparison.Ordinal) || text.StartsWith("eg", StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        if (text.Contains("ober", StringComparison.Ordinal) || text.Contains("og", StringComparison.Ordinal) || number > 0)
+        {
+            return Math.Max(1, number);
+        }
+
+        return -1000;
+    }
+
+    private string Css(RentalUnitRow row) =>
+        row.Occupancy is not { } occupancy ? "state-empty"
+        : arrears.ContainsKey(occupancy.LeaseId) ? "state-arrears"
+        : occupancy.End is not null ? "state-ending"
+        : "state-rented";
+
+    private string Title(RentalUnitRow row) =>
+        row.Occupancy is not { } occupancy ? $"{row.Name}: leer"
+        : $"{row.Name}: {occupancy.Tenant}{(occupancy.End is { } end ? $", Mietende {Format.Date(end)}" : "")}{(arrears.TryGetValue(occupancy.LeaseId, out var due) ? $", Rückstand {Format.Money(due)}" : "")}";
+}

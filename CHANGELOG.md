@@ -12,6 +12,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Belegung: Schematische Haus-Ansicht „Haus heute“ mit Geschossen, Wohnungen und WG-Zimmern, farbig nach vermietet, Mietende absehbar, Rückstand und leer; ein Klick führt zur Einheit (Closes #127).
 - Übersicht: Verlaufsgrafik für Soll und Eingang der letzten zwölf Monate mit der Linie des offenen Saldos sowie Balken für die Kosten der Belege je Jahr (Closes #128).
 - Vorlage „Änderung des Umlageschlüssels (§ 556a Abs. 2 BGB)“ unter den Standardvorlagen, z. B. für Müll nach Personen; die Erklärung muss dem Mieter vor Beginn des Abrechnungszeitraums in Textform zugehen. Mit dem Personenschlüssel zählt jede Person im Haus (mehrere Zimmer eines Vertrags einmal), ein leeres Zimmer als eine Person zulasten des Vermieters (Closes #132).
 - Fristen: Bei Auszug und Einzug erinnert MietHahn an die Zwischenablesung der Zähler der Einheit (Link in die Ablesung mit Einheit und Datum), damit der Verbrauch nicht interpoliert werden muss (Closes #136).

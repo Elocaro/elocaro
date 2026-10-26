@@ -57,6 +57,11 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("110 m²", (await admin.GetAsync($"/verwaltung/einheiten/{sharedFlat}")).Text, StringComparison.Ordinal);
 
         Assert.Contains("0 von 7 vermietet", (await admin.GetAsync("/verwaltung/objekte")).Text, StringComparison.Ordinal);
+
+        // The house overview groups the units by floor, the shared flat shows its rooms, everything is empty.
+        var house = (await admin.GetAsync($"/verwaltung/objekte/{propertyId}/belegung")).Document.QuerySelector("#house-overview")!;
+        Assert.Equal(["EG", "OG"], house.QuerySelectorAll(".house-floor-name").Select(e => e.TextContent.Trim()).OrderBy(x => x, StringComparer.Ordinal));
+        Assert.Equal(4, house.QuerySelectorAll(".house-unit .house-room.state-empty[title^='Zimmer']").Length);
     }
 
     [Fact]
