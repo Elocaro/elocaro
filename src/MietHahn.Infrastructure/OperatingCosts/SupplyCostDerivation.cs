@@ -68,7 +68,11 @@ internal static class SupplyCostDerivation
             if (replaceable.Count > 0)
             {
                 costs.RemoveAll(replaceable.Contains);
-                hints.Add($"{contract.Name}: {replaceable.Count} Beleg(e) ({Money(replaceable.Sum(c => c.Amount))}) werden nicht angesetzt, die Kosten ergeben sich aus Verbrauch und Tarif ({Money(result.Parts.Sum(p => p.Amount))}). Eine Jahresabrechnung des Versorgers ersetzt die Berechnung.");
+                var advances = replaceable.Sum(c => c.Amount);
+                var calculated = result.Parts.Sum(p => p.Amount);
+                var balance = calculated - advances;
+                hints.Add($"{contract.Name}: {replaceable.Count} Beleg(e) ({Money(advances)}) werden nicht angesetzt, die Kosten ergeben sich aus Verbrauch und Tarif ({Money(calculated)}). Eine Jahresabrechnung des Versorgers ersetzt die Berechnung."
+                    + (balance == 0m ? "" : $" Gegen die Abschläge ergibt das voraussichtlich {(balance > 0m ? "eine Nachzahlung" : "ein Guthaben")} von {Money(Math.Abs(balance))} beim Versorger."));
             }
             else
             {

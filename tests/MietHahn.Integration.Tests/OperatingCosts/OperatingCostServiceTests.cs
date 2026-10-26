@@ -354,6 +354,7 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
         // 183 m³ × 4.00 € + 12 × 12.00 € = 876.00 €; the advance receipt (500.00 €) is not a cost.
         Assert.Equal(876m, derived.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Total);
         Assert.Contains(derived.Hints, h => h.Contains("nicht angesetzt", StringComparison.Ordinal) && h.Contains("876,00", StringComparison.Ordinal));
+        Assert.Contains(derived.Hints, h => h.Contains("voraussichtlich eine Nachzahlung von 376,00", StringComparison.Ordinal));
         Assert.Contains(derived.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Items.Select(i => i.Description), d => d.Contains("183 m³ × 4 €", StringComparison.Ordinal));
         Assert.NotEqual(Guid.Empty, advance);
 
