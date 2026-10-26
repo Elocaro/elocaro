@@ -36,6 +36,7 @@
                                 <td class="number">@owner.SharePercent.ToString("0.##") %</td>
                                 <td>@(owner.ValidFrom is { } from ? $"ab {Format.Date(from)}" : "seit jeher")@(owner.ValidTo is { } to ? $" bis {Format.Date(to)}" : "")</td>
                                 <td>
+                                    <MudButton Variant="Variant.Text" OnClick="() => Edit(owner)" aria-label="@($"Eintrag von {owner.Name} bearbeiten")">Bearbeiten</MudButton>
                                     @if (owner.ValidTo is null)
                                     {
                                         <MudButton Variant="Variant.Text" OnClick="() => EndAsync(owner)" aria-label="@($"Eigentum von {owner.Name} beenden")">Beenden</MudButton>
@@ -60,7 +61,11 @@
                 <AppDateField @bind-Value="input.ValidFrom" Label="Gültig ab" Hint="leer = seit jeher" />
                 <AppDateField @bind-Value="input.ValidTo" Label="Gültig bis" Hint="leer = bis auf Weiteres" />
             </div>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Eigentümer hinzufügen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editing is null ? "Eigentümer hinzufügen" : "Änderung speichern")</MudButton>
+            @if (editing is not null)
+            {
+                <MudButton Variant="Variant.Text" OnClick="CancelEdit">Abbrechen</MudButton>
+            }
         </EditForm>
     }
 </section>
@@ -70,6 +75,25 @@
     private IReadOnlyList<(Guid Id, string Name)>? people;
     private IReadOnlyList<string>? errors;
     private readonly OwnerInput input = new();
+    private Guid? editing;
+
+    private void Edit(OwnerRow owner)
+    {
+        editing = owner.Id;
+        input.PersonId = owner.PersonId;
+        input.SharePercent = owner.SharePercent;
+        input.ValidFrom = owner.ValidFrom;
+        input.ValidTo = owner.ValidTo;
+    }
+
+    private void CancelEdit()
+    {
+        editing = null;
+        input.PersonId = null;
+        input.SharePercent = null;
+        input.ValidFrom = null;
+        input.ValidTo = null;
+    }
 
     [Parameter, EditorRequired]
     public Guid PropertyId { get; set; }
@@ -85,15 +109,12 @@
 
     private async Task AddAsync()
     {
-        var result = await Owners.AddAsync(PropertyId, input);
+        var result = editing is { } id ? await Owners.UpdateAsync(PropertyId, id, input) : await Owners.AddAsync(PropertyId, input);
         errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)
         {
-            Notify.Success("Der Eigentümer wurde eingetragen.");
-            input.PersonId = null;
-            input.SharePercent = null;
-            input.ValidFrom = null;
-            input.ValidTo = null;
+            Notify.Success(editing is null ? "Der Eigentümer wurde eingetragen." : "Der Eintrag wurde gespeichert.");
+            CancelEdit();
             await LoadAsync();
         }
     }

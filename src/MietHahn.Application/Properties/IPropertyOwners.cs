@@ -10,6 +10,9 @@ public interface IPropertyOwners
 
     Task<Result> AddAsync(Guid propertyId, OwnerInput input, CancellationToken cancellationToken = default);
 
+    /// <summary>Corrects an entry (person, share, period).</summary>
+    Task<Result> UpdateAsync(Guid propertyId, Guid ownerId, OwnerInput input, CancellationToken cancellationToken = default);
+
     /// <summary>Ends an ownership on the given day (inclusive); the entry stays as history.</summary>
     Task<Result> EndAsync(Guid propertyId, Guid ownerId, DateOnly day, CancellationToken cancellationToken = default);
 

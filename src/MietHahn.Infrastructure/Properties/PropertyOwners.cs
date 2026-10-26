@@ -68,6 +68,35 @@ internal sealed class PropertyOwners(MietHahnDbContext db, TimeProvider clock) :
             return owner.Id;
         });
 
+    public Task<Result> UpdateAsync(Guid propertyId, Guid ownerId, OwnerInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var existing = await db.Set<PropertyOwner>().Where(o => o.PropertyId == propertyId).ToListAsync(cancellationToken);
+            var owner = existing.SingleOrDefault(o => o.Id == ownerId) ?? throw new NotFoundException();
+            var personId = input.PersonId ?? throw new RuleViolationException("Bitte die Person wählen.");
+            if (!await db.Set<Person>().AnyAsync(p => p.Id == personId && p.AnonymizedAt == null, cancellationToken))
+            {
+                throw new RuleViolationException("Die Person wurde nicht gefunden.");
+            }
+
+            var candidate = new PropertyOwner(propertyId, personId, input.SharePercent ?? throw new RuleViolationException("Bitte den Anteil angeben."), input.ValidFrom, input.ValidTo);
+            var others = existing.Where(o => o.Id != ownerId).ToList();
+            if (others.Any(o => o.Overlaps(candidate)))
+            {
+                throw new RuleViolationException("Diese Person ist für den Zeitraum schon als Eigentümer eingetragen.");
+            }
+
+            if (PropertyOwner.ExceedsFullShare(others, candidate))
+            {
+                throw new RuleViolationException("Die Anteile ergeben im Zeitraum mehr als 100 %.");
+            }
+
+            owner.Change(personId, candidate.SharePercent, input.ValidFrom, input.ValidTo);
+            await db.SaveChangesAsync(cancellationToken);
+            return ownerId;
+        });
+
     public Task<Result> EndAsync(Guid propertyId, Guid ownerId, DateOnly day, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {

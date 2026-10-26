@@ -37,6 +37,16 @@ public sealed class PropertyOwner : Entity
 
     public bool IsValidOn(DateOnly day) => (ValidFrom is null || ValidFrom <= day) && (ValidTo is null || ValidTo >= day);
 
+    /// <summary>Corrects person, share and period of the entry.</summary>
+    public void Change(Guid personId, decimal sharePercent, DateOnly? validFrom, DateOnly? validTo)
+    {
+        PersonId = personId;
+        SharePercent = sharePercent;
+        ValidFrom = validFrom;
+        ValidTo = validTo;
+        Validate();
+    }
+
     /// <summary>Ends the ownership on <paramref name="day"/> (inclusive).</summary>
     public void End(DateOnly day)
     {

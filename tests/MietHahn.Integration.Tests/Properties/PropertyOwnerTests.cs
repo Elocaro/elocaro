@@ -57,6 +57,19 @@ public class PropertyOwnerTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task An_owner_entry_can_be_corrected_but_not_beyond_100_percent()
+    {
+        var first = Validate(await WithAsync(o => o.AddAsync(house, new OwnerInput { PersonId = anna, SharePercent = 60m }, Ct)));
+        Validate(await WithAsync(o => o.AddAsync(house, new OwnerInput { PersonId = ben, SharePercent = 40m }, Ct)));
+
+        Assert.False((await WithAsync(o => o.UpdateAsync(house, first, new OwnerInput { PersonId = anna, SharePercent = 70m }, Ct))).Succeeded);
+        Validate(await WithAsync(o => o.UpdateAsync(house, first, new OwnerInput { PersonId = anna, SharePercent = 50m, ValidFrom = new DateOnly(2020, 1, 1) }, Ct)));
+
+        var row = (await WithAsync(o => o.GetAsync(house, Ct))).Owners.Single(r => r.Id == first);
+        Assert.Equal((50m, new DateOnly(2020, 1, 1)), (row.SharePercent, row.ValidFrom));
+    }
+
+    [Fact]
     public async Task Ending_an_ownership_keeps_the_history_and_frees_the_share()
     {
         var id = Validate(await WithAsync(o => o.AddAsync(house, new OwnerInput { PersonId = anna, SharePercent = 100m }, Ct)));
