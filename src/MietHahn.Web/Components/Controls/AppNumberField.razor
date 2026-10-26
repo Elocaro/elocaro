@@ -3,7 +3,7 @@
 @using MudBlazor
 @* Number input (int, decimal, double; also nullable) with German notation. Suffix: unit text such as "m²" or "€". *@
 <MudNumericField T="T" Value="Value" ValueChanged="ValueChanged" For="ValueExpression" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled"
-                 Culture="German" HideSpinButtons="true" Adornment="@(Suffix is null ? Adornment.None : Adornment.End)" AdornmentText="@Suffix"
+                 Culture="German" Converter="converter" HideSpinButtons="true" Adornment="@(Suffix is null ? Adornment.None : Adornment.End)" AdornmentText="@Suffix"
                  Variant="Variant.Outlined" ShrinkLabel="true" @attributes="limits" />
 
 @code {
@@ -41,6 +41,7 @@
     [Parameter]
     public T? Max { get; set; }
 
+    private readonly LenientNumberConverter<T> converter = new();
     private Dictionary<string, object?> limits = [];
     private bool minGiven;
     private bool maxGiven;
