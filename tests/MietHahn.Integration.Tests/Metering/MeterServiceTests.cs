@@ -39,6 +39,25 @@ public class MeterServiceTests(PostgresFixture postgres) : IAsyncLifetime
     public async ValueTask DisposeAsync() => await environment.DisposeAsync();
 
     [Fact]
+    public async Task A_meter_in_use_cannot_be_deleted_but_an_unused_one_can_and_its_unit_can_be_changed()
+    {
+        var sub = await CreateAsync("Kaltwasser Bad", "WZ-1", apartment1, main, 10m);
+
+        var blocked = await WithAsync(v => v.DeleteAsync(main, Ct));
+        Assert.False(blocked.Succeeded);
+        Assert.Contains("Kaltwasser Bad", string.Join(' ', blocked.Errors), StringComparison.Ordinal);
+
+        var input = (await WithAsync(v => v.GetAsync(sub, Ct)))!.Data;
+        input.MeasurementUnit = MeasurementUnit.Liters;
+        Validate(await WithAsync(v => v.UpdateAsync(sub, input, Ct)));
+        Assert.Equal(MeasurementUnit.Liters, (await WithAsync(v => v.GetAsync(sub, Ct)))!.Meter.MeasurementUnit);
+
+        Validate(await WithAsync(v => v.DeleteAsync(sub, Ct)));
+        Assert.Null(await WithAsync(v => v.GetAsync(sub, Ct)));
+        Validate(await WithAsync(v => v.DeleteAsync(main, Ct)));
+    }
+
+    [Fact]
     public async Task Meter_with_assignment_and_main_meter_in_reading_order()
     {
         var w1 = await CreateAsync("Kaltwasser Bad", "WZ-1", apartment1, main, 10m);

@@ -119,6 +119,29 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
             return id;
         });
 
+    public Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            var meter = await db.Set<ZaehlerEntitaet>().SingleOrDefaultAsync(z => z.Id == id, cancellationToken) ?? throw new NotFoundException();
+            var users = new List<string>();
+            users.AddRange((await db.Set<ZaehlerEntitaet>().AsNoTracking()
+                .Where(z => z.MainMeterId == id || z.Terms.Any(t => t.SourceMeterId == id)).Select(z => z.Name).ToListAsync(cancellationToken)).Select(n => $"Zähler „{n}“"));
+            if (await db.Set<Domain.Heating.HeatingSettings>().AsNoTracking().AnyAsync(h => h.HotWaterHeatMeterId == id || h.OilTankMeterId == id, cancellationToken))
+            {
+                users.Add("die Heizkosteneinstellungen");
+            }
+
+            users.AddRange((await db.Set<Domain.OperatingCosts.SupplyContract>().AsNoTracking().Where(v => v.MeterIds.Contains(id)).Select(v => v.Name).ToListAsync(cancellationToken)).Select(n => $"Versorgungsvertrag „{n}“"));
+            if (users.Count > 0)
+            {
+                throw new RuleViolationException($"Der Zähler wird noch verwendet von: {string.Join(", ", users)}. Bitte dort zuerst lösen.");
+            }
+
+            db.Remove(meter);
+            await db.SaveChangesAsync(cancellationToken);
+            return id;
+        });
+
     public async Task<ReadingResult> RecordReadingAsync(Guid id, ReadingInput input, Guid? photoFileId = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);

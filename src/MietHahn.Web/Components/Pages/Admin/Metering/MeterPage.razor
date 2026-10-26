@@ -227,6 +227,13 @@ else if (meter.Meter.RemovedOn is null)
 }
 
     </MudTabPanel>
+    <MudTabPanel Text="Löschen">
+<section>
+    <h2>Zähler löschen</h2>
+    <p class="small">Zum Entfernen versehentlich doppelt angelegter Zähler. Ein ausgebauter oder getauschter Zähler gehört dagegen in die Historie (Tausch erfassen). Das Löschen bleibt im Verlauf nachvollziehbar.</p>
+    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Zähler löschen</MudButton>
+</section>
+    </MudTabPanel>
     <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="Zaehler" EntityId="Id" />
     </MudTabPanel>
@@ -356,6 +363,24 @@ else if (meter.Meter.RemovedOn is null)
         {
             errors = result.Errors;
         }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await Confirm.AskAsync("Zähler löschen", $"Soll der Zähler {meter!.Meter.Name} mit allen Zählerständen gelöscht werden?", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var result = await Admin.DeleteAsync(Id);
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Zähler wurde gelöscht.");
+            Navigation.NavigateTo($"/verwaltung/objekte/{meter.PropertyId}/zaehler");
+            return;
+        }
+
+        errors = result.Errors;
     }
 
     private Task SaveDataAsync() => ExecuteAsync(Admin.UpdateAsync(Id, data), "Die Angaben wurden gespeichert.");

@@ -13,6 +13,9 @@ public interface IMeterService
 
     Task<Result> CreateAsync(Guid propertyId, MeterCreation creation, CancellationToken cancellationToken = default);
 
+    /// <summary>Deletes a meter (logically, kept in the change history); refused while another meter, the heating settings or a supply contract uses it.</summary>
+    Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<Result> UpdateAsync(Guid id, MeterInput data, CancellationToken cancellationToken = default);
 
     /// <summary>

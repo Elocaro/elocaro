@@ -8,6 +8,7 @@
     {
         <AppSelect @bind-Value="Data.Type" Label="Art" Items="Enum.GetValues<MeterType>()" Text="@(v => Labels.From(v))" />
     }
+    <AppSelect T="MeasurementUnit?" @bind-Value="Data.MeasurementUnit" Label="Messeinheit" Items="Enum.GetValues<MeasurementUnit>().Select(e => (MeasurementUnit?)e).ToList()" Text="@(v => v is { } e ? Labels.From(e) : "")" Hint="Die Zählerstände werden nicht umgerechnet; bei einem Wechsel zuerst die Stände prüfen." />
     <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Kaltwasser Bad“" />
     <AppTextField @bind-Value="Data.Number" Label="Zählernummer" Required="true" />
     <AppSelect T="Guid?" @bind-Value="Data.AssignmentId" Label="Zuordnung" Items="assignmentIds" Text="AssignmentText" EmptyText="Haus (Haupt-/Allgemeinzähler)" />
