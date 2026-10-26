@@ -236,6 +236,21 @@ public class OperatingCostCalculatorTests
     }
 
     [Fact]
+    public void Vacant_rooms_can_be_left_out_of_the_key_so_that_the_rented_rooms_carry_the_whole_share()
+    {
+        var flat = Unit(3, "WG", 90m, null, SharedFlatBilling.ByRoom, Room(31, "Zimmer 1", 30m), Room(32, "Zimmer 2", 60m));
+        var lease = Lease(21, "Mia", 3, D(2025, 1, 1), persons: 2, room: 31);
+
+        var persons = Calculate([lease], [Cost(1, "betrkv-08", 300m)], [Rule("betrkv-08", AllocationKey.Persons) with { ExcludeVacantRooms = true }], units: [flat]);
+        Assert.Equal(300m, Line(persons, 21, "betrkv-08").Share);
+        Assert.DoesNotContain(persons.Landlord, p => p.Reason == LandlordReason.Vacancy);
+
+        var area = Calculate([lease], [Cost(1, "betrkv-01", 300m)], [Rule("betrkv-01", AllocationKey.LivingArea) with { ExcludeVacantRooms = true }], units: [flat]);
+        Assert.Equal(300m, Line(area, 21, "betrkv-01").Share);
+        Assert.DoesNotContain(area.Landlord, p => p.Reason == LandlordReason.Vacancy);
+    }
+
+    [Fact]
     public void Costs_outside_the_billing_period_are_ignored_and_straddling_ones_are_cut()
     {
         var costs = new[]

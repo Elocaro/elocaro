@@ -88,7 +88,8 @@ public sealed record BillingRule(
     decimal? PreDeductionPercent = null,
     decimal? PreDeductionAmount = null,
     string? PreDeductionNote = null,
-    IReadOnlyList<FixedShare>? Shares = null);
+    IReadOnlyList<FixedShare>? Shares = null,
+    bool ExcludeVacantRooms = false);
 
 /// <param name="VacancyPersons">Persons assumed for a vacant rental object in the person key (otherwise vacancy would shift to the other units).</param>
 public sealed record BillingOptions(int VacancyPersons = 1);

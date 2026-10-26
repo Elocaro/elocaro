@@ -523,9 +523,15 @@ internal sealed class CalculationRun
         if (rule.Key == AllocationKey.Persons)
         {
             var counted = new HashSet<Guid>();
+            var anyRented = rooms.Any(r => LeaseAt(unit.Id, r.Id, day) is not null);
             foreach (var room in rooms)
             {
                 var lease = LeaseAt(unit.Id, room.Id, day);
+                if (lease is null && rule.ExcludeVacantRooms && anyRented)
+                {
+                    continue;
+                }
+
                 if (lease is not null && !counted.Add(lease.Id))
                 {
                     continue; // a lease on several rooms counts its persons once
@@ -546,7 +552,8 @@ internal sealed class CalculationRun
         // Metered consumption was caused by the occupants: a vacant room takes none of it (as long as any room is rented).
         // Area-based shares (property tax, insurance ...) keep the vacant rooms, the landlord bears them.
         var occupied = rooms.Select(r => LeaseAt(unit.Id, r.Id, day) is not null).ToList();
-        if (rule.Key == AllocationKey.Consumption && occupied.Any(o => o))
+        var leaveVacantOut = rule.Key == AllocationKey.Consumption || rule.ExcludeVacantRooms;
+        if (leaveVacantOut && occupied.Any(o => o))
         {
             areas = [.. areas.Select((a, i) => occupied[i] ? a : 0m)];
         }
@@ -562,7 +569,7 @@ internal sealed class CalculationRun
 
         for (var i = 0; i < rooms.Count; i++)
         {
-            if (areas[i] == 0m && rule.Key == AllocationKey.Consumption && !occupied[i])
+            if (areas[i] == 0m && leaveVacantOut && !occupied[i])
             {
                 continue;
             }

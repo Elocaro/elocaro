@@ -221,11 +221,12 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
             Key = AllocationKey.FixedPercent,
             PreDeductionPercent = 10m,
             PreDeductionNote = "Anteil Garten",
+            ExcludeVacantRooms = true,
             Shares = [new UnitShareInput { UnitId = apartment1.ToString(), Percent = "50" }, new UnitShareInput { UnitId = apartment2.ToString(), Percent = "50" }],
         }, Ct)));
 
         var row = (await WithAsync<ICostAllocation, CostAllocationOverview?>(s => s.GetAsync(house, new DateOnly(2026, 1, 1), Ct)))!.Rows.Single(r => r.CostType == "betrkv-14").Current!;
-        Assert.Equal((10m, "Anteil Garten"), (row.PreDeductionPercent, row.PreDeductionNote));
+        Assert.Equal((10m, "Anteil Garten", true), (row.PreDeductionPercent, row.PreDeductionNote, row.ExcludeVacantRooms));
         Assert.Equal([("Wohnung 1", 50m), ("Wohnung 2", 50m)], row.Shares.Select(a => (a.UnitName, a.Percent)));
 
         var result = (await PreviewAsync()).Result;

@@ -12,6 +12,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Umlageschlüssel: Je Kostenart lässt sich einstellen, ob leere WG-Zimmer nicht angesetzt werden (die vermieteten Zimmer tragen den ganzen Anteil der WG) statt beim Vermieter zu bleiben; mit Hinweis auf die rechtliche Folge (Closes #133).
 - WG: Der Anteil der Zimmer an der Gemeinschaftsfläche wird aus Wohnfläche minus Zimmerflächen vorgeschlagen (gleichmäßig oder nach Zimmerfläche) und mit einem Klick übernommen (Einheit → Zimmer, Closes #134).
 - Gas: Brennwert und Zustandszahl je Abrechnungsjahr in den Heizungseinstellungen (kWh je m³ = Brennwert × Zustandszahl) ersetzen den festen Energieinhalt; ohne Jahreswert gibt die Vorschau einen Hinweis (Closes #130).
 - Gas aus dem Versorgungsvertrag: Die CO₂-Menge wird aus kWh × Emissionsfaktor berechnet (Standard Erdgas 0,2016 kg/kWh); mit CO₂-Preis je Tonne für das Jahr werden die im Gaspreis enthaltenen CO₂-Kosten abgetrennt und nach CO2KostAufG aufgeteilt (Closes #129).

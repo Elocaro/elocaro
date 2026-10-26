@@ -24,7 +24,8 @@ public sealed class CostAllocationRule : Entity, ITimeDependent
         decimal? preDeductionPercent = null,
         decimal? preDeductionAmount = null,
         string? preDeductionNote = null,
-        IEnumerable<FixedShare>? shares = null)
+        IEnumerable<FixedShare>? shares = null,
+        bool excludeVacantRooms = false)
     {
         var type = CostTypes.Find(costType) ?? throw new RuleViolationException("Unbekannte Kostenart.");
         if (!type.Allocable)
@@ -89,6 +90,7 @@ public sealed class CostAllocationRule : Entity, ITimeDependent
         PreDeductionAmount = preDeductionAmount == 0 ? null : preDeductionAmount;
         PreDeductionNote = string.IsNullOrWhiteSpace(preDeductionNote) ? null : preDeductionNote.Trim();
         Shares = [.. shareList.Select(a => new CostAllocationShare(Id, a.UnitId, a.Percent))];
+        ExcludeVacantRooms = excludeVacantRooms;
     }
 
     public Guid PropertyId { get; private set; }
@@ -111,13 +113,19 @@ public sealed class CostAllocationRule : Entity, ITimeDependent
 
     public string? PreDeductionNote { get; private set; }
 
+    /// <summary>
+    /// Empty rooms of a shared flat do not take part in the key (the rented rooms carry the whole share of the flat).
+    /// Without it the landlord bears the share of the vacant rooms, which is the rule for area-based costs; consumption keys always leave vacant rooms out.
+    /// </summary>
+    public bool ExcludeVacantRooms { get; private set; }
+
     /// <summary>For <see cref="AllocationKey.FixedPercent"/>: percentage per unit.</summary>
     public List<CostAllocationShare> Shares { get; private set; } = [];
 
     public void EndValidity(DateOnly lastDay) => Validity = Validity.EndOn(lastDay);
 
     public BillingRule ToBillingRule() =>
-        new(CostType, Validity, Key, MeterType, PreDeductionPercent, PreDeductionAmount, PreDeductionNote, [.. Shares.Select(a => new FixedShare(a.UnitId, a.Percent))]);
+        new(CostType, Validity, Key, MeterType, PreDeductionPercent, PreDeductionAmount, PreDeductionNote, [.. Shares.Select(a => new FixedShare(a.UnitId, a.Percent))], ExcludeVacantRooms);
 
     /// <summary>
     /// Sets the key from the effective date on: the latest rule ends the day before; a rule starting on the same day is replaced.
@@ -133,11 +141,12 @@ public sealed class CostAllocationRule : Entity, ITimeDependent
         decimal? preDeductionPercent = null,
         decimal? preDeductionAmount = null,
         string? preDeductionNote = null,
-        IEnumerable<FixedShare>? shares = null) =>
+        IEnumerable<FixedShare>? shares = null,
+        bool excludeVacantRooms = false) =>
         TimeSeries.CarryForward(
             series,
             from,
-            validity => new CostAllocationRule(propertyId, costType, validity, key, meterType, preDeductionPercent, preDeductionAmount, preDeductionNote, shares));
+            validity => new CostAllocationRule(propertyId, costType, validity, key, meterType, preDeductionPercent, preDeductionAmount, preDeductionNote, shares, excludeVacantRooms));
 
     /// <summary>Ends the rule valid on the day with this day (the cost type is then no longer active).</summary>
     public static void EndOn(IEnumerable<CostAllocationRule> series, DateOnly lastDay)

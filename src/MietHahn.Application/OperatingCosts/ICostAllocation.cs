@@ -65,6 +65,9 @@ public sealed class CostRuleInput
     [StringLength(200)]
     public string? PreDeductionNote { get; set; }
 
+    /// <summary>Vacant rooms of a shared flat are left out of the key (otherwise the landlord bears their share).</summary>
+    public bool ExcludeVacantRooms { get; set; }
+
     /// <summary>For the key "fixed percent": percentage per unit (units without a value get none).</summary>
     public List<UnitShareInput> Shares { get; set; } = [];
 }
@@ -87,7 +90,8 @@ public sealed record CostRuleView(
     decimal? PreDeductionPercent,
     decimal? PreDeductionAmount,
     string? PreDeductionNote,
-    IReadOnlyList<UnitPercent> Shares);
+    IReadOnlyList<UnitPercent> Shares,
+    bool ExcludeVacantRooms = false);
 
 /// <param name="Current">Rule valid on the requested day; <c>null</c> = no key (default: living area, with a hint in the calculation).</param>
 public sealed record CostKeyRow(

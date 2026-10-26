@@ -29,7 +29,8 @@ internal sealed class CostAllocationService(MietHahnDbContext db) : ICostAllocat
         var unitNames = property.Units.ToDictionary(e => e.Id, e => e.Name);
         CostRuleView View(CostAllocationRule r) => new(
             r.Id, r.Validity, r.Key, r.MeterType, r.PreDeductionPercent, r.PreDeductionAmount, r.PreDeductionNote,
-            r.Shares.Select(a => new UnitPercent(a.UnitId, unitNames.GetValueOrDefault(a.UnitId, "?"), a.Percent)).OrderBy(a => a.UnitName, StringComparer.CurrentCulture).ToList());
+            r.Shares.Select(a => new UnitPercent(a.UnitId, unitNames.GetValueOrDefault(a.UnitId, "?"), a.Percent)).OrderBy(a => a.UnitName, StringComparer.CurrentCulture).ToList(),
+            r.ExcludeVacantRooms);
 
         var rows = CostTypes.All.Where(t => t.Allocable).Select(t =>
         {
@@ -69,7 +70,8 @@ internal sealed class CostAllocationService(MietHahnDbContext db) : ICostAllocat
                 input.PreDeductionPercent,
                 input.PreDeductionAmount,
                 input.PreDeductionNote,
-                shares);
+                shares,
+                input.ExcludeVacantRooms);
             foreach (var removed in before.Except(series))
             {
                 db.Remove(removed);

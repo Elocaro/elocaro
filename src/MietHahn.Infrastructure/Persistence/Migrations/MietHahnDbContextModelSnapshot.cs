@@ -4873,6 +4873,10 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
 
+                    b.Property<bool>("ExcludeVacantRooms")
+                        .HasColumnType("boolean")
+                        .HasColumnName("exclude_vacant_rooms");
+
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(20)

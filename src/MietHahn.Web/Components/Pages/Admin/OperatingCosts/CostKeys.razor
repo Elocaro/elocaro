@@ -75,6 +75,7 @@ else
             <AppNumberField T="decimal?" @bind-Value="Rule.PreDeductionAmount" Label="oder Vorwegabzug (€ pro Jahr)" Suffix="€" />
             <AppTextField @bind-Value="Rule.PreDeductionNote" Label="Begründung Vorwegabzug" />
         </div>
+        <AppCheckBox @bind-Value="Rule.ExcludeVacantRooms" Label="Leere WG-Zimmer nicht ansetzen" Hint="Ohne Haken trägt der Vermieter den Anteil leerer Zimmer (Standard bei Flächenschlüsseln). Mit Haken tragen die vermieteten Zimmer den ganzen Anteil der WG: nur vertretbar, wenn die Kosten vom Leerstand abhängen; bei Verbrauchsschlüsseln ist es immer so." />
         <fieldset class="field">
             <legend>Prozentsätze je Einheit (nur bei „Fester Prozentsatz“)</legend>
             <div class="form-grid">
