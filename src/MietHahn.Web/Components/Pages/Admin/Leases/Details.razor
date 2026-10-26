@@ -234,6 +234,27 @@ else
     </EditForm>
 </section>
 
+@if (lease.Rooms is { Count: > 0 })
+{
+<section>
+    <h2>Zimmer</h2>
+    <p class="small">Ein Vertrag kann mehrere Zimmer der Wohngemeinschaft umfassen (eine Miete, eine Kaution). Verbrauchsanteile und Personen werden dabei nur einmal gezählt.</p>
+    <ul>
+        @foreach (var room in lease.Rooms)
+        {
+            <li>@room.Name @if (!room.IsFirst && lease.Rooms.Count > 1) { <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => RemoveRoomAsync(room)">Entfernen</MudButton> }</li>
+        }
+    </ul>
+    @if (lease.AvailableRooms is { Count: > 0 })
+    {
+        <EditForm Model="newRoom" OnValidSubmit="AddRoomAsync" novalidate>
+            <AppSelect @bind-Value="newRoom.RoomId" Label="Weiteres Zimmer" Items="lease.AvailableRooms.Select(z => (Guid?)z.Id).ToList()" Text="@(v => lease.AvailableRooms.First(z => z.Id == v).Name)" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined">Zimmer hinzufügen</MudButton>
+        </EditForm>
+    }
+</section>
+}
+
 <section>
     <h2>Mietzeit korrigieren</h2>
     <p class="small">Zum Beheben von Tippfehlern bei Mietbeginn und Befristung. Mietbestandteile und Personenanzahl, die zum alten Beginn oder Ende galten, wandern mit; die Monatsmieten werden neu berechnet.</p>
@@ -322,6 +343,23 @@ else
     private Task TerminateAsync() => ExecuteAsync(Admin.TerminateAsync(Id, termination), "Die Kündigung wurde erfasst.", () => termination = new());
 
     private Task RevokeTerminationAsync() => ExecuteAsync(Admin.RevokeTerminationAsync(Id), "Die Kündigung wurde aufgehoben.");
+
+    private readonly RoomModel newRoom = new();
+
+    private Task AddRoomAsync() => ExecuteAsync(Admin.AddRoomAsync(Id, newRoom.RoomId!.Value), "Das Zimmer wurde hinzugefügt.", () => newRoom.RoomId = null);
+
+    private async Task RemoveRoomAsync(LeaseRoomView room)
+    {
+        if (await Confirm.AskAsync("Zimmer entfernen", $"Soll {room.Name} aus dem Vertrag entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveRoomAsync(Id, room.Id), "Das Zimmer wurde entfernt.");
+        }
+    }
+
+    private sealed class RoomModel
+    {
+        public Guid? RoomId { get; set; }
+    }
 
     private async Task CorrectTermAsync()
     {

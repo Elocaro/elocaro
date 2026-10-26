@@ -5,6 +5,7 @@ using MietHahn.Application.Leases;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
+using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 
@@ -57,6 +58,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
         var referenceDate = today < lease.Start ? lease.Start : lease.End is { } end && today > end ? end : today;
         var rentalUnit = (await RentalUnit.GetAsync(db, cancellationToken)).GetValueOrDefault(lease.RentalUnitId);
         var people = await db.Set<Person>().AsNoTracking().Where(p => lease.Parties.Select(x => x.PersonId).Contains(p.Id)).ToListAsync(cancellationToken);
+        var rooms = lease.RoomId is null ? [] : await db.Set<Room>().AsNoTracking().Where(z => z.UnitId == lease.UnitId).ToListAsync(cancellationToken);
 
         return new LeaseDetails(
             lease.Id,
@@ -84,7 +86,9 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
             referenceDate,
             NextDueDate(lease, today),
             lease.LandlordNoticePeriodMonths(today),
-            await RentModelAsync(lease, referenceDate, today, cancellationToken));
+            await RentModelAsync(lease, referenceDate, today, cancellationToken),
+            rooms.Where(z => lease.RoomIds.Contains(z.Id)).OrderBy(z => lease.RoomIds.ToList().IndexOf(z.Id)).Select(z => new LeaseRoomView(z.Id, z.Name, z.Id == lease.RoomId)).ToList(),
+            [.. rooms.Where(z => !lease.RoomIds.Contains(z.Id)).OrderBy(z => z.Name, StringComparer.Ordinal).Select(z => new LeaseRoomView(z.Id, z.Name, false))]);
     }
 
     public async Task<IReadOnlyList<RentalUnitOption>> RentalUnitsAsync(CancellationToken cancellationToken = default)
@@ -95,7 +99,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
         var names = await NamesAsync(ongoing.SelectMany(v => v.Parties.Select(p => p.PersonId)), cancellationToken);
         return rentalUnits.Values.Where(m => m.IsRentable).Select(m =>
         {
-            var lease = ongoing.FirstOrDefault(v => v.RentalUnitId == m.Id);
+            var lease = ongoing.FirstOrDefault(v => v.RentalUnitId == m.Id || v.ExtraRooms.Any(r => r.RoomId == m.Id));
             return new RentalUnitOption(m.Id, m.Name, m.Property, m.RoomId is not null, lease is null ? null : new Occupied(TenantText(lease, names), lease.End));
         }).ToList();
     }
@@ -158,6 +162,18 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
         {
             var start = creation.Start ?? throw new RuleViolationException("Bitte den Mietbeginn angeben.");
             var lease = new Lease(rentalUnit.Id, rentalUnit.UnitId, rentalUnit.RoomId, start, creation.FixedTermUntil);
+            if (rentalUnit.RoomId is { } firstRoom)
+            {
+                await EnsureRoomFreeAsync(firstRoom, lease.Term, null, cancellationToken);
+            }
+
+            foreach (var roomId in creation.AdditionalRoomIds.Distinct().Where(r => r != rentalUnit.RoomId))
+            {
+                await EnsureRoomOfUnitAsync(roomId, rentalUnit.UnitId, cancellationToken);
+                await EnsureRoomFreeAsync(roomId, lease.Term, null, cancellationToken);
+                lease.AddRoom(roomId);
+            }
+
             Apply(lease, creation.Data);
             lease.BillingType = creation.BillingType;
             lease.HeatingCostsConsumptionBased = creation.HeatingCostsConsumptionBased;
@@ -193,6 +209,42 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
             lease.BillingType = data.BillingType;
             lease.HeatingCostsConsumptionBased = data.HeatingCostsConsumptionBased;
         }, cancellationToken);
+
+    public Task<Result> AddRoomAsync(Guid id, Guid roomId, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            var lease = await WithDetails().SingleOrDefaultAsync(v => v.Id == id, cancellationToken) ?? throw new NotFoundException();
+            await EnsureRoomOfUnitAsync(roomId, lease.UnitId, cancellationToken);
+            await EnsureRoomFreeAsync(roomId, lease.Term, lease.Id, cancellationToken);
+            lease.AddRoom(roomId);
+            await db.SaveChangesAsync(cancellationToken);
+            return id;
+        });
+
+    public Task<Result> RemoveRoomAsync(Guid id, Guid roomId, CancellationToken cancellationToken = default) =>
+        WithLeaseAsync(id, lease => lease.RemoveRoom(roomId), cancellationToken);
+
+    private async Task EnsureRoomOfUnitAsync(Guid roomId, Guid unitId, CancellationToken cancellationToken)
+    {
+        if (!await db.Set<Room>().AnyAsync(z => z.Id == roomId && z.UnitId == unitId, cancellationToken))
+        {
+            throw new RuleViolationException("Das Zimmer gehört nicht zur Wohngemeinschaft des Vertrags.");
+        }
+    }
+
+    /// <summary>The room must not be rented in the term by another lease (as its first or a further room).</summary>
+    private async Task EnsureRoomFreeAsync(Guid roomId, Period term, Guid? exceptLeaseId, CancellationToken cancellationToken)
+    {
+        var to = term.To;
+        var busy = await db.Set<Lease>().AsNoTracking()
+            .Where(v => v.Id != exceptLeaseId && (v.RoomId == roomId || v.ExtraRooms.Any(r => r.RoomId == roomId)))
+            .Where(v => (to == null || v.Term.From <= to) && (v.Term.To == null || v.Term.To >= term.From))
+            .FirstOrDefaultAsync(cancellationToken);
+        if (busy is not null)
+        {
+            throw new RuleViolationException($"Das Zimmer ist im Zeitraum schon vermietet (ab {busy.Start:dd.MM.yyyy}).");
+        }
+    }
 
     public Task<Result> CorrectTermAsync(Guid id, LeaseTermInput input, CancellationToken cancellationToken = default) =>
         WithLeaseAsync(id, lease =>
@@ -403,7 +455,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
     }
 
     private IQueryable<Lease> WithDetails() =>
-        db.Set<Lease>().Include(v => v.Parties).Include(v => v.Components).Include(v => v.People).Include(v => v.RentSteps).AsSplitQuery();
+        db.Set<Lease>().Include(v => v.Parties).Include(v => v.Components).Include(v => v.People).Include(v => v.RentSteps).Include(v => v.ExtraRooms).AsSplitQuery();
 
     private Task<Result> WithLeaseAsync(Guid id, Action<Lease> action, CancellationToken cancellationToken) =>
         Command.ExecuteAsync(async () =>

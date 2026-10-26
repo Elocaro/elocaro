@@ -43,6 +43,30 @@ public class OccupancyPlanTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Null(await WithAsync<IOccupancyPlan, OccupancyPlan?>(s => s.GetAsync(Guid.NewGuid(), Period.CalendarYear(2026), Ct)));
     }
 
+    [Fact]
+    public async Task One_lease_can_cover_several_rooms_and_a_room_cannot_be_rented_twice()
+    {
+        var house = Validate(await WithAsync<IPropertyService, Result>(s => s.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, Ct)));
+        var wg = Validate(await WithAsync<IPropertyService, Result>(s => s.CreateUnitAsync(house, new UnitInput { Name = "WG" }, Ct)));
+        var room1 = Validate(await WithAsync<IPropertyService, Result>(s => s.CreateRoomAsync(wg, new RoomInput { Name = "Zimmer 1" }, Ct)));
+        var room2 = Validate(await WithAsync<IPropertyService, Result>(s => s.CreateRoomAsync(wg, new RoomInput { Name = "Zimmer 2" }, Ct)));
+        var room3 = Validate(await WithAsync<IPropertyService, Result>(s => s.CreateRoomAsync(wg, new RoomInput { Name = "Zimmer 3" }, Ct)));
+        var anna = Validate(await WithAsync<IPersonService, Result>(s => s.CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt" }, null, Ct)));
+        var ben = Validate(await WithAsync<IPersonService, Result>(s => s.CreateAsync(new PersonInput { FirstName = "Ben", LastName = "Meier" }, null, Ct)));
+        var lease = Validate(await WithAsync<ILeaseService, Result>(s => s.CreateAsync(new LeaseCreation { RentalUnitId = room1, AdditionalRoomIds = [room2], Start = new DateOnly(2026, 1, 1), TenantIds = [anna], BaseRent = 500m }, Ct)));
+
+        var other = await WithAsync<ILeaseService, Result>(s => s.CreateAsync(new LeaseCreation { RentalUnitId = room2, Start = new DateOnly(2026, 6, 1), TenantIds = [ben], BaseRent = 300m }, Ct));
+        Assert.False(other.Succeeded);
+        Validate(await WithAsync<ILeaseService, Result>(s => s.CreateAsync(new LeaseCreation { RentalUnitId = room3, Start = new DateOnly(2026, 6, 1), TenantIds = [ben], BaseRent = 300m }, Ct)));
+
+        var plan = (await WithAsync<IOccupancyPlan, OccupancyPlan?>(s => s.GetAsync(house, Period.CalendarYear(2026), Ct)))!;
+        Assert.Equal(["Anna Schmidt", "Anna Schmidt", "Ben Meier"], plan.Rows.Select(r => Assert.Single(r.Bars).Tenant));
+
+        Validate(await WithAsync<ILeaseService, Result>(s => s.RemoveRoomAsync(lease, room2, Ct)));
+        var details = (await WithAsync<ILeaseService, LeaseDetails?>(s => s.GetAsync(lease, Ct)))!;
+        Assert.Equal(["Zimmer 1"], details.Rooms!.Select(r => r.Name));
+    }
+
     private static Guid Validate(Result result)
     {
         Assert.True(result.Succeeded, string.Join(", ", result.Errors));

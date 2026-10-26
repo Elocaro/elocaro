@@ -3232,6 +3232,62 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("lease_parties", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Leases.LeaseRoom", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("LeaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lease_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("room_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lease_rooms");
+
+                    b.HasIndex("RoomId")
+                        .HasDatabaseName("ix_lease_rooms_room_id");
+
+                    b.HasIndex("LeaseId", "RoomId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lease_rooms_lease_id_room_id")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("lease_rooms", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Leases.OccupantCount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8888,6 +8944,23 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_lease_parties_person_person_id");
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Leases.LeaseRoom", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Leases.Lease", null)
+                        .WithMany("ExtraRooms")
+                        .HasForeignKey("LeaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_lease_rooms_leases_lease_id");
+
+                    b.HasOne("MietHahn.Domain.Properties.Room", null)
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_lease_rooms_room_room_id");
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Leases.OccupantCount", b =>
                 {
                     b.HasOne("MietHahn.Domain.Leases.Lease", null)
@@ -9701,6 +9774,8 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("MietHahn.Domain.Leases.Lease", b =>
                 {
                     b.Navigation("Components");
+
+                    b.Navigation("ExtraRooms");
 
                     b.Navigation("Parties");
 

@@ -47,7 +47,7 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
 
         var units = property.Units.Where(e => e.Type is UnitType.Apartment or UnitType.Commercial).OrderBy(e => e.Order).ToList();
         var unitIds = units.Select(e => e.Id).ToList();
-        var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.People)
+        var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.People).Include(v => v.ExtraRooms)
             .Where(v => unitIds.Contains(v.UnitId) && v.Term.From <= end && (v.Term.To == null || v.Term.To >= start))
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
@@ -78,7 +78,8 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
                 lease.ReceivesOperatingCostStatement,
                 lease.ExcludedCostTypes.ToHashSet(StringComparer.Ordinal),
                 prepayments,
-                lease.ReceivesHeatingCostStatement));
+                lease.ReceivesHeatingCostStatement,
+                [.. lease.ExtraRooms.Select(r => r.RoomId)]));
         }
 
         var rules = await db.Set<CostAllocationRule>().AsNoTracking().Include(r => r.Shares)

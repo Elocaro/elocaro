@@ -21,6 +21,11 @@ public interface ILeaseService
 
     Task<Result> UpdateAsync(Guid id, LeaseInput data, CancellationToken cancellationToken = default);
 
+    /// <summary>Adds a further room of the same shared flat to a room lease (one lease, one rent for several rooms).</summary>
+    Task<Result> AddRoomAsync(Guid id, Guid roomId, CancellationToken cancellationToken = default);
+
+    Task<Result> RemoveRoomAsync(Guid id, Guid roomId, CancellationToken cancellationToken = default);
+
     /// <summary>Corrects start and fixed-term end of the lease (typing errors); the monthly rents are recalculated by the nightly job.</summary>
     Task<Result> CorrectTermAsync(Guid id, LeaseTermInput input, CancellationToken cancellationToken = default);
 
@@ -99,7 +104,12 @@ public sealed record LeaseDetails(
     DateOnly ReferenceDate,
     DateOnly? NextDueDate,
     int LandlordNoticePeriodMonths,
-    RentModelView RentModel);
+    RentModelView RentModel,
+    IReadOnlyList<LeaseRoomView>? Rooms = null,
+    IReadOnlyList<LeaseRoomView>? AvailableRooms = null);
+
+/// <summary>A room of a lease; <paramref name="IsFirst"/> = the room the lease was created for.</summary>
+public sealed record LeaseRoomView(Guid Id, string Name, bool IsFirst);
 
 /// <param name="LastIncrease">Start of the current base rent, if changed after the lease start.</param>
 /// <param name="BaseRentThreeYearsAgo">For the cap limit (§ 558 Abs. 3 BGB).</param>

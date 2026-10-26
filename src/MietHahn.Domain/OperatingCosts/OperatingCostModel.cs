@@ -42,6 +42,7 @@ public sealed record PrepaymentMonth(DateOnly ServiceMonth, RentComponentType Co
 
 /// <param name="ReceivesStatement">Prepayment lease; otherwise (flat rate, inclusive) the share stays with the landlord and is compared internally.</param>
 /// <param name="ExcludedCostTypes">Cost types that are not agreed in the lease.</param>
+/// <param name="ExtraRoomIds">Further rooms of a lease on several rooms of a shared flat.</param>
 /// <param name="ReceivesHeatingStatement">Heating costs are billed by consumption (also with a flat rate if agreed, HeizkostenV takes precedence); <c>null</c> = like <paramref name="ReceivesStatement"/>.</param>
 public sealed record BillingLease(
     Guid Id,
@@ -53,7 +54,12 @@ public sealed record BillingLease(
     bool ReceivesStatement,
     IReadOnlySet<string> ExcludedCostTypes,
     IReadOnlyList<PrepaymentMonth> Prepayments,
-    bool? ReceivesHeatingStatement = null);
+    bool? ReceivesHeatingStatement = null,
+    IReadOnlyList<Guid>? ExtraRoomIds = null)
+{
+    /// <summary>Whether the lease covers the room (its first room or one of the further rooms).</summary>
+    public bool CoversRoom(Guid roomId) => RoomId == roomId || ExtraRoomIds?.Contains(roomId) == true;
+}
 
 public sealed record BillingCost(
     Guid Id,

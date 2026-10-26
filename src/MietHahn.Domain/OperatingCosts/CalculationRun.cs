@@ -318,7 +318,7 @@ internal sealed class CalculationRun
     }
 
     private BillingLease? LeaseAt(Guid unitId, Guid? roomId, DateOnly day) =>
-        leases.FirstOrDefault(l => l.UnitId == unitId && (roomId is null || l.RoomId == roomId) && l.Term.Contains(day));
+        leases.FirstOrDefault(l => l.UnitId == unitId && (roomId is null || l.CoversRoom(roomId.Value)) && l.Term.Contains(day));
 
     private List<RuleSlice> Slices(string type)
     {
@@ -522,9 +522,15 @@ internal sealed class CalculationRun
         var rooms = unit.Rooms.OrderBy(r => r.Name, StringComparer.Ordinal).ThenBy(r => r.Id).ToList();
         if (rule.Key == AllocationKey.Persons)
         {
+            var counted = new HashSet<Guid>();
             foreach (var room in rooms)
             {
                 var lease = LeaseAt(unit.Id, room.Id, day);
+                if (lease is not null && !counted.Add(lease.Id))
+                {
+                    continue; // a lease on several rooms counts its persons once
+                }
+
                 var persons = lease is null ? vacancyPersons : PersonsOn(lease, day);
                 AddPart(
                     OccupantParty(set, unit, room, lease),
@@ -899,11 +905,17 @@ internal sealed class CalculationRun
         return (paid, due, months);
     }
 
+    /// <summary>"Unit" or "Unit, Zimmer 2 und Zimmer 3" for a lease on rooms.</summary>
+    private static string RentalText(BillingUnit unit, BillingLease lease)
+    {
+        var names = unit.Rooms.Where(r => lease.CoversRoom(r.Id)).Select(r => r.Name).ToList();
+        return names.Count == 0 ? unit.Name : $"{unit.Name}, {string.Join(" und ", names)}";
+    }
+
     private TenantStatement Statement(BillingLease lease)
     {
         var unit = unitsById[lease.UnitId];
-        var room = unit.Rooms.FirstOrDefault(r => r.Id == lease.RoomId);
-        var rental = room is null ? unit.Name : $"{unit.Name}, {room.Name}";
+        var rental = RentalText(unit, lease);
         var operatingBilled = OperatingStatementFor(lease);
         var lines = (linesByLease.GetValueOrDefault(lease.Id) ?? [])
             .Where(l => operatingBilled || l.Group != CostGroup.Operating)
@@ -974,8 +986,7 @@ internal sealed class CalculationRun
     private FlatRateComparison FlatRate(BillingLease lease)
     {
         var unit = unitsById[lease.UnitId];
-        var room = unit.Rooms.FirstOrDefault(r => r.Id == lease.RoomId);
         var (paid, due, _) = Prepayments(lease, RentComponentType.OperatingCostFlatRate, RentComponentType.OperatingCostPrepayment);
-        return new FlatRateComparison(lease.Id, lease.Label, room is null ? unit.Name : $"{unit.Name}, {room.Name}", actualByLease.GetValueOrDefault(lease.Id), paid, due);
+        return new FlatRateComparison(lease.Id, lease.Label, RentalText(unit, lease), actualByLease.GetValueOrDefault(lease.Id), paid, due);
     }
 }

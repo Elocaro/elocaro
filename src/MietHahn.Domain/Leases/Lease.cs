@@ -126,6 +126,41 @@ public sealed class Lease : Entity
 
     public List<RentStep> RentSteps { get; private set; } = [];
 
+    /// <summary>
+    /// Further rooms of a shared flat rented with the same lease (the first room is <see cref="RoomId"/>): one lease, one rent and one
+    /// deposit for several rooms.
+    /// </summary>
+    public List<LeaseRoom> ExtraRooms { get; private set; } = [];
+
+    /// <summary>All rooms of the lease (empty for a lease on a whole unit).</summary>
+    public IReadOnlyList<Guid> RoomIds => RoomId is { } first ? [first, .. ExtraRooms.Select(r => r.RoomId)] : [];
+
+    public void AddRoom(Guid roomId)
+    {
+        if (RoomId is null)
+        {
+            throw new RuleViolationException("Weitere Zimmer gibt es nur bei einem Zimmervertrag in einer Wohngemeinschaft.");
+        }
+
+        if (RoomIds.Contains(roomId))
+        {
+            throw new RuleViolationException("Das Zimmer gehört schon zum Vertrag.");
+        }
+
+        ExtraRooms.Add(new LeaseRoom(Id, roomId));
+    }
+
+    public void RemoveRoom(Guid roomId)
+    {
+        if (roomId == RoomId)
+        {
+            throw new RuleViolationException("Das erste Zimmer des Vertrags lässt sich nicht entfernen. Bitte stattdessen das andere Zimmer als erstes anlegen oder den Vertrag beenden.");
+        }
+
+        var extra = ExtraRooms.FirstOrDefault(r => r.RoomId == roomId) ?? throw new RuleViolationException("Das Zimmer gehört nicht zum Vertrag.");
+        ExtraRooms.Remove(extra);
+    }
+
     public List<LeaseParty> Parties { get; private set; } = [];
 
     public List<RentComponent> Components { get; private set; } = [];

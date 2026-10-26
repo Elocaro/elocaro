@@ -20,6 +20,9 @@ public sealed class LeaseCreation
 
     public List<Guid> GuarantorIds { get; set; } = [];
 
+    /// <summary>Further rooms of the same shared flat rented with this lease (the rental object is the first room).</summary>
+    public List<Guid> AdditionalRoomIds { get; set; } = [];
+
     public BillingType BillingType { get; set; }
 
     public bool HeatingCostsConsumptionBased { get; set; }

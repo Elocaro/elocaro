@@ -67,7 +67,7 @@ internal sealed partial class HeatingRun
             : $"{Span(p.Span)}: {Num(p.Value)} {unit} ({p.Text})"));
 
     private BillingLease? LeaseAt(Guid unitId, Guid? roomId, DateOnly day) =>
-        leases.FirstOrDefault(l => l.UnitId == unitId && (roomId is null || l.RoomId == roomId) && l.Term.Contains(day));
+        leases.FirstOrDefault(l => l.UnitId == unitId && (roomId is null || l.CoversRoom(roomId.Value)) && l.Term.Contains(day));
 
     private static Party OccupantParty(Dictionary<string, Party> registry, BillingUnit unit, BillingRoom? room, BillingLease? lease)
     {

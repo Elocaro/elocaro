@@ -28,6 +28,7 @@ internal sealed class LeaseConfiguration : IEntityTypeConfiguration<Lease>
 
         builder.HasOne<Unit>().WithMany().HasForeignKey(v => v.UnitId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Room>().WithMany().HasForeignKey(v => v.RoomId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(v => v.ExtraRooms).WithOne().HasForeignKey(r => r.LeaseId).OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(v => v.Parties).WithOne().HasForeignKey(p => p.LeaseId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(v => v.Components).WithOne().HasForeignKey(b => b.LeaseId).OnDelete(DeleteBehavior.Cascade);
@@ -169,5 +170,16 @@ internal sealed class SignatureRequestConfiguration : IEntityTypeConfiguration<S
         builder.HasOne<MietHahn.Domain.Files.StoredFile>().WithMany().HasForeignKey(s => s.SignatureFileId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(s => s.TokenHash);
         builder.HasIndex(s => s.ContractId);
+    }
+}
+
+internal sealed class LeaseRoomConfiguration : IEntityTypeConfiguration<LeaseRoom>
+{
+    public void Configure(EntityTypeBuilder<LeaseRoom> builder)
+    {
+        builder.ToTable("lease_rooms");
+        builder.HasOne<Room>().WithMany().HasForeignKey(r => r.RoomId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(r => new { r.LeaseId, r.RoomId }).IsUnique().HasFilter("NOT deleted");
+        builder.HasIndex(r => r.RoomId);
     }
 }
