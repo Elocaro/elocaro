@@ -39,6 +39,12 @@ public sealed class RentStep : Entity
     public DateTimeOffset? AppliedAt { get; private set; }
 
     internal void MarkApplied(DateTimeOffset timestamp) => AppliedAt = timestamp;
+
+    internal void Correct(DateOnly from, decimal baseRent)
+    {
+        From = from;
+        BaseRent = baseRent;
+    }
 }
 
 /// <summary>Monthly consumer price index (Destatis, base 2020 = 100, table 61111-0002).</summary>

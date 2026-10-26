@@ -1,0 +1,86 @@
+@using MudBlazor
+@using MietHahn.Domain.Leases
+@inject ITenantAccounts Accounts
+@inject Notifier Notify
+
+@* Dialog "edit entry" of the tenant account: corrects a manually recorded payment or a manually created charge. *@
+<EditForm Model="@(Entry.EntryType == EntryType.Payment ? payment : charge)" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            @if (Entry.EntryType == EntryType.Payment)
+            {
+                <div class="form-grid">
+                    <AppDateField @bind-Value="payment.Date" Label="Datum" Required="true" />
+                    <AppNumberField T="decimal?" @bind-Value="payment.Amount" Label="Betrag" Suffix="€" Required="true" />
+                    <AppTextField @bind-Value="payment.Purpose" Label="Verwendungszweck" />
+                    <AppSelect T="Guid?" @bind-Value="payment.ChargeId" Label="Zahlt auf (optional)" Items="OpenCharges.Select(c => (Guid?)c.Id).ToList()" Text="@(id => OpenCharges.FirstOrDefault(c => c.Id == id).Text ?? "")" EmptyText="– automatisch verrechnen –" />
+                </div>
+                <AppCheckBox @bind-Value="payment.Payout" Label="Auszahlung an den Mieter" />
+            }
+            else
+            {
+                <div class="form-grid">
+                    <AppSelect @bind-Value="charge.Kind" Label="Art" Items="Enum.GetValues<ChargeType>().Where(a => a != ChargeType.Rent).ToList()" Text="@(v => Labels.From(v))" />
+                    <AppDateField @bind-Value="charge.Due" Label="Fällig am" Required="true" />
+                    <AppNumberField T="decimal?" @bind-Value="charge.Amount" Label="Betrag" Suffix="€" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht." />
+                    <AppTextField @bind-Value="charge.Name" Label="Bezeichnung" />
+                    <AppTextField @bind-Value="charge.Note" Label="Notiz" />
+                </div>
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private PaymentInput payment = new();
+    private ChargeInput charge = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public AccountEntry Entry { get; set; } = default!;
+
+    /// <summary>Open claims for the designation of payment.</summary>
+    [Parameter]
+    public IReadOnlyList<(Guid Id, string Text)> OpenCharges { get; set; } = [];
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        var amount = Entry.Debit + Entry.Credit;
+        if (Entry.EntryType == EntryType.Payment)
+        {
+            // Debit on a payment line = payout to the tenant.
+            payment = new PaymentInput { Date = Entry.Date, Amount = amount, Payout = Entry.Debit > 0, Purpose = Entry.Note, ChargeId = Entry.SettlesChargeId };
+        }
+        else
+        {
+            charge = new ChargeInput { Kind = Entry.Kind ?? ChargeType.AdditionalPayment, Due = Entry.Date, Amount = amount, Name = Entry.Text, Note = Entry.Note };
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = Entry.EntryType == EntryType.Payment
+            ? await Accounts.UpdatePaymentAsync(Entry.Id, payment)
+            : await Accounts.UpdateChargeAsync(Entry.Id, charge);
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Buchung wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(Entry.Id));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

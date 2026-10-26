@@ -21,6 +21,12 @@ public interface ISupplyContracts
     /// <summary>New tariff from the effective date; the previous one ends the day before.</summary>
     Task<Result> AddTariffAsync(Guid contractId, SupplyTariffInput input, CancellationToken cancellationToken = default);
 
+    /// <summary>Corrects the contract data (the tariffs stay).</summary>
+    Task<Result> UpdateAsync(Guid contractId, SupplyContractInput input, CancellationToken cancellationToken = default);
+
+    /// <summary>Corrects a tariff (start, prices, note).</summary>
+    Task<Result> UpdateTariffAsync(Guid contractId, Guid tariffId, SupplyTariffInput input, CancellationToken cancellationToken = default);
+
     Task<Result> RemoveTariffAsync(Guid contractId, Guid tariffId, CancellationToken cancellationToken = default);
 
     Task<Result> RemoveAsync(Guid contractId, CancellationToken cancellationToken = default);
@@ -36,13 +42,15 @@ public sealed record SupplyContractView(
     string Name,
     string? Supplier,
     string CostTypeName,
+    string CostType,
     MeterType MeterType,
     SupplyBasis Basis,
     PriceUnit PriceUnit,
     HeatingCostKind? HeatingKind,
     DeviationHandling Deviation,
     IReadOnlyList<string> Meters,
-    IReadOnlyList<SupplyTariffView> Tariffs);
+    IReadOnlyList<SupplyTariffView> Tariffs,
+    IReadOnlyList<Guid>? MeterIds = null);
 
 public sealed record SupplyTariffView(Guid Id, Period Validity, decimal UnitPrice, decimal BaseFeePerMonth, string? Note);
 

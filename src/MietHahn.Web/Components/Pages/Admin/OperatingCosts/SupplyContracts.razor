@@ -58,6 +58,7 @@ else
                             <td class="number">@Format.Money(tariff.BaseFeePerMonth)</td>
                             <td class="small">@tariff.Note</td>
                             <td>
+                                <MudButton Variant="Variant.Text" OnClick="() => EditTariffAsync(contract, tariff)" aria-label="@($"Tarif ab {Format.Date(tariff.Validity.From)} bearbeiten")">Bearbeiten</MudButton>
                                 @if (contract.Tariffs.Count > 1)
                                 {
                                     <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveTariffAsync(contract, tariff)" aria-label="@($"Tarif ab {Format.Date(tariff.Validity.From)} entfernen")">Entfernen</MudButton>
@@ -71,6 +72,7 @@ else
         <div class="actions">
             <MudButton Variant="Variant.Outlined" OnClick="() => AddTariffAsync(contract)">Neuer Tarif</MudButton>
             <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+                <MudMenuItem OnClick="() => EditAsync(contract)">Vertrag bearbeiten</MudMenuItem>
                 <MudMenuItem OnClick="() => RemoveAsync(contract)">Vertrag entfernen</MudMenuItem>
             </MudMenu>
         </div>
@@ -106,6 +108,30 @@ else
             "Versorgungsvertrag anlegen",
             new DialogParameters { ["PropertyId"] = PropertyId, ["AllMeters"] = overview!.Meters, ["DefaultFrom"] = YearStart },
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditAsync(SupplyContractView contract)
+    {
+        var dialog = await Dialogs.ShowAsync<SupplyContractDialog>(
+            "Versorgungsvertrag bearbeiten",
+            new DialogParameters { ["PropertyId"] = PropertyId, ["AllMeters"] = overview!.Meters, ["Contract"] = contract },
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditTariffAsync(SupplyContractView contract, SupplyTariffView tariff)
+    {
+        var dialog = await Dialogs.ShowAsync<SupplyTariffDialog>(
+            "Tarif bearbeiten",
+            new DialogParameters { ["ContractId"] = contract.Id, ["PriceUnit"] = contract.PriceUnit, ["Tariff"] = tariff },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
         if (!(await dialog.Result)!.Canceled)
         {
             await LoadAsync();

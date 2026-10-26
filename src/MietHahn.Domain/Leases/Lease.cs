@@ -245,6 +245,79 @@ public sealed class Lease : Entity
     }
 
     /// <summary>
+    /// Corrects start and fixed-term end (typing errors): rent components and persons that began at the old start or ended at the old end
+    /// move along; steps must stay after the start. With a recorded termination only the start can change.
+    /// </summary>
+    public void CorrectTerm(DateOnly newStart, DateOnly? newFixedUntil)
+    {
+        var terminated = TerminationReceivedOn is not null;
+        if (newFixedUntil < newStart)
+        {
+            throw new RuleViolationException("Das Ende der Befristung liegt vor dem Mietbeginn.");
+        }
+
+        if (terminated && newFixedUntil != FixedTermUntil)
+        {
+            throw new RuleViolationException("Bei einer erfassten Kündigung bestimmt sie das Ende. Bitte zuerst die Kündigung aufheben, um die Befristung zu ändern.");
+        }
+
+        var oldStart = Start;
+        var oldEnd = End;
+        var newEnd = terminated ? oldEnd : newFixedUntil;
+        if (newEnd < newStart)
+        {
+            throw new RuleViolationException("Das Mietende liegt vor dem neuen Mietbeginn.");
+        }
+
+        if (RentSteps.Any(s => s.From <= newStart))
+        {
+            throw new RuleViolationException("Eine Staffel liegt vor oder am neuen Mietbeginn. Bitte zuerst die Staffeln anpassen.");
+        }
+
+        var items = Components.Select(c => (From: c.Validity.From, To: c.Validity.To, Name: $"Mietbestandteil {c.Kind}"))
+            .Concat(People.Select(p => (From: p.Validity.From, To: p.Validity.To, Name: "Die Personenanzahl")));
+        foreach (var (from, to, name) in items)
+        {
+            var startsBefore = from != oldStart && from < newStart;
+            var endsBeforeStart = to is { } until && until < newStart;
+            var startsAfterEnd = newEnd is { } last && from > last;
+            if (startsBefore || endsBeforeStart || startsAfterEnd)
+            {
+                throw new RuleViolationException($"{name} (ab {from:dd.MM.yyyy}) passt nicht zum neuen Zeitraum. Bitte zuerst anpassen oder beenden.");
+            }
+        }
+
+        foreach (var component in Components)
+        {
+            if (component.Validity.From == oldStart && newStart != oldStart)
+            {
+                component.SetFrom(newStart);
+            }
+
+            if (component.Validity.To == oldEnd && newEnd != oldEnd)
+            {
+                component.SetTo(newEnd);
+            }
+        }
+
+        foreach (var entry in People)
+        {
+            if (entry.Validity.From == oldStart && newStart != oldStart)
+            {
+                entry.SetFrom(newStart);
+            }
+
+            if (entry.Validity.To == oldEnd && newEnd != oldEnd)
+            {
+                entry.SetTo(newEnd);
+            }
+        }
+
+        FixedTermUntil = newFixedUntil;
+        Term = new Period(newStart, newEnd);
+    }
+
+    /// <summary>
     /// Revokes a recorded termination (e.g. withdrawn): open-ended again or until the fixed end.
     /// Components and number of persons that expired at the previous end continue.
     /// </summary>
@@ -341,6 +414,30 @@ public sealed class Lease : Entity
         var rentStep = new RentStep(Id, from, decimal.Round(baseRent, 2));
         RentSteps.Add(rentStep);
         return rentStep;
+    }
+
+    /// <summary>Corrects a step that has not been adopted yet (date and rent), with the same rules as when adding it.</summary>
+    public void UpdateRentStep(Guid rentStepId, DateOnly from, decimal baseRent)
+    {
+        var rentStep = RentSteps.SingleOrDefault(s => s.Id == rentStepId) ?? throw new RuleViolationException("Die Staffel wurde nicht gefunden.");
+        if (rentStep.AppliedAt is not null)
+        {
+            throw new RuleViolationException("Bereits übernommene Staffeln bleiben erhalten; die Miete bitte über die Bestandteile korrigieren.");
+        }
+
+        ValidateWithinLease(from);
+        if (baseRent <= 0)
+        {
+            throw new RuleViolationException("Bitte die neue Kaltmiete angeben.");
+        }
+
+        var dates = RentSteps.Where(s => s.Id != rentStepId).Select(s => s.From).Append(Start).Order().ToList();
+        if (dates.Any(t => Math.Abs(MonthsBetween(t, from)) < 12))
+        {
+            throw new RuleViolationException("Zwischen zwei Staffeln (und ab Mietbeginn) muss die Miete mindestens ein Jahr unverändert bleiben.");
+        }
+
+        rentStep.Correct(from, decimal.Round(baseRent, 2));
     }
 
     public void RemoveRentStep(Guid rentStepId)
@@ -497,6 +594,8 @@ public sealed class RentComponent : Entity, ITimeDependent
     public void EndValidity(DateOnly lastDay) => Validity = Validity.EndOn(lastDay);
 
     internal void SetTo(DateOnly? to) => Validity = new Period(Validity.From, to);
+
+    internal void SetFrom(DateOnly from) => Validity = new Period(from, Validity.To);
 }
 
 /// <summary>Number of persons living in the rental object (allocation by persons).</summary>
@@ -520,6 +619,8 @@ public sealed class OccupantCount : Entity, ITimeDependent
     public int Count { get; private set; }
 
     public void EndValidity(DateOnly lastDay) => Validity = Validity.EndOn(lastDay);
+
+    internal void SetFrom(DateOnly from) => Validity = new Period(from, Validity.To);
 
     internal void SetTo(DateOnly? to) => Validity = new Period(Validity.From, to);
 }

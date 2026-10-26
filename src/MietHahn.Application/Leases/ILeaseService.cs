@@ -21,6 +21,9 @@ public interface ILeaseService
 
     Task<Result> UpdateAsync(Guid id, LeaseInput data, CancellationToken cancellationToken = default);
 
+    /// <summary>Corrects start and fixed-term end of the lease (typing errors); the monthly rents are recalculated by the nightly job.</summary>
+    Task<Result> CorrectTermAsync(Guid id, LeaseTermInput input, CancellationToken cancellationToken = default);
+
     Task<Result> SetComponentAsync(Guid id, ComponentInput input, CancellationToken cancellationToken = default);
 
     Task<Result> EndComponentAsync(Guid id, RentComponentType kind, DateOnly lastDay, CancellationToken cancellationToken = default);
@@ -42,6 +45,9 @@ public interface ILeaseService
     Task<Result> SetRentModelAsync(Guid id, RentModelInput input, CancellationToken cancellationToken = default);
 
     Task<Result> AddRentStepAsync(Guid id, RentStepInput input, CancellationToken cancellationToken = default);
+
+    /// <summary>Corrects a step that has not been adopted yet.</summary>
+    Task<Result> UpdateRentStepAsync(Guid id, Guid rentStepId, RentStepInput input, CancellationToken cancellationToken = default);
 
     Task<Result> RemoveRentStepAsync(Guid id, Guid rentStepId, CancellationToken cancellationToken = default);
 

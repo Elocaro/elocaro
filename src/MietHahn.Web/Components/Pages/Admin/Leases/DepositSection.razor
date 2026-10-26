@@ -3,6 +3,7 @@
 @inject IDeposits Deposits
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject IDialogService Dialogs
 @* Deposit account of a lease: agreed amount, payments, interest, refund and set-offs. *@
 <section id="deposit">
     <h2>Kaution</h2>
@@ -57,7 +58,9 @@
                                 <td>@Labels.From(row.Kind)</td>
                                 <td>@row.Note</td>
                                 <td class="number">@(row.Kind is DepositEntryKind.Refund or DepositEntryKind.Deduction ? "−" : "")@Format.Money(row.Amount)</td>
-                                <td><MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => DeleteAsync(row)" aria-label="@($"{Labels.From(row.Kind)} vom {Format.Date(row.Date)} löschen")">Löschen</MudButton></td>
+                                <td>
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => EditAsync(row)" aria-label="@($"{Labels.From(row.Kind)} vom {Format.Date(row.Date)} bearbeiten")">Bearbeiten</MudButton>
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => DeleteAsync(row)" aria-label="@($"{Labels.From(row.Kind)} vom {Format.Date(row.Date)} löschen")">Löschen</MudButton></td>
                             </tr>
                         }
                     </tbody>
@@ -102,6 +105,18 @@
         else
         {
             errors = result.Errors;
+        }
+    }
+
+    private async Task EditAsync(DepositRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<DepositEntryDialog>(
+            "Kautionsbuchung bearbeiten",
+            new DialogParameters { ["Row"] = row },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            view = await Deposits.GetAsync(LeaseId);
         }
     }
 

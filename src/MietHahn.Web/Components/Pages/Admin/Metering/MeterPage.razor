@@ -8,6 +8,7 @@
 @inject TimeProvider Clock
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject IDialogService Dialogs
 
 <InteractiveShell>
 @if (!loaded)
@@ -133,6 +134,7 @@ else if (meter.Meter.RemovedOn is null)
                             </td>
                             <td class="small">@entry.ReadBy</td>
                             <td>
+                                <MudButton Variant="Variant.Text" OnClick="() => EditReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} bearbeiten")">Bearbeiten</MudButton>
                                 @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
                                 {
                                     <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} entfernen")">Entfernen</MudButton>
@@ -320,6 +322,18 @@ else if (meter.Meter.RemovedOn is null)
         {
             errors = result.Errors;
             warnings = null;
+        }
+    }
+
+    private async Task EditReadingAsync(ReadingView reading)
+    {
+        var dialog = await Dialogs.ShowAsync<ReadingDialog>(
+            "Stand bearbeiten",
+            new DialogParameters { ["MeterId"] = Id, ["Reading"] = reading },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
         }
     }
 

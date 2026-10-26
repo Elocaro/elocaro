@@ -10,8 +10,11 @@
             <ErrorList Errors="errors" />
 
             <h3>1. Was wird geliefert?</h3>
-            <AppSelect T="SupplyPreset" Value="preset" ValueChanged="OnPresetChanged" Label="Art der Lieferung" Items="SupplyPreset.All" Text="@(p => p.Label)" />
-            <p class="small">@preset.Description</p>
+            @if (Contract is null)
+            {
+                <AppSelect T="SupplyPreset" Value="preset" ValueChanged="OnPresetChanged" Label="Art der Lieferung" Items="SupplyPreset.All" Text="@(p => p.Label)" />
+                <p class="small">@preset.Description</p>
+            }
             <div class="form-grid">
                 <AppTextField @bind-Value="data.Name" Label="Bezeichnung" Required="true" />
                 <AppTextField @bind-Value="data.Supplier" Label="Lieferant" />
@@ -55,17 +58,24 @@
                 <AppSelect T="DeviationHandling" @bind-Value="data.Deviation" Label="Differenz Hauptzähler zu Wohnungszählern" Items="Enum.GetValues<DeviationHandling>()" Text="Labels.From" Hint="Zeigt der Hauptzähler mehr als die Wohnungszähler zusammen (Leitungsverlust, Garten, Zählertoleranz)?" />
             }
 
-            <h3>3. Tarif</h3>
-            <div class="form-grid">
-                <AppDateField @bind-Value="data.Tariff.From" Label="Gilt ab" Required="true" />
-                <AppNumberField T="decimal?" @bind-Value="data.Tariff.UnitPrice" Label="@($"Preis ({Labels.From(data.PriceUnit)}, brutto)")" />
-                <AppNumberField T="decimal?" @bind-Value="data.Tariff.BaseFeePerMonth" Label="Grundpreis je Monat (brutto)" Suffix="€" />
-            </div>
-            <p class="small">Später wechselnde Preise legen Sie als weiteren Tarif mit Stichtag an.</p>
+            @if (Contract is null)
+            {
+                <h3>3. Tarif</h3>
+                <div class="form-grid">
+                    <AppDateField @bind-Value="data.Tariff.From" Label="Gilt ab" Required="true" />
+                    <AppNumberField T="decimal?" @bind-Value="data.Tariff.UnitPrice" Label="@($"Preis ({Labels.From(data.PriceUnit)}, brutto)")" />
+                    <AppNumberField T="decimal?" @bind-Value="data.Tariff.BaseFeePerMonth" Label="Grundpreis je Monat (brutto)" Suffix="€" />
+                </div>
+                <p class="small">Später wechselnde Preise legen Sie als weiteren Tarif mit Stichtag an.</p>
+            }
+            else
+            {
+                <p class="small">Die Tarife bearbeiten Sie in der Tabelle des Vertrags.</p>
+            }
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="Cancel">Abbrechen</MudButton>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Vertrag anlegen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(Contract is null ? "Vertrag anlegen" : "Speichern")</MudButton>
         </DialogActions>
     </MudDialog>
 </EditForm>
@@ -88,6 +98,10 @@
     [Parameter]
     public DateOnly DefaultFrom { get; set; }
 
+    /// <summary>Set: edit this contract (the tariffs stay) instead of creating a new one.</summary>
+    [Parameter]
+    public SupplyContractView? Contract { get; set; }
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -101,6 +115,24 @@
     protected override void OnInitialized()
     {
         data.Tariff.From = DefaultFrom;
+        if (Contract is { } contract)
+        {
+            preset = SupplyPreset.All[^1];
+            data = new SupplyContractInput
+            {
+                Name = contract.Name,
+                Supplier = contract.Supplier,
+                CostType = contract.CostType,
+                MeterType = contract.MeterType,
+                Basis = contract.Basis,
+                PriceUnit = contract.PriceUnit,
+                HeatingKind = contract.HeatingKind,
+                Deviation = contract.Deviation,
+                MeterIds = [.. contract.MeterIds ?? []],
+            };
+            return;
+        }
+
         Apply(preset);
     }
 
@@ -161,10 +193,10 @@
 
     private async Task SaveAsync()
     {
-        var result = await Supply.CreateAsync(PropertyId, data);
+        var result = Contract is { } contract ? await Supply.UpdateAsync(contract.Id, data) : await Supply.CreateAsync(PropertyId, data);
         if (result.Succeeded)
         {
-            Notify.Success("Der Versorgungsvertrag wurde angelegt.");
+            Notify.Success(Contract is null ? "Der Versorgungsvertrag wurde angelegt." : "Der Versorgungsvertrag wurde gespeichert.");
             MudDialog.Close(DialogResult.Ok(result.Id));
         }
         else

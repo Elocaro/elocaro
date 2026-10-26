@@ -37,10 +37,10 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
 
         var lines = charges.Select(s => (Date: s.Due, Order: RankOrder(s), s.Id, Row: (Func<decimal, AccountEntry>)(balance => new AccountEntry(
                 s.Id, EntryType.Charge, s.Due, s.Name, s.Kind, Math.Max(s.Amount, 0), Math.Max(-s.Amount, 0), balance,
-                s.Amount > 0 ? result.Open[s.Id] : null, s.Automatic, null)), Amount: s.Amount))
+                s.Amount > 0 ? result.Open[s.Id] : null, s.Automatic, null, s.Note)), Amount: s.Amount))
             .Concat(payments.Select(z => (Date: z.Date, Order: 1000, z.Id, Row: (Func<decimal, AccountEntry>)(balance => new AccountEntry(
                 z.Id, EntryType.Payment, z.Date, PaymentText(z), null, Math.Max(-z.Amount, 0), Math.Max(z.Amount, 0), balance,
-                null, false, z.Origin)), Amount: -z.Amount)))
+                null, false, z.Origin, z.Purpose, z.ChargeId)), Amount: -z.Amount)))
             .OrderBy(z => z.Date).ThenBy(z => z.Order).ThenBy(z => z.Id);
 
         var bookings = new List<AccountEntry>();
@@ -159,6 +159,27 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
             return charge.Id;
         });
 
+    public Task<Result> UpdateChargeAsync(Guid chargeId, ChargeInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var charge = await db.Set<Charge>().SingleOrDefaultAsync(s => s.Id == chargeId, cancellationToken) ?? throw new NotFoundException();
+            if (charge.Automatic)
+            {
+                throw new RuleViolationException("Monatsmieten ergeben sich aus dem Vertrag; Korrekturen bitte am Vertrag oder als eigene Sollstellung.");
+            }
+
+            var amount = input.Amount ?? 0m;
+            charge.Update(
+                input.Kind,
+                input.Due ?? throw new RuleViolationException("Bitte das Fälligkeitsdatum angeben."),
+                input.Kind == ChargeType.Refund ? -amount : amount,
+                string.IsNullOrWhiteSpace(input.Name) ? DefaultText(input.Kind) : input.Name.Trim());
+            charge.Note = string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim();
+            await db.SaveChangesAsync(cancellationToken);
+            return charge.Id;
+        });
+
     public Task<Result> RecordPaymentAsync(Guid leaseId, PaymentInput input, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
@@ -176,6 +197,29 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
                 ChargeId = input.Payout ? null : input.ChargeId,
             };
             db.Add(payment);
+            await db.SaveChangesAsync(cancellationToken);
+            return payment.Id;
+        });
+
+    public Task<Result> UpdatePaymentAsync(Guid paymentId, PaymentInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var payment = await db.Set<Payment>().SingleOrDefaultAsync(z => z.Id == paymentId, cancellationToken) ?? throw new NotFoundException();
+            if (payment.Origin != PaymentOrigin.Manual)
+            {
+                throw new RuleViolationException("Zahlungen aus dem Bankimport werden über die Zuordnung des Umsatzes geändert.");
+            }
+
+            if (input.ChargeId is { } specific && !await db.Set<Charge>().AnyAsync(s => s.Id == specific && s.LeaseId == payment.LeaseId, cancellationToken))
+            {
+                throw new RuleViolationException("Die gewählte Forderung gehört nicht zu diesem Mietverhältnis.");
+            }
+
+            var amount = input.Amount ?? 0m;
+            payment.Update(input.Date ?? throw new RuleViolationException("Bitte das Zahlungsdatum angeben."), input.Payout ? -amount : amount);
+            payment.Purpose = string.IsNullOrWhiteSpace(input.Purpose) ? null : input.Purpose.Trim();
+            payment.ChargeId = input.Payout ? null : input.ChargeId;
             await db.SaveChangesAsync(cancellationToken);
             return payment.Id;
         });

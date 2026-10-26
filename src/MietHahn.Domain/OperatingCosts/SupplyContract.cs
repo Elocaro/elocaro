@@ -129,6 +129,43 @@ public sealed class SupplyContract : Entity
 
     public List<SupplyTariff> Tariffs { get; private set; } = [];
 
+    /// <summary>Corrects the contract data with the same rules as when creating it; the tariffs stay.</summary>
+    public void Update(string name, string? supplier, string costType, MeterType meterType, SupplyBasis basis, PriceUnit priceUnit, IEnumerable<Guid> meterIds, HeatingCostKind? heatingKind, DeviationHandling deviation)
+    {
+        var check = new SupplyContract(PropertyId, name, supplier, costType, meterType, basis, priceUnit, meterIds, heatingKind, deviation);
+        Name = check.Name;
+        Supplier = check.Supplier;
+        CostType = check.CostType;
+        MeterType = check.MeterType;
+        Basis = check.Basis;
+        PriceUnit = check.PriceUnit;
+        MeterIds = check.MeterIds;
+        HeatingKind = check.HeatingKind;
+        Deviation = check.Deviation;
+    }
+
+    /// <summary>Corrects a tariff; its start may only move between the neighbouring tariffs.</summary>
+    public void UpdateTariff(Guid tariffId, DateOnly from, decimal unitPrice, decimal baseFeePerMonth, string? note)
+    {
+        var ordered = Tariffs.OrderBy(t => t.Validity.From).ToList();
+        var index = ordered.FindIndex(t => t.Id == tariffId);
+        if (index < 0)
+        {
+            throw new RuleViolationException("Der Tarif wurde nicht gefunden.");
+        }
+
+        var tariff = ordered[index];
+        var previous = index > 0 ? ordered[index - 1] : null;
+        var next = index < ordered.Count - 1 ? ordered[index + 1] : null;
+        if ((previous is not null && from <= previous.Validity.From) || (next is not null && from >= next.Validity.From))
+        {
+            throw new RuleViolationException("Der Beginn muss zwischen dem Beginn des vorherigen und des nächsten Tarifs liegen.");
+        }
+
+        tariff.Correct(from, unitPrice, baseFeePerMonth, note);
+        previous?.EndOn(from.AddDays(-1));
+    }
+
     /// <summary>Adds a tariff from the day; the tariff valid until then ends the day before.</summary>
     public SupplyTariff AddTariff(DateOnly from, decimal unitPrice, decimal baseFeePerMonth, string? note = null)
     {
@@ -210,6 +247,15 @@ public sealed class SupplyTariff : Entity
     public decimal BaseFeePerMonth { get; private set; }
 
     public string? Note { get; private set; }
+
+    internal void Correct(DateOnly from, decimal unitPrice, decimal baseFeePerMonth, string? note)
+    {
+        var check = new SupplyTariff(ContractId, from, unitPrice, baseFeePerMonth, note);
+        Validity = new Period(from, Validity.To);
+        UnitPrice = check.UnitPrice;
+        BaseFeePerMonth = check.BaseFeePerMonth;
+        Note = check.Note;
+    }
 
     internal void EndOn(DateOnly lastDay) => Validity = new Period(Validity.From, lastDay);
 

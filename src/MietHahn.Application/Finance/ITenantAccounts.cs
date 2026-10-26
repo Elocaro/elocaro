@@ -21,7 +21,13 @@ public interface ITenantAccounts
     /// <summary>Only manually created charges; monthly rents result from the lease.</summary>
     Task<Result> DeleteChargeAsync(Guid chargeId, CancellationToken cancellationToken = default);
 
+    /// <summary>Corrects a manually created charge (kind, due date, amount, name, note).</summary>
+    Task<Result> UpdateChargeAsync(Guid chargeId, ChargeInput input, CancellationToken cancellationToken = default);
+
     Task<Result> RecordPaymentAsync(Guid leaseId, PaymentInput input, CancellationToken cancellationToken = default);
+
+    /// <summary>Corrects a manually recorded payment (date, amount, purpose, designation of payment).</summary>
+    Task<Result> UpdatePaymentAsync(Guid paymentId, PaymentInput input, CancellationToken cancellationToken = default);
 
     /// <summary>Only manually recorded payments; bank transactions are resolved via the assignment.</summary>
     Task<Result> DeletePaymentAsync(Guid paymentId, CancellationToken cancellationToken = default);
@@ -139,7 +145,9 @@ public sealed record AccountEntry(
     decimal Balance,
     decimal? Open,
     bool Automatic,
-    PaymentOrigin? Origin);
+    PaymentOrigin? Origin,
+    string? Note = null,
+    Guid? SettlesChargeId = null);
 
 /// <summary>Per year and rent component: debit by service month, of which settled, and inflow by payment date (§ 11 EStG).</summary>
 public sealed record AnnualValue(int Year, RentComponentType Component, decimal Debit, decimal Settled, decimal Inflow);

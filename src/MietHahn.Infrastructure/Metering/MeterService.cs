@@ -148,6 +148,35 @@ internal sealed class MeterService(MietHahnDbContext db, ICurrentUser user, Time
         return new ReadingResult(result.Succeeded, result.Errors, warnings);
     }
 
+    public async Task<ReadingResult> UpdateReadingAsync(Guid id, Guid readingId, ReadingInput input, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        var meter = await WithReadings(tracking: true).SingleOrDefaultAsync(z => z.Id == id, cancellationToken);
+        if (meter is null)
+        {
+            return new ReadingResult(false, ["Der Zähler wurde nicht gefunden."], []);
+        }
+
+        if (input.Date is not { } date || input.Value is not { } value)
+        {
+            return new ReadingResult(false, ["Bitte Datum und Zählerstand angeben."], []);
+        }
+
+        var warnings = meter.Validate(date, value, ignoring: readingId);
+        if (warnings.Count > 0 && !input.Confirmed)
+        {
+            return new ReadingResult(false, [], warnings);
+        }
+
+        var result = await Command.ExecuteAsync(async () =>
+        {
+            meter.UpdateReading(readingId, date, value, input.Kind, input.Note);
+            await db.SaveChangesAsync(cancellationToken);
+            return id;
+        });
+        return new ReadingResult(result.Succeeded, result.Errors, warnings);
+    }
+
     public Task<Result> RemoveReadingAsync(Guid id, Guid readingId, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {

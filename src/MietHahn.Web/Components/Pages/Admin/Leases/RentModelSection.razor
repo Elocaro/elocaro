@@ -4,6 +4,7 @@
 @inject IModuleState State
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject IDialogService Dialogs
 
 @* Rent model of a lease: standard (rent development), graduated or index-linked rent. Interactive: saves itself and reports changes. *@
 <section>
@@ -52,6 +53,7 @@
                                     <td>
                                         @if (rentStep.AppliedAt is null)
                                         {
+                                            <MudButton Variant="Variant.Text" OnClick="() => EditStepAsync(rentStep)" aria-label="@($"Staffel {Format.Date(rentStep.From)} bearbeiten")">Bearbeiten</MudButton>
                                             <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveStepAsync(rentStep)" aria-label="@($"Staffel {Format.Date(rentStep.From)} entfernen")">Entfernen</MudButton>
                                         }
                                     </td>
@@ -143,6 +145,18 @@
     private Task AddStepAsync() => ExecuteAsync(Admin.AddRentStepAsync(LeaseId, graduated), "Die Staffel wurde gespeichert.", () => graduated = new());
 
     private Task AdjustIndexAsync() => ExecuteAsync(Admin.AdjustIndexAsync(LeaseId, adjustment), "Die Indexanpassung wurde übernommen.", () => adjustment = new());
+
+    private async Task EditStepAsync(RentStepView step)
+    {
+        var dialog = await Dialogs.ShowAsync<RentStepDialog>(
+            "Staffel bearbeiten",
+            new DialogParameters { ["LeaseId"] = LeaseId, ["Step"] = step },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await OnChanged.InvokeAsync();
+        }
+    }
 
     private async Task RemoveStepAsync(RentStepView step)
     {

@@ -32,13 +32,15 @@ internal sealed class SupplyContractService(MietHahnDbContext db) : ISupplyContr
                 c.Name,
                 c.Supplier,
                 CostTypes.Find(c.CostType)?.Name ?? c.CostType,
+                c.CostType,
                 c.MeterType,
                 c.Basis,
                 c.PriceUnit,
                 c.HeatingKind,
                 c.Deviation,
                 [.. c.MeterIds.Select(id => numbers.GetValueOrDefault(id, "?"))],
-                [.. c.Tariffs.OrderByDescending(t => t.Validity.From).Select(t => new SupplyTariffView(t.Id, t.Validity, t.UnitPrice, t.BaseFeePerMonth, t.Note))]))],
+                [.. c.Tariffs.OrderByDescending(t => t.Validity.From).Select(t => new SupplyTariffView(t.Id, t.Validity, t.UnitPrice, t.BaseFeePerMonth, t.Note))],
+                [.. c.MeterIds]))],
             [.. meters.Where(m => m.RemovedOn is null || contracts.Any(c => c.MeterIds.Contains(m.Id)))
                 .OrderByDescending(m => m.UnitId is null && m.RoomId is null).ThenBy(m => m.Name, StringComparer.CurrentCulture)
                 .Select(m => new MeterOption(m.Id, $"{m.Name} (Nr. {m.Number})", m.Type, m.UnitId is null && m.RoomId is null))]);
@@ -69,6 +71,42 @@ internal sealed class SupplyContractService(MietHahnDbContext db) : ISupplyContr
             db.Add(contract);
             await db.SaveChangesAsync(cancellationToken);
             return contract.Id;
+        });
+
+    public Task<Result> UpdateAsync(Guid contractId, SupplyContractInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var contract = await db.Set<SupplyContract>().SingleOrDefaultAsync(c => c.Id == contractId, cancellationToken) ?? throw new NotFoundException();
+            var chosen = await db.Set<Zaehler>().Where(m => m.PropertyId == contract.PropertyId && input.MeterIds.Contains(m.Id)).ToListAsync(cancellationToken);
+            if (chosen.Count != input.MeterIds.Distinct().Count())
+            {
+                throw new RuleViolationException("Ein gewählter Zähler gehört nicht zum Objekt.");
+            }
+
+            if (chosen.Any(m => m.Type != input.MeterType))
+            {
+                throw new RuleViolationException("Alle gewählten Zähler müssen die gewählte Zählerart haben.");
+            }
+
+            contract.Update(input.Name, input.Supplier, input.CostType, input.MeterType, input.Basis, input.PriceUnit, input.MeterIds, input.HeatingKind, input.Deviation);
+            await db.SaveChangesAsync(cancellationToken);
+            return contract.Id;
+        });
+
+    public Task<Result> UpdateTariffAsync(Guid contractId, Guid tariffId, SupplyTariffInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var contract = await db.Set<SupplyContract>().Include(c => c.Tariffs).SingleOrDefaultAsync(c => c.Id == contractId, cancellationToken) ?? throw new NotFoundException();
+            contract.UpdateTariff(
+                tariffId,
+                input.From ?? throw new RuleViolationException("Bitte angeben, ab wann der Tarif gilt."),
+                input.UnitPrice ?? 0m,
+                input.BaseFeePerMonth ?? 0m,
+                input.Note);
+            await db.SaveChangesAsync(cancellationToken);
+            return tariffId;
         });
 
     public Task<Result> AddTariffAsync(Guid contractId, SupplyTariffInput input, CancellationToken cancellationToken = default) =>

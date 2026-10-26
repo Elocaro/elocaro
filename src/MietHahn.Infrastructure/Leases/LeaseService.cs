@@ -194,6 +194,13 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
             lease.HeatingCostsConsumptionBased = data.HeatingCostsConsumptionBased;
         }, cancellationToken);
 
+    public Task<Result> CorrectTermAsync(Guid id, LeaseTermInput input, CancellationToken cancellationToken = default) =>
+        WithLeaseAsync(id, lease =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            lease.CorrectTerm(input.Start ?? throw new RuleViolationException("Bitte den Mietbeginn angeben."), input.FixedTermUntil);
+        }, cancellationToken);
+
     public Task<Result> SetComponentAsync(Guid id, ComponentInput input, CancellationToken cancellationToken = default) =>
         WithLeaseAsync(id, lease =>
         {
@@ -299,6 +306,16 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
         {
             ArgumentNullException.ThrowIfNull(input);
             lease.AddRentStep(
+                input.From ?? throw new RuleViolationException("Bitte den Termin der Staffel angeben."),
+                input.BaseRent ?? throw new RuleViolationException("Bitte die neue Kaltmiete angeben."));
+        }, cancellationToken);
+
+    public Task<Result> UpdateRentStepAsync(Guid id, Guid rentStepId, RentStepInput input, CancellationToken cancellationToken = default) =>
+        WithLeaseAsync(id, lease =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            lease.UpdateRentStep(
+                rentStepId,
                 input.From ?? throw new RuleViolationException("Bitte den Termin der Staffel angeben."),
                 input.BaseRent ?? throw new RuleViolationException("Bitte die neue Kaltmiete angeben."));
         }, cancellationToken);

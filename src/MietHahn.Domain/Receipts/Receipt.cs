@@ -129,6 +129,26 @@ public sealed class Receipt : Entity
 
     public void RemoveCostItem(Guid positionId) => Items.RemoveAll(p => p.Id == positionId);
 
+    /// <summary>Corrects the main data of an item in place (the references of other records to it stay valid).</summary>
+    public CostItem ChangeCostItem(Guid positionId, string costType, decimal amount, Guid propertyId, Period billingPeriod, bool? allocable = null)
+    {
+        var position = Items.FirstOrDefault(p => p.Id == positionId) ?? throw new RuleViolationException("Die Position wurde nicht gefunden.");
+        var kind = CostTypes.Find(costType) ?? throw new RuleViolationException("Unbekannte Kostenart.");
+        if (amount == 0 || decimal.Round(amount, 2) != amount)
+        {
+            throw new RuleViolationException("Bitte einen Betrag ungleich 0 mit höchstens zwei Nachkommastellen angeben.");
+        }
+
+        var others = Allocated - position.Amount;
+        if (Math.Abs(others + amount) > Math.Abs(Gross) || Math.Sign(amount) != Math.Sign(Gross))
+        {
+            throw new RuleViolationException($"Die Positionen übersteigen den Rechnungsbetrag (verfügbar: {GermanText.Money(Gross - others)}).");
+        }
+
+        position.Change(kind.Key, amount, propertyId, billingPeriod, allocable ?? kind.Allocable);
+        return position;
+    }
+
     /// <summary>New invoice amount: must not be below the sum of the items.</summary>
     public void SetGross(decimal gross)
     {
@@ -242,6 +262,20 @@ public sealed class CostItem : Entity
     public decimal? LaborCosts { get; private set; }
 
     public string? Note { get; set; }
+
+    internal void Change(string costType, decimal amount, Guid propertyId, Period billingPeriod, bool allocable)
+    {
+        if (billingPeriod.IsOpenEnded)
+        {
+            throw new RuleViolationException("Der Abrechnungszeitraum braucht ein Ende.");
+        }
+
+        CostType = costType;
+        Amount = amount;
+        PropertyId = propertyId;
+        BillingPeriod = billingPeriod;
+        Allocable = allocable;
+    }
 
     public void SetSection35a(Section35a kind, decimal? laborCosts)
     {

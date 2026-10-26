@@ -75,6 +75,15 @@ public sealed class LeaseInput
     public string? Notes { get; set; }
 }
 
+public sealed class LeaseTermInput
+{
+    [Required(ErrorMessage = "Bitte den Mietbeginn angeben.")]
+    public DateOnly? Start { get; set; }
+
+    /// <summary>Fixed-term lease (§ 575 BGB) until this day; empty = open-ended.</summary>
+    public DateOnly? FixedTermUntil { get; set; }
+}
+
 public sealed class ComponentInput
 {
     public RentComponentType Kind { get; set; }

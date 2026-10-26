@@ -7,6 +7,7 @@
 @inject IPersonService People
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject MietHahn.Application.Finance.ITenantAccounts Accounts
 
 <InteractiveShell>
 @if (!loaded)
@@ -233,6 +234,19 @@ else
     </EditForm>
 </section>
 
+<section>
+    <h2>Mietzeit korrigieren</h2>
+    <p class="small">Zum Beheben von Tippfehlern bei Mietbeginn und Befristung. Mietbestandteile und Personenanzahl, die zum alten Beginn oder Ende galten, wandern mit; die Monatsmieten werden neu berechnet.</p>
+    <EditForm Model="term" OnValidSubmit="CorrectTermAsync" novalidate>
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <AppDateField @bind-Value="term.Start" Label="Mietbeginn" Required="true" />
+            <AppDateField @bind-Value="term.FixedTermUntil" Label="Befristet bis" Disabled="@(lease.TerminationReceivedOn is not null)" Hint="@(lease.TerminationReceivedOn is not null ? "Bei erfasster Kündigung bestimmt sie das Ende." : "Leer = unbefristet (§ 575 BGB).")" />
+        </div>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined">Mietzeit speichern</MudButton>
+    </EditForm>
+</section>
+
     </MudTabPanel>
     <MudTabPanel Text="Dokumente">
 <DocumentsSection LeaseId="Id" />
@@ -266,6 +280,7 @@ else
     private PartyModel newParty = new();
     private TerminationInput termination = new();
     private LeaseInput data = new();
+    private LeaseTermInput term = new();
 
     [Parameter]
     public Guid Id { get; set; }
@@ -280,6 +295,7 @@ else
         if (lease is not null)
         {
             data = lease.Data;
+            term = new LeaseTermInput { Start = lease.Term.From, FixedTermUntil = lease.FixedTermUntil };
             people = await People.OptionsAsync();
             end = new EndModel { Kind = lease.CurrentComponents.Select(b => b.Kind).FirstOrDefault() };
         }
@@ -306,6 +322,23 @@ else
     private Task TerminateAsync() => ExecuteAsync(Admin.TerminateAsync(Id, termination), "Die Kündigung wurde erfasst.", () => termination = new());
 
     private Task RevokeTerminationAsync() => ExecuteAsync(Admin.RevokeTerminationAsync(Id), "Die Kündigung wurde aufgehoben.");
+
+    private async Task CorrectTermAsync()
+    {
+        var result = await Admin.CorrectTermAsync(Id, term);
+        if (result.Succeeded)
+        {
+            await Accounts.GenerateChargesAsync(Id);
+        }
+
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Mietzeit wurde gespeichert.");
+        }
+
+        await LoadAsync();
+    }
 
     private Task SaveDataAsync() => ExecuteAsync(Admin.UpdateAsync(Id, data), "Die Angaben wurden gespeichert.");
 

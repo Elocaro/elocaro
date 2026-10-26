@@ -100,7 +100,8 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             receipt.Items.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id).Select(p => new CostItemView(
                 p.Id, p.CostType, CostTypes.Find(p.CostType)?.Name ?? p.CostType, p.Amount,
                 properties.GetValueOrDefault(p.PropertyId, "?"), p.UnitId is { } e ? units.GetValueOrDefault(e) : null,
-                p.SubtypeId is { } t ? subtypes.GetValueOrDefault(t) : null, p.BillingPeriod, p.Allocable, p.Section35a, p.LaborCosts, p.Note, p.HeatingKind)).ToList(),
+                p.SubtypeId is { } t ? subtypes.GetValueOrDefault(t) : null, p.BillingPeriod, p.Allocable, p.Section35a, p.LaborCosts, p.Note, p.HeatingKind,
+                p.PropertyId, p.UnitId, p.SubtypeId)).ToList(),
             receipt.Allocated,
             receipt.Gross - receipt.Allocated);
     }
@@ -179,6 +180,20 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             return position.Id;
         });
 
+    public Task<Result> UpdateCostItemAsync(Guid id, Guid positionId, CostItemInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var receipt = await ReceiptAsync(id, cancellationToken);
+            var existing = receipt.Items.FirstOrDefault(p => p.Id == positionId) ?? throw new NotFoundException();
+            var (propertyId, period) = await ResolveCostItemAsync(receipt, input, cancellationToken);
+            var position = receipt.ChangeCostItem(positionId, input.CostType, input.Amount ?? existing.Amount, propertyId, period, input.Allocable);
+            ApplyCostItemDetails(position, input);
+            await LearnAsync(receipt, input.CostType, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            return position.Id;
+        });
+
     public Task<Result> RemoveCostItemAsync(Guid id, Guid positionId, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
@@ -213,6 +228,24 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
 
     private async Task<CostItem> CreateCostItemAsync(Receipt receipt, CostItemInput input, CancellationToken cancellationToken)
     {
+        var (propertyId, period) = await ResolveCostItemAsync(receipt, input, cancellationToken);
+        var position = receipt.AddCostItem(input.CostType, input.Amount ?? receipt.Gross - receipt.Allocated, propertyId, period, input.Allocable);
+        ApplyCostItemDetails(position, input);
+        return position;
+    }
+
+    private static void ApplyCostItemDetails(CostItem position, CostItemInput input)
+    {
+        position.UnitId = input.UnitId;
+        position.SubtypeId = input.SubtypeId;
+        position.HeatingKind = CostGroups.Of(input.CostType) == CostGroup.Heating ? input.HeatingKind : null;
+        position.Note = TrimToNull(input.Note);
+        position.SetSection35a(input.Section35a, input.LaborCosts);
+    }
+
+    /// <summary>Checks property, unit and subtype of an item input and resolves its billing period.</summary>
+    private async Task<(Guid PropertyId, Period Period)> ResolveCostItemAsync(Receipt receipt, CostItemInput input, CancellationToken cancellationToken)
+    {
         var propertyId = input.PropertyId ?? throw new RuleViolationException("Bitte das Objekt wählen.");
         if (!await db.Set<Property>().AnyAsync(o => o.Id == propertyId, cancellationToken))
         {
@@ -242,13 +275,7 @@ internal sealed class ReceiptService(MietHahnDbContext db) : IReceiptService
             throw new RuleViolationException("Der Abrechnungszeitraum endet vor seinem Beginn.");
         }
 
-        var position = receipt.AddCostItem(input.CostType, input.Amount ?? receipt.Gross - receipt.Allocated, propertyId, new Period(from, to), input.Allocable);
-        position.UnitId = input.UnitId;
-        position.SubtypeId = input.SubtypeId;
-        position.HeatingKind = CostGroups.Of(input.CostType) == CostGroup.Heating ? input.HeatingKind : null;
-        position.Note = TrimToNull(input.Note);
-        position.SetSection35a(input.Section35a, input.LaborCosts);
-        return position;
+        return (propertyId, new Period(from, to));
     }
 
     /// <summary>Remembers "supplier → cost type" for the next extraction (learning from confirmed receipts).</summary>

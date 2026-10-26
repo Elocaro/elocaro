@@ -6,6 +6,7 @@
 @inject IDunning Dunning
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject IDialogService Dialogs
 
 <InteractiveShell>
 @if (!loaded)
@@ -88,6 +89,7 @@ else
                             <MudTd>
                                 @if (!context.Automatic && context.Origin is null or PaymentOrigin.Manual)
                                 {
+                                    <MudButton Variant="Variant.Text" OnClick="() => EditAsync(context)" aria-label="@($"{context.Text} bearbeiten")">Bearbeiten</MudButton>
                                     <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(context)" aria-label="@($"{context.Text} löschen")">Löschen</MudButton>
                                 }
                             </MudTd>
@@ -310,6 +312,19 @@ else
         if (await Confirm.AskAsync("Mahnsperre aufheben", "Soll die Mahnsperre aufgehoben werden?", "Ja, aufheben"))
         {
             await ExecuteAsync(Dunning.EndHoldAsync(row.Id), "Die Mahnsperre wurde aufgehoben.");
+        }
+    }
+
+    private async Task EditAsync(AccountEntry entry)
+    {
+        var open = account!.Entries.Where(b => b.Open > 0).Select(b => (b.Id, ChargeText(b.Id))).ToList();
+        var dialog = await Dialogs.ShowAsync<AccountEntryDialog>(
+            entry.EntryType == EntryType.Payment ? "Zahlung bearbeiten" : "Forderung bearbeiten",
+            new DialogParameters { ["Entry"] = entry, ["OpenCharges"] = (IReadOnlyList<(Guid, string)>)open },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
         }
     }
 

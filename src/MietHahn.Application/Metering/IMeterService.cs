@@ -21,6 +21,9 @@ public interface IMeterService
     /// </summary>
     Task<ReadingResult> RecordReadingAsync(Guid id, ReadingInput input, Guid? photoFileId = null, CancellationToken cancellationToken = default);
 
+    /// <summary>Corrects a reading (date, value, kind, note); anomalies need <see cref="ReadingInput.Confirmed"/> like when recording.</summary>
+    Task<ReadingResult> UpdateReadingAsync(Guid id, Guid readingId, ReadingInput input, CancellationToken cancellationToken = default);
+
     Task<Result> RemoveReadingAsync(Guid id, Guid readingId, CancellationToken cancellationToken = default);
 
     /// <summary>Removes the meter and creates the new meter of the measuring point (returns its id).</summary>

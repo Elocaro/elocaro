@@ -1,0 +1,86 @@
+@using MudBlazor
+@inject IMeterService Meters
+@inject Notifier Notify
+
+@* Dialog "edit reading": corrects date, value, kind and note of a reading; anomalies must be confirmed. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            @if (warnings is { Count: > 0 })
+            {
+                <Notice Level="NoticeLevel.Info">
+                    <strong>Bitte prüfen:</strong>
+                    <ul>
+                        @foreach (var warning in warnings)
+                        {
+                            <li>@warning</li>
+                        }
+                    </ul>
+                </Notice>
+            }
+            <div class="form-grid">
+                <AppDateField @bind-Value="data.Date" Label="Datum" Required="true" Disabled="@fixedDate" Hint="@(fixedDate ? "Einbau- und Ausbaustände behalten ihr Datum." : null)" />
+                <AppNumberField T="decimal?" @bind-Value="data.Value" Label="Zählerstand" Required="true" />
+                @if (!fixedDate)
+                {
+                    <AppSelect @bind-Value="data.Kind" Label="Art" Items="kinds" Text="KindText" />
+                }
+                <AppTextField @bind-Value="data.Note" Label="Notiz" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(warnings is { Count: > 0 } ? "Trotzdem speichern" : "Speichern")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private static readonly ReadingType[] kinds = [ReadingType.Reading, ReadingType.InterimReading, ReadingType.Estimate];
+
+    private ReadingInput data = new();
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<string>? warnings;
+    private bool fixedDate;
+
+    [Parameter, EditorRequired]
+    public Guid MeterId { get; set; }
+
+    [Parameter, EditorRequired]
+    public ReadingView Reading { get; set; } = default!;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        fixedDate = Reading.Kind is ReadingType.Installation or ReadingType.Removal;
+        data = new ReadingInput { Date = Reading.Date, Value = Reading.Value, Kind = Reading.Kind, Note = Reading.Note };
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static string KindText(ReadingType kind) => kind switch
+    {
+        ReadingType.InterimReading => "Zwischenablesung (z. B. Mieterwechsel)",
+        ReadingType.Estimate => "Schätzung",
+        _ => "Ablesung",
+    };
+
+    private async Task SaveAsync()
+    {
+        data.Confirmed = warnings is { Count: > 0 };
+        var result = await Meters.UpdateReadingAsync(MeterId, Reading.Id, data);
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Stand wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(Reading.Id));
+            return;
+        }
+
+        errors = result.Errors.Count > 0 ? result.Errors : null;
+        warnings = result.NeedsConfirmation ? result.Warnings : null;
+    }
+}

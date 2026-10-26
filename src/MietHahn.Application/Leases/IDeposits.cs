@@ -12,6 +12,9 @@ public interface IDeposits
 
     Task<Result> AddAsync(Guid leaseId, DepositEntryInput input, CancellationToken cancellationToken = default);
 
+    /// <summary>Corrects an entry (kind, date, amount, note).</summary>
+    Task<Result> UpdateAsync(Guid entryId, DepositEntryInput input, CancellationToken cancellationToken = default);
+
     Task<Result> DeleteAsync(Guid entryId, CancellationToken cancellationToken = default);
 }
 

@@ -55,6 +55,24 @@ internal sealed class Deposits(MietHahnDbContext db) : IDeposits
             return entry.Id;
         });
 
+    public Task<Result> UpdateAsync(Guid entryId, DepositEntryInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var entry = await db.Set<DepositEntry>().SingleOrDefaultAsync(e => e.Id == entryId, cancellationToken) ?? throw new NotFoundException();
+            var lease = await db.Set<Lease>().AsNoTracking().SingleAsync(v => v.Id == entry.LeaseId, cancellationToken);
+            entry.Correct(input.Kind, input.Date ?? throw new RuleViolationException("Bitte das Datum angeben."), input.Amount ?? 0m, input.Note);
+            var all = await db.Set<DepositEntry>().AsNoTracking().Where(e => e.LeaseId == entry.LeaseId && e.Id != entryId).ToListAsync(cancellationToken);
+            all.Add(entry);
+            if (DepositAccount.Of(lease.Deposit, all).Balance < 0)
+            {
+                throw new RuleViolationException("Mit dieser Änderung wären Rückzahlungen und Verrechnungen höher als die eingegangene Kaution.");
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+            return entry.Id;
+        });
+
     public Task<Result> DeleteAsync(Guid entryId, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {

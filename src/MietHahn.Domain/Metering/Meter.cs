@@ -197,6 +197,40 @@ public sealed class Meter : Entity
         return entry;
     }
 
+    /// <summary>Corrects a reading (typing errors): date, value, kind and note. Installation and removal readings keep their date and kind.</summary>
+    public MeterReading UpdateReading(Guid readingId, DateOnly date, decimal value, ReadingType kind, string? note)
+    {
+        var entry = Readings.SingleOrDefault(s => s.Id == readingId) ?? throw new RuleViolationException("Der Stand wurde nicht gefunden.");
+        if (IsDerived)
+        {
+            throw new RuleViolationException("Ein Rechenzähler hat keine eigenen Stände.");
+        }
+
+        if (entry.Kind is ReadingType.Installation or ReadingType.Removal)
+        {
+            entry.Correct(entry.Date, EnsureValid(value), entry.Kind, note);
+            return entry;
+        }
+
+        if (kind is ReadingType.Installation or ReadingType.Removal)
+        {
+            throw new RuleViolationException("Einbau- und Ausbaustände entstehen beim Ein- bzw. Ausbau des Zählers.");
+        }
+
+        if (!IsActiveOn(date))
+        {
+            throw new RuleViolationException($"Der Zähler war am {date:dd.MM.yyyy} nicht eingebaut.");
+        }
+
+        if (Readings.Any(s => s.Id != readingId && s.Date == date))
+        {
+            throw new RuleViolationException($"Für den {date:dd.MM.yyyy} gibt es bereits einen Stand.");
+        }
+
+        entry.Correct(date, EnsureValid(value), kind, note);
+        return entry;
+    }
+
     public void RemoveReading(Guid readingId)
     {
         var entry = Readings.SingleOrDefault(s => s.Id == readingId) ?? throw new RuleViolationException("Der Stand wurde nicht gefunden.");
@@ -210,11 +244,12 @@ public sealed class Meter : Entity
 
     /// <summary>Plausibility check of a new value against the existing readings.</summary>
     /// <param name="outlierPercent">Deviation of the daily consumption from the previous average above which a warning is raised.</param>
-    public IReadOnlyList<string> Validate(DateOnly date, decimal value, int outlierPercent = 50)
+    public IReadOnlyList<string> Validate(DateOnly date, decimal value, int outlierPercent = 50, Guid? ignoring = null)
     {
         var warnings = new List<string>();
-        var before = Readings.Where(s => s.Date < date).MaxBy(s => s.Date);
-        var after = Readings.Where(s => s.Date > date).MinBy(s => s.Date);
+        var others = Readings.Where(s => s.Id != ignoring).ToList();
+        var before = others.Where(s => s.Date < date).MaxBy(s => s.Date);
+        var after = others.Where(s => s.Date > date).MinBy(s => s.Date);
         if (before is not null && value < before.Value)
         {
             warnings.Add(Text($"Rückwärtslauf: Der Wert ist kleiner als der Stand vom {before.Date:dd.MM.yyyy} ({before.Value:#,##0.###}). Zählertausch?"));
@@ -226,7 +261,7 @@ public sealed class Meter : Entity
         }
 
         // Outlier: daily consumption since the last reading compared to the average before it
-        var first = Readings.Where(s => s.Date < date).MinBy(s => s.Date);
+        var first = others.Where(s => s.Date < date).MinBy(s => s.Date);
         if (before is not null && first is not null && before != first && value >= before.Value && date > before.Date)
         {
             var previous = (before.Value - first.Value) / (before.Date.DayNumber - first.Date.DayNumber);
@@ -340,4 +375,12 @@ public sealed class MeterReading : Entity
     public Guid? PhotoFileId { get; private set; }
 
     public string? Note { get; private set; }
+
+    internal void Correct(DateOnly date, decimal value, ReadingType kind, string? note)
+    {
+        Date = date;
+        Value = value;
+        Kind = kind;
+        Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+    }
 }

@@ -25,6 +25,9 @@ public interface IReceiptService
 
     Task<Result> RemoveCostItemAsync(Guid id, Guid positionId, CancellationToken cancellationToken = default);
 
+    /// <summary>Corrects an item in place (cost type, amount, property, unit, period ...).</summary>
+    Task<Result> UpdateCostItemAsync(Guid id, Guid positionId, CostItemInput input, CancellationToken cancellationToken = default);
+
     Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<ReceiptOptions> OptionsAsync(CancellationToken cancellationToken = default);
@@ -164,7 +167,10 @@ public sealed record CostItemView(
     Section35a Section35a,
     decimal? LaborCosts,
     string? Note,
-    HeatingCostKind? HeatingKind = null);
+    HeatingCostKind? HeatingKind = null,
+    Guid PropertyId = default,
+    Guid? UnitId = null,
+    Guid? SubtypeId = null);
 
 public sealed record ReceiptOptions(IReadOnlyList<ReferenceOption> Suppliers, IReadOnlyList<ReferenceOption> Properties, IReadOnlyList<ReferenceOption> Units, IReadOnlyList<SubtypeOption> Subtypes);
 

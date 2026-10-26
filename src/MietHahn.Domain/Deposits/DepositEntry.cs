@@ -54,6 +54,16 @@ public sealed class DepositEntry : Entity
 
     public string? Note { get; private set; }
 
+    /// <summary>Corrects the entry (typing errors) with the same rules as when creating it.</summary>
+    public void Correct(DepositEntryKind kind, DateOnly date, decimal amount, string? note)
+    {
+        var check = new DepositEntry(LeaseId, kind, date, amount, note);
+        Kind = check.Kind;
+        Date = check.Date;
+        Amount = check.Amount;
+        Note = check.Note;
+    }
+
     /// <summary>The effect on the balance: positive for received and interest, negative for refund and deduction.</summary>
     public decimal Effect => Kind is DepositEntryKind.Received or DepositEntryKind.Interest ? Amount : -Amount;
 }

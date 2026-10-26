@@ -431,6 +431,22 @@ Technik, Nachweise und rechtliche Einordnung stehen in [digitale-unterschrift.md
 - **Dienste:** `ICostAllocation` (Schlüssel, WG-Modus, Vertragsvereinbarung), `ICostSubtypes`, `IOperatingCosts.PreviewAsync(Objekt, Jahr | Zeitraum)` (`OperatingCostService` baut aus Belegen, Schlüsseln, Verträgen, Mieterkonto und Zählern den `BillingInput`; Zähler über `MeterConsumptionSource` mit `ConsumptionCalculator`, Messstellen über Zählertausch hinweg; Zähler sind der Einheit zugeordnet, Zimmerzähler werden nicht ausgewertet). Es wird nichts gespeichert.
 - **Oberfläche** (Recht Finanzen): `/verwaltung/objekte/{id}/umlageschluessel` (Schlüssel, Verlauf, Beenden, WG-Modus, Unterarten), `/verwaltung/objekte/{id}/nebenkosten?jahr=` (Vorschau: Kostenarten, Vermieteranteil, Abrechnung je Mieter mit Protokoll, Pauschalvergleich, fehlende Daten, Heizkosten und CO₂-Aufteilung), `/verwaltung/objekte/{id}/heizung` (Heizungseinstellungen), `/verwaltung/vertraege/{id}/kostenarten`. Abrechnungsassistent siehe *Abrechnungs-Assistent* (#32), PDF, Versand und Vorauszahlungsanpassung siehe *Abrechnungs-PDF & Versand* (#33).
 
+### Daten korrigieren statt löschen (#116)
+
+Tippfehler lassen sich an den wichtigsten Stellen **an Ort und Stelle** korrigieren (Dialog „Bearbeiten“ neben „Entfernen“); die Änderungen stehen im Änderungsprotokoll, Verweise anderer Datensätze bleiben gültig.
+
+| Datensatz | Dienst / Methode | Regeln |
+|---|---|---|
+| Mietzeit (Beginn, Befristung) | `ILeaseService.CorrectTermAsync` → `Lease.CorrectTerm` | Mietbestandteile und Personenanzahl, die am alten Beginn begannen oder am alten Ende endeten, wandern mit; Staffeln müssen nach dem Beginn liegen; bei erfasster Kündigung nur der Beginn. Die Monatsmieten rechnet `GenerateChargesAsync` neu (nach dem Speichern und nachts). |
+| Staffel | `UpdateRentStepAsync` → `Lease.UpdateRentStep` | Nur noch nicht übernommene Staffeln; Jahresfrist wie beim Anlegen. |
+| Zahlung, Forderung | `ITenantAccounts.UpdatePaymentAsync`, `UpdateChargeAsync` | Nur manuell erfasste Buchungen; Monatsmieten ergeben sich aus dem Vertrag, Bankzahlungen über die Zuordnung. |
+| Kautionsbuchung | `IDeposits.UpdateAsync` → `DepositEntry.Correct` | Wie beim Anlegen; der Bestand darf nicht negativ werden. |
+| Belegposition | `IReceiptService.UpdateCostItemAsync` → `Receipt.ChangeCostItem` | Kostenart, Betrag, Objekt, Einheit, Zeitraum, Unterart, § 35a; die Summe darf den Rechnungsbetrag nicht übersteigen. Die Position behält ihre Id (Zuordnungen und Instandhaltungsverteilungen verweisen auf sie). |
+| Zählerstand | `IMeterService.UpdateReadingAsync` → `Meter.UpdateReading` | Datum, Wert, Art, Notiz; Warnungen (Rückwärtslauf, Ausreißer) wie beim Erfassen, die Plausibilitätsprüfung ignoriert den Stand selbst; Einbau-/Ausbaustand nur der Wert. |
+| Versorgungsvertrag, Tarif | `ISupplyContracts.UpdateAsync`, `UpdateTariffAsync` | Wie beim Anlegen; der Tarifbeginn nur zwischen den Nachbartarifen. |
+
+Tests: `CorrectionTests` (Domain), `CorrectionServiceTests` (Integration).
+
 ### Versorgungsverträge: Kosten aus Verbrauch und Tarif
 
 Rechnungen der Versorger kommen oft Monate nach dem Abrechnungszeitraum, und Abschläge sind keine Kosten. Für Wasser, Abwasser, Strom und Gas werden die Kosten deshalb aus dem Verbrauch und dem vereinbarten Preis berechnet.
