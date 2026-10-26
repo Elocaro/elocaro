@@ -24,7 +24,7 @@ else if (property is null)
 else
 {
 
-<PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/verwaltung/objekte" BackText="Alle Objekte">
+<PageHeader Title="Übersicht" Back="/verwaltung/objekte" BackText="Alle Objekte">
     <Actions>
         <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
         @if (ModuleState.IsEnabled(AppModule.Receipts) || property.Units.Count == 0)
@@ -58,14 +58,14 @@ else
     </Notice>
 }
 
+@if (property.ImageFileId is not null || property.Data.CadastralDistrict is not null || property.Data.ParcelNumber is not null || property.Data.PropertyTaxReference is not null || property.Data.Notes is not null)
+{
 <div class="property-header">
     @if (property.ImageFileId is { } image)
     {
         <img class="property-image" src="/dateien/@image" alt="Foto von @property.Data.Name" />
     }
     <dl class="details">
-        <dt>Baujahr</dt><dd>@(property.Data.YearBuilt?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</dd>
-        <dt>Heizung</dt><dd>@Labels.Heating(property.Data.HeatingType, property.Data.EnergySource)</dd>
         @if (property.Data.CadastralDistrict is not null || property.Data.ParcelNumber is not null)
         {
             <dt>Grundbuch</dt><dd>@property.Data.CadastralDistrict @property.Data.ParcelNumber</dd>
@@ -80,6 +80,7 @@ else
         }
     </dl>
 </div>
+}
 
 <MudTabs @ref="tabs" Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
     <MudTabPanel Text="@($"Einheiten ({property.Units.Count})")">

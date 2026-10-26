@@ -43,7 +43,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
 
             await page.WaitForURLAsync("**/verwaltung/objekte/*?meldung=objekt-angelegt");
             await ExpectSnackbarAsync(page, "Das Objekt wurde angelegt.");
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Lindenweg 3, 50667 Köln");
+            await Assertions.Expect(page.Locator(".record-header")).ToContainTextAsync("Lindenweg 3, 50667 Köln");
         });
     }
 

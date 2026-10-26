@@ -18,7 +18,7 @@ else if (property is null)
 }
 else
 {
-    <PageHeader Title="Kassenbuch importieren" Subtitle="@property.Data.Name" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name" />
+    <PageHeader Title="Kassenbuch importieren" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name" />
 
     <p class="small">
         CSV-Datei mit den Spalten Datum, Gruppe, Empfänger, Betrag und Info (Excel: als CSV speichern). Jede Zeile wird ein Beleg mit einer Kostenposition für das ganze Jahr des Belegdatums.

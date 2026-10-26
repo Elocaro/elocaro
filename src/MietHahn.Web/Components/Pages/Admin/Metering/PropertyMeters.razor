@@ -18,7 +18,7 @@ else if (property is null)
 }
 else
 {
-    <PageHeader Title="Zähler" Subtitle="@property.Data.Name" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name">
+    <PageHeader Title="Zähler" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name">
         <Actions>
             @if (meter.Count > 0)
             {

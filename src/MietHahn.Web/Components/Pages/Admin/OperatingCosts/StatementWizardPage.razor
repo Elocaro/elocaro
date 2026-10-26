@@ -17,7 +17,7 @@ else if (wizard is null && errorText is null)
 }
 else
 {
-<PageHeader Title="Abrechnungs-Assistent" Subtitle="@(wizard?.Preview.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt" />
+<PageHeader Title="Abrechnungs-Assistent" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt" />
 
 <ErrorList Errors="errors" />
 

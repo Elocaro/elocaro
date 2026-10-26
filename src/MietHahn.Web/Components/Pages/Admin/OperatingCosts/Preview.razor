@@ -5,7 +5,7 @@
 @inject TimeProvider Clock
 
 <InteractiveShell>
-<PageHeader Title="Nebenkosten-Vorschau" Subtitle="@(preview?.PropertyName ?? "")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
+<PageHeader Title="Nebenkosten-Vorschau" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
     <Actions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung?jahr={year}")">Abrechnungs-Assistent</MudButton>
     </Actions>

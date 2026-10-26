@@ -16,6 +16,7 @@
     </nav>
     <div class="@("workspace" + (HasTabs ? " has-tabs" : ""))">
         <ContextBar Context="context" />
+        <RecordHeader Property="context?.Property" />
         <ContextTabs PropertyId="context?.PropertyId" />
         <main id="content" class="content">
             @Body

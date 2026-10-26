@@ -42,6 +42,16 @@ public class NavigationContextTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_page_of_a_property_carries_its_summary()
+    {
+        var context = await ResolveAsync($"/verwaltung/zimmer/{roomId}");
+
+        Assert.Equal("Lindenweg 3", context!.Property!.Name);
+        Assert.Equal("Lindenweg 3, 50667 Köln", context.Property.Address);
+        Assert.Equal(1, context.Property.UnitCount);
+    }
+
+    [Fact]
     public async Task Subpages_of_a_property_resolve_to_the_property()
     {
         var context = await ResolveAsync($"/verwaltung/objekte/{propertyId}/heizung");

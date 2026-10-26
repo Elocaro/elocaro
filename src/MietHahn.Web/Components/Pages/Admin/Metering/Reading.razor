@@ -19,7 +19,7 @@ else if (property is null)
 }
 else
 {
-    <PageHeader Title="Ablese-Runde" Subtitle="@($"{property.Data.Name} · {Format.Date(ReferenceDate)}{(TypeValue == ReadingType.InterimReading ? " · Zwischenablesung" : "")}")"
+    <PageHeader Title="Ablese-Runde" Subtitle="@($"{Format.Date(ReferenceDate)}{(TypeValue == ReadingType.InterimReading ? " · Zwischenablesung" : "")}")"
                 Back="@($"/verwaltung/objekte/{PropertyId}/zaehler")" BackText="Alle Zähler" />
 
     <ErrorList Errors="errors" />

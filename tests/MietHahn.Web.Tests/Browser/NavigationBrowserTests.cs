@@ -9,6 +9,8 @@ namespace MietHahn.Web.Tests.Browser;
 /// <summary>Orientation in the administration: the trail with names and the workspace tabs of the property on its sub-pages.</summary>
 public class NavigationBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
 {
+    private static readonly string[] PropertyTabPaths = ["", "/belegung", "/zaehler"];
+
     private async Task<(Guid Property, Guid Unit, Guid Room, Guid Lease, Guid Person)> SampleAsync() =>
         await App.WithScopeAsync(async sp =>
         {
@@ -54,6 +56,33 @@ public class NavigationBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await Assertions.Expect(trail).ToContainTextAsync("Anna Schmidt");
             await trail.GetByRole(AriaRole.Link, new() { Name = "Personen" }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/personen");
+        });
+    }
+
+    [Fact]
+    public async Task Property_header_sits_above_the_tabs_and_content_lines_up_with_them_on_wide_screens()
+    {
+        var (property, _, _, _, _) = await SampleAsync();
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await page.SetViewportSizeAsync(1920, 1000);
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            foreach (var path in PropertyTabPaths)
+            {
+                await page.GotoAsync(BaseUrl + $"/verwaltung/objekte/{property}{path}");
+                var header = page.GetByRole(AriaRole.Region, new() { Name = "Objekt", Exact = true });
+                await Assertions.Expect(header).ToContainTextAsync("Lindenweg 3");
+                await Assertions.Expect(header).ToContainTextAsync("50667 Köln");
+
+                var tabs = page.GetByRole(AriaRole.Navigation, new() { Name = "Objekt", Exact = true });
+                var headerBox = await header.BoundingBoxAsync();
+                var tabsBox = await tabs.BoundingBoxAsync();
+                Assert.True(headerBox!.Y < tabsBox!.Y, $"Header above tabs on {path}");
+
+                var title = await page.Locator("main h1").BoundingBoxAsync();
+                Assert.InRange(title!.X - headerBox.X, 0, 40);
+            }
         });
     }
 

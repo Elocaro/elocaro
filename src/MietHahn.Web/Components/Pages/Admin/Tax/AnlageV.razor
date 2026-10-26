@@ -17,7 +17,7 @@ else if (report is null)
 }
 else
 {
-    <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@(report.OwnerName is null ? report.PropertyName : $"{report.PropertyName} · {report.OwnerName} ({report.OwnerSharePercent:0.####} %)")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
+    <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@(report.OwnerName is null ? null : $"{report.OwnerName} ({report.OwnerSharePercent:0.####} %)")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
 
     <div class="form-row search-bar" role="search">
         <AppNumberField T="int" Value="year" ValueChanged="OnYearChanged" Label="Steuerjahr" Min="2000" Max="2100" />

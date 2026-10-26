@@ -18,7 +18,7 @@ else if (overview is null)
 }
 else
 {
-<PageHeader Title="Versorgungsverträge" Subtitle="@overview.PropertyName" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName">
+<PageHeader Title="Versorgungsverträge" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName">
     <Actions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" id="supply-create">Versorgungsvertrag anlegen</MudButton>
     </Actions>

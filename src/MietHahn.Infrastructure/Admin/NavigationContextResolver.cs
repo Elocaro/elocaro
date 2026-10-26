@@ -25,6 +25,22 @@ internal sealed class NavigationContextResolver(IServiceScopeFactory scopes) : I
 
     public async Task<PageContext?> ResolveAsync(string path, CancellationToken cancellationToken = default)
     {
+        var context = await ResolveEntityAsync(path, cancellationToken);
+        if (context?.PropertyId is not { } propertyId)
+        {
+            return context;
+        }
+
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<MietHahnDbContext>();
+        var property = await db.Set<Property>().AsNoTracking().Where(o => o.Id == propertyId)
+            .Select(o => new PropertySummary(o.Name, o.Street + ", " + o.PostalCode + " " + o.City, o.YearBuilt, o.HeatingType, o.EnergySource, o.Units.Count))
+            .SingleOrDefaultAsync(cancellationToken);
+        return context with { Property = property };
+    }
+
+    private async Task<PageContext?> ResolveEntityAsync(string path, CancellationToken cancellationToken)
+    {
         var parts = path.Trim('/').Split('/');
         if (parts is ["verwaltung", "finanzen", "darlehen", { } loan, ..] && Guid.TryParse(loan, out var loanId))
         {

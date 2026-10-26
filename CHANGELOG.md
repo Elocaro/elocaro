@@ -11,6 +11,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Die Vertragsseite eines Zimmervertrags warf beim Öffnen eine Exception (Auswahl „Weiteres Zimmer“ ohne Vorauswahl).
 
 ### Geändert
+- Objektseiten: Name, Anschrift und Kennzahlen stehen als Kopf über den Objekt-Tabs und bleiben auf jedem Tab gleich; der Inhalt ist nicht mehr zentriert, sondern fluchtet links mit Ortszeile und Tabs.
 - Abrechnungs-PDF (geprüft an der Abrechnung 2025): Anschrift und Mietobjekt nennen alle Zimmer eines Vertrags, Rechenzähler stehen mit ihrem errechneten Verbrauch in den Zählerständen, die Einheiten (€, kWh, %) stehen hinter den Ergebnissen der Heizkostenanlage, der Hinweis auf eine Korrektur folgt dem Einleitungssatz (Closes #135).
 - Mehrzimmerverträge: Belegungsprüfung der Abrechnung, Vermietungsstand und Kennzahlen zählen alle Zimmer des Vertrags; ein später gelöschter Vertrag lässt eine freigegebene Abrechnung weiter anzeigen.
 - Zahlenfelder verstehen Punkt und Komma als Dezimalzeichen (0.090527 und 0,090527 sind gleich); ein einzelner Punkt vor genau drei Ziffern (1.000) gilt weiter als Tausendertrenner (Closes #139).
