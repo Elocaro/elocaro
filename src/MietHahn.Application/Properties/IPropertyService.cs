@@ -43,9 +43,67 @@ public interface IPropertyService
 
     Task<Result> SetRoomAreaAsync(Guid id, AreaInput input, CancellationToken cancellationToken = default);
 
+    /// <summary>Sets the share of the common area of every room of the shared flat (living area of the flat minus the room areas).</summary>
+    Task<Result> ApplyCommonAreaAsync(Guid unitId, CommonAreaMode mode, DateOnly from, CancellationToken cancellationToken = default);
+
     /// <summary>Only possible without leases.</summary>
     Task<Result> DeleteRoomAsync(Guid id, CancellationToken cancellationToken = default);
 }
+
+public enum CommonAreaMode
+{
+    /// <summary>Every room carries the same share.</summary>
+    Equal = 0,
+
+    /// <summary>The shares follow the room areas.</summary>
+    ByRoomArea = 1,
+}
+
+/// <summary>Proposal for the share of the common area per room: living area of the flat − Σ room areas, distributed on the rooms.</summary>
+public sealed record CommonAreaSuggestion(decimal UnitArea, decimal RoomAreas, decimal CommonArea, IReadOnlyList<CommonAreaShare> Shares, IReadOnlyList<string> Problems)
+{
+    public static CommonAreaSuggestion Of(decimal? unitArea, IReadOnlyList<(Guid Id, string Name, decimal? Area)> rooms, CommonAreaMode mode)
+    {
+        ArgumentNullException.ThrowIfNull(rooms);
+        var problems = new List<string>();
+        if (unitArea is not > 0m)
+        {
+            problems.Add("Für die Wohnung ist keine Wohnfläche hinterlegt.");
+        }
+
+        foreach (var room in rooms.Where(r => r.Area is not > 0m))
+        {
+            problems.Add($"{room.Name}: Die Zimmerfläche fehlt.");
+        }
+
+        var roomAreas = rooms.Sum(r => r.Area ?? 0m);
+        var common = Math.Max(0m, (unitArea ?? 0m) - roomAreas);
+        if (unitArea is { } total && roomAreas > total)
+        {
+            problems.Add($"Die Zimmer ({roomAreas:0.##} m²) sind zusammen größer als die Wohnung ({total:0.##} m²).");
+        }
+
+        var count = rooms.Count(r => r.Area is > 0m);
+        var shares = new List<CommonAreaShare>();
+        if (count > 0 && problems.Count == 0)
+        {
+            var rooms2 = rooms.Where(r => r.Area is > 0m).ToList();
+            decimal assigned = 0;
+            for (var i = 0; i < rooms2.Count; i++)
+            {
+                var share = i == rooms2.Count - 1
+                    ? common - assigned
+                    : decimal.Round(mode == CommonAreaMode.Equal ? common / count : common * rooms2[i].Area!.Value / roomAreas, 2, MidpointRounding.AwayFromZero);
+                assigned += share;
+                shares.Add(new CommonAreaShare(rooms2[i].Id, rooms2[i].Name, rooms2[i].Area!.Value, share));
+            }
+        }
+
+        return new CommonAreaSuggestion(unitArea ?? 0m, roomAreas, common, shares, problems);
+    }
+}
+
+public sealed record CommonAreaShare(Guid RoomId, string Name, decimal RoomArea, decimal Share);
 
 public sealed record PropertyOverview(Guid Id, string Name, string Address, int Units, int RentalUnits, int Rented, decimal? LivingArea)
 {

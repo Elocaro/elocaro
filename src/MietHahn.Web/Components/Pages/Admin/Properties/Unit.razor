@@ -7,6 +7,7 @@
 @inject IDialogService Dialogs
 @inject NavigationManager Navigation
 @inject Notifier Notify
+@inject TimeProvider Clock
 @inject Confirmations Confirm
 
 <InteractiveShell>
@@ -69,6 +70,32 @@ else
     }
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddRoomAsync">Zimmer hinzufügen</MudButton>
 </section>
+@if (unit.IsSharedFlat)
+{
+<section id="common-area">
+    <h2>Gemeinschaftsfläche verteilen</h2>
+    @{
+        var suggestion = CommonAreaSuggestion.Of(unit.Area?.Area, [.. unit.Room.Select(z => (z.Id, z.Name, z.Area?.Area))], commonMode);
+    }
+    <p class="small">Wohnfläche der Wohnung abzüglich der Zimmerflächen ergibt die Gemeinschaftsfläche (Küche, Bad, Flur), die auf die Zimmer verteilt wird.</p>
+    <AppRadioGroup T="CommonAreaMode" @bind-Value="commonMode" Items="Enum.GetValues<CommonAreaMode>()" Text="@(m => m == CommonAreaMode.Equal ? "Gleichmäßig auf alle Zimmer" : "Nach Zimmerfläche")" />
+    @foreach (var problem in suggestion.Problems)
+    {
+        <Notice Level="NoticeLevel.Warning">@problem</Notice>
+    }
+    @if (suggestion.Shares.Count > 0)
+    {
+        <p>Wohnung @Format.Area(suggestion.UnitArea) − Zimmer @Format.Area(suggestion.RoomAreas) = Gemeinschaftsfläche <strong>@Format.Area(suggestion.CommonArea)</strong></p>
+        <ul>
+            @foreach (var share in suggestion.Shares)
+            {
+                <li>@share.Name: @Format.Area(share.Share)</li>
+            }
+        </ul>
+        <MudButton Variant="Variant.Outlined" OnClick="ApplyCommonAreaAsync">Anteile ab heute übernehmen</MudButton>
+    }
+</section>
+}
 }
 
     </MudTabPanel>
@@ -128,6 +155,19 @@ else
         }
 
         loaded = true;
+    }
+
+    private CommonAreaMode commonMode;
+
+    private async Task ApplyCommonAreaAsync()
+    {
+        var result = await Admin.ApplyCommonAreaAsync(Id, commonMode, MietHahn.Domain.Common.GermanTime.Today(Clock.GetUtcNow()));
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Anteile an der Gemeinschaftsfläche wurden übernommen.");
+            await LoadAsync();
+        }
     }
 
     private async Task AddRoomAsync()

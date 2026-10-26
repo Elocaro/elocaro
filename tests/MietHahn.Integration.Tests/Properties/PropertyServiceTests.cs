@@ -62,6 +62,30 @@ public class PropertyServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Common_area_of_a_shared_flat_is_distributed_equally_or_by_room_area()
+    {
+        var propertyId = await SampleHouseAsync();
+        var flat = Validate(await WithAsync(v => v.CreateUnitAsync(propertyId, new UnitInput { Name = "WG" }, Ct)));
+        Validate(await WithAsync(v => v.SetUnitAreaAsync(flat, new AreaInput { From = Today, Area = 100m }, Ct)));
+        foreach (var (name, area) in new[] { ("Zimmer 1", 10m), ("Zimmer 2", 20m) })
+        {
+            var room = Validate(await WithAsync(v => v.CreateRoomAsync(flat, new RoomInput { Name = name }, Ct)));
+            Validate(await WithAsync(v => v.SetRoomAreaAsync(room, new AreaInput { From = Today, Area = area }, Ct)));
+        }
+
+        Validate(await WithAsync(v => v.ApplyCommonAreaAsync(flat, CommonAreaMode.ByRoomArea, Today, Ct)));
+        var shares = (await WithAsync(v => v.GetUnitAsync(flat, Ct)))!.Room.Select(r => r.Area!.SecondaryArea).ToList();
+        Assert.Equal([23.33m, 46.67m], shares);
+
+        Validate(await WithAsync(v => v.ApplyCommonAreaAsync(flat, CommonAreaMode.Equal, Today, Ct)));
+        Assert.Equal([35m, 35m], (await WithAsync(v => v.GetUnitAsync(flat, Ct)))!.Room.Select(r => r.Area!.SecondaryArea));
+
+        // Rooms bigger than the flat: nothing is changed.
+        Validate(await WithAsync(v => v.SetUnitAreaAsync(flat, new AreaInput { From = Today, Area = 25m }, Ct)));
+        Assert.False((await WithAsync(v => v.ApplyCommonAreaAsync(flat, CommonAreaMode.Equal, Today, Ct))).Succeeded);
+    }
+
+    [Fact]
     public async Task Area_change_continues_series_and_keeps_history()
     {
         var propertyId = await SampleHouseAsync();

@@ -237,6 +237,21 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
     public Task<Result> SetRoomAreaAsync(Guid id, AreaInput input, CancellationToken cancellationToken = default) =>
         WithRoomAsync(id, (_, room) => room.SetArea(From(input), Required(input.Area), input.SecondaryArea ?? 0), cancellationToken);
 
+    public Task<Result> ApplyCommonAreaAsync(Guid unitId, CommonAreaMode mode, DateOnly from, CancellationToken cancellationToken = default) =>
+        WithUnitAsync(unitId, (_, unit) =>
+        {
+            var suggestion = CommonAreaSuggestion.Of(unit.AreaOn(from)?.LivingArea, [.. unit.Room.Select(z => (z.Id, z.Name, z.AreaOn(from)?.Area))], mode);
+            if (suggestion.Problems.Count > 0)
+            {
+                throw new RuleViolationException(suggestion.Problems[0]);
+            }
+
+            foreach (var share in suggestion.Shares)
+            {
+                unit.Room.Single(z => z.Id == share.RoomId).SetArea(from, share.RoomArea, share.Share);
+            }
+        }, cancellationToken);
+
     public async Task<Result> DeleteRoomAsync(Guid id, CancellationToken cancellationToken = default)
     {
         if (await HasLeasesAsync(id, cancellationToken))
