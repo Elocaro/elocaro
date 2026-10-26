@@ -400,6 +400,16 @@ internal sealed class CalculationRun
         _ => "%·Tage",
     };
 
+    private static bool PerDayKey(BillingRule rule) => rule.Key != AllocationKey.Consumption;
+
+    private static string PlainUnit(BillingRule rule) => rule.Key switch
+    {
+        AllocationKey.LivingArea or AllocationKey.HeatedArea => "m²",
+        AllocationKey.Persons => "Personen",
+        AllocationKey.Units or AllocationKey.Direct => "Einheiten",
+        _ => "%",
+    };
+
     // ---- weights ---------------------------------------------------------------------------------------------------
 
     private ConsumptionQuantity Consumption(Guid unitId, MeterType type, Period period)
@@ -816,7 +826,9 @@ internal sealed class CalculationRun
             }
 
             builder.Keys.Add(KeyLabel(rule));
-            builder.Bases.Add($"{Num(party.Weight)} von {Num(weightTotal)} {unitLabel}");
+            builder.Bases.Add(PerDayKey(rule)
+                ? ShareText.PerDay(party.Weight, weightTotal, span.Days, PlainUnit(rule))
+                : ShareText.Quantity(party.Weight, weightTotal, unitLabel));
             builder.Protocol.Add(new ProtocolEntry(
                 $"Anteil {name}{suffix}",
                 Formula(rule),

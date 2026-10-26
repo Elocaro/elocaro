@@ -38,6 +38,7 @@ internal sealed class SupplyContractService(MietHahnDbContext db) : ISupplyContr
                 c.PriceUnit,
                 c.HeatingKind,
                 c.Deviation,
+                c.UnitMeters,
                 [.. c.MeterIds.Select(id => numbers.GetValueOrDefault(id, "?"))],
                 [.. c.Tariffs.OrderByDescending(t => t.Validity.From).Select(t => new SupplyTariffView(t.Id, t.Validity, t.UnitPrice, t.BaseFeePerMonth, t.Note))],
                 [.. c.MeterIds]))],
@@ -67,6 +68,7 @@ internal sealed class SupplyContractService(MietHahnDbContext db) : ISupplyContr
             }
 
             var contract = new SupplyContract(propertyId, input.Name, input.Supplier, input.CostType, input.MeterType, input.Basis, input.PriceUnit, input.MeterIds, input.HeatingKind, input.Deviation);
+            contract.UnitMeters = input.UnitMeters;
             Tariff(contract, input.Tariff);
             db.Add(contract);
             await db.SaveChangesAsync(cancellationToken);
@@ -90,6 +92,7 @@ internal sealed class SupplyContractService(MietHahnDbContext db) : ISupplyContr
             }
 
             contract.Update(input.Name, input.Supplier, input.CostType, input.MeterType, input.Basis, input.PriceUnit, input.MeterIds, input.HeatingKind, input.Deviation);
+            contract.UnitMeters = input.UnitMeters;
             await db.SaveChangesAsync(cancellationToken);
             return contract.Id;
         });

@@ -25,6 +25,16 @@ public enum DeviationHandling
     Landlord = 1,
 }
 
+/// <summary>Which meters of the units hang on the main meter (only relevant for cold water).</summary>
+public enum UnitMeterScope
+{
+    /// <summary>Only the meters of the same type (cold water meters of the units).</summary>
+    SameType = 0,
+
+    /// <summary>The hot water of the units is heated from the cold water main meter: the hot water meters of the units count as well.</summary>
+    WithHotWater = 1,
+}
+
 /// <summary>Unit in which the supplier states the price.</summary>
 public enum PriceUnit
 {
@@ -120,6 +130,9 @@ public sealed class SupplyContract : Entity
 
     /// <summary>Handling of the difference between the main meters and the meters of the units (only with <see cref="SupplyBasis.MainMeter"/>).</summary>
     public DeviationHandling Deviation { get; set; }
+
+    /// <summary>Meters of the units that are compared with the main meters (only used for cold water with <see cref="SupplyBasis.MainMeter"/>).</summary>
+    public UnitMeterScope UnitMeters { get; set; } = UnitMeterScope.WithHotWater;
 
     /// <summary>For heating costs: the kind (fuel, operating power ...) of the calculated cost.</summary>
     public HeatingCostKind? HeatingKind { get; private set; }

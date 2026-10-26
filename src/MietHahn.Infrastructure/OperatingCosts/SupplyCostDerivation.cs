@@ -161,10 +161,26 @@ internal static class SupplyCostDerivation
     }
 
     /// <summary>Main meter vs. sum of the meters assigned to units in the period (meter units); <c>null</c> if not determinable or not applicable.</summary>
+    /// <summary>
+    /// Consumption of the unit meters that the main meter of the contract also counts. The hot water of the flats is heated from the water
+    /// of the cold water main meter, so for cold water the hot water meters of the units are added.
+    /// </summary>
+    private static ConsumptionQuantity Assigned(SupplyContract contract, MeterConsumptionSource source, Period period)
+    {
+        var cold = source.AssignedQuantity(contract.MeterType, period);
+        if (contract.MeterType != MeterType.ColdWater || contract.UnitMeters != UnitMeterScope.WithHotWater || cold.Value is not { } coldValue)
+        {
+            return cold;
+        }
+
+        var hot = source.AssignedQuantity(MeterType.HotWater, period);
+        return hot.Value is { } hotValue ? new ConsumptionQuantity(coldValue + hotValue, cold.Interpolated || hot.Interpolated) : hot;
+    }
+
     private static (decimal Main, decimal Units)? Deviation(SupplyContract contract, MeterConsumptionSource source, Period period)
     {
         var main = source.MetersQuantity(contract.MeterIds, period);
-        var units = source.AssignedQuantity(contract.MeterType, period);
+        var units = Assigned(contract, source, period);
         return main.Value is { } m && units.Value is { } u && u > 0m ? (m, u) : null;
     }
 
@@ -230,7 +246,7 @@ internal static class SupplyCostDerivation
 
         if (contract.Basis == SupplyBasis.CommonArea)
         {
-            var assigned = source.AssignedQuantity(contract.MeterType, period);
+            var assigned = Assigned(contract, source, period);
             if (assigned.Value is not { } flats)
             {
                 return (null, null, assigned.Note);

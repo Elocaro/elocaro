@@ -459,6 +459,98 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
     }
 
     [Fact]
+    public async Task Deviation_check_of_the_cold_water_main_meter_includes_the_hot_water_meters_of_the_units()
+    {
+        await StartAccountingAsync();
+        await SetRuleAsync("betrkv-02", AllocationKey.Consumption, meter: MeterType.ColdWater);
+        var houseMeter = await MeterAsync(null, "H-1", new DateOnly(2025, 12, 31), 0m);
+        var cold1 = await MeterAsync(apartment1, "W-1", new DateOnly(2025, 12, 31), 0m);
+        var cold2 = await MeterAsync(apartment2, "W-2", new DateOnly(2025, 12, 31), 0m);
+        var hot1 = await MeterAsync(apartment1, "WW-1", new DateOnly(2025, 12, 31), 0m, MeterType.HotWater);
+        await ReadingAsync(houseMeter, new DateOnly(2026, 12, 31), 183m);
+        await ReadingAsync(cold1, new DateOnly(2026, 12, 31), 100m);
+        await ReadingAsync(cold2, new DateOnly(2026, 12, 31), 50m);
+        await ReadingAsync(hot1, new DateOnly(2026, 12, 31), 33m);
+        Validate(await WithAsync<ISupplyContracts, Result>(s => s.CreateAsync(
+            house,
+            new SupplyContractInput
+            {
+                Name = "Wasser",
+                CostType = "betrkv-02",
+                MeterType = MeterType.ColdWater,
+                MeterIds = [houseMeter],
+                Tariff = new SupplyTariffInput { From = new DateOnly(2020, 1, 1), UnitPrice = 4m },
+            },
+            Ct)));
+
+        var preview = await PreviewAsync();
+
+        // 100 + 50 cold + 33 hot = 183 m³ = main meter: no deviation
+        var check = Assert.Single(preview.MeterChecks!);
+        Assert.Equal((183m, 183m, CheckLevel.Ok), (check.Main, check.UnitsTotal, check.Level));
+        Assert.DoesNotContain(preview.Hints, h => h.StartsWith("Plausibilität:", StringComparison.Ordinal));
+
+        // Hot water with its own main meter: only the cold water meters are compared (150 of 183 m³)
+        var existing = await WithAsync<ISupplyContracts, SupplyOverview>(async s => (await s.GetAsync(house, Ct))!);
+        var contract = existing.Contracts.Single();
+        Validate(await WithAsync<ISupplyContracts, Result>(s => s.UpdateAsync(
+            contract.Id,
+            new SupplyContractInput
+            {
+                Name = contract.Name,
+                CostType = contract.CostType,
+                MeterType = contract.MeterType,
+                MeterIds = [houseMeter],
+                UnitMeters = UnitMeterScope.SameType,
+            },
+            Ct)));
+
+        var sameType = Assert.Single((await PreviewAsync()).MeterChecks!);
+        Assert.Equal((183m, 150m, CheckLevel.Warning), (sameType.Main, sameType.UnitsTotal, sameType.Level));
+    }
+
+    [Fact]
+    public async Task Deviation_check_counts_a_calculated_unit_meter_once_and_not_the_combined_meter_behind_it()
+    {
+        await StartAccountingAsync();
+        await SetRuleAsync("betrkv-02", AllocationKey.Consumption, meter: MeterType.ColdWater);
+        var houseMeter = await MeterAsync(null, "H-1", new DateOnly(2025, 12, 31), 0m);
+        // One meter counts flat 1 and flat 2 together; flat 1 = combined meter − flat 2
+        var combined = await MeterAsync(null, "K-12", new DateOnly(2025, 12, 31), 0m);
+        var meter2 = await MeterAsync(apartment2, "W-2", new DateOnly(2025, 12, 31), 0m);
+        var hot2 = await MeterAsync(apartment2, "WW-2", new DateOnly(2025, 12, 31), 0m, MeterType.HotWater);
+        foreach (var (meter, value) in new[] { (houseMeter, 100m), (combined, 60m), (meter2, 15m), (hot2, 8m) })
+        {
+            await ReadingAsync(meter, new DateOnly(2026, 12, 31), value);
+        }
+
+        Validate(await WithAsync<IMeterService, Result>(s => s.CreateAsync(
+            house,
+            new MeterCreation
+            {
+                Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser Wohnung 1 (berechnet)", Number = "RZ-1", AssignmentId = apartment1 },
+                Terms = [new MeterTermInput(combined, false), new MeterTermInput(meter2, true)],
+            },
+            Ct)));
+        Validate(await WithAsync<ISupplyContracts, Result>(s => s.CreateAsync(
+            house,
+            new SupplyContractInput
+            {
+                Name = "Wasser",
+                CostType = "betrkv-02",
+                MeterType = MeterType.ColdWater,
+                MeterIds = [houseMeter],
+                Tariff = new SupplyTariffInput { From = new DateOnly(2020, 1, 1), UnitPrice = 4m },
+            },
+            Ct)));
+
+        var check = Assert.Single((await PreviewAsync()).MeterChecks!);
+
+        // flat 1: 60 − 15 = 45, flat 2: 15 cold + 8 hot → 68 m³ against 100 m³ at the main meter
+        Assert.Equal((100m, 68m), (check.Main, check.UnitsTotal));
+    }
+
+    [Fact]
     public async Task Supply_contract_without_readings_falls_back_to_the_receipts_with_a_hint()
     {
         await StartAccountingAsync();
@@ -545,10 +637,10 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
         Validate(await WithAsync<ITenantAccounts, Result>(s => s.RecordPaymentAsync(leaseBen, new PaymentInput { Date = new DateOnly(2026, 7, 1), Amount = 5 * 550m + 256.66m }, Ct)));
     }
 
-    private async Task<Guid> MeterAsync(Guid? unit, string number, DateOnly installed, decimal initial) =>
+    private async Task<Guid> MeterAsync(Guid? unit, string number, DateOnly installed, decimal initial, MeterType type = MeterType.ColdWater) =>
         Validate(await WithAsync<IMeterService, Result>(s => s.CreateAsync(
             house,
-            new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser", Number = number, AssignmentId = unit }, InstalledOn = installed, InitialReading = initial },
+            new MeterCreation { Data = new MeterInput { Type = type, Name = type == MeterType.HotWater ? "Warmwasser" : "Kaltwasser", Number = number, AssignmentId = unit }, InstalledOn = installed, InitialReading = initial },
             Ct)));
 
     private async Task ReadingAsync(Guid meter, DateOnly date, decimal value)

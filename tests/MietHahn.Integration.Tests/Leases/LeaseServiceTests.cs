@@ -109,6 +109,28 @@ public class LeaseServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Inclusive_rent_without_operating_cost_share_is_rejected()
+    {
+        var creation = Creation(room1, Today, [anna]);
+        creation.BillingType = BillingType.Inclusive;
+
+        var result = await WithAsync(v => v.CreateAsync(creation, Ct));
+
+        Assert.Equal("Bei der Abrechnungsart „Inklusivmiete“ bitte den enthaltenen Nebenkostenanteil angeben.", result.Errors.Single());
+    }
+
+    [Fact]
+    public async Task Switching_to_inclusive_rent_without_operating_cost_share_is_rejected()
+    {
+        var id = await ApartmentLeaseAsync();
+        var data = new LeaseInput { BillingType = BillingType.Inclusive, DueOnWorkingDay = 3, NoticePeriodMonths = 3 };
+
+        var result = await WithAsync(v => v.UpdateAsync(id, data, Ct));
+
+        Assert.Equal("Bei der Abrechnungsart „Inklusivmiete“ bitte den enthaltenen Nebenkostenanteil angeben.", result.Errors.Single());
+    }
+
+    [Fact]
     public async Task Rent_increase_and_occupant_count_keep_their_history()
     {
         var id = await ApartmentLeaseAsync();

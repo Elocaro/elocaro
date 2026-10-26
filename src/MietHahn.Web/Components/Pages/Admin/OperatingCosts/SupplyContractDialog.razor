@@ -55,6 +55,11 @@
 
             @if (data.Basis == SupplyBasis.MainMeter && hasUnitMeters)
             {
+                @if (data.MeterType == MeterType.ColdWater)
+                {
+                    <AppSelect T="UnitMeterScope" @bind-Value="data.UnitMeters" Label="Wohnungszähler am Hauptzähler" Items="Enum.GetValues<UnitMeterScope>()" Text="Labels.From" Hint="Warmwasser wird aus dem Wasser des Hauptzählers erwärmt. Hat das Warmwasser einen eigenen Hauptzähler, nur Kaltwasser wählen." />
+                }
+
                 <AppSelect T="DeviationHandling" @bind-Value="data.Deviation" Label="Differenz Hauptzähler zu Wohnungszählern" Items="Enum.GetValues<DeviationHandling>()" Text="Labels.From" Hint="Zeigt der Hauptzähler mehr als die Wohnungszähler zusammen (Leitungsverlust, Garten, Zählertoleranz)?" />
             }
 
@@ -128,6 +133,7 @@
                 PriceUnit = contract.PriceUnit,
                 HeatingKind = contract.HeatingKind,
                 Deviation = contract.Deviation,
+                UnitMeters = contract.UnitMeters,
                 MeterIds = [.. contract.MeterIds ?? []],
             };
             return;

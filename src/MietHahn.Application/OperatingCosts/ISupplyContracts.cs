@@ -48,6 +48,7 @@ public sealed record SupplyContractView(
     PriceUnit PriceUnit,
     HeatingCostKind? HeatingKind,
     DeviationHandling Deviation,
+    UnitMeterScope UnitMeters,
     IReadOnlyList<string> Meters,
     IReadOnlyList<SupplyTariffView> Tariffs,
     IReadOnlyList<Guid>? MeterIds = null);
@@ -75,6 +76,8 @@ public sealed class SupplyContractInput
     public HeatingCostKind? HeatingKind { get; set; }
 
     public DeviationHandling Deviation { get; set; }
+
+    public UnitMeterScope UnitMeters { get; set; } = UnitMeterScope.WithHotWater;
 
     public List<Guid> MeterIds { get; set; } = [];
 

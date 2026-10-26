@@ -208,6 +208,7 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
             Apply(lease, data);
             lease.BillingType = data.BillingType;
             lease.HeatingCostsConsumptionBased = data.HeatingCostsConsumptionBased;
+            ValidateBillingType(lease, lease.Components.Where(c => c.Kind == RentComponentType.OperatingCostFlatRate).Select(c => c.Validity.From).DefaultIfEmpty(lease.Start).Max());
         }, cancellationToken);
 
     public Task<Result> AddRoomAsync(Guid id, Guid roomId, CancellationToken cancellationToken = default) =>
@@ -453,6 +454,11 @@ internal sealed class LeaseService(MietHahnDbContext db, TimeProvider clock, IMo
         if (lease.BillingType == BillingType.FlatRate && lease.AmountAt(RentComponentType.OperatingCostFlatRate, day) is null)
         {
             throw new RuleViolationException("Bei der Abrechnungsart „Pauschale“ bitte die Betriebskostenpauschale angeben.");
+        }
+
+        if (lease.BillingType == BillingType.Inclusive && lease.AmountAt(RentComponentType.OperatingCostFlatRate, day) is null)
+        {
+            throw new RuleViolationException("Bei der Abrechnungsart „Inklusivmiete“ bitte den enthaltenen Nebenkostenanteil angeben.");
         }
     }
 

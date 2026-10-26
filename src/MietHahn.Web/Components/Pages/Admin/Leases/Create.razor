@@ -65,6 +65,10 @@
         {
             <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Betriebskostenpauschale" Suffix="€" Hint="z. B. WG-Zimmer." Required="true" />
         }
+        else if (form.BillingType == BillingType.Inclusive)
+        {
+            <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Nebenkostenanteil der Inklusivmiete" Suffix="€" Hint="Zusätzlich zur Kaltmiete; Inklusivmiete = Kaltmiete + Anteil." Required="true" />
+        }
         <AppNumberField T="int" @bind-Value="form.People" Label="Personen im Haushalt" Min="1" Max="20" />
     </div>
     @if (form.BillingType != BillingType.Prepayment)
@@ -162,7 +166,7 @@
             // Fields of another billing type are not shown and therefore not taken over.
             OperatingCostPrepayment = f.BillingType == BillingType.Prepayment ? f.OperatingCostPrepayment : null,
             HeatingCostPrepayment = f.BillingType == BillingType.Prepayment ? f.HeatingCostPrepayment : null,
-            OperatingCostFlatRate = f.BillingType == BillingType.FlatRate ? f.OperatingCostFlatRate : null,
+            OperatingCostFlatRate = f.BillingType is BillingType.FlatRate or BillingType.Inclusive ? f.OperatingCostFlatRate : null,
             People = f.People,
             Data = new LeaseInput
             {

@@ -352,6 +352,12 @@ public static class Labels
         _ => "Auf die Einheiten nach Verbrauch verteilen",
     };
 
+    public static string From(UnitMeterScope value) => value switch
+    {
+        UnitMeterScope.SameType => "Nur Kaltwasserzähler der Wohnungen",
+        _ => "Kalt- und Warmwasserzähler der Wohnungen",
+    };
+
     public static string From(PriceUnit value) => value switch
     {
         PriceUnit.KilowattHour => "€ je kWh",

@@ -161,7 +161,7 @@ public class OperatingCostGoldenMasterTests
         var type = result.CostTypes.Single(t => t.CostType == "betrkv-08");
         Assert.Equal(61.00m, type.Landlord.Single(p => p.Label == "Leerstand Wohnung 3").Amount);
         Assert.Equal(181.00m, type.Landlord.Single(p => p.Label == "Leerstand WG, Zimmer 2").Amount);
-        Assert.Equal("730 von 4.044 Personentage", Line(result, A, "betrkv-08").Basis);
+        Assert.Equal("2 von 11,08 Personen (Ø 365 Tage) = 18,05 %", Line(result, A, "betrkv-08").Basis);
     }
 
     [Fact]

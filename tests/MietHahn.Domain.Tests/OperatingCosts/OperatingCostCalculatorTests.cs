@@ -81,7 +81,7 @@ public class OperatingCostCalculatorTests
         // rounded down 731.49 + 728.50 = 1,459.99 € → the missing cent goes to the larger fractional part (Anna)
         Assert.Equal(731.50m, Line(result, 11, "betrkv-08").Share);
         Assert.Equal(728.50m, Line(result, 12, "betrkv-08").Share);
-        Assert.Equal("733 von 1.463 Personentage", Line(result, 11, "betrkv-08").Basis);
+        Assert.Equal("2,01 von 4,01 Personen (Ø 365 Tage) = 50,10 %", Line(result, 11, "betrkv-08").Basis);
     }
 
     [Fact]

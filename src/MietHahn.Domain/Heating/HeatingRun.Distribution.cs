@@ -203,7 +203,7 @@ internal sealed partial class HeatingRun
                 CostGroup.Heating,
                 cents,
                 keyText,
-                $"{Num(party.Weight(consumption))} von {Num(sumConsumption)} {consumptionUnit}; {Num(party.Weight(area))} von {Num(sumArea)} m²·Tage",
+                $"{ShareText.Quantity(party.Weight(consumption), sumConsumption, consumptionUnit)}; {ShareText.PerDay(party.Weight(area), sumArea, billing.Days, "m²")}",
                 builder.Share,
                 builder.Exact,
                 builder.NotAgreed,
