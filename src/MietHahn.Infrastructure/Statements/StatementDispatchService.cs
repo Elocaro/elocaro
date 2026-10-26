@@ -17,6 +17,7 @@ using MietHahn.Domain.People;
 using MietHahn.Domain.Statements;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Leases;
+using MietHahn.Infrastructure.OperatingCosts;
 using MietHahn.Infrastructure.Persistence;
 using Zaehler = MietHahn.Domain.Metering.Meter;
 
@@ -47,7 +48,7 @@ internal sealed class StatementDispatchService(
         var today = GermanTime.Today(clock.GetUtcNow());
         var period = statement.Summary.BillingPeriod;
         var leaseIds = statement.Result.Tenants.Select(t => t.LeaseId).ToList();
-        var leaseList = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Where(v => leaseIds.Contains(v.Id)).ToListAsync(cancellationToken);
+        var leaseList = await db.Set<Lease>().AsNoTracking().IgnoreQueryFilters().Include(v => v.Parties).Where(v => leaseIds.Contains(v.Id)).ToListAsync(cancellationToken);
         var personIds = leaseList.SelectMany(v => v.Tenant).Select(p => p.PersonId).Distinct().ToList();
         var people = await db.Set<Person>().AsNoTracking().Where(p => personIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, cancellationToken);
         var dispatches = await db.Set<StatementDispatch>().AsNoTracking().Where(d => leaseIds.Contains(d.LeaseId)).ToListAsync(cancellationToken);
@@ -305,7 +306,7 @@ internal sealed class StatementDispatchService(
         var model = new
         {
             Salutation = LetterParts.SalutationOf(people),
-            RentalUnit = rentalUnit is null ? "" : $"{rentalUnit.Property}, {rentalUnit.Name}",
+            RentalUnit = rentalUnit is null ? "" : $"{rentalUnit.Property}, {tenant.Rental}",
             PeriodFrom = period.From,
             PeriodTo = period.To!.Value,
             PeriodLabel = Format(period),
@@ -329,14 +330,14 @@ internal sealed class StatementDispatchService(
             Proposals = proposals.Select(p => new { p.Name, p.Current, Proposed = p.NewAmount, p.EffectiveFrom }).ToList(),
             SafetyPercent = safety,
             Meters = meters,
-            Sections = statement.Result.Sections.Select(s => new { s.Title, s.Notice, Entries = s.Entries.Select(e => new { e.Title, e.Formula, e.Values, e.Result, e.Note }).ToList() }).ToList(),
+            Sections = statement.Result.Sections.Select(s => new { s.Title, s.Notice, Entries = s.Entries.Select(e => new { e.Title, e.Formula, e.Values, e.Result, e.Note, e.Unit }).ToList() }).ToList(),
             Labor = new { Any = tenant.HouseholdLabor != 0 || tenant.TradesmanLabor != 0, Household = tenant.HouseholdLabor, Tradesman = tenant.TradesmanLabor },
             SenderName = landlord.Name,
             landlord.Iban,
             landlord.Bic,
             landlord.Bank,
         };
-        var request = new PdfRequest("statement", $"Betriebskostenabrechnung {Format(period)}", model, new PostalAddress(LetterParts.AddressOf(people, rentalUnit?.Name, property, today).Rows), Date: today, PropertyId: property?.Id);
+        var request = new PdfRequest("statement", $"Betriebskostenabrechnung {Format(period)}", model, new PostalAddress(LetterParts.AddressOf(people, rentalUnit is null ? null : tenant.Rental, property, today).Rows), Date: today, PropertyId: property?.Id);
         var isCurrent = summary.Current;
         return new Prepared(statement, tenant, request, model, emails, toBook, excluded, due, proposals, isCurrent);
     }
@@ -357,24 +358,31 @@ internal sealed class StatementDispatchService(
     private async Task<List<object>> MeterRowsAsync(Lease lease, Period period, CancellationToken cancellationToken)
     {
         var unitId = lease.UnitId;
-        var meters = await db.Set<Zaehler>().AsNoTracking().Include(m => m.Readings)
-            .Where(m => !m.Terms.Any())
-            .Where(m => (m.UnitId == unitId && m.RoomId == null || lease.RoomId != null && m.RoomId == lease.RoomId) && m.InstalledOn <= period.To && (m.RemovedOn == null || m.RemovedOn >= period.From))
-            .OrderBy(m => m.Type).ThenBy(m => m.Number).ToListAsync(cancellationToken);
+        var roomIds = lease.RoomIds;
+        var propertyId = await db.Set<Domain.Properties.Unit>().AsNoTracking().Where(u => u.Id == unitId).Select(u => u.PropertyId).SingleAsync(cancellationToken);
+        var all = await db.Set<Zaehler>().AsNoTracking().Include(m => m.Readings).Include(m => m.Terms).Where(m => m.PropertyId == propertyId).ToListAsync(cancellationToken);
+        var source = new MeterConsumptionSource(all);
+        var meters = all
+            .Where(m => (m.UnitId == unitId && m.RoomId == null || roomIds.Contains(m.RoomId ?? Guid.Empty)) && m.InstalledOn <= period.To && (m.RemovedOn is null || m.RemovedOn >= period.From))
+            .OrderBy(m => m.Type).ThenBy(m => m.Number).ToList();
         var rows = new List<object>();
         foreach (var meter in meters)
         {
-            var start = ConsumptionCalculator.ReadingAt(meter.Readings, period.From.AddDays(-1));
-            var end = ConsumptionCalculator.ReadingAt(meter.Readings, period.To!.Value);
+            var start = meter.IsDerived ? null : ConsumptionCalculator.ReadingAt(meter.Readings, period.From.AddDays(-1));
+            var end = meter.IsDerived ? null : ConsumptionCalculator.ReadingAt(meter.Readings, period.To!.Value);
+            var consumption = meter.IsDerived
+                ? source.MeterQuantity(meter.Id, period).Value
+                : start is not null && end is not null ? end.Value - start.Value : (decimal?)null;
             rows.Add(new
             {
                 meter.Number,
-                Type = TypeName(meter.Type),
+                Type = meter.IsDerived ? $"{TypeName(meter.Type)} (berechnet)" : TypeName(meter.Type),
                 StartDate = period.From.AddDays(-1),
                 StartValue = start?.Value,
-                EndDate = period.To.Value,
+                EndDate = period.To!.Value,
                 EndValue = end?.Value,
-                Consumption = start is not null && end is not null ? end.Value - start.Value : (decimal?)null,
+                Derived = meter.IsDerived,
+                Consumption = consumption,
                 Unit = meter.MeasurementUnit switch { MeasurementUnit.CubicMeters => "m³", MeasurementUnit.KilowattHours => "kWh", MeasurementUnit.MegawattHours => "MWh", _ => "l" },
             });
         }

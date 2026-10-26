@@ -201,13 +201,14 @@ internal sealed class StatementService(MietHahnDbContext db, IOperatingCosts ope
         var end = period.To!.Value;
         var leases = await db.Set<Lease>().AsNoTracking()
             .Where(v => unitIds.Contains(v.UnitId) && v.Term.From <= end && (v.Term.To == null || v.Term.To >= period.From))
+            .Include(v => v.ExtraRooms)
             .ToListAsync(cancellationToken);
 
         var findings = new List<PlausibilityFinding>();
         foreach (var unit in units)
         {
             var targets = unit.Room.Count > 0
-                ? unit.Room.OrderBy(r => r.Order).Select(r => ($"{unit.Name}, {r.Name}", leases.Where(v => v.RoomId == r.Id))).ToList()
+                ? unit.Room.OrderBy(r => r.Order).Select(r => ($"{unit.Name}, {r.Name}", leases.Where(v => v.RoomId == r.Id || v.ExtraRooms.Any(x => x.RoomId == r.Id)))).ToList()
                 : [(unit.Name, leases.Where(v => v.UnitId == unit.Id))];
             foreach (var (name, own) in targets)
             {

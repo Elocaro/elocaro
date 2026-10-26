@@ -437,7 +437,8 @@ internal sealed partial class HeatingRun
                     MeterFormula,
                     $"{method}; Wärme Heizung {Num(heatingHeat.Value)} kWh ({settings.HeatingHeat!.Note}); {Num(heat.Value)} ÷ ({Num(heatingHeat.Value)} + {Num(heat.Value)})",
                     decimal.Round(meterRatio * 100m, 4),
-                    "Ergebnis in Prozent. Wärmeverluste der Anlage (Kessel, Leitungen) werden bei dieser Basis nicht dem Warmwasser zugerechnet."));
+                    "Ergebnis in Prozent. Wärmeverluste der Anlage (Kessel, Leitungen) werden bei dieser Basis nicht dem Warmwasser zugerechnet.")
+                { Unit = "%" });
         }
 
         var fuel = fuelKwh!.Value;
@@ -455,7 +456,8 @@ internal sealed partial class HeatingRun
                 Formula,
                 $"{method}; Brennstoffenergie {Num(fuel)} kWh; {Num(heat.Value)} ÷ {Num(fuel)}",
                 decimal.Round(ratio * 100m, 4),
-                "Ergebnis in Prozent. Die Bezugsgröße (Heiz- oder Brennwert) von Brennstoffmenge und Formelfaktor muss zusammenpassen: bitte prüfen."));
+                "Ergebnis in Prozent. Die Bezugsgröße (Heiz- oder Brennwert) von Brennstoffmenge und Formelfaktor muss zusammenpassen: bitte prüfen.")
+            { Unit = "%" });
     }
 
     private decimal? HotWaterVolume()

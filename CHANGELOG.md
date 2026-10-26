@@ -5,6 +5,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- Abrechnungs-PDF (geprüft an der Abrechnung 2025): Anschrift und Mietobjekt nennen alle Zimmer eines Vertrags, Rechenzähler stehen mit ihrem errechneten Verbrauch in den Zählerständen, die Einheiten (€, kWh, %) stehen hinter den Ergebnissen der Heizkostenanlage, der Hinweis auf eine Korrektur folgt dem Einleitungssatz (Closes #135).
+- Mehrzimmerverträge: Belegungsprüfung der Abrechnung, Vermietungsstand und Kennzahlen zählen alle Zimmer des Vertrags; ein später gelöschter Vertrag lässt eine freigegebene Abrechnung weiter anzeigen.
 - Zahlenfelder verstehen Punkt und Komma als Dezimalzeichen (0.090527 und 0,090527 sind gleich); ein einzelner Punkt vor genau drei Ziffern (1.000) gilt weiter als Tausendertrenner (Closes #139).
 - Nebenkosten- und Heizkostenabrechnung: Der gemessene Verbrauch einer WG-Wohnung wird nur noch auf vermietete Zimmer verteilt; ein leeres Zimmer nimmt keinen Verbrauch auf, Flächenanteile (Grundsteuer, Versicherung, Grundkosten) bleiben beim Vermieter.
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.

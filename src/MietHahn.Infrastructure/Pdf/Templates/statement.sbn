@@ -1,9 +1,9 @@
 {{# BASISVORLAGE Betriebskostenabrechnung: formelle Anforderungen nach BGH-Rechtsprechung (Zeitraum, Gesamtkosten je Kostenart, Verteilerschlüssel mit Erläuterung, Anteil, Vorauszahlungen, Saldo). Siehe docs/entwicklung.md, Abschnitt Abrechnungs-PDF. Der Text muss vor dem produktiven Einsatz rechtlich geprüft werden (keine Rechtsberatung). }}
 <p>{{ salutation }}</p>
+<p>Nachstehend erhalten Sie die Abrechnung der Betriebskosten{{ if has_heating }} und Heizkosten{{ end }} für Ihr Mietverhältnis ({{ rental_unit }}) für den Abrechnungszeitraum vom <strong>{{ date period_from }}</strong> bis zum <strong>{{ date period_to }}</strong>{{ if tenancy_from }} (Ihre Mietzeit in diesem Zeitraum: {{ date tenancy_from }} bis {{ date tenancy_to }}, {{ days }} Tage){{ end }}.</p>
 {{~ if correction ~}}
 <p><strong>Korrigierte Abrechnung (Fassung {{ correction.revision }}).</strong> Diese Abrechnung ersetzt die bisherige Fassung. Grund der Korrektur: {{ correction.reason }}</p>
 {{~ end ~}}
-<p>nachstehend erhalten Sie die Abrechnung der Betriebskosten{{ if has_heating }} und Heizkosten{{ end }} für Ihr Mietverhältnis ({{ rental_unit }}) für den Abrechnungszeitraum vom <strong>{{ date period_from }}</strong> bis zum <strong>{{ date period_to }}</strong>{{ if tenancy_from }} (Ihre Mietzeit in diesem Zeitraum: {{ date tenancy_from }} bis {{ date tenancy_to }}, {{ days }} Tage){{ end }}.</p>
 
 <h2>1. Betriebskosten</h2>
 <table>
@@ -91,7 +91,7 @@
   <thead><tr><th>Zähler</th><th>Art</th><th>Anfangsstand</th><th>Endstand</th><th class="number">Verbrauch</th></tr></thead>
   <tbody>
   {{~ for m in meters ~}}
-    <tr><td>{{ m.number }}</td><td>{{ m.type }}</td><td>{{ if m.start_value }}{{ number m.start_value 3 }} am {{ date m.start_date }}{{ else }}fehlt{{ end }}</td><td>{{ if m.end_value }}{{ number m.end_value 3 }} am {{ date m.end_date }}{{ else }}fehlt{{ end }}</td><td class="number">{{ if m.consumption }}{{ number m.consumption 3 }} {{ m.unit }}{{ else }}–{{ end }}</td></tr>
+    <tr><td>{{ m.number }}</td><td>{{ m.type }}</td><td>{{ if m.derived }}aus anderen Zählern{{ else if m.start_value }}{{ number m.start_value 3 }} am {{ date m.start_date }}{{ else }}fehlt{{ end }}</td><td>{{ if m.derived }}errechnet{{ else if m.end_value }}{{ number m.end_value 3 }} am {{ date m.end_date }}{{ else }}fehlt{{ end }}</td><td class="number">{{ if m.consumption }}{{ number m.consumption 3 }} {{ m.unit }}{{ else }}–{{ end }}</td></tr>
   {{~ end ~}}
   </tbody>
 </table>
@@ -102,7 +102,7 @@
 <table>
   <tbody>
   {{~ for e in s.entries ~}}
-    <tr><td>{{ e.title }}<br><span class="small">{{ e.formula }}{{ if e.values }} · {{ e.values }}{{ end }}{{ if e.note }} · {{ e.note }}{{ end }}</span></td><td class="number">{{ if e.result }}{{ number e.result 2 }}{{ end }}</td></tr>
+    <tr><td>{{ e.title }}<br><span class="small">{{ e.formula }}{{ if e.values }} · {{ e.values }}{{ end }}{{ if e.note }} · {{ e.note }}{{ end }}</span></td><td class="number">{{ if e.result }}{{ number e.result 2 }}{{ if e.unit }} {{ e.unit }}{{ end }}{{ end }}</td></tr>
   {{~ end ~}}
   </tbody>
 </table>

@@ -4,7 +4,11 @@ using MietHahn.Domain.Receipts;
 namespace MietHahn.Domain.OperatingCosts;
 
 /// <summary>One step of the calculation protocol: what was calculated (title), by which formula, with which values, with which result.</summary>
-public sealed record ProtocolEntry(string Title, string Formula, string Values, decimal? Result, string? Note = null);
+public sealed record ProtocolEntry(string Title, string Formula, string Values, decimal? Result, string? Note = null)
+{
+    /// <summary>Unit of <see cref="Result"/> (e.g. €, kWh, %), shown behind the result.</summary>
+    public string? Unit { get; init; }
+}
 
 public sealed record CalculationProblem(ProblemSeverity Severity, string Text, string? CostType = null);
 

@@ -327,7 +327,7 @@ var result = preview.Result;
         if (entry.Result is { } value)
         {
             builder.OpenElement(9, "div");
-            builder.AddContent(10, "Ergebnis: " + value.ToString("#,##0.####", System.Globalization.CultureInfo.GetCultureInfo("de-DE")));
+            builder.AddContent(10, "Ergebnis: " + value.ToString("#,##0.####", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) + (entry.Unit is null ? "" : " " + entry.Unit));
             builder.CloseElement();
         }
 

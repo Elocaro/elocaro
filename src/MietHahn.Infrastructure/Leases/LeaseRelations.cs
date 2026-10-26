@@ -13,13 +13,23 @@ internal sealed class LeaseOccupancy(MietHahnDbContext db) : IOccupancyLookup
 {
     public async Task<IReadOnlyDictionary<Guid, Occupancy>> AtAsync(IReadOnlyCollection<Guid> rentalUnitIds, DateOnly day, CancellationToken cancellationToken = default)
     {
-        var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties)
-            .Where(v => rentalUnitIds.Contains(v.RentalUnitId) && v.Term.From <= day && (v.Term.To == null || v.Term.To >= day))
+        var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.ExtraRooms)
+            .Where(v => (rentalUnitIds.Contains(v.RentalUnitId) || v.ExtraRooms.Any(r => rentalUnitIds.Contains(r.RoomId))) && v.Term.From <= day && (v.Term.To == null || v.Term.To >= day))
             .ToListAsync(cancellationToken);
         var personIds = leases.SelectMany(v => v.Parties.Select(p => p.PersonId)).Distinct().ToList();
         var names = (await db.Set<Person>().AsNoTracking().Where(p => personIds.Contains(p.Id)).ToListAsync(cancellationToken))
             .ToDictionary(p => p.Id, p => p.DisplayName);
-        return leases.ToDictionary(v => v.RentalUnitId, v => new Occupancy(v.Id, LeaseService.TenantText(v, names), v.Start, v.End));
+        var result = new Dictionary<Guid, Occupancy>();
+        foreach (var lease in leases)
+        {
+            var occupancy = new Occupancy(lease.Id, LeaseService.TenantText(lease, names), lease.Start, lease.End);
+            foreach (var id in lease.ExtraRooms.Select(r => r.RoomId).Prepend(lease.RentalUnitId))
+            {
+                result[id] = occupancy;
+            }
+        }
+
+        return result;
     }
 
     public Task<bool> HasLeasesAsync(Guid rentalUnitId, CancellationToken cancellationToken = default) =>

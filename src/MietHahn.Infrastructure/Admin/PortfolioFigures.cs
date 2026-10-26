@@ -28,7 +28,7 @@ internal sealed class PortfolioFiguresService(MietHahnDbContext db, ITenantAccou
             return null;
         }
 
-        var running = (await db.Set<Lease>().AsNoTracking().Include(v => v.Components).AsSplitQuery().ToListAsync(cancellationToken))
+        var running = (await db.Set<Lease>().AsNoTracking().Include(v => v.Components).Include(v => v.ExtraRooms).AsSplitQuery().ToListAsync(cancellationToken))
             .Where(v => v.StatusAt(today) is LeaseStatus.Active or LeaseStatus.Terminated)
             .ToList();
         var month = new DateOnly(today.Year, today.Month, 1);
@@ -40,7 +40,7 @@ internal sealed class PortfolioFiguresService(MietHahnDbContext db, ITenantAccou
         return new PortfolioFigures(
             month,
             rentable.Count,
-            running.Where(v => rentable.Contains(v.RentalUnitId)).Select(v => v.RentalUnitId).Distinct().Count(),
+            running.SelectMany(v => v.ExtraRooms.Select(r => r.RoomId).Prepend(v.RentalUnitId)).Where(rentable.Contains).Distinct().Count(),
             running.Sum(v => v.MonthlyRentOn(today)),
             paid,
             open.Sum(i => i.Open),

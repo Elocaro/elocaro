@@ -62,6 +62,10 @@ public class OccupancyPlanTests(PostgresFixture postgres) : IAsyncLifetime
         var plan = (await WithAsync<IOccupancyPlan, OccupancyPlan?>(s => s.GetAsync(house, Period.CalendarYear(2026), Ct)))!;
         Assert.Equal(["Anna Schmidt", "Anna Schmidt", "Ben Meier"], plan.Rows.Select(r => Assert.Single(r.Bars).Tenant));
 
+        var occupancy = await WithAsync<IOccupancyLookup, IReadOnlyDictionary<Guid, Occupancy>>(s => s.AtAsync([room1, room2, room3], new DateOnly(2026, 7, 1), Ct));
+        Assert.Equal(lease, occupancy[room2].LeaseId);
+        Assert.Equal(lease, occupancy[room1].LeaseId);
+
         Validate(await WithAsync<ILeaseService, Result>(s => s.RemoveRoomAsync(lease, room2, Ct)));
         var details = (await WithAsync<ILeaseService, LeaseDetails?>(s => s.GetAsync(lease, Ct)))!;
         Assert.Equal(["Zimmer 1"], details.Rooms!.Select(r => r.Name));

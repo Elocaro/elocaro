@@ -422,10 +422,11 @@ internal sealed partial class HeatingRun
             "Gesamtkosten der Heizanlage",
             "Σ Brennstoff, Betriebsstrom, Wartung, Abgasmessung, Reinigung, Zählermiete/Eichung, CO₂-Kosten (je × Tage im Zeitraum ÷ Tage der Position)",
             string.Join("; ", kinds),
-            totalCents));
+            totalCents)
+        { Unit = "€" });
         if (fuel.Kwh is { } kwh)
         {
-            entries.Add(new ProtocolEntry("Brennstoffenergie", settings.Fuel == HeatingFuel.Oil ? "Anfangsbestand + Lieferungen − Endbestand" : "Σ Brennstoffmenge laut Beleg in kWh", fuel.Description, kwh));
+            entries.Add(new ProtocolEntry("Brennstoffenergie", settings.Fuel == HeatingFuel.Oil ? "Anfangsbestand + Lieferungen − Endbestand" : "Σ Brennstoffmenge laut Beleg in kWh", fuel.Description, kwh) { Unit = "kWh" });
         }
 
         if (split.Entry is not null)
@@ -437,7 +438,8 @@ internal sealed partial class HeatingRun
             "Kosten Heizung und Warmwasser",
             "Kosten nur Heizung + Kosten der gemeinsamen Anlage × (1 − Anteil Warmwasser); Warmwasser entsprechend",
             $"Heizung {Money(CentDistribution.Cents(heatExact))}, Warmwasser {Money(CentDistribution.Cents(waterExact))}",
-            totalCents));
+            totalCents)
+        { Unit = "€" });
         entries.Add(new ProtocolEntry(
             "Verteilungsschlüssel",
             "§ 7 Abs. 1 und § 8 Abs. 1 HeizkostenV: 50 bis 70 % nach Verbrauch, der Rest nach Fläche",
