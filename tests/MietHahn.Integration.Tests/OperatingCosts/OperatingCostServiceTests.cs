@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Common;
 using MietHahn.Application.Finance;
+using MietHahn.Application.Heating;
 using MietHahn.Application.Leases;
 using MietHahn.Application.Metering;
 using MietHahn.Application.OperatingCosts;
@@ -8,6 +9,7 @@ using MietHahn.Application.People;
 using MietHahn.Application.Properties;
 using MietHahn.Application.Receipts;
 using MietHahn.Domain.Common;
+using MietHahn.Domain.Heating;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Metering;
 using MietHahn.Domain.OperatingCosts;
@@ -365,6 +367,46 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
 
         Assert.Equal(900m, actual.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Total);
         Assert.Contains(actual.Hints, h => h.Contains("Jahresabrechnung des Versorgers", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Gas_supply_contract_converts_cubic_meters_by_Brennwert_and_splits_the_CO2_costs_off_the_fuel_costs()
+    {
+        await StartAccountingAsync();
+        Validate(await WithAsync<IHeatingSettings, Result>(s => s.SaveAsync(house, new HeatingSettingsInput
+        {
+            Fuel = HeatingFuel.Gas,
+            ConsumptionPercent = 70m,
+            JointPlant = true,
+            ApplyCarbonCosts = true,
+            FuelKwhPerUnit = 10m,
+            EnergyYears = [new FuelEnergyYearInput { Year = 2026, CalorificValue = 11m, StateNumber = 0.9m, CarbonPricePerTon = 55m }],
+        }, Ct)));
+        var gas = Validate(await WithAsync<IMeterService, Result>(s => s.CreateAsync(
+            house,
+            new MeterCreation { Data = new MeterInput { Type = MeterType.Gas, Name = "Gaszähler", Number = "G-1" }, InstalledOn = new DateOnly(2025, 12, 31), InitialReading = 1000m },
+            Ct)));
+        await ReadingAsync(gas, new DateOnly(2026, 12, 31), 3000m);
+        Validate(await WithAsync<ISupplyContracts, Result>(s => s.CreateAsync(
+            house,
+            new SupplyContractInput
+            {
+                Name = "Gas",
+                CostType = "betrkv-06",
+                MeterType = MeterType.Gas,
+                PriceUnit = PriceUnit.KilowattHour,
+                HeatingKind = HeatingCostKind.Fuel,
+                MeterIds = [gas],
+                Tariff = new SupplyTariffInput { From = new DateOnly(2020, 1, 1), UnitPrice = 0.1m },
+            },
+            Ct)));
+
+        var preview = await PreviewAsync();
+
+        // 2,000 m³ × 11 × 0.9 = 19,800 kWh × 0.10 € = 1,980.00 €; CO₂ 19,800 × 0.2016 = 3,991.7 kg × 55 €/t = 219.54 € of it
+        var items = preview.Result.CostTypes.SelectMany(t => t.Items).ToList();
+        Assert.Equal(1980m, items.Sum(i => i.Prorated));
+        Assert.Equal(219.54m, items.Single(i => i.Description.StartsWith("CO₂-Kosten", StringComparison.Ordinal)).Prorated);
     }
 
     [Fact]

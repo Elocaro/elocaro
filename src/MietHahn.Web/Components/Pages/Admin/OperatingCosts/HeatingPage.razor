@@ -48,10 +48,31 @@ else
             <AppNumberField T="decimal?" @bind-Value="Data.ConsumptionPercent" Label="Anteil nach Verbrauch (%)" Required="true" Min="50" Max="70" Hint="50 bis 70 %, Standard 70 %. Der Rest (Grundkosten) wird nach Fläche verteilt." />
             <AppSelect T="HeatingFuel" @bind-Value="Data.Fuel" Label="Energieträger" Items="Enum.GetValues<HeatingFuel>()" Text="Labels.From" />
             <AppNumberField T="decimal?" @bind-Value="Data.FuelKwhPerUnit" Label="Energieinhalt je Einheit (kWh)" Hint="Nur nötig, wenn der Beleg die Menge nicht in kWh nennt (m³ Gas, l Öl: Standard Öl 10 kWh/l)." />
+            <AppNumberField T="decimal?" @bind-Value="Data.CarbonKgPerKwh" Label="Emissionsfaktor (kg CO₂/kWh)" Hint="Leer = Erdgas 0,2016 (BEHG, Stand/prüfen). Für Gas aus dem Tarif berechnet, wenn der Beleg keine CO₂-Menge nennt." />
             <AppCheckBox @bind-Value="Data.JointPlant" Label="Eine Anlage für Heizung und Warmwasser" />
         </div>
         <p class="small">Bei einer gemeinsamen Anlage werden die Kosten der Kostenarten 4 und 6 nach § 9 HeizkostenV in Heizung und Warmwasser aufgeteilt.</p>
     </section>
+
+    @if (Data.Fuel == HeatingFuel.Gas)
+    {
+        <section id="energy-years">
+            <h2>Brennwert und Zustandszahl je Jahr</h2>
+            <p class="small">Gas wird nach m³ geliefert und nach Brennwert × Zustandszahl in kWh umgerechnet (steht auf der Jahresrechnung des Versorgers). Ein Eintrag für das Abrechnungsjahr ersetzt den festen Energieinhalt oben; ohne Eintrag gilt der feste Wert.</p>
+            @foreach (var row in Data.EnergyYears)
+            {
+                <div class="form-grid">
+                    <AppNumberField T="int" @bind-Value="row.Year" Label="Jahr" Min="2000" Max="2100" />
+                    <AppNumberField T="decimal?" @bind-Value="row.CalorificValue" Label="Brennwert (kWh/m³)" Hint="z. B. 11,2" />
+                    <AppNumberField T="decimal?" @bind-Value="row.StateNumber" Label="Zustandszahl" Hint="z. B. 0,9" />
+                    <AppNumberField T="decimal?" @bind-Value="row.CarbonPricePerTon" Label="CO₂-Preis (€/t)" Hint="Nur für die berechnete CO₂-Menge, z. B. 55" />
+                    <AppTextField @bind-Value="row.Note" Label="Quelle / Notiz" />
+                    <MudButton Variant="Variant.Text" OnClick="() => Data.EnergyYears.Remove(row)">Entfernen</MudButton>
+                </div>
+            }
+            <MudButton Variant="Variant.Outlined" OnClick="AddYear">Jahr hinzufügen</MudButton>
+        </section>
+    }
 
     @if (Data.JointPlant)
     {
@@ -120,6 +141,8 @@ else
 
         loaded = true;
     }
+
+    private void AddYear() => Data.EnergyYears.Add(new FuelEnergyYearInput { Year = Data.EnergyYears.Count == 0 ? DateTime.Today.Year - 1 : Data.EnergyYears.Max(e => e.Year) + 1 });
 
     private async Task SaveAsync()
     {

@@ -19,7 +19,8 @@ internal static class SupplyCostDerivation
         IReadOnlySet<Guid> statementReceipts,
         MeterConsumptionSource source,
         Period billingPeriod,
-        decimal? fuelKwhPerUnit)
+        decimal? fuelKwhPerUnit,
+        HeatingSettings? heating = null)
     {
         var costs = receiptCosts.ToList();
         var hints = new List<string>();
@@ -92,11 +93,12 @@ internal static class SupplyCostDerivation
                         false));
                 }
 
+                var (co2Kg, carbonCost) = fuel ? Carbon(part, fuelUnit, fuelKwhPerUnit, heating, billingPeriod, hints) : (null, 0m);
                 costs.Add(new BillingCost(
                     part.TariffId,
                     contract.CostType,
                     part.Description,
-                    amount,
+                    amount - carbonCost,
                     part.Period,
                     true,
                     null,
@@ -107,11 +109,48 @@ internal static class SupplyCostDerivation
                     part.TariffId,
                     fuel ? part.MeterQuantity : null,
                     fuel ? fuelUnit : null,
-                    null));
+                    co2Kg));
+                if (carbonCost > 0m)
+                {
+                    costs.Add(new BillingCost(Guid.NewGuid(), contract.CostType, $"CO₂-Kosten (aus dem Gaspreis, {co2Kg:#,##0} kg)", carbonCost, part.Period, true, null, Domain.Receipts.Section35a.None, null, null, HeatingCostKind.CarbonPrice));
+                }
             }
         }
 
         return new Outcome([.. costs.OrderBy(c => c.BillingPeriod.From).ThenBy(c => c.Id)], hints);
+    }
+
+    /// <summary>
+    /// CO₂ quantity of a fuel part (kWh × emission factor) and, if the CO₂ price of the year is known, the CO₂ costs contained in the gas price;
+    /// they are split off the fuel costs so that nothing is counted twice.
+    /// </summary>
+    private static (decimal? Kg, decimal Cost) Carbon(SupplyCostPart part, string? fuelUnit, decimal? kwhPerUnit, HeatingSettings? heating, Period billingPeriod, List<string> hints)
+    {
+        if (heating?.CarbonKgPerKwhOrDefault is not { } factor || part.MeterQuantity is not { } quantity || !heating.ApplyCarbonCosts)
+        {
+            return (null, 0m);
+        }
+
+        var kwh = fuelUnit switch
+        {
+            "kWh" => quantity,
+            "MWh" => quantity * 1000m,
+            _ => kwhPerUnit is { } perUnit ? quantity * perUnit : (decimal?)null,
+        };
+        if (kwh is not { } energy)
+        {
+            return (null, 0m);
+        }
+
+        var kg = decimal.Round(energy * factor, 1);
+        var price = heating.EnergyYears.FirstOrDefault(e => e.Year == billingPeriod.To!.Value.Year)?.CarbonPricePerTon;
+        if (price is not { } perTon)
+        {
+            hints.Add($"CO₂: Die Menge ({kg:#,##0} kg) ist aus dem Verbrauch berechnet. Für {billingPeriod.To!.Value.Year} fehlt der CO₂-Preis je Tonne (Heizungseinstellungen), die CO₂-Kosten und damit die Aufteilung nach CO2KostAufG können nicht berechnet werden.");
+            return (kg, 0m);
+        }
+
+        return (kg, decimal.Round(kg / 1000m * perTon, 2, MidpointRounding.AwayFromZero));
     }
 
     /// <summary>Main meter vs. sum of the meters assigned to units in the period (meter units); <c>null</c> if not determinable or not applicable.</summary>

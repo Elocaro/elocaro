@@ -12,6 +12,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Gas: Brennwert und Zustandszahl je Abrechnungsjahr in den Heizungseinstellungen (kWh je m³ = Brennwert × Zustandszahl) ersetzen den festen Energieinhalt; ohne Jahreswert gibt die Vorschau einen Hinweis (Closes #130).
+- Gas aus dem Versorgungsvertrag: Die CO₂-Menge wird aus kWh × Emissionsfaktor berechnet (Standard Erdgas 0,2016 kg/kWh); mit CO₂-Preis je Tonne für das Jahr werden die im Gaspreis enthaltenen CO₂-Kosten abgetrennt und nach CO2KostAufG aufgeteilt (Closes #129).
 - Zähler: Die Messeinheit lässt sich ändern (ohne Umrechnung der Stände), und versehentlich angelegte Zähler lassen sich löschen, solange kein anderer Zähler, Versorgungsvertrag oder die Heizkosteneinstellungen sie verwenden; das Löschen steht im Verlauf (Closes #138).
 - Nebenkosten-Vorschau: Balkendiagramm je Kostenart mit Anteil von Mieter und Vermieter und Strich für den Vorjahreswert (Refs #126; Verbrauchsdiagramme und Ampel folgen).
 - Ein Mietvertrag über mehrere WG-Zimmer: beim Anlegen oder später unter „Zimmer“ im Vertrag weitere Zimmer hinzufügen; eine Miete, eine Kaution, Verbrauchsanteile und Personen werden nur einmal gezählt, ein Zimmer kann nicht doppelt vermietet werden (Closes #125).

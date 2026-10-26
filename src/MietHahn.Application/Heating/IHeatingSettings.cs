@@ -38,6 +38,12 @@ public sealed class HeatingSettingsInput
     [Range(typeof(decimal), "0.0001", "1000", ErrorMessage = "Bitte einen Energieinhalt größer als 0 angeben.", ParseLimitsInInvariantCulture = true)]
     public decimal? FuelKwhPerUnit { get; set; }
 
+    /// <summary>Brennwert and Zustandszahl per billing year (gas).</summary>
+    [Range(typeof(decimal), "0.0001", "1", ErrorMessage = "Der Emissionsfaktor liegt zwischen 0 und 1 kg CO₂ je kWh.", ParseLimitsInInvariantCulture = true)]
+    public decimal? CarbonKgPerKwh { get; set; }
+
+    public List<FuelEnergyYearInput> EnergyYears { get; set; } = [];
+
     public Guid? OilTankMeterId { get; set; }
 
     public OilValuation OilValuation { get; set; }
@@ -51,6 +57,24 @@ public sealed class HeatingSettingsInput
 
     [StringLength(500)]
     public string? CarbonNote { get; set; }
+}
+
+public sealed class FuelEnergyYearInput
+{
+    [Range(2000, 2100, ErrorMessage = "Bitte ein Jahr zwischen 2000 und 2100 angeben.")]
+    public int Year { get; set; }
+
+    [Range(typeof(decimal), "5", "20", ErrorMessage = "Der Brennwert liegt zwischen 5 und 20 kWh/m³.", ParseLimitsInInvariantCulture = true)]
+    public decimal? CalorificValue { get; set; }
+
+    [Range(typeof(decimal), "0.5", "1.2", ErrorMessage = "Die Zustandszahl liegt zwischen 0,5 und 1,2.", ParseLimitsInInvariantCulture = true)]
+    public decimal? StateNumber { get; set; }
+
+    [Range(typeof(decimal), "0", "500", ErrorMessage = "Der CO₂-Preis liegt zwischen 0 und 500 € je Tonne.", ParseLimitsInInvariantCulture = true)]
+    public decimal? CarbonPricePerTon { get; set; }
+
+    [StringLength(200)]
+    public string? Note { get; set; }
 }
 
 public sealed record MeterOption(Guid Id, string Name);

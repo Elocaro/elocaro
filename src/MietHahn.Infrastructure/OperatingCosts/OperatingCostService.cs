@@ -91,7 +91,7 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             ?? new HeatingSettings(propertyId);
         var (receiptCosts, statementReceipts) = await CostsAsync(propertyId, billingPeriod, cancellationToken);
         var contracts = await db.Set<SupplyContract>().AsNoTracking().Include(c => c.Tariffs).Where(c => c.PropertyId == propertyId).AsSplitQuery().ToListAsync(cancellationToken);
-        var supply = SupplyCostDerivation.Apply(contracts, receiptCosts, statementReceipts, source, billingPeriod, heating.FuelKwhPerUnit);
+        var supply = SupplyCostDerivation.Apply(contracts, receiptCosts, statementReceipts, source, billingPeriod, heating.KwhPerUnitFor(billingPeriod), heating);
         var input = new BillingInput(
             billingPeriod,
             [.. units.Select(ToBillingUnit)],
@@ -106,6 +106,11 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             hints.Add(settings.AccountingStart is { } from
                 ? $"Die Buchhaltung beginnt erst im {from:MM/yyyy}: Vorauszahlungen davor sind im Mieterkonto nicht erfasst und fehlen in der Vorschau."
                 : "Es ist kein Buchhaltungsbeginn festgelegt: Das Mieterkonto enthält keine Vorauszahlungen, die Vorschau rechnet ohne.");
+        }
+
+        if (heating.Fuel == HeatingFuel.Gas && heating.FuelKwhPerUnit is { } fixedValue && heating.EnergyYears.All(e => e.Year != billingPeriod.To!.Value.Year))
+        {
+            hints.Add($"Gas: Für {billingPeriod.To!.Value.Year} sind Brennwert und Zustandszahl nicht hinterlegt, es gilt der feste Energieinhalt von {fixedValue:0.####} kWh je m³ (Heizungseinstellungen). Die Jahresrechnung des Versorgers nennt beide Werte.");
         }
 
         return new OperatingCostPreview(
@@ -148,7 +153,7 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             HeatingHeat = settings.SplitBasis == HotWaterSplitBasis.MeterSum ? source.AssignedQuantity(MeterType.Heat, period) : null,
             HotWaterFormulaFactor = settings.HotWaterFormulaFactor,
             HotWaterTemperature = settings.HotWaterTemperature,
-            FuelKwhPerUnit = settings.FuelKwhPerUnit,
+            FuelKwhPerUnit = settings.KwhPerUnitFor(period),
             Oil = oil,
             OilValuation = settings.OilValuation,
             OilOpeningPricePerLiter = settings.OilOpeningPricePerLiter,

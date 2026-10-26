@@ -54,6 +54,12 @@ public enum CarbonSpecialCase
 /// Settings for the heating cost statement (HeizkostenV) of a property: share of the consumption-based part, source of the
 /// hot water share, energy source and the CO₂ special cases. Defaults: 70 % consumption, 30 % base costs.
 /// </summary>
+/// <summary>Brennwert (kWh/m³) and Zustandszahl of the gas supplier for one billing year; energy per m³ = calorific value × state number.</summary>
+public sealed record FuelEnergyYear(int Year, decimal CalorificValue, decimal StateNumber, string? Note = null, decimal? CarbonPricePerTon = null)
+{
+    public decimal KwhPerUnit => decimal.Round(CalorificValue * StateNumber, 4);
+}
+
 public sealed class HeatingSettings : Entity
 {
     public const decimal MinimumConsumptionPercent = 50m;
@@ -93,6 +99,24 @@ public sealed class HeatingSettings : Entity
     /// <summary>Energy content per unit of fuel (kWh per l, m³ ...) if the receipt has no quantity in kWh; oil: calorific value, default 10 kWh/l.</summary>
     public decimal? FuelKwhPerUnit { get; set; }
 
+    /// <summary>Brennwert and Zustandszahl per year (gas); where a year is given it replaces <see cref="FuelKwhPerUnit"/>.</summary>
+    public List<FuelEnergyYear> EnergyYears { get; set; } = [];
+
+    /// <summary>Emission factor in kg CO₂ per kWh of the fuel; for natural gas <see cref="DefaultGasCarbonKgPerKwh"/> if empty.</summary>
+    public decimal? CarbonKgPerKwh { get; set; }
+
+    /// <summary>Natural gas, BEHG: 56.0 t CO₂/TJ (Stand/prüfen).</summary>
+    public const decimal DefaultGasCarbonKgPerKwh = 0.2016m;
+
+    public decimal? CarbonKgPerKwhOrDefault => CarbonKgPerKwh ?? (Fuel == HeatingFuel.Gas ? DefaultGasCarbonKgPerKwh : null);
+
+    /// <summary>Energy per unit of fuel for the billing period: the values of its (last) year, otherwise the fixed value.</summary>
+    public decimal? KwhPerUnitFor(Period period)
+    {
+        var year = (period.To ?? period.From).Year;
+        return EnergyYears.FirstOrDefault(e => e.Year == year)?.KwhPerUnit ?? FuelKwhPerUnit;
+    }
+
     /// <summary>Tank meter (stock in liters) for oil; opening and closing stock are its readings.</summary>
     public Guid? OilTankMeterId { get; set; }
 
@@ -129,6 +153,26 @@ public sealed class HeatingSettings : Entity
         if (FuelKwhPerUnit is <= 0)
         {
             throw new RuleViolationException("Der Energieinhalt je Einheit muss größer als 0 sein.");
+        }
+
+        if (EnergyYears.Select(e => e.Year).Distinct().Count() != EnergyYears.Count)
+        {
+            throw new RuleViolationException("Jedes Jahr darf nur einmal mit Brennwert und Zustandszahl vorkommen.");
+        }
+
+        if (CarbonKgPerKwh is <= 0 or > 1)
+        {
+            throw new RuleViolationException("Der Emissionsfaktor liegt zwischen 0 und 1 kg CO₂ je kWh.");
+        }
+
+        if (EnergyYears.Any(e => e.CarbonPricePerTon is < 0 or > 500))
+        {
+            throw new RuleViolationException("Der CO₂-Preis liegt zwischen 0 und 500 € je Tonne.");
+        }
+
+        if (EnergyYears.Any(e => e.CalorificValue is <= 5m or > 20m || e.StateNumber is <= 0.5m or > 1.2m))
+        {
+            throw new RuleViolationException("Brennwert (5 bis 20 kWh/m³) oder Zustandszahl (0,5 bis 1,2) liegen außerhalb des plausiblen Bereichs.");
         }
 
         if (OilOpeningPricePerLiter is < 0)

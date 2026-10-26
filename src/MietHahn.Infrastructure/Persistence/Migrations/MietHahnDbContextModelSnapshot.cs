@@ -2652,6 +2652,11 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("apply_carbon_costs");
 
+                    b.Property<decimal?>("CarbonKgPerKwh")
+                        .HasPrecision(8, 5)
+                        .HasColumnType("numeric(8,5)")
+                        .HasColumnName("carbon_kg_per_kwh");
+
                     b.Property<string>("CarbonNote")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -2680,6 +2685,13 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.Property<bool>("Deleted")
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
+
+                    b.Property<string>("EnergyYears")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("energy_years")
+                        .HasDefaultValueSql("'[]'::jsonb");
 
                     b.Property<string>("Fuel")
                         .IsRequired()

@@ -220,6 +220,18 @@ public class HeatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetime
         Validate(await SaveSettingsAsync(new HeatingSettingsInput { ConsumptionPercent = 65m, JointPlant = true, ApplyCarbonCosts = true }));
         Assert.Equal(65m, (await WithAsync<IHeatingSettings, HeatingSettingsView?>(s => s.GetAsync(house, Ct)))!.Input.ConsumptionPercent);
 
+        // Brennwert and Zustandszahl per year are kept and sorted.
+        Validate(await SaveSettingsAsync(new HeatingSettingsInput
+        {
+            ConsumptionPercent = 65m,
+            Fuel = HeatingFuel.Gas,
+            FuelKwhPerUnit = 10m,
+            EnergyYears = [new FuelEnergyYearInput { Year = 2026, CalorificValue = 11.2m, StateNumber = 0.95m, Note = "Jahresrechnung" }, new FuelEnergyYearInput { Year = 2025, CalorificValue = 11m, StateNumber = 0.96m }],
+        }));
+        var years = (await WithAsync<IHeatingSettings, HeatingSettingsView?>(s => s.GetAsync(house, Ct)))!.Input.EnergyYears;
+        Assert.Equal([2025, 2026], years.Select(e => e.Year));
+        Assert.Equal("Jahresrechnung", years[1].Note);
+
         Assert.Null(await WithAsync<IHeatingSettings, HeatingSettingsView?>(s => s.GetAsync(Guid.NewGuid(), Ct)));
         Assert.False((await WithAsync<IHeatingSettings, Result>(s => s.SaveAsync(Guid.NewGuid(), new HeatingSettingsInput { ConsumptionPercent = 70m }, Ct))).Succeeded);
     }

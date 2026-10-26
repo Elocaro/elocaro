@@ -63,6 +63,9 @@ internal sealed class HeatingSettingsService(MietHahnDbContext db) : IHeatingSet
             settings.HotWaterFormulaFactor = input.HotWaterFormulaFactor ?? 2.5m;
             settings.HotWaterTemperature = input.HotWaterTemperature ?? 60m;
             settings.FuelKwhPerUnit = input.FuelKwhPerUnit;
+            settings.CarbonKgPerKwh = input.CarbonKgPerKwh;
+            settings.EnergyYears = [.. input.EnergyYears.Where(e => e.CalorificValue is not null || e.StateNumber is not null)
+                .Select(e => new FuelEnergyYear(e.Year, e.CalorificValue ?? throw new RuleViolationException("Bitte den Brennwert angeben."), e.StateNumber ?? throw new RuleViolationException("Bitte die Zustandszahl angeben."), string.IsNullOrWhiteSpace(e.Note) ? null : e.Note.Trim(), e.CarbonPricePerTon)).OrderBy(e => e.Year)];
             settings.OilTankMeterId = input.OilTankMeterId;
             settings.OilValuation = input.OilValuation;
             settings.OilOpeningPricePerLiter = input.OilOpeningPricePerLiter;
@@ -91,6 +94,8 @@ internal sealed class HeatingSettingsService(MietHahnDbContext db) : IHeatingSet
         HotWaterFormulaFactor = s.HotWaterFormulaFactor,
         HotWaterTemperature = s.HotWaterTemperature,
         FuelKwhPerUnit = s.FuelKwhPerUnit,
+        CarbonKgPerKwh = s.CarbonKgPerKwh,
+        EnergyYears = [.. s.EnergyYears.Select(e => new FuelEnergyYearInput { Year = e.Year, CalorificValue = e.CalorificValue, StateNumber = e.StateNumber, Note = e.Note, CarbonPricePerTon = e.CarbonPricePerTon })],
         OilTankMeterId = s.OilTankMeterId,
         OilValuation = s.OilValuation,
         OilOpeningPricePerLiter = s.OilOpeningPricePerLiter,
