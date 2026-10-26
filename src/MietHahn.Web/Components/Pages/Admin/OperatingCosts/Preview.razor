@@ -109,6 +109,38 @@ var result = preview.Result;
     }
 </section>
 
+@if (preview.MeterChecks is { Count: > 0 } checks)
+{
+    <section id="meter-checks">
+        <h2>Zähler und Verbrauch</h2>
+        @foreach (var check in checks)
+        {
+            <h3>@check.Contract</h3>
+            @if (check.DifferencePercent is { } difference)
+            {
+                <p>
+                    <span class="status @(check.Level switch { CheckLevel.Ok => "status-ok", CheckLevel.Warning => "status-pending", _ => "status-error" })">@(check.Level switch { CheckLevel.Ok => "Passt", CheckLevel.Warning => "Auffällig", _ => "Prüfen" })</span>
+                    Hauptzähler @check.Main?.ToString("N2") · Zähler der Einheiten zusammen @check.UnitsTotal?.ToString("N2") · Differenz @difference.ToString("0.#") %
+                </p>
+            }
+            @if (check.Consumption.Count > 0)
+            {
+                var max = check.Consumption.Max(c => c.Quantity);
+                <figure class="cost-chart" aria-label="@($"Verbrauch je Einheit: {check.Contract}")">
+                    @foreach (var row in check.Consumption)
+                    {
+                        <div class="cost-chart-row">
+                            <span class="cost-chart-label">@row.Unit</span>
+                            <span class="cost-chart-track"><span class="cost-chart-bar tenant" style="width:@((row.Quantity / max * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
+                            <span class="cost-chart-value">@row.Quantity.ToString("N2")</span>
+                        </div>
+                    }
+                </figure>
+            }
+        }
+    </section>
+}
+
 @foreach (var block in result.Sections)
 {
     <section id="@($"section-{block.Id}")">

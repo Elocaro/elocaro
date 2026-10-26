@@ -443,6 +443,9 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
         Assert.Equal(876m, distributed.Result.CostTypes.Single(t => t.CostType == "betrkv-02").Total);
         Assert.Contains(distributed.Hints, h => h.StartsWith("Plausibilität:", StringComparison.Ordinal) && h.Contains("18", StringComparison.Ordinal));
         Assert.Empty(distributed.Result.NonAllocable);
+        var check = Assert.Single(distributed.MeterChecks!);
+        Assert.Equal((183m, 150m, 18.0m, CheckLevel.Warning), (check.Main, check.UnitsTotal, check.DifferencePercent, check.Level));
+        Assert.Equal([100m, 50m], check.Consumption.Select(c => c.Quantity));
 
         // The landlord bears the difference: tenants pay 150/183 of the cost (718.03 €), 157.97 € stay with the landlord.
         var existing = await WithAsync<ISupplyContracts, SupplyOverview>(async s => (await s.GetAsync(house, Ct))!);

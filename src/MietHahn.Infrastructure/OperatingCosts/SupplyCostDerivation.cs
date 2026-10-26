@@ -11,7 +11,7 @@ namespace MietHahn.Infrastructure.OperatingCosts;
 /// </summary>
 internal static class SupplyCostDerivation
 {
-    public sealed record Outcome(List<BillingCost> Costs, List<string> Hints);
+    public sealed record Outcome(List<BillingCost> Costs, List<string> Hints, List<Application.OperatingCosts.MeterCheck> Checks);
 
     public static Outcome Apply(
         IReadOnlyList<SupplyContract> contracts,
@@ -20,10 +20,12 @@ internal static class SupplyCostDerivation
         MeterConsumptionSource source,
         Period billingPeriod,
         decimal? fuelKwhPerUnit,
-        HeatingSettings? heating = null)
+        HeatingSettings? heating = null,
+        IReadOnlyList<(Guid Id, string Name)>? units = null)
     {
         var costs = receiptCosts.ToList();
         var hints = new List<string>();
+        var checks = new List<Application.OperatingCosts.MeterCheck>();
         foreach (var contract in contracts.OrderBy(c => c.CostType).ThenBy(c => c.Name, StringComparer.Ordinal))
         {
             var replaceable = costs.Where(c => Matches(contract, c)).ToList();
@@ -75,6 +77,7 @@ internal static class SupplyCostDerivation
 
             var fuelUnit = source.FuelUnit(contract.MeterIds);
             hints.AddRange(DeviationHints(contract, source, billingPeriod));
+            checks.Add(Check(contract, source, billingPeriod, units ?? []));
             foreach (var part in result.Parts.Where(p => p.Amount != 0))
             {
                 var fuel = contract.HeatingKind == HeatingCostKind.Fuel;
@@ -117,7 +120,7 @@ internal static class SupplyCostDerivation
             }
         }
 
-        return new Outcome([.. costs.OrderBy(c => c.BillingPeriod.From).ThenBy(c => c.Id)], hints);
+        return new Outcome([.. costs.OrderBy(c => c.BillingPeriod.From).ThenBy(c => c.Id)], hints, checks);
     }
 
     /// <summary>
@@ -159,6 +162,25 @@ internal static class SupplyCostDerivation
         var main = source.MetersQuantity(contract.MeterIds, period);
         var units = source.AssignedQuantity(contract.MeterType, period);
         return main.Value is { } m && units.Value is { } u && u > 0m ? (m, u) : null;
+    }
+
+    private static Application.OperatingCosts.MeterCheck Check(SupplyContract contract, MeterConsumptionSource source, Period period, IReadOnlyList<(Guid Id, string Name)> units)
+    {
+        var consumption = units
+            .Select(u => (u.Name, Quantity: source.Quantity(u.Id, contract.MeterType, period).Value))
+            .Where(x => x.Quantity is > 0m)
+            .Select(x => new Application.OperatingCosts.UnitConsumptionRow(x.Name, x.Quantity!.Value))
+            .ToList();
+        if (contract.Basis != SupplyBasis.MainMeter || Deviation(contract, source, period) is not { } d || d.Main <= 0m)
+        {
+            return new Application.OperatingCosts.MeterCheck(contract.Name, contract.MeterType.ToString(), null, null, null, Application.OperatingCosts.CheckLevel.Ok, consumption);
+        }
+
+        var percent = (d.Main - d.Units) / d.Main * 100m;
+        var level = percent < -DeviationTolerancePercent ? Application.OperatingCosts.CheckLevel.Error
+            : percent > DeviationTolerancePercent ? Application.OperatingCosts.CheckLevel.Warning
+            : Application.OperatingCosts.CheckLevel.Ok;
+        return new Application.OperatingCosts.MeterCheck(contract.Name, contract.MeterType.ToString(), d.Main, d.Units, decimal.Round(percent, 1), level, consumption);
     }
 
     /// <summary>Plausibility check: the main meter and the sum of the unit meters should be close (leaks, garden, meter tolerance).</summary>

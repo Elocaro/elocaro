@@ -91,7 +91,7 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             ?? new HeatingSettings(propertyId);
         var (receiptCosts, statementReceipts) = await CostsAsync(propertyId, billingPeriod, cancellationToken);
         var contracts = await db.Set<SupplyContract>().AsNoTracking().Include(c => c.Tariffs).Where(c => c.PropertyId == propertyId).AsSplitQuery().ToListAsync(cancellationToken);
-        var supply = SupplyCostDerivation.Apply(contracts, receiptCosts, statementReceipts, source, billingPeriod, heating.KwhPerUnitFor(billingPeriod), heating);
+        var supply = SupplyCostDerivation.Apply(contracts, receiptCosts, statementReceipts, source, billingPeriod, heating.KwhPerUnitFor(billingPeriod), heating, [.. units.Select(u => (u.Id, u.Name))]);
         var input = new BillingInput(
             billingPeriod,
             [.. units.Select(ToBillingUnit)],
@@ -117,7 +117,8 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             property.Id,
             property.Name,
             OperatingCostCalculator.Calculate(input, [new HeatingCostCalculator(BuildHeatingParameters(heating, meters, source, billingPeriod))]),
-            hints);
+            hints,
+            supply.Checks);
     }
 
     /// <summary>Settings of the property plus the measured values of the heat meter in the hot water circuit and the oil tank stock.</summary>
