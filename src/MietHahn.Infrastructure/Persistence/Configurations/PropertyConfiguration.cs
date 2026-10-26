@@ -110,6 +110,17 @@ internal sealed class PropertyAssignmentConfiguration : IEntityTypeConfiguration
     }
 }
 
+internal sealed class PropertyLandlordConfiguration : IEntityTypeConfiguration<PropertyLandlord>
+{
+    public void Configure(EntityTypeBuilder<PropertyLandlord> builder)
+    {
+        builder.ToTable("property_landlords");
+        builder.HasOne<Property>().WithMany().HasForeignKey(o => o.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<MietHahn.Domain.Admin.LandlordProfile>().WithMany().HasForeignKey(o => o.LandlordProfileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(o => new { o.PropertyId, o.ValidFrom }).IsUnique().HasFilter("NOT deleted");
+    }
+}
+
 internal sealed class PropertyOwnerConfiguration : IEntityTypeConfiguration<PropertyOwner>
 {
     public void Configure(EntityTypeBuilder<PropertyOwner> builder)

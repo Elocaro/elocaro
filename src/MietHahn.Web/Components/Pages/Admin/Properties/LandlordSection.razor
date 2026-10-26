@@ -1,0 +1,101 @@
+@inherits DataComponent
+@using MudBlazor
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<section id="landlord-history">
+    <h2>Vermieter auf Dokumenten im Zeitverlauf</h2>
+    <p class="small">
+        Briefkopf, Bankverbindung und Absender der Dokumente dieses Objekts richten sich nach dem Vermieterprofil. Bei einem Eigentümer- oder Verwalterwechsel tragen Sie hier ein, ab wann welches Profil gilt;
+        vorher gilt das am Objekt gewählte Profil (unter „Angaben“, sonst das Standardprofil). Die Profile pflegen Sie unter Einstellungen → Vermieter.
+    </p>
+    <ErrorList Errors="errors" />
+    @if (history is not null)
+    {
+        <p>Bis zum ersten Eintrag: <strong>@(history.BaseProfileName ?? "kein Profil angelegt")</strong></p>
+        @if (history.Entries.Count > 0)
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Ab</th><th>Vermieterprofil</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var entry in history.Entries)
+                        {
+                            <tr>
+                                <td>@Format.Date(entry.From)@if (entry.Current) {<StatusChip Level="StatusLevel.Success">aktuell</StatusChip>}</td>
+                                <td>@entry.ProfileName</td>
+                                <td>
+                                    <MudButton Variant="Variant.Text" OnClick="() => Edit(entry)" aria-label="@($"Eintrag ab {Format.Date(entry.From)} bearbeiten")">Bearbeiten</MudButton>
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAsync(entry)" aria-label="@($"Eintrag ab {Format.Date(entry.From)} entfernen")">Entfernen</MudButton>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <EditForm Model="input" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppSelect T="Guid?" @bind-Value="input.ProfileId" Label="Vermieterprofil" Required="true" Items="history.Profiles.Select(p => (Guid?)p.Id).ToList()" Text="@(id => history.Profiles.FirstOrDefault(p => p.Id == id).Name ?? "")" EmptyText="– bitte wählen –" />
+                <AppDateField @bind-Value="input.From" Label="Gilt ab" Required="true" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editing is null ? "Wechsel eintragen" : "Änderung speichern")</MudButton>
+            @if (editing is not null)
+            {
+                <MudButton Variant="Variant.Text" OnClick="CancelEdit">Abbrechen</MudButton>
+            }
+        </EditForm>
+    }
+</section>
+
+@code {
+    private LandlordHistory? history;
+    private IReadOnlyList<string>? errors;
+    private readonly LandlordChangeInput input = new();
+    private Guid? editing;
+
+    [Parameter, EditorRequired]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => history = await GetAsync<IPropertyLandlords, LandlordHistory>(l => l.GetAsync(PropertyId));
+
+    private void Edit(LandlordEntry entry)
+    {
+        editing = entry.Id;
+        input.ProfileId = entry.ProfileId;
+        input.From = entry.From;
+    }
+
+    private void CancelEdit()
+    {
+        editing = null;
+        input.ProfileId = null;
+        input.From = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await GetAsync<IPropertyLandlords, Result>(l => editing is { } id ? l.UpdateAsync(PropertyId, id, input) : l.AddAsync(PropertyId, input));
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(editing is null ? "Der Wechsel wurde eingetragen." : "Der Eintrag wurde gespeichert.");
+            CancelEdit();
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveAsync(LandlordEntry entry)
+    {
+        if (await Confirm.AskAsync("Eintrag entfernen", $"Soll der Eintrag ab {Format.Date(entry.From)} ({entry.ProfileName}) entfernt werden?", "Ja, entfernen"))
+        {
+            var result = await GetAsync<IPropertyLandlords, Result>(l => l.RemoveAsync(PropertyId, entry.Id));
+            errors = result.Succeeded ? null : result.Errors;
+            await LoadAsync();
+        }
+    }
+}

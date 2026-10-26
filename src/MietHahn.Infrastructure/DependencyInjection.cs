@@ -313,6 +313,7 @@ public static class DependencyInjection
         services.AddScoped<IContractorLinks, ContractorLinks>();
         services.AddScoped<ICareRoutines, CareRoutines>();
         services.AddScoped<IPropertyOwners, PropertyOwners>();
+        services.AddScoped<IPropertyLandlords, PropertyLandlords>();
         services.AddScoped<IOwnerPortal, OwnerPortal>();
         services.AddScoped<IPersonReference, PropertyOwnerReferences>();
         services.AddScoped<ITodoSource, CareRoutineTodos>();

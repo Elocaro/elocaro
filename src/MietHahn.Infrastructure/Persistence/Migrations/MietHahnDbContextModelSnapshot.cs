@@ -5783,6 +5783,66 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                     b.ToTable("property_assignments", (string)null);
                 });
 
+            modelBuilder.Entity("MietHahn.Domain.Properties.PropertyLandlord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<Guid>("LandlordProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("landlord_profile_id");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<DateOnly>("ValidFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_from");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_property_landlords");
+
+                    b.HasIndex("LandlordProfileId")
+                        .HasDatabaseName("ix_property_landlords_landlord_profile_id");
+
+                    b.HasIndex("PropertyId", "ValidFrom")
+                        .IsUnique()
+                        .HasDatabaseName("ix_property_landlords_property_id_valid_from")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("property_landlords", (string)null);
+                });
+
             modelBuilder.Entity("MietHahn.Domain.Properties.PropertyOwner", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9349,6 +9409,23 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_property_assignments_users_user_id");
+                });
+
+            modelBuilder.Entity("MietHahn.Domain.Properties.PropertyLandlord", b =>
+                {
+                    b.HasOne("MietHahn.Domain.Admin.LandlordProfile", null)
+                        .WithMany()
+                        .HasForeignKey("LandlordProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_property_landlords_landlord_profiles_landlord_profile_id");
+
+                    b.HasOne("MietHahn.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_property_landlords_properties_property_id");
                 });
 
             modelBuilder.Entity("MietHahn.Domain.Properties.PropertyOwner", b =>

@@ -18,6 +18,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Vermieter im Zeitverlauf: Je Objekt lässt sich eintragen, ab welchem Tag welches Vermieterprofil (Briefkopf, Bankverbindung, Absender) auf Dokumenten gilt, z. B. nach einem Eigentümerwechsel (Objekt → Eigentümer). Vorher gilt das am Objekt gewählte Profil.
 - Vorlage „Information Vermieterwechsel (§ 566 BGB)“ für den Eigentumsübergang: neuer Vermieter, neue Bankverbindung, übernommene Kaution (§ 566a BGB), mit Absender aus dem Vermieterprofil.
 - Versorgungsverträge: Die Vorschau stellt die berechneten Kosten den gezahlten Abschlägen gegenüber und nennt die voraussichtliche Nachzahlung oder das Guthaben beim Versorger (Refs #137; Staffelpreise und getrennte Steuersätze stehen noch aus).
 - Kassenbuch-Import: Eine CSV-Datei mit Datum, Gruppe, Empfänger, Betrag und Info wird zu Belegen mit je einer Kostenposition; die Gruppen ordnet man in der Vorschau Kostenarten zu (Vorschlag aus dem Gruppennamen), bereits erfasste Zeilen werden erkannt (Objekt → „Kassenbuch importieren“, Closes #131). Zahlungen der Mieter kommen weiterhin über den Bankimport.

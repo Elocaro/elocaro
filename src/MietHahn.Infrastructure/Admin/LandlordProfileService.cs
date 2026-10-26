@@ -59,7 +59,7 @@ internal sealed class LandlordProfileService(MietHahnDbContext db) : ILandlordPr
                 throw new RuleViolationException("Das Standardprofil lässt sich nicht löschen.");
             }
 
-            if (await db.Set<Property>().AnyAsync(o => o.LandlordProfileId == id, cancellationToken))
+            if (await db.Set<Property>().AnyAsync(o => o.LandlordProfileId == id, cancellationToken) || await db.Set<PropertyLandlord>().AnyAsync(a => a.LandlordProfileId == id, cancellationToken))
             {
                 throw new RuleViolationException("Das Profil wird noch von einem Objekt verwendet.");
             }
