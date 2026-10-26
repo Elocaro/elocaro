@@ -13,7 +13,7 @@
 @inject Notifier Notify
 
 <InteractiveShell>
-    <PageHeader Title="@(view?.Row.Title ?? "Ticket")" Back="/verwaltung/tickets" BackText="Alle Tickets" />
+    <PageHeader Title="@(view?.Row.Title ?? "Ticket")" Subtitle="@(view is null ? null : string.Join(" · ", new[] { view.Row.Property, view.Row.Unit }.Where(x => !string.IsNullOrEmpty(x))))" Back="/verwaltung/tickets" BackText="Alle Tickets" />
     <StatusMessage />
     <ErrorList Errors="errors" />
 

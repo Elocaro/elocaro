@@ -48,4 +48,27 @@ public class NavigationModelTests
             Assert.True(area!.Tabs.Length == 0 || AdminNavModel.TabsFor(path) is not null, path);
         }
     }
+
+    [Theory]
+    [InlineData("/verwaltung/einheiten/x", "Übersicht")]
+    [InlineData("/verwaltung/zimmer/x", "Übersicht")]
+    [InlineData("/verwaltung/zaehler/x", "Zähler")]
+    [InlineData("/verwaltung/abrechnungen/x", "Abrechnungen")]
+    public void Pages_of_a_property_outside_its_path_get_the_workspace_tabs_of_that_property(string path, string activeTab)
+    {
+        var propertyId = Guid.NewGuid();
+
+        var set = AdminNavModel.TabsFor(path, propertyId)!;
+
+        Assert.Equal("Objekt", set.Label);
+        Assert.Contains(set.Tabs, tab => tab.Href.EndsWith(propertyId.ToString(), StringComparison.Ordinal));
+        var active = set.Tabs.Single(tab => tab.Matches(path));
+        Assert.Equal(activeTab, active.Label.Length > 0 && active.IsGroup ? active.Children!.Single(c => c.Matches(path)).Label : active.Label);
+    }
+
+    [Fact]
+    public void Without_a_property_those_pages_keep_the_area_tabs()
+    {
+        Assert.Equal("Bestand", AdminNavModel.TabsFor("/verwaltung/einheiten/x")!.Label);
+    }
 }

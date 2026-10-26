@@ -120,9 +120,9 @@ public static class AdminNavModel
         && (ModuleCatalog.OptionOf(href) is not { } option || modules.IsVisible(option.Option));
 
     /// <summary>The tabs of the page at <paramref name="path"/>: workspace of a property or lease, else the siblings of its area.</summary>
-    public static NavTabSet? TabsFor(string path, IModuleState modules)
+    public static NavTabSet? TabsFor(string path, IModuleState modules, Guid? propertyId = null)
     {
-        if (TabsFor(path) is not { } set)
+        if (TabsFor(path, propertyId) is not { } set)
         {
             return null;
         }
@@ -132,9 +132,15 @@ public static class AdminNavModel
     }
 
     /// <summary>The tabs of the page at <paramref name="path"/>: workspace of a property or lease, else the siblings of its area.</summary>
-    public static NavTabSet? TabsFor(string path)
+    /// <param name="propertyId">The property a page outside of <c>/objekte/{id}</c> (unit, room, meter, statement) belongs to; it gets that property's workspace tabs.</param>
+    public static NavTabSet? TabsFor(string path, Guid? propertyId = null)
     {
         path = path.TrimEnd('/');
+        if (propertyId is { } owningProperty && BelongsToProperty(path))
+        {
+            return new("Objekt", PropertyTabs($"{Root}/objekte/{owningProperty}"));
+        }
+
         if (EntityTabs(path, $"{Root}/objekte/", PropertyTabs) is { } property)
         {
             return new("Objekt", property);
@@ -148,18 +154,24 @@ public static class AdminNavModel
         return AreaOf(path) is { Tabs.Length: > 1 } area ? new(area.Label, area.Tabs) : null;
     }
 
+    /// <summary>Pages that belong to a property although their path does not start with it.</summary>
+    public static bool BelongsToProperty(string path) =>
+        PropertyPrefixes.Any(prefix => path.Equals(prefix, StringComparison.OrdinalIgnoreCase) || path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase));
+
+    private static readonly string[] PropertyPrefixes = [$"{Root}/einheiten", $"{Root}/zimmer", $"{Root}/zaehler", $"{Root}/abrechnungen"];
+
     private static NavTab[] PropertyTabs(string id) =>
     [
-        new("Übersicht", id, Exact: true),
+        new("Übersicht", id, Exact: true, Also: [$"{id}/belegimport", $"{Root}/einheiten", $"{Root}/zimmer"]),
         new("Belegung", $"{id}/belegung"),
-        new("Zähler", $"{id}/zaehler", Also: [$"{id}/ablesung"]),
+        new("Zähler", $"{id}/zaehler", Also: [$"{id}/ablesung", $"{id}/zaehlerimport", $"{Root}/zaehler"]),
         NavTab.Group("Nebenkosten", Policies.Finance,
             new("Versorgungsverträge", $"{id}/versorgung"),
             new("Umlageschlüssel", $"{id}/umlageschluessel"),
             new("Heizkosten", $"{id}/heizung"),
             new("Vorschau", $"{id}/nebenkosten"),
             new("Abrechnungs-Assistent", $"{id}/abrechnung"),
-            new("Abrechnungen", $"{id}/abrechnungen")),
+            new("Abrechnungen", $"{id}/abrechnungen", Also: [$"{Root}/abrechnungen"])),
         NavTab.Group("Steuer", Policies.Finance,
             new("AfA", $"{id}/afa"),
             new("Erhaltungsaufwand", $"{id}/erhaltungsaufwand"),

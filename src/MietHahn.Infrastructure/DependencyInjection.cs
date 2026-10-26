@@ -233,6 +233,7 @@ public static class DependencyInjection
     private static void AddMasterData(IServiceCollection services)
     {
         services.AddScoped<IPropertyService, PropertyService>();
+        services.AddScoped<INavigationContext, NavigationContextResolver>();
         services.AddScoped<IPropertyAssignments, PropertyAssignments>();
         services.AddScoped<IOccupancyLookup, LeaseOccupancy>();
         services.AddScoped<IPersonService, PersonService>();

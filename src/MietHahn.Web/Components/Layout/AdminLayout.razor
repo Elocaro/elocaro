@@ -2,6 +2,7 @@
 @using MietHahn.Application.Admin
 @inject NavigationManager Navigation
 @inject IModuleState Modules
+@inject INavigationContext NavContext
 
 <SkipLink />
 <div class="@("app app-admin" + (IsFocus ? " is-focus" : ""))">
@@ -14,7 +15,8 @@
         <AdminNavigation />
     </nav>
     <div class="@("workspace" + (HasTabs ? " has-tabs" : ""))">
-        <ContextTabs />
+        <ContextBar Context="context" />
+        <ContextTabs PropertyId="context?.PropertyId" />
         <main id="content" class="content">
             @Body
         </main>
@@ -27,5 +29,11 @@
     // The setup wizard takes the whole window: no navigation that leads away in the middle of it.
     private bool IsFocus => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/verwaltung/einrichtung", StringComparison.OrdinalIgnoreCase);
 
-    private bool HasTabs => AdminNavModel.TabsFor(new Uri(Navigation.Uri).AbsolutePath, Modules) is not null;
+    private bool HasTabs => AdminNavModel.TabsFor(Path, Modules, context?.PropertyId) is not null;
+
+    private PageContext? context;
+
+    private string Path => new Uri(Navigation.Uri).AbsolutePath;
+
+    protected override async Task OnParametersSetAsync() => context = await NavContext.ResolveAsync(Path);
 }

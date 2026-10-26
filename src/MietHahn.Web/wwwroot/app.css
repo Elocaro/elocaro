@@ -969,3 +969,13 @@ main p a, main .help a, main .small a, .message a { text-decoration: underline; 
 .house-room.state-empty { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
 .house-legend { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 @media (max-width: 600px) { .house-floor { grid-template-columns: 1fr; } }
+
+/* Trail above the tabs: where am I, which property/lease does the page belong to. */
+.context-bar { flex: none; padding: 0.5rem var(--content-gutter) 0; background: var(--md-surface); font-size: 0.875rem; }
+.context-bar ol { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; margin: 0; padding: 0; list-style: none; }
+.context-bar li + li::before { content: "›"; margin-right: 0.25rem; color: var(--md-on-surface-variant); }
+.context-bar a { color: var(--md-on-surface-variant); text-decoration: none; }
+.context-bar a:hover { color: var(--md-primary); text-decoration: underline; }
+.context-bar .context-last span, .context-bar .context-last a { color: var(--md-on-surface); font-weight: 600; }
+@media print { .context-bar { display: none !important; } }
+@media (max-width: 599.98px) { .context-bar li:not(.context-last):not(:nth-last-child(2)) { display: none; } .context-bar li:nth-last-child(2)::before { content: none; } }
