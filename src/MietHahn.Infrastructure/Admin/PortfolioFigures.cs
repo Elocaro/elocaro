@@ -37,6 +37,23 @@ internal sealed class PortfolioFiguresService(MietHahnDbContext db, ITenantAccou
             .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
         var open = (await accounts.OpenItemsAsync(cancellationToken)).Where(i => i.Due <= today).ToList();
 
+        var from = month.AddMonths(-11);
+        var allCharges = await db.Set<Charge>().AsNoTracking().Where(c => c.Due < month.AddMonths(1)).Select(c => new { c.Due, c.Amount }).ToListAsync(cancellationToken);
+        var allPayments = await db.Set<Payment>().AsNoTracking().Where(p => p.Date < month.AddMonths(1)).Select(p => new { p.Date, p.Amount }).ToListAsync(cancellationToken);
+        var history = Enumerable.Range(0, 12).Select(i =>
+        {
+            var start = from.AddMonths(i);
+            var end = start.AddMonths(1);
+            return new MonthFigure(
+                start,
+                allCharges.Where(c => c.Due >= start && c.Due < end && c.Amount > 0).Sum(c => c.Amount),
+                allPayments.Where(p => p.Date >= start && p.Date < end && p.Amount > 0).Sum(p => p.Amount),
+                allCharges.Where(c => c.Due < end).Sum(c => c.Amount) - allPayments.Where(p => p.Date < end).Sum(p => p.Amount));
+        }).ToList();
+        var costs = (await db.Set<MietHahn.Domain.Receipts.Receipt>().AsNoTracking().Include(r => r.Items).AsSplitQuery().ToListAsync(cancellationToken))
+            .SelectMany(r => r.Items).GroupBy(i => i.BillingPeriod.From.Year).Where(g => g.Key >= today.Year - 3)
+            .OrderBy(g => g.Key).Select(g => new YearCost(g.Key, g.Sum(i => i.Amount))).ToList();
+
         return new PortfolioFigures(
             month,
             rentable.Count,
@@ -44,6 +61,8 @@ internal sealed class PortfolioFiguresService(MietHahnDbContext db, ITenantAccou
             running.Sum(v => v.MonthlyRentOn(today)),
             paid,
             open.Sum(i => i.Open),
-            open.Select(i => i.LeaseId).Distinct().Count());
+            open.Select(i => i.LeaseId).Distinct().Count(),
+            history,
+            costs);
     }
 }

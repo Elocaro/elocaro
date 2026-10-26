@@ -17,7 +17,22 @@ public interface IPortfolioFigures
 /// <param name="PaidThisMonth">Payments received in the current month.</param>
 /// <param name="Arrears">Due claims not yet paid.</param>
 /// <param name="ArrearsLeases">Number of tenancies with arrears.</param>
-public sealed record PortfolioFigures(DateOnly Month, int Units, int Occupied, decimal MonthlyRent, decimal PaidThisMonth, decimal Arrears, int ArrearsLeases)
+/// <summary>One month of the history: claims due, payments received and the open balance at the end of the month.</summary>
+public sealed record MonthFigure(DateOnly Month, decimal Due, decimal Paid, decimal OpenAtEnd);
+
+/// <summary>Costs of the receipts per billing year.</summary>
+public sealed record YearCost(int Year, decimal Amount);
+
+public sealed record PortfolioFigures(
+    DateOnly Month,
+    int Units,
+    int Occupied,
+    decimal MonthlyRent,
+    decimal PaidThisMonth,
+    decimal Arrears,
+    int ArrearsLeases,
+    IReadOnlyList<MonthFigure>? History = null,
+    IReadOnlyList<YearCost>? Costs = null)
 {
     public int Vacant => Units - Occupied;
 }

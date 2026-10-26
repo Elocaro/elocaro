@@ -58,6 +58,13 @@ public class PortfolioFiguresTests(PostgresFixture postgres) : IAsyncLifetime
         // January is paid; February is due and settled by 300 (oldest claim first); March is due only on the 4th and not counted yet.
         Assert.Equal(770m - 300m, figures.Arrears);
         Assert.Equal(1, figures.ArrearsLeases);
+
+        // History: the last twelve months up to March 2026, with the open balance at each month end.
+        Assert.Equal(12, figures.History!.Count);
+        Assert.Equal((new DateOnly(2025, 4, 1), new DateOnly(2026, 3, 1)), (figures.History[0].Month, figures.History[^1].Month));
+        var january = figures.History.Single(m => m.Month == new DateOnly(2026, 1, 1));
+        Assert.Equal((770m, 770m, 0m), (january.Due, january.Paid, january.OpenAtEnd));
+        Assert.Equal(770m, figures.History.Single(m => m.Month == new DateOnly(2026, 2, 1)).OpenAtEnd);
     }
 
     [Fact]

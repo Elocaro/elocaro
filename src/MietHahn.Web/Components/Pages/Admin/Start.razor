@@ -23,6 +23,24 @@
             <p class="kpi-value">@figures.Occupied von @figures.Units vermietet<small>@(figures.Vacant == 0 ? "" : $" · {figures.Vacant} leer")</small></p>
         </div>
     </div>
+    @if (figures.History is { Count: > 0 } history)
+    {
+        <MonthChart History="history" />
+    }
+    @if (figures.Costs is { Count: > 0 } costs)
+    {
+        <figure class="cost-chart" id="year-costs" aria-label="Kosten je Jahr">
+            <figcaption class="small">Kosten aus den Belegen je Abrechnungsjahr</figcaption>
+            @foreach (var year in costs)
+            {
+                <div class="cost-chart-row">
+                    <span class="cost-chart-label">@year.Year</span>
+                    <span class="cost-chart-track"><span class="cost-chart-bar tenant" style="width:@((year.Amount / Math.Max(1m, costs.Max(c => c.Amount)) * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
+                    <span class="cost-chart-value">@Format.Money(year.Amount)</span>
+                </div>
+            }
+        </figure>
+    }
 }
 
 @if (todos is null)
