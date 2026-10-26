@@ -14,9 +14,13 @@ public interface IDepreciationService
 
     Task<Result> AddCostAsync(Guid propertyId, CostInput input, CancellationToken cancellationToken = default);
 
+    Task<Result> UpdateCostAsync(Guid propertyId, Guid costId, CostInput input, CancellationToken cancellationToken = default);
+
     Task<Result> RemoveCostAsync(Guid propertyId, Guid costId, CancellationToken cancellationToken = default);
 
     Task<Result> AddAssetAsync(Guid propertyId, AssetInput input, CancellationToken cancellationToken = default);
+
+    Task<Result> UpdateAssetAsync(Guid propertyId, Guid assetId, AssetInput input, CancellationToken cancellationToken = default);
 
     Task<Result> RemoveAssetAsync(Guid propertyId, Guid assetId, CancellationToken cancellationToken = default);
 }

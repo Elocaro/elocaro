@@ -22,6 +22,7 @@
             <MudTd>
                 @if (context.Id is not null)
                 {
+                    <MudButton Variant="Variant.Text" OnClick="() => Edit(context)" aria-label="@($"Profil {context.Name} bearbeiten")">Bearbeiten</MudButton>
                     <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(context)" aria-label="@($"Profil {context.Name} löschen")">Löschen</MudButton>
                 }
             </MudTd>
@@ -29,7 +30,7 @@
     </MudTable>
 
     <section>
-        <h2>Eigenes Profil anlegen</h2>
+        <h2>@(editing is null ? "Eigenes Profil anlegen" : "Profil bearbeiten")</h2>
         <p class="small">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>
         <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />
@@ -56,7 +57,11 @@
             <AppTextField @bind-Value="data.MandateReferenceColumn" Label="Mandatsreferenz" />
             <AppTextField @bind-Value="data.CreditorIdColumn" Label="Gläubiger-ID" />
             </div>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Profil anlegen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editing is null ? "Profil anlegen" : "Änderung speichern")</MudButton>
+            @if (editing is not null)
+            {
+                <MudButton Variant="Variant.Text" OnClick="CancelEditAsync">Abbrechen</MudButton>
+            }
         </EditForm>
     </section>
 </InteractiveShell>
@@ -78,10 +83,26 @@
         _ => "automatisch",
     };
 
+    private Guid? editing;
+
+    private async Task CancelEditAsync()
+    {
+        editing = null;
+        data = new();
+        profiles = await Bank.CsvProfilesAsync();
+    }
+
+    private void Edit(CsvProfileInput profile)
+    {
+        editing = profile.Id;
+        data = profile;
+    }
+
     private async Task SaveAsync()
     {
-        if (await ExecuteAsync(Bank.SaveCsvProfileAsync(null, data), "Das Profil wurde angelegt."))
+        if (await ExecuteAsync(Bank.SaveCsvProfileAsync(editing, data), editing is null ? "Das Profil wurde angelegt." : "Das Profil wurde gespeichert."))
         {
+            editing = null;
             data = new();
         }
     }

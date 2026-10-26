@@ -35,7 +35,7 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 
 **Detailseiten** (Objekt, Vertrag, Person): Kopf mit Kerndaten als `.summary-card`, darunter `MudTabs` (`Class="detail-tabs"`) statt einer langen Abschnittsliste. Je Tab ein fachlicher Abschnitt (z. B. Miete, Parteien & Haushalt, Kündigung, Angaben, Dokumente, Verlauf). Ohne Daten bleibt ein Tab sichtbar mit `EmptyState`; ausgeblendet wird nur, was fachlich nicht möglich ist (`Visible`).
 
-**Anlegen, Bearbeiten, Einladen:** Es gibt keine eigenen „Bearbeiten“-Seiten. Stammdaten werden im Tab *Angaben* der Detailseite bearbeitet (Objekt, Person, Einheit, Bankkonto, Beleg); die Schaltfläche „Bearbeiten“ im Seitenkopf springt dorthin. Kleine Formulare (Person einladen, Umsatz ignorieren, Zimmer, IBAN …) sind Dialoge, nicht Seiten oder Formulare über der Liste.
+**Anlegen, Bearbeiten, Einladen:** Es gibt keine eigenen „Bearbeiten“-Seiten. Stammdaten werden im Tab *Angaben* der Detailseite bearbeitet (Objekt, Person, Einheit, Bankkonto, Beleg); die Schaltfläche „Bearbeiten“ im Seitenkopf springt dorthin. **Jeder Eintrag in einer Liste (Staffel, Mietbestandteil, Buchung, Eigentümer, Bankverbindung, Sondertilgung …) lässt sich bearbeiten, nicht nur löschen** (Schaltfläche „Bearbeiten“ in der Zeile; Dialog oder das Formular der Seite im Bearbeiten-Modus). Zeitreihen mit Stichtag behalten zusätzlich ihr „ab Stichtag ändern“; die Korrektur ändert den Eintrag selbst. Kleine Formulare (Person einladen, Umsatz ignorieren, Zimmer, IBAN …) sind Dialoge, nicht Seiten oder Formulare über der Liste.
 
 **Teilansicht** (`.split`, Beleg): Auf breiten Bildschirmen steht das Dokument rechts neben Formular und Tabs (Vorschau bleibt beim Scrollen stehen), darunter wird gestapelt.
 

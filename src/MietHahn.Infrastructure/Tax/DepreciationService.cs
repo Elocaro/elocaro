@@ -94,6 +94,20 @@ internal sealed class DepreciationService(MietHahnDbContext db, TimeProvider clo
             return cost.Id;
         });
 
+    public Task<Result> UpdateCostAsync(Guid propertyId, Guid costId, CostInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var cost = await db.Set<PropertyCost>().SingleOrDefaultAsync(k => k.Id == costId && k.PropertyId == propertyId, cancellationToken) ?? throw new NotFoundException();
+            cost.Change(
+                input.Date ?? throw new RuleViolationException("Bitte das Datum angeben."),
+                input.Amount ?? throw new RuleViolationException("Bitte den Nettobetrag angeben."),
+                input.Description,
+                input.IsMaintenance);
+            await db.SaveChangesAsync(cancellationToken);
+            return costId;
+        });
+
     public Task<Result> RemoveCostAsync(Guid propertyId, Guid costId, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
@@ -117,6 +131,20 @@ internal sealed class DepreciationService(MietHahnDbContext db, TimeProvider clo
             db.Add(asset);
             await db.SaveChangesAsync(cancellationToken);
             return asset.Id;
+        });
+
+    public Task<Result> UpdateAssetAsync(Guid propertyId, Guid assetId, AssetInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var asset = await db.Set<PropertyAsset>().SingleOrDefaultAsync(w => w.Id == assetId && w.PropertyId == propertyId, cancellationToken) ?? throw new NotFoundException();
+            asset.Change(
+                input.Name,
+                input.AcquisitionDate ?? throw new RuleViolationException("Bitte das Anschaffungsdatum angeben."),
+                input.Cost ?? throw new RuleViolationException("Bitte die Anschaffungskosten angeben."),
+                input.UsefulLifeYears);
+            await db.SaveChangesAsync(cancellationToken);
+            return assetId;
         });
 
     public Task<Result> RemoveAssetAsync(Guid propertyId, Guid assetId, CancellationToken cancellationToken = default) =>

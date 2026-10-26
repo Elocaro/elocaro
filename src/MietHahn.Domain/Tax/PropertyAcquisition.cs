@@ -125,6 +125,20 @@ public sealed class PropertyCost : Entity
 
     public bool IsMaintenance { get; private set; }
 
+    public void Change(DateOnly date, decimal amount, string description, bool isMaintenance)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        if (amount <= 0)
+        {
+            throw new RuleViolationException("Der Betrag muss größer als 0 sein.");
+        }
+
+        Date = date;
+        Amount = amount;
+        Description = description.Trim();
+        IsMaintenance = isMaintenance;
+    }
+
     public SubsequentCost ToCalculation() => new(Date, Amount, Description, IsMaintenance);
 }
 
@@ -165,6 +179,25 @@ public sealed class PropertyAsset : Entity
     public decimal Cost { get; private set; }
 
     public int UsefulLifeYears { get; private set; }
+
+    public void Change(string name, DateOnly acquisitionDate, decimal cost, int usefulLifeYears)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (cost <= 0)
+        {
+            throw new RuleViolationException("Die Anschaffungskosten müssen größer als 0 sein.");
+        }
+
+        if (usefulLifeYears is < 1 or > 100)
+        {
+            throw new RuleViolationException("Die Nutzungsdauer muss zwischen 1 und 100 Jahren liegen.");
+        }
+
+        Name = name.Trim();
+        AcquisitionDate = acquisitionDate;
+        Cost = cost;
+        UsefulLifeYears = usefulLifeYears;
+    }
 
     public MovableAsset ToCalculation() => new(Name, AcquisitionDate, Cost, UsefulLifeYears);
 }

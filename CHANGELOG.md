@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Behoben
+- Fehlendes „Bearbeiten“ ergänzt: Eigentümer (Anteil, Zeitraum), Bankverbindungen einer Person, Sondertilgungen und Finanzierungskosten eines Kredits, nachträgliche Kosten und bewegliche Wirtschaftsgüter der Abschreibung sowie eigene CSV-Profile der Bank.
 - Vertrag: Einträge der Miete (Betrag, Name, Zeitraum) und der Personenanzahl lassen sich bearbeiten oder löschen, nicht nur neu ab Stichtag anlegen; die Monatsmieten werden danach neu berechnet.
 - Mehrzimmerverträge nennen alle Zimmer: Vertragsseite, Vertragsliste, Mieterkonto und der Zimmervertrag (PDF, mit Fläche und Gemeinschaftsanteil aller Zimmer); als „getrennt vermietet“ erscheinen nur die übrigen Zimmer.
 - Die Vertragsseite eines Zimmervertrags warf beim Öffnen eine Exception (Auswahl „Weiteres Zimmer“ ohne Vorauswahl).

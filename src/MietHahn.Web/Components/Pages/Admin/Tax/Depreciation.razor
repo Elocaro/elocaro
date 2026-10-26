@@ -109,7 +109,7 @@ else
                                 <td>@cost.Description</td>
                                 <td>@(cost.IsMaintenance ? "Instandsetzung/Modernisierung" : "Herstellungskosten")</td>
                                 <td class="number">@Format.Money(cost.Amount)</td>
-                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
+                                <td><MudButton Variant="Variant.Text" OnClick="() => EditCost(cost)" aria-label="@($"{cost.Description} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
@@ -117,8 +117,8 @@ else
             </div>
     }
 
-    <details class="disclosure">
-        <summary>Kosten hinzufügen</summary>
+    <details class="disclosure" open="@(editingCost is not null)">
+        <summary>@(editingCost is null ? "Kosten hinzufügen" : "Kosten bearbeiten")</summary>
         <EditForm Model="Cost" OnValidSubmit="AddCostAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
@@ -127,7 +127,11 @@ else
                 <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
                 <AppCheckBox @bind-Value="Cost.IsMaintenance" Label="Instandsetzung/Modernisierung (zählt für die 15-%-Grenze)" />
             </div>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editingCost is null ? "Hinzufügen" : "Änderung speichern")</MudButton>
+            @if (editingCost is not null)
+            {
+                <MudButton Variant="Variant.Text" OnClick="() => { editingCost = null; Cost = new(); }">Abbrechen</MudButton>
+            }
         </EditForm>
     </details>
 </section>
@@ -148,7 +152,7 @@ else
                                 <td>@Format.Date(asset.AcquisitionDate)</td>
                                 <td class="number">@Format.Money(asset.Cost)</td>
                                 <td class="number">@asset.UsefulLifeYears Jahre</td>
-                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAssetAsync(asset)" aria-label="@($"{asset.Name} entfernen")">Entfernen</MudButton></td>
+                                <td><MudButton Variant="Variant.Text" OnClick="() => EditAsset(asset)" aria-label="@($"{asset.Name} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAssetAsync(asset)" aria-label="@($"{asset.Name} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
@@ -156,8 +160,8 @@ else
             </div>
     }
 
-    <details class="disclosure">
-        <summary>Wirtschaftsgut hinzufügen</summary>
+    <details class="disclosure" open="@(editingAsset is not null)">
+        <summary>@(editingAsset is null ? "Wirtschaftsgut hinzufügen" : "Wirtschaftsgut bearbeiten")</summary>
         <EditForm Model="Asset" OnValidSubmit="AddAssetAsync" novalidate>
             <DataAnnotationsValidator />
             <div class="form-grid">
@@ -166,7 +170,11 @@ else
                 <AppNumberField T="decimal?" @bind-Value="Asset.Cost" Label="Anschaffungskosten" Suffix="€" Required="true" />
                 <AppNumberField T="int" @bind-Value="Asset.UsefulLifeYears" Label="Nutzungsdauer (Jahre)" Min="1" Max="100" />
             </div>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editingAsset is null ? "Hinzufügen" : "Änderung speichern")</MudButton>
+            @if (editingAsset is not null)
+            {
+                <MudButton Variant="Variant.Text" OnClick="() => { editingAsset = null; Asset = new(); }">Abbrechen</MudButton>
+            }
         </EditForm>
     </details>
 </section>
@@ -196,10 +204,26 @@ else
 
     private Task SaveAcquisitionAsync() => ExecuteAsync(Admin.SaveAcquisitionAsync(PropertyId, Acquisition), "Die Anschaffungsdaten wurden gespeichert.");
 
+    private Guid? editingCost;
+    private Guid? editingAsset;
+
+    private void EditCost(CostRow item)
+    {
+        editingCost = item.Id;
+        Cost = new CostInput { Date = item.Date, Amount = item.Amount, Description = item.Description, IsMaintenance = item.IsMaintenance };
+    }
+
+    private void EditAsset(AssetRow item)
+    {
+        editingAsset = item.Id;
+        Asset = new AssetInput { Name = item.Name, AcquisitionDate = item.AcquisitionDate, Cost = item.Cost, UsefulLifeYears = item.UsefulLifeYears };
+    }
+
     private async Task AddCostAsync()
     {
-        if (await ExecuteAsync(Admin.AddCostAsync(PropertyId, Cost), "Die Kosten wurden hinzugefügt."))
+        if (await ExecuteAsync(editingCost is { } id ? Admin.UpdateCostAsync(PropertyId, id, Cost) : Admin.AddCostAsync(PropertyId, Cost), editingCost is null ? "Die Kosten wurden hinzugefügt." : "Die Kosten wurden gespeichert."))
         {
+            editingCost = null;
             Cost = new();
         }
     }
@@ -214,8 +238,9 @@ else
 
     private async Task AddAssetAsync()
     {
-        if (await ExecuteAsync(Admin.AddAssetAsync(PropertyId, Asset), "Das Wirtschaftsgut wurde hinzugefügt."))
+        if (await ExecuteAsync(editingAsset is { } id ? Admin.UpdateAssetAsync(PropertyId, id, Asset) : Admin.AddAssetAsync(PropertyId, Asset), editingAsset is null ? "Das Wirtschaftsgut wurde hinzugefügt." : "Das Wirtschaftsgut wurde gespeichert."))
         {
+            editingAsset = null;
             Asset = new();
         }
     }

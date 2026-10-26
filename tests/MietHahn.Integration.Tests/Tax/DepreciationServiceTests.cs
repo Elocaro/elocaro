@@ -78,6 +78,14 @@ public class DepreciationServiceTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal(300m, overview.Plan!.Years[0].Movables);
         Assert.Contains("Anschaffungsnahe", Assert.Single(overview.Plan.Warnings), StringComparison.Ordinal);
 
+        // Corrections in place: the kitchen costs 12,000 € over 10 years → 600 € instead of 300 €; the cost no longer counts as maintenance.
+        Assert.True((await WithAsync(s => s.UpdateAssetAsync(propertyId, asset.Id!.Value, new AssetInput { Name = "Einbauküche", AcquisitionDate = new DateOnly(2024, 7, 1), Cost = 12_000m, UsefulLifeYears = 10 }, Ct))).Succeeded);
+        Assert.True((await WithAsync(s => s.UpdateCostAsync(propertyId, cost.Id!.Value, new CostInput { Date = new DateOnly(2025, 3, 1), Amount = 50_000m, Description = "Sanierung Bäder", IsMaintenance = false }, Ct))).Succeeded);
+        Assert.False((await WithAsync(s => s.UpdateAssetAsync(propertyId, asset.Id!.Value, new AssetInput { Name = "Einbauküche", AcquisitionDate = new DateOnly(2024, 7, 1), Cost = 12_000m, UsefulLifeYears = 0 }, Ct))).Succeeded);
+        var corrected = (await WithAsync(s => s.GetAsync(propertyId, Ct)))!;
+        Assert.Equal(600m, corrected.Plan!.Years[0].Movables);
+        Assert.Empty(corrected.Plan.Warnings);
+
         Assert.True((await WithAsync(s => s.RemoveCostAsync(propertyId, cost.Id!.Value, Ct))).Succeeded);
         Assert.True((await WithAsync(s => s.RemoveAssetAsync(propertyId, asset.Id!.Value, Ct))).Succeeded);
         var cleaned = (await WithAsync(s => s.GetAsync(propertyId, Ct)))!;
