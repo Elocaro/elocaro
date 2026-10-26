@@ -18,6 +18,8 @@ public interface ILoanService
 
     Task<Result> AddExtraPaymentAsync(Guid loanId, ExtraPaymentInput input, CancellationToken cancellationToken = default);
 
+    Task<Result> UpdateExtraPaymentAsync(Guid loanId, Guid extraPaymentId, ExtraPaymentInput input, CancellationToken cancellationToken = default);
+
     Task<Result> RemoveExtraPaymentAsync(Guid loanId, Guid extraPaymentId, CancellationToken cancellationToken = default);
 
     /// <summary>Saves the interest certificate of a year (replaces an existing one).</summary>
@@ -32,6 +34,8 @@ public interface ILoanService
     Task<Result> RemoveCertificateAsync(Guid loanId, Guid certificateId, CancellationToken cancellationToken = default);
 
     Task<Result> AddFinancingCostAsync(Guid loanId, FinancingCostInput input, CancellationToken cancellationToken = default);
+
+    Task<Result> UpdateFinancingCostAsync(Guid loanId, Guid costId, FinancingCostInput input, CancellationToken cancellationToken = default);
 
     Task<Result> RemoveFinancingCostAsync(Guid loanId, Guid costId, CancellationToken cancellationToken = default);
 

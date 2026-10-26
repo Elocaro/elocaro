@@ -131,6 +131,17 @@ public sealed class LoanExtraPayment : Entity
 
     public decimal Amount { get; private set; }
 
+    public void Change(DateOnly date, decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new RuleViolationException("Die Sondertilgung muss größer als 0 sein.");
+        }
+
+        Date = date;
+        Amount = amount;
+    }
+
     public ExtraRepayment ToCalculation() => new(Date, Amount);
 }
 
@@ -216,4 +227,18 @@ public sealed class FinancingCost : Entity
     public FinancingCostKind Kind { get; private set; }
 
     public string Description { get; private set; }
+
+    public void Change(DateOnly date, decimal amount, FinancingCostKind kind, string description)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        if (amount <= 0)
+        {
+            throw new RuleViolationException("Der Betrag muss größer als 0 sein.");
+        }
+
+        Date = date;
+        Amount = amount;
+        Kind = kind;
+        Description = description.Trim();
+    }
 }

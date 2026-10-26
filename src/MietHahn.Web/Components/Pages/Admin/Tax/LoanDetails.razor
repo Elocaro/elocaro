@@ -123,7 +123,7 @@ else
                                     <tr>
                                         <td>@Format.Date(extra.Date)</td>
                                         <td class="number">@Format.Money(extra.Amount)</td>
-                                        <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveExtraAsync(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")">Entfernen</MudButton></td>
+                                        <td><MudButton Variant="Variant.Text" OnClick="() => EditExtra(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveExtraAsync(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")">Entfernen</MudButton></td>
                                     </tr>
                                 }
                             </tbody>
@@ -137,7 +137,11 @@ else
                     <AppDateField @bind-Value="Extra.Date" Label="Datum" Required="true" />
                     <AppNumberField T="decimal?" @bind-Value="Extra.Amount" Label="Betrag" Suffix="€" Required="true" />
                 </div>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editingExtra is null ? "Hinzufügen" : "Änderung speichern")</MudButton>
+                @if (editingExtra is not null)
+                {
+                    <MudButton Variant="Variant.Text" OnClick="() => { editingExtra = null; Extra = new(); }">Abbrechen</MudButton>
+                }
             </EditForm>
         </section>
 
@@ -157,7 +161,7 @@ else
                                         <td>@KindText(cost.Kind)</td>
                                         <td>@cost.Description</td>
                                         <td class="number">@Format.Money(cost.Amount)</td>
-                                        <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
+                                        <td><MudButton Variant="Variant.Text" OnClick="() => EditCost(cost)" aria-label="@($"{cost.Description} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
                                     </tr>
                                 }
                             </tbody>
@@ -173,7 +177,11 @@ else
                     <AppNumberField T="decimal?" @bind-Value="Cost.Amount" Label="Betrag" Suffix="€" Required="true" />
                     <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
                 </div>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editingCost is null ? "Hinzufügen" : "Änderung speichern")</MudButton>
+                @if (editingCost is not null)
+                {
+                    <MudButton Variant="Variant.Text" OnClick="() => { editingCost = null; Cost = new(); }">Abbrechen</MudButton>
+                }
             </EditForm>
         </section>
     </MudTabPanel>
@@ -337,10 +345,26 @@ else
         }
     }
 
+    private Guid? editingExtra;
+    private Guid? editingCost;
+
+    private void EditExtra(ExtraPaymentRow item)
+    {
+        editingExtra = item.Id;
+        Extra = new ExtraPaymentInput { Date = item.Date, Amount = item.Amount };
+    }
+
+    private void EditCost(FinancingCostRow item)
+    {
+        editingCost = item.Id;
+        Cost = new FinancingCostInput { Date = item.Date, Amount = item.Amount, Kind = item.Kind, Description = item.Description };
+    }
+
     private async Task AddExtraAsync()
     {
-        if (await ExecuteAsync(Admin.AddExtraPaymentAsync(LoanId, Extra), "Die Sondertilgung wurde hinzugefügt."))
+        if (await ExecuteAsync(editingExtra is { } id ? Admin.UpdateExtraPaymentAsync(LoanId, id, Extra) : Admin.AddExtraPaymentAsync(LoanId, Extra), editingExtra is null ? "Die Sondertilgung wurde hinzugefügt." : "Die Sondertilgung wurde gespeichert."))
         {
+            editingExtra = null;
             Extra = new();
         }
     }
@@ -355,8 +379,9 @@ else
 
     private async Task AddCostAsync()
     {
-        if (await ExecuteAsync(Admin.AddFinancingCostAsync(LoanId, Cost), "Die Kosten wurden hinzugefügt."))
+        if (await ExecuteAsync(editingCost is { } id ? Admin.UpdateFinancingCostAsync(LoanId, id, Cost) : Admin.AddFinancingCostAsync(LoanId, Cost), editingCost is null ? "Die Kosten wurden hinzugefügt." : "Die Kosten wurden gespeichert."))
         {
+            editingCost = null;
             Cost = new();
         }
     }

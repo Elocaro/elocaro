@@ -137,6 +137,22 @@ public class LoanServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Extra_payments_and_financing_costs_can_be_corrected_in_place()
+    {
+        var id = (await WithAsync(s => s.CreateAsync(Input(), Ct))).Id!.Value;
+        var extra = (await WithAsync(s => s.AddExtraPaymentAsync(id, new ExtraPaymentInput { Date = new DateOnly(2024, 6, 15), Amount = 10_000m }, Ct))).Id!.Value;
+        var cost = (await WithAsync(s => s.AddFinancingCostAsync(id, new FinancingCostInput { Date = new DateOnly(2024, 1, 5), Amount = 2_000m, Description = "Disagio" }, Ct))).Id!.Value;
+
+        Assert.True((await WithAsync(s => s.UpdateExtraPaymentAsync(id, extra, new ExtraPaymentInput { Date = new DateOnly(2024, 7, 1), Amount = 12_000m }, Ct))).Succeeded);
+        Assert.True((await WithAsync(s => s.UpdateFinancingCostAsync(id, cost, new FinancingCostInput { Date = new DateOnly(2024, 1, 6), Amount = 2_500m, Kind = FinancingCostKind.Disagio, Description = "Disagio laut Vertrag" }, Ct))).Succeeded);
+        Assert.False((await WithAsync(s => s.UpdateExtraPaymentAsync(id, extra, new ExtraPaymentInput { Date = new DateOnly(2024, 7, 1), Amount = 0m }, Ct))).Succeeded);
+
+        var loan = (await WithAsync(s => s.GetAsync(id, Ct)))!;
+        Assert.Equal((new DateOnly(2024, 7, 1), 12_000m), (loan.ExtraPayments.Single().Date, loan.ExtraPayments.Single().Amount));
+        Assert.Equal(("Disagio laut Vertrag", 2_500m), (loan.Costs.Single().Description, loan.Costs.Single().Amount));
+    }
+
+    [Fact]
     public async Task Extra_payments_and_costs_can_be_removed_and_invalid_input_is_rejected()
     {
         var id = (await WithAsync(s => s.CreateAsync(Input(), Ct))).Id!.Value;

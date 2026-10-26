@@ -95,6 +95,16 @@ internal sealed class LoanService(MietHahnDbContext db) : ILoanService
             return extra.Id;
         });
 
+    public Task<Result> UpdateExtraPaymentAsync(Guid loanId, Guid extraPaymentId, ExtraPaymentInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var extra = await db.Set<LoanExtraPayment>().SingleOrDefaultAsync(s => s.Id == extraPaymentId && s.LoanId == loanId, cancellationToken) ?? throw new NotFoundException();
+            extra.Change(input.Date ?? throw new RuleViolationException("Bitte das Datum angeben."), input.Amount ?? throw new RuleViolationException("Bitte den Betrag angeben."));
+            await db.SaveChangesAsync(cancellationToken);
+            return extraPaymentId;
+        });
+
     public Task<Result> RemoveExtraPaymentAsync(Guid loanId, Guid extraPaymentId, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
@@ -183,6 +193,20 @@ internal sealed class LoanService(MietHahnDbContext db) : ILoanService
             db.Add(cost);
             await db.SaveChangesAsync(cancellationToken);
             return cost.Id;
+        });
+
+    public Task<Result> UpdateFinancingCostAsync(Guid loanId, Guid costId, FinancingCostInput input, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            var cost = await db.Set<FinancingCost>().SingleOrDefaultAsync(k => k.Id == costId && k.LoanId == loanId, cancellationToken) ?? throw new NotFoundException();
+            cost.Change(
+                input.Date ?? throw new RuleViolationException("Bitte das Datum angeben."),
+                input.Amount ?? throw new RuleViolationException("Bitte den Betrag angeben."),
+                input.Kind,
+                input.Description);
+            await db.SaveChangesAsync(cancellationToken);
+            return costId;
         });
 
     public Task<Result> RemoveFinancingCostAsync(Guid loanId, Guid costId, CancellationToken cancellationToken = default) =>
