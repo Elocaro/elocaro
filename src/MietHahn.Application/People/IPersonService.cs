@@ -20,6 +20,8 @@ public interface IPersonService
 
     Task<Result> AddBankDetailsAsync(Guid id, BankDetailsInput input, CancellationToken cancellationToken = default);
 
+    Task<Result> UpdateBankDetailsAsync(Guid id, Guid bankDetailsId, BankDetailsInput input, CancellationToken cancellationToken = default);
+
     Task<Result> RemoveBankDetailsAsync(Guid id, Guid bankDetailsId, CancellationToken cancellationToken = default);
 
     /// <summary>

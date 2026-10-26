@@ -131,6 +131,25 @@ public sealed class Person : Entity
         return newItem;
     }
 
+    /// <summary>Corrects IBAN, account holder and BIC of an entry.</summary>
+    public void ChangeBankDetails(Guid bankDetailsId, string iban, string? accountHolder, string? bic)
+    {
+        Validate();
+        var bank = BankDetails.SingleOrDefault(b => b.Id == bankDetailsId) ?? throw new RuleViolationException("Die Bankverbindung wurde nicht gefunden.");
+        if (!Iban.IsValid(iban))
+        {
+            throw new RuleViolationException($"„{iban}“ ist keine gültige IBAN (Prüfsumme stimmt nicht).");
+        }
+
+        var formatted = Iban.Format(iban);
+        if (BankDetails.Any(b => b.Id != bankDetailsId && b.Iban == formatted))
+        {
+            throw new RuleViolationException("Diese IBAN ist bereits hinterlegt.");
+        }
+
+        bank.Change(formatted, string.IsNullOrWhiteSpace(accountHolder) ? null : accountHolder.Trim(), string.IsNullOrWhiteSpace(bic) ? null : bic.Trim().ToUpperInvariant());
+    }
+
     /// <summary>
     /// Removes all personal data (GDPR, after the retention period has expired). The person remains as a record
     /// so that postings and leases stay analyzable.
@@ -230,4 +249,11 @@ public sealed class BankDetails : Entity
     public string? AccountHolder { get; private set; }
 
     public string? Bic { get; private set; }
+
+    internal void Change(string iban, string? accountHolder, string? bic)
+    {
+        Iban = iban;
+        AccountHolder = accountHolder;
+        Bic = bic;
+    }
 }

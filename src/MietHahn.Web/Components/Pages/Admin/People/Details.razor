@@ -144,7 +144,7 @@ else
                                 <td><code>@bank.Iban</code></td>
                                 <td>@bank.AccountHolder</td>
                                 <td>@bank.Bic</td>
-                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveBankDetailsAsync(bank)" aria-label="@($"IBAN {bank.Iban} entfernen")">Entfernen</MudButton></td>
+                                <td><MudButton Variant="Variant.Text" OnClick="() => EditBankDetailsAsync(bank)" aria-label="@($"IBAN {bank.Iban} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveBankDetailsAsync(bank)" aria-label="@($"IBAN {bank.Iban} entfernen")">Entfernen</MudButton></td>
                             </tr>
                         }
                     </tbody>
@@ -275,6 +275,15 @@ else
     }
 
     private async Task NewAddressAsync() => await ShowDialogAsync<AddressDialog>("Neue Anschrift");
+
+    private async Task EditBankDetailsAsync(BankDetailsView bank)
+    {
+        var dialog = await Dialogs.ShowAsync<BankDetailsDialog>("Bankverbindung bearbeiten", new DialogParameters { ["PersonId"] = Id, ["Existing"] = bank }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
 
     private async Task AddBankDetailsAsync() => await ShowDialogAsync<BankDetailsDialog>("IBAN hinzufügen");
 

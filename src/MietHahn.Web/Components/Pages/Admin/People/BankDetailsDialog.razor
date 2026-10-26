@@ -16,17 +16,24 @@
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="Cancel">Abbrechen</MudButton>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">IBAN hinzufügen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(Existing is null ? "IBAN hinzufügen" : "Speichern")</MudButton>
         </DialogActions>
     </MudDialog>
 </EditForm>
 
 @code {
-    private readonly BankDetailsInput bank = new();
+    private BankDetailsInput bank = new();
     private IReadOnlyList<string>? errors;
 
     [Parameter, EditorRequired]
     public Guid PersonId { get; set; }
+
+    /// <summary>The entry to correct; empty = add a new IBAN.</summary>
+    [Parameter]
+    public BankDetailsView? Existing { get; set; }
+
+    protected override void OnInitialized() =>
+        bank = Existing is null ? new() : new BankDetailsInput { Iban = Existing.Iban, AccountHolder = Existing.AccountHolder, Bic = Existing.Bic };
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -35,10 +42,10 @@
 
     private async Task SaveAsync()
     {
-        var result = await Admin.AddBankDetailsAsync(PersonId, bank);
+        var result = Existing is null ? await Admin.AddBankDetailsAsync(PersonId, bank) : await Admin.UpdateBankDetailsAsync(PersonId, Existing.Id, bank);
         if (result.Succeeded)
         {
-            Notify.Success("Die IBAN wurde hinzugefügt.");
+            Notify.Success(Existing is null ? "Die IBAN wurde hinzugefügt." : "Die Bankverbindung wurde gespeichert.");
             MudDialog.Close(DialogResult.Ok(true));
         }
         else

@@ -133,6 +133,13 @@ internal sealed class PersonService(
             person.AddBankDetails(input.Iban, input.AccountHolder, input.Bic);
         }, cancellationToken);
 
+    public Task<Result> UpdateBankDetailsAsync(Guid id, Guid bankDetailsId, BankDetailsInput input, CancellationToken cancellationToken = default) =>
+        WithPersonAsync(id, person =>
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            person.ChangeBankDetails(bankDetailsId, input.Iban, input.AccountHolder, input.Bic);
+        }, cancellationToken);
+
     public Task<Result> RemoveBankDetailsAsync(Guid id, Guid bankDetailsId, CancellationToken cancellationToken = default) =>
         WithPersonAsync(id, person =>
         {

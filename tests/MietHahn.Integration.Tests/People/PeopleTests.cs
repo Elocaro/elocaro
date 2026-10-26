@@ -46,6 +46,21 @@ public class PeopleTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_bank_detail_can_be_corrected_but_not_into_a_duplicate_or_invalid_IBAN()
+    {
+        var id = await AnnaAsync();
+        Validate(await WithAsync(v => v.AddBankDetailsAsync(id, new BankDetailsInput { Iban = "DE89 3704 0044 0532 0130 00" }, Ct)));
+        var entry = (await WithAsync(v => v.GetAsync(id, Ct)))!.BankDetails.Single(b => b.Iban.StartsWith("DE89", StringComparison.Ordinal));
+
+        Assert.False((await WithAsync(v => v.UpdateBankDetailsAsync(id, entry.Id, new BankDetailsInput { Iban = "DE00 0000 0000 0000 0000 00" }, Ct))).Succeeded);
+        Assert.False((await WithAsync(v => v.UpdateBankDetailsAsync(id, entry.Id, new BankDetailsInput { Iban = "DE02 1203 0000 0000 2020 51" }, Ct))).Succeeded); // Anna's own IBAN from the setup
+        Validate(await WithAsync(v => v.UpdateBankDetailsAsync(id, entry.Id, new BankDetailsInput { Iban = "DE89 3704 0044 0532 0130 00", AccountHolder = "Hans Schmidt", Bic = "cobadeff" }, Ct)));
+
+        var saved = (await WithAsync(v => v.GetAsync(id, Ct)))!.BankDetails.Single(b => b.Id == entry.Id);
+        Assert.Equal(("Hans Schmidt", "COBADEFF"), (saved.AccountHolder, saved.Bic));
+    }
+
+    [Fact]
     public async Task Opening_the_person_record_is_logged()
     {
         var id = await AnnaAsync();
