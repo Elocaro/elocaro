@@ -5,11 +5,13 @@ using MietHahn.Application.Accounts;
 using MietHahn.Application.Common;
 using MietHahn.Application.Deadlines;
 using MietHahn.Application.Leases;
+using MietHahn.Application.Metering;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
 using MietHahn.Application.Tax;
 using MietHahn.Domain.Communication;
 using MietHahn.Domain.Deadlines;
+using MietHahn.Domain.Metering;
 using MietHahn.Infrastructure.Deadlines;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Integration.Tests.Infrastructure;
@@ -70,6 +72,27 @@ public class DeadlineTests(PostgresFixture postgres) : IAsyncLifetime
 
         var limited = await WithAsync(async (IDeadlines d, IServiceProvider _) => await d.ListAsync(NoRights, new DateOnly(2031, 1, 1), Ct));
         Assert.DoesNotContain(limited, e => e.Right == AccessRight.Finance);
+    }
+
+    [Fact]
+    public async Task A_reading_at_the_tenant_change_is_due_when_the_unit_has_meters()
+    {
+        var entries = await WithAsync(async (IDeadlines d, IServiceProvider _) => await d.ListAsync(Admin, new DateOnly(2031, 1, 1), Ct));
+        Assert.DoesNotContain(entries, e => e.Key.StartsWith("reading:", StringComparison.Ordinal));
+
+        await WithAsync(async (IDeadlines _, IServiceProvider sp) =>
+        {
+            var unit = (await sp.GetRequiredService<IPropertyService>().GetAsync(propertyId, Ct))!.Units[0].Id;
+            return Validate(await sp.GetRequiredService<IMeterService>().CreateAsync(
+                propertyId,
+                new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser", Number = "WZ-1", AssignmentId = unit }, InstalledOn = new DateOnly(2025, 4, 1), InitialReading = 0m },
+                Ct));
+        });
+
+        entries = await WithAsync(async (IDeadlines d, IServiceProvider _) => await d.ListAsync(Admin, new DateOnly(2031, 1, 1), Ct));
+        var reading = Assert.Single(entries, e => e.Key == $"reading:{leaseId}:Auszug");
+        Assert.Equal(new DateOnly(2026, 5, 31), reading.Due);
+        Assert.Contains($"/verwaltung/objekte/{propertyId}/ablesung?einheit=", reading.Link, StringComparison.Ordinal);
     }
 
     [Fact]

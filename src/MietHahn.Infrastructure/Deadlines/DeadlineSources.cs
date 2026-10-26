@@ -75,11 +75,29 @@ internal sealed class LeaseDeadlineSource(MietHahnDbContext db, TimeProvider clo
         }
 
         var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
+        var unitsWithMeters = (await db.Set<ZaehlerEntitaet>().AsNoTracking().Where(m => m.UnitId != null && m.RemovedOn == null && !m.Terms.Any()).Select(m => m.UnitId!.Value).Distinct().ToListAsync(cancellationToken)).ToHashSet();
         var entries = new List<DeadlineEntry>();
         foreach (var lease in leases)
         {
             var name = rentalUnits.GetValueOrDefault(lease.RentalUnitId)?.Name ?? "Mietobjekt";
             var link = $"/verwaltung/vertraege/{lease.Id}";
+            if (unitsWithMeters.Contains(lease.UnitId) && rentalUnits.GetValueOrDefault(lease.RentalUnitId)?.PropertyId is { } propertyId)
+            {
+                // A reading on the day of the tenant change avoids interpolating the consumption between two distant readings.
+                foreach (var (day, what) in new[] { (lease.End, "Auszug"), (lease.Start > today ? lease.Start : (DateOnly?)null, "Einzug") })
+                {
+                    if (day is { } date && date <= until)
+                    {
+                        entries.Add(new DeadlineEntry(
+                            $"reading:{lease.Id}:{what}", DeadlineOrigin.Derived, "Zähler",
+                            $"Zwischenablesung bei {what}: {name}",
+                            date, $"/verwaltung/objekte/{propertyId}/ablesung?einheit={lease.UnitId}&datum={date:yyyy-MM-dd}", AccessRight.MasterData,
+                            "Zählerstände am Tag des Mieterwechsels ablesen, damit der Verbrauch nicht interpoliert werden muss.",
+                            LeadDays: 7));
+                    }
+                }
+            }
+
             if (lease.End is { } end && end <= until)
             {
                 var terminated = lease.TerminationReceivedOn is not null;
