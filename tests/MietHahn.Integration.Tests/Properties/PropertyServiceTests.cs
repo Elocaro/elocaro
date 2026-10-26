@@ -47,6 +47,21 @@ public class PropertyServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Self_paid_cost_types_of_a_unit_are_saved_and_only_allocable_non_heating_types_are_kept()
+    {
+        var propertyId = await SampleHouseAsync();
+        var unit = (await WithAsync(v => v.GetAsync(propertyId, Ct)))!.Units[0];
+
+        var input = (await WithAsync(v => v.GetUnitAsync(unit.Id, Ct)))!.Data;
+        input.SelfPaidCostTypes = ["betrkv-08", "betrkv-08", "betrkv-04", "verwaltung", "unbekannt"];
+        Validate(await WithAsync(v => v.UpdateUnitAsync(unit.Id, input, Ct)));
+
+        var saved = (await WithAsync(v => v.GetUnitAsync(unit.Id, Ct)))!.Data;
+
+        Assert.Equal(["betrkv-08"], saved.SelfPaidCostTypes);
+    }
+
+    [Fact]
     public async Task Area_change_continues_series_and_keeps_history()
     {
         var propertyId = await SampleHouseAsync();

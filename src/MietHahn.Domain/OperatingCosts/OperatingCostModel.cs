@@ -26,12 +26,14 @@ public sealed record RoomAreaState(Period Validity, decimal AllocationArea);
 public sealed record BillingRoom(Guid Id, string Name, IReadOnlyList<RoomAreaState> Areas);
 
 /// <param name="Rooms">Not empty for a shared flat: then the rooms are rented, not the unit.</param>
+/// <param name="SelfPaidCostTypes">Cost types the tenants pay directly (the unit is left out of their allocation).</param>
 public sealed record BillingUnit(
     Guid Id,
     string Name,
     IReadOnlyList<AreaState> Areas,
     IReadOnlyList<BillingRoom> Rooms,
-    SharedFlatBilling SharedFlat = SharedFlatBilling.FlatRate);
+    SharedFlatBilling SharedFlat = SharedFlatBilling.FlatRate,
+    IReadOnlySet<string>? SelfPaidCostTypes = null);
 
 public sealed record PersonsState(Period Validity, int Count);
 

@@ -339,6 +339,7 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
         FittedKitchen = e.FittedKitchen,
         EnergyStandard = e.EnergyStandard,
         Amenities = e.Amenities,
+        SelfPaidCostTypes = [.. e.SelfPaidCostTypes],
     };
 
     private static void Apply(Property o, PropertyInput d)
@@ -369,6 +370,7 @@ internal sealed class PropertyService(MietHahnDbContext db, IOccupancyLookup occ
         e.FittedKitchen = d.FittedKitchen;
         e.EnergyStandard = TrimToNull(d.EnergyStandard);
         e.Amenities = TrimToNull(d.Amenities);
+        e.SelfPaidCostTypes = [.. d.SelfPaidCostTypes.Distinct(StringComparer.Ordinal).Where(k => MietHahn.Domain.Receipts.CostTypes.Find(k) is { Allocable: true } && MietHahn.Domain.OperatingCosts.CostGroups.Of(k) != MietHahn.Domain.OperatingCosts.CostGroup.Heating)];
     }
 
     private static void Apply(Room z, RoomInput d)

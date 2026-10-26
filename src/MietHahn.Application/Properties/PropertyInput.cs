@@ -75,6 +75,9 @@ public sealed class UnitInput
 
     [StringLength(2000)]
     public string? Amenities { get; set; }
+
+    /// <summary>Cost types the tenants pay directly to the supplier (e.g. waste): the unit is left out of their allocation.</summary>
+    public List<string> SelfPaidCostTypes { get; set; } = [];
 }
 
 public sealed class RoomInput

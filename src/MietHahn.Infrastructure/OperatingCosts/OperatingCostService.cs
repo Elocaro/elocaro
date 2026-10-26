@@ -162,7 +162,8 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             unit.Name,
             [.. unit.Areas.Select(a => new AreaState(a.Validity, a.LivingArea, a.HeatedArea))],
             [.. unit.Room.OrderBy(z => z.Order).Select(z => new BillingRoom(z.Id, z.Name, [.. z.Areas.Select(a => new RoomAreaState(a.Validity, a.AllocationArea))]))],
-            unit.SharedFlatBilling);
+            unit.SharedFlatBilling,
+            unit.SelfPaidCostTypes.ToHashSet(StringComparer.Ordinal));
 
     private async Task<(List<BillingCost> Costs, HashSet<Guid> StatementReceipts)> CostsAsync(Guid propertyId, Period billingPeriod, CancellationToken cancellationToken)
     {

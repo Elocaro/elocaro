@@ -465,6 +465,11 @@ internal sealed class CalculationRun
         var segments = Segments(span);
         foreach (var unit in units)
         {
+            if (unit.SelfPaidCostTypes?.Contains(rule.CostType) == true)
+            {
+                continue;
+            }
+
             if ((rule.Key == AllocationKey.Direct && unit.Id != directUnit)
                 || (rule.Key == AllocationKey.FixedPercent && rule.Shares?.All(s => s.UnitId != unit.Id) != false))
             {

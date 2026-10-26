@@ -59,6 +59,12 @@ public sealed class Unit : Entity
 
     public string? Amenities { get; set; }
 
+    /// <summary>
+    /// Cost types (keys from the cost type catalog, e.g. waste) that the tenants of the unit pay themselves directly to the supplier:
+    /// the unit does not take part in their allocation, neither tenants nor landlord carry a share for it.
+    /// </summary>
+    public List<string> SelfPaidCostTypes { get; set; } = [];
+
     /// <summary>Shared flat: flat rate for the rooms (no statement, internal comparison) or distribution of the costs over the rooms.</summary>
     public SharedFlatBilling SharedFlatBilling { get; set; }
 

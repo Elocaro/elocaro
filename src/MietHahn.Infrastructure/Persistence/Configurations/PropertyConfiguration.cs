@@ -38,6 +38,7 @@ internal sealed class UnitConfiguration : IEntityTypeConfiguration<Unit>
     public void Configure(EntityTypeBuilder<Unit> builder)
     {
         builder.ToTable("units");
+        builder.Property(e => e.SelfPaidCostTypes).HasColumnType("text[]").HasDefaultValueSql("'{}'");
         builder.Property(e => e.Name).HasMaxLength(100).UseCollation(MietHahnDbContext.GermanCollation);
         builder.Property(e => e.Location).HasMaxLength(100);
         builder.Property(e => e.Type).HasConversion<string>().HasMaxLength(20);

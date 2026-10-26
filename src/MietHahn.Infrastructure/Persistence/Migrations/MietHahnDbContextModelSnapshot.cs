@@ -5932,6 +5932,13 @@ namespace MietHahn.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(4,1)")
                         .HasColumnName("room_count");
 
+                    b.PrimitiveCollection<List<string>>("SelfPaidCostTypes")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("self_paid_cost_types")
+                        .HasDefaultValueSql("'{}'");
+
                     b.Property<string>("SharedFlatBilling")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

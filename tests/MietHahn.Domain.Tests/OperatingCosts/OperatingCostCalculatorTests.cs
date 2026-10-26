@@ -38,6 +38,26 @@ public class OperatingCostCalculatorTests
     }
 
     [Fact]
+    public void A_cost_type_the_tenants_pay_themselves_leaves_the_unit_out_of_the_allocation_without_a_landlord_share()
+    {
+        var selfPaying = Two with { SelfPaidCostTypes = new HashSet<string> { "betrkv-08" } };
+
+        var result = Calculate(
+            BothAllYear(),
+            [Cost(1, "betrkv-08", 1000m), Cost(2, "betrkv-01", 1000m)],
+            [Rule("betrkv-08", AllocationKey.LivingArea), Rule("betrkv-01", AllocationKey.LivingArea)],
+            units: [One, selfPaying]);
+
+        // Waste: Wohnung 2 pays directly, the whole bill is split among the other units (here only Wohnung 1); no share for Wohnung 2 or the landlord.
+        Assert.Equal(1000m, Line(result, 11, "betrkv-08").Share);
+        Assert.DoesNotContain(Statement(result, 12).Lines, l => l.CostType == "betrkv-08");
+        Assert.DoesNotContain(result.Landlord, p => p.CostType == "betrkv-08");
+        // Other cost types still include Wohnung 2: 60 m² : 40 m².
+        Assert.Equal(600m, Line(result, 11, "betrkv-01").Share);
+        Assert.Equal(400m, Line(result, 12, "betrkv-01").Share);
+    }
+
+    [Fact]
     public void Heated_area_key_uses_the_heated_area()
     {
         var result = Calculate(BothAllYear(), [Cost(1, "betrkv-11", 1000m)], [Rule("betrkv-11", AllocationKey.HeatedArea)]);

@@ -19,6 +19,14 @@
         <AppCheckBox @bind-Value="Data.FittedKitchen" Label="Einbauküche" />
     </div>
     <AppTextField @bind-Value="Data.Amenities" Label="Weitere Ausstattung" Lines="2" />
+    <fieldset class="field">
+        <legend>Von den Mietern selbst bezahlt</legend>
+        <p class="small">Kosten, die die Mieter dieser Wohnung direkt an den Versorger zahlen. Die Wohnung nimmt an der Umlage dieser Kostenart nicht teil, weder Mieter noch Vermieter tragen einen Anteil dafür.</p>
+        @foreach (var type in SelfPayable)
+        {
+            <AppCheckBox Value="Data.SelfPaidCostTypes.Contains(type.Key)" ValueChanged="@(v => TogglePaid(type.Key, v))" Label="@(type.BetrKvNumber is { } n ? $"{n}. {type.Name}" : type.Name)" />
+        }
+    </fieldset>
 }
 
 @code {
@@ -27,6 +35,26 @@
 
     [Parameter]
     public bool WithFeatures { get; set; } = true;
+
+    /// <summary>Cost types that are typically paid by the tenants themselves.</summary>
+    private static readonly string[] selfPayable = ["betrkv-02", "betrkv-03", "betrkv-08", "betrkv-11", "betrkv-15", "betrkv-16"];
+
+    private static IEnumerable<MietHahn.Domain.Receipts.CostType> SelfPayable => MietHahn.Domain.Receipts.CostTypes.All.Where(t => selfPayable.Contains(t.Key));
+
+    private void TogglePaid(string key, bool paid)
+    {
+        if (paid)
+        {
+            if (!Data.SelfPaidCostTypes.Contains(key))
+            {
+                Data.SelfPaidCostTypes.Add(key);
+            }
+        }
+        else
+        {
+            Data.SelfPaidCostTypes.Remove(key);
+        }
+    }
 }
 
 @code {
