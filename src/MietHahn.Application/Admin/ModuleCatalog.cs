@@ -129,7 +129,7 @@ public static class ModuleCatalog
             "Rechnungen und Belege ablegen, Kostenarten zuweisen und optional automatisch auslesen.",
             "Nötig für Nebenkostenabrechnung und Steuer, wenn Sie Kosten über Belege nachweisen. Ohne Kosten und Abrechnungen entbehrlich.",
             ["Belegablage", "Kostenpositionen", "Belegauslesung", "Belege per E-Mail"],
-            [], $"{Admin}/belege", [$"{Admin}/belege", $"{Admin}/system/belegauslesung"], [], ["receipt-inbox"]),
+            [], $"{Admin}/belege", [$"{Admin}/belege", $"{Admin}/system/belegauslesung"], [($"{Admin}/objekte", "belegimport")], ["receipt-inbox"]),
 
         new(AppModule.OperatingCosts, "Nebenkostenabrechnung",
             "Betriebs- und Heizkosten auf die Mieter umlegen und die jährliche Abrechnung erstellen.",

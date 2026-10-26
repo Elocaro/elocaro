@@ -1,0 +1,165 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/belegimport"
+@rendermode InteractiveServer
+@using MudBlazor
+@using MietHahn.Domain.Receipts
+@using MietHahn.Application.Properties
+@inject IReceiptImport Import
+@inject IPropertyService Properties
+@inject Notifier Notify
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (property is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+    <PageHeader Title="Kassenbuch importieren" Subtitle="@property.Data.Name" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name" />
+
+    <p class="small">
+        CSV-Datei mit den Spalten Datum, Gruppe, Empfänger, Betrag und Info (Excel: als CSV speichern). Jede Zeile wird ein Beleg mit einer Kostenposition für das ganze Jahr des Belegdatums.
+        Ordnen Sie unten jede Gruppe einer Kostenart zu; Gruppen ohne Kostenart werden übersprungen. Zeilen mit gleichem Datum, Empfänger und Betrag gelten als schon erfasst.
+    </p>
+
+    <AppFileUpload Text="CSV-Datei wählen" Accept=".csv,.txt" OnSelected="SelectedAsync" />
+    <ErrorList Errors="errors" />
+
+    @if (preview is not null)
+    {
+        <ErrorList Errors="preview.Errors" />
+        @if (preview.Groups.Count > 0)
+        {
+            <section id="import-groups">
+                <h2>Gruppen und Kostenarten</h2>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Gruppe</th><th class="number">Zeilen</th><th class="number">Summe</th><th>Kostenart</th></tr></thead>
+                        <tbody>
+                            @foreach (var group in preview.Groups)
+                            {
+                                var name = group.Name;
+                                <tr>
+                                    <td>@(name.Length == 0 ? "(ohne Gruppe)" : name)</td>
+                                    <td class="number">@group.Rows</td>
+                                    <td class="number">@Format.Money(group.Total)</td>
+                                    <td>
+                                        <AppSelect T="string" Value="@(mapping.GetValueOrDefault(name) ?? group.CostType)" ValueChanged="v => ChangeAsync(name, v)" Label="Kostenart"
+                                                   Items="CostTypes.All.Select(t => t.Key).ToList()" Text="@(k => CostTypes.Find(k)?.Name ?? k)" EmptyText="– überspringen –" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+
+        @if (preview.Rows.Count > 0)
+        {
+            <p>@preview.New neue Belege von @preview.Rows.Count Zeilen.</p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Zeile</th><th>Datum</th><th>Empfänger</th><th>Gruppe</th><th class="number">Betrag</th><th>Ergebnis</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in preview.Rows.Take(500))
+                        {
+                            <tr>
+                                <td>@row.Line</td>
+                                <td>@(row.Date is { } date ? Format.Date(date) : "–")</td>
+                                <td>@row.Recipient</td>
+                                <td>@row.Group</td>
+                                <td class="number">@(row.Amount is { } amount ? Format.Money(amount) : "–")</td>
+                                <td><StatusChip Level="@LevelOf(row.Status)">@TextOf(row.Status)</StatusChip> @row.Problem</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (preview.Rows.Count > 500)
+            {
+                <p class="small">Angezeigt sind die ersten 500 Zeilen; übernommen werden alle neuen Belege.</p>
+            }
+        }
+
+        @if (preview.CanImport)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ImportAsync" Disabled="busy">@preview.New Belege anlegen</MudButton>
+        }
+    }
+}
+</InteractiveShell>
+
+@code {
+    private PropertyDetails? property;
+    private ReceiptImportPreview? preview;
+    private byte[]? file;
+    private Dictionary<string, string?> mapping = [];
+    private IReadOnlyList<string>? errors;
+    private bool loaded;
+    private bool busy;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        property = await Properties.GetAsync(PropertyId);
+        loaded = true;
+    }
+
+    private async Task SelectedAsync(FileSelection selection)
+    {
+        errors = null;
+        await using var content = selection.Open();
+        using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer);
+        file = buffer.ToArray();
+        mapping = [];
+        preview = await Import.PreviewAsync(PropertyId, file);
+    }
+
+    private async Task ChangeAsync(string group, string? costType)
+    {
+        mapping[group] = costType;
+        preview = await Import.PreviewAsync(PropertyId, file!, mapping);
+    }
+
+    private async Task ImportAsync()
+    {
+        busy = true;
+        try
+        {
+            var outcome = await Import.ImportAsync(PropertyId, file!, mapping);
+            errors = outcome.Succeeded ? null : outcome.Errors;
+            if (outcome.Succeeded)
+            {
+                Notify.Success($"{outcome.Imported} Belege wurden angelegt" + (outcome.Skipped > 0 ? $", {outcome.Skipped} Zeilen übersprungen." : "."));
+                preview = null;
+                file = null;
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static StatusLevel LevelOf(ReceiptRowStatus status) => status switch
+    {
+        ReceiptRowStatus.New => StatusLevel.Success,
+        ReceiptRowStatus.Duplicate => StatusLevel.Neutral,
+        _ => StatusLevel.Warning,
+    };
+
+    private static string TextOf(ReceiptRowStatus status) => status switch
+    {
+        ReceiptRowStatus.New => "neu",
+        ReceiptRowStatus.Duplicate => "schon erfasst",
+        ReceiptRowStatus.NoCostType => "keine Kostenart",
+        _ => "nicht lesbar",
+    };
+}

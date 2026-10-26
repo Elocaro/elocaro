@@ -246,6 +246,7 @@ public static class DependencyInjection
         services.AddScoped<IReadingReports, ReadingReports>();
         services.AddScoped<ReadingReminders>();
         services.AddScoped<IMeterImport, MeterImport>();
+        services.AddScoped<IReceiptImport, ReceiptImport>();
         services.AddScoped<IConsumptionInformation, ConsumptionInformation>();
         services.AddScoped<ConsumptionNotifications>();
         services.AddScoped<IDepreciationService, DepreciationService>();

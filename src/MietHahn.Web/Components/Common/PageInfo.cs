@@ -145,6 +145,15 @@ public static class PageInfoCatalog
                     "Prüfen Sie nach dem Import die Stände in der Zählerliste, bevor Sie abrechnen."),
             ]), $"{Admin}/objekte/{{id}}/zaehlerimport");
 
+        Add(new("Kassenbuch importieren",
+            "Ein Kassenbuch oder eine Kostenliste als CSV wird zu Belegen mit je einer Kostenposition.",
+            [
+                new("Tipps",
+                    "Die Spalten Datum, Gruppe, Empfänger, Betrag und Info werden an der Kopfzeile erkannt. Aus Excel speichern Sie die Tabelle als CSV.",
+                    "Ordnen Sie jede Gruppe einer Kostenart zu; Gruppen ohne Kostenart werden übersprungen.",
+                    "Ein erneuter Import legt nichts doppelt an: Zeilen mit gleichem Datum, Empfänger und Betrag gelten als schon erfasst."),
+            ]), $"{Admin}/objekte/{{id}}/belegimport");
+
         Add(new("Belegung",
             "Die Zeitleiste zeigt je Wohnung und WG-Zimmer, wer wann gemietet hat und wo Leerstand war.",
             [

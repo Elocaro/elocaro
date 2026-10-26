@@ -4,6 +4,7 @@
 @using MietHahn.Application.Files
 @using MietHahn.Application.Admin
 @inject IPropertyService Admin
+@inject IModuleState ModuleState
 @inject ILandlordProfileService LandlordProfiles
 @inject IFileStore Storage
 @inject IDialogService Dialogs
@@ -25,6 +26,10 @@ else
 
 <PageHeader Title="@property.Data.Name" Subtitle="@property.Address" Back="/verwaltung/objekte" BackText="Alle Objekte">
     <Actions>
+        @if (ModuleState.IsEnabled(AppModule.Receipts))
+        {
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{Id}/belegimport")">Kassenbuch importieren</MudButton>
+        }
         <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
         @if (property.Units.Count == 0)
         {

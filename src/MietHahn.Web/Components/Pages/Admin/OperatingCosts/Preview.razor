@@ -119,7 +119,7 @@ var result = preview.Result;
             @if (check.DifferencePercent is { } difference)
             {
                 <p>
-                    <span class="status @(check.Level switch { CheckLevel.Ok => "status-ok", CheckLevel.Warning => "status-pending", _ => "status-error" })">@(check.Level switch { CheckLevel.Ok => "Passt", CheckLevel.Warning => "Auffällig", _ => "Prüfen" })</span>
+                    <StatusChip Level="@(check.Level switch { CheckLevel.Ok => StatusLevel.Success, CheckLevel.Warning => StatusLevel.Warning, _ => StatusLevel.Error })">@(check.Level switch { CheckLevel.Ok => "Passt", CheckLevel.Warning => "Auffällig", _ => "Prüfen" })</StatusChip>
                     Hauptzähler @check.Main?.ToString("N2") · Zähler der Einheiten zusammen @check.UnitsTotal?.ToString("N2") · Differenz @difference.ToString("0.#") %
                 </p>
             }
