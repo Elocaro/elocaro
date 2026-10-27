@@ -54,6 +54,8 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 
 **Arbeitslisten** (`.work-list`/`.work-card`, Beispiel Umsätze zuordnen): Wo je Eintrag eine Entscheidung fällt (Vorschlag bestätigen, ändern, ignorieren), steht eine Karte je Eintrag statt einer Tabelle: Betrag und Beschreibung, Vorschlag mit Begründung, Aktionen; auf dem Handy gestapelt.
 
+**Rechentabellen mit Summenzeilen** (Kosten, Mieterabrechnung in der Vorschau) tragen `card-rows` und `data-label` an den Zellen: Auf dem Handy wird jede Zeile zur Karte, Summen stehen als Beschriftung und Betrag nebeneinander, damit kein Betrag aus dem sichtbaren Bereich rutscht. Mieterblöcke der Vorschau sind `details.group` (bis drei offen, sonst zugeklappt), die Überschrift nennt den Saldo.
+
 **Tabellen auf dem Handy:** Statische `.data-table` ohne verbundene Zellen werden unter 700 px zu Karten (`shell.js` setzt `data-label` aus den Spaltenköpfen). Ausnahme mit `data-nostack` am `table`.
 
 **Startseite**: Kennzahlen, Zusammenfassung (dringend/bald fällig) und ein Raster aus Karten (`.panel`) je Bereich, dringendste zuerst; die Diagramme stehen darunter und entfallen, solange der Verlauf nur aus Nullen besteht. Leere Einheiten (Leerstand) bieten in der Belegung direkt „Vertrag anlegen“ (vorbelegt mit dem Mietobjekt). In „Umsätze zuordnen“ ist „Bestätigen“ nur ab 70 % Treffsicherheit gefüllt, die Liste zeigt 50 Einträge und lädt auf Wunsch weitere. Rückfragen beim Löschen nennen den Namen (und bei Objekten die Zahl der Einheiten); das Löschen eines Zählers liegt im Menü „Weitere Aktionen“ statt in einem eigenen Tab.

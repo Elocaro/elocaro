@@ -1077,3 +1077,27 @@ details[open] > :not(summary) { animation: reveal var(--motion-duration) var(--m
     #cost-keys td[data-label]:not(:empty)::before { content: attr(data-label) ": "; color: var(--md-on-surface-variant); }
     #cost-keys td.row-actions { margin-top: 0.25rem; margin-left: -0.5rem; }
 }
+
+/* Tenant statements in the preview: one collapsible block per tenancy (like open items) */
+.group.statement { margin-top: 0; }
+.group.statement > :not(summary) { margin-inline: 1rem; }
+.group.statement > .table-wrapper { margin-inline: 0; }
+.group.statement > :last-child { margin-bottom: 1rem; }
+
+/* Calculation tables with totals (cost types, tenant statements) on a smartphone: one card per row, totals as label and amount side by side */
+@media (max-width: 699.98px) {
+    table.card-rows { display: block; }
+    table.card-rows thead { display: none; }
+    table.card-rows tbody, table.card-rows tfoot { display: block; }
+    table.card-rows tbody tr { display: block; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--md-outline-variant); }
+    table.card-rows tbody td { display: flex; justify-content: space-between; gap: 1rem; padding: 0.15rem 0; border: 0; text-align: right; }
+    table.card-rows tbody td:first-child { justify-content: flex-start; font-weight: 600; text-align: left; }
+    table.card-rows tbody td[data-label]::before { content: attr(data-label); flex: none; max-width: 45%; color: var(--md-on-surface-variant); font-size: 0.8rem; font-weight: 600; text-align: left; }
+    table.card-rows tbody tr.detail-row td { display: block; text-align: left; }
+    table.card-rows tfoot tr { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: 0.5rem 0.9rem; }
+    table.card-rows tfoot th, table.card-rows tfoot td { display: block; padding: 0; border: 0; text-align: right; }
+    table.card-rows tfoot th[colspan], table.card-rows tfoot td[colspan] { flex: 1 1 auto; text-align: left; }
+    table.card-rows tfoot .number { flex: none; }
+}
+table.card-rows tfoot [data-label]::before { content: attr(data-label) " "; color: var(--md-on-surface-variant); font-size: 0.75rem; font-weight: 400; }
+@media (min-width: 700px) { table.card-rows [data-label]::before { content: none; } }

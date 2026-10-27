@@ -286,7 +286,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
         var only = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_ONLY")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
         foreach (var mobile in new[] { false, true })
         {
-            await page.SetViewportSizeAsync(mobile ? 360 : 1280, mobile ? 780 : 900);
+            await page.SetViewportSizeAsync(mobile ? 360 : 1280, Environment.GetEnvironmentVariable("MIETHAHN_TOUR_FULL") is not null ? 2600 : mobile ? 780 : 900);
             var index = 0;
             foreach (var path in Routes().Concat(OptionalRoutes()))
             {
@@ -310,7 +310,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
                 var height = await page.EvaluateAsync<int>("() => { const c = document.querySelector('main.content') ?? document.querySelector('main'); return c ? c.scrollHeight : 0; }");
                 var name = path.Replace(ids["property"], "P", StringComparison.Ordinal).Trim('/').Replace("verwaltung/", "", StringComparison.Ordinal);
                 name = new string(name.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_').ToArray());
-                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{(mobile ? "m" : "d")}{index++:00}-{name[..Math.Min(name.Length, 60)]}.png") });
+                await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{(mobile ? "m" : "d")}{index++:00}-{name[..Math.Min(name.Length, 60)]}.png"), FullPage = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_FULL") is not null });
                 await File.AppendAllTextAsync(Path.Combine(directory, "heights.txt"), $"{(mobile ? "m" : "d")} {height,6}px {path}\n", TestContext.Current.CancellationToken);
             }
         }

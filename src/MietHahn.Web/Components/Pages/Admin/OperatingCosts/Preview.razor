@@ -77,17 +77,17 @@ var result = preview.Result;
     {
         <CostSplitChart Types="result.CostTypes" Previous="previousTotals" />
         <div class="table-wrapper">
-            <table class="data-table">
+            <table class="data-table card-rows">
                 <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Kosten</th><th class="number">Mieter</th><th class="number">Vermieter</th></tr></thead>
                 <tbody>
                     @foreach (var type in result.CostTypes)
                     {
                         <tr id="@($"type-{type.CostType}")">
                             <td>@type.Name</td>
-                            <td>@type.Key</td>
-                            <td class="number">@Format.Money(type.Total)</td>
-                            <td class="number">@Format.Money(type.TenantTotal)</td>
-                            <td class="number">@Format.Money(type.LandlordTotal)</td>
+                            <td data-label="Schlüssel">@type.Key</td>
+                            <td class="number" data-label="Kosten">@Format.Money(type.Total)</td>
+                            <td class="number" data-label="Mieter">@Format.Money(type.TenantTotal)</td>
+                            <td class="number" data-label="Vermieter">@Format.Money(type.LandlordTotal)</td>
                         </tr>
                         @foreach (var item in type.Items)
                         {
@@ -99,7 +99,7 @@ var result = preview.Result;
                     }
                 </tbody>
                 <tfoot>
-                    <tr><th colspan="2">Summe</th><th class="number">@Format.Money(result.TotalCosts)</th><th class="number">@Format.Money(result.TenantTotal)</th><th class="number">@Format.Money(result.LandlordTotal)</th></tr>
+                    <tr><th colspan="2">Summe</th><th class="number" data-label="Kosten">@Format.Money(result.TotalCosts)</th><th class="number" data-label="Mieter">@Format.Money(result.TenantTotal)</th><th class="number" data-label="Vermieter">@Format.Money(result.LandlordTotal)</th></tr>
                 </tfoot>
             </table>
         </div>
@@ -188,21 +188,26 @@ var result = preview.Result;
 
 @foreach (var tenant in result.Tenants.OrderBy(t => t.Rental, StringComparer.CurrentCulture).ThenBy(t => t.Term.From))
 {
-    <section class="statement" id="@($"tenant-{tenant.LeaseId}")" aria-labelledby="@($"heading-{tenant.LeaseId}")">
-        <h2 id="@($"heading-{tenant.LeaseId}")">@tenant.Label · @tenant.Rental</h2>
+    var balance = tenant.Groups.Where(g => g.Group == CostGroup.Operating || g.Calculated).Sum(g => g.Balance);
+    <details class="group statement" id="@($"tenant-{tenant.LeaseId}")" open="@(result.Tenants.Count <= 3)">
+        <summary>
+            <span>@tenant.Label · @tenant.Rental</span>
+            <span class="small">@tenant.Days Tage</span>
+            <span class="group-sum">@(balance >= 0 ? "Nachzahlung" : "Guthaben") @Format.Money(Math.Abs(balance))</span>
+        </summary>
         <p class="small">Mietzeit im Abrechnungszeitraum: @Format.Period(tenant.Term.Intersect(result.BillingPeriod) ?? tenant.Term) (@tenant.Days Tage) · <a href="/verwaltung/vertraege/@tenant.LeaseId">Vertrag</a></p>
         <div class="table-wrapper">
-            <table class="data-table">
+            <table class="data-table card-rows">
                 <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Gesamtkosten</th><th>Ihr Anteil am Schlüssel</th><th class="number">Ihr Betrag</th></tr></thead>
                 <tbody>
                     @foreach (var line in tenant.Lines.Where(l => l.Group == CostGroup.Operating))
                     {
                         <tr>
                             <td>@line.Name</td>
-                            <td>@line.Key</td>
-                            <td class="number">@Format.Money(line.CostTotal)</td>
-                            <td class="small">@line.Basis</td>
-                            <td class="number">@Format.Money(line.Share)@(line.NotAgreed != 0 ? " (nicht vereinbart)" : "")</td>
+                            <td data-label="Schlüssel">@line.Key</td>
+                            <td class="number" data-label="Gesamtkosten">@Format.Money(line.CostTotal)</td>
+                            <td class="small" data-label="Ihr Anteil am Schlüssel">@line.Basis</td>
+                            <td class="number" data-label="Ihr Betrag">@Format.Money(line.Share)@(line.NotAgreed != 0 ? " (nicht vereinbart)" : "")</td>
                         </tr>
                     }
                 </tbody>
@@ -227,17 +232,17 @@ var result = preview.Result;
         {
             <h3>Heiz- und Warmwasserkosten</h3>
             <div class="table-wrapper">
-                <table class="data-table" id="@($"heating-{tenant.LeaseId}")">
+                <table class="data-table card-rows" id="@($"heating-{tenant.LeaseId}")">
                     <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Gesamtkosten</th><th>Ihr Anteil am Schlüssel</th><th class="number">Ihr Betrag</th></tr></thead>
                     <tbody>
                         @foreach (var line in tenant.Lines.Where(l => l.Group == CostGroup.Heating))
                         {
                             <tr class="@(line.CostType == HeatingCostCalculator.CarbonKey ? "carbon-row" : "")">
                                 <td>@line.Name</td>
-                                <td>@line.Key</td>
-                                <td class="number">@Format.Money(line.CostTotal)</td>
-                                <td class="small">@line.Basis</td>
-                                <td class="number">@Format.Money(line.Share)@(line.NotAgreed != 0 ? " (nicht vereinbart)" : "")</td>
+                                <td data-label="Schlüssel">@line.Key</td>
+                                <td class="number" data-label="Gesamtkosten">@Format.Money(line.CostTotal)</td>
+                                <td class="small" data-label="Ihr Anteil am Schlüssel">@line.Basis</td>
+                                <td class="number" data-label="Ihr Betrag">@Format.Money(line.Share)@(line.NotAgreed != 0 ? " (nicht vereinbart)" : "")</td>
                             </tr>
                         }
                     </tbody>
@@ -273,7 +278,7 @@ var result = preview.Result;
                 }
             </ol>
         </details>
-    </section>
+    </details>
 }
 
 @if (result.FlatRates.Count > 0)

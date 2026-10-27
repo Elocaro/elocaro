@@ -42,6 +42,8 @@ else
 <EditForm Model="Data" OnValidSubmit="SaveAsync" novalidate>
     <DataAnnotationsValidator />
 
+    <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Verteilung">
     <section>
         <h2>Verteilung</h2>
         <div class="form-grid">
@@ -54,6 +56,22 @@ else
         <p class="small">Bei einer gemeinsamen Anlage werden die Kosten der Kostenarten 4 und 6 nach § 9 HeizkostenV in Heizung und Warmwasser aufgeteilt.</p>
     </section>
 
+    @if (Data.JointPlant)
+    {
+        <section>
+            <h2>Aufteilung Heizung und Warmwasser (§ 9)</h2>
+            <div class="form-grid">
+                <OptionSelect @bind-Value="Data.HotWaterHeatMeterId" Label="Wärmezähler im Warmwasserkreis" Options="view.HeatMeters.Select(m => (m.Id, m.Name)).ToList()" />
+                <AppNumberField T="decimal?" @bind-Value="Data.HotWaterFormulaFactor" Label="Formelfaktor (kWh je m³ und K)" Hint="Standard 2,5 (Heizwert). Bei Abrechnung nach Brennwert den Faktor prüfen." />
+                <AppNumberField T="decimal?" @bind-Value="Data.HotWaterTemperature" Label="Warmwassertemperatur (°C)" Hint="Standard 60 °C." />
+            </div>
+            <AppRadioGroup T="HotWaterSplitBasis" @bind-Value="Data.SplitBasis" Items="Enum.GetValues<HotWaterSplitBasis>()" Text="Labels.From" />
+            <p class="small">Die Summe der Wärmezähler nimmt die Wärmezähler der Wohnungen als Heizungswärme; der Zähler im Warmwasserkreis (oder die Formel) liefert die Warmwasserwärme. Die Brennstoffenergie braucht die Brennstoffmenge am Beleg.</p>
+            <p class="small">Ohne Zähler im Warmwasserkreis gilt die Formel Q = Faktor × V × (t − 10 °C) mit dem Warmwasserverbrauch V aller Wohnungen.</p>
+        </section>
+    }
+    </MudTabPanel>
+    <MudTabPanel Text="@(Data.Fuel == HeatingFuel.Oil ? "Heizöl" : "Brennwert je Jahr")" Visible="@(Data.Fuel is HeatingFuel.Gas or HeatingFuel.Oil)">
     @if (Data.Fuel == HeatingFuel.Gas)
     {
         <section id="energy-years">
@@ -74,20 +92,6 @@ else
         </section>
     }
 
-    @if (Data.JointPlant)
-    {
-        <section>
-            <h2>Aufteilung Heizung und Warmwasser (§ 9)</h2>
-            <div class="form-grid">
-                <OptionSelect @bind-Value="Data.HotWaterHeatMeterId" Label="Wärmezähler im Warmwasserkreis" Options="view.HeatMeters.Select(m => (m.Id, m.Name)).ToList()" />
-                <AppNumberField T="decimal?" @bind-Value="Data.HotWaterFormulaFactor" Label="Formelfaktor (kWh je m³ und K)" Hint="Standard 2,5 (Heizwert). Bei Abrechnung nach Brennwert den Faktor prüfen." />
-                <AppNumberField T="decimal?" @bind-Value="Data.HotWaterTemperature" Label="Warmwassertemperatur (°C)" Hint="Standard 60 °C." />
-            </div>
-            <AppRadioGroup T="HotWaterSplitBasis" @bind-Value="Data.SplitBasis" Items="Enum.GetValues<HotWaterSplitBasis>()" Text="Labels.From" />
-            <p class="small">Die Summe der Wärmezähler nimmt die Wärmezähler der Wohnungen als Heizungswärme; der Zähler im Warmwasserkreis (oder die Formel) liefert die Warmwasserwärme. Die Brennstoffenergie braucht die Brennstoffmenge am Beleg.</p>
-            <p class="small">Ohne Zähler im Warmwasserkreis gilt die Formel Q = Faktor × V × (t − 10 °C) mit dem Warmwasserverbrauch V aller Wohnungen.</p>
-        </section>
-    }
     @if (Data.Fuel == HeatingFuel.Oil)
     {
         <section>
@@ -100,6 +104,8 @@ else
             </div>
         </section>
     }
+    </MudTabPanel>
+    <MudTabPanel Text="CO₂-Kosten" Visible="@(Data.Fuel != HeatingFuel.Other)">
     @if (Data.Fuel != HeatingFuel.Other)
     {
         <section id="carbon-settings">
@@ -117,6 +123,9 @@ else
             <p class="small">Die CO₂-Menge (kg) steht auf dem Brennstoffbeleg, die CO₂-Kosten erfassen Sie als eigene Position der Art „CO₂-Kosten laut Lieferant“.</p>
         </section>
     }
+    </MudTabPanel>
+    </MudTabs>
+
     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Einstellungen speichern</MudButton>
 </EditForm>
 }
