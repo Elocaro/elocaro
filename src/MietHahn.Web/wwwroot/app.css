@@ -654,7 +654,7 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
     .app-admin .workspace { grid-column: 2; grid-row: 2; }
     .sidebar { display: block; grid-row: 2; overflow-y: auto; overscroll-behavior: contain; background: var(--md-surface); }
     .bottom-bar { display: none; }
-    .tab-bar { padding-inline: calc(var(--content-gutter) - 0.75rem); }
+    .tab-bar { padding-inline: calc(var(--content-gutter) - 0.75rem); flex-wrap: wrap; overflow-x: visible; }
     .page-header { padding-top: 1.25rem; }
     .has-tabs .page-header .back { display: none; }
     .navigation a { min-height: 2.75rem; }
