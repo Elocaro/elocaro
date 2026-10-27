@@ -67,7 +67,7 @@ Regeln für neue Seiten: keine eigenen `height`-/`overflow`-Konstrukte für das 
 | Farbe (ergänzend) | `--md-secondary*`, `--md-tertiary*` | Tonal-Buttons, Akzente |
 | Farbe (Status) | `--md-info*`, `--md-success*`, `--md-warning*`, `--md-error*` | Meldungen, Status-Chips |
 | Flächen | `--md-surface`, `--md-surface-container-lowest … -highest`, `--md-on-surface`, `--md-on-surface-variant`, `--md-outline`, `--md-outline-variant` | Hintergründe, Text, Linien |
-| Form | `--shape-xs … -xl`, `--shape-full` | Rundungen: Felder `md`, Karten/Tabellen `lg`, Dialoge `xl`, Buttons und Navigation `full` (Pill) |
+| Form | `--shape-xs … -xl`, `--shape-full` | Rundungen: Felder `xs` (4 px), Chips und Sub-Tabs `sm`, Karten/Tabellen `lg`, Dialoge `xl`, Buttons und Navigation `full` (Pill) |
 | Schrift | `--type-display`, `-headline`, `-headline-small`, `-title`, `-body`, `-label` | Überschriften, Fließtext, Beschriftungen |
 | Bewegung | `--motion-spatial`, `--motion-effects`, `--motion-duration` | Übergänge; bei „reduzierte Bewegung“ wird die Dauer 0 |
 

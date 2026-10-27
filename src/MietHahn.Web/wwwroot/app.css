@@ -141,7 +141,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([clas
     color: var(--color-text);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--shape-md);
+    border-radius: var(--shape-xs);
     min-height: 2.75rem; /* easy to tap on a smartphone */
 }
 
@@ -426,7 +426,7 @@ h2 { font-size: 1.35rem; font-weight: 650; margin: 2rem 0 0.75rem; }
 .field-checkbox { margin-top: 0; }
 .field-checkbox > label { position: static; padding: 0; font-size: 1rem; background: none; pointer-events: auto; color: var(--md-on-surface); }
 input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])), select:where(:not([class*="mud-"])), textarea:where(:not([class*="mud-"])) {
-    min-height: 3.25rem; padding: 0.75rem 1rem; background: transparent; border: 1px solid var(--md-outline); border-radius: var(--shape-md);
+    min-height: 3.25rem; padding: 0.75rem 1rem; background: transparent; border: 1px solid var(--md-outline); border-radius: var(--shape-xs);
     transition: border-color var(--motion-duration) var(--motion-effects), box-shadow var(--motion-duration) var(--motion-effects);
 }
 input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])):hover, select:where(:not([class*="mud-"])):hover, textarea:where(:not([class*="mud-"])):hover { border-color: var(--md-on-surface); }
@@ -549,7 +549,7 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 /* Second row for the pages of a tab group */
 .sub-tabs { flex: none; display: flex; gap: 0.5rem; padding: 0.5rem calc(var(--content-gutter) - 0.25rem); overflow-x: auto; scrollbar-width: none; background: var(--md-surface); border-bottom: 1px solid var(--md-outline-variant); }
 .sub-tabs::-webkit-scrollbar { display: none; }
-.sub-tabs a { flex: none; display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0 1rem; border: 1px solid var(--md-outline); border-radius: var(--shape-full); color: var(--md-on-surface-variant); font-weight: 600; font-size: 0.9rem; text-decoration: none; white-space: nowrap; }
+.sub-tabs a { flex: none; display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0 1rem; border: 1px solid var(--md-outline); border-radius: var(--shape-sm); color: var(--md-on-surface-variant); font-weight: 600; font-size: 0.9rem; text-decoration: none; white-space: nowrap; }
 .sub-tabs a:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
 .sub-tabs a.active { background: var(--md-secondary-container); border-color: transparent; color: var(--md-on-secondary-container); }
 
@@ -1029,3 +1029,9 @@ dl.summary dd { margin: 0; overflow-wrap: anywhere; }
 
 /* Running text (help): comfortable line length instead of the full content width */
 .prose { max-width: 75ch; }
+
+/* Material 3 Expressive details: text fields have extra-small corners (4 px), sub-tabs are filter chips (8 px), bottom sheets show a drag handle */
+.mud-input-control { --mud-default-borderradius: var(--shape-xs); }
+@media (max-width: 599.98px) {
+    .mud-dialog::before { content: ""; display: block; flex: none; width: 2rem; height: 4px; margin: 0.6rem auto 0; border-radius: 2px; background: var(--md-outline); opacity: 0.6; }
+}
