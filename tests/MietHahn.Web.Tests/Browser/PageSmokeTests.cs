@@ -260,7 +260,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
         Assert.True(problems.Count == 0, string.Join("\n", problems.Distinct()));
     }
 
-    /// <summary>Screenshots of every page with data (viewport only), on demand: MIETHAHN_TOUR=1 MIETHAHN_TOUR_DIR=/pfad.</summary>
+    /// <summary>Screenshots of every page with data (viewport only), on demand: MIETHAHN_TOUR=1 MIETHAHN_TOUR_DIR=/pfad; MIETHAHN_TOUR_ONLY=personen,bank/regeln limits it to paths containing one of the parts.</summary>
     [Fact]
     public async Task Screenshot_tour_of_all_pages()
     {
@@ -273,12 +273,19 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
         Directory.CreateDirectory(directory);
         var page = await SignedInAsAdminAsync(mobile: false);
         await SeedAsync();
+        var only = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_ONLY")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
         foreach (var mobile in new[] { false, true })
         {
             await page.SetViewportSizeAsync(mobile ? 360 : 1280, mobile ? 780 : 900);
             var index = 0;
             foreach (var path in Routes().Concat(OptionalRoutes()))
             {
+                if (only is not null && !only.Any(o => path.Contains(o, StringComparison.Ordinal)))
+                {
+                    index++;
+                    continue;
+                }
+
                 await page.GotoAsync(BaseUrl + path);
                 try
                 {

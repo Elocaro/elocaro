@@ -556,7 +556,7 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 /* Sticky page header = app bar */
 .page-header { position: sticky; top: 0; z-index: 6; margin: 0 calc(-1 * var(--content-gutter)) 0.75rem; padding: 1rem var(--content-gutter) 0.75rem; background: var(--md-surface); gap: 0.5rem 1rem; align-items: center; }
 .page-header h1 { font-size: 1.5rem; line-height: 1.2; }
-.page-header-title { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 0.25rem; align-items: center; min-width: 0; }
+.page-header-title { flex: 1 1 0; min-width: min(100%, 18rem); display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 0.25rem; align-items: center; min-width: 0; }
 .page-header-title > .back { grid-column: 1 / -1; justify-self: start; }
 .page-header-title > h1 { grid-column: 1 / -1; }
 .page-header-title > .small { grid-column: 1 / -1; margin: 0.15rem 0 0; }
@@ -588,6 +588,14 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .content > .mud-table { flex: 0 1 auto; min-height: 8rem; display: flex; flex-direction: column; width: 100%; }
 .content > .mud-table .mud-table-container { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .mud-table-head th { position: sticky; top: 0; z-index: 2; }
+/* Smartphone: the page scrolls, the card list is not a small scroll window of its own */
+@media (max-width: 899.98px) {
+    .content > .mud-table { flex: none; min-height: 0; }
+    .content > .mud-table .mud-table-container { flex: none; }
+    .mud-table-cell { overflow-wrap: anywhere; min-width: 0; }
+    .mud-table-cell > * { max-width: 100%; }
+    .mud-table-cell[data-label]::before { overflow-wrap: normal; word-break: normal; hyphens: manual; }
+}
 
 /* Dialogs: bottom sheet on smartphones */
 @media (max-width: 599.98px) {
@@ -725,6 +733,9 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 @media (max-width: 899.98px) {
     .page-header-title { flex: 1 1 0; }
     .page-header-actions:has(> .mud-menu:only-child) { flex: 0 0 auto; }
+    /* Only the info button (the main action floats): it sits in the title row instead of a row of its own */
+    .page-header-actions:not(:has(> :not(.info-button, dialog, .button-primary, .mud-button-filled-primary))) { flex: 0 0 auto; align-self: flex-start; }
+    .page-header-actions:not(:has(> :not(.info-button, dialog, .button-primary, .mud-button-filled-primary))) .info-button { min-height: 2.75rem; min-width: 2.75rem; justify-content: center; }
 }
 
 /* Deadline calendar: month grid (scrolls sideways inside .table-wrapper on narrow screens) */
