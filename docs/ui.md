@@ -53,7 +53,7 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 
 **Tabellen auf dem Handy:** Statische `.data-table` ohne verbundene Zellen werden unter 700 px zu Karten (`shell.js` setzt `data-label` aus den Spaltenköpfen). Ausnahme mit `data-nostack` am `table`.
 
-**Startseite**: Zusammenfassung (dringend/bald fällig) und ein Raster aus Karten (`.panel`) je Bereich, dringendste zuerst.
+**Startseite**: Kennzahlen, Zusammenfassung (dringend/bald fällig) und ein Raster aus Karten (`.panel`) je Bereich, dringendste zuerst; die Diagramme stehen darunter und entfallen, solange der Verlauf nur aus Nullen besteht. Leere Einheiten (Leerstand) bieten in der Belegung direkt „Vertrag anlegen“ (vorbelegt mit dem Mietobjekt). In „Umsätze zuordnen“ ist „Bestätigen“ nur ab 70 % Treffsicherheit gefüllt, die Liste zeigt 50 Einträge und lädt auf Wunsch weitere. Rückfragen beim Löschen nennen den Namen (und bei Objekten die Zahl der Einheiten); das Löschen eines Zählers liegt im Menü „Weitere Aktionen“ statt in einem eigenen Tab.
 
 `wwwroot/js/shell.js` ergänzt nur Kleinigkeiten (Menüs schließen, Inhalt nach Navigation nach oben scrollen, aktiven Tab zeigen); alles andere funktioniert ohne JavaScript. `manifest.webmanifest` macht die Anwendung auf dem Handy installierbar („Zum Startbildschirm“, Vollbild ohne Browserleiste).
 

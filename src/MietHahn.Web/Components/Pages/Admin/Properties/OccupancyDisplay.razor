@@ -1,6 +1,10 @@
 @if (Occupancy is null)
 {
     <StatusChip Level="StatusLevel.Warning">Leerstand</StatusChip>
+    @if (RentalUnitId is { } rentalUnitId)
+    {
+        <a class="small" href="/verwaltung/vertraege/neu?mietobjekt=@rentalUnitId">Vertrag anlegen</a>
+    }
 }
 else
 {
@@ -11,4 +15,8 @@ else
 @code {
     [Parameter]
     public Occupancy? Occupancy { get; set; }
+
+    /// <summary>Offers "Vertrag anlegen" for a vacant rental unit when set.</summary>
+    [Parameter]
+    public Guid? RentalUnitId { get; set; }
 }

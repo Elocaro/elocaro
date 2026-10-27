@@ -23,7 +23,13 @@ else
 {
 
 <PageHeader Title="@meter.Meter.Name" Subtitle="@($"{Labels.From(meter.Meter.Type)} · Nr. {meter.Meter.Number} · {meter.Meter.Assignment}")"
-            Back="@($"/verwaltung/objekte/{meter.PropertyId}/zaehler")" BackText="@($"Zähler {meter.PropertyName}")" />
+            Back="@($"/verwaltung/objekte/{meter.PropertyId}/zaehler")" BackText="@($"Zähler {meter.PropertyName}")">
+    <Actions>
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+            <MudMenuItem OnClick="DeleteAsync">Zähler löschen</MudMenuItem>
+        </MudMenu>
+    </Actions>
+</PageHeader>
 
 <ErrorList Errors="errors" />
 
@@ -227,13 +233,6 @@ else if (meter.Meter.RemovedOn is null)
 }
 
     </MudTabPanel>
-    <MudTabPanel Text="Löschen">
-<section>
-    <h2>Zähler löschen</h2>
-    <p class="small">Zum Entfernen versehentlich doppelt angelegter Zähler. Ein ausgebauter oder getauschter Zähler gehört dagegen in die Historie (Tausch erfassen). Das Löschen bleibt im Verlauf nachvollziehbar.</p>
-    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Zähler löschen</MudButton>
-</section>
-    </MudTabPanel>
     <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="Zaehler" EntityId="Id" />
     </MudTabPanel>
@@ -367,7 +366,7 @@ else if (meter.Meter.RemovedOn is null)
 
     private async Task DeleteAsync()
     {
-        if (!await Confirm.AskAsync("Zähler löschen", $"Soll der Zähler {meter!.Meter.Name} mit allen Zählerständen gelöscht werden?", "Ja, löschen"))
+        if (!await Confirm.AskAsync("Zähler löschen", $"Soll der Zähler {meter!.Meter.Name} mit allen Zählerständen gelöscht werden? Das ist für doppelt angelegte Zähler gedacht; ein ausgebauter oder getauschter Zähler gehört stattdessen in die Historie (Tausch erfassen).", "Ja, löschen"))
         {
             return;
         }

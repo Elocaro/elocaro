@@ -23,7 +23,7 @@
     {
         <p class="small">@rows.Count offene Umsätze · @rows.Count(r => r.Suggestion is not null) mit Vorschlag</p>
         <ul class="work-list">
-            @foreach (var row in rows)
+            @foreach (var row in rows.Take(visible))
             {
                 var u = row.Transaction;
                 <li class="work-card">
@@ -57,7 +57,7 @@
                     <div class="row-actions">
                         @if (row.Suggestion is not null)
                         {
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AcceptAsync(u)" aria-label="@($"Vorschlag für den Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} bestätigen")">Bestätigen</MudButton>
+                            <MudButton Variant="@(row.Suggestion.Score >= 70 ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="() => AcceptAsync(u)" aria-label="@($"Vorschlag für den Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} bestätigen")">Bestätigen</MudButton>
                         }
                         <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/bank/umsaetze/{u.Id}/zuordnen")" aria-label="@($"Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} ändern oder aufteilen")">Ändern / Aufteilen</MudButton>
                         <MudButton Variant="Variant.Text" OnClick="() => IgnoreAsync(u)" aria-label="@($"Umsatz vom {Format.Date(u.BookingDate)} über {Format.Money(u.Amount)} ignorieren")">Ignorieren</MudButton>
@@ -65,10 +65,20 @@
                 </li>
             }
         </ul>
+        @if (rows.Count > visible)
+        {
+            <MudButton Variant="Variant.Outlined" OnClick="ShowMore">Weitere @Math.Min(PageSize, rows.Count - visible) von @(rows.Count - visible) anzeigen</MudButton>
+        }
     }
 </InteractiveShell>
 
 @code {
+    private const int PageSize = 50;
+
+    private int visible = PageSize;
+
+    private void ShowMore() => visible += PageSize;
+
     private IReadOnlyList<BankAccountRow> accounts = [];
     private IReadOnlyList<Guid?> accountIds = [];
     private IReadOnlyList<InboxRow>? rows;
@@ -92,6 +102,7 @@
     private async Task OnAccountChanged(Guid? value)
     {
         accountId = value;
+        visible = PageSize;
         await LoadAsync();
     }
 

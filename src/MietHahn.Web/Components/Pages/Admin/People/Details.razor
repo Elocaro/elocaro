@@ -335,7 +335,7 @@ else
 
     private async Task DeleteAsync()
     {
-        if (!await Confirm.AskAsync("Person löschen", "Die Person wird gelöscht. Fortfahren?", "Ja, löschen"))
+        if (!await Confirm.AskAsync("Person löschen", $"{person!.DisplayName} wird gelöscht. Fortfahren?", "Ja, löschen"))
         {
             return;
         }

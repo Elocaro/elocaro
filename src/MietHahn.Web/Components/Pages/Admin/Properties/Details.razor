@@ -124,7 +124,7 @@ else
                                         <span>ganze Einheit</span>
                                     }
                                 </td>
-                                <td><OccupancyDisplay Occupancy="rentalUnit.Occupancy" /></td>
+                                <td><OccupancyDisplay Occupancy="rentalUnit.Occupancy" RentalUnitId="rentalUnit.Id" /></td>
                             </tr>
                         }
                     }
@@ -140,6 +140,38 @@ else
     <MudTabPanel Text="Flächen">
 <AreaSection Save="input => Admin.SetAreaAsync(Id, input)" OnSaved="LoadAsync" Current="property.Area" History="property.AreaHistory"
                  AreaText="Gesamtfläche" AdditionalText="Gemeinschaftsfläche" AdditionalHint="Treppenhaus, Keller, Waschküche …" />
+
+    @if (property.Units.Count > 0)
+    {
+        <section>
+            <h2>Flächen der Einheiten</h2>
+            <p class="small">Die Abrechnung verteilt nach den Flächen der Einheiten. Gesamt- und Gemeinschaftsfläche oben dienen nur der Plausibilitätsprüfung.</p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Einheit</th><th class="number">Wohnfläche</th></tr></thead>
+                    <tbody>
+                        @foreach (var unit in property.Units)
+                        {
+                            <tr>
+                                <td><a href="/verwaltung/einheiten/@unit.Id">@unit.Name</a></td>
+                                <td class="number">
+                                    @if (unit.LivingArea is null)
+                                    {
+                                        <span class="small">keine Fläche, wird mit 0 verrechnet</span>
+                                    }
+                                    else
+                                    {
+                                        @Format.Area(unit.LivingArea)
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot><tr><th>Summe</th><th class="number">@Format.Area(property.Units.Sum(u => u.LivingArea ?? 0m))</th></tr></tfoot>
+                </table>
+            </div>
+        </section>
+    }
 
     </MudTabPanel>
     <MudTabPanel Text="Eigentümer">
@@ -215,7 +247,7 @@ else
 
     private async Task DeleteAsync()
     {
-        if (!await Confirm.AskAsync("Objekt löschen", "Das Objekt wird gelöscht. Fortfahren?", "Ja, löschen"))
+        if (!await Confirm.AskAsync("Objekt löschen", $"„{property!.Data.Name}“ mit {property.Units.Count} Einheit(en) wird gelöscht. Fortfahren?", "Ja, löschen"))
         {
             return;
         }

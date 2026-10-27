@@ -51,9 +51,12 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Contains("Zentralheizung, Erdgas", property.Text, StringComparison.Ordinal);
         Assert.Contains("30,5 m²", property.Text, StringComparison.Ordinal);
         Assert.Equal(7, property.Document.QuerySelectorAll("tbody .status-pending").Count(e => e.TextContent == "Leerstand"));
+        Assert.Equal(7, property.Document.QuerySelectorAll("tbody a[href^='/verwaltung/vertraege/neu?mietobjekt=']").Count(e => e.TextContent == "Vertrag anlegen"));
         Assert.Contains("WG", property.Text, StringComparison.Ordinal);
         // Without living area for apartments 1–3 and rooms: plausibility hints
         Assert.Contains("Wohnung 1: Keine Wohnfläche", property.Text, StringComparison.Ordinal);
+        Assert.Contains("Flächen der Einheiten", property.Text, StringComparison.Ordinal);
+        Assert.Contains("keine Fläche, wird mit 0 verrechnet", property.Text, StringComparison.Ordinal);
         Assert.Contains("110 m²", (await admin.GetAsync($"/verwaltung/einheiten/{sharedFlat}")).Text, StringComparison.Ordinal);
 
         Assert.Contains("0 von 7 vermietet", (await admin.GetAsync("/verwaltung/objekte")).Text, StringComparison.Ordinal);

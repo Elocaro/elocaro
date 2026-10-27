@@ -192,7 +192,7 @@ else
 
     private async Task DeleteAsync()
     {
-        if (!await Confirm.AskAsync("Einheit löschen", "Die Einheit wird gelöscht. Fortfahren?", "Ja, löschen"))
+        if (!await Confirm.AskAsync("Einheit löschen", $"„{unit!.Data.Name}“ ({unit.PropertyName}) wird gelöscht. Fortfahren?", "Ja, löschen"))
         {
             return;
         }

@@ -44,6 +44,7 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
 
 - Flächen: Wohnfläche je Einheit/Zimmer und Gemeinschaftsflächen. Heizfläche kann abweichen.
   - Objekt: Gesamtfläche und Gemeinschaftsfläche (Treppenhaus, Keller …).
+    Der Objekt-Tab *Flächen* listet zusätzlich die Wohnflächen der Einheiten (Grundlage der Umlage; fehlende Fläche wird als „wird mit 0 verrechnet“ markiert). Gesamt- und Gemeinschaftsfläche fließen nicht in die Abrechnung ein.
   - Einheit: Wohnfläche (WoFlV, Umlage nach Fläche) und Heizfläche (Grundkosten Heizung; leer = Wohnfläche).
   - WG-Zimmer: Zimmerfläche und Anteil an den Gemeinschaftsflächen der WG (Küche, Bad, Flur); Umlagefläche = Summe.
   - Plausibilität (Hinweis, kein Fehler): Σ Wohnflächen + Gemeinschaftsfläche ≤ Gesamtfläche; Σ Zimmer-Umlageflächen ≤ Wohnfläche der WG.
