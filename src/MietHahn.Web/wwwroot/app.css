@@ -1122,3 +1122,20 @@ table.card-rows tfoot [data-label]::before { content: attr(data-label) " "; colo
 
 /* A fieldset must not be wider than its container (default: min-content), otherwise form fields overflow on smartphones */
 fieldset { min-width: 0; }
+
+/* Account bookings on a smartphone: two compact lines per booking instead of one line per column.
+   date | status / text | amount / balance | actions */
+@media (max-width: 959.98px) {
+    .account-rows .mud-table-head { display: none !important; }
+    .account-rows .mud-table-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; column-gap: 0.75rem; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--md-outline-variant); }
+    .account-rows .mud-table-cell { display: block !important; padding: 0.1rem 0 !important; border: 0 !important; text-align: left !important; }
+    .account-rows .mud-table-cell::before { display: none !important; }
+    .account-rows .mud-table-cell:empty { display: none !important; }
+    .account-rows .mud-table-cell:nth-child(1) { grid-column: 1; grid-row: 1; color: var(--md-on-surface-variant); font-size: 0.85rem; }
+    .account-rows .mud-table-cell:nth-child(6) { grid-column: 2; grid-row: 1; text-align: right !important; }
+    .account-rows .mud-table-cell:nth-child(2) { grid-column: 1; grid-row: 2; font-weight: 600; }
+    .account-rows .mud-table-cell:nth-child(3), .account-rows .mud-table-cell:nth-child(4) { grid-column: 2; grid-row: 2; text-align: right !important; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .account-rows .mud-table-cell:nth-child(5) { grid-column: 1; grid-row: 3; color: var(--md-on-surface-variant); font-size: 0.85rem; }
+    .account-rows .mud-table-cell:nth-child(5)::before { display: inline !important; content: "Saldo "; }
+    .account-rows .mud-table-cell:nth-child(7) { grid-column: 2; grid-row: 3; text-align: right !important; }
+}
