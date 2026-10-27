@@ -1,6 +1,14 @@
 // Behavior of the app frame that CSS cannot do: close menus, reset the scroll position of the content area on
 // navigation, bring the active tab into view. Everything else works without JavaScript.
 (function () {
+    // Called from Blazor pages: bring a section into view (gently, unless the user prefers reduced motion).
+    window.miethahnScrollTo = (id) => {
+        const target = document.getElementById(id);
+        if (target) {
+            target.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        }
+    };
+
     const closeMenus = (except) => {
         document.querySelectorAll('details.mobile-navigation[open], details.user-menu[open]').forEach((menu) => {
             if (menu !== except) {

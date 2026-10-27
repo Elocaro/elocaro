@@ -78,12 +78,14 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             var rule = page.Locator("section", new() { HasText = "Schlüssel festlegen" });
-            await SelectAsync(page, "Kostenart", "Grundsteuer", rule, exact: false);
+            await page.Locator("#key-betrkv-01").GetByRole(AriaRole.Button, new() { Name = "Festlegen" }).ClickAsync();
+            await Assertions.Expect(rule.Locator("[aria-label='Kostenart']")).ToHaveValueAsync(new System.Text.RegularExpressions.Regex("betrkv-01|Grundsteuer"));
             await SelectAsync(page, "Schlüssel", "Einheiten", rule);
             await rule.GetByRole(AriaRole.Button, new() { Name = "Schlüssel speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Umlageschlüssel wurde gespeichert.");
             await Assertions.Expect(page.Locator("#key-betrkv-01")).ToContainTextAsync("Einheiten");
 
+            await page.GetByRole(AriaRole.Tab, new() { Name = "Unterarten" }).ClickAsync();
             var subtypes = page.Locator("#subtypes");
             await SelectAsync(page, "Kostenart", "13.", subtypes, exact: false);
             await subtypes.GetByLabel("Name der Unterart").FillAsync("Gebäudeversicherung");

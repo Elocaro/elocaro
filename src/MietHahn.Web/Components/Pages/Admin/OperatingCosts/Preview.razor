@@ -31,13 +31,18 @@ else
 {
 var result = preview.Result;
 
-<Notice Level="NoticeLevel.Info" id="preview-notice">
-    Das ist eine <strong>Vorschau</strong>. Es wird nichts gespeichert oder versendet. Grundlage sind die Belege mit Kostenpositionen des Jahres,
-    die Umlageschlüssel des Objekts, die Mietverträge und die tatsächlich gezahlten Vorauszahlungen im Mieterkonto.
-    Heiz- und Warmwasserkosten werden nach der HeizkostenV mit der CO₂-Kostenaufteilung (CO2KostAufG) berechnet und mit den Heizkostenvorauszahlungen
-    verrechnet. Die dafür hinterlegten Tabellen (CO₂-Stufen, Gradtagszahlen) sind <strong>Stand/prüfen</strong>: Sie müssen vor dem Versand einer Abrechnung
-    gegen die amtlichen Quellen geprüft werden.
-</Notice>
+<div id="preview-notice">
+    <Notice Level="NoticeLevel.Info">Das ist eine <strong>Vorschau</strong>. Es wird nichts gespeichert oder versendet.</Notice>
+    <details class="explain">
+        <summary>Grundlage der Berechnung und Prüfhinweis</summary>
+        <p>
+            Grundlage sind die Belege mit Kostenpositionen des Jahres, die Umlageschlüssel des Objekts, die Mietverträge und die tatsächlich gezahlten Vorauszahlungen im Mieterkonto.
+            Heiz- und Warmwasserkosten werden nach der HeizkostenV mit der CO₂-Kostenaufteilung (CO2KostAufG) berechnet und mit den Heizkostenvorauszahlungen
+            verrechnet. Die dafür hinterlegten Tabellen (CO₂-Stufen, Gradtagszahlen) sind <strong>Stand/prüfen</strong>: Sie müssen vor dem Versand einer Abrechnung
+            gegen die amtlichen Quellen geprüft werden.
+        </p>
+    </details>
+</div>
 
 @if (result.Problems.Count > 0 || preview.Hints.Count > 0)
 {

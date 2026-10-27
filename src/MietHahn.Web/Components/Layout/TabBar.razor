@@ -17,6 +17,10 @@
         @foreach (var child in group.Children!)
         {
             <AuthorizeView Policy="@child.Policy">
+                @if (child.SeparatorBefore)
+                {
+                    <span class="sub-tabs-separator" aria-hidden="true"></span>
+                }
                 <a href="@child.Href" class="@(child.Matches(Path) ? "active" : null)" aria-current="@(child.Matches(Path) ? "page" : null)">@child.Label</a>
             </AuthorizeView>
         }

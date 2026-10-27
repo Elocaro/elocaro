@@ -7,8 +7,9 @@ namespace MietHahn.Web.Components.Layout;
 /// <summary>A link in the tab bar of an area or an entity.</summary>
 /// <param name="Href">Target; matched as prefix unless <paramref name="Exact"/> is set. A group opens its first child.</param>
 /// <param name="Also">Further path prefixes that belong to the tab (pages reached from it).</param>
+/// <param name="SeparatorBefore">Within a group: a divider before this page (sets apart preparation from execution).</param>
 /// <param name="Children">Pages of a group; shown as second row below the tab bar while the group is active.</param>
-public sealed record NavTab(string Label, string Href, string? Policy = null, bool Exact = false, string[]? Also = null, NavTab[]? Children = null)
+public sealed record NavTab(string Label, string Href, string? Policy = null, bool Exact = false, string[]? Also = null, NavTab[]? Children = null, bool SeparatorBefore = false)
 {
     public bool IsGroup => Children is { Length: > 0 };
 
@@ -169,7 +170,7 @@ public static class AdminNavModel
             new("Versorgungsverträge", $"{id}/versorgung"),
             new("Umlageschlüssel", $"{id}/umlageschluessel"),
             new("Heizkosten", $"{id}/heizung"),
-            new("Vorschau", $"{id}/nebenkosten"),
+            new("Vorschau", $"{id}/nebenkosten", SeparatorBefore: true),
             new("Abrechnungs-Assistent", $"{id}/abrechnung"),
             new("Abrechnungen", $"{id}/abrechnungen", Also: [$"{Root}/abrechnungen"])),
         NavTab.Group("Steuer", Policies.Finance,

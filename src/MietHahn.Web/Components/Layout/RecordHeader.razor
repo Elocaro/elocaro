@@ -9,8 +9,14 @@
         <p class="record-subtitle">@Property.Address</p>
         <dl class="record-facts">
             <div><dt>Einheiten</dt><dd>@Property.UnitCount</dd></div>
-            <div><dt>Baujahr</dt><dd>@(Property.YearBuilt?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</dd></div>
-            <div><dt>Heizung</dt><dd>@Labels.Heating(Property.HeatingType, Property.EnergySource)</dd></div>
+            @if (Property.YearBuilt is { } year)
+            {
+                <div><dt>Baujahr</dt><dd>@year.ToString(System.Globalization.CultureInfo.InvariantCulture)</dd></div>
+            }
+            @if (Labels.Heating(Property.HeatingType, Property.EnergySource) is { } heating && heating != "–")
+            {
+                <div><dt>Heizung</dt><dd>@heating</dd></div>
+            }
         </dl>
     </section>
 }

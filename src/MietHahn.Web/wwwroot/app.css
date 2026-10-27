@@ -1062,3 +1062,18 @@ html.is-navigating::after { content: ""; position: fixed; z-index: 1000; top: 0;
 /* Opening disclosures: content slides in softly */
 details[open] > :not(summary) { animation: reveal var(--motion-duration) var(--motion-effects); }
 @keyframes reveal { from { opacity: 0; transform: translateY(-0.35rem); } }
+
+/* Divider inside the second tab row (e.g. Nebenkosten: set up | run) */
+.sub-tabs-separator { flex: none; align-self: center; width: 1px; height: 1.5rem; margin-inline: 0.25rem; background: var(--md-outline-variant); }
+
+/* Cost keys on a smartphone: one card per cost type, the action stays in view */
+@media (max-width: 699.98px) {
+    #cost-keys thead { display: none; }
+    #cost-keys, #cost-keys tbody { display: block; }
+    #cost-keys tr { display: block; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--md-outline-variant); }
+    #cost-keys td { display: block; padding: 0.1rem 0; border: 0; }
+    #cost-keys td:first-child { font-weight: 600; }
+    #cost-keys td:empty { display: none; }
+    #cost-keys td[data-label]:not(:empty)::before { content: attr(data-label) ": "; color: var(--md-on-surface-variant); }
+    #cost-keys td.row-actions { margin-top: 0.25rem; margin-left: -0.5rem; }
+}

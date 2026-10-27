@@ -6,6 +6,7 @@
 @inject Notifier Notify
 @inject Confirmations Confirm
 @inject TimeProvider Clock
+@inject IJSRuntime JS
 
 <InteractiveShell>
 @if (!loaded)
@@ -23,16 +24,22 @@ else
 
 <ErrorList Errors="errors" />
 
-<p class="small">
-    Der Schlüssel einer Kostenart gilt ab einem Stichtag; frühere Stände bleiben für die Abrechnung erhalten. Ohne Schlüssel rechnet die Vorschau
-    mit der Wohnfläche und weist darauf hin. Heiz- und Warmwasserkosten werden nach der Heizkostenverordnung abgerechnet (eigener Rechenkern, Einstellungen unter „Heizkosten“).
-</p>
+<details class="explain">
+    <summary>Wie gelten Umlageschlüssel?</summary>
+    <p>
+        Der Schlüssel einer Kostenart gilt ab einem Stichtag; frühere Stände bleiben für die Abrechnung erhalten. Ohne Schlüssel rechnet die Vorschau
+        mit der Wohnfläche und weist darauf hin. Heiz- und Warmwasserkosten werden nach der Heizkostenverordnung abgerechnet (eigener Rechenkern, Einstellungen unter „Heizkosten“).
+    </p>
+</details>
+
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+<MudTabPanel Text="Schlüssel">
 
 <section>
     <h2>Gültig am @Format.Date(overview.Day)</h2>
     <div class="table-wrapper">
         <table class="data-table" id="cost-keys">
-            <thead><tr><th>Kostenart</th><th>Schlüssel</th><th>Gültig ab</th><th>Vorwegabzug</th><th>Verlauf</th></tr></thead>
+            <thead><tr><th>Kostenart</th><th>Schlüssel</th><th>Vorwegabzug</th><th></th></tr></thead>
             <tbody>
                 @foreach (var row in overview.Rows)
                 {
@@ -40,20 +47,18 @@ else
                         <td>@(row.BetrKvNumber is { } n ? $"{n}. " : "")@row.Name</td>
                         @if (row.Group == CostGroup.Heating)
                         {
-                            <td colspan="4" class="small">Abrechnung nach HeizkostenV, siehe <a href="/verwaltung/objekte/@PropertyId/heizung">Heizkosten-Einstellungen</a></td>
+                            <td colspan="3" class="small">Abrechnung nach HeizkostenV, siehe <a href="/verwaltung/objekte/@PropertyId/heizung">Heizkosten-Einstellungen</a></td>
                         }
                         else if (row.Current is { } current)
                         {
-                            <td>@KeyText(current)</td>
-                            <td>@Format.Date(current.Validity.From)</td>
-                            <td>@PreDeduction(current)</td>
-                            <td class="small">@(row.History.Count > 1 ? $"{row.History.Count} Stände" : "")</td>
+                            <td>@KeyText(current) <span class="small">ab @Format.Date(current.Validity.From)@(row.History.Count > 1 ? $" · {row.History.Count} Stände" : "")</span></td>
+                            <td data-label="Vorwegabzug">@PreDeduction(current)</td>
+                            <td class="row-actions"><MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => PickAsync(row.CostType)" aria-label="@($"Schlüssel ändern: {row.Name}")">Ändern</MudButton></td>
                         }
                         else
                         {
-                            <td colspan="2" class="small">@(row.History.Count > 0 ? "beendet / noch nicht gültig" : "kein Schlüssel (Standard: Wohnfläche)")</td>
-                            <td></td>
-                            <td class="small">@(row.History.Count > 0 ? $"{row.History.Count} Stände" : "")</td>
+                            <td colspan="2" class="small">@(row.History.Count > 0 ? $"beendet / noch nicht gültig · {row.History.Count} Stände" : "kein Schlüssel (Standard: Wohnfläche)")</td>
+                            <td class="row-actions"><MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => PickAsync(row.CostType)" aria-label="@($"Schlüssel festlegen: {row.Name}")">Festlegen</MudButton></td>
                         }
                     </tr>
                 }
@@ -62,7 +67,7 @@ else
     </div>
 </section>
 
-<section>
+<section id="key-form">
     <h2>Schlüssel festlegen</h2>
     <EditForm Model="Rule" OnValidSubmit="SetAsync" novalidate>
         <DataAnnotationsValidator />
@@ -103,9 +108,11 @@ else
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Schlüssel beenden</MudButton>
     </EditForm>
 </section>
+</MudTabPanel>
 
 @if (overview.SharedFlats.Count > 0)
 {
+    <MudTabPanel Text="Wohngemeinschaften">
     <section id="shared-flats">
         <h2>Wohngemeinschaften</h2>
         <p class="small">
@@ -122,8 +129,10 @@ else
         }
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SetFlatsAsync">Abrechnungsmodus speichern</MudButton>
     </section>
+    </MudTabPanel>
 }
 
+<MudTabPanel Text="@($"Unterarten ({subtypes.Count})")">
 <section id="subtypes">
     <h2>Eigene Unterarten</h2>
     <p class="small">Unterarten verfeinern eine Kostenart (z. B. „Gebäudeversicherung“ und „Haftpflicht“ unter Nr. 13). Sie erscheinen am Beleg und im Rechenprotokoll; der Umlageschlüssel gilt für die Kostenart.</p>
@@ -154,6 +163,8 @@ else
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Unterart anlegen</MudButton>
     </EditForm>
 </section>
+</MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 
@@ -185,6 +196,12 @@ else
         }
 
         loaded = true;
+    }
+
+    private async Task PickAsync(string costType)
+    {
+        Rule.CostType = costType;
+        await JS.InvokeVoidAsync("miethahnScrollTo", "key-form");
     }
 
     private void ResetRule()
