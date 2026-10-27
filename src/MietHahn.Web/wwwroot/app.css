@@ -1139,3 +1139,21 @@ fieldset { min-width: 0; }
     .account-rows .mud-table-cell:nth-child(5)::before { display: inline !important; content: "Saldo "; }
     .account-rows .mud-table-cell:nth-child(7) { grid-column: 2; grid-row: 3; text-align: right !important; }
 }
+
+/* Smartphone card variants (opt-in):
+   grid-cards: figures in two columns, label above value (loan years); inline-cards: first cell as title, the rest on one line (template list) */
+@media (max-width: 699.98px) {
+    .data-table.stackable.grid-cards tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.1rem 0.75rem; }
+    .data-table.stackable.grid-cards tbody td { display: block; padding: 0.1rem 0; text-align: left; }
+    .data-table.stackable.grid-cards tbody td::before { display: block; max-width: none; }
+    .data-table.stackable.grid-cards tbody td:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 959.98px) {
+    .inline-cards .mud-table-head { display: none !important; }
+    .inline-cards .mud-table-row { display: block !important; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--md-outline-variant); }
+    .inline-cards .mud-table-cell { display: inline !important; padding: 0 !important; border: 0 !important; text-align: left !important; color: var(--md-on-surface-variant); font-size: 0.85rem; }
+    .inline-cards .mud-table-cell::before { display: none !important; }
+    .inline-cards .mud-table-cell:first-child { display: block !important; color: var(--md-on-surface); font-size: 1rem; margin-bottom: 0.2rem; }
+    .inline-cards .mud-table-cell[data-label="Fassung"]::before { display: inline !important; content: "Fassung "; }
+    .inline-cards .mud-table-cell:not(:first-child):not(:last-child)::after { content: " · "; }
+}

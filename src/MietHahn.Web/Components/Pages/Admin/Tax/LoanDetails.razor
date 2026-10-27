@@ -40,7 +40,7 @@ else
             <h2>Zinsen und Restschuld je Jahr</h2>
             <p class="small">Eine Jahreszinsbescheinigung der Bank ersetzt den berechneten Wert. Als Werbungskosten zählt der Anteil Vermietung (@Format.Number(detail.Input.SharePercent ?? 100m) %).</p>
             <div class="table-wrapper">
-                <table class="data-table">
+                <table class="data-table grid-cards">
                     <thead><tr><th>Jahr</th><th class="number">Zinsen (Plan)</th><th class="number">Zinsen (Bescheinigung)</th><th class="number">Tilgung</th><th class="number">Restschuld</th></tr></thead>
                     <tbody>
                         @foreach (var year in detail.Years)

@@ -95,8 +95,12 @@ else
     <dt>E-Mail</dt><dd>@(details.Recipients.Count == 0 ? "keine hinterlegt" : string.Join(", ", details.Recipients))</dd>
 </dl>
 
-<section>
-    <h2>Offene Posten</h2>
+<details class="group" id="claims" open="@(details.Claims.Count <= 5)">
+    <summary>
+        <span>Offene Posten</span>
+        <span class="small">@details.Claims.Count Posten</span>
+        <span class="group-sum">@Format.Money(details.Claims.Sum(c => c.Open))</span>
+    </summary>
     <div class="table-wrapper">
         <table class="data-table">
             <thead><tr><th>Forderung</th><th>Fällig</th><th class="number">Betrag</th><th class="number">Offen</th></tr></thead>
@@ -108,7 +112,7 @@ else
             </tbody>
         </table>
     </div>
-</section>
+</details>
 
 <section>
     <h2>Freigabe</h2>
