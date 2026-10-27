@@ -17,6 +17,8 @@
     @if (choices is not null)
     {
         <EditForm Model="choices" OnValidSubmit="SaveAsync" novalidate>
+            <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+            <MudTabPanel Text="Module">
             <div class="module-list">
                 @foreach (var choice in choices)
                 {
@@ -24,9 +26,9 @@
                     <section class="module-card" id="@("module-" + choice.Module.ToString().ToLowerInvariant())">
                         <AppCheckBox Value="choice.On" ValueChanged="on => Toggle(choice, on)" ValueExpression="() => choice.On" Label="@info.Title" />
                         <p class="module-summary">@info.Summary</p>
-                        <p class="help">@info.Purpose</p>
                         <details class="explain">
-                            <summary>Was gehört dazu?</summary>
+                            <summary>Wann ist das sinnvoll, was gehört dazu?</summary>
+                            <p class="help">@info.Purpose</p>
                             <ul>
                                 @foreach (var item in info.Includes)
                                 {
@@ -41,8 +43,9 @@
                     </section>
                 }
             </div>
+            </MudTabPanel>
 
-            <h2>Auswahl innerhalb der Bereiche</h2>
+            <MudTabPanel Text="Auswahl innerhalb der Bereiche">
             <p class="help">Was Sie hier abschalten, verschwindet aus den Formularen. Wird es noch von Verträgen verwendet, bleibt es dort sichtbar.</p>
             @foreach (var group in options!.GroupBy(o => ModuleCatalog.Info(o.Option).Group))
             {
@@ -60,6 +63,8 @@
                     }
                 </section>
             }
+            </MudTabPanel>
+            </MudTabs>
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
     }

@@ -783,7 +783,7 @@ p.small:has(+ :is(.empty-state, .table-wrapper, .mud-table, .group, .explain)) {
 }
 
 /* Module settings: one card per switchable module */
-.module-list { display: grid; gap: 0.75rem; margin-bottom: 1.5rem; }
+.module-list { display: grid; gap: 0.75rem; margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr)); align-items: start; }
 .module-card { margin: 0; padding: 0.75rem 1rem; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); }
 .module-card .module-summary { margin: 0 0 0.25rem; font-weight: 500; }
 .module-card .help { margin-bottom: 0.5rem; }
@@ -1161,3 +1161,7 @@ fieldset { min-width: 0; }
 /* Paragraphs and links directly in a panel (portal start page) share the padding of the panel header */
 .panel > p { margin: 0; padding: 0.25rem 1.25rem 1rem; }
 .panel > p > a:not(.button) { display: inline-block; padding-block: 0.6rem; }
+
+/* Note that applies to a whole group (e.g. the same hint on every deadline) */
+.group-note { margin: 0; padding: 0.6rem 1rem; border-bottom: 1px solid var(--md-outline-variant); }
+.group.is-alert > summary { color: var(--md-error); }

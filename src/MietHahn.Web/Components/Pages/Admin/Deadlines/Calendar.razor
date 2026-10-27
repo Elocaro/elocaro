@@ -65,31 +65,56 @@
     }
     else
     {
-        @if (entries.Any(e => e.Due < today))
+        var overdue = entries.Where(e => e.Due < today).ToList();
+        var upcoming = entries.Where(e => e.Due >= today).ToList();
+        @if (overdue.Count > 0)
         {
-            <Notice Level="NoticeLevel.Warning">@entries.Count(e => e.Due < today) überfällig.</Notice>
+            @DeadlineGroup("Überfällig", overdue, overdue.Count <= 5)
         }
 
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Fällig</th><th>Was</th><th>Bereich</th><th>Hinweis</th></tr></thead>
-                <tbody>
-                    @foreach (var entry in entries)
-                    {
-                        <tr>
-                            <td>@Format.Date(entry.Due)@if (entry.Due < today) { <StatusChip Level="StatusLevel.Error">überfällig</StatusChip> }</td>
-                            <td><a href="@entry.Link">@entry.Title</a></td>
-                            <td>@entry.Area</td>
-                            <td class="small">@entry.Details</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+        @if (upcoming.Count > 0)
+        {
+            @DeadlineGroup("Anstehend", upcoming, true)
+        }
     }
 </InteractiveShell>
 
 @code {
+    /// <summary>One block of deadlines; an identical note on every entry is shown once instead of in every row.</summary>
+    private RenderFragment DeadlineGroup(string title, IReadOnlyList<DeadlineEntry> list, bool open) => __builder =>
+    {
+        var common = list.Count > 1 && list.Select(e => e.Details).Distinct().Count() == 1 ? list[0].Details : null;
+        <details class="@(title == "Überfällig" ? "group is-alert" : "group")" open="@open">
+            <summary>
+                <span>@title</span>
+                <span class="small">@list.Count @(list.Count == 1 ? "Eintrag" : "Einträge")</span>
+            </summary>
+            @if (common is { Length: > 0 })
+            {
+                <p class="small group-note">@common</p>
+            }
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Fällig</th><th>Was</th><th>Bereich</th>@if (common is null) {<th>Hinweis</th>}</tr></thead>
+                    <tbody>
+                        @foreach (var entry in list)
+                        {
+                            <tr>
+                                <td>@Format.Date(entry.Due)@if (entry.Due < today) { <StatusChip Level="StatusLevel.Error">überfällig</StatusChip> }</td>
+                                <td><a href="@entry.Link">@entry.Title</a></td>
+                                <td>@entry.Area</td>
+                                @if (common is null)
+                                {
+                                    <td class="small">@entry.Details</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    };
+
     private static readonly string[] views = ["liste", "monat"];
     private static readonly int[] ranges = [30, 90, 365];
     private static readonly string[] weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];

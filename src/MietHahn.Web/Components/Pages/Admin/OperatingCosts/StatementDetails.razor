@@ -84,6 +84,8 @@ var result = statement.Result;
     </section>
 }
 
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+<MudTabPanel Text="Versand">
 <section id="dispatch">
     <h2>Versand an die Mieter</h2>
     @if (overview.LandlordProfileMissing)
@@ -206,46 +208,8 @@ var result = statement.Result;
     }
 </section>
 
-<section id="landlord-overview">
-    <h2>Gesamtübersicht für den Vermieter</h2>
-    <dl class="summary">
-        <dt>Gesamtkosten</dt><dd>@Format.Money(result.TotalCosts)</dd>
-        <dt>Auf die Mieter umgelegt</dt><dd>@Format.Money(result.TenantTotal)</dd>
-        <dt>Anteil des Vermieters (inkl. Leerstand)</dt><dd>@Format.Money(result.LandlordTotal)</dd>
-        <dt>Nachzahlungen der Mieter</dt><dd>@Format.Money(result.Tenants.Where(t => t.Balance > 0).Sum(t => t.Balance))</dd>
-        <dt>Guthaben der Mieter</dt><dd>@Format.Money(-result.Tenants.Where(t => t.Balance < 0).Sum(t => t.Balance))</dd>
-    </dl>
-    @if (result.Landlord.Count > 0)
-    {
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Grund</th><th>Bezeichnung</th><th class="number">Betrag</th></tr></thead>
-                <tbody>
-                    @foreach (var position in result.Landlord.OrderBy(p => p.Reason).ThenBy(p => p.Label, StringComparer.CurrentCulture))
-                    {
-                        <tr><td>@Labels.From(position.Reason)</td><td>@position.Label</td><td class="number">@Format.Money(position.Amount)</td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-    @if (result.FlatRates.Count > 0)
-    {
-        <h3>Pauschale: Ist-Kosten gegen Einnahmen (intern)</h3>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Mieter</th><th class="number">Ist-Kosten</th><th class="number">Pauschale gezahlt</th><th class="number">Differenz</th></tr></thead>
-                <tbody>
-                    @foreach (var flat in result.FlatRates)
-                    {
-                        <tr><td>@flat.Label (@flat.Rental)</td><td class="number">@Format.Money(flat.ActualCosts)</td><td class="number">@Format.Money(flat.Paid)</td><td class="number">@Format.Money(flat.Difference)</td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-</section>
-
+</MudTabPanel>
+<MudTabPanel Text="Kosten">
 <section id="cost-types">
     <h2>Kosten</h2>
     <div class="table-wrapper">
@@ -264,6 +228,55 @@ var result = statement.Result;
     </div>
 </section>
 
+<section id="landlord-overview">
+    <h2>Gesamtübersicht für den Vermieter</h2>
+    <dl class="summary">
+        <dt>Gesamtkosten</dt><dd>@Format.Money(result.TotalCosts)</dd>
+        <dt>Auf die Mieter umgelegt</dt><dd>@Format.Money(result.TenantTotal)</dd>
+        <dt>Anteil des Vermieters (inkl. Leerstand)</dt><dd>@Format.Money(result.LandlordTotal)</dd>
+        <dt>Nachzahlungen der Mieter</dt><dd>@Format.Money(result.Tenants.Where(t => t.Balance > 0).Sum(t => t.Balance))</dd>
+        <dt>Guthaben der Mieter</dt><dd>@Format.Money(-result.Tenants.Where(t => t.Balance < 0).Sum(t => t.Balance))</dd>
+    </dl>
+    @if (result.Landlord.Count > 0)
+    {
+        <details class="group" open="@(result.Landlord.Count <= 8)">
+            <summary>
+                <span>Positionen des Vermieteranteils</span>
+                <span class="small">@result.Landlord.Count Positionen</span>
+                <span class="group-sum">@Format.Money(result.Landlord.Sum(p => p.Amount))</span>
+            </summary>
+            <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Grund</th><th>Bezeichnung</th><th class="number">Betrag</th></tr></thead>
+                <tbody>
+                    @foreach (var position in result.Landlord.OrderBy(p => p.Reason).ThenBy(p => p.Label, StringComparer.CurrentCulture))
+                    {
+                        <tr><td>@Labels.From(position.Reason)</td><td>@position.Label</td><td class="number">@Format.Money(position.Amount)</td></tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        </details>
+    }
+    @if (result.FlatRates.Count > 0)
+    {
+        <h3>Pauschale: Ist-Kosten gegen Einnahmen (intern)</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Mieter</th><th class="number">Ist-Kosten</th><th class="number">Pauschale gezahlt</th><th class="number">Differenz</th></tr></thead>
+                <tbody>
+                    @foreach (var flat in result.FlatRates)
+                    {
+                        <tr><td>@flat.Label (@flat.Rental)</td><td class="number">@Format.Money(flat.ActualCosts)</td><td class="number">@Format.Money(flat.Paid)</td><td class="number">@Format.Money(flat.Difference)</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+</MudTabPanel>
+<MudTabPanel Text="@($"Mieter ({result.Tenants.Count})")">
 <section id="tenants">
     <h2>Mieter</h2>
     <div class="table-wrapper">
@@ -283,6 +296,8 @@ var result = statement.Result;
         </table>
     </div>
 </section>
+</MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 

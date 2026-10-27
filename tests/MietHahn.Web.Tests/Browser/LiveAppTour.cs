@@ -11,7 +11,7 @@ namespace MietHahn.Web.Tests.Browser;
 /// </summary>
 public class LiveAppTour(PostgresFixture postgres) : BrowserTestBasis(postgres)
 {
-    private static readonly string[] Skip = ["/dateien", "export", ".pdf", ".csv", ".json", "abmelden", "/konto/", "/api/", "download", "/hangfire", "/quartz"];
+    private static readonly string[] Skip = ["/dateien", "export", ".pdf", ".csv", ".json", "abmelden", "/konto/", "/api/", "download", "/hangfire", "/quartz", "auskunft"];
 
     [Fact]
     public async Task Tour_through_the_running_app()
@@ -56,8 +56,9 @@ public class LiveAppTour(PostgresFixture postgres) : BrowserTestBasis(postgres)
             var only = Environment.GetEnvironmentVariable("MIETHAHN_LIVE_ONLY")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
             var queue = new Queue<string>(only is not null ? only : mobile ? visited.ToList() : ["/verwaltung"]);
             var seen = new HashSet<string>(StringComparer.Ordinal);
+            var perType = new Dictionary<string, int>(StringComparer.Ordinal);
             var index = 0;
-            while (queue.Count > 0 && index < 160)
+            while (queue.Count > 0 && index < 300)
             {
                 var path = queue.Dequeue();
                 if (!seen.Add(path))
@@ -65,9 +66,27 @@ public class LiveAppTour(PostgresFixture postgres) : BrowserTestBasis(postgres)
                     continue;
                 }
 
+                // Every page type (path with ids replaced) is visited at most twice, so that many similar pages (meters, templates) do not crowd out the rest.
+                var type = System.Text.RegularExpressions.Regex.Replace(path.Split('?')[0], "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", "{id}");
+                perType[type] = perType.GetValueOrDefault(type) + 1;
+                if (perType[type] > 2 && only is null)
+                {
+                    continue;
+                }
+
                 current = path;
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                var response = await page.GotoAsync(url.TrimEnd('/') + path);
+                IResponse? response;
+                try
+                {
+                    response = await page.GotoAsync(url.TrimEnd('/') + path);
+                }
+                catch (PlaywrightException ex) when (ex.Message.Contains("Download is starting", StringComparison.Ordinal))
+                {
+                    report.Add($"[{(mobile ? "m" : "d")}] {path}: ist ein Download, übersprungen");
+                    continue;
+                }
+
                 try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 8000 }); } catch (TimeoutException) { }
                 await page.WaitForTimeoutAsync(250);
                 watch.Stop();
