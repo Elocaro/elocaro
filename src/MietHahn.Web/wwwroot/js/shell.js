@@ -74,11 +74,20 @@
         revealActiveTab();
     };
 
+    // Slow page changes (enhanced navigation): CSS shows a progress bar at the top after a short delay.
+    const navigating = (on) => document.documentElement.classList.toggle('is-navigating', on);
+    const watchNavigation = () => {
+        window.Blazor.addEventListener('enhancednavigationstart', () => navigating(true));
+        window.Blazor.addEventListener('enhancednavigationend', () => navigating(false));
+    };
+
     if (window.Blazor && typeof window.Blazor.addEventListener === 'function') {
+        watchNavigation();
         window.Blazor.addEventListener('enhancednavigationend', afterNavigation);
     } else {
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Blazor && typeof window.Blazor.addEventListener === 'function') {
+                watchNavigation();
                 window.Blazor.addEventListener('enhancednavigationend', afterNavigation);
             }
         });

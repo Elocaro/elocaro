@@ -195,6 +195,53 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         Assert.True(problems.Count == 0, "Bedienelemente auf dem Handy:\n" + report);
     }
 
+    /// <summary>Pages do not jump while they load (layout shift below 0.1, "good" in Core Web Vitals); with MIETHAHN_TOUR_DIR a report is written (motion.txt).</summary>
+    [Fact]
+    public async Task Pages_do_not_shift_while_loading()
+    {
+        var directory = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_DIR");
+        if (directory is not null)
+        {
+            Directory.CreateDirectory(directory);
+        }
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await App.WithScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            await sp.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt" }, null, ct);
+            await sp.GetRequiredService<IPropertyService>().CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, ct);
+            return 0;
+        });
+        await page.AddInitScriptAsync("""
+            window.__shift = 0; window.__who = []; window.__samples = []; window.__t0 = performance.now();
+            new PerformanceObserver(l => { for (const e of l.getEntries()) if (!e.hadRecentInput) { window.__shift += e.value; if (e.value > 0.01) window.__who.push(e.value.toFixed(3) + ' ' + e.sources.map(x => (x.node && x.node.nodeType === 1 ? x.node.tagName.toLowerCase() + '.' + String(x.node.className).split(' ').slice(0, 2).join('.') : '?') + ' ' + Math.round(x.previousRect.y) + '->' + Math.round(x.currentRect.y) + ' h' + Math.round(x.previousRect.height) + '->' + Math.round(x.currentRect.height)).join(' | ')); } }).observe({ type: 'layout-shift', buffered: true });
+            const tick = () => { const b = document.body; if (b) window.__samples.push([Math.round(performance.now() - window.__t0), /Wird geladen/.test(b.innerText) ? 1 : 0, !!document.querySelector('[data-interactive=true]') ? 1 : 0]); setTimeout(tick, 20); };
+            tick();
+            """);
+        var lines = new List<string>();
+        foreach (var path in Pages)
+        {
+            await page.GotoAsync(BaseUrl + path, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await page.WaitForTimeoutAsync(700);
+            var result = await page.EvaluateAsync<double[]>("""
+                () => { const s = window.__samples; const loading = s.filter(x => x[1]).length * 20; const first = s.find(x => x[2]); return [Math.round(window.__shift * 1000) / 1000, loading, first ? first[0] : -1]; }
+                """);
+            lines.Add($"{path,-45} layout-shift {result[0]:0.000}  loading-text {result[1]:0} ms  interactive after {result[2]:0} ms");
+            if (result[0] > 0.05)
+            {
+                lines.AddRange((await page.EvaluateAsync<string[]>("() => window.__who")).Select(w => "    " + w));
+            }
+        }
+
+        if (directory is not null)
+        {
+            await File.WriteAllLinesAsync(Path.Combine(directory, "motion.txt"), lines, TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(!lines.Any(l => l.Contains("layout-shift", StringComparison.Ordinal) && !l.Contains("layout-shift 0,0", StringComparison.Ordinal) && !l.Contains("layout-shift 0.0", StringComparison.Ordinal)), "Layout springt beim Laden:\n" + string.Join("\n", lines));
+    }
+
     [Fact]
     public async Task Text_contrast_meets_AA_in_light_and_dark()
     {

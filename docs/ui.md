@@ -75,6 +75,17 @@ Die älteren Namen `--color-*` und `--radius` sind Aliase und nur für vorhanden
 
 Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gilt die Systemeinstellung; der Benutzer kann sie im Benutzermenü auf *Hell* oder *Dunkel* festlegen. Das speichert das Cookie `miethahn.theme` (`ThemePreference`) und setzt `data-theme` am `<html>`-Element.
 
+## Bewegung
+
+Zurückhaltend und nur dort, wo sie etwas erklärt; bei „reduzierte Bewegung“ entfällt alles (`--motion-duration: 0ms`, View-Transition aus).
+
+- **Seitenwechsel:** Der Inhalt blendet in 160 ms über (`@view-transition`), Kopfleiste, Seitenleiste und untere Leiste stehen still (`view-transition-name`).
+- **Langsamer Wechsel:** Dauert ein Wechsel länger als 250 ms, läuft ein dünner Fortschrittsbalken am oberen Rand (`html.is-navigating`, gesetzt von `shell.js` bei `enhancednavigationstart`/`-end`).
+- **Ladetext** (`.loading`): erscheint erst nach 300 ms, mit kleinem Kreisel; schnelle Ladevorgänge zeigen nichts.
+- **Aufklappen** (`details`): Inhalt gleitet sanft ein. Dialoge, Menüs, Tabs und Snackbars bringen ihre Bewegung von MudBlazor mit.
+- **Kein Springen:** Die Schrift (Roboto Flex) wird vorgeladen; ein Browser-Test (`Pages_do_not_shift_while_loading`) hält den Layout-Sprung beim Laden unter 0,1. Neue Elemente, die erst nach dem Laden erscheinen, reservieren ihren Platz.
+- Keine Eingangsanimationen für Karten oder Listen: Die Anwendung soll sich wie ein Werkzeug anfühlen, nicht wie eine Präsentation.
+
 ## Schrift, Icons, Felder
 
 - **Schrift:** Roboto Flex (Variable Font, OFL), lokal in `wwwroot/fonts/` mit Lizenztext; kein CDN.
