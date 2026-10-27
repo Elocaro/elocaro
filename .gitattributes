@@ -1,0 +1,5 @@
+# Skripte und Container-Dateien müssen auch bei Checkout unter Windows LF behalten (sonst laufen sie unter Linux nicht)
+*.sh text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+*.yml text eol=lf
