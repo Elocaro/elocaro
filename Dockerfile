@@ -19,7 +19,10 @@ RUN case "$TARGETARCH" in arm64) echo linux-arm64 ;; *) echo linux-x64 ;; esac >
  && dotnet restore src/MietHahn.Web/MietHahn.Web.csproj -r "$(cat /tmp/rid)"
 
 COPY src/ src/
-RUN dotnet publish src/MietHahn.Web/MietHahn.Web.csproj -c Release -o /app --no-restore \
+# No --no-restore: the restore above ran before the .razor files were copied, so the Blazor scripts of the framework
+# (_framework/blazor.web.js, 404 without them: no interactive page works) are missing from the published assets.
+# The second restore is quick, the packages are already in the layer cache.
+RUN dotnet publish src/MietHahn.Web/MietHahn.Web.csproj -c Release -o /app \
       -r "$(cat /tmp/rid)" --self-contained false /p:UseAppHost=false /p:DebugType=none /p:Version="$VERSION" /p:InformationalVersion="$VERSION"
 
 # Prepare the data directory; the runtime image has no shell for mkdir/chown.

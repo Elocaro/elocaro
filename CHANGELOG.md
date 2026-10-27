@@ -6,6 +6,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ### Behoben
 - Bausteine in Vorlagen: Der Inhalt eines mit `{{ include 'Name' }}` eingefügten Bausteins wurde HTML-maskiert, im Brief erschienen die Tags (`<p>`, `<br>`) als Text. Der Baustein-Text gilt jetzt als Teil der Vorlage, Werte darin (`{{ tenant_name }}`) bleiben maskiert; Bausteine, die im Kreis aufeinander verweisen, melden einen Fehler statt zu hängen.
+- Docker-Image: Das Blazor-Skript des Frameworks (`/_framework/blazor.web.js`) fehlte im veröffentlichten Image (404), weil die Paketwiederherstellung vor dem Kopieren der Quelltexte lief; dadurch funktionierte keine interaktive Seite (z. B. der Einrichtungsassistent: Optionen und „Weiter“ blieben ohne Wirkung, der Browser meldete `ERR_HTTP_RESPONSE_CODE_FAILURE`).
 - Info-Dialoge: Links, die die ID der Seite brauchen (z. B. beim Objekt zur Abrechnung), zeigten auf `…/objekte/pageId/…` und liefen ins Leere; Links auf Seiten, die in dieser Installation ausgeschaltet sind (z. B. Verbraucherpreisindex ohne Indexmiete), erscheinen nicht mehr.
 - Nebenkosten-Vorschau: Die Kostenarten „heating-heat“ und „heating-hotwater“ stehen jetzt als „Heizkosten (Heizung)“ und „Warmwasserkosten (Warmwasser)“ im Anteil des Vermieters.
 - Fehlendes „Bearbeiten“ ergänzt: Eigentümer (Anteil, Zeitraum), Bankverbindungen einer Person, Sondertilgungen und Finanzierungskosten eines Kredits, nachträgliche Kosten und bewegliche Wirtschaftsgüter der Abschreibung sowie eigene CSV-Profile der Bank.
