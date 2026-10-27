@@ -11,6 +11,9 @@ public interface IPdfGenerator
     /// <summary>Renders the document and stores it immutably in the file store.</summary>
     Task<StoredFile> GenerateAndStoreAsync(PdfRequest job, string fileName, CancellationToken cancellationToken = default);
 
+    /// <summary>Renders the document as HTML exactly as it is sent to the PDF converter, without converting it (fast preview).</summary>
+    Task<string> RenderHtmlAsync(PdfRequest job, CancellationToken cancellationToken = default);
+
     /// <summary>Joins PDFs in the given order into one.</summary>
     Task<byte[]> MergeAsync(IReadOnlyList<byte[]> documents, CancellationToken cancellationToken = default);
 }

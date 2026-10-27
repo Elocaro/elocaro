@@ -113,6 +113,7 @@ internal sealed partial class DocumentTemplates(MietHahnDbContext db, IPdfGenera
         try
         {
             var title = Check(kind, subject, body, await TemplateSnippets.LoadAsync(db, cancellationToken));
+            title = string.IsNullOrWhiteSpace(title) ? "Vorschau" : title; // a new template has no subject yet
             var sample = new PostalAddress(["Erika Muster", "Lindenweg 3", "50667 Köln"]);
             var bytes = await pdf.GenerateAsync(new PdfRequest(null, title, TemplateCatalog.Sample(kind), kind == TemplateKind.Contract ? null : sample, body, new DateOnly(2026, 10, 20)), cancellationToken);
             return new TemplatePreview(bytes, []);
@@ -129,6 +130,27 @@ internal sealed partial class DocumentTemplates(MietHahnDbContext db, IPdfGenera
         catch (HttpRequestException)
         {
             return new TemplatePreview(null, ["Der PDF-Dienst ist nicht erreichbar. Die Vorschau steht erst wieder zur Verfügung, wenn er läuft."]);
+        }
+    }
+
+    public async Task<TemplateHtmlPreview> PreviewHtmlAsync(TemplateKind kind, string subject, string body, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var title = Check(kind, subject, body, await TemplateSnippets.LoadAsync(db, cancellationToken));
+            title = string.IsNullOrWhiteSpace(title) ? "Vorschau" : title; // a new template has no subject yet
+            var sample = new PostalAddress(["Erika Muster", "Lindenweg 3", "50667 Köln"]);
+            var html = await pdf.RenderHtmlAsync(new PdfRequest(null, title, TemplateCatalog.Sample(kind), kind == TemplateKind.Contract ? null : sample, body, new DateOnly(2026, 10, 20)), cancellationToken);
+            return new TemplateHtmlPreview(html, []);
+        }
+        catch (RuleViolationException ex)
+        {
+            return new TemplateHtmlPreview(null, [ex.Message]);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // e.g. no landlord profile yet
+            return new TemplateHtmlPreview(null, [ex.Message]);
         }
     }
 

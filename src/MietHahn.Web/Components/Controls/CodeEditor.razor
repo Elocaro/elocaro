@@ -1,0 +1,145 @@
+@using System.Linq.Expressions
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@* Editor for template text (HTML with {{ placeholders }}): syntax highlighting, toolbar and shortcuts (Ctrl+B/I/U, Ctrl+S). The text is a
+   plain textarea behind a highlighted layer (wwwroot/js/code-editor.js). Value flows back to the page shortly after typing stops and on blur.
+   No types of the component library in the interface. *@
+<div class="code-editor" @ref="root">
+    <div class="code-toolbar" role="toolbar" aria-label="Formatierung">
+        <span class="code-tools" role="group" aria-label="Schrift">
+            <button type="button" class="code-tool" data-cmd="bold" title="Fett (Strg+B)" aria-label="Fett"><strong>B</strong></button>
+            <button type="button" class="code-tool" data-cmd="italic" title="Kursiv (Strg+I)" aria-label="Kursiv"><em>I</em></button>
+            <button type="button" class="code-tool" data-cmd="underline" title="Unterstrichen (Strg+U)" aria-label="Unterstrichen"><u>U</u></button>
+        </span>
+        <span class="code-tools" role="group" aria-label="Absätze">
+            <button type="button" class="code-tool" data-cmd="paragraph" title="Absatz" aria-label="Absatz">¶</button>
+            <button type="button" class="code-tool" data-cmd="h2" title="Überschrift" aria-label="Überschrift">H2</button>
+            <button type="button" class="code-tool" data-cmd="h3" title="Zwischenüberschrift" aria-label="Zwischenüberschrift">H3</button>
+            <button type="button" class="code-tool" data-cmd="br" title="Zeilenumbruch" aria-label="Zeilenumbruch">↵</button>
+        </span>
+        <span class="code-tools" role="group" aria-label="Listen und Tabellen">
+            <button type="button" class="code-tool" data-cmd="ul" title="Aufzählung" aria-label="Aufzählung">• Liste</button>
+            <button type="button" class="code-tool" data-cmd="ol" title="Nummerierte Liste" aria-label="Nummerierte Liste">1. Liste</button>
+            <button type="button" class="code-tool" data-cmd="table" title="Tabelle" aria-label="Tabelle einfügen">Tabelle</button>
+            <button type="button" class="code-tool" data-cmd="hr" title="Trennlinie" aria-label="Trennlinie">―</button>
+            <button type="button" class="code-tool" data-cmd="pagebreak" title="Seitenumbruch" aria-label="Seitenumbruch">Umbruch</button>
+        </span>
+        <span class="code-tools" role="group" aria-label="Logik">
+            <button type="button" class="code-tool" data-cmd="if" title="Bedingung: Text nur anzeigen, wenn ..." aria-label="Bedingung">Wenn</button>
+            <button type="button" class="code-tool" data-cmd="ifelse" title="Bedingung mit Alternative" aria-label="Bedingung mit Alternative">Wenn/Sonst</button>
+            <button type="button" class="code-tool" data-cmd="for" title="Wiederholung für jeden Eintrag einer Liste" aria-label="Wiederholung">Je Eintrag</button>
+            @if (Snippets.Count > 0)
+            {
+                <select class="code-select" data-insert="snippet" aria-label="Baustein einfügen">
+                    <option value="">Baustein …</option>
+                    @foreach (var name in Snippets)
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            }
+        </span>
+        <span class="code-tools" role="group" aria-label="Bearbeiten">
+            <button type="button" class="code-tool" data-cmd="undo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig">↶</button>
+            <button type="button" class="code-tool" data-cmd="redo" title="Wiederholen (Strg+Y)" aria-label="Wiederholen">↷</button>
+        </span>
+    </div>
+    <div class="code-surface">
+        <pre class="code-highlight" aria-hidden="true"><code></code></pre>
+        <textarea class="code-input" aria-label="@Label" spellcheck="false" autocomplete="off" rows="@Rows" required="@Required" wrap="soft">@initial</textarea>
+    </div>
+    @if (Hint is not null)
+    {
+        <p class="field-hint">@Hint</p>
+    }
+</div>
+
+@code {
+    private ElementReference root;
+    private IJSObjectReference? module;
+    private IJSObjectReference? editor;
+    private DotNetObjectReference<CodeEditor>? self;
+    private string? initial;
+    private string? lastKnown;
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public int Rows { get; set; } = 20;
+
+    /// <summary>Names of snippets that can be inserted with {{ include '…' }}.</summary>
+    [Parameter]
+    public IReadOnlyList<string> Snippets { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        initial = Value;
+        lastKnown = Value;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // The page changed the text itself (e.g. an older version was loaded): hand it to the editor.
+        if (editor is not null && Value != lastKnown)
+        {
+            lastKnown = Value;
+            await editor.InvokeVoidAsync("setValue", Value ?? "");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            self = DotNetObjectReference.Create(this);
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/code-editor.js");
+            editor = await module.InvokeAsync<IJSObjectReference>("init", root, self, Value ?? "");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnText(string text)
+    {
+        lastKnown = text;
+        Value = text;
+        await ValueChanged.InvokeAsync(text);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        self?.Dispose();
+        try
+        {
+            if (editor is not null)
+            {
+                await editor.InvokeVoidAsync("dispose");
+                await editor.DisposeAsync();
+            }
+
+            if (module is not null)
+            {
+                await module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone; nothing to release in the browser.
+        }
+    }
+}

@@ -1165,3 +1165,44 @@ fieldset { min-width: 0; }
 /* Note that applies to a whole group (e.g. the same hint on every deadline) */
 .group-note { margin: 0; padding: 0.6rem 1rem; border-bottom: 1px solid var(--md-outline-variant); }
 .group.is-alert > summary { color: var(--md-error); }
+
+/* Code editor (templates): highlighted layer behind a transparent textarea, toolbar above */
+.code-editor { --tok-tag: light-dark(#8a2c0d, #ffb59c); --tok-attr: light-dark(#6b4f00, #e0c36a); --tok-attrval: light-dark(#1e6b3a, #8fd19e); --tok-scriban: light-dark(#7a1f8f, #e3a8f0); --tok-keyword: light-dark(#a1176b, #ff9bd2); --tok-string: light-dark(#1e6b3a, #8fd19e); --tok-number: light-dark(#0b5cad, #8ab8ff); --tok-comment: light-dark(#6c6360, #a69b97); --tok-entity: light-dark(#0b5cad, #8ab8ff); margin-bottom: 1rem; }
+.code-toolbar { display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; padding: 0.4rem 0.5rem; background: var(--md-surface-container); border: 1px solid var(--md-outline-variant); border-bottom: 0; border-radius: var(--shape-sm) var(--shape-sm) 0 0; }
+.code-tools { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; padding-right: 0.75rem; border-right: 1px solid var(--md-outline-variant); }
+.code-tools:last-child { border-right: 0; padding-right: 0; }
+.code-tool, .code-select { min-height: 2rem; min-width: 2rem; padding: 0 0.5rem; border: 0; border-radius: var(--shape-sm); background: transparent; color: var(--md-on-surface); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.code-tool:hover, .code-select:hover { background: color-mix(in srgb, var(--md-on-surface) 10%, transparent); }
+.code-select { border: 1px solid var(--md-outline-variant); background: var(--md-surface); }
+.code-surface { position: relative; border: 1px solid var(--md-outline); border-radius: 0 0 var(--shape-xs) var(--shape-xs); background: var(--md-surface-container-lowest); }
+.code-surface:focus-within { border-color: var(--md-primary); box-shadow: 0 0 0 1px var(--md-primary); }
+.code-highlight, .code-input { margin: 0; padding: 0.75rem; border: 0; font: 0.85rem/1.55 var(--font-mono); tab-size: 2; white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; letter-spacing: 0; scrollbar-gutter: stable; }
+.code-highlight { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: var(--md-on-surface); }
+.code-highlight code { font: inherit; }
+.code-input { position: relative; display: block; width: 100%; min-height: 24rem; max-height: 70dvh; resize: vertical; overflow: auto; background: transparent; color: transparent; caret-color: var(--md-on-surface); outline: none; }
+.code-input::selection { background: color-mix(in srgb, var(--md-primary) 30%, transparent); color: transparent; }
+.tok-tag { color: var(--tok-tag); }
+.tok-attr { color: var(--tok-attr); }
+.tok-attrval, .tok-string { color: var(--tok-string); }
+.tok-delim { color: var(--tok-scriban); font-weight: 700; }
+.tok-keyword { color: var(--tok-keyword); font-weight: 700; }
+.tok-name { color: var(--tok-scriban); }
+.tok-number { color: var(--tok-number); }
+.tok-comment { color: var(--tok-comment); font-style: italic; }
+.tok-entity { color: var(--tok-entity); }
+@media (max-width: 899.98px) { .code-tool, .code-select { min-height: 44px; min-width: 44px; } }
+
+/* Live preview of a template */
+.template-preview { display: block; width: 100%; height: calc(100dvh - 17rem); min-height: 28rem; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-sm); background: #dcd6d2; }
+
+/* Template editor: toolbar stays compact, wider text column, preview bar */
+.code-toolbar { gap: 0.15rem 0.5rem; padding: 0.3rem 0.4rem; }
+.code-tools { gap: 0; padding-right: 0.5rem; }
+.code-tool { padding: 0 0.4rem; min-width: 1.8rem; white-space: nowrap; }
+.code-select { max-width: 9rem; min-height: 2rem; width: auto; }
+@media (max-width: 899.98px) { .code-toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; } .code-tools { flex: none; } .code-tool, .code-select { min-height: 44px; min-width: 44px; } }
+@media (min-width: 62rem) { .split.split-editor { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); } }
+.preview-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 0.75rem; margin-bottom: 0.5rem; }
+.preview-bar .small { margin: 0; flex: 1 1 14rem; }
+.preview-zoom { display: inline-flex; gap: 0.15rem; }
+.template-preview { height: calc(100dvh - 15rem); }

@@ -21,6 +21,26 @@ public class ScribanRendererTests
     }
 
     [Fact]
+    public void Included_snippets_keep_their_markup_but_their_model_values_are_escaped()
+    {
+        var snippets = new Dictionary<string, string> { ["Gruss"] = "<p>Mit freundlichen Grüßen<br>{{ name }}</p>" };
+
+        var result = ScribanRenderer.RenderText("<div>{{ include 'Gruss' }}</div>", new { Name = "<b>Hahn</b>" }, snippets: snippets);
+
+        Assert.Equal("<div><p>Mit freundlichen Grüßen<br>&lt;b&gt;Hahn&lt;/b&gt;</p></div>", result.Html);
+    }
+
+    [Fact]
+    public void Snippets_that_include_each_other_in_a_circle_fail_with_a_message_instead_of_overflowing()
+    {
+        var snippets = new Dictionary<string, string> { ["A"] = "a{{ include 'B' }}", ["B"] = "b{{ include 'A' }}" };
+
+        var error = Assert.Throws<TemplateErrorException>(() => ScribanRenderer.RenderText("{{ include 'A' }}", null, snippets: snippets));
+
+        Assert.Contains("im Kreis", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RawHtml_is_not_escaped()
     {
         var result = ScribanRenderer.RenderText("<div>{{ content }}</div>", null, new Dictionary<string, object?> { ["content"] = new RawHtml("<b>fett</b>") });

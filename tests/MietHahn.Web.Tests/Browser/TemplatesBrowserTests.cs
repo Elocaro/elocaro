@@ -23,6 +23,7 @@ public class TemplatesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
             var body = page.Locator("#template-body textarea").First;
             await body.FillAsync("<p>Guten Tag,</p>");
             await body.PressAsync("Home");
+            await page.GetByRole(AriaRole.Tab, new() { Name = "Platzhalter" }).ClickAsync();
             await page.Locator("[data-insert='{{ salutation }}']").ClickAsync();
             await Assertions.Expect(body).ToHaveValueAsync(new System.Text.RegularExpressions.Regex(@"^\{\{ salutation \}\}<p>Guten Tag,</p>$"));
 
@@ -33,5 +34,48 @@ public class TemplatesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
         var saved = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IDocumentTemplates>().ListAsync(TestContext.Current.CancellationToken)).Single(t => t.Name == "Ankündigung"));
         var body = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IDocumentTemplates>().GetAsync(saved.Id, TestContext.Current.CancellationToken))!.Body);
         Assert.Contains("{{ salutation }}", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Editor_highlights_syntax_formats_with_the_toolbar_and_updates_the_live_preview()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await GotoInteractiveAsync(page, "/verwaltung/einstellungen/vorlagen/neu");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            var body = page.Locator("#template-body textarea").First;
+            await body.FillAsync("<p class=\"x\">Guten Tag, {{ if lease_end }}Ende{{ end }} &nbsp;</p>");
+
+            // Syntax highlighting: tag, Scriban delimiter, keyword and entity get their own tokens.
+            await Assertions.Expect(page.Locator(".code-highlight .tok-tag").First).ToHaveTextAsync("<p");
+            await Assertions.Expect(page.Locator(".code-highlight .tok-delim").Filter(new() { HasText = "{{" }).First).ToHaveTextAsync("{{");
+            await Assertions.Expect(page.Locator(".code-highlight .tok-keyword").First).ToHaveTextAsync("if");
+            await Assertions.Expect(page.Locator(".code-highlight .tok-entity").First).ToHaveTextAsync("&nbsp;");
+
+            // Toolbar: bold wraps the selection.
+            await body.FillAsync("Wichtig");
+            await body.SelectTextAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Fett" }).ClickAsync();
+            await Assertions.Expect(body).ToHaveValueAsync("<strong>Wichtig</strong>");
+
+            // Live preview: the text shows up in the sheet without saving and without the PDF service.
+            await body.FillAsync("<p>Vorschautext</p>");
+            await Assertions.Expect(page.FrameLocator("iframe.template-preview").Locator("p")).ToHaveTextAsync("Vorschautext", new() { Timeout = 10000 });
+        });
+    }
+
+    [Fact]
+    public async Task Preview_reports_template_errors_while_typing()
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await GotoInteractiveAsync(page, "/verwaltung/einstellungen/vorlagen/neu");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await page.GetByLabel("Betreff").FillAsync("Test");
+            await page.Locator("#template-body textarea").First.FillAsync("<p>{{ gibt_es_nicht }}</p>");
+            await Assertions.Expect(page.Locator(".message").Filter(new() { HasText = "gibt_es_nicht" }).First).ToBeVisibleAsync(new() { Timeout = 10000 });
+        });
     }
 }

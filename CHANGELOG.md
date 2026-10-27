@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Behoben
+- Bausteine in Vorlagen: Der Inhalt eines mit `{{ include 'Name' }}` eingefügten Bausteins wurde HTML-maskiert, im Brief erschienen die Tags (`<p>`, `<br>`) als Text. Der Baustein-Text gilt jetzt als Teil der Vorlage, Werte darin (`{{ tenant_name }}`) bleiben maskiert; Bausteine, die im Kreis aufeinander verweisen, melden einen Fehler statt zu hängen.
 - Info-Dialoge: Links, die die ID der Seite brauchen (z. B. beim Objekt zur Abrechnung), zeigten auf `…/objekte/pageId/…` und liefen ins Leere; Links auf Seiten, die in dieser Installation ausgeschaltet sind (z. B. Verbraucherpreisindex ohne Indexmiete), erscheinen nicht mehr.
 - Nebenkosten-Vorschau: Die Kostenarten „heating-heat“ und „heating-hotwater“ stehen jetzt als „Heizkosten (Heizung)“ und „Warmwasserkosten (Warmwasser)“ im Anteil des Vermieters.
 - Fehlendes „Bearbeiten“ ergänzt: Eigentümer (Anteil, Zeitraum), Bankverbindungen einer Person, Sondertilgungen und Finanzierungskosten eines Kredits, nachträgliche Kosten und bewegliche Wirtschaftsgüter der Abschreibung sowie eigene CSV-Profile der Bank.
@@ -26,6 +27,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Navigation gebündelt: sechs Bereiche statt vierzehn (Bestand, Kommunikation, Geld statt je einzelner Seiten), höchstens zwei Tab-Zeilen, neue untere Leiste auf dem Handy (Aufgaben, Bestand, Geld, Kommunikation, Menü). Die Seitenadressen bleiben gleich.
 
 ### Hinzugefügt
+- Vorlagen-Editor: Syntaxfarben für HTML und Platzhalter (`{{ … }}`, Schlüsselwörter, Kommentare), Werkzeugleiste (Fett, Kursiv, Unterstrichen, Absatz, Überschriften, Listen, Tabelle, Trennlinie, Seitenumbruch, Wenn/Wenn-Sonst/Je Eintrag, Baustein einfügen, Rückgängig/Wiederholen), Kürzel (Strg+B/I/U/S) und eine Live-Vorschau als Briefbogen mit Briefkopf, die sich beim Schreiben aktualisiert (ohne PDF-Dienst) und Fehler der Vorlage sofort zeigt; Größe der Vorschau einstellbar. Platzhalter und Hilfsfunktionen stehen in einem eigenen Tab.
 - Vermieter im Zeitverlauf: Je Objekt lässt sich eintragen, ab welchem Tag welches Vermieterprofil (Briefkopf, Bankverbindung, Absender) auf Dokumenten gilt, z. B. nach einem Eigentümerwechsel (Objekt → Eigentümer). Vorher gilt das am Objekt gewählte Profil.
 - Vorlage „Information Vermieterwechsel (§ 566 BGB)“ für den Eigentumsübergang: neuer Vermieter, neue Bankverbindung, übernommene Kaution (§ 566a BGB), mit Absender aus dem Vermieterprofil.
 - Versorgungsverträge: Die Vorschau stellt die berechneten Kosten den gezahlten Abschlägen gegenüber und nennt die voraussichtliche Nachzahlung oder das Guthaben beim Versorger (Refs #137; Staffelpreise und getrennte Steuersätze stehen noch aus).

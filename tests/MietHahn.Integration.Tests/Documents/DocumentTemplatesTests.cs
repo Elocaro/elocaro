@@ -87,6 +87,30 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Html_preview_renders_without_the_pdf_service_and_reports_errors()
+    {
+        var preview = await WithAsync(t => t.PreviewHtmlAsync(TemplateKind.Letter, "Betreff", "<p>{{ salutation }}</p>", Ct));
+        var broken = await WithAsync(t => t.PreviewHtmlAsync(TemplateKind.Letter, "Betreff", "<p>{{ unbekannt }}</p>", Ct));
+
+        Assert.Contains("<p>{{ salutation }}</p>", preview.Html, StringComparison.Ordinal);
+        Assert.Empty(preview.Errors);
+        Assert.Null(broken.Html);
+        Assert.Contains("unbekannt", broken.Errors.Single(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Previews_of_a_new_template_without_subject_use_a_placeholder_title()
+    {
+        var html = await WithAsync(t => t.PreviewHtmlAsync(TemplateKind.Letter, "", "<p>Text</p>", Ct));
+        var pdfPreview = await WithAsync(t => t.PreviewAsync(TemplateKind.Letter, "", "<p>Text</p>", Ct));
+
+        Assert.Empty(html.Errors);
+        Assert.NotNull(html.Html);
+        Assert.NotNull(pdfPreview.Pdf);
+        Assert.Equal("Vorschau", pdf.Last!.Title);
+    }
+
+    [Fact]
     public async Task Letters_can_include_snippets_but_unknown_snippets_are_rejected()
     {
         var unknown = Input("Mit Baustein");
@@ -192,6 +216,12 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
         {
             Last = job;
             return Task.FromResult<byte[]>([1, 2, 3]);
+        }
+
+        public Task<string> RenderHtmlAsync(PdfRequest job, CancellationToken cancellationToken = default)
+        {
+            Last = job;
+            return Task.FromResult("<html><body>" + job.TemplateText + "</body></html>");
         }
 
         public Task<StoredFile> GenerateAndStoreAsync(PdfRequest job, string fileName, CancellationToken cancellationToken = default) =>

@@ -11,6 +11,9 @@ internal sealed class FakePdfGenerator(IFileStore fileStore) : IPdfGenerator
 
     public Task<byte[]> GenerateAsync(PdfRequest job, CancellationToken cancellationToken = default) => Task.FromResult(Pdf);
 
+    public Task<string> RenderHtmlAsync(PdfRequest job, CancellationToken cancellationToken = default) =>
+        Task.FromResult("<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><h1>" + System.Net.WebUtility.HtmlEncode(job.Title) + "</h1>" + (job.TemplateText ?? "") + "</body></html>");
+
     public async Task<StoredFile> GenerateAndStoreAsync(PdfRequest job, string fileName, CancellationToken cancellationToken = default)
     {
         using var content = new MemoryStream(Pdf);

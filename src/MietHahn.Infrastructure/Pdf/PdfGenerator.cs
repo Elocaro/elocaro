@@ -23,6 +23,9 @@ internal sealed class PdfGenerator(
         return await gotenberg.HtmlToPdfAsync(html, footer, new PdfMetadata(job.Title, sender.Name), cancellationToken);
     }
 
+    public async Task<string> RenderHtmlAsync(PdfRequest job, CancellationToken cancellationToken = default) =>
+        (await GenerateHtmlAsync(job, cancellationToken)).Html;
+
     public async Task<StoredFile> GenerateAndStoreAsync(PdfRequest job, string fileName, CancellationToken cancellationToken = default)
     {
         var pdf = await GenerateAsync(job, cancellationToken);

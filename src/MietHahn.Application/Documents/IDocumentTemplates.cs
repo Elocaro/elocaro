@@ -23,6 +23,9 @@ public interface IDocumentTemplates
     /// <summary>Renders the (even unsaved) text with the sample data of the catalog as PDF; stores nothing.</summary>
     Task<TemplatePreview> PreviewAsync(TemplateKind kind, string subject, string body, CancellationToken cancellationToken = default);
 
+    /// <summary>Like <see cref="PreviewAsync"/>, but as HTML without PDF conversion: fast enough to run while typing.</summary>
+    Task<TemplateHtmlPreview> PreviewHtmlAsync(TemplateKind kind, string subject, string body, CancellationToken cancellationToken = default);
+
     /// <summary>Creates the bundled starting templates that do not exist yet (by name); existing ones stay untouched.</summary>
     Task<DefaultsInstalled> InstallDefaultsAsync(CancellationToken cancellationToken = default);
 
@@ -71,6 +74,8 @@ public sealed record TemplateRevisionText(Guid Id, Guid TemplateId, int Number, 
 
 /// <summary>Either the PDF or the errors (phrased for users, e.g. syntax error or unknown placeholder).</summary>
 public sealed record TemplatePreview(byte[]? Pdf, IReadOnlyList<string> Errors);
+
+public sealed record TemplateHtmlPreview(string? Html, IReadOnlyList<string> Errors);
 
 /// <summary>Placeholder of a template kind; <see cref="Example"/> is what the preview shows.</summary>
 public sealed record Placeholder(string Name, string Description, string Example);

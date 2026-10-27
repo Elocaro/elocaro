@@ -89,11 +89,41 @@ public sealed class ScribanRenderer
         }
     }
 
+    private const int MaxIncludeDepth = 10;
+
+    // Rendering is synchronous per thread; the counter stops snippets that include each other in a circle.
+    [ThreadStatic]
+    private static int includeDepth;
+
     private static void HelperFunctions(ScriptObject global)
     {
         global.Import("money", new Func<decimal?, string>(Formatting.Money));
         global.Import("date", new Func<object?, string>(Formatting.Date));
         global.Import("number", new Func<decimal?, int, string>((value, decimals) => value?.ToString("N" + decimals, German) ?? ""));
+        // The text of an included snippet is part of the template (its markup is intended); the values inside it are still escaped.
+        global.Import("include", new Func<TemplateContext, SourceSpan, string, object?>((context, span, name) =>
+        {
+            var snippet = Template.Parse(context.TemplateLoader!.Load(context, span, name) ?? throw new TemplateErrorException($"Der Baustein „{name}“ existiert nicht."), name);
+            if (snippet.HasErrors)
+            {
+                throw new TemplateErrorException($"Der Baustein „{name}“ enthält Fehler: {string.Join("; ", snippet.Messages)}");
+            }
+
+            if (++includeDepth > MaxIncludeDepth)
+            {
+                includeDepth = 0;
+                throw new TemplateErrorException($"Der Baustein „{name}“ verweist im Kreis auf sich selbst.");
+            }
+
+            try
+            {
+                return new RawHtml(snippet.Render(context));
+            }
+            finally
+            {
+                includeDepth = Math.Max(0, includeDepth - 1);
+            }
+        }));
         global.Import("text_to_html", new Func<string?, RawHtml>(text =>
             new RawHtml(Html.Escape(text ?? "").ReplaceLineEndings("<br>"))));
     }
