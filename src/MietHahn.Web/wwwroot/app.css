@@ -622,7 +622,7 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
     .page-header-title > .back { grid-column: 1; grid-row: 1; margin: 0 0.25rem 0 -0.5rem; padding: 0; width: 2.75rem; height: 2.75rem; justify-content: center; }
     .page-header-title > .back .back-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .page-header-title > .back .icon { width: 1.5rem; height: 1.5rem; }
-    .page-header-title > h1 { grid-column: 2; grid-row: 1; font-size: 1.3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .page-header-title > h1 { grid-column: 2; grid-row: 1; font-size: 1.3rem; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
     .page-header-title:not(:has(.back)) > h1 { grid-column: 1 / -1; }
     .page-header-title > .small { grid-column: 1 / -1; grid-row: 2; }
     .page-header-actions { flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 0.1rem; }
@@ -1001,3 +1001,6 @@ main p a, main .help a, main .small a, .message a { text-decoration: underline; 
 .context-bar .context-last span, .context-bar .context-last a { color: var(--md-on-surface); font-weight: 600; }
 @media print { .context-bar { display: none !important; } }
 @media (max-width: 599.98px) { .context-bar li:not(.context-last):not(:nth-last-child(2)) { display: none; } .context-bar li:nth-last-child(2)::before { content: none; } }
+
+/* Unit table: the unit cells repeat in every row (cards on smartphones); on wide screens only the first row shows them */
+@media (min-width: 700px) { .data-table td.repeat { visibility: hidden; } }

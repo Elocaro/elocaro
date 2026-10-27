@@ -273,6 +273,11 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
         Directory.CreateDirectory(directory);
         var page = await SignedInAsAdminAsync(mobile: false);
         await SeedAsync();
+        if (Environment.GetEnvironmentVariable("MIETHAHN_TOUR_DARK") is not null)
+        {
+            await page.EmulateMediaAsync(new() { ColorScheme = ColorScheme.Dark });
+        }
+
         var only = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_ONLY")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
         foreach (var mobile in new[] { false, true })
         {

@@ -101,18 +101,16 @@ else
                         {
                             var rentalUnit = unit.RentalUnits[i];
                             <tr>
-                                @if (i == 0)
-                                {
-                                    <td rowspan="@unit.RentalUnits.Count">
-                                        <a href="/verwaltung/einheiten/@unit.Id">@unit.Name</a>
-                                        @if (unit.IsSharedFlat)
-                                        {
-                                            <StatusChip>WG</StatusChip>
-                                        }
-                                    </td>
-                                    <td rowspan="@unit.RentalUnits.Count">@unit.Location</td>
-                                    <td rowspan="@unit.RentalUnits.Count" class="number">@Format.Area(unit.LivingArea)</td>
-                                }
+                                @* Repeated in every row (no merged cells) so the table can become cards on smartphones; the repeats are hidden on wide screens. *@
+                                <td class="@(i > 0 ? "repeat" : null)" aria-hidden="@(i > 0 ? "true" : null)">
+                                    <a href="/verwaltung/einheiten/@unit.Id" tabindex="@(i > 0 ? -1 : null)">@unit.Name</a>
+                                    @if (unit.IsSharedFlat)
+                                    {
+                                        <StatusChip>WG</StatusChip>
+                                    }
+                                </td>
+                                <td class="@(i > 0 ? "repeat" : null)" aria-hidden="@(i > 0 ? "true" : null)">@unit.Location</td>
+                                <td class="number@(i > 0 ? " repeat" : "")" aria-hidden="@(i > 0 ? "true" : null)">@Format.Area(unit.LivingArea)</td>
                                 <td>
                                     @if (rentalUnit.IsRoom)
                                     {
