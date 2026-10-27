@@ -1157,3 +1157,7 @@ fieldset { min-width: 0; }
     .inline-cards .mud-table-cell[data-label="Fassung"]::before { display: inline !important; content: "Fassung "; }
     .inline-cards .mud-table-cell:not(:first-child):not(:last-child)::after { content: " · "; }
 }
+
+/* Paragraphs and links directly in a panel (portal start page) share the padding of the panel header */
+.panel > p { margin: 0; padding: 0.25rem 1.25rem 1rem; }
+.panel > p > a:not(.button) { display: inline-block; padding-block: 0.6rem; }
