@@ -128,6 +128,25 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         await Assertions.Expect(page.Locator(".quick-search-results")).ToContainTextAsync("Musterfrau");
     }
 
+    [Fact]
+    public async Task Info_links_carry_the_id_of_the_page_and_skip_pages_that_are_switched_off()
+    {
+        var property = await App.WithScopeAsync(async sp =>
+            (await sp.GetRequiredService<MietHahn.Application.Properties.IPropertyService>().CreateAsync(
+                new MietHahn.Application.Properties.PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, TestContext.Current.CancellationToken)).Id!.Value);
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await GotoInteractiveAsync(page, $"/verwaltung/objekte/{property}/nebenkosten");
+
+        var hrefs = await page.Locator("dialog.info-dialog .info-links a").EvaluateAllAsync<string[]>("links => links.map(a => a.getAttribute('href'))");
+        Assert.NotEmpty(hrefs);
+        Assert.All(hrefs, href =>
+        {
+            Assert.DoesNotContain("{id}", href, StringComparison.Ordinal);
+            Assert.DoesNotContain("pageId", href, StringComparison.Ordinal);
+        });
+        Assert.Contains(hrefs, href => href.Contains(property.ToString(), StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("/verwaltung", "Was ist zu tun?")]
     [InlineData("/verwaltung/personen", "Personen")]

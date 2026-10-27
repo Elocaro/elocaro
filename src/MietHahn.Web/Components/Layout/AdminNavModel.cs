@@ -116,7 +116,8 @@ public static class AdminNavModel
             .Select(tab => tab.IsGroup ? tab with { Href = tab.Children![0].Href } : tab)
             .ToArray();
 
-    private static bool IsOn(string href, IModuleState modules) =>
+    /// <summary>Whether the page at <paramref name="href"/> exists in this installation (its module and option are switched on).</summary>
+    public static bool IsOn(string href, IModuleState modules) =>
         (ModuleCatalog.OwnerOf(href) is not { } owner || modules.IsEnabled(owner.Module))
         && (ModuleCatalog.OptionOf(href) is not { } option || modules.IsVisible(option.Option));
 

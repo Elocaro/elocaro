@@ -118,39 +118,31 @@ else if (meter.Meter.RemovedOn is null)
 {
 <section>
     <h2>Stände</h2>
+        @{
+            const int recent = 12;
+        }
         <div class="table-wrapper">
-            <table class="data-table">
+            <table class="data-table grid-cards">
                 <thead><tr><th>Datum</th><th class="number">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
                 <tbody>
-                    @foreach (var entry in meter.Readings)
-                    {
-                        <tr>
-                            <td>@Format.Date(entry.Date)</td>
-                            <td class="number">@Format.Quantity(entry.Value)</td>
-                            <td>
-                                @Labels.From(entry.Kind)
-                                @if (entry.PhotoFileId is { } photo)
-                                {
-                                    <a href="/dateien/@photo" target="_blank" rel="noopener">Foto</a>
-                                }
-                                @if (entry.Note is not null)
-                                {
-                                    <span class="small">@entry.Note</span>
-                                }
-                            </td>
-                            <td class="small">@entry.ReadBy</td>
-                            <td>
-                                <MudButton Variant="Variant.Text" OnClick="() => EditReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} bearbeiten")">Bearbeiten</MudButton>
-                                @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
-                                {
-                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} entfernen")">Entfernen</MudButton>
-                                }
-                            </td>
-                        </tr>
-                    }
+                    @ReadingRows(meter.Readings.Take(recent))
                 </tbody>
             </table>
         </div>
+        @if (meter.Readings.Count > recent)
+        {
+            <details class="disclosure">
+                <summary>Ältere Stände anzeigen (@(meter.Readings.Count - recent))</summary>
+                <div class="table-wrapper">
+                    <table class="data-table grid-cards">
+                        <thead><tr><th>Datum</th><th class="number">Stand</th><th>Art</th><th>Erfasst von</th><th></th></tr></thead>
+                        <tbody>
+                            @ReadingRows(meter.Readings.Skip(recent))
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        }
 </section>
 }
 
@@ -241,6 +233,38 @@ else if (meter.Meter.RemovedOn is null)
 </InteractiveShell>
 
 @code {
+    private RenderFragment ReadingRows(IEnumerable<ReadingView> entries) => __builder =>
+    {
+        <text>
+                    @foreach (var entry in entries)
+        {
+            <tr>
+                <td>@Format.Date(entry.Date)</td>
+                <td class="number">@Format.Quantity(entry.Value)</td>
+                <td>
+                    @Labels.From(entry.Kind)
+                    @if (entry.PhotoFileId is { } photo)
+                    {
+                        <a href="/dateien/@photo" target="_blank" rel="noopener">Foto</a>
+                    }
+                    @if (entry.Note is not null)
+                    {
+                        <span class="small">@entry.Note</span>
+                    }
+                </td>
+                <td class="small">@entry.ReadBy</td>
+                <td>
+                    <MudButton Variant="Variant.Text" OnClick="() => EditReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} bearbeiten")">Bearbeiten</MudButton>
+                    @if (entry.Kind is not (ReadingType.Installation or ReadingType.Removal))
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveReadingAsync(entry)" aria-label="@($"Stand vom {Format.Date(entry.Date)} entfernen")">Entfernen</MudButton>
+                    }
+                </td>
+            </tr>
+        }
+        </text>
+    };
+
     private static readonly ReadingType[] kinds = [ReadingType.Reading, ReadingType.InterimReading, ReadingType.Estimate];
 
     private MeterDetails? meter;

@@ -1,3 +1,5 @@
+@using MietHahn.Application.Admin
+@inject IModuleState Modules
 @* Info button with a dialog (native <dialog>, opened by shell.js): works on static and interactive pages alike. *@
 <button type="button" class="info-button" data-info-dialog="@DialogId" aria-haspopup="dialog" aria-label="@($"Info zu dieser Seite: {Info.Title}")">
     <Icon Path="@AppIcons.Info" />
@@ -22,11 +24,11 @@
                 </ul>
             </section>
         }
-        @if (Info.Links is { Length: > 0 })
+        @if (Info.Links?.Where(l => Available(Resolve(l.Href))).ToList() is { Count: > 0 } links)
         {
             <p class="info-links">
                 <strong>Siehe auch:</strong>
-                @foreach (var link in Info.Links)
+                @foreach (var link in links)
                 {
                     <a href="@Resolve(link.Href)">@link.Text</a>
                 }
@@ -43,6 +45,9 @@
     /// <summary>The id of the page (first id in its path); replaces <c>{id}</c> in the links of the info.</summary>
     [Parameter]
     public string? PageId { get; set; }
+
+    /// <summary>No link to a page that needs an id this page does not have, or that is switched off in this installation.</summary>
+    private bool Available(string href) => !href.Contains("{id}", StringComparison.Ordinal) && AdminNavModel.IsOn(href, Modules);
 
     private string Resolve(string href) => PageId is null ? href : href.Replace("{id}", PageId, StringComparison.Ordinal);
 

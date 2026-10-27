@@ -52,21 +52,37 @@ var result = preview.Result;
         {
             <Notice Level="NoticeLevel.Error">Es fehlen Angaben. Das Ergebnis ist <strong>nicht belastbar</strong>, bis sie ergänzt sind.</Notice>
         }
-        <ul>
-            @foreach (var problem in result.Problems.OrderByDescending(p => p.Severity))
-            {
-                <li class="@(problem.Severity == ProblemSeverity.Error ? "problem-error" : "problem-warning")">
-                    <strong>@(problem.Severity == ProblemSeverity.Error ? "Fehlt:" : "Hinweis:")</strong> @problem.Text
-                </li>
-            }
-            @foreach (var hint in preview.Hints)
-            {
-                <li><strong>Hinweis:</strong> @hint</li>
-            }
-        </ul>
+        @{
+            var problems = result.Problems.OrderByDescending(p => p.Severity).ToList();
+            var errorsOnly = problems.Where(p => p.Severity == ProblemSeverity.Error).ToList();
+            var others = problems.Where(p => p.Severity != ProblemSeverity.Error).Select(p => p.Text).Concat(preview.Hints).ToList();
+        }
+        @if (errorsOnly.Count > 0)
+        {
+            <ul>
+                @foreach (var problem in errorsOnly)
+                {
+                    <li class="problem-error"><strong>Fehlt:</strong> @problem.Text</li>
+                }
+            </ul>
+        }
+        @if (others.Count > 0)
+        {
+            <details class="explain" open="@(others.Count <= 3)">
+                <summary>@others.Count @(others.Count == 1 ? "Hinweis" : "Hinweise")</summary>
+                <ul>
+                    @foreach (var text in others)
+                    {
+                        <li><strong>Hinweis:</strong> @text</li>
+                    }
+                </ul>
+            </details>
+        }
     </section>
 }
 
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+<MudTabPanel Text="Kosten">
 <section id="cost-types">
     <h2>Kosten @Format.Period(result.BillingPeriod)</h2>
     @if (result.CostTypes.Count == 0)
@@ -114,59 +130,14 @@ var result = preview.Result;
     }
 </section>
 
-@if (preview.MeterChecks is { Count: > 0 } checks)
-{
-    <section id="meter-checks">
-        <h2>Zähler und Verbrauch</h2>
-        @foreach (var check in checks)
-        {
-            <h3>@check.Contract</h3>
-            @if (check.DifferencePercent is { } difference)
-            {
-                <p>
-                    <StatusChip Level="@(check.Level switch { CheckLevel.Ok => StatusLevel.Success, CheckLevel.Warning => StatusLevel.Warning, _ => StatusLevel.Error })">@(check.Level switch { CheckLevel.Ok => "Passt", CheckLevel.Warning => "Auffällig", _ => "Prüfen" })</StatusChip>
-                    Hauptzähler @check.Main?.ToString("N2") · Zähler der Einheiten zusammen @check.UnitsTotal?.ToString("N2") · Differenz @difference.ToString("0.#") %
-                </p>
-            }
-            @if (check.Consumption.Count > 0)
-            {
-                var max = check.Consumption.Max(c => c.Quantity);
-                <figure class="cost-chart" aria-label="@($"Verbrauch je Einheit: {check.Contract}")">
-                    @foreach (var row in check.Consumption)
-                    {
-                        <div class="cost-chart-row">
-                            <span class="cost-chart-label">@row.Unit</span>
-                            <span class="cost-chart-track"><span class="cost-chart-bar tenant" style="width:@((row.Quantity / max * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
-                            <span class="cost-chart-value">@row.Quantity.ToString("N2")</span>
-                        </div>
-                    }
-                </figure>
-            }
-        }
-    </section>
-}
-
-@foreach (var block in result.Sections)
-{
-    <section id="@($"section-{block.Id}")">
-        <h2>@block.Title</h2>
-        @if (block.Notice is not null)
-        {
-            <Notice Level="NoticeLevel.Info"><strong>Stand/prüfen:</strong> @block.Notice</Notice>
-        }
-        <ol>
-            @foreach (var entry in block.Entries)
-            {
-                <li>@Entry(entry)</li>
-            }
-        </ol>
-    </section>
-}
-
 @if (result.Landlord.Count > 0)
 {
-    <section id="landlord">
-        <h2>Anteil des Vermieters</h2>
+    <details class="group" id="landlord" open="@(result.Landlord.Count <= 8)">
+        <summary>
+            <span>Anteil des Vermieters</span>
+            <span class="small">@result.Landlord.Count Positionen</span>
+            <span class="group-sum">@Format.Money(result.Landlord.Sum(p => p.Amount))</span>
+        </summary>
         <div class="table-wrapper">
             <table class="data-table">
                 <thead><tr><th>Grund</th><th>Bezeichnung</th><th>Kostenart</th><th class="number">Betrag</th></tr></thead>
@@ -183,9 +154,11 @@ var result = preview.Result;
                 </tbody>
             </table>
         </div>
-    </section>
+    </details>
 }
 
+</MudTabPanel>
+<MudTabPanel Text="@($"Mieter ({result.Tenants.Count})")" Visible="@(result.Tenants.Count > 0 || result.FlatRates.Count > 0)">
 @foreach (var tenant in result.Tenants.OrderBy(t => t.Rental, StringComparer.CurrentCulture).ThenBy(t => t.Term.From))
 {
     var balance = tenant.Groups.Where(g => g.Group == CostGroup.Operating || g.Calculated).Sum(g => g.Balance);
@@ -305,6 +278,59 @@ var result = preview.Result;
         </div>
     </section>
 }
+</MudTabPanel>
+<MudTabPanel Text="Verbrauch und Heizung" Visible="@(preview.MeterChecks is { Count: > 0 } || result.Sections.Count > 0)">
+@if (preview.MeterChecks is { Count: > 0 } checks)
+{
+    <section id="meter-checks">
+        <h2>Zähler und Verbrauch</h2>
+        @foreach (var check in checks)
+        {
+            <h3>@check.Contract</h3>
+            @if (check.DifferencePercent is { } difference)
+            {
+                <p>
+                    <StatusChip Level="@(check.Level switch { CheckLevel.Ok => StatusLevel.Success, CheckLevel.Warning => StatusLevel.Warning, _ => StatusLevel.Error })">@(check.Level switch { CheckLevel.Ok => "Passt", CheckLevel.Warning => "Auffällig", _ => "Prüfen" })</StatusChip>
+                    Hauptzähler @check.Main?.ToString("N2") · Zähler der Einheiten zusammen @check.UnitsTotal?.ToString("N2") · Differenz @difference.ToString("0.#") %
+                </p>
+            }
+            @if (check.Consumption.Count > 0)
+            {
+                var max = check.Consumption.Max(c => c.Quantity);
+                <figure class="cost-chart" aria-label="@($"Verbrauch je Einheit: {check.Contract}")">
+                    @foreach (var row in check.Consumption)
+                    {
+                        <div class="cost-chart-row">
+                            <span class="cost-chart-label">@row.Unit</span>
+                            <span class="cost-chart-track"><span class="cost-chart-bar tenant" style="width:@((row.Quantity / max * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
+                            <span class="cost-chart-value">@row.Quantity.ToString("N2")</span>
+                        </div>
+                    }
+                </figure>
+            }
+        }
+    </section>
+}
+
+@foreach (var block in result.Sections)
+{
+    <section id="@($"section-{block.Id}")">
+        <h2>@block.Title</h2>
+        @if (block.Notice is not null)
+        {
+            <Notice Level="NoticeLevel.Info"><strong>Stand/prüfen:</strong> @block.Notice</Notice>
+        }
+        <ol>
+            @foreach (var entry in block.Entries)
+            {
+                <li>@Entry(entry)</li>
+            }
+        </ol>
+    </section>
+}
+
+</MudTabPanel>
+</MudTabs>
 }
 </InteractiveShell>
 
@@ -350,7 +376,12 @@ var result = preview.Result;
         previousTotals = before is { Result.CostTypes.Count: > 0 } ? before.Result.CostTypes.ToDictionary(t => t.CostType, t => t.Total) : null;
     }
 
-    private static string TypeName(string key) => Domain.Receipts.CostTypes.Find(key)?.Name ?? key;
+    private static string TypeName(string key) => Domain.Receipts.CostTypes.Find(key)?.Name ?? key switch
+    {
+        "heating-heat" => "Heizkosten (Heizung)",
+        "heating-hotwater" => "Warmwasserkosten (Warmwasser)",
+        _ => key,
+    };
 
     private static RenderFragment Entry(ProtocolEntry entry) => builder =>
     {
