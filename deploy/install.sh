@@ -134,7 +134,7 @@ say ""
 say "deploy/.env geschrieben."
 say "Wichtig: Das Sicherungspasswort (RESTIC_PASSWORD) steht in deploy/.env. Bewahren Sie es zusätzlich im Passwortmanager auf."
 if [ "$LOCAL" = 0 ]; then
-  say "Die Sicherung liegt vorerst auf diesem Server (./deploy/backup-repo). Richten Sie ein externes Ziel ein: docs/betrieb.md, Abschnitt Backup."
+  say "Die Sicherung liegt vorerst auf diesem Server (./deploy/backup-repo). Richten Sie ein externes Ziel ein (S3, SFTP, Azure Blob): docs/betrieb.md, Abschnitt Backup."
 fi
 
 if [ "$ENV_ONLY" = 1 ]; then

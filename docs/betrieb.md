@@ -269,6 +269,7 @@ Beispiele für `RESTIC_REPOSITORY` (alle von restic unterstützten Ziele funktio
 s3:https://s3.eu-central-1.amazonaws.com/mein-bucket/miethahn     # AWS, Hetzner Object Storage, Wasabi, MinIO …
 sftp:backup@nas.example.de:/volume1/miethahn                      # SFTP: Schlüssel nach deploy/backup-ssh/ (id_ed25519 + known_hosts)
 rest:https://benutzer:passwort@backup.example.de/miethahn          # restic REST-Server
+azure:miethahn-backup:/                                           # Azure Blob: Container miethahn-backup, dazu AZURE_ACCOUNT_NAME und AZURE_ACCOUNT_KEY (oder AZURE_ACCOUNT_SAS) in deploy/.env
 ```
 
 Das Repository wird beim ersten Lauf angelegt. Danach einmal von Hand sichern und prüfen:
@@ -329,6 +330,20 @@ Unabhängig vom Backup lässt sich unter *Einstellungen → Datensicherung* (Rec
 - `manifest.json` (Tabellen, Spalten, Datentypen, Zeilenzahlen) und `LIESMICH.txt` (Formatbeschreibung).
 
 Nicht enthalten sind Passwort-Hashes, Tokens, Anmeldelinks und Cookie-Schlüssel. Jeder Export wird im Audit-Log vermerkt. Zum Wiederherstellen von MietHahn dient das Backup, nicht der Export.
+
+## Hosting in Azure
+
+Eine Anleitung für den Betrieb auf einer Azure-VM (Ressourcen, Firewall, Blob-Backup, Budget) steht in [azure.md](azure.md).
+
+## Traefik statt Caddy
+
+Läuft auf dem Server schon Traefik, übernimmt es TLS und Weiterleitung; Caddy wird dann nicht gestartet. Dazu die Override-Datei dazunehmen:
+
+```bash
+docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.traefik.yml --env-file deploy/.env up -d
+```
+
+Sie hängt die App an das externe Traefik-Netz und setzt Router, Zertifikats-Resolver sowie dieselben Regeln wie das Caddyfile (HSTS, Uploads bis 30 MB, Kompression, Gesundheitsprüfung auf `/health/live`). Namen aus `deploy/.env` (Vorgaben in Klammern): `TRAEFIK_NETWORK` (`traefik`), `TRAEFIK_ENTRYPOINT` (`websecure`), `TRAEFIK_CERTRESOLVER` (`letsencrypt`). Die Umleitung von HTTP auf HTTPS gehört in die Traefik-Konfiguration. Die App übernimmt `X-Forwarded-*` nur von Absendern aus privaten Netzen; Traefik im Docker-Netz erfüllt das.
 
 ## Lokal ausprobieren
 
