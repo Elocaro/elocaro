@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <None Include="..\MietHahn.Integration.Tests\Bank\TestFiles\**" Link="Bank\TestFiles\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

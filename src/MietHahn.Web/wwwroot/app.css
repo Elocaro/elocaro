@@ -1026,3 +1026,6 @@ dl.summary { display: grid; grid-template-columns: max-content minmax(0, 1fr); g
 dl.summary dt { color: var(--md-on-surface-variant); font-size: 0.9rem; }
 dl.summary dd { margin: 0; overflow-wrap: anywhere; }
 @media (max-width: 599.98px) { dl.summary { grid-template-columns: minmax(0, 1fr); gap: 0; } dl.summary dt { margin-top: 0.5rem; } }
+
+/* Running text (help): comfortable line length instead of the full content width */
+.prose { max-width: 75ch; }
