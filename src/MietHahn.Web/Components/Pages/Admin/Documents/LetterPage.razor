@@ -37,7 +37,16 @@
                        Text="@(id => properties.FirstOrDefault(o => o.Id == id)?.Name ?? "")" EmptyText="Objekt wählen" />
         </div>
 
-        @if (propertyId != Guid.Empty)
+        @if (templates.FirstOrDefault(t => t.Id == templateId)?.Description is { Length: > 0 } description)
+        {
+            <p class="help">@description</p>
+        }
+
+        @if (propertyId == Guid.Empty)
+        {
+            <EmptyState Compact="true" Text="Wählen Sie ein Objekt, dann erscheinen die Mieter dieses Objekts als Empfänger." />
+        }
+        else
         {
             @if (recipients.Count == 0)
             {
@@ -144,6 +153,12 @@
         if (templates.Count > 0)
         {
             templateId = templates[0].Id;
+        }
+
+        // A landlord with one property does not need to choose it.
+        if (properties.Count == 1 && propertyId == Guid.Empty)
+        {
+            await OnPropertyChangedAsync(properties[0].Id);
         }
 
         loaded = true;

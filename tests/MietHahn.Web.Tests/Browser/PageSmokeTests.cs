@@ -61,6 +61,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             await sp.GetRequiredService<IFinanceSettings>().SaveAsync(new FinanceSettingsInput { AccountingStart = start }, Ct);
             await sp.GetRequiredService<ITenantAccounts>().GenerateChargesAsync(null, Ct);
 
+            await sp.GetRequiredService<IDocumentTemplates>().InstallDefaultsAsync(Ct);
             var meters = sp.GetRequiredService<IMeterService>();
             var meter = (await meters.CreateAsync(property,
                 new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser", Number = "KW-1", AssignmentId = unit }, InstalledOn = start, InitialReading = 0m }, Ct)).Id!.Value;

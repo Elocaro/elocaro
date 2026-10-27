@@ -1101,3 +1101,24 @@ details[open] > :not(summary) { animation: reveal var(--motion-duration) var(--m
 }
 table.card-rows tfoot [data-label]::before { content: attr(data-label) " "; color: var(--md-on-surface-variant); font-size: 0.75rem; font-weight: 400; }
 @media (min-width: 700px) { table.card-rows [data-label]::before { content: none; } }
+
+/* Action inside a notice (e.g. readiness): own line on smartphones, next to the text on wide screens */
+.notice-action { display: block; margin-top: 0.5rem; }
+@media (min-width: 700px) { .notice-action { display: inline-block; margin: 0 0 0 0.75rem; } }
+
+/* Template editor: placeholders as insertable chips next to the text field */
+.split-main { min-width: 0; }
+.placeholder-panel h2 { margin-top: 0; }
+.insert-list { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.5rem; }
+.insert-list li { display: block; }
+.insert-list li > .small { display: block; margin-top: 0.2rem; }
+.insert-chip { min-height: 2rem; padding: 0 0.7rem; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-sm); background: var(--md-surface-container-low); color: var(--md-primary); font: var(--font-mono); font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer; }
+.insert-chip:hover { background: color-mix(in srgb, var(--md-primary) 10%, var(--md-surface-container-low)); }
+.insert-example { color: var(--md-on-surface-variant); }
+@media (max-width: 899.98px) { .insert-chip { min-height: 44px; } }
+
+/* Secondary line in a table cell (e.g. description under a name) */
+.row-detail { display: block; margin-top: 0.1rem; }
+
+/* A fieldset must not be wider than its container (default: min-content), otherwise form fields overflow on smartphones */
+fieldset { min-width: 0; }

@@ -24,6 +24,9 @@ else
 
     <ErrorList Errors="errors" />
 
+<div class="split">
+<div class="split-main">
+
     <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
@@ -39,7 +42,7 @@ else
                 <AppTextField @bind-Value="data.Subject" Label="Betreff" Required="true" Hint="Titel des Dokuments; darf Platzhalter enthalten" />
             }
         </div>
-        <AppTextField @bind-Value="data.Body" Label="Text" Required="true" Lines="18" Hint="HTML mit Platzhaltern, z. B. <p>{{ salutation }}</p>. Absätze mit <p>, Zeilenumbruch mit <br>." />
+        <div id="template-body"><AppTextField @bind-Value="data.Body" Label="Text" Required="true" Lines="18" Hint="HTML mit Platzhaltern, z. B. <p>{{ salutation }}</p>. Absätze mit <p>, Zeilenumbruch mit <br>." /></div>
         <div class="form-row">
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
             <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">Vorschau</MudButton>
@@ -57,40 +60,6 @@ else
             <iframe class="document-preview" src="/verwaltung/einstellungen/vorlagen/vorschau/@(previewId).pdf" title="Vorschau der Vorlage"></iframe>
         </section>
     }
-
-    <section>
-        <h2>Platzhalter</h2>
-        <p class="small">Fehlende oder falsch geschriebene Platzhalter werden beim Speichern gemeldet.</p>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Platzhalter</th><th>Bedeutung</th><th>Beispiel</th></tr></thead>
-                <tbody>
-                    @foreach (var placeholder in TemplateCatalog.Placeholders(data.Kind))
-                    {
-                        <tr><td><code>@("{{ " + placeholder.Name + " }}")</code></td><td>@placeholder.Description</td><td>@placeholder.Example</td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        <h3>Hilfsfunktionen</h3>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead><tr><th>Aufruf</th><th>Bedeutung</th><th>Beispiel</th></tr></thead>
-                <tbody>
-                    @foreach (var function in TemplateCatalog.Functions)
-                    {
-                        <tr><td><code>@("{{ " + function.Name + " }}")</code></td><td>@function.Description</td><td><code>@function.Example</code></td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        <p class="small">Bedingungen und Schleifen: <code>@("{{ if lease_end }} … {{ end }}")</code>.</p>
-        @if (snippetNames.Count > 0)
-        {
-            <h3>Vorhandene Bausteine</h3>
-            <p class="small">@foreach (var name in snippetNames) {<code>@("{{ include '" + name + "' }}")</code><text> </text>}</p>
-        }
-    </section>
 
     @if (Id is not null)
     {
@@ -119,6 +88,43 @@ else
             <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Vorlage löschen</MudButton>
         </section>
     }
+</div>
+
+<aside class="split-side placeholder-panel" aria-label="Platzhalter und Hilfsfunktionen">
+    <h2>Platzhalter</h2>
+    <p class="small">Ein Klick fügt den Platzhalter im Text an der Cursorposition ein. Fehlende oder falsch geschriebene Platzhalter werden beim Speichern gemeldet.</p>
+    <ul class="insert-list">
+        @foreach (var placeholder in TemplateCatalog.Placeholders(data.Kind))
+        {
+            <li>
+                <button type="button" class="insert-chip" data-insert="@("{{ " + placeholder.Name + " }}")" data-insert-target="#template-body textarea">@placeholder.Name</button>
+                <span class="small">@placeholder.Description<span class="insert-example"> · z. B. @placeholder.Example</span></span>
+            </li>
+        }
+    </ul>
+    <h3>Hilfsfunktionen</h3>
+    <ul class="insert-list">
+        @foreach (var function in TemplateCatalog.Functions)
+        {
+            <li>
+                <button type="button" class="insert-chip" data-insert="@("{{ " + function.Name + " }}")" data-insert-target="#template-body textarea">@function.Name</button>
+                <span class="small">@function.Description<span class="insert-example"> · <code>@function.Example</code></span></span>
+            </li>
+        }
+    </ul>
+    <p class="small">Bedingungen und Schleifen: <code>@("{{ if lease_end }} … {{ end }}")</code>.</p>
+    @if (snippetNames.Count > 0)
+    {
+        <h3>Vorhandene Bausteine</h3>
+        <ul class="insert-list">
+            @foreach (var name in snippetNames)
+            {
+                <li><button type="button" class="insert-chip" data-insert="@("{{ include '" + name + "' }}")" data-insert-target="#template-body textarea">@name</button></li>
+            }
+        </ul>
+    }
+</aside>
+</div>
 }
 </InteractiveShell>
 

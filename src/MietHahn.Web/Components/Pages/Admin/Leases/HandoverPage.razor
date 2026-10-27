@@ -72,6 +72,8 @@ else
 
     <EditForm Model="view.Content" OnSubmit="SaveAsync" novalidate>
         <fieldset disabled="@(view.Status == HandoverStatus.Completed)">
+            <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+            <MudTabPanel Text="Zustand">
             <section>
                 <h2>Übergabe</h2>
                 <div class="form-grid">
@@ -123,7 +125,9 @@ else
 
                 <MudButton Variant="Variant.Outlined" OnClick="AddDefect">Mangel hinzufügen</MudButton>
             </section>
+            </MudTabPanel>
 
+            <MudTabPanel Text="Schlüssel und Zähler">
             <section>
                 <h2>Schlüssel</h2>
                 @foreach (var key in view.Content.Keys)
@@ -169,10 +173,15 @@ else
                 </section>
             }
 
+            </MudTabPanel>
+
+            <MudTabPanel Text="Bemerkungen">
             <section>
                 <h2>Bemerkungen</h2>
                 <AppTextField @bind-Value="view.Content.Remarks" Label="Bemerkungen" Lines="3" />
             </section>
+            </MudTabPanel>
+            </MudTabs>
         </fieldset>
 
         @if (view.Status == HandoverStatus.Draft)

@@ -58,6 +58,23 @@
         }
     });
 
+    // Insert buttons (template editor): put the text at the cursor of the target field; Blazor takes the value over via input/change.
+    document.addEventListener('click', (event) => {
+        const button = event.target instanceof Element ? event.target.closest('[data-insert]') : null;
+        const area = button ? document.querySelector(button.getAttribute('data-insert-target') || 'textarea') : null;
+        if (!button || !area) {
+            return;
+        }
+
+        const text = button.getAttribute('data-insert');
+        const start = area.selectionStart ?? area.value.length;
+        const end = area.selectionEnd ?? start;
+        area.setRangeText(text, start, end, 'end');
+        area.focus();
+        area.dispatchEvent(new Event('input', { bubbles: true }));
+        area.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeMenus(null);
