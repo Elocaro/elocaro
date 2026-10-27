@@ -1020,3 +1020,9 @@ main p a, main .help a, main .small a, .message a { text-decoration: underline; 
     details > summary, .disclosure > summary, .danger-action > summary, .row-confirm > summary, .explain > summary { display: flex; align-items: center; min-height: 44px; }
     .disclosure > summary, .danger-action > summary, .row-confirm > summary { display: inline-flex; }
 }
+
+/* Key facts as a definition list (dl.summary): label and value side by side, one column on narrow screens */
+dl.summary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.35rem 1.5rem; margin: 1rem 0 0; }
+dl.summary dt { color: var(--md-on-surface-variant); font-size: 0.9rem; }
+dl.summary dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 599.98px) { dl.summary { grid-template-columns: minmax(0, 1fr); gap: 0; } dl.summary dt { margin-top: 0.5rem; } }

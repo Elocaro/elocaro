@@ -155,7 +155,7 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             "/verwaltung/belege", "/verwaltung/belege/neu", $"/verwaltung/belege/{ids["receipt"]}",
             $"/verwaltung/objekte/{p}/anlage-v?jahr={year}", "/verwaltung/finanzen/anlage-v-zeilen?jahr=" + year, "/verwaltung/finanzen/datev", $"/verwaltung/objekte/{p}/afa", $"/verwaltung/objekte/{p}/erhaltungsaufwand",
             $"/verwaltung/objekte/{p}/abrechnungen", $"/verwaltung/objekte/{p}/belegung", $"/verwaltung/objekte/{p}/versorgung", $"/verwaltung/objekte/{p}/umlageschluessel", $"/verwaltung/objekte/{p}/heizung", $"/verwaltung/objekte/{p}/nebenkosten?jahr={year}",
-            $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=2", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=5",
+            $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=1", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=2", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=3", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=4", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=5", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=6",
             "/verwaltung/benutzer", $"/verwaltung/benutzer/{ids["user"]}",
             "/verwaltung/einstellungen/vermieter", "/verwaltung/einstellungen/vorlagen", "/verwaltung/einstellungen/vorlagen/neu", "/verwaltung/dokumente/schreiben", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/verwaltung/system/datensicherung", "/verwaltung/system/belegauslesung",
             "/konto/sicherheit",
@@ -370,6 +370,12 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             $"/verwaltung/vertraege/{ids["lease"]}/konto", "/verwaltung/finanzen/mahnungen",
         ];
         var opened = 0;
+        var mobileDialogs = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_MOBILE") is not null;
+        if (mobileDialogs)
+        {
+            await page.SetViewportSizeAsync(360, 780);
+        }
+
         foreach (var path in paths)
         {
             current = path;
@@ -408,6 +414,19 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
                     if (width[0] > width[1] || width[2] > width[3])
                     {
                         problems.Add($"{path}: Dialog „{label}“ ragt aus dem Fenster ({width[0]}/{width[1]}, {width[2]}/{width[3]})");
+                    }
+
+                    if (Environment.GetEnvironmentVariable("MIETHAHN_TOUR_DIR") is { } tourDirectory)
+                    {
+                        var folder = Path.Combine(tourDirectory, "dialoge");
+                        Directory.CreateDirectory(folder);
+                        var file = new string($"{(mobileDialogs ? "m" : "d")}{opened:00}-{label}".Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_').ToArray());
+                        await page.ScreenshotAsync(new() { Path = Path.Combine(folder, file + ".png") });
+                    }
+
+                    if (mobileDialogs)
+                    {
+                        problems.AddRange((await page.EvaluateAsync<string[]>(UiAuditTests.ControlsScript)).Where(f => !f.Contains("mud-input-clear", StringComparison.Ordinal)).Select(f => $"{path}: Dialog „{label}“: {f}"));
                     }
 
                     await page.Keyboard.PressAsync("Escape");

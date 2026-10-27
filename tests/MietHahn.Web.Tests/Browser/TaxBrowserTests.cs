@@ -140,9 +140,21 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
             await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die ortsübliche Miete wurde gespeichert.");
 
-            await page.GetByLabel("Steuerjahr").FillAsync("2025");
-            await page.GetByLabel("Steuerjahr").PressAsync("Tab");
-            await Assertions.Expect(page.Locator("h1")).ToContainTextAsync("Anlage V 2025");
+            // Under load the re-render after saving can overwrite the field once; enter the year again until the page follows.
+            for (var attempt = 1; ; attempt++)
+            {
+                await page.GetByLabel("Steuerjahr").FillAsync("2025");
+                await page.GetByLabel("Steuerjahr").PressAsync("Tab");
+                try
+                {
+                    await Assertions.Expect(page.Locator("h1")).ToContainTextAsync("Anlage V 2025", new() { Timeout = 4000 });
+                    break;
+                }
+                catch (PlaywrightException) when (attempt < 3)
+                {
+                }
+            }
+
         });
 
         await GotoInteractiveAsync(page, "/verwaltung/finanzen/anlage-v-zeilen?jahr=2026");

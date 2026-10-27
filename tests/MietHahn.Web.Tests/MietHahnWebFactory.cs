@@ -37,11 +37,11 @@ public sealed class MietHahnWebFactory(
         return factory;
     }
 
-    /// <summary>Marks the setup wizard as done (all modules on), so that the dashboard does not lead to it.</summary>
+    /// <summary>Marks the setup wizard as done (all modules and options on), so that the dashboard does not lead to it.</summary>
     public async Task CompleteSetupAsync() =>
         await WithScopeAsync(async sp =>
         {
-            await sp.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>(), completeSetup: true);
+            await sp.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>(), completeSetup: true, Enum.GetValues<AppOption>());
             return true;
         });
 
