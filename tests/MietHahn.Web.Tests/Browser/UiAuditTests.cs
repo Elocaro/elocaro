@@ -143,6 +143,58 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         Assert.True(problems.Count == 0, "Horizontales Scrollen bei 360 px:\n" + string.Join("\n", problems));
     }
 
+    // Interactive controls on a smartphone: touch target (44 px) and Material 3 shape (buttons are pills, no resting shadow on buttons).
+    internal const string ControlsScript = """
+        () => {
+          const out = [];
+          const visible = e => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && !e.closest('[hidden],dialog:not([open]),details:not([open]) > :not(summary)'); };
+          const name = e => e.tagName.toLowerCase() + (typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).slice(0, 3).join('.') : '') + ' "' + (e.getAttribute('aria-label') || e.textContent || '').trim().slice(0, 24) + '"';
+          const controls = [...document.querySelectorAll('button, [role=button], [role=tab], summary, input:not([type=hidden]), select, textarea, .mud-checkbox, .mud-radio, a.button, .tab-bar a, .sub-tabs a, .bottom-bar a')]
+            .filter(e => visible(e) && !e.closest('.skip-link,.mud-input-adornment .mud-icon-button') && !e.matches('.mud-checkbox-input,.mud-switch-input,.mud-radio-input'));
+          for (const e of controls) {
+            const r = e.getBoundingClientRect();
+            if (r.height < 43.5 || (r.width < 43.5 && !(e.matches('input,select,textarea')))) out.push(`Ziel ${Math.round(r.width)}x${Math.round(r.height)} ${name(e)}`);
+          }
+          for (const e of document.querySelectorAll('.button, button.mud-button-root, .mud-button-root')) {
+            if (!visible(e) || e.closest('.mud-pagination,.mud-table-pagination') || getComputedStyle(e).position === 'fixed') continue;
+            const s = getComputedStyle(e);
+            const filled = e.classList.contains('button-primary') || e.classList.contains('mud-button-filled');
+            if (parseFloat(s.borderTopLeftRadius) < 20 && e.getBoundingClientRect().height < 80 && !e.classList.contains('mud-icon-button')) out.push(`Form ${s.borderTopLeftRadius} ${name(e)}`);
+          }
+          return out;
+        }
+        """;
+
+    [Fact]
+    public async Task Controls_have_touch_size_and_material_shape_on_smartphones()
+    {
+        var page = await SignedInAsAdminAsync();
+        await App.WithScopeAsync(async sp =>
+        {
+            var ct = TestContext.Current.CancellationToken;
+            await sp.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt" }, null, ct);
+            await sp.GetRequiredService<IPropertyService>().CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, ct);
+            return 0;
+        });
+        var problems = new List<string>();
+        foreach (var path in Pages)
+        {
+            await page.GotoAsync(BaseUrl + path);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await page.WaitForTimeoutAsync(400);
+            problems.AddRange((await page.EvaluateAsync<string[]>(ControlsScript)).Select(f => $"{path}: {f}"));
+        }
+
+        var report = string.Join("\n", problems.Distinct());
+        if (Environment.GetEnvironmentVariable("MIETHAHN_TOUR_DIR") is { } directory)
+        {
+            Directory.CreateDirectory(directory);
+            await File.WriteAllTextAsync(Path.Combine(directory, "controls.txt"), report, TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(problems.Count == 0, "Bedienelemente auf dem Handy:\n" + report);
+    }
+
     [Fact]
     public async Task Text_contrast_meets_AA_in_light_and_dark()
     {

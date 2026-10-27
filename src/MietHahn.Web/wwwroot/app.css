@@ -1004,3 +1004,19 @@ main p a, main .help a, main .small a, .message a { text-decoration: underline; 
 
 /* Unit table: the unit cells repeat in every row (cards on smartphones); on wide screens only the first row shows them */
 @media (min-width: 700px) { .data-table td.repeat { visibility: hidden; } }
+
+/* Material 3: touch targets of 44 px on smartphones; buttons without resting shadow; shape change while pressed (like .button) */
+.mud-button-root { transition: background-color var(--motion-duration) var(--motion-effects), border-radius var(--motion-duration) var(--motion-spatial), box-shadow var(--motion-duration) var(--motion-effects); }
+@media (min-width: 900px) {
+    .mud-button-root.mud-button-filled:not(.mud-fab) { box-shadow: none; }
+    .mud-button-root.mud-button-filled:not(.mud-fab):hover { box-shadow: var(--shadow); }
+}
+.mud-button-root:not(.mud-icon-button):active { border-radius: var(--shape-md); }
+@media (max-width: 899.98px) {
+    .mud-button-root, .content .mud-button-root, .content .mud-button-outlined, .wizard-actions .mud-button-root { min-height: 44px; }
+    .mud-input-clear-button { min-width: 44px; }
+    .info-button { min-height: 44px; min-width: 44px; }
+    .sub-tabs a { min-height: 44px; }
+    details > summary, .disclosure > summary, .danger-action > summary, .row-confirm > summary, .explain > summary { display: flex; align-items: center; min-height: 44px; }
+    .disclosure > summary, .danger-action > summary, .row-confirm > summary { display: inline-flex; }
+}

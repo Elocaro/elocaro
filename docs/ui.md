@@ -5,7 +5,7 @@ Verbindlich für alle neuen und geänderten Seiten. Grundlage: ADR 0003 (eigenes
 ## Prinzipien
 
 1. **Zwei Arten von Seiten.** Statische Seiten (Standard, ohne eigenes JavaScript: Links, GET-/POST-Formulare, `<details>`) und interaktive Seiten (`@rendermode InteractiveServer`, MudBlazor, siehe [Interaktive Seiten](#interaktive-seiten)). Seiten mit Eingaben, Live-Suche, Dialogen oder Assistenten sind interaktiv (alle Bereiche der Verwaltung sind umgestellt); reine Anzeigeseiten bleiben statisch: Start, Hintergrundjobs, Datensicherung, Belegauslesung, Offene Posten sowie Anmeldung, Konto und Portale.
-2. **Mobil zuerst.** Jede Seite funktioniert bei 360 px ohne horizontales Scrollen; Touch-Ziele ≥ 44 px.
+2. **Mobil zuerst.** Jede Seite funktioniert bei 360 px ohne horizontales Scrollen; Touch-Ziele ≥ 44 px (Buttons, Tabs, Aufklapper, Info; ein Browser-Test prüft das). Buttons sind Pills, haben im Ruhezustand keinen Schatten (Schatten nur beim Überfahren und bei der schwebenden Hauptaktion) und werden beim Drücken eckiger (Formwechsel, Material 3 Expressive).
 3. **Bausteine statt Rohmarkup.** Gibt es für etwas einen Baustein (siehe unten), wird er benutzt. Fehlt einer, wird er im Design-System ergänzt und hier dokumentiert, nicht in der Seite gebaut.
 4. **Farben nur über Rollen.** Keine Hex-Werte in Seiten oder Komponenten. Hell und Dunkel müssen beide lesbar sein.
 5. **Barrierearm.** Kontrast nach AA, sichtbarer Fokus, `role="alert"` bzw. `"status"` bei Meldungen, Beschriftung für jedes Feld.
@@ -186,7 +186,7 @@ Deutsch, Sie-Form, sachlich. Buttons mit Verb („Speichern“, „Vertrag anleg
 ## Prüfen
 
 - `UiRulesTests` (Architektur): Bausteine statt Rohmarkup.
-- `UiAuditTests` (Browser): Textkontrast nach WCAG AA in Hell und Dunkel auf den Hauptseiten, alle Bereiche bei 360 px ohne horizontales Scrollen (nennt die überstehenden Elemente).
+- `UiAuditTests`/`PageSmokeTests` (Browser): Bedienelemente auf dem Handy (Touch-Ziel mindestens 44 px, Buttons als Pill, schwebende Hauptaktion ausgenommen), Textkontrast nach WCAG AA in Hell und Dunkel auf den Hauptseiten, alle Bereiche bei 360 px ohne horizontales Scrollen (nennt die überstehenden Elemente).
 - Screenshot-Tour zum Ansehen: `MIETHAHN_TOUR=1 MIETHAHN_HEADED=1 MIETHAHN_TOUR_DIR=/pfad dotnet test --filter Screenshot_tour` (sichtbarer Browser: `MIETHAHN_HEADED=1`, braucht ein Display). Die Tour über alle Seiten mit Daten (`Screenshot_tour_of_all_pages`) lässt sich mit `MIETHAHN_TOUR_ONLY=/personen,bank/regeln` auf Pfade beschränken, die einen der Teile enthalten.
 
 Auf dem Handy wachsen Kartenlisten (`MudTable`) mit dem Inhalt und scrollen mit der Seite; der Info-Button steht in der Titelzeile, solange er die einzige Nebenaktion ist.

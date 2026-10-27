@@ -254,6 +254,11 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
                     var culprits = await page.EvaluateAsync<string[]>("() => [...document.querySelectorAll('#content *')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 1 && !(w => w && ['auto', 'scroll'].includes(getComputedStyle(w).overflowX))(e.closest('.table-wrapper,.mud-table-container'))).slice(0, 3).map(e => e.tagName.toLowerCase() + (typeof e.className === 'string' && e.className ? '.' + e.className.split(' ').join('.') : '') + ' ' + Math.round(e.getBoundingClientRect().right))");
                     problems.Add($"{current}: {width[0]}px breit bei {width[1]}px; {string.Join(", ", culprits)}");
                 }
+
+                if (width[1] <= 400)
+                {
+                    problems.AddRange((await page.EvaluateAsync<string[]>(UiAuditTests.ControlsScript)).Select(f => $"{current}: {f}"));
+                }
             }
         }
 
