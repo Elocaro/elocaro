@@ -65,20 +65,31 @@ Im Portal unter *Kostenverwaltung → Budgets* ein Monatsbudget mit Warnmail anl
 ssh azureuser@<ip>
 curl -fsSL https://get.docker.com | sudo sh && sudo usermod -aG docker azureuser   # danach neu anmelden
 git clone https://github.com/TheR00st3r/MietHahn.git && cd MietHahn
-./deploy/install.sh            # fragt Domain, Kontakt-Mail und SMTP ab
+./deploy/install.sh --nur-env  # fragt Domain, Kontakt-Mail und SMTP ab und schreibt nur deploy/.env
 ```
 
-Danach `deploy/.env` anpassen:
+Danach `deploy/.env` anpassen (Sicherungsziel und Images):
 
 ```
-MIETHAHN_IMAGE=ghcr.io/ther00st3r/miethahn:<version>
-MIETHAHN_BACKUP_IMAGE=ghcr.io/ther00st3r/miethahn-backup:<version>
 RESTIC_REPOSITORY=azure:miethahn-backup:/
 AZURE_ACCOUNT_NAME=<speicherkonto>
 AZURE_ACCOUNT_KEY=<schlüssel>
 ```
 
-und neu starten (`docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d`). Sind die GHCR-Pakete privat, vorher `docker login ghcr.io` mit einem GitHub-Token (`read:packages`). Die erste Sicherung von Hand anstoßen und prüfen, wie unter [Backup](betrieb.md#backup) beschrieben.
+**Images:** Stehen veröffentlichte Images in GHCR bereit (Release-Workflow), genügt `MIETHAHN_IMAGE=ghcr.io/ther00st3r/miethahn:<version>` und `MIETHAHN_BACKUP_IMAGE=…/miethahn-backup:<version>`; sind die Pakete privat, vorher `docker login ghcr.io` mit einem GitHub-Token (`read:packages`). Ohne Registry baut der Server die Images selbst aus dem Repository (dauert beim ersten Mal einige Minuten):
+
+```
+MIETHAHN_IMAGE=miethahn:0.1.0
+MIETHAHN_BACKUP_IMAGE=miethahn-backup:0.1.0
+MIETHAHN_VERSION=0.1.0
+```
+
+```bash
+DC="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
+$DC build && $DC up -d
+```
+
+Ein Update ist dann `git pull`, danach `$DC build && $DC up -d` (Version in `MIETHAHN_VERSION` und den Image-Namen hochzählen). Die erste Sicherung von Hand anstoßen und prüfen, wie unter [Backup](betrieb.md#backup) beschrieben.
 
 ## 5. Betrieb
 
