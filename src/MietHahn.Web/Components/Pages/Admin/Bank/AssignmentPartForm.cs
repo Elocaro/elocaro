@@ -33,6 +33,8 @@ public sealed class AssignmentPartForm
 
     public string? Note { get; set; }
 
+    public AssignmentPartForm Copy() => (AssignmentPartForm)MemberwiseClone();
+
     public AssignmentPartInput ToInput()
     {
         Guid? lease = null;

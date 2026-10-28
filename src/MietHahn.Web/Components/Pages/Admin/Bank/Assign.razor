@@ -5,6 +5,7 @@
 @inject IBankService Bank
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject IDialogService Dialogs
 
 <InteractiveShell>
 @if (!loaded)
@@ -108,43 +109,35 @@ else if (options is not null)
             Die Teilbeträge müssen zusammen genau den Umsatz von @Format.Money(Math.Abs(u.Amount)) ergeben; ein leerer Betrag erhält den Rest.
             @(income ? "Ohne bestimmte Forderung werden Zahlungen nach der Verrechnungsreihenfolge angerechnet; Teilzahlungen bleiben offen, Überzahlungen werden Guthaben." : "Ohne vorhandenen Beleg wird ein neuer Beleg für den Umsatz angelegt; die Datei kann später ergänzt werden.")
         </p>
-        <EditForm Model="parts" OnValidSubmit="AssignAsync" novalidate>
-            @for (var i = 0; i < parts.Count; i++)
+        @if (parts.Count == 0)
+        {
+            <p class="small">Noch kein Teil. „Teil hinzufügen“ legt fest, wohin der Umsatz oder ein Teil davon gehört; mit mehreren Teilen wird er aufgeteilt.</p>
+        }
+        else
+        {
+            <MudTable T="AssignmentPartForm" Items="parts" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" Dense="true" id="assignment-parts">
+                <HeaderContent>
+                    <MudTh>Teil</MudTh><MudTh Style="text-align:right">Betrag</MudTh><MudTh>Zuordnung</MudTh><MudTh>Notiz</MudTh><MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="part">
+                    <MudTd DataLabel="Teil">@(parts.IndexOf(part) + 1)</MudTd>
+                    <MudTd DataLabel="Betrag" Style="text-align:right">@(part.Amount is { } amount ? Format.Money(amount) : "Rest")</MudTd>
+                    <MudTd DataLabel="Zuordnung">@PartText(part)</MudTd>
+                    <MudTd DataLabel="Notiz">@part.Note</MudTd>
+                    <MudTd Style="text-align:right; white-space:nowrap">
+                        <MudButton Variant="Variant.Text" OnClick="() => EditPartAsync(part)" aria-label="@($"Teil {parts.IndexOf(part) + 1} bearbeiten")">Bearbeiten</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => parts.Remove(part)" aria-label="@($"Teil {parts.IndexOf(part) + 1} entfernen")">Entfernen</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        <div class="form-row">
+            <MudButton Variant="@(parts.Count == 0 ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="AddPartAsync">Teil hinzufügen</MudButton>
+            @if (parts.Count > 0)
             {
-                var part = parts[i];
-                <fieldset class="field">
-                    <legend>Teil @(i + 1)</legend>
-                    <div class="form-grid">
-                        <AppNumberField T="decimal?" @bind-Value="part.Amount" Label="Betrag" Suffix="€" Hint="Leer = Rest" />
-                        <AppSelect T="string" @bind-Value="part.Target" Label="@(income ? "Mietverhältnis oder Forderung" : "Auszahlung an Mieter (optional)")" Items="targetKeys" Text="TargetText" EmptyText="@(income ? "– bitte wählen –" : "– keine, Kostenposition –")" />
-                        @if (!income && options.Loans.Count > 0)
-                        {
-                            <OptionSelect @bind-Value="part.LoanId" Label="Darlehensrate (statt Kostenposition)" Options="options.Loans.Select(o => (o.Id, o.Text)).ToList()" />
-                            @if (part.LoanId is not null)
-                            {
-                                <AppNumberField T="decimal?" @bind-Value="part.LoanInterest" Label="Davon Zinsen" Suffix="€" Hint="Leer = laut Tilgungsplan" />
-                            }
-                        }
-
-                        @if (!income && part.LoanId is null)
-                        {
-                            <CostTypeSelect @bind-Value="part.CostType" />
-                            <OptionSelect @bind-Value="part.PropertyId" Label="Objekt" Options="options.Properties.Select(o => (o.Id, o.Name)).ToList()" />
-                            <OptionSelect @bind-Value="part.UnitId" Label="Nur Einheit" Options="options.Units.Select(o => (o.Id, o.Name)).ToList()" />
-                            <AppDateField @bind-Value="part.From" Label="Leistungszeitraum von" Hint="Leer = Kalenderjahr der Buchung" />
-                            <AppDateField @bind-Value="part.To" Label="bis" />
-                            <AppSelect T="bool?" @bind-Value="part.Allocable" Label="Umlagefähig" Items="allocableChoices" Text="@(v => v == true ? "ja" : "nein")" EmptyText="nach Kostenart" />
-                            <AppSelect T="Guid?" @bind-Value="part.ReceiptId" Label="Beleg" Items="receiptIds" Text="ReceiptText" EmptyText="Neuen Beleg anlegen" />
-                        }
-                        <AppTextField @bind-Value="part.Note" Label="Notiz" />
-                    </div>
-                </fieldset>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AssignAsync">Zuordnen</MudButton>
             }
-            <div class="form-row">
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zuordnen</MudButton>
-                <MudButton Variant="Variant.Outlined" OnClick="AddPart">Teil hinzufügen</MudButton>
-            </div>
-        </EditForm>
+        </div>
     </section>
 
     <section>
@@ -168,7 +161,7 @@ else if (options is not null)
     private AssignmentOptions? options;
     private IReadOnlyList<AssignmentView> assignments = [];
     private IReadOnlyList<string>? errors;
-    private List<AssignmentPartForm> parts = [new()];
+    private List<AssignmentPartForm> parts = [];
     private IReadOnlyList<string> targetKeys = [];
     private IReadOnlyList<Guid?> receiptIds = [];
     private string? ignoreNote;
@@ -204,7 +197,80 @@ else if (options is not null)
 
     private string ReceiptText(Guid? id) => options?.Receipts.FirstOrDefault(r => r.Id == id)?.Text ?? "";
 
-    private void AddPart() => parts.Add(new());
+    private bool Income => proposal!.Transaction.Amount > 0;
+
+    private static string CostTypeText(string? key) =>
+        MietHahn.Domain.Receipts.CostTypes.All.FirstOrDefault(k => k.Key == key) is { } kind
+            ? kind.Allocable ? $"{kind.BetrKvNumber}. {kind.Name}" : $"{kind.Name} (nicht umlagefähig)"
+            : "";
+
+    private string PartText(AssignmentPartForm part)
+    {
+        if (!string.IsNullOrEmpty(part.Target))
+        {
+            return TargetText(part.Target);
+        }
+
+        if (Income)
+        {
+            return "Nach Verrechnungsreihenfolge";
+        }
+
+        if (part.LoanId is { } loan)
+        {
+            return "Darlehensrate: " + (options!.Loans.FirstOrDefault(l => l.Id == loan)?.Text ?? "");
+        }
+
+        var property = options!.Properties.FirstOrDefault(o => o.Id == part.PropertyId)?.Name;
+        return string.Join(" · ", new[] { CostTypeText(part.CostType), property }.Where(text => !string.IsNullOrEmpty(text)));
+    }
+
+    private async Task AddPartAsync()
+    {
+        var part = new AssignmentPartForm();
+        if (await ShowPartAsync("Teil hinzufügen", part))
+        {
+            parts.Add(part);
+        }
+    }
+
+    private async Task EditPartAsync(AssignmentPartForm part)
+    {
+        var copy = part.Copy();
+        if (await ShowPartAsync("Teil bearbeiten", copy))
+        {
+            parts[parts.IndexOf(part)] = copy;
+        }
+    }
+
+    private async Task<bool> ShowPartAsync(string title, AssignmentPartForm part)
+    {
+        RenderFragment fields = @<text>
+            <AppNumberField T="decimal?" @bind-Value="part.Amount" Label="Betrag" Suffix="€" Hint="Leer = Rest" />
+            <AppSelect T="string" @bind-Value="part.Target" Label="@(Income ? "Mietverhältnis oder Forderung" : "Auszahlung an Mieter (optional)")" Items="targetKeys" Text="TargetText" EmptyText="@(Income ? "– bitte wählen –" : "– keine, Kostenposition –")" />
+            @if (!Income && options!.Loans.Count > 0)
+            {
+                <OptionSelect @bind-Value="part.LoanId" Label="Darlehensrate (statt Kostenposition)" Options="options.Loans.Select(o => (o.Id, o.Text)).ToList()" />
+                @if (part.LoanId is not null)
+                {
+                    <AppNumberField T="decimal?" @bind-Value="part.LoanInterest" Label="Davon Zinsen" Suffix="€" Hint="Leer = laut Tilgungsplan" />
+                }
+            }
+
+            @if (!Income && part.LoanId is null)
+            {
+                <CostTypeSelect @bind-Value="part.CostType" />
+                <OptionSelect @bind-Value="part.PropertyId" Label="Objekt" Options="options!.Properties.Select(o => (o.Id, o.Name)).ToList()" />
+                <OptionSelect @bind-Value="part.UnitId" Label="Nur Einheit" Options="options.Units.Select(o => (o.Id, o.Name)).ToList()" />
+                <AppDateField @bind-Value="part.From" Label="Leistungszeitraum von" Hint="Leer = Kalenderjahr der Buchung" />
+                <AppDateField @bind-Value="part.To" Label="bis" />
+                <AppSelect T="bool?" @bind-Value="part.Allocable" Label="Umlagefähig" Items="allocableChoices" Text="@(v => v == true ? "ja" : "nein")" EmptyText="nach Kostenart" />
+                <AppSelect T="Guid?" @bind-Value="part.ReceiptId" Label="Beleg" Items="receiptIds" Text="ReceiptText" EmptyText="Neuen Beleg anlegen" />
+            }
+            <AppTextField @bind-Value="part.Note" Label="Notiz" />
+        </text>;
+        return await Dialogs.ShowFormAsync(title, part, fields, () => Task.FromResult(new Result(true, [])), "Übernehmen");
+    }
 
     private static string RuleLink(TransactionRow u)
     {
@@ -246,7 +312,7 @@ else if (options is not null)
         if (result.Succeeded)
         {
             Notify.Success(success);
-            parts = [new()];
+            parts = [];
             await LoadAsync();
         }
     }

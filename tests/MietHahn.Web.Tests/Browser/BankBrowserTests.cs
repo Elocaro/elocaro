@@ -182,20 +182,25 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.GetByLabel("Betrag", new() { Exact = true }).FillAsync("200,33");
-            await SelectAsync(page, "Kostenart", "2. Wasserversorgung");
-            await SelectAsync(page, "Objekt", "Lindenweg 3");
+            var dialog = page.Locator(".mud-dialog");
             await page.GetByRole(AriaRole.Button, new() { Name = "Teil hinzufügen" }).ClickAsync();
-            await Assertions.Expect(page.GetByText("Teil 2")).ToBeVisibleAsync();
+            await dialog.GetByLabel("Betrag", new() { Exact = true }).FillAsync("200,33");
+            await SelectAsync(page, "Kostenart", "2. Wasserversorgung", dialog);
+            await SelectAsync(page, "Objekt", "Lindenweg 3", dialog);
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Übernehmen" }).ClickAsync();
+            await Assertions.Expect(page.Locator("#assignment-parts")).ToContainTextAsync("200,33 €");
 
-            var part2 = page.Locator("fieldset", new() { HasText = "Teil 2" });
-            await part2.GetByLabel("Betrag", new() { Exact = true }).FillAsync("100,16");
-            await SelectAsync(page, "Kostenart", "3. Entwässerung", part2);
-            await SelectAsync(page, "Objekt", "Lindenweg 3", part2);
+            await page.GetByRole(AriaRole.Button, new() { Name = "Teil hinzufügen" }).ClickAsync();
+            await dialog.GetByLabel("Betrag", new() { Exact = true }).FillAsync("100,16");
+            await SelectAsync(page, "Kostenart", "3. Entwässerung", dialog);
+            await SelectAsync(page, "Objekt", "Lindenweg 3", dialog);
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Übernehmen" }).ClickAsync();
             await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen", Exact = true }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Die Teilbeträge ergeben 300,49 €, der Umsatz beträgt 300,50 € (Differenz 0,01 €)");
 
-            await part2.GetByLabel("Betrag", new() { Exact = true }).FillAsync("");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Teil 2 bearbeiten" }).ClickAsync();
+            await dialog.GetByLabel("Betrag", new() { Exact = true }).FillAsync("");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Übernehmen" }).ClickAsync();
             await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen", Exact = true }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Umsatz wurde zugeordnet.");
             await Assertions.Expect(page.Locator("table.data-table").First).ToContainTextAsync("Wasserversorgung");
@@ -213,14 +218,20 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.GetByRole(AriaRole.Button, new() { Name = "Teil hinzufügen" }).ClickAsync();
-            var first = page.Locator("fieldset", new() { HasText = "Teil 1" });
-            var second = page.Locator("fieldset", new() { HasText = "Teil 2" });
-            await first.GetByLabel("Betrag", new() { Exact = true }).FillAsync("650");
-            await first.Locator(".mud-select", new() { Has = page.Locator("[aria-label='Mietverhältnis oder Forderung']") }).Locator(".mud-input").First.ClickAsync();
-            await page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Forderung" }).First.ClickAsync();
-            await second.Locator(".mud-select", new() { Has = page.Locator("[aria-label='Mietverhältnis oder Forderung']") }).Locator(".mud-input").First.ClickAsync();
-            await page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Forderung" }).Nth(1).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            foreach (var (amount, index) in new[] { ("650", 0), ("", 1) })
+            {
+                await page.GetByRole(AriaRole.Button, new() { Name = "Teil hinzufügen" }).ClickAsync();
+                if (amount.Length > 0)
+                {
+                    await dialog.GetByLabel("Betrag", new() { Exact = true }).FillAsync(amount);
+                }
+
+                await dialog.Locator(".mud-select", new() { Has = page.Locator("[aria-label='Mietverhältnis oder Forderung']") }).Locator(".mud-input").First.ClickAsync();
+                await page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Forderung" }).Nth(index).ClickAsync();
+                await dialog.GetByRole(AriaRole.Button, new() { Name = "Übernehmen" }).ClickAsync();
+            }
+
             await page.GetByRole(AriaRole.Button, new() { Name = "Zuordnen", Exact = true }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Umsatz wurde zugeordnet.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("auf Forderung");
