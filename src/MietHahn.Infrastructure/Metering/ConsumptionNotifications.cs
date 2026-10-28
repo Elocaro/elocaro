@@ -7,7 +7,6 @@ using MietHahn.Domain.Common;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Metering;
 using MietHahn.Domain.People;
-using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Infrastructure.Properties;
 using Quartz;

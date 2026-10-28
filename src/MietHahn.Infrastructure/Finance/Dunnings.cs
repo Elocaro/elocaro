@@ -438,7 +438,7 @@ internal sealed class DunningService(
         return new Prepared(
             rules, plan, interest, demandedBefore, others,
             people.Select(p => p.Email).Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e!.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
-            LetterParts.AddressOf(people, rentalUnit?.Name, property, today),
+            new PostalAddress(LetterParts.AddressRowsOf(people, rentalUnit?.Name, property, today)),
             LetterParts.SalutationOf(people),
             rentalUnit is null ? "" : $"{rentalUnit.Property}, {rentalUnit.Name}",
             landlord,

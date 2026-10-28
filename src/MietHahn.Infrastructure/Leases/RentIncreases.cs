@@ -634,7 +634,7 @@ internal sealed class RentIncreases(MietHahnDbContext db, IPdfGenerator pdf, IDo
             throw new RuleViolationException(ex.Message);
         }
 
-        var request = new PdfRequest(null, title, plan.Model, LetterParts.AddressOf(context.Tenants, context.RentalUnit.Name, context.Property, Today), template.Body, Today, context.Property.Id);
+        var request = new PdfRequest(null, title, plan.Model, new PostalAddress(LetterParts.AddressRowsOf(context.Tenants, context.RentalUnit.Name, context.Property, Today)), template.Body, Today, context.Property.Id);
         return (request, revision.Id, template.Name);
     }
 

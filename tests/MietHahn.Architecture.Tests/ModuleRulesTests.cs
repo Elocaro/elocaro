@@ -12,9 +12,6 @@ public partial class ModuleRulesTests
     /// <summary>Pairs of modules that use each other today (alphabetical). Goal: empty. Admin is the hub; splitting it removes most of them.</summary>
     private static readonly string[] KnownCycles =
     [
-        "Common <-> Documents",
-        "Common <-> People",
-        "Common <-> Properties",
         "Documents <-> Finance",
         "Documents <-> Leases",
         "Leases <-> Metering",
@@ -55,7 +52,7 @@ public partial class ModuleRulesTests
     public void Foundations_do_not_depend_on_business_modules()
     {
         // Technical building blocks used by many; they must not reach back into business modules.
-        string[] foundations = ["Admin", "Files", "Mail", "Templates", "Notifications", "Audit"]; // Admin = module switches
+        string[] foundations = ["Common", "Admin", "Files", "Mail", "Templates", "Notifications", "Audit"]; // Admin = module switches
         var uses = ModuleUses();
         var violations = foundations.Where(uses.ContainsKey)
             .SelectMany(m => uses[m].Where(u => !foundations.Contains(u) && u != "Common").Select(u => $"{m} -> {u}"))

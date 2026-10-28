@@ -11,7 +11,6 @@ using MietHahn.Domain.Documents;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
-using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Infrastructure.Properties;
@@ -190,7 +189,7 @@ internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocument
             throw new RuleViolationException(ex.Message);
         }
 
-        var request = new PdfRequest(null, subject, model, LetterParts.AddressOf(people, rentalUnit.Name, property, today), template.Body, today, property.Id);
+        var request = new PdfRequest(null, subject, model, new PostalAddress(LetterParts.AddressRowsOf(people, rentalUnit.Name, property, today)), template.Body, today, property.Id);
         var emails = people.Select(p => p.Email).Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e!.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         return new Prepared(request, string.Join(", ", people.Select(p => p.DisplayName)), emails, salutation, landlord.Name);
     }

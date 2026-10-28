@@ -1,15 +1,14 @@
-using MietHahn.Application.Documents;
-using MietHahn.Domain.Common;
-using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 
-namespace MietHahn.Infrastructure.Common;
+namespace MietHahn.Domain.People;
 
-/// <summary>Address block and salutation of letters to the tenants of a tenancy.</summary>
-internal static class LetterParts
+/// <summary>Address block and salutation of letters and mails to the tenants of a tenancy.</summary>
+public static class LetterParts
 {
-    internal static PostalAddress AddressOf(IReadOnlyList<Person> people, string? unitName, Property? property, DateOnly today)
+    /// <summary>The lines of the address window: names (at most three), then the address of the person on the day, else the rented property.</summary>
+    public static IReadOnlyList<string> AddressRowsOf(IReadOnlyList<Person> people, string? unitName, Property? property, DateOnly today)
     {
+        ArgumentNullException.ThrowIfNull(people);
         var names = people.Select(p => p.DisplayName).ToList();
         if (names.Count > 3)
         {
@@ -44,11 +43,15 @@ internal static class LetterParts
             rows.Add($"{property.PostalCode} {property.City}");
         }
 
-        return new PostalAddress(rows.Take(6).ToList());
+        return rows.Take(6).ToList();
     }
 
-    internal static string SalutationOf(IReadOnlyList<Person> people) =>
-        people is [{ Company: null, Salutation: var salutation } person] && salutation is Salutation.Mrs or Salutation.Mr
+    /// <summary>"Sehr geehrte Frau …," for a single person with a known salutation, otherwise the neutral form.</summary>
+    public static string SalutationOf(IReadOnlyList<Person> people)
+    {
+        ArgumentNullException.ThrowIfNull(people);
+        return people is [{ Company: null, Salutation: var salutation } person] && salutation is Salutation.Mrs or Salutation.Mr
             ? (salutation == Salutation.Mrs ? "Sehr geehrte Frau " : "Sehr geehrter Herr ") + person.LastName + ","
             : "Sehr geehrte Damen und Herren,";
+    }
 }

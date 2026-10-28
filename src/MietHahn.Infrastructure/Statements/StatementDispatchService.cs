@@ -338,7 +338,7 @@ internal sealed class StatementDispatchService(
             landlord.Bic,
             landlord.Bank,
         };
-        var request = new PdfRequest("statement", $"Betriebskostenabrechnung {Format(period)}", model, new PostalAddress(LetterParts.AddressOf(people, rentalUnit is null ? null : tenant.Rental, property, today).Rows), Date: today, PropertyId: property?.Id);
+        var request = new PdfRequest("statement", $"Betriebskostenabrechnung {Format(period)}", model, new PostalAddress(new PostalAddress(LetterParts.AddressRowsOf(people, rentalUnit is null ? null : tenant.Rental, property, today)).Rows), Date: today, PropertyId: property?.Id);
         var isCurrent = summary.Current;
         return new Prepared(statement, tenant, request, model, emails, toBook, excluded, due, proposals, isCurrent);
     }
