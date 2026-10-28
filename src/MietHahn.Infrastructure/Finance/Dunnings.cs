@@ -388,7 +388,7 @@ internal sealed class DunningService(
     private async Task<Dictionary<Guid, (string RentalUnit, string Tenant)>> DescriptionsAsync(IReadOnlyCollection<Guid> leaseIds, CancellationToken cancellationToken)
     {
         var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Where(v => leaseIds.Contains(v.Id)).ToListAsync(cancellationToken);
-        return await TenantAccounts.DescriptionsAsync(db, leases, cancellationToken);
+        return await LeaseDescriptions.OfAsync(db, leases, cancellationToken);
     }
 
     private static DunningRow Row(Dunning m, IReadOnlyDictionary<Guid, (string RentalUnit, string Tenant)> descriptions)

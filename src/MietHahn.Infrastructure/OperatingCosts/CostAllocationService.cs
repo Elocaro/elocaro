@@ -9,7 +9,7 @@ using MietHahn.Domain.OperatingCosts;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;
 using MietHahn.Infrastructure.Common;
-using MietHahn.Infrastructure.Finance;
+using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.OperatingCosts;
@@ -119,7 +119,7 @@ internal sealed class CostAllocationService(MietHahnDbContext db) : ICostAllocat
             return null;
         }
 
-        var (rentalUnit, tenant) = (await TenantAccounts.DescriptionsAsync(db, [lease], cancellationToken))[lease.Id];
+        var (rentalUnit, tenant) = (await LeaseDescriptions.OfAsync(db, [lease], cancellationToken))[lease.Id];
         var propertyId = await db.Set<Unit>().Where(e => e.Id == lease.UnitId).Select(e => e.PropertyId).SingleAsync(cancellationToken);
         var rows = CostTypes.All.Where(t => t.Allocable).Select(t => new AgreementRow(t.Key, t.Name, t.BetrKvNumber, lease.IsAgreed(t.Key))).ToList();
         return new LeaseCostAgreement(lease.Id, $"{tenant}, {rentalUnit}", propertyId, rows);

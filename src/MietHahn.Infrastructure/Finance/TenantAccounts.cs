@@ -29,7 +29,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
         }
 
         var settings = await FinanceSettingsService.GetOrCreateAsync(db, cancellationToken);
-        var (rentalUnit, tenant) = (await DescriptionsAsync(db, [lease], cancellationToken))[lease.Id];
+        var (rentalUnit, tenant) = (await LeaseDescriptions.OfAsync(db, [lease], cancellationToken))[lease.Id];
         var charges = await db.Set<Charge>().AsNoTracking().Where(s => s.LeaseId == leaseId).ToListAsync(cancellationToken);
         var payments = await db.Set<Payment>().AsNoTracking().Where(z => z.LeaseId == leaseId).ToListAsync(cancellationToken);
         var result = Allocate(charges, payments, settings.Allocation);
@@ -258,7 +258,7 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
         var payments = (await paymentQuery.ToListAsync(cancellationToken)).ToLookup(z => z.LeaseId);
         var leaseIds = charges.Select(g => g.Key).ToList();
         var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Where(v => leaseIds.Contains(v.Id)).ToListAsync(cancellationToken);
-        var descriptions = await DescriptionsAsync(db, leases, cancellationToken);
+        var descriptions = await LeaseDescriptions.OfAsync(db, leases, cancellationToken);
 
         var items = new List<OpenItem>();
         foreach (var lease in leases)
@@ -294,20 +294,6 @@ internal sealed class TenantAccounts(MietHahnDbContext db, TimeProvider clock) :
             .Select(g => new AnnualValue(g.Key.Year, g.Key.Value, g.Sum(w => w.Debit), g.Sum(w => w.Settled), g.Sum(w => w.Inflow)))
             .OrderByDescending(w => w.Year).ThenBy(w => w.Component)
             .ToList();
-    }
-
-    internal static async Task<Dictionary<Guid, (string RentalUnit, string Tenant)>> DescriptionsAsync(MietHahnDbContext db, List<Lease> leases, CancellationToken cancellationToken)
-    {
-        var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
-        var personIds = leases.SelectMany(v => v.Parties.Select(p => p.PersonId)).Distinct().ToList();
-        var names = (await db.Set<Person>().AsNoTracking().Where(p => personIds.Contains(p.Id)).ToListAsync(cancellationToken)).ToDictionary(p => p.Id, p => p.DisplayName);
-        var leaseIds = leases.Select(v => v.Id).ToList();
-        var extras = (await db.Set<LeaseRoom>().AsNoTracking().Where(r => leaseIds.Contains(r.LeaseId)).ToListAsync(cancellationToken)).ToLookup(r => r.LeaseId, r => r.RoomId);
-        return leases.ToDictionary(v => v.Id, v =>
-        {
-            var m = rentalUnits.GetValueOrDefault(v.RentalUnitId);
-            return (m is null ? "?" : $"{m.Property}, {RentalUnit.LabelOf(v.RentalUnitId, extras[v.Id], rentalUnits)}", LeaseService.TenantText(v, names));
-        });
     }
 
     private async Task ValidateLeaseAsync(Guid leaseId, CancellationToken cancellationToken)

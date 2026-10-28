@@ -10,6 +10,7 @@ using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;
 using MietHahn.Infrastructure.Finance;
+using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
 using Zaehler = MietHahn.Domain.Metering.Meter;
 
@@ -53,7 +54,7 @@ internal sealed class OperatingCostService(MietHahnDbContext db) : IOperatingCos
             .ToListAsync(cancellationToken);
 
         var settings = await FinanceSettingsService.GetOrCreateAsync(db, cancellationToken);
-        var descriptions = await TenantAccounts.DescriptionsAsync(db, leases, cancellationToken);
+        var descriptions = await LeaseDescriptions.OfAsync(db, leases, cancellationToken);
         var leaseIds = leases.Select(v => v.Id).ToList();
         var charges = (await db.Set<Charge>().AsNoTracking().Where(s => leaseIds.Contains(s.LeaseId)).ToListAsync(cancellationToken)).ToLookup(s => s.LeaseId);
         var payments = (await db.Set<Payment>().AsNoTracking().Where(z => leaseIds.Contains(z.LeaseId)).ToListAsync(cancellationToken)).ToLookup(z => z.LeaseId);

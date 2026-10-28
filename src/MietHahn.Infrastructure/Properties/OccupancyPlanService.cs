@@ -3,7 +3,7 @@ using MietHahn.Application.Properties;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Properties;
-using MietHahn.Infrastructure.Finance;
+using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Properties;
@@ -25,7 +25,7 @@ internal sealed class OccupancyPlanService(MietHahnDbContext db, TimeProvider cl
         var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).Include(v => v.ExtraRooms)
             .Where(v => unitIds.Contains(v.UnitId) && v.Term.From <= end && (v.Term.To == null || v.Term.To >= range.From))
             .AsSplitQuery().ToListAsync(cancellationToken);
-        var descriptions = await TenantAccounts.DescriptionsAsync(db, leases, cancellationToken);
+        var descriptions = await LeaseDescriptions.OfAsync(db, leases, cancellationToken);
         var today = GermanTime.Today(clock.GetUtcNow());
 
         OccupancyBar? Bar(Lease lease)

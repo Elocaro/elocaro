@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 using MietHahn.Application.Files;
 using MietHahn.Application.Receipts;
 using MietHahn.Domain.Common;
-using MietHahn.Infrastructure.Leases;
+using MietHahn.Infrastructure.Common;
 using MimeKit;
 using Quartz;
 

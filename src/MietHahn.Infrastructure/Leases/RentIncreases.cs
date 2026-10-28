@@ -690,8 +690,3 @@ internal sealed class RentIncreases(MietHahnDbContext db, IPdfGenerator pdf, IDo
         decimal? ComparativeRent,
         Action<RentIncrease>? Fill);
 }
-
-internal static class StringExtensions
-{
-    public static string Truncate(this string value, int length) => value.Length > length ? value[..length] : value;
-}
