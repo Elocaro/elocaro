@@ -91,12 +91,7 @@ else
     }
     @if (receipt.Open != 0 && selection is not null)
     {
-        <h3>Position hinzufügen</h3>
-        <EditForm Model="position" OnValidSubmit="AddItemAsync" novalidate>
-            <DataAnnotationsValidator />
-            <CostItemEditor Position="position" Options="selection" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Position hinzufügen</MudButton>
-        </EditForm>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddItemAsync">Position hinzufügen</MudButton>
     }
 </section>
             </MudTabPanel>
@@ -236,7 +231,16 @@ else
 
     private Task SaveAsync() => ExecuteAsync(Receipts.UpdateAsync(Id, data), "Die Angaben wurden gespeichert.");
 
-    private Task AddItemAsync() => ExecuteAsync(Receipts.AddItemAsync(Id, position), "Die Position wurde hinzugefügt.", () => position = new());
+    private async Task AddItemAsync()
+    {
+        position = new();
+        RenderFragment fields = @<CostItemEditor Position="position" Options="selection!" />;
+        if (await Dialogs.ShowFormAsync("Position hinzufügen", position, fields, () => Receipts.AddItemAsync(Id, position), "Position hinzufügen"))
+        {
+            Notify.Success("Die Position wurde hinzugefügt.");
+            await LoadAsync();
+        }
+    }
 
     private async Task EditCostItemAsync(CostItemView item)
     {

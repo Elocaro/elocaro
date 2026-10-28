@@ -3,6 +3,7 @@
 @using MudBlazor
 @inject ICpiService Admin
 @inject Notifier Notify
+@inject IDialogService Dialogs
 
 <InteractiveShell>
     <PageHeader Title="Verbraucherpreisindex" Subtitle="Monatswerte für Indexmieten (Destatis, Basis 2020 = 100, Tabelle 61111-0002)." />
@@ -10,25 +11,16 @@
     <ErrorList Errors="errors" />
 
     <section>
-        <h2>Wert erfassen</h2>
-        <EditForm Model="input" OnValidSubmit="SaveAsync" novalidate class="form-row">
-            <DataAnnotationsValidator />
-            <AppMonthField @bind-Value="input.Month" Label="Monat" Required="true" />
-            <AppNumberField T="decimal?" @bind-Value="input.Value" Label="Indexwert" Required="true" Hint="z. B. 121,7" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-        </EditForm>
-    </section>
-
-    <section>
-        <h2>Import</h2>
+        <h2>Werte pflegen</h2>
         <p class="small">
-            In <a href="https://www-genesis.destatis.de/datenbank/online/table/61111-0002" rel="noopener" target="_blank">GENESIS-Online, Tabelle 61111-0002</a>
-            die Monatswerte als CSV herunterladen und den Inhalt hier einfügen. Vorhandene Monate werden aktualisiert.
+            Einzelne Monatswerte tragen Sie von Hand ein. Mehrere Monate lassen sich aus
+            <a href="https://www-genesis.destatis.de/datenbank/online/table/61111-0002" rel="noopener" target="_blank">GENESIS-Online, Tabelle 61111-0002</a>
+            als CSV importieren; vorhandene Monate werden aktualisiert.
         </p>
-        <EditForm Model="import" OnValidSubmit="ImportAsync" novalidate>
-            <AppTextField @bind-Value="import.Csv" Label="CSV-Inhalt" Lines="6" Placeholder="2026;Januar;121,2" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Importieren</MudButton>
-        </EditForm>
+        <div class="form-row">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Wert erfassen</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="ImportAsync">CSV importieren</MudButton>
+        </div>
     </section>
 
     <section>
@@ -68,36 +60,46 @@
 
     private async Task SaveAsync()
     {
-        if (!DateOnly.TryParseExact(input.Month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var month))
-        {
-            errors = ["Bitte einen Monat wählen."];
-            return;
-        }
-
-        var result = await Admin.SetAsync(month, input.Value!.Value);
-        errors = result.Succeeded ? null : result.Errors;
-        if (result.Succeeded)
+        input = new();
+        RenderFragment fields = @<text>
+            <AppMonthField @bind-Value="input.Month" Label="Monat" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="input.Value" Label="Indexwert" Required="true" Hint="z. B. 121,7" />
+        </text>;
+        if (await Dialogs.ShowFormAsync("Indexwert erfassen", input, fields, SetValueAsync))
         {
             Notify.Success("Der Indexwert wurde gespeichert.");
-            input = new();
             values = await Admin.ListAsync();
         }
     }
 
-    private async Task ImportAsync()
+    private Task<Result> SetValueAsync()
     {
-        var result = await Admin.ImportAsync(import.Csv ?? "");
-        var message = $"Import: {result.Added} neu, {result.Modified} geändert, {result.Unchanged} unverändert.";
-        values = await Admin.ListAsync();
-        if (result.Errors.Count > 0)
+        if (!DateOnly.TryParseExact(input.Month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var month))
         {
-            errors = [message, .. result.Errors];
-            return;
+            return Task.FromResult(new Result(false, ["Bitte einen Monat wählen."]));
         }
 
-        errors = null;
-        Notify.Success(message);
+        return Admin.SetAsync(month, input.Value!.Value);
+    }
+
+    private async Task ImportAsync()
+    {
         import = new();
+        RenderFragment fields = @<AppTextField @bind-Value="import.Csv" Label="CSV-Inhalt" Lines="6" Placeholder="2026;Januar;121,2" />;
+        RenderFragment note = @<p class="small">Die Monatswerte aus GENESIS-Online als CSV herunterladen und den Inhalt einfügen.</p>;
+        string? summary = null;
+        var imported = await Dialogs.ShowFormAsync("CSV importieren", import, fields, async () =>
+        {
+            var result = await Admin.ImportAsync(import.Csv ?? "");
+            summary = $"Import: {result.Added} neu, {result.Modified} geändert, {result.Unchanged} unverändert.";
+            return result.Errors.Count > 0 ? new Result(false, [summary, .. result.Errors]) : new Result(true, []);
+        }, "Importieren", note);
+        values = await Admin.ListAsync();
+        if (imported && summary is not null)
+        {
+            errors = null;
+            Notify.Success(summary);
+        }
     }
 
     private sealed class CpiInput

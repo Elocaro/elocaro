@@ -60,27 +60,30 @@ public class ReceiptsBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
 
             // First position: tradesman/household service with labor costs.
             await OpenTabAsync(page, "Kostenaufteilung");
-            await SelectAsync(page, "Kostenart", "14. Hauswart", exact: false);
-            await SelectAsync(page, "Objekt", "Lindenweg 3");
-            await page.GetByLabel("Betrag", new() { Exact = true }).FillAsync("357");
-            await SelectAsync(page, "§ 35a EStG", "Haushaltsnahe Dienstleistung");
-            await page.GetByLabel("davon Arbeitskosten").FillAsync("357");
             await page.GetByRole(AriaRole.Button, new() { Name = "Position hinzufügen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await SelectAsync(page, "Kostenart", "14. Hauswart", dialog, exact: false);
+            await SelectAsync(page, "Objekt", "Lindenweg 3", dialog);
+            await dialog.GetByLabel("Betrag", new() { Exact = true }).FillAsync("357");
+            await SelectAsync(page, "§ 35a EStG", "Haushaltsnahe Dienstleistung", dialog);
+            await dialog.GetByLabel("davon Arbeitskosten").FillAsync("357");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Position hinzufügen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Position wurde hinzugefügt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Noch 238,00 € nicht aufgeteilt");
 
             // More than what is left is refused; without an amount the rest is taken.
-            await SelectAsync(page, "Kostenart", "10. Gartenpflege", exact: false);
-            await SelectAsync(page, "Objekt", "Lindenweg 3");
-            await page.GetByLabel("Betrag", new() { Exact = true }).FillAsync("300");
             await page.GetByRole(AriaRole.Button, new() { Name = "Position hinzufügen" }).ClickAsync();
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("übersteigen den Rechnungsbetrag");
+            await SelectAsync(page, "Kostenart", "10. Gartenpflege", dialog, exact: false);
+            await SelectAsync(page, "Objekt", "Lindenweg 3", dialog);
+            await dialog.GetByLabel("Betrag", new() { Exact = true }).FillAsync("300");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Position hinzufügen" }).ClickAsync();
+            await Assertions.Expect(dialog).ToContainTextAsync("übersteigen den Rechnungsbetrag");
 
-            await page.GetByLabel("Betrag", new() { Exact = true }).FillAsync("");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Position hinzufügen" }).ClickAsync();
+            await dialog.GetByLabel("Betrag", new() { Exact = true }).FillAsync("");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Position hinzufügen" }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("nicht aufgeteilt");
             await Assertions.Expect(page.Locator("tfoot")).ToContainTextAsync("595,00 €");
-            await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Position hinzufügen" })).ToHaveCountAsync(0); // fully allocated
+            await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Position hinzufügen" })).ToHaveCountAsync(0); // fully allocated
         });
     }
 

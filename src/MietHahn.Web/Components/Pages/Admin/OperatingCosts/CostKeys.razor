@@ -1,4 +1,5 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/umlageschluessel"
+@inject IDialogService Dialogs
 @inject ICostAllocation Allocation
 @rendermode InteractiveServer
 @using MudBlazor
@@ -154,14 +155,7 @@ else
                 </table>
             </div>
     }
-    <EditForm Model="Subtype" OnValidSubmit="AddSubtypeAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppSelect T="string" @bind-Value="Subtype.CostType" Label="Kostenart" Required="true" Items="overview.Rows.Select(r => r.CostType).ToList()" Text="@(t => CostTypeName(t))" EmptyText="– bitte wählen –" />
-            <AppTextField @bind-Value="Subtype.Name" Label="Name der Unterart" Required="true" />
-        </div>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Unterart anlegen</MudButton>
-    </EditForm>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddSubtypeAsync">Unterart anlegen</MudButton>
 </section>
 </MudTabPanel>
 </MudTabs>
@@ -258,9 +252,15 @@ else
 
     private async Task AddSubtypeAsync()
     {
-        if (await DoneAsync(await Subtypes.AddAsync(Subtype.CostType, Subtype.Name), "Die Unterart wurde angelegt."))
+        Subtype = new();
+        RenderFragment fields = @<text>
+            <AppSelect T="string" @bind-Value="Subtype.CostType" Label="Kostenart" Required="true" Items="overview!.Rows.Select(r => r.CostType).ToList()" Text="@(t => CostTypeName(t))" EmptyText="– bitte wählen –" />
+            <AppTextField @bind-Value="Subtype.Name" Label="Name der Unterart" Required="true" />
+        </text>;
+        if (await Dialogs.ShowFormAsync("Unterart anlegen", Subtype, fields, () => Subtypes.AddAsync(Subtype.CostType, Subtype.Name), "Unterart anlegen"))
         {
-            Subtype = new();
+            Notify.Success("Die Unterart wurde angelegt.");
+            await LoadAsync();
         }
     }
 

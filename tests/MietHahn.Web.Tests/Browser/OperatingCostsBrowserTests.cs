@@ -87,9 +87,11 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
 
             await page.GetByRole(AriaRole.Tab, new() { Name = "Unterarten" }).ClickAsync();
             var subtypes = page.Locator("#subtypes");
-            await SelectAsync(page, "Kostenart", "13.", subtypes, exact: false);
-            await subtypes.GetByLabel("Name der Unterart").FillAsync("Gebäudeversicherung");
             await subtypes.GetByRole(AriaRole.Button, new() { Name = "Unterart anlegen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await SelectAsync(page, "Kostenart", "13.", dialog, exact: false);
+            await dialog.GetByLabel("Name der Unterart").FillAsync("Gebäudeversicherung");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Unterart anlegen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Unterart wurde angelegt.");
 
             await page.GetByRole(AriaRole.Button, new() { Name = "Gebäudeversicherung entfernen" }).ClickAsync();

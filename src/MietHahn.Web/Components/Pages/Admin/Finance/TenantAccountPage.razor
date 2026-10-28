@@ -109,32 +109,13 @@ else
             <section>
                 <h2>Zahlung erfassen</h2>
                 <p class="help">Für Zahlungen, die nicht über den Bankimport kommen (Barzahlung, Überweisung auf ein anderes Konto). Ohne Auswahl bei „Zahlt auf“ wird nach der eingestellten Verrechnung gebucht.</p>
-                <EditForm Model="payment" OnValidSubmit="PaymentAsync" novalidate>
-                    <DataAnnotationsValidator />
-                    <div class="form-grid">
-                        <AppDateField @bind-Value="payment.Date" Label="Datum" Required="true" />
-                        <AppNumberField T="decimal?" @bind-Value="payment.Amount" Label="Betrag" Suffix="€" Required="true" />
-                        <AppTextField @bind-Value="payment.Purpose" Label="Verwendungszweck" />
-                        <AppSelect T="Guid?" @bind-Value="payment.ChargeId" Label="Zahlt auf (optional)" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“)." Items="openChargeIds" Text="ChargeText" EmptyText="– automatisch verrechnen –" />
-                    </div>
-                    <AppCheckBox @bind-Value="payment.Payout" Label="Auszahlung an den Mieter (z. B. Guthaben überwiesen)" />
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zahlung buchen</MudButton>
-                </EditForm>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PaymentAsync">Zahlung erfassen</MudButton>
             </section>
 
             <section>
                 <h2>Sonstige Forderung oder Gutschrift</h2>
                 <p class="help">Einmalige Posten außerhalb der Monatsmiete, z. B. eine Nachzahlung aus der Nebenkostenabrechnung, Schadenersatz oder eine Erstattung.</p>
-                <EditForm Model="charge" OnValidSubmit="ChargeAsync" novalidate>
-                    <DataAnnotationsValidator />
-                    <div class="form-grid">
-                        <AppSelect @bind-Value="charge.Kind" Label="Art" Items="Enum.GetValues<ChargeType>().Where(a => a != ChargeType.Rent).ToList()" Text="@(v => Labels.From(v))" />
-                        <AppDateField @bind-Value="charge.Due" Label="Fällig am" Required="true" />
-                        <AppNumberField T="decimal?" @bind-Value="charge.Amount" Label="Betrag" Suffix="€" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht." />
-                        <AppTextField @bind-Value="charge.Name" Label="Bezeichnung" Hint="z. B. „Nachzahlung Betriebskosten 2025“" />
-                    </div>
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Buchen</MudButton>
-                </EditForm>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ChargeAsync">Forderung oder Gutschrift buchen</MudButton>
             </section>
         </MudTabPanel>
 
@@ -204,14 +185,7 @@ else
                         <p class="small">Keine aktive Mahnsperre. Mit einer Sperre (z. B. Ratenvereinbarung) gibt es keine Mahnvorschläge für dieses Mietverhältnis.</p>
                     }
 
-                    <EditForm Model="hold" OnValidSubmit="HoldAsync" novalidate>
-                        <DataAnnotationsValidator />
-                        <div class="form-grid">
-                            <AppTextField @bind-Value="hold.Reason" Label="Grund" Required="true" />
-                            <AppDateField @bind-Value="hold.Until" Label="Bis (optional)" Hint="Leer = bis zur Aufhebung." />
-                        </div>
-                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Mahnsperre setzen</MudButton>
-                    </EditForm>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="HoldAsync">Mahnsperre setzen</MudButton>
                 }
             </section>
         </MudTabPanel>
@@ -301,11 +275,49 @@ else
         await LoadAsync();
     }
 
-    private Task PaymentAsync() => ExecuteAsync(Accounts.RecordPaymentAsync(Id, payment), "Die Zahlung wurde gebucht.", () => payment = new());
+    private async Task PaymentAsync()
+    {
+        payment = new();
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="payment.Date" Label="Datum" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="payment.Amount" Label="Betrag" Suffix="€" Required="true" />
+            <AppTextField @bind-Value="payment.Purpose" Label="Verwendungszweck" />
+            <AppSelect T="Guid?" @bind-Value="payment.ChargeId" Label="Zahlt auf (optional)" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“)." Items="openChargeIds" Text="ChargeText" EmptyText="– automatisch verrechnen –" />
+            <AppCheckBox @bind-Value="payment.Payout" Label="Auszahlung an den Mieter (z. B. Guthaben überwiesen)" />
+        </text>;
+        await ShowFormAsync("Zahlung erfassen", payment, fields, () => Accounts.RecordPaymentAsync(Id, payment), "Die Zahlung wurde gebucht.", "Zahlung buchen");
+    }
 
-    private Task ChargeAsync() => ExecuteAsync(Accounts.CreateChargeAsync(Id, charge), "Die Buchung wurde angelegt.", () => charge = new());
+    private async Task ShowFormAsync(string title, object model, RenderFragment fields, Func<Task<Result>> save, string success, string submit = "Buchen")
+    {
+        if (await Dialogs.ShowFormAsync(title, model, fields, save, submit))
+        {
+            Notify.Success(success);
+            await LoadAsync();
+        }
+    }
 
-    private Task HoldAsync() => ExecuteAsync(Dunning.AddHoldAsync(Id, hold), "Die Mahnsperre wurde gesetzt.", () => hold = new());
+    private async Task ChargeAsync()
+    {
+        charge = new();
+        RenderFragment fields = @<text>
+            <AppSelect @bind-Value="charge.Kind" Label="Art" Items="Enum.GetValues<ChargeType>().Where(a => a != ChargeType.Rent).ToList()" Text="@(v => Labels.From(v))" />
+            <AppDateField @bind-Value="charge.Due" Label="Fällig am" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="charge.Amount" Label="Betrag" Suffix="€" Required="true" Hint="Immer positiv, eine Erstattung wird als Guthaben gebucht." />
+            <AppTextField @bind-Value="charge.Name" Label="Bezeichnung" Hint="z. B. „Nachzahlung Betriebskosten 2025“" />
+        </text>;
+        await ShowFormAsync("Sonstige Forderung oder Gutschrift", charge, fields, () => Accounts.CreateChargeAsync(Id, charge), "Die Buchung wurde angelegt.");
+    }
+
+    private async Task HoldAsync()
+    {
+        hold = new();
+        RenderFragment fields = @<text>
+            <AppTextField @bind-Value="hold.Reason" Label="Grund" Required="true" />
+            <AppDateField @bind-Value="hold.Until" Label="Bis (optional)" Hint="Leer = bis zur Aufhebung." />
+        </text>;
+        await ShowFormAsync("Mahnsperre setzen", hold, fields, () => Dunning.AddHoldAsync(Id, hold), "Die Mahnsperre wurde gesetzt.", "Mahnsperre setzen");
+    }
 
     private async Task EndHoldAsync(DunningHoldRow row)
     {

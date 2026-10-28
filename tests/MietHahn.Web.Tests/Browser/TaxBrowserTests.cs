@@ -48,17 +48,20 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
 
             await OpenTabAsync(page, "Unterlagen der Bank");
             var section = page.Locator("section", new() { HasText = "Jahreszinsbescheinigung" });
-            await SelectAsync(page, "Jahr", "2024", section);
-            await section.GetByLabel("Zinsen laut Bescheinigung").FillAsync("6543,21");
-            await section.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
+            await section.GetByRole(AriaRole.Button, new() { Name = "Bescheinigung erfassen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await SelectAsync(page, "Jahr", "2024", dialog);
+            await dialog.GetByLabel("Zinsen laut Bescheinigung").FillAsync("6543,21");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Bescheinigung wurde gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("6.543,21");
 
             await OpenTabAsync(page, "Zahlungen & Kosten");
             var extra = page.Locator("section", new() { HasText = "Sondertilgungen" });
-            await extra.GetByLabel("Datum").FillAsync("01.06.2024");
-            await extra.GetByLabel("Betrag").FillAsync("5000");
-            await extra.GetByRole(AriaRole.Button, new() { Name = "Hinzufügen" }).ClickAsync();
+            await extra.GetByRole(AriaRole.Button, new() { Name = "Sondertilgung hinzufügen" }).ClickAsync();
+            await dialog.GetByLabel("Datum").FillAsync("01.06.2024");
+            await dialog.GetByLabel("Betrag").FillAsync("5000");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Hinzufügen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Sondertilgung wurde hinzugefügt.");
 
             await OpenTabAsync(page, "Unterlagen der Bank");

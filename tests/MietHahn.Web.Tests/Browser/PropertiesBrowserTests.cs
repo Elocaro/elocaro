@@ -63,17 +63,20 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await OpenTabAsync(page, "Eigentümer");
-            await SelectAsync(page, "Person", "Anna Schmidt", exact: false);
-            await page.GetByLabel("Anteil").FillAsync("60");
             await page.GetByRole(AriaRole.Button, new() { Name = "Eigentümer hinzufügen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await SelectAsync(page, "Person", "Anna Schmidt", dialog, exact: false);
+            await dialog.GetByLabel("Anteil").FillAsync("60");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Eigentümer hinzufügen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Eigentümer wurde eingetragen.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("60 %");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("ergeben zusammen 60 % statt 100 %");
 
-            await SelectAsync(page, "Person", "Ben Weber", exact: false);
-            await page.GetByLabel("Anteil").FillAsync("50");
             await page.GetByRole(AriaRole.Button, new() { Name = "Eigentümer hinzufügen" }).ClickAsync();
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("mehr als 100 %");
+            await SelectAsync(page, "Person", "Ben Weber", dialog, exact: false);
+            await dialog.GetByLabel("Anteil").FillAsync("50");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Eigentümer hinzufügen" }).ClickAsync();
+            await Assertions.Expect(dialog).ToContainTextAsync("mehr als 100 %");
         });
     }
 

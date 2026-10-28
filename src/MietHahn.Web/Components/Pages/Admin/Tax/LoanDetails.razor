@@ -4,6 +4,7 @@
 @inject ILoanService Admin
 @inject IPropertyService Properties
 @inject Notifier Notify
+@inject IDialogService Dialogs
 @inject Confirmations Confirm
 
 <InteractiveShell>
@@ -123,7 +124,7 @@ else
                                     <tr>
                                         <td>@Format.Date(extra.Date)</td>
                                         <td class="number">@Format.Money(extra.Amount)</td>
-                                        <td><MudButton Variant="Variant.Text" OnClick="() => EditExtra(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveExtraAsync(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")">Entfernen</MudButton></td>
+                                        <td><MudButton Variant="Variant.Text" OnClick="() => EditExtraAsync(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveExtraAsync(extra)" aria-label="@($"Sondertilgung vom {Format.Date(extra.Date)} entfernen")">Entfernen</MudButton></td>
                                     </tr>
                                 }
                             </tbody>
@@ -131,18 +132,7 @@ else
                     </div>
             }
 
-            <EditForm Model="Extra" OnValidSubmit="AddExtraAsync" novalidate>
-                <DataAnnotationsValidator />
-                <div class="form-grid">
-                    <AppDateField @bind-Value="Extra.Date" Label="Datum" Required="true" />
-                    <AppNumberField T="decimal?" @bind-Value="Extra.Amount" Label="Betrag" Suffix="€" Required="true" />
-                </div>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editingExtra is null ? "Hinzufügen" : "Änderung speichern")</MudButton>
-                @if (editingExtra is not null)
-                {
-                    <MudButton Variant="Variant.Text" OnClick="() => { editingExtra = null; Extra = new(); }">Abbrechen</MudButton>
-                }
-            </EditForm>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddExtraAsync">Sondertilgung hinzufügen</MudButton>
         </section>
 
         <section>
@@ -161,7 +151,7 @@ else
                                         <td>@KindText(cost.Kind)</td>
                                         <td>@cost.Description</td>
                                         <td class="number">@Format.Money(cost.Amount)</td>
-                                        <td><MudButton Variant="Variant.Text" OnClick="() => EditCost(cost)" aria-label="@($"{cost.Description} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
+                                        <td><MudButton Variant="Variant.Text" OnClick="() => EditCostAsync(cost)" aria-label="@($"{cost.Description} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
                                     </tr>
                                 }
                             </tbody>
@@ -169,20 +159,7 @@ else
                     </div>
             }
 
-            <EditForm Model="Cost" OnValidSubmit="AddCostAsync" novalidate>
-                <DataAnnotationsValidator />
-                <div class="form-grid">
-                    <AppDateField @bind-Value="Cost.Date" Label="Datum" Required="true" />
-                    <AppSelect T="FinancingCostKind" @bind-Value="Cost.Kind" Label="Art" Items="Enum.GetValues<FinancingCostKind>()" Text="KindText" />
-                    <AppNumberField T="decimal?" @bind-Value="Cost.Amount" Label="Betrag" Suffix="€" Required="true" />
-                    <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
-                </div>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editingCost is null ? "Hinzufügen" : "Änderung speichern")</MudButton>
-                @if (editingCost is not null)
-                {
-                    <MudButton Variant="Variant.Text" OnClick="() => { editingCost = null; Cost = new(); }">Abbrechen</MudButton>
-                }
-            </EditForm>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddCostAsync">Kosten hinzufügen</MudButton>
         </section>
     </MudTabPanel>
 
@@ -248,15 +225,7 @@ else
                     </div>
             }
 
-            <EditForm Model="Certificate" OnValidSubmit="SaveCertificateAsync" novalidate>
-                <DataAnnotationsValidator />
-                <div class="form-grid">
-                    <AppYearSelect T="int?" @bind-Value="Certificate.Year" Label="Jahr" Required="true" />
-                    <AppNumberField T="decimal?" @bind-Value="Certificate.Interest" Label="Zinsen laut Bescheinigung" Suffix="€" Required="true" />
-                    <AppNumberField T="decimal?" @bind-Value="Certificate.ClosingBalance" Label="Restschuld zum 31.12." Suffix="€" />
-                </div>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-            </EditForm>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="SaveCertificateAsync">Bescheinigung erfassen</MudButton>
         </section>
     </MudTabPanel>
 
@@ -331,9 +300,21 @@ else
 
     private async Task SaveCertificateAsync()
     {
-        if (await ExecuteAsync(Admin.SaveCertificateAsync(LoanId, Certificate), "Die Bescheinigung wurde gespeichert."))
+        Certificate = new();
+        RenderFragment fields = @<text>
+            <AppYearSelect T="int?" @bind-Value="Certificate.Year" Label="Jahr" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Certificate.Interest" Label="Zinsen laut Bescheinigung" Suffix="€" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Certificate.ClosingBalance" Label="Restschuld zum 31.12." Suffix="€" />
+        </text>;
+        await ShowFormAsync("Jahreszinsbescheinigung erfassen", Certificate, fields, () => Admin.SaveCertificateAsync(LoanId, Certificate), "Die Bescheinigung wurde gespeichert.");
+    }
+
+    private async Task ShowFormAsync(string title, object model, RenderFragment fields, Func<Task<Result>> save, string success, string submit = "Speichern")
+    {
+        if (await Dialogs.ShowFormAsync(title, model, fields, save, submit))
         {
-            Certificate = new();
+            Notify.Success(success);
+            await LoadAsync();
         }
     }
 
@@ -345,28 +326,34 @@ else
         }
     }
 
-    private Guid? editingExtra;
-    private Guid? editingCost;
 
-    private void EditExtra(ExtraPaymentRow item)
+    private async Task EditExtraAsync(ExtraPaymentRow item)
     {
-        editingExtra = item.Id;
         Extra = new ExtraPaymentInput { Date = item.Date, Amount = item.Amount };
+        await ShowExtraAsync(item.Id);
     }
 
-    private void EditCost(FinancingCostRow item)
+    private async Task EditCostAsync(FinancingCostRow item)
     {
-        editingCost = item.Id;
         Cost = new FinancingCostInput { Date = item.Date, Amount = item.Amount, Kind = item.Kind, Description = item.Description };
+        await ShowCostAsync(item.Id);
     }
 
     private async Task AddExtraAsync()
     {
-        if (await ExecuteAsync(editingExtra is { } id ? Admin.UpdateExtraPaymentAsync(LoanId, id, Extra) : Admin.AddExtraPaymentAsync(LoanId, Extra), editingExtra is null ? "Die Sondertilgung wurde hinzugefügt." : "Die Sondertilgung wurde gespeichert."))
-        {
-            editingExtra = null;
-            Extra = new();
-        }
+        Extra = new();
+        await ShowExtraAsync(null);
+    }
+
+    private async Task ShowExtraAsync(Guid? id)
+    {
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="Extra.Date" Label="Datum" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Extra.Amount" Label="Betrag" Suffix="€" Required="true" />
+        </text>;
+        await ShowFormAsync(id is null ? "Sondertilgung hinzufügen" : "Sondertilgung bearbeiten", Extra, fields,
+            () => id is { } existing ? Admin.UpdateExtraPaymentAsync(LoanId, existing, Extra) : Admin.AddExtraPaymentAsync(LoanId, Extra),
+            id is null ? "Die Sondertilgung wurde hinzugefügt." : "Die Sondertilgung wurde gespeichert.", id is null ? "Hinzufügen" : "Änderung speichern");
     }
 
     private async Task RemoveExtraAsync(ExtraPaymentRow item)
@@ -379,11 +366,21 @@ else
 
     private async Task AddCostAsync()
     {
-        if (await ExecuteAsync(editingCost is { } id ? Admin.UpdateFinancingCostAsync(LoanId, id, Cost) : Admin.AddFinancingCostAsync(LoanId, Cost), editingCost is null ? "Die Kosten wurden hinzugefügt." : "Die Kosten wurden gespeichert."))
-        {
-            editingCost = null;
-            Cost = new();
-        }
+        Cost = new();
+        await ShowCostAsync(null);
+    }
+
+    private async Task ShowCostAsync(Guid? id)
+    {
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="Cost.Date" Label="Datum" Required="true" />
+            <AppSelect T="FinancingCostKind" @bind-Value="Cost.Kind" Label="Art" Items="Enum.GetValues<FinancingCostKind>()" Text="KindText" />
+            <AppNumberField T="decimal?" @bind-Value="Cost.Amount" Label="Betrag" Suffix="€" Required="true" />
+            <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
+        </text>;
+        await ShowFormAsync(id is null ? "Finanzierungskosten hinzufügen" : "Finanzierungskosten bearbeiten", Cost, fields,
+            () => id is { } existing ? Admin.UpdateFinancingCostAsync(LoanId, existing, Cost) : Admin.AddFinancingCostAsync(LoanId, Cost),
+            id is null ? "Die Kosten wurden hinzugefügt." : "Die Kosten wurden gespeichert.", id is null ? "Hinzufügen" : "Änderung speichern");
     }
 
     private async Task RemoveCostAsync(FinancingCostRow item)

@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @using MietHahn.Application.Documents
+@inject IDialogService Dialogs
 @inject IDeadlines Admin
 @inject IPropertyService Properties
 @inject IDocumentLibrary Library
@@ -37,16 +38,7 @@ else
         <section>
             <h2>Als erledigt eintragen</h2>
             <p class="small">@(detail.Task.IntervalMonths == 0 ? "Die einmalige Wartung ist danach abgeschlossen." : "Die nächste Fälligkeit rückt um den Abstand weiter.")</p>
-            <EditForm Model="completion" OnValidSubmit="CompleteAsync" novalidate>
-                <DataAnnotationsValidator />
-                <div class="form-grid">
-                    <AppDateField @bind-Value="completion.DoneOn" Label="Erledigt am" Required="true" />
-                    <OptionSelect @bind-Value="completion.DocumentId" Label="Nachweis (Dokument)" Options="documents" />
-                </div>
-                <p class="small">Den Nachweis (Rechnung, Protokoll) vorher unter <a href="/verwaltung/dokumente/neu">Dokumente</a> ablegen.</p>
-                <AppTextField @bind-Value="completion.Note" Label="Notiz" Lines="2" />
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Erledigt</MudButton>
-            </EditForm>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CompleteAsync">Als erledigt eintragen</MudButton>
         </section>
     }
 
@@ -124,9 +116,17 @@ else
 
     private async Task CompleteAsync()
     {
-        if (await ExecuteAsync(Admin.CompleteTaskAsync(TaskId, completion), "Die Wartung wurde als erledigt eingetragen."))
+        completion = new() { DoneOn = GermanTime.Today(Clock.GetUtcNow()) };
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="completion.DoneOn" Label="Erledigt am" Required="true" />
+            <OptionSelect @bind-Value="completion.DocumentId" Label="Nachweis (Dokument)" Options="documents" />
+            <AppTextField @bind-Value="completion.Note" Label="Notiz" Lines="2" />
+        </text>;
+        RenderFragment note = @<p class="small">Den Nachweis (Rechnung, Protokoll) vorher unter <a href="/verwaltung/dokumente/neu">Dokumente</a> ablegen.</p>;
+        if (await Dialogs.ShowFormAsync("Als erledigt eintragen", completion, fields, () => Admin.CompleteTaskAsync(TaskId, completion), "Erledigt", note))
         {
-            completion = new() { DoneOn = GermanTime.Today(Clock.GetUtcNow()) };
+            Notify.Success("Die Wartung wurde als erledigt eingetragen.");
+            await LoadAsync();
             Data = detail?.Input;
         }
     }

@@ -168,15 +168,18 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.GetByLabel("Monat").First.FillAsync("09.2026");
-            await page.GetByLabel("Indexwert").FillAsync("122,1");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Wert erfassen" }).ClickAsync();
+            await dialog.GetByLabel("Monat").FillAsync("09.2026");
+            await dialog.GetByLabel("Indexwert").FillAsync("122,1");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Indexwert wurde gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("September 2026");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("122,1");
 
-            await page.GetByLabel("CSV-Inhalt").FillAsync($"Jahr;Monat;Index\n{baseMonth:yyyy-MM};117,4\n{newMonth:yyyy-MM};121,7\n");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Importieren" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "CSV importieren" }).ClickAsync();
+            await dialog.GetByLabel("CSV-Inhalt").FillAsync($"Jahr;Monat;Index\n{baseMonth:yyyy-MM};117,4\n{newMonth:yyyy-MM};121,7\n");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Importieren" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Import: 2 neu");
 
             await GotoInteractiveAsync(page, $"/verwaltung/vertraege/{id}");
@@ -248,35 +251,27 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             var section = page.Locator("#deposit");
             await Assertions.Expect(section).ToContainTextAsync("noch offen: 1.950,00 €");
 
-            await section.GetByLabel("Datum").FillAsync(German(Today));
-            await section.GetByLabel("Betrag").FillAsync("650");
-            await section.GetByLabel("Hinweis").FillAsync("Rate 1");
-            await section.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await section.GetByRole(AriaRole.Button, new() { Name = "Buchung hinzufügen" }).ClickAsync();
+            await dialog.GetByLabel("Datum").FillAsync(German(Today));
+            await dialog.GetByLabel("Betrag").FillAsync("650");
+            await dialog.GetByLabel("Hinweis").FillAsync("Rate 1");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Kautionsbuchung wurde gespeichert.");
             await Assertions.Expect(section.Locator("#deposit-balance")).ToHaveTextAsync("650,00 €");
             await Assertions.Expect(section).ToContainTextAsync("noch offen: 1.300,00 €");
 
-            await SelectAsync(page, "Art", "Rückzahlung", section);
-            // Under load the form reset after the first booking can still overwrite the fields once; enter them again until the page follows.
-            for (var attempt = 1; ; attempt++)
-            {
-                await section.GetByLabel("Datum").FillAsync(German(Today));
-                await section.GetByLabel("Betrag").FillAsync("700");
-                await section.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
-                try
-                {
-                    await Assertions.Expect(section).ToContainTextAsync("Es sind nur 650,00 € Kaution vorhanden", new() { Timeout = 4000 });
-                    break;
-                }
-                catch (PlaywrightException) when (attempt < 3)
-                {
-                }
-            }
+            await section.GetByRole(AriaRole.Button, new() { Name = "Buchung hinzufügen" }).ClickAsync();
+            await SelectAsync(page, "Art", "Rückzahlung", dialog);
+            await dialog.GetByLabel("Datum").FillAsync(German(Today));
+            await dialog.GetByLabel("Betrag").FillAsync("700");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
+            await Assertions.Expect(dialog).ToContainTextAsync("Es sind nur 650,00 € Kaution vorhanden");
 
-            await SelectAsync(page, "Art", "Verrechnung", section);
-            await section.GetByLabel("Betrag").FillAsync("100");
-            await section.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
-            await Assertions.Expect(section).ToContainTextAsync("wogegen verrechnet wird");
+            await SelectAsync(page, "Art", "Verrechnung", dialog);
+            await dialog.GetByLabel("Betrag").FillAsync("100");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
+            await Assertions.Expect(dialog).ToContainTextAsync("wogegen verrechnet wird");
         });
     }
 }

@@ -68,17 +68,7 @@
             </div>
         }
 
-        <h3>Buchung hinzufügen</h3>
-        <EditForm Model="input" OnValidSubmit="AddAsync" novalidate>
-            <DataAnnotationsValidator />
-            <div class="form-grid">
-                <AppSelect @bind-Value="input.Kind" Label="Art" Items="Enum.GetValues<DepositEntryKind>()" Text="@(v => Labels.From(v))" />
-                <AppDateField @bind-Value="input.Date" Label="Datum" Required="true" />
-                <AppNumberField T="decimal?" @bind-Value="input.Amount" Label="Betrag" Suffix="€" Required="true" />
-                <AppTextField @bind-Value="input.Note" Label="Hinweis" Hint="@(input.Kind == DepositEntryKind.Deduction ? "Wogegen wird verrechnet? (Pflicht)" : "z. B. „Rate 1“, „Sparbuch“")" />
-            </div>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Buchen</MudButton>
-        </EditForm>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddAsync">Buchung hinzufügen</MudButton>
     }
 </section>
 
@@ -94,17 +84,18 @@
 
     private async Task AddAsync()
     {
-        var result = await Deposits.AddAsync(LeaseId, input);
-        if (result.Succeeded)
+        input = new DepositEntryInput { Kind = input.Kind };
+        RenderFragment fields = @<text>
+            <AppSelect @bind-Value="input.Kind" Label="Art" Items="Enum.GetValues<DepositEntryKind>()" Text="@(v => Labels.From(v))" />
+            <AppDateField @bind-Value="input.Date" Label="Datum" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="input.Amount" Label="Betrag" Suffix="€" Required="true" />
+            <AppTextField @bind-Value="input.Note" Label="Hinweis" Hint="@(input.Kind == DepositEntryKind.Deduction ? "Wogegen wird verrechnet? (Pflicht)" : "z. B. „Rate 1“, „Sparbuch“")" />
+        </text>;
+        if (await Dialogs.ShowFormAsync("Kautionsbuchung hinzufügen", input, fields, () => Deposits.AddAsync(LeaseId, input), "Buchen"))
         {
             errors = null;
             Notify.Success("Die Kautionsbuchung wurde gespeichert.");
-            input = new DepositEntryInput { Kind = input.Kind };
             view = await Deposits.GetAsync(LeaseId);
-        }
-        else
-        {
-            errors = result.Errors;
         }
     }
 
