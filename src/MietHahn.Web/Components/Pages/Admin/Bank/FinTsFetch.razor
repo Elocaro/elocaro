@@ -13,7 +13,10 @@
     }
     else
     {
-        <p class="small">Die Bank verlangt aus Sicherheitsgründen etwa alle 90 Tage wieder eine TAN oder Freigabe in der Banking-App. Verfahren mit Bild (photoTAN, QR) werden noch nicht unterstützt: dann eine Freigabe-App der Bank nutzen oder die Umsatzdatei importieren.</p>
+        <details class="explain">
+            <summary>Wann wird eine TAN verlangt?</summary>
+            <p class="small">Die Bank verlangt aus Sicherheitsgründen etwa alle 90 Tage wieder eine TAN oder Freigabe in der Banking-App. Verfahren mit Bild (photoTAN, QR) werden noch nicht unterstützt: dann eine Freigabe-App der Bank nutzen oder die Umsatzdatei importieren.</p>
+        </details>
         <ErrorList Errors="errors" />
         @switch (state?.Phase)
         {
@@ -50,7 +53,10 @@
                     </div>
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Umsätze abrufen</MudButton>
                 </EditForm>
-                <p class="small">Die abgerufenen Umsätze erscheinen zuerst in einer Vorschau und werden erst nach Bestätigung übernommen. Nach einem Fehlversuch mit der PIN wird nicht erneut versucht, damit das Konto nicht gesperrt wird.</p>
+                <details class="explain">
+                    <summary>Was passiert mit den abgerufenen Umsätzen?</summary>
+                    <p class="small">Die abgerufenen Umsätze erscheinen zuerst in einer Vorschau und werden erst nach Bestätigung übernommen. Nach einem Fehlversuch mit der PIN wird nicht erneut versucht, damit das Konto nicht gesperrt wird.</p>
+                </details>
                 break;
         }
     }

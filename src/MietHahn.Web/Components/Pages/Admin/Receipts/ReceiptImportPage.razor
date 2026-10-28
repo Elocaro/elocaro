@@ -20,10 +20,13 @@ else
 {
     <PageHeader Title="Kassenbuch importieren" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name" />
 
-    <p class="small">
+    <details class="explain">
+        <summary>Aufbau der CSV-Datei</summary>
+        <p class="small">
         CSV-Datei mit den Spalten Datum, Gruppe, Empfänger, Betrag und Info (Excel: als CSV speichern). Jede Zeile wird ein Beleg mit einer Kostenposition für das ganze Jahr des Belegdatums.
         Ordnen Sie unten jede Gruppe einer Kostenart zu; Gruppen ohne Kostenart werden übersprungen. Zeilen mit gleichem Datum, Empfänger und Betrag gelten als schon erfasst.
     </p>
+    </details>
 
     <AppFileUpload Text="CSV-Datei wählen" Accept=".csv,.txt" OnSelected="SelectedAsync" />
     <ErrorList Errors="errors" />

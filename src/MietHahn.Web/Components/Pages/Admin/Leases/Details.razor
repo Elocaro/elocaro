@@ -231,7 +231,10 @@ else
 
 <section>
     <h2>Mietzeit korrigieren</h2>
-    <p class="small">Zum Beheben von Tippfehlern bei Mietbeginn und Befristung. Mietbestandteile und Personenanzahl, die zum alten Beginn oder Ende galten, wandern mit; die Monatsmieten werden neu berechnet.</p>
+    <details class="explain">
+        <summary>Wann korrigiere ich die Mietzeit?</summary>
+        <p class="small">Zum Beheben von Tippfehlern bei Mietbeginn und Befristung. Mietbestandteile und Personenanzahl, die zum alten Beginn oder Ende galten, wandern mit; die Monatsmieten werden neu berechnet.</p>
+    </details>
     <EditForm Model="term" OnValidSubmit="CorrectTermAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">

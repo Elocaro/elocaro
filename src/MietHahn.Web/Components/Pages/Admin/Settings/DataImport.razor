@@ -17,10 +17,13 @@
     {
         <section id="demo-data">
             <h2>Erst einmal ausprobieren?</h2>
-            <p class="help">
+            <details class="explain">
+                <summary>Was die Beispieldaten enthalten</summary>
+                <p class="help">
                 Die Beispieldaten legen ein Haus mit vier Wohnungen, drei Mieter mit unterschiedlichem Zahlungsverhalten und einen Beispiel-Vermieter an.
                 Das ist für eine Probe-Installation gedacht: Es gibt kein „Entfernen“. Zum Neuanfang wird die Datenbank geleert (siehe Betrieb).
             </p>
+            </details>
             <MudButton Variant="Variant.Outlined" OnClick="LoadDemoAsync" Disabled="busy" id="demo-start">Beispieldaten laden</MudButton>
         </section>
     }
@@ -35,11 +38,14 @@
 
     <section>
         <h2>1. Vorlage ausfüllen</h2>
-        <p class="help">
+        <details class="explain">
+            <summary>Aufbau der Tabelle</summary>
+            <p class="help">
             Eine Zeile je vermietete (oder leere) Einheit. Aus Excel speichern Sie die Tabelle als „CSV (Trennzeichen-getrennt)“.
             Pflicht sind nur Objekt und Einheit; Anschrift (nur beim ersten Auftreten eines neuen Objekts), Wohnfläche und die Angaben zum Mieter
             sind für einen vollständigen Bestand nötig. Der Saldo ist ein offener Betrag (positiv) oder ein Guthaben (negativ) aus der Zeit vor MietHahn. Optional und nur bei Bedarf: Mietmodell (Standard, Staffel, Index), Indexmonat (MM.JJJJ) und Indexwert, Staffeln (TT.MM.JJJJ=Betrag, mehrere mit | getrennt), Befristet bis und Personen.
         </p>
+        </details>
         <p><a class="button button-outlined" href="/verwaltung/einstellungen/import/vorlage.csv" download>Vorlage herunterladen (CSV)</a></p>
     </section>
 

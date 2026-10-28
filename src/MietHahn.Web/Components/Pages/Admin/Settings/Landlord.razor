@@ -20,7 +20,10 @@
 
             <a href="/verwaltung/einstellungen/vermieter?profil=neu" aria-current="@(creating ? "page" : null)">+ Weiteres Profil</a>
         </nav>
-        <p class="small">Das Standardprofil gilt für alle Objekte. Bei Miteigentum oder mehreren Vermietern lässt sich je Objekt ein anderes Profil wählen (Objekt → Angaben → „Absender auf Dokumenten“).</p>
+        <details class="explain">
+            <summary>Mehrere Vermieter</summary>
+            <p class="small">Das Standardprofil gilt für alle Objekte. Bei Miteigentum oder mehreren Vermietern lässt sich je Objekt ein anderes Profil wählen (Objekt → Angaben → „Absender auf Dokumenten“).</p>
+        </details>
     }
 
     @if (newItem)

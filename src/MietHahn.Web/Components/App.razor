@@ -23,9 +23,30 @@
 
 <body>
     <Routes />
+    @* Replaces Blazor's English default for a lost connection (see js/reconnect.js); the state classes come from the framework. *@
+    <dialog id="components-reconnect-modal" class="reconnect-modal" data-nosnippet aria-live="assertive">
+        <div class="reconnect-card">
+            <div class="reconnect-state reconnect-show reconnect-retrying">
+                <span class="reconnect-spinner" aria-hidden="true"></span>
+                <p class="reconnect-title">Verbindung unterbrochen</p>
+                <p class="reconnect-text">Die Verbindung zum Server wird wiederhergestellt. Eingaben, die noch nicht gespeichert wurden, bleiben so lange erhalten.</p>
+            </div>
+            <div class="reconnect-state reconnect-failed">
+                <p class="reconnect-title">Keine Verbindung</p>
+                <p class="reconnect-text">Der Server ist gerade nicht erreichbar. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.</p>
+                <button type="button" id="components-reconnect-button" class="button button-primary">Erneut versuchen</button>
+            </div>
+            <div class="reconnect-state reconnect-ended">
+                <p class="reconnect-title">Sitzung beendet</p>
+                <p class="reconnect-text">Die Sitzung ist abgelaufen oder der Server wurde neu gestartet. Laden Sie die Seite neu, um weiterzuarbeiten.</p>
+                <button type="button" id="components-reload-button" class="button button-primary">Seite neu laden</button>
+            </div>
+        </div>
+    </dialog>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["js/shell.js"]"></script>
+    <script src="@Assets["js/reconnect.js"]"></script>
     <script src="@Assets["js/pwa.js"]"></script>
 </body>
 

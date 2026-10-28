@@ -5,10 +5,13 @@
 
 <section id="landlord-history">
     <h2>Vermieter auf Dokumenten im Zeitverlauf</h2>
-    <p class="small">
+    <details class="explain">
+        <summary>Welches Vermieterprofil gilt?</summary>
+        <p class="small">
         Briefkopf, Bankverbindung und Absender der Dokumente dieses Objekts richten sich nach dem Vermieterprofil. Bei einem Eigentümer- oder Verwalterwechsel tragen Sie hier ein, ab wann welches Profil gilt;
         vorher gilt das am Objekt gewählte Profil (unter „Angaben“, sonst das Standardprofil). Die Profile pflegen Sie unter Einstellungen → Vermieter.
     </p>
+    </details>
     <ErrorList Errors="errors" />
     @if (history is not null)
     {

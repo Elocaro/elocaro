@@ -11,10 +11,13 @@
 
     <ErrorList Errors="errors" />
 
-    <p class="small">
+    <details class="explain">
+        <summary>Bevor Sie anonymisieren</summary>
+        <p class="small">
         MietHahn schlägt nur vor, gelöscht wird nichts automatisch. Vor dem Anonymisieren prüfen, ob noch Fristen laufen
         (z. B. offene Forderungen, Rechtsstreit). Eine Auskunft nach Art. 15 DSGVO gibt es in jeder Personenakte.
     </p>
+    </details>
 
     @if (suggestions is { Count: 0 })
     {

@@ -11,7 +11,7 @@
         </Actions>
     </PageHeader>
 
-        <MudTable T="UserOverview" Items="users" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+        <MudTable SortLabel="Sortieren nach" T="UserOverview" Items="users" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="UserOverview" SortBy="@(u => u.DisplayName)" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel></MudTh>
                 <MudTh>E-Mail</MudTh>

@@ -18,11 +18,14 @@ else
 {
     <PageHeader Title="Zählerstände importieren" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name" />
 
-    <p class="small">
+    <details class="explain">
+        <summary>Welche Dateien passen?</summary>
+        <p class="small">
         CSV-Export eines Funkablesesystems (z. B. von Techem, ista, Minol, Brunata oder Kamstrup). Die Spalten werden an der Kopfzeile erkannt:
         Zählernummer, Datum und Zählerstand. Die Zähler müssen im Objekt mit derselben Nummer angelegt sein. Ein Stand, der schon erfasst ist, wird übersprungen;
         rückwärts laufende Stände und Stände außerhalb der Einbauzeit werden nicht übernommen.
     </p>
+    </details>
 
     <AppFileUpload Text="CSV-Datei wählen" Accept=".csv,.txt" OnSelected="SelectedAsync" />
     <ErrorList Errors="errors" />

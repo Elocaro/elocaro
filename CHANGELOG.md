@@ -5,6 +5,11 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- Seltsam abgerundeter linker Rand an Listeneinträgen (z. B. Vertragsparteien): Die farbige Kante gibt es nur noch bei Dringlichkeit und Notfall und folgt der Rundung der Karte; neutrale Einträge haben keine mehr.
+- Lange Erklärabsätze (rund 40 Stellen, z. B. Kaution, Heizkosten, Anlage V, Importe) stehen jetzt in einklappbaren Abschnitten mit sprechender Überschrift statt als Textblock.
+- Meldung bei verlorener Verbindung (vorher Blazors englischer Standardtext „Rejoining the server …“): deutscher Dialog im App-Stil mit „Erneut versuchen“ und „Seite neu laden“ (`reconnect.js`).
+- Kalender der Datumsfelder, Auswahllisten und Menüs nutzen die Flächenfarbe der App statt reinem Weiß; der Kalenderkopf ist nicht mehr als Farbblock gestaltet.
+- Handy: Die Sortierauswahl der Kartenlisten heißt „Sortieren nach“ (vorher ohne Beschriftung).
 - Handy: Die Tab-Leisten der Detailseiten (z. B. Mietvertrag) lassen sich wischen; vorher ging es nur über die Pfeiltasten. Der aktive Tab bleibt sichtbar.
 - Tabellen: `MudTable` hat jetzt dieselbe Schriftgröße, denselben Zellabstand und dieselbe Kopfzeile wie die statischen Tabellen (vorher kleinere Schrift).
 - Tests: Testlauf von rund 8,5 auf 2,5 Minuten verkürzt (Vorlagen-Datenbank statt Migrationen je Test, ein gemeinsames Chromium, die langen Seiten-Durchläufe auf sechs parallele Klassen verteilt, 10 statt 4 parallele Threads).
@@ -19,7 +24,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ### Behoben
 - Navigation: Eine Gruppe mit nur einer sichtbaren Seite (z. B. Verträge, solange der Verbraucherpreisindex ausgeschaltet ist) zeigt keine zweite Tab-Zeile mit einem einzelnen Tab mehr.
-- Tabellen blitzten beim Seitenwechsel kurz hell auf, bevor MudBlazor seine dunkle Palette setzte; die Farben stehen jetzt von Anfang an in `app.css`.
+- Tabellen und Buttons blitzten beim Seitenwechsel kurz hell auf, bevor MudBlazor seine dunkle Palette setzte (beim Vorrendern lädt MudBlazor die helle Palette, solange nicht „Dunkel“ gewählt ist). Die Palette kommt jetzt aus den App-Tokens in `app.css` (`:root:root`, gespiegelt zu `M3Theme`) und gilt von der ersten Darstellung an.
 - Versorgungsvertrag: Beim Anlegen wurde der Umfang der Wohnungszähler „Nur gleiche Art“ nicht gespeichert, die Datenbank setzte stattdessen „Mit Warmwasser“ (fehlender Sentinel-Wert in der Modellkonfiguration; EF-Warnung beim Start). Die Abfrage-Aufteilung von EF Core ist jetzt ausdrücklich eingestellt (keine Warnung mehr).
 - Bausteine in Vorlagen: Der Inhalt eines mit `{{ include 'Name' }}` eingefügten Bausteins wurde HTML-maskiert, im Brief erschienen die Tags (`<p>`, `<br>`) als Text. Der Baustein-Text gilt jetzt als Teil der Vorlage, Werte darin (`{{ tenant_name }}`) bleiben maskiert; Bausteine, die im Kreis aufeinander verweisen, melden einen Fehler statt zu hängen.
 - Docker-Image: Das Blazor-Skript des Frameworks (`/_framework/blazor.web.js`) fehlte im veröffentlichten Image (404), weil die Paketwiederherstellung vor dem Kopieren der Quelltexte lief; dadurch funktionierte keine interaktive Seite (z. B. der Einrichtungsassistent: Optionen und „Weiter“ blieben ohne Wirkung, der Browser meldete `ERR_HTTP_RESPONSE_CODE_FAILURE`).

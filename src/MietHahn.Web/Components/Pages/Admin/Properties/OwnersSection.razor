@@ -10,7 +10,10 @@
 
 <section>
     <h2>Eigentümer und Anteile</h2>
-    <p class="small">Ohne Eintrag gehört das Objekt allein dem Vermieter. Bei Miteigentum nach Bruchteilen tragen Sie jeden Eigentümer mit seinem Anteil ein; die Anteile sollen zusammen 100 % ergeben.</p>
+    <details class="explain">
+        <summary>Miteigentum</summary>
+        <p class="small">Ohne Eintrag gehört das Objekt allein dem Vermieter. Bei Miteigentum nach Bruchteilen tragen Sie jeden Eigentümer mit seinem Anteil ein; die Anteile sollen zusammen 100 % ergeben.</p>
+    </details>
     <ErrorList Errors="errors" />
 
     @if (ownership is not null)

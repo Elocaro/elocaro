@@ -21,7 +21,10 @@
     <AppTextField @bind-Value="Data.Amenities" Label="Weitere Ausstattung" Lines="2" />
     <fieldset class="field">
         <legend>Von den Mietern selbst bezahlt</legend>
-        <p class="small">Kosten, die die Mieter dieser Wohnung direkt an den Versorger zahlen. Die Wohnung nimmt an der Umlage dieser Kostenart nicht teil, weder Mieter noch Vermieter tragen einen Anteil dafür.</p>
+        <details class="explain">
+            <summary>Direkt abgerechnete Kosten</summary>
+            <p class="small">Kosten, die die Mieter dieser Wohnung direkt an den Versorger zahlen. Die Wohnung nimmt an der Umlage dieser Kostenart nicht teil, weder Mieter noch Vermieter tragen einen Anteil dafür.</p>
+        </details>
         @foreach (var type in SelfPayable)
         {
             <AppCheckBox Value="Data.SelfPaidCostTypes.Contains(type.Key)" ValueChanged="@(v => TogglePaid(type.Key, v))" Label="@(type.BetrKvNumber is { } n ? $"{n}. {type.Name}" : type.Name)" />

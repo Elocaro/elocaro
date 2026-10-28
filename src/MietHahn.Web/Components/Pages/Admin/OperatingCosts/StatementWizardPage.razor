@@ -158,7 +158,10 @@ var result = w.Preview.Result;
             @if (result.FlatRates.Count > 0)
             {
                 <h3>Ist-Kosten gegen Pauschale (intern)</h3>
-                <p class="small">Grundlage für eine Erhöhung der Pauschale nach § 560 Abs. 1 BGB (Erklärung in Textform, wirksam zum Beginn des übernächsten Monats; Erhöhungen sind nur für die Zukunft möglich).</p>
+                <details class="explain">
+                    <summary>Erhöhung der Pauschale (§ 560 BGB)</summary>
+                    <p class="small">Grundlage für eine Erhöhung der Pauschale nach § 560 Abs. 1 BGB (Erklärung in Textform, wirksam zum Beginn des übernächsten Monats; Erhöhungen sind nur für die Zukunft möglich).</p>
+                </details>
                 <div class="table-wrapper">
                     <table class="data-table" id="flat-rates">
                         <thead><tr><th>Mieter</th><th class="number">Ist-Kosten</th><th class="number">Pauschale gezahlt</th><th class="number">Differenz</th><th class="number">Vorschlag je Monat</th></tr></thead>

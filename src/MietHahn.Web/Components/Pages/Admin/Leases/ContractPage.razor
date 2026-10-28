@@ -91,7 +91,10 @@ else
             <h2>Digitale Unterschrift</h2>
             @if (signatureRows.Count == 0)
             {
-                <p class="small">Jeder Mieter erhält einen persönlichen Link per E-Mail, liest den Entwurf und unterschreibt am Bildschirm (Name, optional gezeichnet). Wenn alle unterschrieben haben, wird der Vertrag mit einer Protokollseite (Zeitpunkt, IP-Adresse, Prüfsumme) als unterschrieben abgelegt.</p>
+                <details class="explain">
+                    <summary>So läuft die Unterschrift</summary>
+                    <p class="small">Jeder Mieter erhält einen persönlichen Link per E-Mail, liest den Entwurf und unterschreibt am Bildschirm (Name, optional gezeichnet). Wenn alle unterschrieben haben, wird der Vertrag mit einer Protokollseite (Zeitpunkt, IP-Adresse, Prüfsumme) als unterschrieben abgelegt.</p>
+                </details>
                 <Notice Level="NoticeLevel.Info">Das ist eine einfache elektronische Signatur, keine qualifizierte (§ 126a BGB) und keine eigenhändige Unterschrift. Ein unbefristeter Wohnraummietvertrag braucht keine Schriftform. Bei einer Befristung über ein Jahr kann der Vertrag ohne Schriftform (§ 550 BGB) als unbefristet gelten: dann besser auf Papier unterschreiben lassen. Siehe docs/digitale-unterschrift.md.</Notice>
                 <AppCheckBox @bind-Value="includeLandlord" Label="Ich unterschreibe auch (Sie erhalten einen eigenen Link)" />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="StartSigningAsync">Zur Unterschrift senden</MudButton>

@@ -32,7 +32,10 @@
 
     <section>
         <h2>Kalender-Abo (iCal)</h2>
-        <p class="small">Alle Fristen der nächsten 12 Monate als Abo für den eigenen Kalender. Wer den Link kennt, sieht die Fristen ohne Anmeldung: Link nicht weitergeben. Ein neuer Link macht den alten ungültig.</p>
+        <details class="explain">
+            <summary>Kalender-Abo</summary>
+            <p class="small">Alle Fristen der nächsten 12 Monate als Abo für den eigenen Kalender. Wer den Link kennt, sieht die Fristen ohne Anmeldung: Link nicht weitergeben. Ein neuer Link macht den alten ungültig.</p>
+        </details>
         @if (calendarUrl is { } url)
         {
             <p><a href="@url">@url</a></p>

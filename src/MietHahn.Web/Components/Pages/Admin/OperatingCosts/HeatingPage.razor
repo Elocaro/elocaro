@@ -68,7 +68,10 @@ else
                 <AppNumberField T="decimal?" @bind-Value="Data.HotWaterTemperature" Label="Warmwassertemperatur (°C)" Hint="Standard 60 °C." />
             </div>
             <AppRadioGroup T="HotWaterSplitBasis" @bind-Value="Data.SplitBasis" Items="Enum.GetValues<HotWaterSplitBasis>()" Text="Labels.From" />
-            <p class="small">Die Summe der Wärmezähler nimmt die Wärmezähler der Wohnungen als Heizungswärme; der Zähler im Warmwasserkreis (oder die Formel) liefert die Warmwasserwärme. Die Brennstoffenergie braucht die Brennstoffmenge am Beleg.</p>
+            <details class="explain">
+                <summary>So wird die Wärme aufgeteilt</summary>
+                <p class="small">Die Summe der Wärmezähler nimmt die Wärmezähler der Wohnungen als Heizungswärme; der Zähler im Warmwasserkreis (oder die Formel) liefert die Warmwasserwärme. Die Brennstoffenergie braucht die Brennstoffmenge am Beleg.</p>
+            </details>
             <p class="small">Ohne Zähler im Warmwasserkreis gilt die Formel Q = Faktor × V × (t − 10 °C) mit dem Warmwasserverbrauch V aller Wohnungen.</p>
         </section>
     }
@@ -78,7 +81,10 @@ else
     {
         <section id="energy-years">
             <h2>Brennwert und Zustandszahl je Jahr</h2>
-            <p class="small">Gas wird nach m³ geliefert und nach Brennwert × Zustandszahl in kWh umgerechnet (steht auf der Jahresrechnung des Versorgers). Ein Eintrag für das Abrechnungsjahr ersetzt den festen Energieinhalt oben; ohne Eintrag gilt der feste Wert.</p>
+            <details class="explain">
+                <summary>Wie wird Gas umgerechnet?</summary>
+                <p class="small">Gas wird nach m³ geliefert und nach Brennwert × Zustandszahl in kWh umgerechnet (steht auf der Jahresrechnung des Versorgers). Ein Eintrag für das Abrechnungsjahr ersetzt den festen Energieinhalt oben; ohne Eintrag gilt der feste Wert.</p>
+            </details>
             @if (Data.EnergyYears.Count == 0)
             {
                 <EmptyState Text="Noch kein Jahr erfasst. Es gilt der feste Energieinhalt je Einheit." />
@@ -111,7 +117,10 @@ else
     {
         <section>
             <h2>Heizöl</h2>
-            <p class="small">Bei Heizöl ergibt sich der Verbrauch aus Anfangsbestand + Lieferungen − Endbestand. Die Bestände sind Ablesungen eines Tankzählers (Typ Öl, Einheit Liter) zum Tag vor Beginn und zum Ende des Abrechnungszeitraums.</p>
+            <details class="explain">
+                <summary>So wird der Ölverbrauch ermittelt</summary>
+                <p class="small">Bei Heizöl ergibt sich der Verbrauch aus Anfangsbestand + Lieferungen − Endbestand. Die Bestände sind Ablesungen eines Tankzählers (Typ Öl, Einheit Liter) zum Tag vor Beginn und zum Ende des Abrechnungszeitraums.</p>
+            </details>
             <div class="form-grid">
                 <OptionSelect @bind-Value="Data.OilTankMeterId" Label="Tankzähler" Options="view.OilMeters.Select(m => (m.Id, m.Name)).ToList()" />
                 <AppSelect T="OilValuation" @bind-Value="Data.OilValuation" Label="Bewertung" Items="Enum.GetValues<OilValuation>()" Text="Labels.From" />

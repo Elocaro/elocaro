@@ -13,7 +13,10 @@
 
     @if (settings is not null)
     {
-        <p class="help">Der DATEV-Export liefert Ihrem Steuerberater die Buchungen des Zeitraums in einer Datei, die DATEV direkt einlesen kann. Beim ersten Mal tragen Sie unter „Einrichtung“ die Nummern ein, die Ihnen der Steuerberater nennt.</p>
+        <details class="explain">
+            <summary>Was der Export liefert</summary>
+            <p class="help">Der DATEV-Export liefert Ihrem Steuerberater die Buchungen des Zeitraums in einer Datei, die DATEV direkt einlesen kann. Beim ersten Mal tragen Sie unter „Einrichtung“ die Nummern ein, die Ihnen der Steuerberater nennt.</p>
+        </details>
 
         <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true" @bind-ActivePanelIndex="tab">
             <MudTabPanel Text="Export">

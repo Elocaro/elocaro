@@ -18,7 +18,10 @@
     }
     else if (loaded)
     {
-        <p class="small">Alle ausgefüllten Bedingungen müssen zutreffen. Bei Namen und Verwendungszweck genügt ein Wort; mehrere Alternativen mit „;“ trennen (z. B. „Stadtwerke; SWK“). Groß- und Kleinschreibung spielt keine Rolle.</p>
+        <details class="explain">
+            <summary>So wirken die Bedingungen</summary>
+            <p class="small">Alle ausgefüllten Bedingungen müssen zutreffen. Bei Namen und Verwendungszweck genügt ein Wort; mehrere Alternativen mit „;“ trennen (z. B. „Stadtwerke; SWK“). Groß- und Kleinschreibung spielt keine Rolle.</p>
+        </details>
 
         <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />

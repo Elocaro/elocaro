@@ -94,6 +94,7 @@ Zurückhaltend und nur dort, wo sie etwas erklärt; bei „reduzierte Bewegung�
 - **Aufklappen** (`details`): Inhalt gleitet sanft ein. Dialoge, Menüs, Tabs und Snackbars bringen ihre Bewegung von MudBlazor mit.
 - **Tabellen vor der Verbindung:** MudBlazor setzt seine Palette erst mit dem Verbindungsaufbau; `app.css` definiert `--mud-palette-surface` u. a. vorab aus den `--md-*`-Rollen, damit prerenderte Tabellen nicht hell aufblitzen.
 - **Tab-Leisten auf dem Handy:** Die `MudTabs` der Detailseiten (`detail-tabs`) scrollen unter 900 px nativ (Wischen); MudBlazors Pfeiltasten und seine Verschiebung sind dort ausgeblendet, `shell.js` hält den aktiven Tab sichtbar (`revealMudTab`).
+- **Verbindungsabbruch:** `Components/App.razor` enthält den Dialog `#components-reconnect-modal` (deutsch, App-Stil), `js/reconnect.js` öffnet und schließt ihn anhand der Blazor-Ereignisse und bietet „Erneut versuchen“ bzw. „Seite neu laden“.
 - **Kein Springen:** Die Schrift (Roboto Flex) wird vorgeladen; ein Browser-Test (`Pages_do_not_shift_while_loading`) hält den Layout-Sprung beim Laden unter 0,1. Neue Elemente, die erst nach dem Laden erscheinen, reservieren ihren Platz.
 - Keine Eingangsanimationen für Karten oder Listen: Die Anwendung soll sich wie ein Werkzeug anfühlen, nicht wie eine Präsentation.
 

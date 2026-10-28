@@ -108,7 +108,10 @@ else
         <MudTabPanel Text="Zahlung &amp; Forderung">
             <section>
                 <h2>Zahlung erfassen</h2>
-                <p class="help">Für Zahlungen, die nicht über den Bankimport kommen (Barzahlung, Überweisung auf ein anderes Konto). Ohne Auswahl bei „Zahlt auf“ wird nach der eingestellten Verrechnung gebucht.</p>
+                <details class="explain">
+                    <summary>Wann erfasse ich eine Zahlung von Hand?</summary>
+                    <p class="help">Für Zahlungen, die nicht über den Bankimport kommen (Barzahlung, Überweisung auf ein anderes Konto). Ohne Auswahl bei „Zahlt auf“ wird nach der eingestellten Verrechnung gebucht.</p>
+                </details>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PaymentAsync">Zahlung erfassen</MudButton>
             </section>
 

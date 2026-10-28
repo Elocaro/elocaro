@@ -29,7 +29,7 @@
     else if (receipts is not null)
     {
         <p class="small">@receipts.Count Belege · Summe @Format.Money(receipts.Sum(b => b.Gross))</p>
-        <MudTable T="ReceiptRow" Items="receipts" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="50">
+        <MudTable SortLabel="Sortieren nach" T="ReceiptRow" Items="receipts" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="50">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="ReceiptRow" SortBy="@(b => b.InvoiceDate)" InitialDirection="SortDirection.Descending">Datum</MudTableSortLabel></MudTh>
                 <MudTh>Lieferant</MudTh><MudTh>Kostenarten</MudTh>

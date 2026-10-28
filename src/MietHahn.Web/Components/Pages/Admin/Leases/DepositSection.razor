@@ -31,13 +31,16 @@
             }
             <dt>Bestand</dt><dd><strong id="deposit-balance">@Format.Money(view.Account.Balance)</strong></dd>
         </dl>
-        <p class="small">
+        <details class="explain">
+            <summary>Rechtliche Hinweise zur Kaution</summary>
+            <p class="small">
             Die Kaution darf höchstens drei Nettokaltmieten betragen und in drei Raten gezahlt werden (§ 551 BGB); Zinsen stehen dem Mieter zu und erhöhen die Kaution.
             @if (view.LeaseEnd is not null && view.Account.Balance > 0)
             {
                 <text> Das Mietverhältnis endet am @Format.Date(view.LeaseEnd.Value): nach Prüfung offener Ansprüche zurückzahlen oder verrechnen.</text>
             }
         </p>
+        </details>
 
         @if (view.Entries.Count == 0)
         {

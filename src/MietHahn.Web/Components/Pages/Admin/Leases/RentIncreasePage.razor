@@ -123,7 +123,10 @@ else
 
                 break;
             case RentIncreaseKind.Modernisation:
-                <p class="small">Mieterhöhung nach Modernisierung (§ 559 BGB): 8 % der umlagefähigen Kosten im Jahr, begrenzt auf 3 € je m² in sechs Jahren (2 € bei einer Miete unter 7 €/m²). Sie braucht keine Zustimmung; mit dem erfassten Zugang wird die neue Miete im Vertrag eingetragen.</p>
+                <details class="explain">
+                    <summary>Mieterhöhung nach Modernisierung</summary>
+                    <p class="small">Mieterhöhung nach Modernisierung (§ 559 BGB): 8 % der umlagefähigen Kosten im Jahr, begrenzt auf 3 € je m² in sechs Jahren (2 € bei einer Miete unter 7 €/m²). Sie braucht keine Zustimmung; mit dem erfassten Zugang wird die neue Miete im Vertrag eingetragen.</p>
+                </details>
                 <AppTextField @bind-Value="input.ModernisationDescription" Label="Durchgeführte Maßnahme" Lines="4" Required="true" Hint="Art und Umfang der Maßnahme und ihr Nutzen, z. B. Energieeinsparung durch neue Fenster" />
                 <div class="form-grid">
                     <AppNumberField T="decimal?" @bind-Value="input.ModernisationCosts" Label="Kosten für diese Wohnung" Suffix="€" Required="true" Hint="Anteil der Gesamtkosten, der auf die Wohnung entfällt" />
@@ -147,7 +150,10 @@ else
             <MudButton Variant="Variant.Outlined" Disabled="Blocked" OnClick="PreviewAsync">Vorschau</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="Blocked" OnClick="CreateAsync">Schreiben erzeugen</MudButton>
         </div>
-        <p class="help">„Prüfen“ nennt Fristen und Grenzen (z. B. Kappung), „Vorschau“ zeigt das Schreiben als PDF, ohne etwas zu speichern. Erst „Schreiben erzeugen“ legt es bei den Dokumenten des Vertrags ab.</p>
+        <details class="explain">
+            <summary>Prüfen, Vorschau und Schreiben</summary>
+            <p class="help">„Prüfen“ nennt Fristen und Grenzen (z. B. Kappung), „Vorschau“ zeigt das Schreiben als PDF, ohne etwas zu speichern. Erst „Schreiben erzeugen“ legt es bei den Dokumenten des Vertrags ab.</p>
+        </details>
 
         </EditForm>
 

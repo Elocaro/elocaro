@@ -82,7 +82,10 @@ else
             <AppTextField @bind-Value="Rule.PreDeductionNote" Label="Begründung Vorwegabzug" />
         </div>
         <AppCheckBox @bind-Value="Rule.ExcludeVacantRooms" Label="Leere WG-Zimmer nicht ansetzen" />
-        <p class="small">Ohne Haken trägt der Vermieter den Anteil leerer Zimmer (Standard bei Flächenschlüsseln). Mit Haken tragen die vermieteten Zimmer den ganzen Anteil der WG: nur vertretbar, wenn die Kosten vom Leerstand abhängen; bei Verbrauchsschlüsseln ist es immer so.</p>
+        <details class="explain">
+            <summary>Wer trägt leere Zimmer?</summary>
+            <p class="small">Ohne Haken trägt der Vermieter den Anteil leerer Zimmer (Standard bei Flächenschlüsseln). Mit Haken tragen die vermieteten Zimmer den ganzen Anteil der WG: nur vertretbar, wenn die Kosten vom Leerstand abhängen; bei Verbrauchsschlüsseln ist es immer so.</p>
+        </details>
         <fieldset class="field">
             <legend>Prozentsätze je Einheit (nur bei „Fester Prozentsatz“)</legend>
             <div class="form-grid">
@@ -116,11 +119,14 @@ else
     <MudTabPanel Text="Wohngemeinschaften">
     <section id="shared-flats">
         <h2>Wohngemeinschaften</h2>
-        <p class="small">
+        <details class="explain">
+            <summary>Wie funktioniert die Pauschale?</summary>
+            <p class="small">
             Pauschale: Die Zimmer erhalten keine Abrechnung, die Ist-Kosten der Wohnung werden intern den Pauschalzahlungen gegenübergestellt.
             Verteilen: Die Kosten der Wohnung werden nach Zimmerfläche (inkl. Anteil Gemeinschaftsflächen) auf die Zimmer verteilt.
             Bei Heizung und Warmwasser ist die Pauschale rechtlich zu prüfen (HeizkostenV, siehe Hinweis in der Fachdokumentation).
         </p>
+        </details>
         @foreach (var flat in overview.SharedFlats)
         {
             <fieldset class="field">
@@ -136,7 +142,10 @@ else
 <MudTabPanel Text="@($"Unterarten ({subtypes.Count})")">
 <section id="subtypes">
     <h2>Eigene Unterarten</h2>
-    <p class="small">Unterarten verfeinern eine Kostenart (z. B. „Gebäudeversicherung“ und „Haftpflicht“ unter Nr. 13). Sie erscheinen am Beleg und im Rechenprotokoll; der Umlageschlüssel gilt für die Kostenart.</p>
+    <details class="explain">
+        <summary>Wozu Unterarten?</summary>
+        <p class="small">Unterarten verfeinern eine Kostenart (z. B. „Gebäudeversicherung“ und „Haftpflicht“ unter Nr. 13). Sie erscheinen am Beleg und im Rechenprotokoll; der Umlageschlüssel gilt für die Kostenart.</p>
+    </details>
     @if (subtypes.Count > 0)
     {
             <div class="table-wrapper">

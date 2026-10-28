@@ -21,7 +21,10 @@
                     <dt>Vor 3 Jahren</dt><dd>@Format.Money(before) (Steigerung @Format.Number(Math.Round((now / before - 1) * 100, 1)) %, Kappungsgrenze beachten)</dd>
                 }
             </dl>
-            <p class="small">Erhöhung auf die ortsübliche Vergleichsmiete (§ 558 BGB): frühestens 15 Monate nach Einzug bzw. letzter Erhöhung wirksam, höchstens 20 % (in angespannten Märkten 15 %) in 3 Jahren.</p>
+            <details class="explain">
+                <summary>Erhöhung auf die Vergleichsmiete (§ 558 BGB)</summary>
+                <p class="small">Erhöhung auf die ortsübliche Vergleichsmiete (§ 558 BGB): frühestens 15 Monate nach Einzug bzw. letzter Erhöhung wirksam, höchstens 20 % (in angespannten Märkten 15 %) in 3 Jahren.</p>
+            </details>
             break;
 
         case RentModel.Graduated:

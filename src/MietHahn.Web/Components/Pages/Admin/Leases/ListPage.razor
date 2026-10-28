@@ -18,7 +18,7 @@
     }
     else if (leases is not null)
     {
-        <MudTable T="LeaseOverview" Items="leases" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+        <MudTable SortLabel="Sortieren nach" T="LeaseOverview" Items="leases" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="LeaseOverview" SortBy="@(l => l.RentalUnit)" InitialDirection="SortDirection.Ascending">Mietobjekt</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="LeaseOverview" SortBy="@(l => l.Tenant)">Mieter</MudTableSortLabel></MudTh>

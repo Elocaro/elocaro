@@ -25,12 +25,15 @@ else
     <Notice Level="NoticeLevel.Warning">@warning</Notice>
 }
 
-<p class="small">
+<details class="explain">
+    <summary>Erhaltungsaufwand verteilen</summary>
+    <p class="small">
     Belegpositionen der Kostenart „Instandhaltung und Reparaturen“ sind Erhaltungsaufwand. Du kannst sie im Jahr der Zahlung sofort abziehen
     oder gleichmäßig auf 2 bis 5 Jahre verteilen (§ 82b EStDV, nur bei überwiegend Wohnzwecken dienenden Gebäuden).
     Aufwendungen, die zu Herstellungskosten gehören (Erweiterung, wesentliche Verbesserung, anschaffungsnahe Kosten über 15 % in den ersten drei Jahren),
     gehören nicht hierher, sondern in die <a href="/verwaltung/objekte/@PropertyId/afa">AfA</a>.
 </p>
+</details>
 
 @if (overview.Items.Count == 0)
 {

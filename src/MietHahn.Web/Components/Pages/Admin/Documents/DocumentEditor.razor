@@ -20,7 +20,10 @@
     <AppCheckBox @bind-Value="Data.SharedWithTenants" Label="Für Mieter freigeben" />
     <AppCheckBox @bind-Value="Data.SharedWithCaretakers" Label="Für Hausmeister freigeben" />
 </div>
-<p class="small">Mieter sehen freigegebene Dokumente ihres Vertrags, ihrer Person und des Hauses bzw. der Wohnung, in der sie aktuell wohnen. Hausmeister sehen freigegebene Dokumente ihrer zugeordneten Objekte.</p>
+<details class="explain">
+    <summary>Wer sieht das Dokument?</summary>
+    <p class="small">Mieter sehen freigegebene Dokumente ihres Vertrags, ihrer Person und des Hauses bzw. der Wohnung, in der sie aktuell wohnen. Hausmeister sehen freigegebene Dokumente ihrer zugeordneten Objekte.</p>
+</details>
 
 <AppTextField @bind-Value="Data.Note" Label="Notiz" Lines="3" />
 

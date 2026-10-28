@@ -92,10 +92,13 @@ var result = statement.Result;
     {
         <Notice Level="NoticeLevel.Error">Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.</Notice>
     }
-    <p class="small">
+    <details class="explain">
+        <summary>Frist und Versand</summary>
+        <p class="small">
         Frist für den Zugang: @Format.Date(overview.Deadline) (§ 556 Abs. 3 BGB). Der Versand legt das Schreiben in der Dateiablage und im Mieterportal ab,
         bucht Nachzahlung bzw. Guthaben im Mieterkonto und schlägt eine Anpassung der Vorauszahlungen vor.
     </p>
+    </details>
     <EditForm Model="Send" class="dialog-form">
         <div class="form-grid">
             <AppSelect T="DispatchChannel" @bind-Value="Send.Channel" Label="Versandart" Items="Enum.GetValues<DispatchChannel>()" Text="@(c => c == DispatchChannel.Email ? "E-Mail mit PDF im Anhang" : "Postversand (PDF herunterladen und ausdrucken)")" />

@@ -37,10 +37,13 @@ else
 
 <section>
     <h2>Anschaffung</h2>
-    <p class="small">
+    <details class="explain">
+        <summary>Kaufpreisaufteilung</summary>
+        <p class="small">
         Den Anteil Grund und Boden können Sie mit der <a href="https://www.bundesfinanzministerium.de/Content/DE/Standardartikel/Themen/Steuern/Weitere_Steuerthemen/Einkommensteuer/Arbeitshilfe-Kaufpreisaufteilung.html" rel="noopener noreferrer">Arbeitshilfe des BMF zur Kaufpreisaufteilung</a> ermitteln.
         Nebenkosten werden im selben Verhältnis wie der Kaufpreis auf Gebäude und Grund und Boden verteilt.
     </p>
+    </details>
     <EditForm Model="Acquisition" OnValidSubmit="SaveAcquisitionAsync" novalidate>
         <DataAnnotationsValidator />
         <div class="form-grid">
@@ -92,11 +95,14 @@ else
 
 <section>
     <h2>Nachträgliche Kosten</h2>
-    <p class="small">
+    <details class="explain">
+        <summary>Nachträgliche Herstellungskosten</summary>
+        <p class="small">
         Nachträgliche Herstellungskosten werden mit dem Gebäude abgeschrieben. Renovierungen und Modernisierungen zählen für die
         15-%-Grenze der anschaffungsnahen Herstellungskosten (drei Jahre nach dem Kauf, netto). Belege der Kostenart „Instandhaltung“ werden automatisch
         mitgezählt – hier nur Kosten eintragen, die nicht als Beleg erfasst sind. Die Verteilung von Erhaltungsaufwand findest du unter <a href="/verwaltung/objekte/@PropertyId/erhaltungsaufwand">Erhaltungsaufwand</a>.
     </p>
+    </details>
     @if (overview.Costs.Count > 0)
     {
             <div class="table-wrapper">

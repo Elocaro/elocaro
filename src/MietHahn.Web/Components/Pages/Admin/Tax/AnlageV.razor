@@ -51,10 +51,13 @@ else
         </Notice>
     }
 
-    <p class="small">
+    <details class="explain">
+        <summary>Zuflussprinzip</summary>
+        <p class="small">
         Es zählen Zahlungen und Zahlungsabflüsse im Jahr (Zuflussprinzip, § 11 EStG). Regelmäßig wiederkehrende Zahlungen, die innerhalb von zehn Tagen um den Jahreswechsel
         fällig sind und gezahlt werden, gehören zum Jahr der Fälligkeit. Die Zeilennummern sind je Steuerjahr pflegbar und vor dem Eintragen am amtlichen Vordruck zu prüfen.
     </p>
+    </details>
 
     <section>
         <h2>Einnahmen</h2>
@@ -77,7 +80,9 @@ else
 
     <section>
         <h2>Verbilligte Vermietung</h2>
-        <p class="small">
+        <details class="explain">
+            <summary>Verbilligte Vermietung (66-%-Grenze)</summary>
+            <p class="small">
             Liegt die Miete (Kaltmiete und Umlagen) unter 66 % der ortsüblichen Miete, sind die Werbungskosten nur anteilig abziehbar (§ 21 Abs. 2 EStG).
             Tragen Sie dafür die ortsübliche Jahresmiete einschließlich Umlagen für den vermieteten Zeitraum ein, zum Beispiel aus dem Mietspiegel.
             @if (report.RentPercent is { } percent)
@@ -85,6 +90,7 @@ else
                 <text>Aktuell: @Format.Number(percent) % der ortsüblichen Miete.</text>
             }
         </p>
+        </details>
         <div class="form-row">
             <AppNumberField T="decimal?" @bind-Value="localRent" Label="Ortsübliche Jahresmiete" Suffix="€" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveLocalRentAsync">Speichern</MudButton>
