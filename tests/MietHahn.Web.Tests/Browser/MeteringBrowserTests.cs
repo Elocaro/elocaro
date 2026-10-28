@@ -59,6 +59,7 @@ public class MeteringBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await SelectAsync(page, "Zuordnung", "Wohnung 1");
             await dialog.GetByLabel("Eingebaut am").FillAsync(German(Today.AddDays(-60)));
             await dialog.GetByLabel("Stand an diesem Tag").FillAsync("100,5");
+            await dialog.GetByLabel("Stand an diesem Tag").PressAsync("Tab"); // the value is taken over when the field is left
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Zähler anlegen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Zähler wurde angelegt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("100,5 m³");

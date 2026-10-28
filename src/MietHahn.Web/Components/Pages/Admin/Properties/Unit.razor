@@ -22,7 +22,17 @@ else if (unit is null)
 else
 {
 
-<PageHeader Title="@unit.Data.Name" Subtitle="@Subtitle" Back="@($"/verwaltung/objekte/{unit.PropertyId}")" BackText="@unit.PropertyName" />
+<PageHeader Title="@unit.Data.Name" Subtitle="@Subtitle" Back="@($"/verwaltung/objekte/{unit.PropertyId}")" BackText="@unit.PropertyName">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
+        @if (!unit.IsSharedFlat)
+        {
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+                <MudMenuItem OnClick="DeleteAsync">Einheit löschen</MudMenuItem>
+            </MudMenu>
+        }
+    </Actions>
+</PageHeader>
 
 <ErrorList Errors="errors" />
 @foreach (var hint in unit.ValidationHints)
@@ -104,24 +114,6 @@ else
                  AreaText="Wohnfläche" AdditionalText="Heizfläche" AdditionalHint="Leer lassen, wenn gleich der Wohnfläche." />
 
     </MudTabPanel>
-    <MudTabPanel Text="Angaben">
-<section>
-    <h2>Angaben &amp; Ausstattung</h2>
-    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
-        <DataAnnotationsValidator />
-        <UnitEditor Data="data" />
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-    </EditForm>
-</section>
-
-@if (!unit.IsSharedFlat)
-{
-    <section>
-        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Einheit löschen</MudButton>
-    </section>
-}
-
-    </MudTabPanel>
     <MudTabPanel Text="Dokumente">
 <DocumentsSection UnitId="Id" />
 
@@ -179,15 +171,16 @@ else
         }
     }
 
-    private async Task SaveAsync()
+    // "Bearbeiten" opens the data of the unit in a dialog.
+    private async Task EditAsync()
     {
-        var result = await Admin.UpdateUnitAsync(Id, data);
-        errors = result.Succeeded ? null : result.Errors;
-        if (result.Succeeded)
+        RenderFragment fields = @<UnitEditor Data="data" />;
+        if (await Dialogs.ShowFormAsync("Einheit bearbeiten", data, fields, () => Admin.UpdateUnitAsync(Id, data)))
         {
             Notify.Success("Die Angaben wurden gespeichert.");
-            await LoadAsync();
         }
+
+        await LoadAsync(); // after cancelling, too: drops the unsaved changes of the shared model
     }
 
     private async Task DeleteAsync()

@@ -5,12 +5,13 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- „Bearbeiten“ bei Einheit, Zimmer und Bankkonto öffnet ebenfalls einen Dialog; der Tab „Angaben“ entfällt, „Einheit löschen“ und „Zimmer löschen“ stehen im Menü „Weitere Aktionen“.
 - Seltsam abgerundeter linker Rand an Listeneinträgen (z. B. Vertragsparteien): Die farbige Kante gibt es nur noch bei Dringlichkeit und Notfall und folgt der Rundung der Karte; neutrale Einträge haben keine mehr.
 - Lange Erklärabsätze (rund 40 Stellen, z. B. Kaution, Heizkosten, Anlage V, Importe) stehen jetzt in einklappbaren Abschnitten mit sprechender Überschrift statt als Textblock.
 - Meldung bei verlorener Verbindung (vorher Blazors englischer Standardtext „Rejoining the server …“): deutscher Dialog im App-Stil mit „Erneut versuchen“ und „Seite neu laden“ (`reconnect.js`).
 - Kalender der Datumsfelder, Auswahllisten und Menüs nutzen die Flächenfarbe der App statt reinem Weiß; der Kalenderkopf ist nicht mehr als Farbblock gestaltet.
 - Handy: Die Sortierauswahl, die MudBlazor über Kartenlisten einblendet, entfällt; Listen sind immer nach ihrer ersten Spalte (z. B. Objekt) sortiert.
-- Seitentitel, der den gewählten Tab wiederholt (z. B. „Objekte“ unter dem Tab „Objekte“), steht nur noch für Screenreader im Dokument und wird nicht doppelt angezeigt.
+- Seitentitel, der den gewählten Tab wiederholt (z. B. „Objekte“ unter dem Tab „Objekte“, auch „Mietverträge“ unter „Verträge“ oder „Zuordnungsregeln“ unter „Regeln“), steht nur noch für Screenreader im Dokument und wird nicht doppelt angezeigt.
 - „Bearbeiten“ bei Objekt und Person öffnet einen Dialog mit den Angaben, statt in einen anderen Tab zu springen; der Tab „Angaben“ entfällt (beim Objekt heißt der Rest „Foto“).
 - Objekt-Kopf auf dem Handy: Wiederholt der Titel den Tab, entfallen Zurück-Pfeil und leere Titelzeile; die Aktionen stehen in einer schmalen, nicht festklebenden Zeile, der Abstand unter der Objekt-Kachel ist kleiner (rund 120 px mehr Platz für Inhalt).
 - Vertragsliste: „Beendete anzeigen“ ist ein Filter-Chip (Material 3) statt eines Schalters.

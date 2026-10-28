@@ -6,6 +6,7 @@
 @inject IPropertyService PropertyService
 @inject NavigationManager Navigation
 @inject Notifier Notify
+@inject IDialogService Dialogs
 
 <InteractiveShell>
 @if (!loaded)
@@ -22,6 +23,7 @@ else
 <PageHeader Title="@account.Name" Subtitle="@account.Iban" Back="/verwaltung/bank/konten" BackText="Alle Konten">
     <Actions>
         <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/bank/umsaetze?konto={Id}")">Umsätze</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
     </Actions>
 </PageHeader>
 
@@ -84,16 +86,6 @@ else
 </section>
 
     </MudTabPanel>
-    <MudTabPanel Text="Angaben">
-<section>
-    <h2>Angaben</h2>
-    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
-        <DataAnnotationsValidator />
-        <AccountEditor Data="data" Properties="properties" />
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-    </EditForm>
-</section>
-    </MudTabPanel>
 </MudTabs>
 }
 </InteractiveShell>
@@ -153,13 +145,16 @@ else
         }
     }
 
-    private async Task SaveAsync()
+    // "Bearbeiten" opens the data of the account in a dialog.
+    private async Task EditAsync()
     {
-        var result = await Bank.UpdateAccountAsync(Id, data);
-        errors = result.Succeeded ? null : result.Errors;
-        if (result.Succeeded)
+        RenderFragment fields = @<AccountEditor Data="data" Properties="properties" />;
+        if (await Dialogs.ShowFormAsync("Bankkonto bearbeiten", data, fields, () => Bank.UpdateAccountAsync(Id, data)))
         {
             Notify.Success("Die Angaben wurden gespeichert.");
         }
+
+        account = await Bank.GetAccountAsync(Id); // after cancelling, too: drops the unsaved changes of the shared model
+        data = account!;
     }
 }

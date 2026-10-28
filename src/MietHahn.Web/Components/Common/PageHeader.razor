@@ -46,7 +46,14 @@
             return false;
         }
 
-        bool Same(string label) => string.Equals(label.Trim(), Title.Trim(), StringComparison.OrdinalIgnoreCase);
+        // "Mietverträge" under the tab "Verträge", "Zuordnungsregeln" under "Regeln": the title says what the tab already says
+        static string Plain(string text) => new string(text.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+        bool Same(string label)
+        {
+            var (a, b) = (Plain(label), Plain(Title));
+            return a.Length > 0 && b.Length > 0 && (a.Contains(b, StringComparison.Ordinal) || b.Contains(a, StringComparison.Ordinal));
+        }
+
         return set.Tabs.Any(tab => tab.Matches(path) && (tab.IsGroup ? tab.Children!.Any(child => child.Matches(path) && Same(child.Label)) : Same(tab.Label)));
     }
 

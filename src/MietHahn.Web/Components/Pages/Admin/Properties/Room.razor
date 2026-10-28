@@ -4,6 +4,7 @@
 @inject IPropertyService Admin
 @inject NavigationManager Navigation
 @inject Notifier Notify
+@inject IDialogService Dialogs
 @inject Confirmations Confirm
 
 <InteractiveShell>
@@ -19,7 +20,14 @@ else
 {
 
 <PageHeader Title="@room.Data.Name" Subtitle="@($"{room.UnitName} · {room.PropertyName}")"
-            Back="@($"/verwaltung/einheiten/{room.UnitId}")" BackText="@room.UnitName" />
+            Back="@($"/verwaltung/einheiten/{room.UnitId}")" BackText="@room.UnitName">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+            <MudMenuItem OnClick="DeleteAsync">Zimmer löschen</MudMenuItem>
+        </MudMenu>
+    </Actions>
+</PageHeader>
 
 <ErrorList Errors="errors" />
 
@@ -35,20 +43,6 @@ else
     <MudTabPanel Text="Flächen">
 <AreaSection Save="input => Admin.SetRoomAreaAsync(Id, input)" OnSaved="LoadAsync" Current="room.Area" History="room.AreaHistory"
                  AreaText="Zimmerfläche" AdditionalText="Anteil Gemeinschaftsfläche" AdditionalHint="Anteil an Küche, Bad, Flur der WG (für Umlagen nach Fläche)." />
-    </MudTabPanel>
-    <MudTabPanel Text="Angaben">
-<section>
-    <h2>Angaben</h2>
-    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
-        <DataAnnotationsValidator />
-        <RoomEditor Data="data" />
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-    </EditForm>
-</section>
-
-<section>
-    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Zimmer löschen</MudButton>
-</section>
     </MudTabPanel>
     <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="@nameof(MietHahn.Domain.Properties.Room)" EntityId="Id" />
@@ -79,15 +73,16 @@ else
         loaded = true;
     }
 
-    private async Task SaveAsync()
+    // "Bearbeiten" opens the data of the room in a dialog.
+    private async Task EditAsync()
     {
-        var result = await Admin.UpdateRoomAsync(Id, data);
-        errors = result.Succeeded ? null : result.Errors;
-        if (result.Succeeded)
+        RenderFragment fields = @<RoomEditor Data="data" />;
+        if (await Dialogs.ShowFormAsync("Zimmer bearbeiten", data, fields, () => Admin.UpdateRoomAsync(Id, data)))
         {
             Notify.Success("Die Angaben wurden gespeichert.");
-            await LoadAsync();
         }
+
+        await LoadAsync(); // after cancelling, too: drops the unsaved changes of the shared model
     }
 
     private async Task DeleteAsync()
