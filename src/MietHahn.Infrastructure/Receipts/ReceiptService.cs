@@ -8,7 +8,6 @@ using MietHahn.Application.Receipts;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Files;
-using MietHahn.Domain.OperatingCosts;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Receipts;

@@ -1,4 +1,5 @@
 using System.Globalization;
+using MietHahn.Domain.Receipts;
 using MietHahn.Domain.OperatingCosts;
 
 namespace MietHahn.Domain.Statements;

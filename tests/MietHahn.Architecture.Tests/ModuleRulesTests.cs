@@ -16,7 +16,6 @@ public partial class ModuleRulesTests
         "Documents <-> Leases",
         "Leases <-> Metering",
         "Leases <-> Properties",
-        "OperatingCosts <-> Receipts",
     ];
 
     [Fact]

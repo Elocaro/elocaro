@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MietHahn.Domain.Receipts;
 using MietHahn.Application.Common;
 using MietHahn.Application.Finance;
 using MietHahn.Application.Heating;

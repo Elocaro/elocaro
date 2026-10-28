@@ -1,3 +1,4 @@
+using MietHahn.Domain.Receipts;
 using MietHahn.Domain.OperatingCosts;
 
 namespace MietHahn.Domain.Heating;

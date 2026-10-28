@@ -1,3 +1,4 @@
+using MietHahn.Domain.Receipts;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Metering;
 using MietHahn.Domain.OperatingCosts;

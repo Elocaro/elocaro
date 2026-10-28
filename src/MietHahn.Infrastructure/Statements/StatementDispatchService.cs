@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using MietHahn.Domain.Receipts;
 using MietHahn.Application.Common;
 using MietHahn.Application.Communication;
 using MietHahn.Application.Documents;
