@@ -251,7 +251,7 @@ else
             <EditForm Model="Certificate" OnValidSubmit="SaveCertificateAsync" novalidate>
                 <DataAnnotationsValidator />
                 <div class="form-grid">
-                    <AppNumberField T="int?" @bind-Value="Certificate.Year" Label="Jahr" Required="true" />
+                    <AppYearSelect T="int?" @bind-Value="Certificate.Year" Label="Jahr" Required="true" />
                     <AppNumberField T="decimal?" @bind-Value="Certificate.Interest" Label="Zinsen laut Bescheinigung" Suffix="€" Required="true" />
                     <AppNumberField T="decimal?" @bind-Value="Certificate.ClosingBalance" Label="Restschuld zum 31.12." Suffix="€" />
                 </div>

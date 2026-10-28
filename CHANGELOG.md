@@ -4,7 +4,14 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Geändert
+- Nebenkosten öffnen auf den Abrechnungen (dort startet „Neue Abrechnung“); der eigene Tab „Abrechnungs-Assistent“ entfällt. Versorgungsverträge, Umlageschlüssel und Heizkosten stehen als Einstellungen hinter einem Strich rechts.
+- Jahresangaben (Abrechnungs-, Steuerjahr, Belegfilter, Bescheinigung) sind eine Auswahl (`AppYearSelect`) statt eines Zahlenfelds.
+- Heizkosten: Brennwert und Zustandszahl je Jahr stehen als Tabelle mit Bearbeiten/Entfernen je Zeile; „Jahr hinzufügen“ öffnet einen Dialog statt loser Eingabefelder.
+
 ### Behoben
+- Navigation: Eine Gruppe mit nur einer sichtbaren Seite (z. B. Verträge, solange der Verbraucherpreisindex ausgeschaltet ist) zeigt keine zweite Tab-Zeile mit einem einzelnen Tab mehr.
+- Tabellen blitzten beim Seitenwechsel kurz hell auf, bevor MudBlazor seine dunkle Palette setzte; die Farben stehen jetzt von Anfang an in `app.css`.
 - Versorgungsvertrag: Beim Anlegen wurde der Umfang der Wohnungszähler „Nur gleiche Art“ nicht gespeichert, die Datenbank setzte stattdessen „Mit Warmwasser“ (fehlender Sentinel-Wert in der Modellkonfiguration; EF-Warnung beim Start). Die Abfrage-Aufteilung von EF Core ist jetzt ausdrücklich eingestellt (keine Warnung mehr).
 - Bausteine in Vorlagen: Der Inhalt eines mit `{{ include 'Name' }}` eingefügten Bausteins wurde HTML-maskiert, im Brief erschienen die Tags (`<p>`, `<br>`) als Text. Der Baustein-Text gilt jetzt als Teil der Vorlage, Werte darin (`{{ tenant_name }}`) bleiben maskiert; Bausteine, die im Kreis aufeinander verweisen, melden einen Fehler statt zu hängen.
 - Docker-Image: Das Blazor-Skript des Frameworks (`/_framework/blazor.web.js`) fehlte im veröffentlichten Image (404), weil die Paketwiederherstellung vor dem Kopieren der Quelltexte lief; dadurch funktionierte keine interaktive Seite (z. B. der Einrichtungsassistent: Optionen und „Weiter“ blieben ohne Wirkung, der Browser meldete `ERR_HTTP_RESPONSE_CODE_FAILURE`).

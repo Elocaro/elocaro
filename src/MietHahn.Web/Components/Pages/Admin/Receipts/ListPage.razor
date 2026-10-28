@@ -11,7 +11,7 @@
     </PageHeader>
 
     <div class="form-row search-bar" role="search">
-        <AppNumberField T="int?" Value="year" ValueChanged="OnYearChanged" Label="Jahr" Min="2000" Max="2100" />
+        <AppYearSelect T="int?" Value="year" ValueChanged="OnYearChanged" Label="Jahr" EmptyText="Alle Jahre" />
         @if (selection is not null)
         {
             <OptionSelect Value="propertyId" ValueChanged="OnPropertyChanged" Label="Objekt" Options="selection.Properties.Select(o => (o.Id, o.Name)).ToList()" />

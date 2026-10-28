@@ -48,7 +48,7 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
 
             await OpenTabAsync(page, "Unterlagen der Bank");
             var section = page.Locator("section", new() { HasText = "Jahreszinsbescheinigung" });
-            await section.GetByLabel("Jahr").FillAsync("2024");
+            await SelectAsync(page, "Jahr", "2024", section);
             await section.GetByLabel("Zinsen laut Bescheinigung").FillAsync("6543,21");
             await section.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Bescheinigung wurde gespeichert.");
@@ -143,8 +143,7 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
             // Under load the re-render after saving can overwrite the field once; enter the year again until the page follows.
             for (var attempt = 1; ; attempt++)
             {
-                await page.GetByLabel("Steuerjahr").FillAsync("2025");
-                await page.GetByLabel("Steuerjahr").PressAsync("Tab");
+                await SelectAsync(page, "Steuerjahr", "2025");
                 try
                 {
                     await Assertions.Expect(page.Locator("h1")).ToContainTextAsync("Anlage V 2025", new() { Timeout = 4000 });

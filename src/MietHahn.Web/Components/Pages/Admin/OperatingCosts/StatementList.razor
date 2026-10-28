@@ -5,9 +5,9 @@
 @inject IStatements Statements
 
 <InteractiveShell>
-    <PageHeader Title="Freigegebene Abrechnungen" Subtitle="Alle abgeschlossenen Nebenkostenabrechnungen dieses Objekts, je Abrechnungsjahr." Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
+    <PageHeader Title="Abrechnungen" Subtitle="Alle abgeschlossenen Nebenkostenabrechnungen dieses Objekts, je Abrechnungsjahr." Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
         <Actions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung")">Abrechnungs-Assistent</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung")">Neue Abrechnung</MudButton>
         </Actions>
     </PageHeader>
 
@@ -17,7 +17,7 @@
     }
     else if (statements.Count == 0)
     {
-        <EmptyState Text="Es ist noch keine Abrechnung freigegeben. Der Abrechnungs-Assistent führt durch die Erstellung." />
+        <EmptyState Text="Es ist noch keine Abrechnung freigegeben. „Neue Abrechnung“ führt Schritt für Schritt durch die Erstellung." />
     }
     else
     {

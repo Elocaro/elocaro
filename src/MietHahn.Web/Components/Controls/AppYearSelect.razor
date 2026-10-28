@@ -1,0 +1,48 @@
+@typeparam T
+@using System.Linq.Expressions
+@using MietHahn.Domain.Common
+@inject TimeProvider Clock
+@* Year as a selection (instead of a free number field): the last 15 years up to next year, plus the current value if it lies outside.
+   T is int or int?; EmptyText adds an entry for "no year" (int?). *@
+<AppSelect T="T" Value="Value" ValueChanged="ValueChanged" ValueExpression="ValueExpression" Label="@Label" Hint="@Hint" Required="Required" Disabled="Disabled"
+           Items="Years()" Text="@(year => year is null ? "" : Convert.ToString(year) ?? "")" EmptyText="@EmptyText" />
+
+@code {
+    [Parameter]
+    public T? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<T?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<T?>>? ValueExpression { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Jahr";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string? EmptyText { get; set; }
+
+    private IEnumerable<T> Years()
+    {
+        var current = GermanTime.Today(Clock.GetUtcNow()).Year;
+        var years = Enumerable.Range(current - 15, 17).ToList();
+        if (Value is not null && Convert.ToInt32(Value) is var value && value > 0 && !years.Contains(value))
+        {
+            years.Add(value);
+            years.Sort();
+        }
+
+        years.Reverse();
+        return years.Select(year => (T)(object)year);
+    }
+}

@@ -12,7 +12,7 @@
 </PageHeader>
 
 <div class="form-row search-bar" role="search">
-    <AppNumberField T="int" Value="year" ValueChanged="OnYearChanged" Label="Abrechnungsjahr" Min="2000" Max="2100" />
+    <AppYearSelect T="int" Value="year" ValueChanged="OnYearChanged" Label="Abrechnungsjahr" />
 </div>
 
 @if (!loaded)

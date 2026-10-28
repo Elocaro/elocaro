@@ -114,7 +114,9 @@ public static class AdminNavModel
     public static NavTab[] Visible(IEnumerable<NavTab> tabs, IModuleState modules) =>
         tabs.Select(tab => tab.IsGroup ? tab with { Children = Visible(tab.Children!, modules) } : tab)
             .Where(tab => tab.IsGroup ? tab.Children!.Length > 0 : IsOn(tab.Href, modules))
-            .Select(tab => tab.IsGroup ? tab with { Href = tab.Children![0].Href } : tab)
+            .Select(tab => tab.Children is [{ } only]
+                ? only with { Label = tab.Label, Policy = only.Policy ?? tab.Policy } // a group of one page is a plain tab, no second row
+                : tab.IsGroup ? tab with { Href = tab.Children![0].Href } : tab)
             .ToArray();
 
     /// <summary>Whether the page at <paramref name="href"/> exists in this installation (its module and option are switched on).</summary>
@@ -169,12 +171,11 @@ public static class AdminNavModel
         new("Belegung", $"{id}/belegung"),
         new("Zähler", $"{id}/zaehler", Also: [$"{id}/ablesung", $"{id}/zaehlerimport", $"{Root}/zaehler"]),
         NavTab.Group("Nebenkosten", Policies.Finance,
-            new("Versorgungsverträge", $"{id}/versorgung"),
+            new("Abrechnungen", $"{id}/abrechnungen", Also: [$"{id}/abrechnung", $"{Root}/abrechnungen"]),
+            new("Vorschau", $"{id}/nebenkosten"),
+            new("Versorgungsverträge", $"{id}/versorgung", SeparatorBefore: true),
             new("Umlageschlüssel", $"{id}/umlageschluessel"),
-            new("Heizkosten", $"{id}/heizung"),
-            new("Vorschau", $"{id}/nebenkosten", SeparatorBefore: true),
-            new("Abrechnungs-Assistent", $"{id}/abrechnung"),
-            new("Abrechnungen", $"{id}/abrechnungen", Also: [$"{Root}/abrechnungen"])),
+            new("Heizkosten", $"{id}/heizung")),
         NavTab.Group("Steuer", Policies.Finance,
             new("AfA", $"{id}/afa"),
             new("Erhaltungsaufwand", $"{id}/erhaltungsaufwand"),

@@ -188,8 +188,7 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await Assertions.Expect(page.Locator("#type-betrkv-01")).ToContainTextAsync("1.500,00 €");
-            await page.GetByLabel("Abrechnungsjahr").FillAsync("2025");
-            await page.GetByLabel("Abrechnungsjahr").PressAsync("Tab");
+            await SelectAsync(page, "Abrechnungsjahr", "2025");
             await Assertions.Expect(page.Locator("#type-betrkv-01")).ToHaveCountAsync(0);
         });
     }

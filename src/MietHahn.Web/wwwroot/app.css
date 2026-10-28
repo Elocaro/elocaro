@@ -479,6 +479,8 @@ input[type=checkbox], input[type=radio] { accent-color: var(--md-primary); width
 img.document-preview, iframe.document-preview, .property-image { border-radius: var(--shape-lg); border-color: var(--md-outline-variant); }
 
 /* MudBlazor tables follow the same look */
+/* MudBlazor sets its palette variables only once the circuit is connected; until then (prerendering) tables would be light. Same roles up front. */
+:root { --mud-palette-surface: var(--md-surface); --mud-palette-background: var(--md-surface); --mud-palette-text-primary: var(--md-on-surface); --mud-palette-text-secondary: var(--md-on-surface-variant); --mud-palette-table-lines: var(--md-outline-variant); --mud-palette-lines-default: var(--md-outline-variant); --mud-palette-divider: var(--md-outline-variant); }
 .mud-table-outlined { border-radius: var(--shape-lg) !important; border-color: var(--md-outline-variant) !important; }
 /* The header and footer backgrounds are square: clip them to the rounded corners (the header sticks inside .mud-table-container, which scrolls) */
 .mud-table { overflow: hidden; }

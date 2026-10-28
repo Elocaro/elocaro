@@ -1,3 +1,4 @@
+using MietHahn.Application.Admin;
 using MietHahn.Web.Components.Layout;
 
 namespace MietHahn.Web.Tests;
@@ -82,5 +83,53 @@ public class NavigationModelTests
     public void Without_a_property_those_pages_keep_the_area_tabs()
     {
         Assert.Equal("Bestand", AdminNavModel.TabsFor("/verwaltung/einheiten/x")!.Label);
+    }
+
+    [Fact]
+    public void A_group_with_one_visible_page_becomes_a_plain_tab()
+    {
+        NavTab[] tabs = [NavTab.Group("Verträge", null, new("Verträge", "/verwaltung/vertraege"), new("Verbraucherpreisindex", "/verwaltung/vpi"))];
+        var modules = new OnlyFirstPage();
+
+        var visible = AdminNavModel.Visible(tabs, modules);
+
+        var tab = Assert.Single(visible);
+        Assert.False(tab.IsGroup);
+        Assert.Equal("Verträge", tab.Label);
+        Assert.Equal("/verwaltung/vertraege", tab.Href);
+    }
+
+    [Fact]
+    public void Nebenkosten_open_on_the_statements_and_have_no_separate_wizard_tab()
+    {
+        var id = Guid.NewGuid();
+        var group = AdminNavModel.TabsFor($"/verwaltung/objekte/{id}/abrechnung")!.Tabs.Single(tab => tab.Label == "Nebenkosten");
+
+        Assert.EndsWith("/abrechnungen", group.Href, StringComparison.Ordinal);
+        Assert.DoesNotContain(group.Children!, child => child.Label == "Abrechnungs-Assistent");
+        Assert.True(group.Children![0].Matches($"/verwaltung/objekte/{id}/abrechnung"));
+    }
+
+    private sealed class OnlyFirstPage : IModuleState
+    {
+        public bool IsEnabled(AppModule module) => true;
+
+        public bool IsOptionEnabled(AppOption option) => true;
+
+        public bool IsVisible(AppOption option) => option != AppOption.RentModelIndex;
+
+        public int UsageCount(AppOption option) => 0;
+
+        public Task RefreshUsageAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task EnsureLoadedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public bool SetupCompleted => true;
+
+        public Task<ModuleSelection> GetAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task SaveAsync(IEnumerable<AppModule> enabled, bool completeSetup, IEnumerable<AppOption>? options = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task SkipSetupAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

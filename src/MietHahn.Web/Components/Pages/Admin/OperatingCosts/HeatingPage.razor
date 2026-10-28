@@ -4,6 +4,8 @@
 @using MudBlazor
 @inject IHeatingSettings Settings
 @inject Notifier Notify
+@inject IDialogService Dialogs
+@inject TimeProvider Clock
 
 <InteractiveShell>
 @if (!loaded)
@@ -77,18 +79,31 @@ else
         <section id="energy-years">
             <h2>Brennwert und Zustandszahl je Jahr</h2>
             <p class="small">Gas wird nach m³ geliefert und nach Brennwert × Zustandszahl in kWh umgerechnet (steht auf der Jahresrechnung des Versorgers). Ein Eintrag für das Abrechnungsjahr ersetzt den festen Energieinhalt oben; ohne Eintrag gilt der feste Wert.</p>
-            @foreach (var row in Data.EnergyYears)
+            @if (Data.EnergyYears.Count == 0)
             {
-                <div class="form-grid">
-                    <AppNumberField T="int" @bind-Value="row.Year" Label="Jahr" Min="2000" Max="2100" />
-                    <AppNumberField T="decimal?" @bind-Value="row.CalorificValue" Label="Brennwert (kWh/m³)" Hint="z. B. 11,2" />
-                    <AppNumberField T="decimal?" @bind-Value="row.StateNumber" Label="Zustandszahl" Hint="z. B. 0,9" />
-                    <AppNumberField T="decimal?" @bind-Value="row.CarbonPricePerTon" Label="CO₂-Preis (€/t)" Hint="Nur für die berechnete CO₂-Menge, z. B. 55" />
-                    <AppTextField @bind-Value="row.Note" Label="Quelle / Notiz" />
-                    <MudButton Variant="Variant.Text" OnClick="() => Data.EnergyYears.Remove(row)">Entfernen</MudButton>
-                </div>
+                <EmptyState Text="Noch kein Jahr erfasst. Es gilt der feste Energieinhalt je Einheit." />
             }
-            <MudButton Variant="Variant.Outlined" OnClick="AddYear">Jahr hinzufügen</MudButton>
+            else
+            {
+                <MudTable T="FuelEnergyYearInput" Items="Data.EnergyYears.OrderByDescending(e => e.Year)" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" Dense="true" id="energy-year-table">
+                    <HeaderContent>
+                        <MudTh>Jahr</MudTh><MudTh Style="text-align:right">Brennwert (kWh/m³)</MudTh><MudTh Style="text-align:right">Zustandszahl</MudTh><MudTh Style="text-align:right">CO₂-Preis (€/t)</MudTh><MudTh>Quelle / Notiz</MudTh><MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="row">
+                        <MudTd DataLabel="Jahr">@row.Year</MudTd>
+                        <MudTd DataLabel="Brennwert" Style="text-align:right">@Format.Number(row.CalorificValue)</MudTd>
+                        <MudTd DataLabel="Zustandszahl" Style="text-align:right">@Format.Number(row.StateNumber)</MudTd>
+                        <MudTd DataLabel="CO₂-Preis" Style="text-align:right">@Format.Number(row.CarbonPricePerTon)</MudTd>
+                        <MudTd DataLabel="Notiz">@row.Note</MudTd>
+                        <MudTd Style="text-align:right; white-space:nowrap">
+                            <MudButton Variant="Variant.Text" OnClick="() => EditYearAsync(row)" aria-label="@($"Jahr {row.Year} bearbeiten")">Bearbeiten</MudButton>
+                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => Data.EnergyYears.Remove(row)" aria-label="@($"Jahr {row.Year} entfernen")">Entfernen</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+            <p class="small">Änderungen an der Liste gelten mit „Einstellungen speichern“.</p>
+            <MudButton Variant="Variant.Outlined" OnClick="AddYearAsync">Jahr hinzufügen</MudButton>
         </section>
     }
 
@@ -151,7 +166,26 @@ else
         loaded = true;
     }
 
-    private void AddYear() => Data.EnergyYears.Add(new FuelEnergyYearInput { Year = Data.EnergyYears.Count == 0 ? DateTime.Today.Year - 1 : Data.EnergyYears.Max(e => e.Year) + 1 });
+    private async Task AddYearAsync()
+    {
+        var year = Data.EnergyYears.Count == 0 ? GermanTime.Today(Clock.GetUtcNow()).Year - 1 : Data.EnergyYears.Max(e => e.Year) + 1;
+        var dialog = await Dialogs.ShowAsync<EnergyYearDialog>("Brennwert eines Jahres", new DialogParameters { ["DefaultYear"] = year, ["Rows"] = Data.EnergyYears }, DialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: FuelEnergyYearInput added })
+        {
+            Data.EnergyYears.Add(added);
+        }
+    }
+
+    private async Task EditYearAsync(FuelEnergyYearInput row)
+    {
+        var dialog = await Dialogs.ShowAsync<EnergyYearDialog>($"Brennwert {row.Year}", new DialogParameters { ["Existing"] = row, ["Rows"] = Data.EnergyYears }, DialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: FuelEnergyYearInput changed })
+        {
+            Data.EnergyYears[Data.EnergyYears.IndexOf(row)] = changed;
+        }
+    }
+
+    private static readonly DialogOptions DialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
 
     private async Task SaveAsync()
     {

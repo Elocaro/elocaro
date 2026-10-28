@@ -20,7 +20,7 @@ else
     <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@(report.OwnerName is null ? null : $"{report.OwnerName} ({report.OwnerSharePercent:0.####} %)")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
 
     <div class="form-row search-bar" role="search">
-        <AppNumberField T="int" Value="year" ValueChanged="OnYearChanged" Label="Steuerjahr" Min="2000" Max="2100" />
+        <AppYearSelect T="int" Value="year" ValueChanged="OnYearChanged" Label="Steuerjahr" />
         @if (ownerChoices.Count > 0)
         {
             <AppSelect T="Guid?" Value="ownerId" ValueChanged="OnOwnerChanged" Label="Auswertung für" EmptyText="Ganzes Objekt" Items="ownerChoices.Select(o => (Guid?)o.PersonId).ToList()" Text="@(id => ownerChoices.FirstOrDefault(o => o.PersonId == id) is { } o ? $"{o.Name} ({o.SharePercent:0.##} %)" : "")" />
