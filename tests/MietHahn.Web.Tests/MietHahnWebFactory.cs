@@ -27,7 +27,7 @@ public sealed class MietHahnWebFactory(
         PostgresFixture postgres, IDictionary<string, string?>? supplement = null, Action<IServiceCollection>? configureServices = null, bool setupCompleted = true)
     {
         ArgumentNullException.ThrowIfNull(postgres);
-        var factory = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), supplement, configureServices, postgres);
+        var factory = new MietHahnWebFactory(await postgres.CreateMigratedDatabaseAsync(TestContext.Current.CancellationToken), supplement, configureServices, postgres);
         _ = factory.Server; // start the host (migrations run in the process)
         if (setupCompleted)
         {

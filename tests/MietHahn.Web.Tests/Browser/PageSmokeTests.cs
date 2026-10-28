@@ -26,20 +26,20 @@ namespace MietHahn.Web.Tests.Browser;
 /// Opens every page of the administration with realistic data (desktop and 360 px) and reports server errors, error pages,
 /// console and script errors, failed requests and horizontal scrolling.
 /// </summary>
-public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
+public abstract class PageSweepBase(PostgresFixture postgres) : BrowserTestBasis(postgres)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private Dictionary<string, string> ids = [];
+    protected Dictionary<string, string> Ids { get; set; } = [];
 
     protected override void ConfigureServices(IServiceCollection services) =>
         services.AddScoped<IPdfGenerator, FakePdfGenerator>();
 
-    private async Task SeedAsync()
+    protected async Task SeedAsync()
     {
         var today = GermanTime.Today(App.Clock.GetUtcNow());
         var start = new DateOnly(today.Year - 1, 1, 1);
-        ids = await App.WithScopeAsync(async sp =>
+        Ids = await App.WithScopeAsync(async sp =>
         {
             var result = new Dictionary<string, string>();
             var properties = sp.GetRequiredService<IPropertyService>();
@@ -133,56 +133,61 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             return result;
         });
 
-        ids["user"] = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<UserManager<ApplicationUser>>().Users.FirstAsync(Ct)).Id.ToString());
-        ids["import"] = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IBankService>().ImportsAsync(Guid.Parse(ids["account"]), Ct)) is { Count: > 0 } imports ? imports[0].Id.ToString() : "");
+        Ids["user"] = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<UserManager<ApplicationUser>>().Users.FirstAsync(Ct)).Id.ToString());
+        Ids["import"] = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IBankService>().ImportsAsync(Guid.Parse(Ids["account"]), Ct)) is { Count: > 0 } imports ? imports[0].Id.ToString() : "");
     }
 
-    private IEnumerable<string> Routes()
+    protected IEnumerable<string> Routes()
     {
-        string p = ids["property"], year = ids["year"];
+        string p = Ids["property"], year = Ids["year"];
         return
         [
-            "/verwaltung", "/verwaltung/personen", "/verwaltung/personen?q=Schmidt", "/verwaltung/personen/neu", $"/verwaltung/personen/{ids["person"]}",
+            "/verwaltung", "/verwaltung/personen", "/verwaltung/personen?q=Schmidt", "/verwaltung/personen/neu", $"/verwaltung/personen/{Ids["person"]}",
             "/verwaltung/datenschutz", "/verwaltung/hilfe",
-            "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{p}", $"/verwaltung/einheiten/{ids["unit"]}", $"/verwaltung/zimmer/{ids["room"]}",
-            "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/vertraege/{ids["lease"]}/konto", $"/verwaltung/vertraege/{ids["lease"]}/auszug",
-            $"/verwaltung/vertraege/{ids["lease"]}/kostenarten", $"/verwaltung/vertraege/{ids["lease"]}/vertragsdokument", $"/verwaltung/vertraege/{ids["lease"]}/mieterhoehung", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/einzug", $"/verwaltung/vertraege/{ids["lease"]}/uebergabe/auszug", "/verwaltung/vpi",
+            "/verwaltung/objekte", "/verwaltung/objekte/neu", $"/verwaltung/objekte/{p}", $"/verwaltung/einheiten/{Ids["unit"]}", $"/verwaltung/zimmer/{Ids["room"]}",
+            "/verwaltung/vertraege", "/verwaltung/vertraege/neu", $"/verwaltung/vertraege/{Ids["lease"]}", $"/verwaltung/vertraege/{Ids["lease"]}/konto", $"/verwaltung/vertraege/{Ids["lease"]}/auszug",
+            $"/verwaltung/vertraege/{Ids["lease"]}/kostenarten", $"/verwaltung/vertraege/{Ids["lease"]}/vertragsdokument", $"/verwaltung/vertraege/{Ids["lease"]}/mieterhoehung", $"/verwaltung/vertraege/{Ids["lease"]}/uebergabe/einzug", $"/verwaltung/vertraege/{Ids["lease"]}/uebergabe/auszug", "/verwaltung/vpi",
             "/verwaltung/dokumente", "/verwaltung/dokumente/neu", "/verwaltung/tickets/routinen", "/verwaltung/aushaenge", "/verwaltung/aushaenge/neu", "/verwaltung/nachrichten", "/verwaltung/nachrichten/neu",
-            "/verwaltung/fristen", "/verwaltung/fristen/wartung", $"/verwaltung/fristen/wartung/{ids["task"]}", "/verwaltung/einstellungen/fristen", "/verwaltung/einstellungen/rechtsstaende", "/verwaltung/einstellungen/import",
-            $"/verwaltung/objekte/{p}/zaehler", $"/verwaltung/objekte/{p}/ablesung", $"/verwaltung/zaehler/{ids["meter"]}",
-            "/verwaltung/bank/konten", "/verwaltung/bank/konten/neu", $"/verwaltung/bank/konten/{ids["account"]}", "/verwaltung/bank/umsaetze", "/verwaltung/bank/zuordnung",
-            $"/verwaltung/bank/umsaetze/{ids["transaction"]}/zuordnen", "/verwaltung/bank/regeln", "/verwaltung/bank/regeln/neu", $"/verwaltung/bank/regeln/{ids["rule"]}", "/verwaltung/bank/csv-profile",
-            "/verwaltung/finanzen/offene-posten", "/verwaltung/finanzen/mahnungen", "/verwaltung/finanzen/einstellungen", "/verwaltung/finanzen/darlehen", $"/verwaltung/finanzen/darlehen/{ids["loan"]}",
-            "/verwaltung/belege", "/verwaltung/belege/neu", $"/verwaltung/belege/{ids["receipt"]}",
+            "/verwaltung/fristen", "/verwaltung/fristen/wartung", $"/verwaltung/fristen/wartung/{Ids["task"]}", "/verwaltung/einstellungen/fristen", "/verwaltung/einstellungen/rechtsstaende", "/verwaltung/einstellungen/import",
+            $"/verwaltung/objekte/{p}/zaehler", $"/verwaltung/objekte/{p}/ablesung", $"/verwaltung/zaehler/{Ids["meter"]}",
+            "/verwaltung/bank/konten", "/verwaltung/bank/konten/neu", $"/verwaltung/bank/konten/{Ids["account"]}", "/verwaltung/bank/umsaetze", "/verwaltung/bank/zuordnung",
+            $"/verwaltung/bank/umsaetze/{Ids["transaction"]}/zuordnen", "/verwaltung/bank/regeln", "/verwaltung/bank/regeln/neu", $"/verwaltung/bank/regeln/{Ids["rule"]}", "/verwaltung/bank/csv-profile",
+            "/verwaltung/finanzen/offene-posten", "/verwaltung/finanzen/mahnungen", "/verwaltung/finanzen/einstellungen", "/verwaltung/finanzen/darlehen", $"/verwaltung/finanzen/darlehen/{Ids["loan"]}",
+            "/verwaltung/belege", "/verwaltung/belege/neu", $"/verwaltung/belege/{Ids["receipt"]}",
             $"/verwaltung/objekte/{p}/anlage-v?jahr={year}", "/verwaltung/finanzen/anlage-v-zeilen?jahr=" + year, "/verwaltung/finanzen/datev", $"/verwaltung/objekte/{p}/afa", $"/verwaltung/objekte/{p}/erhaltungsaufwand",
             $"/verwaltung/objekte/{p}/abrechnungen", $"/verwaltung/objekte/{p}/belegung", $"/verwaltung/objekte/{p}/versorgung", $"/verwaltung/objekte/{p}/umlageschluessel", $"/verwaltung/objekte/{p}/heizung", $"/verwaltung/objekte/{p}/nebenkosten?jahr={year}",
             $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=1", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=2", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=3", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=4", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=5", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=6",
-            "/verwaltung/benutzer", $"/verwaltung/benutzer/{ids["user"]}",
+            "/verwaltung/benutzer", $"/verwaltung/benutzer/{Ids["user"]}",
             "/verwaltung/einstellungen/vermieter", "/verwaltung/einstellungen/vorlagen", "/verwaltung/einstellungen/vorlagen/neu", "/verwaltung/dokumente/schreiben", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/verwaltung/system/datensicherung", "/verwaltung/system/belegauslesung",
             "/konto/sicherheit",
         ];
     }
 
-    private IEnumerable<string> OptionalRoutes()
+    // The long page sweeps are split into parts of the route list that live in separate classes (see PageSweepTests.cs), so that they
+    // run in parallel: tests of one class run one after the other, and a single sweep took minutes and held up the whole run.
+    public const int Parts = 6;
+
+    private IEnumerable<string> Part(int part) => Routes().Concat(OptionalRoutes()).Where((_, index) => index % Parts == part);
+
+    protected IEnumerable<string> OptionalRoutes()
     {
-        if (ids.TryGetValue("statement", out var statement))
+        if (Ids.TryGetValue("statement", out var statement))
         {
             yield return $"/verwaltung/abrechnungen/{statement}";
         }
 
-        if (ids.TryGetValue("dunning", out var dunning))
+        if (Ids.TryGetValue("dunning", out var dunning))
         {
             yield return $"/verwaltung/finanzen/mahnungen/{dunning}";
         }
 
-        if (ids["import"].Length > 0)
+        if (Ids["import"].Length > 0)
         {
-            yield return $"/verwaltung/bank/importe/{ids["import"]}";
+            yield return $"/verwaltung/bank/importe/{Ids["import"]}";
         }
     }
 
-    [Fact]
-    public async Task Every_page_loads_with_data_without_errors_on_desktop_and_at_360_pixels()
+    protected async Task EveryPageLoadsAsync(bool mobileView, int part)
     {
         var page = await SignedInAsAdminAsync(mobile: false);
         await SeedAsync();
@@ -205,10 +210,10 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
             }
         };
 
-        foreach (var mobile in new[] { false, true })
+        foreach (var mobile in new[] { mobileView })
         {
             await page.SetViewportSizeAsync(mobile ? 360 : 1280, mobile ? 780 : 900);
-            foreach (var path in Routes().Concat(OptionalRoutes()))
+            foreach (var path in Part(part))
             {
                 current = (mobile ? "[360] " : "[Desktop] ") + path;
                 var response = await page.GotoAsync(BaseUrl + path);
@@ -266,6 +271,39 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
         Assert.True(problems.Count == 0, string.Join("\n", problems.Distinct()));
     }
 
+    protected async Task PagesMeetContrastAsync(bool dark, int part)
+    {
+        var page = await SignedInAsAdminAsync(mobile: false);
+        await SeedAsync();
+        var problems = new List<string>();
+        foreach (var scheme in new[] { dark ? ColorScheme.Dark : ColorScheme.Light })
+        {
+            await page.EmulateMediaAsync(new() { ColorScheme = scheme });
+            foreach (var path in Part(part))
+            {
+                await page.GotoAsync(BaseUrl + path);
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+                // A page is first prerendered and then becomes interactive; measured in between, the dark scheme can still show
+                // light surfaces. A real contrast problem stays, so measure again for a moment before reporting.
+                var found = await page.EvaluateAsync<string[]>(UiAuditTests.ContrastScript);
+                for (var attempt = 0; attempt < 8 && found.Length > 0; attempt++)
+                {
+                    await page.WaitForTimeoutAsync(250);
+                    found = await page.EvaluateAsync<string[]>(UiAuditTests.ContrastScript);
+                }
+
+                problems.AddRange(found.Select(f => $"[{scheme}] {path}: {f}"));
+            }
+        }
+
+        Assert.True(problems.Count == 0, "Kontrast unter WCAG AA:\n" + string.Join("\n", problems.Distinct()));
+    }
+}
+
+/// <summary>The dialogs behind the add buttons and the on-demand screenshot tour; the page sweeps live in <see cref="PageSweepBase"/>.</summary>
+public class PageSmokeTests(PostgresFixture postgres) : PageSweepBase(postgres)
+{
     /// <summary>Screenshots of every page with data (viewport only), on demand: MIETHAHN_TOUR=1 MIETHAHN_TOUR_DIR=/pfad; MIETHAHN_TOUR_ONLY=personen,bank/regeln limits it to paths containing one of the parts.</summary>
     [Fact]
     public async Task Screenshot_tour_of_all_pages()
@@ -309,42 +347,12 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
 
                 await page.WaitForTimeoutAsync(300);
                 var height = await page.EvaluateAsync<int>("() => { const c = document.querySelector('main.content') ?? document.querySelector('main'); return c ? c.scrollHeight : 0; }");
-                var name = path.Replace(ids["property"], "P", StringComparison.Ordinal).Trim('/').Replace("verwaltung/", "", StringComparison.Ordinal);
+                var name = path.Replace(Ids["property"], "P", StringComparison.Ordinal).Trim('/').Replace("verwaltung/", "", StringComparison.Ordinal);
                 name = new string(name.Select(c => char.IsLetterOrDigit(c) || c == '-' ? c : '_').ToArray());
                 await page.ScreenshotAsync(new() { Path = Path.Combine(directory, $"{(mobile ? "m" : "d")}{index++:00}-{name[..Math.Min(name.Length, 60)]}.png"), FullPage = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_FULL") is not null });
                 await File.AppendAllTextAsync(Path.Combine(directory, "heights.txt"), $"{(mobile ? "m" : "d")} {height,6}px {path}\n", TestContext.Current.CancellationToken);
             }
         }
-    }
-
-    [Fact]
-    public async Task Pages_with_data_meet_contrast_in_light_and_dark()
-    {
-        var page = await SignedInAsAdminAsync(mobile: false);
-        await SeedAsync();
-        var problems = new List<string>();
-        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
-        {
-            await page.EmulateMediaAsync(new() { ColorScheme = scheme });
-            foreach (var path in Routes().Concat(OptionalRoutes()))
-            {
-                await page.GotoAsync(BaseUrl + path);
-                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-                // A page is first prerendered and then becomes interactive; measured in between, the dark scheme can still show
-                // light surfaces. A real contrast problem stays, so measure again for a moment before reporting.
-                var found = await page.EvaluateAsync<string[]>(UiAuditTests.ContrastScript);
-                for (var attempt = 0; attempt < 8 && found.Length > 0; attempt++)
-                {
-                    await page.WaitForTimeoutAsync(250);
-                    found = await page.EvaluateAsync<string[]>(UiAuditTests.ContrastScript);
-                }
-
-                problems.AddRange(found.Select(f => $"[{scheme}] {path}: {f}"));
-            }
-        }
-
-        Assert.True(problems.Count == 0, "Kontrast unter WCAG AA:\n" + string.Join("\n", problems.Distinct()));
     }
 
     /// <summary>Opens the dialogs behind the "add" buttons of the detail pages: each must show a dialog without script errors.</summary>
@@ -366,9 +374,9 @@ public class PageSmokeTests(PostgresFixture postgres) : BrowserTestBasis(postgre
 
         string[] paths =
         [
-            $"/verwaltung/personen/{ids["person"]}", $"/verwaltung/objekte/{ids["property"]}", $"/verwaltung/einheiten/{ids["unit"]}", $"/verwaltung/zimmer/{ids["room"]}",
-            $"/verwaltung/vertraege/{ids["lease"]}", $"/verwaltung/objekte/{ids["property"]}/zaehler", $"/verwaltung/zaehler/{ids["meter"]}", "/verwaltung/personen", "/verwaltung/bank/konten",
-            $"/verwaltung/vertraege/{ids["lease"]}/konto", "/verwaltung/finanzen/mahnungen",
+            $"/verwaltung/personen/{Ids["person"]}", $"/verwaltung/objekte/{Ids["property"]}", $"/verwaltung/einheiten/{Ids["unit"]}", $"/verwaltung/zimmer/{Ids["room"]}",
+            $"/verwaltung/vertraege/{Ids["lease"]}", $"/verwaltung/objekte/{Ids["property"]}/zaehler", $"/verwaltung/zaehler/{Ids["meter"]}", "/verwaltung/personen", "/verwaltung/bank/konten",
+            $"/verwaltung/vertraege/{Ids["lease"]}/konto", "/verwaltung/finanzen/mahnungen",
         ];
         var opened = 0;
         var mobileDialogs = Environment.GetEnvironmentVariable("MIETHAHN_TOUR_MOBILE") is not null;

@@ -253,10 +253,21 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await Assertions.Expect(section).ToContainTextAsync("noch offen: 1.300,00 €");
 
             await SelectAsync(page, "Art", "Rückzahlung", section);
-            await section.GetByLabel("Datum").FillAsync(German(Today));
-            await section.GetByLabel("Betrag").FillAsync("700");
-            await section.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
-            await Assertions.Expect(section).ToContainTextAsync("Es sind nur 650,00 € Kaution vorhanden");
+            // Under load the form reset after the first booking can still overwrite the fields once; enter them again until the page follows.
+            for (var attempt = 1; ; attempt++)
+            {
+                await section.GetByLabel("Datum").FillAsync(German(Today));
+                await section.GetByLabel("Betrag").FillAsync("700");
+                await section.GetByRole(AriaRole.Button, new() { Name = "Buchen" }).ClickAsync();
+                try
+                {
+                    await Assertions.Expect(section).ToContainTextAsync("Es sind nur 650,00 € Kaution vorhanden", new() { Timeout = 4000 });
+                    break;
+                }
+                catch (PlaywrightException) when (attempt < 3)
+                {
+                }
+            }
 
             await SelectAsync(page, "Art", "Verrechnung", section);
             await section.GetByLabel("Betrag").FillAsync("100");

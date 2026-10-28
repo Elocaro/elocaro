@@ -17,7 +17,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
 {
     protected const string Password = "Browser-Test-Passwort-2026";
 
-    private IPlaywright? playwright;
+    private readonly List<IBrowserContext> contexts = [];
 
     protected MietHahnWebFactory App { get; private set; } = null!;
 
@@ -38,7 +38,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
 
     public async ValueTask InitializeAsync()
     {
-        App = new MietHahnWebFactory(await postgres.CreateDatabaseAsync(TestContext.Current.CancellationToken), Configuration, ConfigureServices, postgres);
+        App = new MietHahnWebFactory(await postgres.CreateMigratedDatabaseAsync(TestContext.Current.CancellationToken), Configuration, ConfigureServices, postgres);
         App.UseKestrel(0);
         App.StartServer();
         if (SetupCompleted)
@@ -50,27 +50,49 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
 
         // Many browser tests run in parallel, each with its own app and database; allow for the load.
         Assertions.SetDefaultExpectTimeout(15_000);
-        playwright = await Playwright.CreateAsync();
         try
         {
-            // MIETHAHN_HEADED=1 shows the browser window (for watching a test while developing).
-            Browser = await playwright.Chromium.LaunchAsync(new() { Headless = Environment.GetEnvironmentVariable("MIETHAHN_HEADED") is null });
+            Browser = await SharedBrowserAsync();
         }
         catch (PlaywrightException ex) when (ex.Message.Contains("Executable doesn't exist", StringComparison.Ordinal))
         {
-            Assert.Skip("Kein Chromium für Playwright installiert: " + ex.Message.Split('\n')[0]);
+            Assert.Skip("Kein Chromium für Playwright installiert: " + ex.Message.Split((char)10)[0]);
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (Browser is not null)
+        // The browser is shared by all tests of the run (starting Chromium per test is slow); only this test's contexts end here.
+        foreach (var context in contexts)
         {
-            await Browser.DisposeAsync();
+            await context.CloseAsync();
         }
 
-        playwright?.Dispose();
         await App.DisposeAsync();
+    }
+
+    private static readonly SemaphoreSlim BrowserLock = new(1, 1);
+    private static IBrowser? sharedBrowser;
+
+    /// <summary>One Chromium for the whole test run; every test works in its own context (cookies and storage are isolated).</summary>
+    private static async Task<IBrowser> SharedBrowserAsync()
+    {
+        await BrowserLock.WaitAsync();
+        try
+        {
+            if (sharedBrowser is not { IsConnected: true })
+            {
+                var playwright = await Playwright.CreateAsync();
+                // MIETHAHN_HEADED=1 shows the browser window (for watching a test while developing).
+                sharedBrowser = await playwright.Chromium.LaunchAsync(new() { Headless = Environment.GetEnvironmentVariable("MIETHAHN_HEADED") is null });
+            }
+
+            return sharedBrowser;
+        }
+        finally
+        {
+            BrowserLock.Release();
+        }
     }
 
     /// <summary>New page at phone size (360 × 780) or desktop.</summary>
@@ -82,6 +104,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
             Locale = "de-DE",
             TimezoneId = "Europe/Berlin",
         });
+        contexts.Add(context);
         return await context.NewPageAsync();
     }
 

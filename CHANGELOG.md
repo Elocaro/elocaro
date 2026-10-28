@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- Tests: Testlauf von rund 8,5 auf 2,5 Minuten verkürzt (Vorlagen-Datenbank statt Migrationen je Test, ein gemeinsames Chromium, die langen Seiten-Durchläufe auf sechs parallele Klassen verteilt, 10 statt 4 parallele Threads).
 - Nebenkosten öffnen auf den Abrechnungen (dort startet „Neue Abrechnung“); der eigene Tab „Abrechnungs-Assistent“ entfällt. Versorgungsverträge, Umlageschlüssel und Heizkosten stehen als Einstellungen hinter einem Strich rechts.
 - Jahresangaben (Abrechnungs-, Steuerjahr, Belegfilter, Bescheinigung) sind eine Auswahl (`AppYearSelect`) statt eines Zahlenfelds.
 - Vergleichswohnungen (Mieterhöhung), Schlüsselarten (Übergabe) und Wohnungen im Einrichtungsassistenten stehen als Tabelle mit Bearbeiten/Entfernen; „… hinzufügen“ öffnet einen Dialog.

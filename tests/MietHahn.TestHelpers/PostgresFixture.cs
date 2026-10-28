@@ -1,3 +1,9 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using MietHahn.Infrastructure;
+using MietHahn.Infrastructure.Persistence;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -30,14 +36,73 @@ public sealed class PostgresFixture : IAsyncLifetime
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        // Close unused connections quickly so that finished tests do not hold connections.
-        return new NpgsqlConnectionStringBuilder(container.GetConnectionString())
+        return ConnectionString(name);
+    }
+
+    private readonly SemaphoreSlim templateLock = new(1, 1);
+    private string? template;
+
+    /// <summary>
+    /// Creates a new database with all migrations and the roles already applied. The (about a hundred) migrations run once per
+    /// test run into a template database; every further database is a file copy of it, which is far quicker than migrating each time.
+    /// </summary>
+    public async Task<string> CreateMigratedDatabaseAsync(CancellationToken cancellationToken = default)
+    {
+        await templateLock.WaitAsync(cancellationToken);
+        try
         {
-            Database = name,
+            template ??= await BuildTemplateAsync(cancellationToken);
+            var name = "test_" + Guid.NewGuid().ToString("N");
+            await ExecuteAsync($"CREATE DATABASE \"{name}\" TEMPLATE \"{template}\"", cancellationToken);
+            return ConnectionString(name);
+        }
+        finally
+        {
+            templateLock.Release();
+        }
+    }
+
+    private async Task<string> BuildTemplateAsync(CancellationToken cancellationToken)
+    {
+        var name = "template_" + Guid.NewGuid().ToString("N");
+        await ExecuteAsync($"CREATE DATABASE \"{name}\"", cancellationToken);
+        var settings = new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:MietHahn"] = ConnectionString(name),
+            ["Jobs:Active"] = "false",
+            ["FileStore:Path"] = Path.Combine(Path.GetTempPath(), "miethahn-template", Guid.NewGuid().ToString("N")),
+        };
+        var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        services.AddSingleton(TimeProvider.System);
+        services.AddMietHahnInfrastructure(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
+        await using (var provider = services.BuildServiceProvider())
+        {
+            await provider.MigrateDatabaseAsync(cancellationToken);
+        }
+
+        // A template must have no open connections.
+        NpgsqlConnection.ClearAllPools();
+        await ExecuteAsync($"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{name}'", cancellationToken);
+        return name;
+    }
+
+    private async Task ExecuteAsync(string sql, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(container.GetConnectionString());
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(sql, connection);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private string ConnectionString(string database) =>
+        new NpgsqlConnectionStringBuilder(container.GetConnectionString())
+        {
+            Database = database,
             ConnectionIdleLifetime = 2,
             ConnectionPruningInterval = 1,
         }.ConnectionString;
-    }
 
     /// <summary>
     /// Drops a database created by <see cref="CreateDatabaseAsync"/>. Without this the schemas of thousands of tests

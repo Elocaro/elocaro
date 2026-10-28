@@ -41,7 +41,7 @@ public sealed class InfrastructureEnvironment : IAsyncDisposable
         Action<IServiceCollection>? configure = null)
     {
         var ct = TestContext.Current.CancellationToken;
-        var connection = await postgres.CreateDatabaseAsync(ct);
+        var connection = await postgres.CreateMigratedDatabaseAsync(ct);
         var filePath = Path.Combine(Path.GetTempPath(), "miethahn-tests", Guid.NewGuid().ToString("N"));
 
         var values = new Dictionary<string, string?>
