@@ -12,7 +12,6 @@ public partial class ModuleRulesTests
     /// <summary>Pairs of modules that use each other today (alphabetical). Goal: empty. Admin is the hub; splitting it removes most of them.</summary>
     private static readonly string[] KnownCycles =
     [
-        "Admin <-> Finance",
         "Admin <-> Leases",
         "Admin <-> Properties",
         "Common <-> Documents",

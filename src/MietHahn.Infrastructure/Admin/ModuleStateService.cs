@@ -1,14 +1,7 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using MietHahn.Application.Accounts;
 using MietHahn.Application.Admin;
 using MietHahn.Domain.Admin;
-using MietHahn.Domain.Finance;
-using MietHahn.Domain.Leases;
-using MietHahn.Domain.Properties;
-using MietHahn.Domain.Tax;
-using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Admin;
@@ -54,7 +47,7 @@ internal sealed class ModuleStateService(IServiceScopeFactory scopes, TimeProvid
             await using var scope = scopes.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<MietHahnDbContext>();
             var stored = await db.Set<ModuleSettings>().AsNoTracking().OrderBy(m => m.CreatedAt).FirstOrDefaultAsync(cancellationToken);
-            usage = await CountUsageAsync(db, cancellationToken);
+            usage = await CountUsageAsync(scope.ServiceProvider, cancellationToken);
             return current = ToSelection(stored);
         }
         finally
@@ -66,7 +59,7 @@ internal sealed class ModuleStateService(IServiceScopeFactory scopes, TimeProvid
     public async Task RefreshUsageAsync(CancellationToken cancellationToken = default)
     {
         await using var scope = scopes.CreateAsyncScope();
-        usage = await CountUsageAsync(scope.ServiceProvider.GetRequiredService<MietHahnDbContext>(), cancellationToken);
+        usage = await CountUsageAsync(scope.ServiceProvider, cancellationToken);
     }
 
     public async Task SaveAsync(IEnumerable<AppModule> enabled, bool completeSetup, IEnumerable<AppOption>? options = null, CancellationToken cancellationToken = default)
@@ -107,7 +100,7 @@ internal sealed class ModuleStateService(IServiceScopeFactory scopes, TimeProvid
 
             change(settings);
             await db.SaveChangesAsync(cancellationToken);
-            usage = await CountUsageAsync(db, cancellationToken);
+            usage = await CountUsageAsync(scope.ServiceProvider, cancellationToken);
             current = ToSelection(settings);
         }
         finally
@@ -116,82 +109,16 @@ internal sealed class ModuleStateService(IServiceScopeFactory scopes, TimeProvid
         }
     }
 
-    private static async Task<IReadOnlyDictionary<AppOption, int>> CountUsageAsync(MietHahnDbContext db, CancellationToken cancellationToken)
+    /// <summary>Asks every module for the options its data uses; this service itself knows none of them.</summary>
+    private static async Task<IReadOnlyDictionary<AppOption, int>> CountUsageAsync(IServiceProvider services, CancellationToken cancellationToken)
     {
-        var models = await db.Set<Lease>().GroupBy(l => l.RentModel).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken);
-        var billing = await db.Set<Lease>().GroupBy(l => l.BillingType).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken);
         var result = new Dictionary<AppOption, int>();
-        foreach (var row in models.Where(m => m.Key != RentModel.Standard))
+        foreach (var source in services.GetServices<IOptionUsageSource>())
         {
-            result[ModuleCatalog.Of(row.Key)] = row.Count;
-        }
-
-        foreach (var row in billing)
-        {
-            result[ModuleCatalog.Of(row.Key)] = row.Count;
-        }
-
-        var rooms = await db.Set<Room>().CountAsync(cancellationToken);
-        if (rooms > 0)
-        {
-            result[AppOption.RoomRental] = rooms;
-        }
-
-        foreach (var row in await db.Set<Unit>().GroupBy(u => u.Type).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken))
-        {
-            if (row.Key == UnitType.ParkingSpace)
+            foreach (var (option, count) in await source.CountAsync(cancellationToken))
             {
-                result[AppOption.UnitParking] = row.Count;
+                result[option] = result.GetValueOrDefault(option) + count;
             }
-            else if (row.Key == UnitType.Commercial)
-            {
-                result[AppOption.UnitCommercial] = row.Count;
-            }
-        }
-
-        var deposits = await db.Set<Lease>().CountAsync(l => l.Deposit != null && l.Deposit > 0, cancellationToken);
-        if (deposits > 0)
-        {
-            result[AppOption.LeaseDeposit] = deposits;
-        }
-
-        var guarantors = await db.Set<LeaseParty>().CountAsync(p => p.Role == PartyRole.Guarantor, cancellationToken);
-        if (guarantors > 0)
-        {
-            result[AppOption.LeaseGuarantor] = guarantors;
-        }
-
-        if (await db.Set<FinanceSettings>().OrderBy(f => f.CreatedAt).FirstOrDefaultAsync(cancellationToken) is { } finance)
-        {
-            if (finance.ReminderFee > 0 || finance.FirstNoticeFee > 0 || finance.SecondNoticeFee > 0)
-            {
-                result[AppOption.DunningFees] = 1;
-            }
-
-            if (finance.ChargeDefaultInterest || finance.BaseRate is not null)
-            {
-                result[AppOption.DunningInterest] = 1;
-            }
-        }
-
-        var loans = await db.Set<Loan>().CountAsync(cancellationToken);
-        if (loans > 0)
-        {
-            result[AppOption.TaxLoans] = loans;
-        }
-
-        var depreciation = await db.Set<PropertyAcquisition>().CountAsync(cancellationToken) + await db.Set<MaintenanceDistribution>().CountAsync(cancellationToken);
-        if (depreciation > 0)
-        {
-            result[AppOption.TaxDepreciation] = depreciation;
-        }
-
-        var owners = await db.Set<IdentityUserRole<Guid>>()
-            .Join(db.Set<Role>(), ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
-            .CountAsync(name => name == Roles.Owner, cancellationToken);
-        if (owners > 0)
-        {
-            result[AppOption.TaxOwnerPortal] = owners;
         }
 
         return result;

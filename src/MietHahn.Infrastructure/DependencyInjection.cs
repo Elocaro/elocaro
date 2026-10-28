@@ -175,6 +175,11 @@ public static class DependencyInjection
         services.AddScoped<IMailService, MailService>();
         services.AddScoped<ITodoSource, MailTodos>();
         services.AddScoped<ITodoSource, Setup.SetupChecklistTodos>();
+        services.AddScoped<IOptionUsageSource, Leases.LeaseOptionUsage>();
+        services.AddScoped<IOptionUsageSource, Properties.PropertyOptionUsage>();
+        services.AddScoped<IOptionUsageSource, Finance.FinanceOptionUsage>();
+        services.AddScoped<IOptionUsageSource, Tax.TaxOptionUsage>();
+        services.AddScoped<IOptionUsageSource, Identity.OwnerOptionUsage>();
         services.AddScoped<ILegalReferences, Legal.LegalReferences>();
         services.AddScoped<IDataImport, Setup.DataImport>();
         services.AddScoped<IPortfolioFigures, Portfolio.PortfolioFiguresService>();
