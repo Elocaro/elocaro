@@ -122,11 +122,7 @@ else
 
     private RenderFragment GroupView(TodoEntry entry) => @<li class="todo todo-@entry.First.Urgency.ToString().ToLowerInvariant() todo-group">
         <details>
-            <summary>@entry.Heading <span class="small">(@entry.Items.Count)</span></summary>
-            @if (entry.First.Due is { } due)
-            {
-                <span class="small">fällig am @Format.Date(due)</span>
-            }
+            <summary>@entry.Heading <span class="small">(@entry.Items.Count)@(entry.First.Due is { } due ? $" · fällig am {Format.Date(due)}" : "")</span></summary>
             @if (entry.First.Details is not null)
             {
                 <p class="small">@entry.First.Details</p>
