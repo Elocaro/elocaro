@@ -46,6 +46,16 @@ deploy/
 - **Barrierearmut & Mobile:** responsive Layout, Erfassungsmasken (Zähler, Tickets) für Smartphones.
 - **CI:** GitHub Actions: Build, Tests (inkl. Testcontainers), Format/Analyzer, Docker-Image nach GHCR.
 
+## Architekturregeln (Tests)
+
+`tests/MietHahn.Architecture.Tests` hält die Regeln dieses Dokuments fest; ein Verstoß bricht den Build:
+
+- **Schichten** (`LayerRulesTests`): Domain kennt nichts, Application nur Domain, Infrastructure nicht Web; die Domain nutzt keine Frameworks.
+- **Zugriff** (`AccessRulesTests`): Jede Seite mit `@page` nennt ihren Zugriff ausdrücklich (`[Authorize(Policy = …)]` an der Seite oder in der `_Imports.razor` des Ordners, sonst `[AllowAnonymous]`). Anonym sind nur die dort aufgelisteten Seiten (Anmeldung, Fehler, Links mit Token). Jeder Bereich verlangt seine Policy (Verwaltung, Eigentümer, Portal, Service). Die Fallback-Richtlinie („angemeldet“) ist nur das Netz darunter.
+- **Web und Infrastructure** (`AccessRulesTests`): Seiten sprechen mit Application-Schnittstellen. Infrastructure-Typen kennt das Web nur in Start und Konto (feste Liste, darf schrumpfen, nicht wachsen).
+- **Module** (`ModuleRulesTests`): Die Ordner der Infrastructure sind fachliche Module, aber keine Assemblies. Wechselseitige Abhängigkeiten zwischen zwei Modulen sind eingefroren (`KnownCycles`): Ein neuer Zyklus bricht den Test, ein aufgelöster muss aus der Liste. Ziel: leere Liste, Anfang mit dem Sammelmodul `Admin` (Portfolio-Kennzahlen, Modulstatus, Navigationskontext). Technische Bausteine (Files, Mail, Templates, Notifications, Audit) dürfen nicht auf Fachmodule verweisen.
+- **Oberfläche** (`UiRulesTests`): siehe `docs/ui.md`.
+
 ## Meilensteine
 
 | # | Meilenstein | Inhalt |
