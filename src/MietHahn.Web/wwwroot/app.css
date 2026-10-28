@@ -480,6 +480,9 @@ img.document-preview, iframe.document-preview, .property-image { border-radius: 
 
 /* MudBlazor tables follow the same look */
 .mud-table-outlined { border-radius: var(--shape-lg) !important; border-color: var(--md-outline-variant) !important; }
+/* The header and footer backgrounds are square: clip them to the rounded corners (the header sticks inside .mud-table-container, which scrolls) */
+.mud-table { overflow: hidden; }
+.mud-table-container { border-radius: inherit; }
 .mud-table-head .mud-table-cell { background: var(--md-surface-container); font-weight: 600; }
 
 /* Filter bars: actions stay compact, checkboxes align with the fields */
