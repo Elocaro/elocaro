@@ -9,6 +9,7 @@ using MietHahn.Domain.Metering;
 using MietHahn.Domain.People;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 using Quartz;
 
 namespace MietHahn.Infrastructure.Metering;
@@ -60,7 +61,7 @@ internal sealed class ConsumptionNotifications(MietHahnDbContext db, IConsumptio
                         Month = month.ToString("MMMM yyyy", German),
                         Lines = monthly.Lines.Where(l => l.Current is not null).Select(Describe).ToList(),
                         Link = link,
-                        SenderName = (await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken))?.Name ?? "Ihre Hausverwaltung",
+                        SenderName = (await SenderProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken))?.Name ?? "Ihre Hausverwaltung",
                     },
                     Reference: $"consumption:{lease.Id}:{month:yyyy-MM}"), cancellationToken);
                 sent++;
@@ -162,7 +163,7 @@ internal sealed class ReadingReminders(MietHahnDbContext db, IMailSender mail, I
                         Salutation = LetterParts.SalutationOf([recipient]),
                         today.Year,
                         Link = link,
-                        SenderName = (await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken))?.Name ?? "Ihre Hausverwaltung",
+                        SenderName = (await SenderProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken))?.Name ?? "Ihre Hausverwaltung",
                     },
                     Reference: $"reading-reminder:{lease.Id}:{today.Year}"), cancellationToken);
                 sent++;

@@ -6,6 +6,7 @@ using MietHahn.Domain.Common;
 using MietHahn.Domain.Files;
 using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Templates;
 
 namespace MietHahn.Infrastructure.Pdf;
@@ -45,7 +46,7 @@ internal sealed class PdfGenerator(
             throw new ArgumentException("Eine Briefanschrift hat 1 bis 6 Zeilen.", nameof(job));
         }
 
-        var sender = await Admin.LandlordProfiles.ForPropertyAsync(db, job.PropertyId, cancellationToken)
+        var sender = await SenderProfiles.ForPropertyAsync(db, job.PropertyId, cancellationToken)
             ?? throw new InvalidOperationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Fußzeile benötigt.");
 
         var content = job switch

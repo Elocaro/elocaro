@@ -15,6 +15,7 @@ using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 
 namespace MietHahn.Infrastructure.Portal;
 
@@ -212,8 +213,8 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock, Mie
         var responsible = new List<PortalContact>();
         var firstUnit = OwnLeases(personIds).Select(v => v.UnitId).FirstOrDefault();
         var landlord = firstUnit == Guid.Empty
-            ? await Admin.LandlordProfiles.ForPropertyAsync(db, null, cancellationToken)
-            : await Admin.LandlordProfiles.ForUnitAsync(db, firstUnit, cancellationToken);
+            ? await SenderProfiles.ForPropertyAsync(db, null, cancellationToken)
+            : await SenderProfiles.ForUnitAsync(db, firstUnit, cancellationToken);
         if (landlord is not null)
         {
             responsible.Add(new PortalContact("Vermieter", landlord.Name, landlord.Phone, landlord.Email));

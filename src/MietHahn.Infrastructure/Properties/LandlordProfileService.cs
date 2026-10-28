@@ -7,7 +7,7 @@ using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Properties;
 
 internal sealed class LandlordProfileService(MietHahnDbContext db) : ILandlordProfileService
 {
@@ -25,7 +25,7 @@ internal sealed class LandlordProfileService(MietHahnDbContext db) : ILandlordPr
     }
 
     public async Task<string?> EmergencyInfoAsync(Guid propertyId, CancellationToken cancellationToken = default) =>
-        (await LandlordProfiles.ForPropertyAsync(db, propertyId, cancellationToken))?.EmergencyInfo;
+        (await SenderProfiles.ForPropertyAsync(db, propertyId, cancellationToken))?.EmergencyInfo;
 
     public async Task<IReadOnlyList<LandlordProfileRow>> ListAsync(CancellationToken cancellationToken = default)
     {

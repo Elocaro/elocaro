@@ -7,6 +7,7 @@ using MietHahn.Domain.Notices;
 using MietHahn.Domain.People;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 using Quartz;
 
 namespace MietHahn.Infrastructure.Notices;
@@ -74,7 +75,7 @@ internal sealed class NoticeNotifications(MietHahnDbContext db, IMailSender mail
     {
         if (!cache.TryGetValue(propertyId, out var name))
         {
-            cache[propertyId] = name = (await Admin.LandlordProfiles.ForPropertyAsync(db, propertyId, cancellationToken))?.Name ?? "Ihre Hausverwaltung";
+            cache[propertyId] = name = (await SenderProfiles.ForPropertyAsync(db, propertyId, cancellationToken))?.Name ?? "Ihre Hausverwaltung";
         }
 
         return name;

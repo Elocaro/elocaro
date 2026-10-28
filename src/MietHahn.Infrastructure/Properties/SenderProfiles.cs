@@ -1,14 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Domain.Admin;
 using MietHahn.Domain.Common;
-using MietHahn.Domain.Leases;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Properties;
 
 /// <summary>Which sender details a document carries: the profile chosen for the property, otherwise the standard profile (the oldest one).</summary>
-internal static class LandlordProfiles
+internal static class SenderProfiles
 {
     /// <summary>The profile of the property on the given day (default: today): the latest entry up to that day, else the profile chosen on the property, else the standard profile.</summary>
     public static async Task<LandlordProfile?> ForPropertyAsync(MietHahnDbContext db, Guid? propertyId, CancellationToken cancellationToken, DateOnly? on = null)
@@ -34,10 +33,6 @@ internal static class LandlordProfiles
 
         return await db.Set<LandlordProfile>().AsNoTracking().OrderBy(v => v.CreatedAt).FirstOrDefaultAsync(cancellationToken);
     }
-
-    public static async Task<Guid?> PropertyOfLeaseAsync(MietHahnDbContext db, Guid leaseId, CancellationToken cancellationToken) =>
-        await db.Set<Lease>().AsNoTracking().Where(v => v.Id == leaseId)
-            .Join(db.Set<Unit>(), v => v.UnitId, e => e.Id, (v, e) => (Guid?)e.PropertyId).SingleOrDefaultAsync(cancellationToken);
 
     /// <summary>For documents that belong to a unit (leases, letters, statements).</summary>
     public static async Task<LandlordProfile?> ForUnitAsync(MietHahnDbContext db, Guid unitId, CancellationToken cancellationToken) =>

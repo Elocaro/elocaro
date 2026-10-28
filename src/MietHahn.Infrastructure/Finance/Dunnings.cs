@@ -19,6 +19,7 @@ using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 using Quartz;
 
 namespace MietHahn.Infrastructure.Finance;
@@ -410,7 +411,7 @@ internal sealed class DunningService(
         var today = GermanTime.Today(clock.GetUtcNow());
         var rules = (await FinanceSettingsService.GetOrCreateAsync(db, cancellationToken)).DunningRules;
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).SingleOrDefaultAsync(v => v.Id == proposal.LeaseId, cancellationToken);
-        var landlord = lease is null ? null : await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken);
+        var landlord = lease is null ? null : await SenderProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken);
         if (lease is null)
         {
             return null;

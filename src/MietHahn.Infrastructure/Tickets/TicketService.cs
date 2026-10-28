@@ -17,6 +17,7 @@ using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 
 namespace MietHahn.Infrastructure.Tickets;
 
@@ -338,7 +339,7 @@ internal sealed class TicketService(MietHahnDbContext db, IMailSender mail, IOpt
 
     private async Task NotifyAsync(Ticket ticket, string message, bool assigneeOnly, Viewer actor, CancellationToken cancellationToken)
     {
-        var sender = (await Admin.LandlordProfiles.ForPropertyAsync(db, ticket.PropertyId, cancellationToken))?.Name ?? "Ihre Hausverwaltung";
+        var sender = (await SenderProfiles.ForPropertyAsync(db, ticket.PropertyId, cancellationToken))?.Name ?? "Ihre Hausverwaltung";
         var recipients = new List<(Guid Person, string Link)>();
         if (!assigneeOnly && actor != Viewer.Tenant && ticket.ReporterId is { } reporter)
         {

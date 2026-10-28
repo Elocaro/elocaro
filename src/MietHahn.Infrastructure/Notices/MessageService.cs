@@ -14,6 +14,7 @@ using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 
 namespace MietHahn.Infrastructure.Notices;
 
@@ -164,7 +165,7 @@ internal sealed class MessageService(MietHahnDbContext db, IMailSender mail, IOp
         }
 
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).SingleAsync(v => v.Id == thread.LeaseId, cancellationToken);
-        var sender = (await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken))?.Name ?? "MietHahn";
+        var sender = (await SenderProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken))?.Name ?? "MietHahn";
         var ids = lease.Tenant.Select(p => p.PersonId).ToList();
         var recipients = await db.Set<Person>().AsNoTracking().Where(p => ids.Contains(p.Id) && p.UserId != null && p.Email != null && p.AnonymizedAt == null).ToListAsync(cancellationToken);
         foreach (var person in recipients)

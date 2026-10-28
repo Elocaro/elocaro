@@ -14,6 +14,7 @@ using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Templates;
 
 namespace MietHahn.Infrastructure.Documents;
@@ -154,7 +155,7 @@ internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocument
         var today = GermanTime.Today(clock.GetUtcNow());
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).SingleOrDefaultAsync(v => v.Id == leaseId, cancellationToken)
             ?? throw new RuleViolationException("Der Mietvertrag wurde nicht gefunden.");
-        var landlord = await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
+        var landlord = await SenderProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
             ?? throw new RuleViolationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.");
         var people = TenantsOf(lease, await PeopleAsync([lease], cancellationToken));
         var rentalUnit = (await RentalUnit.GetAsync(db, cancellationToken)).GetValueOrDefault(lease.RentalUnitId)

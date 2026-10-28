@@ -13,6 +13,7 @@ using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Templates;
 
 namespace MietHahn.Infrastructure.Leases;
@@ -324,7 +325,7 @@ internal sealed class ContractSignatures(
         var people = await db.Set<Person>().AsNoTracking().Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
         var tenants = ids.Select(i => people.First(p => p.Id == i)).Select(p => new Signer(p.Id, p.DisplayName, p.Email, p)).ToList();
         var unit = (await RentalUnit.GetAsync(db, cancellationToken)).GetValueOrDefault(lease.RentalUnitId);
-        var landlord = await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken);
+        var landlord = await SenderProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken);
         var draftName = await db.Set<Domain.Files.StoredFile>().AsNoTracking().Where(f => f.Id == contract.DraftFileId).Select(f => f.Name).SingleAsync(cancellationToken);
         var title = Path.GetFileNameWithoutExtension(draftName);
         var tenantNames = string.Join(" und ", tenants.Select(t => t.DisplayName));

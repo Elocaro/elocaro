@@ -19,6 +19,7 @@ using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.OperatingCosts;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 using Zaehler = MietHahn.Domain.Metering.Meter;
 
 namespace MietHahn.Infrastructure.Statements;
@@ -252,7 +253,7 @@ internal sealed class StatementDispatchService(
         var tenant = statement.Result.Tenants.FirstOrDefault(t => t.LeaseId == leaseId)
             ?? throw new RuleViolationException("Der Mietvertrag ist nicht Teil dieser Abrechnung.");
         var lease = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).SingleOrDefaultAsync(v => v.Id == leaseId, cancellationToken) ?? throw new NotFoundException();
-        var landlord = await Admin.LandlordProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
+        var landlord = await SenderProfiles.ForUnitAsync(db, lease.UnitId, cancellationToken)
             ?? throw new RuleViolationException("Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.");
         var today = GermanTime.Today(clock.GetUtcNow());
         var period = statement.Summary.BillingPeriod;

@@ -13,6 +13,7 @@ using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
+using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Templates;
 
 namespace MietHahn.Infrastructure.Leases;
@@ -470,7 +471,7 @@ internal sealed class Handovers(MietHahnDbContext db, IPdfGenerator pdf, IFileSt
         var ids = lease.Tenant.Select(p => p.PersonId).ToList();
         var people = await db.Set<Person>().Include(p => p.Addresses).Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
         var tenants = ids.Select(i => people.First(p => p.Id == i)).ToList();
-        var landlord = await Admin.LandlordProfiles.ForPropertyAsync(db, unit.PropertyId, cancellationToken);
+        var landlord = await SenderProfiles.ForPropertyAsync(db, unit.PropertyId, cancellationToken);
         return new Context(lease, rentalUnit, unit, room, tenants, string.Join(" und ", tenants.Select(p => p.DisplayName)), landlord?.Name ?? "Vermieter");
     }
 
