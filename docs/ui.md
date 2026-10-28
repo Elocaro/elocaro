@@ -58,6 +58,8 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 
 **Rechentabellen mit Summenzeilen** (Kosten, Mieterabrechnung in der Vorschau) tragen `card-rows` und `data-label` an den Zellen: Auf dem Handy wird jede Zeile zur Karte, Summen stehen als Beschriftung und Betrag nebeneinander, damit kein Betrag aus dem sichtbaren Bereich rutscht. Mieterblöcke der Vorschau sind `details.group` (bis drei offen, sonst zugeklappt), die Überschrift nennt den Saldo.
 
+**Zwei Tabellenarten, ein Aussehen:** `.data-table` (statisch) und `MudTable` (interaktiv) teilen Schrift, Zellabstand, Kopfzeile und Linien (`app.css`, Abschnitt „MudBlazor tables“); neue Listen dürfen beide nutzen.
+
 **Tabellen auf dem Handy:** Statische `.data-table` ohne verbundene Zellen werden unter 700 px zu Karten (`shell.js` setzt `data-label` aus den Spaltenköpfen). Ausnahme mit `data-nostack` am `table`.
 
 **Startseite**: Kennzahlen, Zusammenfassung (dringend/bald fällig) und ein Raster aus Karten (`.panel`) je Bereich, dringendste zuerst; die Diagramme stehen darunter und entfallen, solange der Verlauf nur aus Nullen besteht. Leere Einheiten (Leerstand) bieten in der Belegung direkt „Vertrag anlegen“ (vorbelegt mit dem Mietobjekt). In „Umsätze zuordnen“ ist „Bestätigen“ nur ab 70 % Treffsicherheit gefüllt, die Liste zeigt 50 Einträge und lädt auf Wunsch weitere. Rückfragen beim Löschen nennen den Namen (und bei Objekten die Zahl der Einheiten); das Löschen eines Zählers liegt im Menü „Weitere Aktionen“ statt in einem eigenen Tab.
@@ -91,6 +93,7 @@ Zurückhaltend und nur dort, wo sie etwas erklärt; bei „reduzierte Bewegung�
 - **Ladetext** (`.loading`): erscheint erst nach 300 ms, mit kleinem Kreisel; schnelle Ladevorgänge zeigen nichts.
 - **Aufklappen** (`details`): Inhalt gleitet sanft ein. Dialoge, Menüs, Tabs und Snackbars bringen ihre Bewegung von MudBlazor mit.
 - **Tabellen vor der Verbindung:** MudBlazor setzt seine Palette erst mit dem Verbindungsaufbau; `app.css` definiert `--mud-palette-surface` u. a. vorab aus den `--md-*`-Rollen, damit prerenderte Tabellen nicht hell aufblitzen.
+- **Tab-Leisten auf dem Handy:** Die `MudTabs` der Detailseiten (`detail-tabs`) scrollen unter 900 px nativ (Wischen); MudBlazors Pfeiltasten und seine Verschiebung sind dort ausgeblendet, `shell.js` hält den aktiven Tab sichtbar (`revealMudTab`).
 - **Kein Springen:** Die Schrift (Roboto Flex) wird vorgeladen; ein Browser-Test (`Pages_do_not_shift_while_loading`) hält den Layout-Sprung beim Laden unter 0,1. Neue Elemente, die erst nach dem Laden erscheinen, reservieren ihren Platz.
 - Keine Eingangsanimationen für Karten oder Listen: Die Anwendung soll sich wie ein Werkzeug anfühlen, nicht wie eine Präsentation.
 

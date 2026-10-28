@@ -335,6 +335,13 @@ h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 .detail-tabs .mud-tab { text-transform: none; letter-spacing: 0; font-weight: 600; min-width: 5rem !important; padding-inline: 0.75rem; }
 .detail-tabs .mud-tab.mud-tab-active { color: var(--md-primary); }
 .detail-tabs .mud-tab-slider { background: var(--md-primary); height: 3px; }
+/* Phones: the tab bar scrolls natively (swipe) instead of through MudBlazor's arrow buttons and translate; shell.js keeps the active tab in view. */
+@media (max-width: 899.98px) {
+    .detail-tabs .mud-tabs-tabbar-content { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .detail-tabs .mud-tabs-tabbar-content::-webkit-scrollbar { display: none; }
+    .detail-tabs .mud-tabs-tabbar-wrapper { transform: none !important; }
+    .detail-tabs .mud-tabs-scroll-button { display: none; }
+}
 .detail-tabs .mud-tabs-panels > .mud-tabs-panel > section:first-child > h2:first-child { margin-top: 0.5rem; }
 
 /* Dashboard */
@@ -486,6 +493,10 @@ img.document-preview, iframe.document-preview, .property-image { border-radius: 
 .mud-table { overflow: hidden; }
 .mud-table-container { border-radius: inherit; }
 .mud-table-head .mud-table-cell { background: var(--md-surface-container); font-weight: 600; }
+/* Same type and spacing as the static .data-table, so both kinds of table read alike */
+.mud-table-cell { font: inherit; padding: 0.8rem 1rem; border-bottom-color: var(--md-outline-variant); }
+.mud-table-dense .mud-table-cell { padding-block: 0.45rem; }
+.mud-table-head .mud-table-cell { font: var(--type-label); font-weight: 600; letter-spacing: 0.02em; color: var(--md-on-surface-variant); padding-block: 0.85rem; }
 
 /* Filter bars: actions stay compact, checkboxes align with the fields */
 .field-action { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.5rem; }

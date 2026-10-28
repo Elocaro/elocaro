@@ -5,6 +5,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- Handy: Die Tab-Leisten der Detailseiten (z. B. Mietvertrag) lassen sich wischen; vorher ging es nur über die Pfeiltasten. Der aktive Tab bleibt sichtbar.
+- Tabellen: `MudTable` hat jetzt dieselbe Schriftgröße, denselben Zellabstand und dieselbe Kopfzeile wie die statischen Tabellen (vorher kleinere Schrift).
 - Tests: Testlauf von rund 8,5 auf 2,5 Minuten verkürzt (Vorlagen-Datenbank statt Migrationen je Test, ein gemeinsames Chromium, die langen Seiten-Durchläufe auf sechs parallele Klassen verteilt, 10 statt 4 parallele Threads).
 - Nebenkosten öffnen auf den Abrechnungen (dort startet „Neue Abrechnung“); der eigene Tab „Abrechnungs-Assistent“ entfällt. Versorgungsverträge, Umlageschlüssel und Heizkosten stehen als Einstellungen hinter einem Strich rechts.
 - Hinzufügen- und Ändern-Formulare (Betrag ab Stichtag, Bestandteil beenden, Mieter, Personenanzahl, Staffel, Mietmodell, Zähler anlegen/tauschen/Angaben, AfA-Kosten und Wirtschaftsgüter) öffnen als Dialog statt als aufklappbarer Abschnitt (`FormDialog`).

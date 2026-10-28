@@ -35,6 +35,29 @@
         document.documentElement.toggleAttribute('data-scrolling-down', now > before && now > 80);
     }, true);
 
+    // MudBlazor tab bars (detail pages) scroll natively on phones: keep the active tab inside the visible part.
+    // The server re-renders the bar after a click, so look again a few times.
+    const revealMudTab = () => {
+        document.querySelectorAll('.detail-tabs .mud-tab-active').forEach((tab) => {
+            const box = tab.closest('.mud-tabs-tabbar-content');
+            if (!box || box.scrollWidth <= box.clientWidth) {
+                return;
+            }
+
+            const tabBox = tab.getBoundingClientRect();
+            const view = box.getBoundingClientRect();
+            if (tabBox.left < view.left || tabBox.right > view.right) {
+                box.scrollTo({ left: box.scrollLeft + (tabBox.left - view.left) - (view.width - tabBox.width) / 2, behavior: 'smooth' });
+            }
+        });
+    };
+
+    document.addEventListener('click', (event) => {
+        if (event.target instanceof Element && event.target.closest('.detail-tabs .mud-tab')) {
+            [80, 300, 700].forEach((delay) => setTimeout(revealMudTab, delay));
+        }
+    });
+
     const revealActiveTab = () => {
         document.querySelectorAll('.tab-bar a.active').forEach((tab) => {
             tab.scrollIntoView({ block: 'nearest', inline: 'center' });
@@ -170,6 +193,7 @@
             requestAnimationFrame(() => {
                 scheduled = false;
                 labelTables();
+                revealMudTab();
             });
         }
     }).observe(document.documentElement, { childList: true, subtree: true });
