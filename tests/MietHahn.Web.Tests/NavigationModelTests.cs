@@ -30,6 +30,18 @@ public class NavigationModelTests
     }
 
     [Fact]
+    public void The_settings_tabs_fit_into_one_row_and_the_system_pages_sit_in_a_group()
+    {
+        var settings = AdminNavModel.Areas.Single(a => a.Href.EndsWith("/einstellungen/vermieter", StringComparison.Ordinal));
+
+        Assert.InRange(settings.Tabs.Length, 1, 7);
+        var system = Assert.Single(settings.Tabs, t => t.IsGroup);
+        Assert.Equal("System", system.Label);
+        Assert.Equal(["E-Mail-Versand", "Hintergrundjobs", "Datensicherung", "Belegauslesung"], system.Children!.Select(c => c.Label));
+        Assert.All(system.Children!, child => Assert.True(system.Matches(child.Href)));
+    }
+
+    [Fact]
     public void Every_page_of_the_old_areas_still_belongs_to_an_area()
     {
         string[] paths =

@@ -55,22 +55,22 @@ else
                     <span class="count-badge" aria-label="@area.Count() Aufgaben">@area.Count()</span>
                 </header>
                 @{
-                    var ordered = area.OrderByDescending(a => a.Urgency).ThenBy(a => a.Due).ToList();
+                    var entries = TodoGroups.Build(area.OrderByDescending(a => a.Urgency).ThenBy(a => a.Due));
                 }
                 <ul class="todos">
-                    @foreach (var todo in ordered.Take(VisiblePerArea))
+                    @foreach (var entry in entries.Take(VisiblePerArea))
                     {
-                        @TodoItemView(todo)
+                        @EntryView(entry)
                     }
                 </ul>
-                @if (ordered.Count > VisiblePerArea)
+                @if (entries.Count > VisiblePerArea)
                 {
                     <details class="todos-more">
-                        <summary>@(ordered.Count - VisiblePerArea) weitere anzeigen</summary>
+                        <summary>@(entries.Count - VisiblePerArea) weitere anzeigen</summary>
                         <ul class="todos">
-                            @foreach (var todo in ordered.Skip(VisiblePerArea))
+                            @foreach (var entry in entries.Skip(VisiblePerArea))
                             {
-                                @TodoItemView(todo)
+                                @EntryView(entry)
                             }
                         </ul>
                     </details>
@@ -116,6 +116,28 @@ else
         {
             <p class="small">@todo.Details</p>
         }
+    </li>;
+
+    private RenderFragment EntryView(TodoEntry entry) => entry.Items.Count == 1 ? TodoItemView(entry.First) : GroupView(entry);
+
+    private RenderFragment GroupView(TodoEntry entry) => @<li class="todo todo-@entry.First.Urgency.ToString().ToLowerInvariant() todo-group">
+        <details>
+            <summary>@entry.Heading <span class="small">(@entry.Items.Count)</span></summary>
+            @if (entry.First.Due is { } due)
+            {
+                <span class="small">fällig am @Format.Date(due)</span>
+            }
+            @if (entry.First.Details is not null)
+            {
+                <p class="small">@entry.First.Details</p>
+            }
+            <ul class="todo-group-items">
+                @foreach (var item in entry.Items)
+                {
+                    <li><a href="@item.Link">@TodoGroups.Rest(item, entry.Heading)</a></li>
+                }
+            </ul>
+        </details>
     </li>;
 
     private int Count(Urgency urgency) => todos?.Count(t => t.Urgency == urgency) ?? 0;

@@ -97,7 +97,7 @@ public static class DependencyInjection
 
     internal static void ConfigureNpgsql(DbContextOptionsBuilder options, string connection) =>
         options
-            .UseNpgsql(connection, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations"))
+            .UseNpgsql(connection, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations").UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery))
             .UseSnakeCaseNamingConvention();
 
     private static void AddPersistence(IServiceCollection services, IConfiguration configuration)

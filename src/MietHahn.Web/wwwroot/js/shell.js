@@ -17,6 +17,24 @@
         });
     };
 
+    // The main action of a page is a floating button on the smartphone: while scrolling down it steps aside (CSS: html[data-scrolling-down]).
+    const scrolled = new WeakMap();
+    document.addEventListener('scroll', (event) => {
+        const area = event.target;
+        if (!(area instanceof Element) || !area.classList.contains('content')) {
+            return;
+        }
+
+        const before = scrolled.get(area) ?? 0;
+        const now = area.scrollTop;
+        if (Math.abs(now - before) < 12) {
+            return;
+        }
+
+        scrolled.set(area, now);
+        document.documentElement.toggleAttribute('data-scrolling-down', now > before && now > 80);
+    }, true);
+
     const revealActiveTab = () => {
         document.querySelectorAll('.tab-bar a.active').forEach((tab) => {
             tab.scrollIntoView({ block: 'nearest', inline: 'center' });

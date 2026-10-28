@@ -18,8 +18,8 @@ Die Verwaltung verhält sich wie eine Anwendung, nicht wie eine lange Webseite. 
 |---|---|---|
 | Kopfleiste (`.top-bar`) | feststehend: Marke, Benutzermenü | entfällt, der Seitenkopf ist die App-Leiste |
 | Hauptnavigation | Seitenleiste (`.sidebar`), eigener Scroll, nach Bereichen gruppiert | Untere Leiste (`.bottom-bar`): Aufgaben, Bestand, Geld, Kommunikation, **Menü** (Blatt mit allen Bereichen und Benutzermenü) |
-| Tabs (`TabBar`, `ContextTabs`) | unter der Kopfleiste, feststehend | gleiche Leiste, seitlich wischbar, aktiver Tab wird sichtbar gehalten |
-| Seitenkopf (`PageHeader`) | `position: sticky` im Inhaltsbereich | Zurück als Icon links vom Titel; die gefüllte Hauptaktion wird zur schwebenden Schaltfläche über der unteren Leiste |
+| Tabs (`TabBar`, `ContextTabs`) | unter der Kopfleiste, feststehend | gleiche Leiste, seitlich wischbar, aktiver Tab wird sichtbar gehalten; wo weitere Tabs warten, blendet die Leiste am Rand aus |
+| Seitenkopf (`PageHeader`) | `position: sticky` im Inhaltsbereich | Zurück als Icon links vom Titel; die gefüllte Hauptaktion wird zur schwebenden Schaltfläche über der unteren Leiste (beim Hinunterscrollen weicht sie aus, beim Hinaufscrollen kommt sie zurück, `js/shell.js`) |
 | Tabellen | `MudTable` füllt die freie Höhe, Kopfzeile bleibt stehen | Karten (`Breakpoint.Sm`) |
 | Dialoge | zentriert | als Blatt vom unteren Rand |
 

@@ -214,12 +214,12 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
             await page.WaitForSelectorAsync("h1:text-is('Mieter Test')");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
-            await page.GetByRole(AriaRole.Button, new() { Name = "Konto sperren" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Konto sperren", Exact = true }).ClickAsync(); // exact: the dialog's "Ja, Konto sperren" is still fading out after "Abbrechen"
             var box = page.Locator(".mud-message-box");
             await box.GetByRole(AriaRole.Button, new() { Name = "Abbrechen" }).ClickAsync();
             await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Konto entsperren" })).ToHaveCountAsync(0);
 
-            await page.GetByRole(AriaRole.Button, new() { Name = "Konto sperren" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Konto sperren", Exact = true }).ClickAsync(); // exact: the dialog's "Ja, Konto sperren" is still fading out after "Abbrechen"
             await box.GetByRole(AriaRole.Button, new() { Name = "Ja, Konto sperren" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Das Konto wurde gesperrt.");
             await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Konto entsperren" })).ToBeVisibleAsync();

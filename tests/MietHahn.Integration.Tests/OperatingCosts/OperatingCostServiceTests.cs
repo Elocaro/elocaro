@@ -551,6 +551,29 @@ public class OperatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetim
     }
 
     [Fact]
+    public async Task A_new_supply_contract_keeps_the_unit_meter_scope_same_type_although_the_database_default_is_different()
+    {
+        await StartAccountingAsync();
+        var houseMeter = await MeterAsync(null, "H-1", new DateOnly(2025, 12, 31), 0m);
+
+        Validate(await WithAsync<ISupplyContracts, Result>(s => s.CreateAsync(
+            house,
+            new SupplyContractInput
+            {
+                Name = "Wasser",
+                CostType = "betrkv-02",
+                MeterType = MeterType.ColdWater,
+                MeterIds = [houseMeter],
+                UnitMeters = UnitMeterScope.SameType,
+                Tariff = new SupplyTariffInput { From = new DateOnly(2020, 1, 1), UnitPrice = 4m },
+            },
+            Ct)));
+
+        var overview = await WithAsync<ISupplyContracts, SupplyOverview>(async s => (await s.GetAsync(house, Ct))!);
+        Assert.Equal(UnitMeterScope.SameType, overview.Contracts.Single().UnitMeters);
+    }
+
+    [Fact]
     public async Task Supply_contract_without_readings_falls_back_to_the_receipts_with_a_hint()
     {
         await StartAccountingAsync();

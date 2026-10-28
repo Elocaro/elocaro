@@ -556,6 +556,14 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .sub-tabs a:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
 .sub-tabs a.active { background: var(--md-secondary-container); border-color: transparent; color: var(--md-on-secondary-container); }
 
+/* A tab row that scrolls sideways fades out at the edge where more tabs wait (scroll-driven; without support or without overflow nothing changes) */
+@property --fade-start { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-end { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes tabs-edge-fade { 0% { --fade-start: 0px; --fade-end: 1.75rem; } 6% { --fade-start: 1.75rem; } 94% { --fade-end: 1.75rem; } 100% { --fade-start: 1.75rem; --fade-end: 0px; } }
+@supports (animation-timeline: scroll(self inline)) {
+    .tab-bar, .sub-tabs { animation: tabs-edge-fade linear both; animation-timeline: scroll(self inline); mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent); }
+}
+
 /* Sticky page header = app bar */
 .page-header { position: sticky; top: 0; z-index: 6; margin: 0 calc(-1 * var(--content-gutter)) 0.75rem; padding: 1rem var(--content-gutter) 0.75rem; background: var(--md-surface); gap: 0.5rem 1rem; align-items: center; }
 .page-header h1 { font-size: 1.5rem; line-height: 1.2; }
@@ -583,6 +591,11 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .panel .todo-soon { border-left-color: var(--md-warning); }
 .panel .todo-info { border-left-color: var(--md-focus); }
 .todo a { display: block; }
+/* Several tasks of the same kind (e.g. "Eichfrist abgelaufen: <Zähler>") as one entry that opens into the list */
+.todo-group > details > summary { cursor: pointer; font-weight: 600; color: var(--color-primary); }
+.todo-group > details > .small { display: block; margin-top: 0.25rem; }
+.todo-group-items { display: grid; gap: 0.15rem; margin: 0.5rem 0 0; padding: 0 0 0 1.1rem; }
+.todo-group-items a { font-weight: 400; padding-block: 0.2rem; }
 .count-badge { display: inline-grid; place-items: center; min-width: 1.6rem; height: 1.6rem; padding: 0 0.45rem; border-radius: var(--shape-full); background: var(--md-primary-container); color: var(--md-on-primary-container); font: var(--type-label); font-size: 0.8rem; }
 
 /* Tables fill the free height; header stays while scrolling */
@@ -633,7 +646,9 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
     .page-header-actions:not(:has(> :not(.button-primary):not(.mud-button-filled-primary))) { display: contents; }
 
     /* The main action of a page becomes an extended action button above the bottom bar */
-    .page-header-actions .button-primary, .page-header-actions .mud-button-filled-primary { position: fixed; right: max(1rem, env(safe-area-inset-right, 0px)); bottom: calc(var(--bottom-bar-height) + 1rem); z-index: 15; min-height: 3.5rem; padding-inline: 1.5rem; border-radius: var(--shape-lg); box-shadow: 0 6px 20px rgb(0 0 0 / 28%); }
+    .page-header-actions .button-primary, .page-header-actions .mud-button-filled-primary { position: fixed; right: max(1rem, env(safe-area-inset-right, 0px)); bottom: calc(var(--bottom-bar-height) + 1rem); z-index: 15; min-height: 3rem; padding-inline: 1.25rem; border-radius: var(--shape-lg); box-shadow: 0 6px 20px rgb(0 0 0 / 28%); transition: transform var(--motion-duration) var(--motion-effects), opacity var(--motion-duration) var(--motion-effects); }
+    /* scrolling down: the button steps aside so that it does not cover content; scrolling up (or the top) brings it back (js/shell.js) */
+    html[data-scrolling-down] .page-header-actions .button-primary, html[data-scrolling-down] .page-header-actions .mud-button-filled-primary { transform: translateY(calc(100% + var(--bottom-bar-height) + 1.5rem)); opacity: 0; pointer-events: none; }
     .app-simple .page-header-actions .button-primary, .app-simple .page-header-actions .mud-button-filled-primary { bottom: 1rem; }
 
     .bottom-bar { grid-row: 3; display: flex; align-items: stretch; gap: 0.25rem; z-index: 30; height: var(--bottom-bar-height); padding: 0.5rem 0.5rem env(safe-area-inset-bottom, 0px); background: var(--md-surface-container); border-top: 1px solid var(--md-outline-variant); }
