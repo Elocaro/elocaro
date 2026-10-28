@@ -89,7 +89,41 @@ DC="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
 $DC build && $DC up -d
 ```
 
-Ein Update ist dann `git pull`, danach `$DC build && $DC up -d` (Version in `MIETHAHN_VERSION` und den Image-Namen hochzählen). Die erste Sicherung von Hand anstoßen und prüfen, wie unter [Backup](betrieb.md#backup) beschrieben.
+Ein Update ist in [Update auf der VM](#update-auf-der-vm-ohne-git-auf-dem-server) beschrieben. Die erste Sicherung von Hand anstoßen und prüfen, wie unter [Backup](betrieb.md#backup) beschrieben.
+
+## Update auf der VM (ohne Git auf dem Server)
+
+So wurde `mieten.hahnsfamily.de` aktualisiert. Die VM hat kein `.git`, der Quellstand wird vom Arbeitsrechner hochgeladen; `deploy/.env` bleibt dabei erhalten. Auf Windows läuft das in Git Bash (`.gitattributes` erzwingt LF für Shell-Skripte, Dockerfile, Caddyfile und YAML, sonst scheitert `install.sh` mit `bash\r`).
+
+```bash
+# 1. Auf dem Arbeitsrechner: Stand des Standardbranches holen, Commit merken
+git pull
+C=$(git rev-parse --short HEAD)
+
+# 2. Quelltext in ein neues Verzeichnis hochladen (alte Dateien bleiben nicht liegen),
+#    .env übernehmen, vorher Sicherung anstoßen und das alte Image als Rückfallebene taggen
+git archive --format=tar HEAD | ssh azureuser@<ip> "set -e
+  rm -rf ~/MietHahn.neu ~/MietHahn.alt; mkdir ~/MietHahn.neu
+  tar -x -C ~/MietHahn.neu; echo $C > ~/MietHahn.neu/.deployed-commit
+  cp -p ~/MietHahn/deploy/.env ~/MietHahn.neu/deploy/.env
+  cd ~/MietHahn/deploy && docker compose --env-file .env run --rm backup backup | tail -3
+  docker tag miethahn:0.1.0 miethahn:vorher
+  cd ~ && mv MietHahn MietHahn.alt && mv MietHahn.neu MietHahn"
+
+# 3. Auf der VM bauen (ca. 2,5 Minuten) und die Container neu erstellen
+ssh azureuser@<ip> 'cd ~/MietHahn && DC="docker compose -f deploy/docker-compose.yml --env-file deploy/.env" \
+  && $DC build && $DC up -d --force-recreate'
+```
+
+Hinweise:
+
+- Das Verzeichnis muss `MietHahn` heißen: Daraus leitet Compose den Projektnamen und damit die Namen der Volumes ab.
+- `--force-recreate` ist nötig, weil der Image-Name (`miethahn:0.1.0`) gleich bleibt und Compose sonst nichts neu startet. Es lädt auch eine ausgetauschte Caddyfile neu, die als einzelne Datei eingebunden ist.
+- Nach dem Start meldet Caddy `503`, bis die nächste Gesundheitsprüfung durch ist (`health_interval 30s`). Das ist normal und vergeht nach höchstens einer halben Minute.
+- Datenbankmigrationen laufen beim Start der App, deshalb vorher die Sicherung (Schritt 2).
+- Rückgängig machen: `docker tag miethahn:vorher miethahn:0.1.0 && cd ~/MietHahn.alt && $DC up -d --force-recreate`. Bei Modelländerungen mit Migration zusätzlich die Datenbank aus der Sicherung zurückspielen.
+- Prüfen: `docker ps` (alle Container `healthy`/`Up`), `docker exec miethahn-caddy-1 wget -qO- http://app:8080/health` (alle Prüfungen `Healthy`), außerhalb `https://mieten.hahnsfamily.de/_framework/blazor.web.js` muss `200` liefern (fehlt die Datei, funktioniert keine interaktive Seite).
+- Der genaue Stand auf dem Server steht in `~/MietHahn/.deployed-commit`.
 
 ## 5. Betrieb
 
