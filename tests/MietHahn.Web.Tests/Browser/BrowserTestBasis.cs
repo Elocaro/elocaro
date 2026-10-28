@@ -105,6 +105,17 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
             TimezoneId = "Europe/Berlin",
         });
         contexts.Add(context);
+
+        // A filled field passes its value on when it is left (change event). In a test the next click can come before that has been
+        // processed under load; committing right with each input makes "fill, then click" deterministic. Users blur the field anyway.
+        await context.AddInitScriptAsync("""
+            document.addEventListener('input', (event) => {
+                const field = event.target;
+                if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) && field.type !== 'file' && field.type !== 'checkbox' && field.type !== 'radio') {
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }, true);
+            """);
         return await context.NewPageAsync();
     }
 
@@ -183,9 +194,16 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         var control = (scope ?? page.Locator("body")).Locator(".mud-select", new() { Has = page.Locator($"[aria-label='{label}']") }).First;
         await control.Locator(".mud-input").First.ClickAsync();
         var entry = exact
-            ? new PageLocatorOptions { HasTextRegex = new System.Text.RegularExpressions.Regex("^\\s*" + System.Text.RegularExpressions.Regex.Escape(option) + "\\s*$") }
+            ? new PageLocatorOptions { HasTextRegex = new System.Text.RegularExpressions.Regex(@"^\s*" + System.Text.RegularExpressions.Regex.Escape(option) + @"\s*$") }
             : new PageLocatorOptions { HasText = option };
         await page.Locator(".mud-popover-open .mud-list-item", entry).First.ClickAsync();
+
+        // Done once the server has taken the choice over: the list is closed and the field shows the entry (later steps rely on it).
+        await Assertions.Expect(page.Locator(".mud-popover-open")).ToHaveCountAsync(0);
+        var shown = exact
+            ? new System.Text.RegularExpressions.Regex(@"^\s*" + System.Text.RegularExpressions.Regex.Escape(option) + @"\s*$")
+            : new System.Text.RegularExpressions.Regex(System.Text.RegularExpressions.Regex.Escape(option));
+        await Assertions.Expect(control.Locator("input").First).ToHaveValueAsync(shown);
     }
 
     /// <summary>Adds a flat in the setup wizard: opens the dialog, fills it, confirms.</summary>
