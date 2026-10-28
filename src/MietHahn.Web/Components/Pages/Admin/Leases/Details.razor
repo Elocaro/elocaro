@@ -76,27 +76,10 @@ else
 
     @if (lease.Status != LeaseStatus.Ended)
     {
-        <details class="disclosure">
-            <summary>Betrag ändern oder hinzufügen (ab Stichtag)</summary>
-            <EditForm Model="component" OnValidSubmit="SetComponentAsync" novalidate class="form-grid">
-                <DataAnnotationsValidator />
-                <AppSelect @bind-Value="component.Kind" Label="Bestandteil" Items="Enum.GetValues<RentComponentType>()" Text="@(v => Labels.From(v))" />
-                <AppDateField @bind-Value="component.From" Label="Gültig ab" Required="true" />
-                <AppNumberField T="decimal?" @bind-Value="component.Amount" Label="Betrag (€/Monat)" Suffix="€" Required="true" />
-                <AppTextField @bind-Value="component.Name" Label="Bezeichnung" Hint="Für „Sonstiges“" />
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Betrag speichern</MudButton>
-            </EditForm>
-            <p class="small">Der bisherige Betrag gilt bis zum Vortag weiter. Für Mieterhöhungen nach § 558 BGB folgt ein Assistent mit Schreiben.</p>
-        </details>
-        <details class="disclosure">
-            <summary>Bestandteil beenden (z. B. Stellplatz gekündigt)</summary>
-            <EditForm Model="end" OnValidSubmit="EndComponentAsync" novalidate class="form-grid">
-                <DataAnnotationsValidator />
-                <AppSelect @bind-Value="end.Kind" Label="Bestandteil" Items="lease.CurrentComponents.Select(b => b.Kind).Distinct().ToList()" Text="@(v => Labels.From(v))" />
-                <AppDateField @bind-Value="end.LastDay" Label="Letzter Tag" Required="true" />
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined" Color="Color.Primary">Beenden</MudButton>
-            </EditForm>
-        </details>
+        <div class="form-row">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ChangeComponentAsync">Betrag ändern oder hinzufügen</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="EndComponentAsync">Bestandteil beenden</MudButton>
+        </div>
     }
 
     @if (lease.Components.Count > lease.CurrentComponents.Count)
@@ -143,18 +126,7 @@ else
             </li>
         }
     </ul>
-    <details class="disclosure">
-        <summary>@(PartyRoles.Count > 1 ? "Mieter oder Bürgen hinzufügen" : "Mieter hinzufügen")</summary>
-        <EditForm Model="newParty" OnValidSubmit="AddPartyAsync" novalidate class="form-grid">
-            <DataAnnotationsValidator />
-            <PersonSelect @bind-Value="newParty.PersonId" Label="Person" People="people" Required="true" />
-            @if (PartyRoles.Count > 1)
-            {
-                <AppSelect @bind-Value="newParty.Role" Label="Rolle" Items="PartyRoles" Text="@(v => Labels.From(v))" />
-            }
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hinzufügen</MudButton>
-        </EditForm>
-    </details>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddPartyAsync">@(PartyRoles.Count > 1 ? "Mieter oder Bürgen hinzufügen" : "Mieter hinzufügen")</MudButton>
 </section>
 
 <section>
@@ -165,15 +137,7 @@ else
     </p>
     @if (lease.Status != LeaseStatus.Ended)
     {
-        <details class="disclosure">
-            <summary>Personenanzahl ändern</summary>
-            <EditForm Model="occupantCount" OnValidSubmit="SetOccupantCountAsync" novalidate class="form-row">
-                <DataAnnotationsValidator />
-                <AppDateField @bind-Value="occupantCount.From" Label="Ab" Required="true" />
-                <AppNumberField T="int" @bind-Value="occupantCount.Count" Label="Anzahl" Min="1" Max="20" />
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-            </EditForm>
-        </details>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ChangeOccupantCountAsync">Personenanzahl ändern</MudButton>
     }
     <ul class="small">
         @foreach (var entry in lease.People)
@@ -252,7 +216,7 @@ else
     <ul>
         @foreach (var room in lease.Rooms)
         {
-            <li>@room.Name @if (!room.IsFirst && lease.Rooms.Count > 1) { <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => RemoveRoomAsync(room)">Entfernen</MudButton> }</li>
+            <li>@room.Name @if (!room.IsFirst && lease.Rooms.Count > 1) { <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => RemoveRoomAsync(room)" aria-label="@($"{room.Name} aus dem Vertrag entfernen")">Entfernen</MudButton> }</li>
         }
     </ul>
     @if (lease.AvailableRooms is { Count: > 0 })
@@ -334,13 +298,61 @@ else
         loaded = true;
     }
 
-    private Task SetComponentAsync() => ExecuteAsync(Admin.SetComponentAsync(Id, component), "Der Betrag wurde gespeichert.", () => component = new());
+    private async Task ChangeComponentAsync()
+    {
+        component = new();
+        RenderFragment fields = @<text>
+            <AppSelect @bind-Value="component.Kind" Label="Bestandteil" Items="Enum.GetValues<RentComponentType>()" Text="@(v => Labels.From(v))" />
+            <AppDateField @bind-Value="component.From" Label="Gültig ab" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="component.Amount" Label="Betrag (€/Monat)" Suffix="€" Required="true" />
+            <AppTextField @bind-Value="component.Name" Label="Bezeichnung" Hint="Für „Sonstiges“" />
+        </text>;
+        RenderFragment note = @<p class="small">Der bisherige Betrag gilt bis zum Vortag weiter. Für Mieterhöhungen nach § 558 BGB gibt es den Assistenten unter „Mieterhöhung“.</p>;
+        await ShowFormAndReloadAsync("Betrag ändern oder hinzufügen", component, fields, () => Admin.SetComponentAsync(Id, component), "Der Betrag wurde gespeichert.", "Betrag speichern", note);
+    }
 
-    private Task EndComponentAsync() => ExecuteAsync(Admin.EndComponentAsync(Id, end.Kind, end.LastDay!.Value), "Der Bestandteil wurde beendet.");
+    private async Task EndComponentAsync()
+    {
+        end = new EndModel { Kind = lease!.CurrentComponents.Select(b => b.Kind).FirstOrDefault() };
+        RenderFragment fields = @<text>
+            <AppSelect @bind-Value="end.Kind" Label="Bestandteil" Items="lease!.CurrentComponents.Select(b => b.Kind).Distinct().ToList()" Text="@(v => Labels.From(v))" />
+            <AppDateField @bind-Value="end.LastDay" Label="Letzter Tag" Required="true" />
+        </text>;
+        RenderFragment note = @<p class="small">Zum Beispiel, wenn ein Stellplatz gekündigt wurde. Der Bestandteil endet am letzten Tag.</p>;
+        await ShowFormAndReloadAsync("Bestandteil beenden", end, fields, () => Admin.EndComponentAsync(Id, end.Kind, end.LastDay!.Value), "Der Bestandteil wurde beendet.", "Beenden", note);
+    }
 
-    private Task SetOccupantCountAsync() => ExecuteAsync(Admin.SetOccupantCountAsync(Id, occupantCount), "Die Personenanzahl wurde gespeichert.", () => occupantCount = new());
+    private async Task ChangeOccupantCountAsync()
+    {
+        occupantCount = new();
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="occupantCount.From" Label="Ab" Required="true" />
+            <AppNumberField T="int" @bind-Value="occupantCount.Count" Label="Anzahl" Min="1" Max="20" />
+        </text>;
+        await ShowFormAndReloadAsync("Personenanzahl ändern", occupantCount, fields, () => Admin.SetOccupantCountAsync(Id, occupantCount), "Die Personenanzahl wurde gespeichert.");
+    }
 
-    private Task AddPartyAsync() => ExecuteAsync(Admin.AddPartyAsync(Id, newParty.PersonId!.Value, newParty.Role), "Die Person wurde hinzugefügt.", () => newParty = new());
+    private async Task AddPartyAsync()
+    {
+        newParty = new();
+        RenderFragment fields = @<text>
+            <PersonSelect @bind-Value="newParty.PersonId" Label="Person" People="people" Required="true" />
+            @if (PartyRoles.Count > 1)
+            {
+                <AppSelect @bind-Value="newParty.Role" Label="Rolle" Items="PartyRoles" Text="@(v => Labels.From(v))" />
+            }
+        </text>;
+        await ShowFormAndReloadAsync(PartyRoles.Count > 1 ? "Mieter oder Bürgen hinzufügen" : "Mieter hinzufügen", newParty, fields, () => Admin.AddPartyAsync(Id, newParty.PersonId!.Value, newParty.Role), "Die Person wurde hinzugefügt.", "Hinzufügen");
+    }
+
+    private async Task ShowFormAndReloadAsync(string title, object model, RenderFragment fields, Func<Task<Result>> save, string success, string submit = "Speichern", RenderFragment? note = null)
+    {
+        if (await Dialogs.ShowFormAsync(title, model, fields, save, submit, note))
+        {
+            Notify.Success(success);
+            await LoadAsync();
+        }
+    }
 
     private async Task RemovePartyAsync(LeasePartyView party)
     {

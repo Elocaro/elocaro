@@ -123,8 +123,8 @@
                             <AppNumberField T="int" @bind-Value="settings.ConsultantNumber" Label="Beraternummer" Required="true" />
                             <AppNumberField T="int" @bind-Value="settings.ClientNumber" Label="Mandantennummer" Required="true" />
                             <AppSelect T="DatevChart" @bind-Value="settings.Chart" Label="Kontenrahmen" Items="Enum.GetValues<DatevChart>()" Text="@(v => v == DatevChart.Skr03 ? "SKR 03" : "SKR 04")" />
-                            <AppNumberField T="int" @bind-Value="settings.AccountLength" Label="Sachkontenlänge" Min="4" Max="8" />
-                            <AppNumberField T="int" @bind-Value="settings.FiscalYearStartMonth" Label="Wirtschaftsjahr beginnt im Monat" Min="1" Max="12" Hint="1 = Kalenderjahr" />
+                            <AppSelect T="int" @bind-Value="settings.AccountLength" Label="Sachkontenlänge" Items="AccountLengths" Text="@(v => $"{v} Stellen")" />
+                            <AppSelect T="int" @bind-Value="settings.FiscalYearStartMonth" Label="Wirtschaftsjahr beginnt im" Items="Months" Text="@(m => System.Globalization.CultureInfo.GetCultureInfo("de-DE").DateTimeFormat.GetMonthName(m))" Hint="Januar = Kalenderjahr" />
                             <AppTextField @bind-Value="settings.DictationCode" Label="Diktatkürzel" Hint="optional, höchstens 2 Zeichen" />
                         </div>
                         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined">Speichern</MudButton>
@@ -159,6 +159,9 @@
 </InteractiveShell>
 
 @code {
+    private static readonly int[] AccountLengths = [4, 5, 6, 7, 8];
+    private static readonly int[] Months = Enumerable.Range(1, 12).ToArray();
+
     private DatevSettingsInput? settings;
     private IReadOnlyList<DatevAccountRow> accounts = [];
     private readonly Dictionary<string, int> edited = [];

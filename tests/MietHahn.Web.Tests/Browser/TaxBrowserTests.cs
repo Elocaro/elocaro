@@ -84,8 +84,8 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
             await ExpectSnackbarAsync(page, "Die Anschaffungsdaten wurden gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Abschreibungsplan");
 
-            await page.GetByText("Kosten hinzufügen").ClickAsync();
-            var form = page.Locator("details", new() { HasText = "Kosten hinzufügen" });
+            await page.GetByRole(AriaRole.Button, new() { Name = "Kosten hinzufügen" }).ClickAsync();
+            var form = page.Locator(".mud-dialog");
             await form.GetByLabel("Datum").FillAsync("01.03.2025");
             await form.GetByLabel("Betrag (netto)").FillAsync("45000");
             await form.GetByLabel("Beschreibung").FillAsync("Sanierung Bäder");

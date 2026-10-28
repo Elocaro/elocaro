@@ -51,14 +51,15 @@ public class MeteringBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await GotoInteractiveAsync(page, $"/verwaltung/objekte/{property}/zaehler");
-            // The list is empty, so the form is already open.
+            await page.GetByRole(AriaRole.Button, new() { Name = "Zähler hinzufügen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
             await SelectAsync(page, "Art", "Kaltwasser");
-            await page.GetByLabel("Bezeichnung").FillAsync("Kaltwasser Bad");
-            await page.GetByLabel("Zählernummer").FillAsync("WZ-4711");
+            await dialog.GetByLabel("Bezeichnung").FillAsync("Kaltwasser Bad");
+            await dialog.GetByLabel("Zählernummer").FillAsync("WZ-4711");
             await SelectAsync(page, "Zuordnung", "Wohnung 1");
-            await page.GetByLabel("Eingebaut am").FillAsync(German(Today.AddDays(-60)));
-            await page.GetByLabel("Stand an diesem Tag").FillAsync("100,5");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Zähler anlegen" }).ClickAsync();
+            await dialog.GetByLabel("Eingebaut am").FillAsync(German(Today.AddDays(-60)));
+            await dialog.GetByLabel("Stand an diesem Tag").FillAsync("100,5");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Zähler anlegen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Zähler wurde angelegt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("100,5 m³");
 
@@ -145,12 +146,13 @@ public class MeteringBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
         {
             await GotoInteractiveAsync(page, $"/verwaltung/zaehler/{meter}");
             await OpenTabAsync(page, "Austausch & Ausbau");
-            await page.Locator("summary", new() { HasText = "Zähler tauschen" }).ClickAsync();
-            await page.GetByLabel("Tauschdatum").FillAsync(German(Today));
-            await page.GetByLabel("Endstand alter Zähler").FillAsync("150");
-            await page.GetByLabel("Nummer neuer Zähler").FillAsync("WZ-NEU");
-            await page.GetByLabel("Anfangsstand neuer Zähler").FillAsync("0");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Tausch erfassen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Zähler tauschen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await dialog.GetByLabel("Tauschdatum").FillAsync(German(Today));
+            await dialog.GetByLabel("Endstand alter Zähler").FillAsync("150");
+            await dialog.GetByLabel("Nummer neuer Zähler").FillAsync("WZ-NEU");
+            await dialog.GetByLabel("Anfangsstand neuer Zähler").FillAsync("0");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Tausch erfassen" }).ClickAsync();
 
             await page.WaitForURLAsync(url => url.Contains("/verwaltung/zaehler/", StringComparison.Ordinal) && !url.Contains(meter.ToString(), StringComparison.Ordinal));
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Nr. WZ-NEU");

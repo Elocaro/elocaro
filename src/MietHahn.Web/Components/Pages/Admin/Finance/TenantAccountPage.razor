@@ -194,7 +194,7 @@ else
                             {
                                 <li>
                                     @h.Reason (@(h.Until is { } until ? "bis " + Format.Date(until) : "bis auf Weiteres"))
-                                    <MudButton Variant="Variant.Outlined" OnClick="() => EndHoldAsync(h)">Aufheben</MudButton>
+                                    <MudButton Variant="Variant.Outlined" OnClick="() => EndHoldAsync(h)" aria-label="@($"Mahnsperre „{h.Reason}“ aufheben")">Aufheben</MudButton>
                                 </li>
                             }
                         </ul>

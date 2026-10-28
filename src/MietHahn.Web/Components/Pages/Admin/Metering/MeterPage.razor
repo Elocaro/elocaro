@@ -197,30 +197,12 @@ else if (meter.Meter.RemovedOn is null)
 @if (meter.Meter.RemovedOn is null)
 {
     <section>
-        <details class="disclosure">
-            <summary>Zähler tauschen</summary>
-            <EditForm Model="replacement" OnValidSubmit="ReplaceAsync" novalidate class="form-grid">
-                <DataAnnotationsValidator />
-                <AppDateField @bind-Value="replacement.Date" Label="Tauschdatum" Required="true" />
-                <AppNumberField T="decimal?" @bind-Value="replacement.FinalReading" Label="Endstand alter Zähler" Required="true" />
-                <AppTextField @bind-Value="replacement.NewNumber" Label="Nummer neuer Zähler" Required="true" />
-                <AppNumberField T="decimal?" @bind-Value="replacement.InitialReading" Label="Anfangsstand neuer Zähler" Required="true" />
-                <AppDateField @bind-Value="replacement.CalibrationDueDate" Label="Eichfrist neuer Zähler" Hint="Leer = gesetzliche Frist" />
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Tausch erfassen</MudButton>
-            </EditForm>
-            <p class="small">Der Verbrauch wird über alten und neuen Zähler durchgängig berechnet.</p>
-        </details>
+        <p class="small">Beim Tausch wird der Verbrauch über alten und neuen Zähler durchgängig berechnet.</p>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ReplaceAsync">Zähler tauschen</MudButton>
     </section>
 
     <section>
-        <details class="disclosure">
-            <summary>Angaben ändern</summary>
-            <EditForm Model="data" OnValidSubmit="SaveDataAsync" novalidate>
-                <DataAnnotationsValidator />
-                <MeterEditor Data="data" Units="units" MainMeter="mainMeter" TypeLocked="true" />
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-            </EditForm>
-        </details>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="SaveDataAsync">Angaben ändern</MudButton>
     </section>
 }
 
@@ -377,14 +359,23 @@ else if (meter.Meter.RemovedOn is null)
 
     private async Task ReplaceAsync()
     {
-        var result = await Admin.ReplaceAsync(Id, replacement);
-        if (result.Succeeded)
+        replacement = new();
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="replacement.Date" Label="Tauschdatum" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="replacement.FinalReading" Label="Endstand alter Zähler" Required="true" />
+            <AppTextField @bind-Value="replacement.NewNumber" Label="Nummer neuer Zähler" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="replacement.InitialReading" Label="Anfangsstand neuer Zähler" Required="true" />
+            <AppDateField @bind-Value="replacement.CalibrationDueDate" Label="Eichfrist neuer Zähler" Hint="Leer = gesetzliche Frist" />
+        </text>;
+        Guid? replacementId = null;
+        if (await Dialogs.ShowFormAsync("Zähler tauschen", replacement, fields, async () =>
+            {
+                var result = await Admin.ReplaceAsync(Id, replacement);
+                replacementId = result.Id;
+                return result;
+            }, "Tausch erfassen"))
         {
-            Navigation.NavigateTo($"/verwaltung/zaehler/{result.Id}?meldung=gespeichert");
-        }
-        else
-        {
-            errors = result.Errors;
+            Navigation.NavigateTo($"/verwaltung/zaehler/{replacementId}?meldung=gespeichert");
         }
     }
 
@@ -406,7 +397,15 @@ else if (meter.Meter.RemovedOn is null)
         errors = result.Errors;
     }
 
-    private Task SaveDataAsync() => ExecuteAsync(Admin.UpdateAsync(Id, data), "Die Angaben wurden gespeichert.");
+    private async Task SaveDataAsync()
+    {
+        RenderFragment fields = @<MeterEditor Data="data" Units="units" MainMeter="mainMeter" TypeLocked="true" />;
+        if (await Dialogs.ShowFormAsync("Angaben ändern", data, fields, () => Admin.UpdateAsync(Id, data)))
+        {
+            Notify.Success("Die Angaben wurden gespeichert.");
+            await LoadAsync();
+        }
+    }
 
     private async Task ExecuteAsync(Task<Result> command, string success)
     {

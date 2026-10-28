@@ -83,10 +83,11 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             // Rent increase from a cut-off date; the old amount stays in the history.
-            await page.Locator("summary", new() { HasText = "Betrag ändern oder hinzufügen" }).ClickAsync();
-            await page.GetByLabel("Gültig ab").First.FillAsync(German(increase));
-            await page.GetByLabel("Betrag (€/Monat)").FillAsync("700");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Betrag speichern" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Betrag ändern oder hinzufügen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await dialog.GetByLabel("Gültig ab").FillAsync(German(increase));
+            await dialog.GetByLabel("Betrag (€/Monat)").FillAsync("700");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Betrag speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Betrag wurde gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Verlauf");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("700,00 €");
@@ -94,10 +95,10 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             // Guarantor: add, remove after confirmation; the only tenant cannot be removed.
             await Assertions.Expect(page.Locator("button[aria-label$='entfernen']")).ToHaveCountAsync(0);
             await OpenTabAsync(page, "Parteien & Haushalt");
-            await page.Locator("summary", new() { HasText = "Mieter oder Bürgen hinzufügen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Mieter oder Bürgen hinzufügen" }).ClickAsync();
             await SelectAsync(page, "Person", "Ben Weber");
             await SelectAsync(page, "Rolle", "Bürge");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Hinzufügen", Exact = true }).ClickAsync();
+            await page.Locator(".mud-dialog").GetByRole(AriaRole.Button, new() { Name = "Hinzufügen", Exact = true }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bürge");
             await page.Locator("button[aria-label='Ben Weber entfernen']").ClickAsync();
             await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, entfernen" }).ClickAsync();
@@ -128,21 +129,24 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             var model = page.Locator("section", new() { Has = page.Locator("h2", new() { HasText = "Mietmodell" }) });
-            await model.Locator("summary", new() { HasText = "Mietmodell ändern" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await model.GetByRole(AriaRole.Button, new() { Name = "Mietmodell ändern" }).ClickAsync();
             await SelectAsync(page, "Mietmodell", "Staffelmiete");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Mietmodell speichern" }).ClickAsync();
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Mietmodell speichern" }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Mietmodell: Staffelmiete");
 
-            await model.GetByLabel("Ab", new() { Exact = true }).FillAsync(German(from));
-            await model.GetByLabel("Neue Kaltmiete").FillAsync("700");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Staffel speichern" }).ClickAsync();
+            await model.GetByRole(AriaRole.Button, new() { Name = "Staffel hinzufügen" }).ClickAsync();
+            await dialog.GetByLabel("Ab", new() { Exact = true }).FillAsync(German(from));
+            await dialog.GetByLabel("Neue Kaltmiete").FillAsync("700");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Staffel speichern" }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("geplant");
 
-            await model.Locator("summary", new() { HasText = "Staffel hinzufügen" }).ClickAsync(); // closes after saving: reopen
-            await model.GetByLabel("Ab", new() { Exact = true }).FillAsync(German(from.AddMonths(6)));
-            await model.GetByLabel("Neue Kaltmiete").FillAsync("720");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Staffel speichern" }).ClickAsync();
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("mindestens ein Jahr unverändert");
+            await model.GetByRole(AriaRole.Button, new() { Name = "Staffel hinzufügen" }).ClickAsync();
+            await dialog.GetByLabel("Ab", new() { Exact = true }).FillAsync(German(from.AddMonths(6)));
+            await dialog.GetByLabel("Neue Kaltmiete").FillAsync("720");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Staffel speichern" }).ClickAsync();
+            await Assertions.Expect(dialog).ToContainTextAsync("mindestens ein Jahr unverändert");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Abbrechen" }).ClickAsync();
 
             await page.Locator("button[aria-label^='Staffel'][aria-label$='entfernen']").ClickAsync();
             await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, entfernen" }).ClickAsync();

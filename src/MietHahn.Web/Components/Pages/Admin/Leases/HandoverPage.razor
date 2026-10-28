@@ -217,10 +217,10 @@ else
             <AppTextField @bind-Value="signedBy" Label="Name der unterschreibenden Person (Mieter)" Required="true" />
             <p class="small">Unterschrift des Mieters (mit dem Finger oder Stift):</p>
             <canvas @ref="tenantCanvas" class="signature-field" aria-label="Unterschrift des Mieters"></canvas>
-            <MudButton Variant="Variant.Text" OnClick="() => ClearAsync(tenantCanvas)">Löschen</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="() => ClearAsync(tenantCanvas)" aria-label="Feld für die Mieter-Unterschrift leeren">Löschen</MudButton>
             <p class="small">Unterschrift des Vermieters (optional):</p>
             <canvas @ref="landlordCanvas" class="signature-field" aria-label="Unterschrift des Vermieters"></canvas>
-            <MudButton Variant="Variant.Text" OnClick="() => ClearAsync(landlordCanvas)">Löschen</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="() => ClearAsync(landlordCanvas)" aria-label="Feld für die Vermieter-Unterschrift leeren">Löschen</MudButton>
 
             @if (warnings.Count > 0)
             {

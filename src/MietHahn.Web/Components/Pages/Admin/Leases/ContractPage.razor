@@ -75,7 +75,7 @@ else
                                 <td>
                                     <a href="/dateien/@row.DraftFileId">Entwurf (PDF)</a>
                                     @if (row.SignedDocumentId is not null) {<text> · </text><a href="/verwaltung/dokumente/@row.SignedDocumentId">Unterschrieben</a>}
-                                    @if (row.Status == ContractStatus.Draft) {<text> · </text><MudButton Variant="Variant.Text" OnClick="() => SelectSigned(row.Id)">Unterschrieben hochladen</MudButton><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => WithdrawAsync(row)">Verwerfen</MudButton>}
+                                    @if (row.Status == ContractStatus.Draft) {<text> · </text><MudButton Variant="Variant.Text" OnClick="() => SelectSigned(row.Id)" aria-label="Unterschriebenen Vertrag hochladen">Unterschrieben hochladen</MudButton><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => WithdrawAsync(row)" aria-label="Vertragsentwurf verwerfen">Verwerfen</MudButton>}
                                 </td>
                             </tr>
                         }
@@ -123,7 +123,7 @@ else
                                     <td>
                                         @if (signer.SignedAt is null)
                                         {
-                                            <MudButton Variant="Variant.Text" OnClick="() => ReissueAsync(signer.Id)">Neuer Link@(signer.Email is null ? "" : " senden")</MudButton>
+                                            <MudButton Variant="Variant.Text" OnClick="() => ReissueAsync(signer.Id)" aria-label="Neuen Unterschriftslink erzeugen">Neuer Link@(signer.Email is null ? "" : " senden")</MudButton>
                                         }
                                     </td>
                                 </tr>
