@@ -9,13 +9,17 @@ namespace MietHahn.Architecture.Tests;
 /// </summary>
 public partial class ModuleRulesTests
 {
-    /// <summary>Pairs of modules that use each other today (alphabetical). Goal: empty. Admin is the hub; splitting it removes most of them.</summary>
+    /// <summary>Pairs of modules that use each other today (alphabetical), counting namespaces of Application, Domain and Infrastructure. Goal: empty.</summary>
     private static readonly string[] KnownCycles =
     [
+        "Bank <-> Receipts",
+        "Bank <-> Tax",
         "Documents <-> Finance",
         "Documents <-> Leases",
+        "Finance <-> Properties",
         "Leases <-> Metering",
         "Leases <-> Properties",
+        "Leases <-> Receipts",
         "OperatingCosts <-> Receipts",
     ];
 
@@ -52,7 +56,7 @@ public partial class ModuleRulesTests
     public void Foundations_do_not_depend_on_business_modules()
     {
         // Technical building blocks used by many; they must not reach back into business modules.
-        string[] foundations = ["Common", "Admin", "Files", "Mail", "Templates", "Notifications", "Audit"]; // Admin = module switches
+        string[] foundations = ["Common", "Admin", "Identity", "Files", "Mail", "Templates", "Notifications", "Audit"]; // Admin = module switches, Identity = accounts and roles
         var uses = ModuleUses();
         var violations = foundations.Where(uses.ContainsKey)
             .SelectMany(m => uses[m].Where(u => !foundations.Contains(u) && u != "Common").Select(u => $"{m} -> {u}"))
@@ -90,6 +94,6 @@ public partial class ModuleRulesTests
         return result;
     }
 
-    [GeneratedRegex(@"using (?:static )?MietHahn\.(?:Application|Domain)\.([A-Za-z]+)")]
+    [GeneratedRegex(@"using (?:static )?MietHahn\.(?:Application|Domain|Infrastructure)\.([A-Za-z]+)")]
     private static partial Regex UsingPattern();
 }

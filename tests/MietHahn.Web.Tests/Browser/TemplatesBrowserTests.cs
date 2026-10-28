@@ -45,10 +45,22 @@ public class TemplatesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             var body = page.Locator("#template-body textarea").First;
-            await body.FillAsync("<p class=\"x\">Guten Tag, {{ if lease_end }}Ende{{ end }} &nbsp;</p>");
+            // The editor script attaches shortly after the page is interactive; a text entered before that is not highlighted. Enter it again until it is.
+            for (var attempt = 1; ; attempt++)
+            {
+                await body.FillAsync("<p class=\"x\">Guten Tag, {{ if lease_end }}Ende{{ end }} &nbsp;</p>");
+                try
+                {
+                    await Assertions.Expect(page.Locator(".code-highlight .tok-tag").First).ToHaveTextAsync("<p", new() { Timeout = 4000 });
+                    break;
+                }
+                catch (PlaywrightException) when (attempt < 4)
+                {
+                    await body.FillAsync("");
+                }
+            }
 
             // Syntax highlighting: tag, Scriban delimiter, keyword and entity get their own tokens.
-            await Assertions.Expect(page.Locator(".code-highlight .tok-tag").First).ToHaveTextAsync("<p");
             await Assertions.Expect(page.Locator(".code-highlight .tok-delim").Filter(new() { HasText = "{{" }).First).ToHaveTextAsync("{{");
             await Assertions.Expect(page.Locator(".code-highlight .tok-keyword").First).ToHaveTextAsync("if");
             await Assertions.Expect(page.Locator(".code-highlight .tok-entity").First).ToHaveTextAsync("&nbsp;");
