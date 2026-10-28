@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using MietHahn.Domain.Bank;
+using MietHahn.Infrastructure.Common;
 
 namespace MietHahn.Infrastructure.Bank.Import;
 

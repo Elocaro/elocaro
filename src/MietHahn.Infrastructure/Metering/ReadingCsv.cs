@@ -1,5 +1,5 @@
 using System.Globalization;
-using MietHahn.Infrastructure.Bank.Import;
+using MietHahn.Infrastructure.Common;
 
 namespace MietHahn.Infrastructure.Metering;
 
@@ -22,7 +22,7 @@ internal static class ReadingCsv
         var first = string.Join('\n', text.Split('\n').Take(10));
         var separator = Separators.Select(c => (Char: c, Count: first.Count(x => x == c))).OrderByDescending(x => x.Count).First() is { Count: > 0 } best ? best.Char : ';';
         var decimalSeparator = separator == ',' ? '.' : ',';
-        var rows = CsvParser.Rows(text, separator).Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
+        var rows = CsvText.Rows(text, separator).Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
         var headerAt = rows.FindIndex(r => Find(r, NumberNames) >= 0 && Find(r, DateNames) >= 0 && Find(r, ValueNames) >= 0);
         if (headerAt < 0)
         {
@@ -47,7 +47,7 @@ internal static class ReadingCsv
             // Some systems write date and time into one field.
             var datePart = dateText.Split(' ', 'T')[0];
             DateOnly? date = DateOnly.TryParseExact(datePart, Formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed) ? parsed : null;
-            var value = CsvParser.Amount(Cell(row, valueColumn), decimalSeparator);
+            var value = CsvText.Amount(Cell(row, valueColumn), decimalSeparator);
             string? problem = number.Length == 0 ? "Die Zählernummer fehlt."
                 : date is null ? $"Das Datum „{dateText}“ ist nicht lesbar."
                 : value is null ? "Der Zählerstand ist nicht lesbar."

@@ -3,7 +3,7 @@ using MietHahn.Application.Metering;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Metering;
 using MietHahn.Domain.Properties;
-using MietHahn.Infrastructure.Bank.Import;
+using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 using ZaehlerEntitaet = MietHahn.Domain.Metering.Meter;
 

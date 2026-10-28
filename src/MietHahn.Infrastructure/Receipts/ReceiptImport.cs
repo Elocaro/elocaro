@@ -2,7 +2,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Receipts;
 using MietHahn.Domain.Receipts;
-using MietHahn.Infrastructure.Bank.Import;
+using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Receipts;
@@ -79,7 +79,7 @@ internal sealed class ReceiptImport(MietHahnDbContext db, IReceiptService receip
         var first = string.Join('\n', text.Split('\n').Take(10));
         var separator = Separators.Select(c => (Char: c, Count: first.Count(x => x == c))).OrderByDescending(x => x.Count).First() is { Count: > 0 } best ? best.Char : ';';
         var decimalSeparator = separator == ',' ? '.' : ',';
-        var rows = CsvParser.Rows(text, separator).Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
+        var rows = CsvText.Rows(text, separator).Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
         var headerAt = rows.FindIndex(r => Find(r, DateNames) >= 0 && Find(r, AmountNames) >= 0 && Find(r, GroupNames) >= 0);
         if (headerAt < 0)
         {
@@ -110,7 +110,7 @@ internal sealed class ReceiptImport(MietHahnDbContext db, IReceiptService receip
 
             var datePart = dateText.Split(' ', 'T')[0];
             DateOnly? date = DateOnly.TryParseExact(datePart, Formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : null;
-            var amount = CsvParser.Amount(amountText, decimalSeparator);
+            var amount = CsvText.Amount(amountText, decimalSeparator);
             if (amount is { } value)
             {
                 amount = Math.Abs(value);

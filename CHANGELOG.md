@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- Modulzyklen Bank↔Receipts und Bank↔Tax aufgelöst: CSV-Zerlegung und Zeichensatz-Erkennung der Importe liegen als Bausteine in Common; die Baseline sinkt auf 5 Zyklen.
 - Modulzyklen Finance↔Properties und Leases↔Receipts aufgelöst: Die Beschreibung eines Mietverhältnisses (`LeaseDescriptions`) und der String-Helfer `Truncate` liegen jetzt bei Leases bzw. Common; die Baseline sinkt auf 7 Zyklen.
 - Architekturtests für Zugriff und Module: Jede Seite nennt ihre Berechtigung ausdrücklich, anonyme Seiten stehen auf einer Liste, jeder Bereich verlangt seine Policy, Web nutzt Infrastructure nur in Start und Konto, und neue Modulzyklen in der Infrastructure werden abgelehnt (bestehende sind festgehalten). Startseite und „Konto & Sicherheit“ tragen jetzt ausdrücklich `[Authorize]`.
 - „Bearbeiten“ bei Einheit, Zimmer und Bankkonto öffnet ebenfalls einen Dialog; der Tab „Angaben“ entfällt, „Einheit löschen“ und „Zimmer löschen“ stehen im Menü „Weitere Aktionen“.

@@ -1,6 +1,6 @@
 using System.Globalization;
 using MietHahn.Application.Tax;
-using MietHahn.Infrastructure.Bank.Import;
+using MietHahn.Infrastructure.Common;
 
 namespace MietHahn.Infrastructure.Tax;
 
@@ -21,7 +21,7 @@ internal static class BankPlanCsv
         ArgumentNullException.ThrowIfNull(text);
         text = text.TrimStart('﻿');
         var separator = Separator(text);
-        var rows = CsvParser.Rows(text, separator).Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
+        var rows = CsvText.Rows(text, separator).Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
         var headerAt = rows.FindIndex(r => Find(r, DateNames) >= 0 && Find(r, InterestNames) >= 0);
         if (headerAt < 0)
         {
@@ -55,14 +55,14 @@ internal static class BankPlanCsv
                 continue;
             }
 
-            var interest = CsvParser.Amount(Cell(row, interestColumn), decimalSeparator);
+            var interest = CsvText.Amount(Cell(row, interestColumn), decimalSeparator);
             if (interest is null or < 0)
             {
                 errors.Add($"Zeile {headerAt + index + 2}: Die Zinsen sind nicht lesbar.");
                 continue;
             }
 
-            entries.Add((date, interest.Value, balanceColumn >= 0 ? CsvParser.Amount(Cell(row, balanceColumn), decimalSeparator) : null));
+            entries.Add((date, interest.Value, balanceColumn >= 0 ? CsvText.Amount(Cell(row, balanceColumn), decimalSeparator) : null));
         }
 
         if (entries.Count == 0 && errors.Count == 0)

@@ -4,7 +4,6 @@ using MietHahn.Application.Tax;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Properties;
 using MietHahn.Domain.Tax;
-using MietHahn.Infrastructure.Bank.Import;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 

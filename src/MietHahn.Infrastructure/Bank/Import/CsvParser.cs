@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using MietHahn.Domain.Bank;
+using MietHahn.Infrastructure.Common;
 
 namespace MietHahn.Infrastructure.Bank.Import;
 
@@ -17,7 +18,7 @@ internal static class CsvParser
     public static int Hits(CsvProfile profile, byte[] content)
     {
         ArgumentNullException.ThrowIfNull(profile);
-        var lines = Rows(TextDecoding.Read(content, profile.Charset), profile.Delimiter).Take(40);
+        var lines = CsvText.Rows(TextDecoding.Read(content, profile.Charset), profile.Delimiter).Take(40);
         return lines.Select(z => Columns(profile, z)?.Count ?? 0).DefaultIfEmpty(0).Max();
     }
 
@@ -25,7 +26,7 @@ internal static class CsvParser
     {
         ArgumentNullException.ThrowIfNull(profile);
         var text = TextDecoding.Read(content, profile.Charset);
-        var lines = Rows(text, profile.Delimiter).ToList();
+        var lines = CsvText.Rows(text, profile.Delimiter).ToList();
         var header = lines.FindIndex(z => Columns(profile, z) is not null);
         if (header < 0)
         {
@@ -63,11 +64,11 @@ internal static class CsvParser
                 continue;
             }
 
-            decimal? amount = Amount(Value(nameof(CsvProfile.AmountColumn)), profile.DecimalSeparator);
+            decimal? amount = CsvText.Amount(Value(nameof(CsvProfile.AmountColumn)), profile.DecimalSeparator);
             if (amount is null && (profile.DebitColumn is not null || profile.CreditColumn is not null))
             {
-                var target = Amount(Value(nameof(CsvProfile.DebitColumn)), profile.DecimalSeparator);
-                var creditItems = Amount(Value(nameof(CsvProfile.CreditColumn)), profile.DecimalSeparator);
+                var target = CsvText.Amount(Value(nameof(CsvProfile.DebitColumn)), profile.DecimalSeparator);
+                var creditItems = CsvText.Amount(Value(nameof(CsvProfile.CreditColumn)), profile.DecimalSeparator);
                 amount = target is null && creditItems is null ? null : (creditItems ?? 0) - Math.Abs(target ?? 0);
             }
 
@@ -109,20 +110,6 @@ internal static class CsvParser
 
     private static string? NullIfNotProvided(string? value) => value is null or "NOTPROVIDED" ? null : value;
 
-    /// <summary>„-1.234,56“, „1234,56 €“, „+12,00“ or with a period as the decimal separator.</summary>
-    internal static decimal? Amount(string? text, char decimalSeparator)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        var cleaned = new string(text.Where(c => char.IsAsciiDigit(c) || c is ',' or '.' or '-' or '+').ToArray());
-        cleaned = decimalSeparator == ','
-            ? cleaned.Replace(".", "", StringComparison.Ordinal).Replace(',', '.')
-            : cleaned.Replace(",", "", StringComparison.Ordinal);
-        return decimal.TryParse(cleaned, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var amount) ? amount : null;
-    }
 
     /// <summary>Column index per profile property, or <c>null</c>, if required columns are missing.</summary>
     private static Dictionary<string, int>? Columns(CsvProfile profile, List<string> header)
@@ -171,65 +158,6 @@ internal static class CsvParser
     ];
 
     private static string Normalize(string name) => name.Trim().Trim('"').Trim().ToLowerInvariant();
-
-    /// <summary>Parses CSV according to RFC 4180 (quotes, line breaks within fields).</summary>
-    internal static IEnumerable<List<string>> Rows(string text, char separator)
-    {
-        var field = new StringBuilder();
-        var line = new List<string>();
-        var inQuotes = false;
-        for (var i = 0; i < text.Length; i++)
-        {
-            var c = text[i];
-            if (inQuotes)
-            {
-                if (c == '"' && i + 1 < text.Length && text[i + 1] == '"')
-                {
-                    field.Append('"');
-                    i++;
-                }
-                else if (c == '"')
-                {
-                    inQuotes = false;
-                }
-                else
-                {
-                    field.Append(c);
-                }
-            }
-            else if (c == '"')
-            {
-                inQuotes = true;
-            }
-            else if (c == separator)
-            {
-                line.Add(field.ToString());
-                field.Clear();
-            }
-            else if (c is '\n' or '\r')
-            {
-                if (c == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
-                {
-                    i++;
-                }
-
-                line.Add(field.ToString());
-                field.Clear();
-                yield return line;
-                line = [];
-            }
-            else
-            {
-                field.Append(c);
-            }
-        }
-
-        if (field.Length > 0 || line.Count > 0)
-        {
-            line.Add(field.ToString());
-            yield return line;
-        }
-    }
 }
 
 /// <summary>Bundled profiles (state of the exports 2024–2026).</summary>

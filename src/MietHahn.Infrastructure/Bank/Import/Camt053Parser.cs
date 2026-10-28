@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
 using MietHahn.Domain.Bank;
+using MietHahn.Infrastructure.Common;
 
 namespace MietHahn.Infrastructure.Bank.Import;
 
