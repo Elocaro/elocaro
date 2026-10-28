@@ -135,7 +135,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.GetByRole(AriaRole.Button, new() { Name = "Bearbeiten" }).ClickAsync();
+            await OpenTabAsync(page, "Foto");
             var input = page.Locator("input[type=file]");
             await input.SetInputFilesAsync(new FilePayload { Name = "plan.pdf", MimeType = "application/pdf", Buffer = "%PDF-1.4"u8.ToArray() });
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Das Foto muss ein Bild sein.");

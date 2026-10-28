@@ -97,14 +97,6 @@ else
 }
 
     </MudTabPanel>
-    <MudTabPanel Text="Angaben" ID="@("angaben")" Visible="@(person.AnonymizedAt is null)">
-        <ErrorList Errors="editErrors" />
-        <EditForm Model="data" OnValidSubmit="SaveDataAsync" novalidate>
-            <DataAnnotationsValidator />
-            <PersonEditor Data="data" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-        </EditForm>
-    </MudTabPanel>
     <MudTabPanel Text="Anschrift & Bank" Visible="@(person.AnonymizedAt is null)">
 <section>
         <h2>Anschrift</h2>
@@ -243,7 +235,6 @@ else
 @code {
     private PersonDetails? person;
     private PersonInput data = new();
-    private IReadOnlyList<string>? editErrors;
     private MudTabs? tabs;
     private IReadOnlyList<string>? errors;
     private bool loaded;
@@ -363,22 +354,15 @@ else
         await LoadAsync();
     }
 
-    private async Task SaveDataAsync()
-    {
-        var result = await Admin.UpdateAsync(Id, data);
-        editErrors = result.Succeeded ? null : result.Errors;
-        if (result.Succeeded)
-        {
-            Notify.Success("Die Angaben wurden gespeichert.");
-            await LoadAsync();
-        }
-    }
-
+    // "Bearbeiten" opens the data of the person in a dialog (no switching to another tab).
     private async Task EditAsync()
     {
-        if (tabs is not null)
+        RenderFragment fields = @<PersonEditor Data="data" />;
+        if (await Dialogs.ShowFormAsync("Person bearbeiten", data, fields, () => Admin.UpdateAsync(Id, data)))
         {
-            await tabs.ActivatePanelAsync("angaben");
+            Notify.Success("Die Angaben wurden gespeichert.");
         }
+
+        await LoadAsync(); // after cancelling, too: drops the unsaved changes of the shared model
     }
 }

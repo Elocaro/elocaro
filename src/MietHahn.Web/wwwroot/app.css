@@ -1040,7 +1040,7 @@ main p a, main .help a, main .small a, .message a { text-decoration: underline; 
 @media (max-width: 600px) { .house-floor { grid-template-columns: 1fr; } }
 
 /* Property header above the property tabs */
-.record-header { flex: none; padding: 0.25rem var(--content-gutter) 0.25rem; background: var(--md-surface); }
+.record-header { flex: none; margin: 0; padding: 0.25rem var(--content-gutter) 0.25rem; background: var(--md-surface); }
 .record-title { margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.3; }
 .record-subtitle { margin: 0; color: var(--md-on-surface-variant); font-size: 0.9rem; }
 .record-facts { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; margin: 0.25rem 0 0; }
@@ -1307,3 +1307,15 @@ fieldset { min-width: 0; }
 .filter-chip:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); box-shadow: none; }
 .filter-chip[aria-pressed="true"] { color: var(--md-on-secondary-container); background: var(--md-secondary-container); border-color: transparent; padding-left: 0.65rem; }
 .filter-chip .icon { width: 1.15rem; height: 1.15rem; }
+
+/* Header without a visible title (it repeats the selected tab): only the actions remain, in one slim row */
+.page-header.is-compact { padding-block: 0.4rem; margin-bottom: 0.5rem; }
+.page-header.is-compact .page-header-actions { margin-left: auto; }
+.page-header.is-compact .page-header-title { flex: 0 0 0; min-width: 0; }
+.page-header.is-compact:not(:has(.page-header-actions)) { display: none; }
+@media (max-width: 899.98px) {
+    .page-header.is-compact { padding-block: 0.3rem; margin-bottom: 0.5rem; }
+    .page-header.is-compact .page-header-actions { flex: 1 1 100%; justify-content: flex-start; }
+    .page-header.is-compact { position: static; }
+}
+

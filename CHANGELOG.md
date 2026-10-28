@@ -11,6 +11,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Kalender der Datumsfelder, Auswahllisten und Menüs nutzen die Flächenfarbe der App statt reinem Weiß; der Kalenderkopf ist nicht mehr als Farbblock gestaltet.
 - Handy: Die Sortierauswahl, die MudBlazor über Kartenlisten einblendet, entfällt; Listen sind immer nach ihrer ersten Spalte (z. B. Objekt) sortiert.
 - Seitentitel, der den gewählten Tab wiederholt (z. B. „Objekte“ unter dem Tab „Objekte“), steht nur noch für Screenreader im Dokument und wird nicht doppelt angezeigt.
+- „Bearbeiten“ bei Objekt und Person öffnet einen Dialog mit den Angaben, statt in einen anderen Tab zu springen; der Tab „Angaben“ entfällt (beim Objekt heißt der Rest „Foto“).
+- Objekt-Kopf auf dem Handy: Wiederholt der Titel den Tab, entfallen Zurück-Pfeil und leere Titelzeile; die Aktionen stehen in einer schmalen, nicht festklebenden Zeile, der Abstand unter der Objekt-Kachel ist kleiner (rund 120 px mehr Platz für Inhalt).
 - Vertragsliste: „Beendete anzeigen“ ist ein Filter-Chip (Material 3) statt eines Schalters.
 - Startseite und Listen: Dringlichkeit zeigt ein farbiger Punkt vor dem Eintrag statt eines Randes mit Rundung; Notfallhinweis und interne Kommentare ohne Randstreifen.
 - Verbindungsdialog überarbeitet (Expressive): geformtes Symbol, weicher Auftritt, volle Breite für „Erneut versuchen“.

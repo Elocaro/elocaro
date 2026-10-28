@@ -177,14 +177,8 @@ else
 <LandlordSection PropertyId="Id" />
 
     </MudTabPanel>
-    <MudTabPanel Text="Angaben" ID="@("angaben")">
+    <MudTabPanel Text="Foto">
         <ErrorList Errors="editErrors" />
-        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
-            <DataAnnotationsValidator />
-            <PropertyEditor Data="data" Profiles="profiles" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-        </EditForm>
-
         <section>
             <h2>Foto</h2>
             <div class="form-row">
@@ -261,15 +255,16 @@ else
         }
     }
 
+    // "Bearbeiten" opens the data of the property in a dialog (no switching to another tab).
     private async Task SaveAsync()
     {
-        var result = await Admin.UpdateAsync(Id, data);
-        editErrors = result.Succeeded ? null : result.Errors;
-        if (result.Succeeded)
+        RenderFragment fields = @<PropertyEditor Data="data" Profiles="profiles" />;
+        if (await Dialogs.ShowFormAsync("Objekt bearbeiten", data, fields, () => Admin.UpdateAsync(Id, data)))
         {
             Notify.Success("Die Angaben wurden gespeichert.");
-            await LoadAsync();
         }
+
+        await LoadAsync(); // after cancelling, too: drops the unsaved changes of the shared model
     }
 
     private async Task UploadImageAsync(FileSelection selection)
@@ -305,11 +300,5 @@ else
         }
     }
 
-    private async Task EditAsync()
-    {
-        if (tabs is not null)
-        {
-            await tabs.ActivatePanelAsync("angaben");
-        }
-    }
+    private async Task EditAsync() => await SaveAsync();
 }

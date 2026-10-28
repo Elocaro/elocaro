@@ -1,9 +1,9 @@
 @* Heading with page title and optional actions (buttons/links on the right, or below on smartphones). *@
 @inject NavigationManager Navigation
 <PageTitle>@Title – MietHahn</PageTitle>
-<div class="page-header">
+<div class="@(titleRepeatsTab && Subtitle is null ? "page-header is-compact" : "page-header")">
     <div class="page-header-title">
-        @if (Back is not null)
+        @if (Back is not null && !titleRepeatsTab) // the trail above the tabs leads back; with a repeated title there is no heading to put the arrow next to
         {
             <a class="back" href="@Back"><Icon Path="@AppIcons.Back" /><span class="back-text">@(BackText ?? "Zurück")</span></a>
         }

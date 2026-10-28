@@ -110,8 +110,9 @@ public class InteractiveBrowserTests(PostgresFixture postgres) : BrowserTestBasi
             await page.GotoAsync(BaseUrl + $"/verwaltung/personen/{id}");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
             await page.GetByRole(AriaRole.Button, new() { Name = "Bearbeiten" }).ClickAsync();
-            await page.GetByLabel("E-Mail").FillAsync("anna@example.de");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await dialog.GetByLabel("E-Mail").FillAsync("anna@example.de");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
 
             await ExpectSnackbarAsync(page, "Die Angaben wurden gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("anna@example.de");
