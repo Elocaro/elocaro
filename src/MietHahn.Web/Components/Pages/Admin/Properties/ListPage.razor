@@ -16,7 +16,7 @@
     }
     else if (properties is not null)
     {
-        <MudTable SortLabel="Sortieren nach" T="PropertyOverview" Items="properties" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+        <MudTable T="PropertyOverview" Items="properties" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="PropertyOverview" SortBy="@(p => p.Name)" InitialDirection="SortDirection.Ascending">Objekt</MudTableSortLabel></MudTh>
                 <MudTh>Anschrift</MudTh>

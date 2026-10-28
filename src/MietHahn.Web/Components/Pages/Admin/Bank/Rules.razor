@@ -20,7 +20,7 @@
     }
     else if (rules is not null)
     {
-        <MudTable SortLabel="Sortieren nach" T="MatchRuleRow" Items="rules" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+        <MudTable T="MatchRuleRow" Items="rules" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
             <HeaderContent>
                 <MudTh>Regel</MudTh><MudTh>Bedingung</MudTh><MudTh>Ziel</MudTh>
                 <MudTh Style="text-align:right"><MudTableSortLabel T="MatchRuleRow" SortBy="@(r => r.Priority)" InitialDirection="SortDirection.Ascending">Priorität</MudTableSortLabel></MudTh>

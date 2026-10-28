@@ -9,7 +9,11 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Lange Erklärabsätze (rund 40 Stellen, z. B. Kaution, Heizkosten, Anlage V, Importe) stehen jetzt in einklappbaren Abschnitten mit sprechender Überschrift statt als Textblock.
 - Meldung bei verlorener Verbindung (vorher Blazors englischer Standardtext „Rejoining the server …“): deutscher Dialog im App-Stil mit „Erneut versuchen“ und „Seite neu laden“ (`reconnect.js`).
 - Kalender der Datumsfelder, Auswahllisten und Menüs nutzen die Flächenfarbe der App statt reinem Weiß; der Kalenderkopf ist nicht mehr als Farbblock gestaltet.
-- Handy: Die Sortierauswahl der Kartenlisten heißt „Sortieren nach“ (vorher ohne Beschriftung).
+- Handy: Die Sortierauswahl, die MudBlazor über Kartenlisten einblendet, entfällt; Listen sind immer nach ihrer ersten Spalte (z. B. Objekt) sortiert.
+- Seitentitel, der den gewählten Tab wiederholt (z. B. „Objekte“ unter dem Tab „Objekte“), steht nur noch für Screenreader im Dokument und wird nicht doppelt angezeigt.
+- Vertragsliste: „Beendete anzeigen“ ist ein Filter-Chip (Material 3) statt eines Schalters.
+- Startseite und Listen: Dringlichkeit zeigt ein farbiger Punkt vor dem Eintrag statt eines Randes mit Rundung; Notfallhinweis und interne Kommentare ohne Randstreifen.
+- Verbindungsdialog überarbeitet (Expressive): geformtes Symbol, weicher Auftritt, volle Breite für „Erneut versuchen“.
 - Handy: Die Tab-Leisten der Detailseiten (z. B. Mietvertrag) lassen sich wischen; vorher ging es nur über die Pfeiltasten. Der aktive Tab bleibt sichtbar.
 - Tabellen: `MudTable` hat jetzt dieselbe Schriftgröße, denselben Zellabstand und dieselbe Kopfzeile wie die statischen Tabellen (vorher kleinere Schrift).
 - Tests: Testlauf von rund 8,5 auf 2,5 Minuten verkürzt (Vorlagen-Datenbank statt Migrationen je Test, ein gemeinsames Chromium, die langen Seiten-Durchläufe auf sechs parallele Klassen verteilt, 10 statt 4 parallele Threads).

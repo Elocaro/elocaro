@@ -7,7 +7,7 @@
         {
             <a class="back" href="@Back"><Icon Path="@AppIcons.Back" /><span class="back-text">@(BackText ?? "Zurück")</span></a>
         }
-        <h1>@Title</h1>
+        <h1 class="@(titleRepeatsTab ? "visually-hidden" : null)">@Title</h1>
         @if (Subtitle is not null)
         {
             <p class="small">@Subtitle</p>
@@ -28,12 +28,26 @@
 @code {
     private PageInfo? info;
     private string? pageId;
+    private bool titleRepeatsTab;
 
     protected override void OnParametersSet()
     {
         var path = new Uri(Navigation.Uri).AbsolutePath;
         info = ShowInfo ? PageInfoCatalog.For(path) : null;
         pageId = path.Split('/').FirstOrDefault(part => Guid.TryParse(part, out _));
+        titleRepeatsTab = RepeatsSelectedTab(path.TrimEnd('/'));
+    }
+
+    /// <summary>The selected tab (or page of the selected group) already names the page: the heading stays for screen readers but is not shown twice.</summary>
+    private bool RepeatsSelectedTab(string path)
+    {
+        if (AdminNavModel.TabsFor(path) is not { } set)
+        {
+            return false;
+        }
+
+        bool Same(string label) => string.Equals(label.Trim(), Title.Trim(), StringComparison.OrdinalIgnoreCase);
+        return set.Tabs.Any(tab => tab.Matches(path) && (tab.IsGroup ? tab.Children!.Any(child => child.Matches(path) && Same(child.Label)) : Same(tab.Label)));
     }
 
     /// <summary>false: no info button even if the page has an entry.</summary>

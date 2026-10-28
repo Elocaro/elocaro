@@ -10,7 +10,15 @@
         </Actions>
     </PageHeader>
 
-    <MudSwitch T="bool" Value="all" ValueChanged="OnAllChanged" Color="Color.Primary" Label="Auch beendete anzeigen" />
+    <div class="chip-row" role="group" aria-label="Filter">
+        <button type="button" class="filter-chip" aria-pressed="@(all ? "true" : "false")" @onclick="() => OnAllChanged(!all)">
+            @if (all)
+            {
+                <Icon Path="@AppIcons.Check" />
+            }
+            Beendete anzeigen
+        </button>
+    </div>
 
     @if (leases is { Count: 0 })
     {
@@ -18,7 +26,7 @@
     }
     else if (leases is not null)
     {
-        <MudTable SortLabel="Sortieren nach" T="LeaseOverview" Items="leases" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+        <MudTable T="LeaseOverview" Items="leases" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="LeaseOverview" SortBy="@(l => l.RentalUnit)" InitialDirection="SortDirection.Ascending">Mietobjekt</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="LeaseOverview" SortBy="@(l => l.Tenant)">Mieter</MudTableSortLabel></MudTh>

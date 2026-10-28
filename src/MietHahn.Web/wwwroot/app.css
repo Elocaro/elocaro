@@ -349,10 +349,11 @@ h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 .todo { padding: 0.75rem 1rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); }
 .todo a { font-weight: 600; text-decoration: none; }
 .todo p { margin: 0.25rem 0 0; }
-/* A coloured edge only where it means something (urgency); drawn as an inner shadow so it follows the rounded corners instead of tapering into them */
-.todo-urgent { box-shadow: inset 4px 0 0 var(--color-error); }
-.todo-soon { box-shadow: inset 4px 0 0 var(--color-info); }
-.todo-info { box-shadow: inset 4px 0 0 var(--color-focus); }
+/* Urgency as a small dot in front of the entry (no coloured edge: it bent awkwardly around the rounded corners) */
+.todo-urgent, .todo-soon, .todo-info { position: relative; padding-left: 2.1rem; }
+.todo-urgent::before, .todo-soon::before, .todo-info::before { content: ""; position: absolute; left: 0.9rem; top: 1.2rem; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--md-info); }
+.todo-urgent::before { background: var(--md-error); }
+.todo-soon::before { background: var(--md-warning); }
 .empty-state { padding: 2rem 1rem; text-align: center; color: var(--color-text-muted); background: var(--color-surface); border: 1px dashed var(--md-outline); border-radius: var(--shape-lg); }
 .loading { color: var(--color-text-muted); }
 
@@ -627,12 +628,11 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .panel .todos-more .todos { padding: 0; }
 .panel .todo { background: transparent; border: none; border-radius: var(--shape-sm); }
 .panel .todo:hover { background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); }
-.panel .todo-urgent { box-shadow: inset 4px 0 0 var(--md-error); }
-.panel .todo-soon { box-shadow: inset 4px 0 0 var(--md-warning); }
-.panel .todo-info { box-shadow: inset 4px 0 0 var(--md-focus); }
+.panel .todo-urgent, .panel .todo-soon, .panel .todo-info { padding-left: 1.9rem; }
+.panel .todo-urgent::before, .panel .todo-soon::before, .panel .todo-info::before { left: 0.7rem; }
 .todo a { display: block; }
 /* Several tasks of the same kind (e.g. "Eichfrist abgelaufen: <Zähler>") as one entry that opens into the list */
-.todo-group > details > summary { cursor: pointer; font-weight: 600; color: var(--color-primary); }
+.todo-group > details > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem 0.5rem; cursor: pointer; font-weight: 600; color: var(--color-primary); }
 .todo-group > details > .small { display: block; margin-top: 0.25rem; }
 .todo-group-items { display: grid; gap: 0.15rem; margin: 0.5rem 0 0; padding: 0 0 0 1.1rem; }
 .todo-group-items a { font-weight: 400; padding-block: 0.2rem; }
@@ -808,10 +808,10 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .ticket-photos img { display: block; width: 7rem; height: 7rem; object-fit: cover; border-radius: var(--shape-lg); border: 1px solid var(--md-outline-variant); }
 .ticket-thread { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
 .ticket-thread li { background: var(--md-surface-container-low); border-radius: var(--shape-lg); padding: 0.75rem 1rem; }
-.ticket-thread li.internal { box-shadow: inset 4px 0 0 var(--md-warning); }
+.ticket-thread li.internal { background: color-mix(in srgb, var(--md-warning) 14%, transparent); }
 .ticket-thread .meta { color: var(--md-on-surface-variant); font-size: 0.875rem; }
 .ticket-thread p { margin: 0.25rem 0 0; white-space: pre-wrap; }
-.emergency { box-shadow: inset 4px 0 0 var(--md-error); background: var(--md-surface-container-low); padding: 0.75rem 1rem; border-radius: var(--shape-lg); margin-bottom: 1rem; }
+.emergency { background: var(--md-error-container); color: var(--md-on-error-container); padding: 0.75rem 1rem; border-radius: var(--shape-lg); margin-bottom: 1rem; }
 .emergency p { margin: 0.25rem 0 0; white-space: pre-wrap; }
 
 /* Razor drops the blank between neighbouring inline elements, so secondary text and chips keep a small gap themselves. */
@@ -1266,21 +1266,28 @@ fieldset { min-width: 0; }
 .template-preview { height: calc(100dvh - 15rem); }
 
 /* Lost connection (Components/App.razor, js/reconnect.js): replaces Blazor's English default */
-.reconnect-modal { position: fixed; inset: 0; margin: auto; height: fit-content; width: min(26rem, calc(100vw - 2rem)); border: none; padding: 1.5rem; background: var(--md-surface-container-high); border-radius: var(--shape-xl); box-shadow: 0 8px 32px rgb(0 0 0 / 30%); color: var(--md-on-surface); outline: none; }
-.reconnect-modal::backdrop { background: color-mix(in srgb, var(--md-scrim, #000) 45%, transparent); }
-.reconnect-card { text-align: left; }
-.reconnect-title { margin: 0 0 0.5rem; font: var(--type-title); }
-.reconnect-card .button { text-transform: none; letter-spacing: 0; font-size: 1rem; }
-.reconnect-card .button-primary { color: var(--md-on-primary); background: var(--md-primary); }
-.reconnect-text { margin: 0 0 1rem; color: var(--md-on-surface-variant); }
-.reconnect-state { display: none; }
+.reconnect-modal { position: fixed; inset: 0; margin: auto; height: fit-content; width: min(24rem, calc(100vw - 2rem)); padding: 2rem 1.75rem 1.75rem; border: none; border-radius: var(--shape-xl); background: var(--md-surface-container-high); color: var(--md-on-surface); box-shadow: 0 12px 40px rgb(0 0 0 / 32%); outline: none; text-align: center; }
+.reconnect-modal[open] { animation: reconnect-in 320ms var(--motion-spatial, ease-out); }
+.reconnect-modal::backdrop { background: color-mix(in srgb, var(--md-on-surface) 38%, transparent); backdrop-filter: blur(3px); }
+.reconnect-state { display: none; flex-direction: column; align-items: center; }
 .reconnect-modal.components-reconnect-show .reconnect-retrying,
 .reconnect-modal.components-reconnect-failed .reconnect-failed,
-.reconnect-modal:is(.components-reconnect-rejected, .components-reconnect-paused, .components-reconnect-resume-failed) .reconnect-ended { display: block; }
-.reconnect-modal:not([class*="components-reconnect-"]) .reconnect-retrying { display: block; }
-.reconnect-spinner { display: block; width: 1.75rem; height: 1.75rem; margin-bottom: 0.75rem; border: 3px solid var(--md-outline-variant); border-top-color: var(--md-primary); border-radius: 50%; animation: reconnect-spin 0.9s linear infinite; }
+.reconnect-modal:is(.components-reconnect-rejected, .components-reconnect-paused, .components-reconnect-resume-failed) .reconnect-ended { display: flex; }
+.reconnect-modal:not([class*="components-reconnect-"]) .reconnect-retrying { display: flex; }
+.reconnect-icon { position: relative; display: grid; place-items: center; width: 4.5rem; height: 4.5rem; margin-bottom: 1.25rem; border-radius: 40% 60% 55% 45% / 50% 45% 55% 50%; background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.reconnect-icon svg { width: 2.25rem; height: 2.25rem; fill: currentColor; }
+.reconnect-icon.is-working { animation: reconnect-morph 3.2s ease-in-out infinite; }
+.reconnect-icon.is-working svg { animation: reconnect-spin 1.6s linear infinite; }
+.reconnect-title { margin: 0 0 0.5rem; font: var(--type-headline-small, var(--type-title)); font-size: 1.4rem; }
+.reconnect-text { margin: 0 0 0.75rem; color: var(--md-on-surface-variant); }
+.reconnect-retrying .reconnect-text { margin-bottom: 0; }
+/* MudBlazor styles every bare <button> (uppercase, 40px margin !important); the dialog's own buttons follow the app instead */
+.reconnect-modal .button { width: 100%; margin: 0 !important; text-transform: none !important; letter-spacing: 0 !important; font-size: 1rem !important; line-height: 1.5 !important; border-radius: var(--shape-full) !important; }
+.reconnect-modal .button-primary { color: var(--md-on-primary) !important; background: var(--md-primary); }
+@keyframes reconnect-in { from { opacity: 0; transform: scale(0.92) translateY(0.75rem); } }
 @keyframes reconnect-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .reconnect-spinner { animation-duration: 3s; } }
+@keyframes reconnect-morph { 0%, 100% { border-radius: 40% 60% 55% 45% / 50% 45% 55% 50%; } 50% { border-radius: 58% 42% 45% 55% / 45% 58% 42% 55%; } }
+@media (prefers-reduced-motion: reduce) { .reconnect-modal[open], .reconnect-icon.is-working, .reconnect-icon.is-working svg { animation: none; } }
 
 /* Popovers of MudBlazor (selection lists, menus, calendar) in the app's surface instead of plain white */
 .mud-popover .mud-paper, .mud-picker-paper { background-color: var(--md-surface-container-high); color: var(--md-on-surface); border-radius: var(--shape-lg); }
@@ -1290,3 +1297,13 @@ fieldset { min-width: 0; }
 .mud-picker-paper .mud-icon-button { background-color: transparent; }
 .mud-picker-toolbar .mud-button-root { color: inherit; font-weight: 600; }
 .mud-picker-calendar-header-switch .mud-button-root, .mud-picker-calendar-header .mud-day-label { color: var(--md-on-surface-variant); }
+
+/* Card lists on phones are always sorted by their first column; MudBlazor's extra sort selection stays away */
+.mud-table .mud-table-smalldevices-sortselect { display: none !important; }
+
+/* Filter chip (Material 3): toggles a list filter, e.g. "show ended leases" */
+.chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; }
+.filter-chip { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.75rem; padding: 0 1rem; font: var(--type-label); font-size: 0.95rem; color: var(--md-on-surface-variant); background: transparent; border: 1px solid var(--md-outline); border-radius: var(--shape-sm); cursor: pointer; transition: background-color var(--motion-duration) var(--motion-effects), border-color var(--motion-duration) var(--motion-effects); }
+.filter-chip:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); box-shadow: none; }
+.filter-chip[aria-pressed="true"] { color: var(--md-on-secondary-container); background: var(--md-secondary-container); border-color: transparent; padding-left: 0.65rem; }
+.filter-chip .icon { width: 1.15rem; height: 1.15rem; }

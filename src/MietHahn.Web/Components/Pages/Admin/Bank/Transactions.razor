@@ -24,7 +24,7 @@
     else if (transactions is not null)
     {
         <p class="small">@transactions.Count Umsätze · Eingänge @Format.Money(transactions.Where(u => u.Amount > 0).Sum(u => u.Amount)) · Ausgänge @Format.Money(transactions.Where(u => u.Amount < 0).Sum(u => u.Amount))</p>
-        <MudTable SortLabel="Sortieren nach" T="TransactionRow" Items="transactions" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="50">
+        <MudTable T="TransactionRow" Items="transactions" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="50">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="TransactionRow" SortBy="@(u => u.BookingDate)" InitialDirection="SortDirection.Descending">Buchung</MudTableSortLabel></MudTh>
                 <MudTh>Gegenseite</MudTh><MudTh>Verwendungszweck</MudTh>
