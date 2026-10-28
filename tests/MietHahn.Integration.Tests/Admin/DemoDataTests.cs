@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Admin;
 using MietHahn.Application.Finance;
 using MietHahn.Application.Properties;
+using MietHahn.Application.Setup;
 using MietHahn.Integration.Tests.Infrastructure;
 
 namespace MietHahn.Integration.Tests.Admin;

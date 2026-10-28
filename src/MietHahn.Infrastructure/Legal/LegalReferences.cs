@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
+using MietHahn.Application.Legal;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Admin;
 using MietHahn.Domain.Common;
@@ -13,7 +14,7 @@ using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Finance;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Legal;
 
 internal sealed class LegalReferences(MietHahnDbContext db, IModuleState modules, TimeProvider clock, ICurrentUser currentUser) : ILegalReferences
 {

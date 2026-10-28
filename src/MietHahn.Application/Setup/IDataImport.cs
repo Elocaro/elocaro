@@ -1,4 +1,4 @@
-namespace MietHahn.Application.Admin;
+namespace MietHahn.Application.Setup;
 
 /// <summary>
 /// Takes over an existing stock from a spreadsheet: one CSV file (Excel: "CSV (Trennzeichen-getrennt)") with one row per rented

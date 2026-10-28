@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace MietHahn.Application.Admin;
+namespace MietHahn.Application.Portfolio;
 
 /// <summary>The few numbers a landlord wants at a glance on the start page.</summary>
 public interface IPortfolioFigures

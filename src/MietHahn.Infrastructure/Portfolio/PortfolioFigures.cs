@@ -3,13 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Admin;
 using MietHahn.Application.Finance;
+using MietHahn.Application.Portfolio;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Finance;
 using MietHahn.Domain.Leases;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Portfolio;
 
 internal sealed class PortfolioFiguresService(MietHahnDbContext db, ITenantAccounts accounts, TimeProvider clock) : IPortfolioFigures
 {

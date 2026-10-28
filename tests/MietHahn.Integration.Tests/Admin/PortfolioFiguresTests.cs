@@ -6,6 +6,7 @@ using MietHahn.Application.Common;
 using MietHahn.Application.Finance;
 using MietHahn.Application.Leases;
 using MietHahn.Application.People;
+using MietHahn.Application.Portfolio;
 using MietHahn.Application.Properties;
 using MietHahn.Integration.Tests.Infrastructure;
 

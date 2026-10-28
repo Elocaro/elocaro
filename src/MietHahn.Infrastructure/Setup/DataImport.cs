@@ -6,6 +6,7 @@ using MietHahn.Application.Finance;
 using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
+using MietHahn.Application.Setup;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Deposits;
 using MietHahn.Domain.Finance;
@@ -14,7 +15,7 @@ using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Setup;
 
 /// <summary>
 /// Spreadsheet import (see <see cref="IDataImport"/>). The file is read and planned against the existing data first; the import

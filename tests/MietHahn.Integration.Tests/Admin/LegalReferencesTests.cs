@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Admin;
 using MietHahn.Application.Finance;
+using MietHahn.Application.Legal;
 using MietHahn.Application.Todos;
 using MietHahn.Domain.Leases;
 using MietHahn.Infrastructure.Persistence;

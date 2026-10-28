@@ -6,9 +6,10 @@ using MietHahn.Application.Finance;
 using MietHahn.Application.Leases;
 using MietHahn.Application.People;
 using MietHahn.Application.Properties;
+using MietHahn.Application.Setup;
 using MietHahn.Domain.Finance;
 using MietHahn.Domain.Leases;
-using MietHahn.Infrastructure.Admin;
+using MietHahn.Infrastructure.Setup;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Integration.Tests.Infrastructure;
 

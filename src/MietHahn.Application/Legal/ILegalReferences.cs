@@ -1,4 +1,4 @@
-namespace MietHahn.Application.Admin;
+namespace MietHahn.Application.Legal;
 
 /// <summary>
 /// The values MietHahn takes from law and statistics (Basiszinssatz, Verbraucherpreisindex, CO₂-Stufen, Gradtagszahlen), each with its

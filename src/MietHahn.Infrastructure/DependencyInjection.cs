@@ -17,6 +17,7 @@ using MietHahn.Application.Files;
 using MietHahn.Application.Finance;
 using MietHahn.Application.Heating;
 using MietHahn.Application.Leases;
+using MietHahn.Application.Legal;
 using MietHahn.Application.Metering;
 using MietHahn.Application.Notices;
 using MietHahn.Application.Notifications;
@@ -24,9 +25,11 @@ using MietHahn.Application.OperatingCosts;
 using MietHahn.Application.Operations;
 using MietHahn.Application.People;
 using MietHahn.Application.Portal;
+using MietHahn.Application.Portfolio;
 using MietHahn.Application.Privacy;
 using MietHahn.Application.Properties;
 using MietHahn.Application.Receipts;
+using MietHahn.Application.Setup;
 using MietHahn.Application.Statements;
 using MietHahn.Application.Tax;
 using MietHahn.Application.Tickets;
@@ -171,14 +174,14 @@ public static class DependencyInjection
         services.AddScoped<MailOutbox>();
         services.AddScoped<IMailService, MailService>();
         services.AddScoped<ITodoSource, MailTodos>();
-        services.AddScoped<ITodoSource, Admin.SetupChecklistTodos>();
-        services.AddScoped<ILegalReferences, Admin.LegalReferences>();
-        services.AddScoped<IDataImport, Admin.DataImport>();
-        services.AddScoped<IPortfolioFigures, Admin.PortfolioFiguresService>();
-        services.AddScoped<IDemoData, Admin.DemoData>();
+        services.AddScoped<ITodoSource, Setup.SetupChecklistTodos>();
+        services.AddScoped<ILegalReferences, Legal.LegalReferences>();
+        services.AddScoped<IDataImport, Setup.DataImport>();
+        services.AddScoped<IPortfolioFigures, Portfolio.PortfolioFiguresService>();
+        services.AddScoped<IDemoData, Setup.DemoData>();
         services.AddScoped<IDeposits, Leases.Deposits>();
         services.AddScoped<ITodoSource, Leases.DepositTodos>();
-        services.AddScoped<ITodoSource, Admin.LegalReferenceTodos>();
+        services.AddScoped<ITodoSource, Legal.LegalReferenceTodos>();
     }
 
     private static void AddFileStore(IServiceCollection services, IConfiguration configuration)
@@ -233,7 +236,7 @@ public static class DependencyInjection
     private static void AddMasterData(IServiceCollection services)
     {
         services.AddScoped<IPropertyService, PropertyService>();
-        services.AddScoped<INavigationContext, NavigationContextResolver>();
+        services.AddScoped<INavigationContext, Portfolio.NavigationContextResolver>();
         services.AddScoped<IPropertyAssignments, PropertyAssignments>();
         services.AddScoped<IOccupancyLookup, LeaseOccupancy>();
         services.AddScoped<IPersonService, PersonService>();

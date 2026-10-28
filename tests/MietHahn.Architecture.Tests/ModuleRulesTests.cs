@@ -12,13 +12,9 @@ public partial class ModuleRulesTests
     /// <summary>Pairs of modules that use each other today (alphabetical). Goal: empty. Admin is the hub; splitting it removes most of them.</summary>
     private static readonly string[] KnownCycles =
     [
-        "Admin <-> Bank",
-        "Admin <-> Documents",
         "Admin <-> Finance",
         "Admin <-> Leases",
-        "Admin <-> Metering",
         "Admin <-> Properties",
-        "Admin <-> Statements",
         "Common <-> Documents",
         "Common <-> People",
         "Common <-> Properties",
@@ -43,6 +39,19 @@ public partial class ModuleRulesTests
         var resolved = KnownCycles.Except(cycles).ToList();
         Assert.True(added.Count == 0, "New dependency cycle between modules (docs/architektur.md): move the shared part into Common or an interface of its own.\n" + string.Join("\n", added));
         Assert.True(resolved.Count == 0, "Cycle resolved, remove it from KnownCycles:\n" + string.Join("\n", resolved));
+    }
+
+    [Fact]
+    public void Top_level_modules_are_used_by_no_other_module()
+    {
+        // Import, setup, overview figures and legal references read from many modules for the screens; nothing may build on them.
+        string[] topLevel = ["Setup", "Portfolio", "Legal"];
+        var uses = ModuleUses();
+        var violations = uses.Where(kv => !topLevel.Contains(kv.Key))
+            .SelectMany(kv => kv.Value.Where(topLevel.Contains).Select(u => $"{kv.Key} -> {u}"))
+            .ToList();
+
+        Assert.True(violations.Count == 0, "A top-level module must not be used by other modules:\n" + string.Join("\n", violations));
     }
 
     [Fact]

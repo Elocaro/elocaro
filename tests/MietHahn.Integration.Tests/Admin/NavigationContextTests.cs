@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Admin;
 using MietHahn.Application.Common;
 using MietHahn.Application.People;
+using MietHahn.Application.Portfolio;
 using MietHahn.Application.Properties;
 using MietHahn.Application.Tax;
 using MietHahn.Integration.Tests.Infrastructure;

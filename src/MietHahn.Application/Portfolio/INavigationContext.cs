@@ -1,6 +1,6 @@
 using MietHahn.Domain.Properties;
 
-namespace MietHahn.Application.Admin;
+namespace MietHahn.Application.Portfolio;
 
 /// <summary>A step of the trail above the page, e.g. the property or lease the page belongs to. Without <paramref name="Href"/> it is not a link.</summary>
 public sealed record TrailStep(string Label, string? Href);

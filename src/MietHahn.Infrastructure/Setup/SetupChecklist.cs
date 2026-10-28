@@ -9,7 +9,7 @@ using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Setup;
 
 /// <summary>
 /// Dashboard: the first steps of a new installation (landlord profile, property, units with living area, person, lease, bank account).

@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using MietHahn.Domain.Leases;
 using MietHahn.Infrastructure.Bank.Import;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Setup;
 
 /// <summary>One line of the import file after reading; <see cref="Errors"/> lists what could not be understood.</summary>
 internal sealed record ImportLine(

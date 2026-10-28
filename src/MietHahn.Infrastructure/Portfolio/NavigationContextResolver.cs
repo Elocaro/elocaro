@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MietHahn.Application.Admin;
+using MietHahn.Application.Portfolio;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.Metering;
 using MietHahn.Domain.People;
@@ -9,7 +10,7 @@ using MietHahn.Domain.Statements;
 using MietHahn.Domain.Tax;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Portfolio;
 
 /// <summary>
 /// Runs in the layout, next to the page: a context of its own per call, because the page uses the scoped one at the same time

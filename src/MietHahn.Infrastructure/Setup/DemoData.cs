@@ -3,13 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Admin;
 using MietHahn.Application.Documents;
 using MietHahn.Application.Finance;
+using MietHahn.Application.Setup;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Admin;
+namespace MietHahn.Infrastructure.Setup;
 
 internal sealed class DemoData(
     MietHahnDbContext db,

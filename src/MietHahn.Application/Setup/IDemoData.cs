@@ -1,4 +1,4 @@
-namespace MietHahn.Application.Admin;
+namespace MietHahn.Application.Setup;
 
 /// <summary>
 /// Example data for trying MietHahn out: one house with four apartments, three tenants with different payment behaviour and a landlord
