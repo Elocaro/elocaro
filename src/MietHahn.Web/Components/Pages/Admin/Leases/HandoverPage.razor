@@ -7,6 +7,7 @@
 @inject TemplatePreviews Previews
 @inject IJSRuntime JS
 @inject Notifier Notify
+@inject IDialogService Dialogs
 @inject Confirmations Confirm
 
 <InteractiveShell>
@@ -130,15 +131,24 @@ else
             <MudTabPanel Text="Schlüssel und Zähler">
             <section>
                 <h2>Schlüssel</h2>
-                @foreach (var key in view.Content.Keys)
+                @if (view.Content.Keys.Count > 0)
                 {
-                    <div class="form-grid">
-                        <AppTextField @bind-Value="key.Kind" Label="Art" />
-                        <AppNumberField T="int" @bind-Value="key.Count" Label="Anzahl" Min="0" />
-                    </div>
+                    <MudTable T="HandoverKey" Items="view.Content.Keys" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" Dense="true" id="handover-keys">
+                        <HeaderContent>
+                            <MudTh>Art</MudTh><MudTh Style="text-align:right">Anzahl</MudTh><MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="key">
+                            <MudTd DataLabel="Art">@key.Kind</MudTd>
+                            <MudTd DataLabel="Anzahl" Style="text-align:right">@key.Count</MudTd>
+                            <MudTd Style="text-align:right; white-space:nowrap">
+                                <MudButton Variant="Variant.Text" OnClick="() => EditKeyAsync(key)" aria-label="@($"{key.Kind} bearbeiten")">Bearbeiten</MudButton>
+                                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => view.Content.Keys.Remove(key)" aria-label="@($"{key.Kind} entfernen")">Entfernen</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
                 }
 
-                <MudButton Variant="Variant.Text" OnClick="() => view.Content.Keys.Add(new HandoverKey())">Weitere Schlüsselart</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="AddKeyAsync">Schlüsselart hinzufügen</MudButton>
             </section>
 
             @if (view.Content.Meters.Count > 0)
@@ -239,6 +249,26 @@ else
 </InteractiveShell>
 
 @code {
+    private async Task AddKeyAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<HandoverKeyDialog>("Schlüsselart", new DialogParameters(), ListDialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: HandoverKey added })
+        {
+            view!.Content.Keys.Add(added);
+        }
+    }
+
+    private async Task EditKeyAsync(HandoverKey key)
+    {
+        var dialog = await Dialogs.ShowAsync<HandoverKeyDialog>("Schlüsselart bearbeiten", new DialogParameters { ["Existing"] = key }, ListDialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: HandoverKey changed })
+        {
+            view!.Content.Keys[view.Content.Keys.IndexOf(key)] = changed;
+        }
+    }
+
+    private static readonly DialogOptions ListDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
+
     private IJSObjectReference? module;
     private Task? moduleReady;
     private ElementReference tenantCanvas;

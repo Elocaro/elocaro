@@ -7,6 +7,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ### Geändert
 - Nebenkosten öffnen auf den Abrechnungen (dort startet „Neue Abrechnung“); der eigene Tab „Abrechnungs-Assistent“ entfällt. Versorgungsverträge, Umlageschlüssel und Heizkosten stehen als Einstellungen hinter einem Strich rechts.
 - Jahresangaben (Abrechnungs-, Steuerjahr, Belegfilter, Bescheinigung) sind eine Auswahl (`AppYearSelect`) statt eines Zahlenfelds.
+- Vergleichswohnungen (Mieterhöhung), Schlüsselarten (Übergabe) und Wohnungen im Einrichtungsassistenten stehen als Tabelle mit Bearbeiten/Entfernen; „… hinzufügen“ öffnet einen Dialog.
 - Heizkosten: Brennwert und Zustandszahl je Jahr stehen als Tabelle mit Bearbeiten/Entfernen je Zeile; „Jahr hinzufügen“ öffnet einen Dialog statt loser Eingabefelder.
 
 ### Behoben

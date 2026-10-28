@@ -12,6 +12,7 @@
 @inject IPropertyService Properties
 @inject IDocumentTemplates Templates
 @inject Notifier Notify
+@inject IDialogService Dialogs
 @inject NavigationManager Navigation
 
 <InteractiveShell>
@@ -116,16 +117,24 @@
                             <AppTextField @bind-Value="propertyInput.City" Label="Ort" Required="true" />
                         </div>
                         <h3>Wohnungen</h3>
-                        <p class="help">Bezeichnung und Wohnfläche genügen; Zimmerzahl, Ausstattung und Zähler ergänzen Sie später. Zeilen ohne Bezeichnung werden ignoriert.</p>
-                        @for (var i = 0; i < unitRows.Count; i++)
+                        <p class="help">Bezeichnung und Wohnfläche genügen; Zimmerzahl, Ausstattung und Zähler ergänzen Sie später.</p>
+                        @if (unitRows.Count > 0)
                         {
-                            var row = unitRows[i];
-                            <div class="form-grid">
-                                <AppTextField @bind-Value="row.Name" Label="@($"Wohnung {i + 1}")" Hint="z. B. „Wohnung 1, EG links“" />
-                                <AppNumberField T="decimal?" @bind-Value="row.Area" Label="@($"Wohnfläche {i + 1}")" Suffix="m²" />
-                            </div>
+                            <MudTable T="SetupUnitRow" Items="unitRows" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" Dense="true" id="unit-rows">
+                                <HeaderContent>
+                                    <MudTh>Bezeichnung</MudTh><MudTh Style="text-align:right">Wohnfläche</MudTh><MudTh></MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="row">
+                                    <MudTd DataLabel="Bezeichnung">@row.Name</MudTd>
+                                    <MudTd DataLabel="Wohnfläche" Style="text-align:right">@Format.Area(row.Area)</MudTd>
+                                    <MudTd Style="text-align:right; white-space:nowrap">
+                                        <MudButton Variant="Variant.Text" OnClick="() => EditUnitAsync(row)" aria-label="@($"{row.Name} bearbeiten")">Bearbeiten</MudButton>
+                                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => unitRows.Remove(row)" aria-label="@($"{row.Name} entfernen")">Entfernen</MudButton>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
                         }
-                        <MudButton Variant="Variant.Text" OnClick="@(() => unitRows.Add(new()))">Weitere Wohnung</MudButton>
+                        <MudButton Variant="Variant.Outlined" OnClick="AddUnitAsync">Wohnung hinzufügen</MudButton>
                     }
                     break;
 
@@ -226,7 +235,27 @@
     private int step;
     private readonly LandlordProfileInput profileInput = new();
     private readonly PropertyInput propertyInput = new();
-    private readonly List<UnitRow> unitRows = [new()];
+    private readonly List<SetupUnitRow> unitRows = [];
+
+    private async Task AddUnitAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<SetupUnitDialog>("Wohnung hinzufügen", new DialogParameters(), UnitDialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: SetupUnitRow added })
+        {
+            unitRows.Add(added);
+        }
+    }
+
+    private async Task EditUnitAsync(SetupUnitRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<SetupUnitDialog>("Wohnung bearbeiten", new DialogParameters { ["Existing"] = row }, UnitDialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: SetupUnitRow changed })
+        {
+            unitRows[unitRows.IndexOf(row)] = changed;
+        }
+    }
+
+    private static readonly DialogOptions UnitDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
 
     private enum Profile
     {
@@ -473,13 +502,6 @@
     {
         await State.SkipSetupAsync();
         Navigation.NavigateTo("/verwaltung");
-    }
-
-    private sealed class UnitRow
-    {
-        public string Name { get; set; } = "";
-
-        public decimal? Area { get; set; }
     }
 
     private sealed class OptionChoice(AppOption option)

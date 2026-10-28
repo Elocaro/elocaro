@@ -165,6 +165,22 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         await page.Locator(".mud-popover-open .mud-list-item", entry).First.ClickAsync();
     }
 
+    /// <summary>Adds a flat in the setup wizard: opens the dialog, fills it, confirms.</summary>
+    protected static async Task AddSetupUnitAsync(IPage page, string name, string? area = null)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Wohnung hinzufügen" }).ClickAsync();
+        var dialog = page.Locator(".mud-dialog");
+        await dialog.GetByLabel("Bezeichnung", new() { Exact = true }).FillAsync(name);
+        if (area is not null)
+        {
+            await dialog.GetByLabel("Wohnfläche").FillAsync(area);
+        }
+
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Hinzufügen" }).ClickAsync();
+        await Assertions.Expect(dialog).ToHaveCountAsync(0);
+    }
+
     /// <summary>Saves a screenshot on failure (path in the error message) for diagnosis.</summary>
     protected static async Task WithScreenshotOnFailureAsync(IPage page, Func<Task> steps)
     {

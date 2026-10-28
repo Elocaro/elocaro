@@ -9,6 +9,7 @@
 @inject IDocumentReadiness Readiness
 @inject TemplatePreviews Previews
 @inject Notifier Notify
+@inject IDialogService Dialogs
 @inject Confirmations Confirm
 
 <InteractiveShell>
@@ -66,17 +67,26 @@ else
                 else if (input.Basis == ComparativeBasis.Comparables)
                 {
                     <p class="small">Mindestens drei vergleichbare Wohnungen. Maßgeblich für die zulässige Miete ist der niedrigste Preis je m².</p>
-                    @for (var i = 0; i < input.Comparables.Count; i++)
+                    @if (input.Comparables.Count > 0)
                     {
-                        var flat = input.Comparables[i];
-                        <div class="form-grid">
-                            <AppTextField @bind-Value="flat.Address" Label="@($"Wohnung {i + 1}: Anschrift")" />
-                            <AppNumberField T="decimal?" @bind-Value="flat.Area" Label="Fläche" Suffix="m²" />
-                            <AppNumberField T="decimal?" @bind-Value="flat.Rent" Label="Nettokaltmiete" Suffix="€" />
-                        </div>
+                        <MudTable T="ComparableFlatInput" Items="input.Comparables" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" Dense="true" id="comparables">
+                            <HeaderContent>
+                                <MudTh>Anschrift</MudTh><MudTh Style="text-align:right">Fläche</MudTh><MudTh Style="text-align:right">Nettokaltmiete</MudTh><MudTh Style="text-align:right">je m²</MudTh><MudTh></MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="flat">
+                                <MudTd DataLabel="Anschrift">@flat.Address</MudTd>
+                                <MudTd DataLabel="Fläche" Style="text-align:right">@Format.Area(flat.Area)</MudTd>
+                                <MudTd DataLabel="Nettokaltmiete" Style="text-align:right">@Format.Money(flat.Rent)</MudTd>
+                                <MudTd DataLabel="je m²" Style="text-align:right">@(flat is { Area: > 0, Rent: not null } ? Format.Money(flat.Rent / flat.Area) : "–")</MudTd>
+                                <MudTd Style="text-align:right; white-space:nowrap">
+                                    <MudButton Variant="Variant.Text" OnClick="() => EditComparableAsync(flat)" aria-label="@($"{flat.Address} bearbeiten")">Bearbeiten</MudButton>
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => input.Comparables.Remove(flat)" aria-label="@($"{flat.Address} entfernen")">Entfernen</MudButton>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
                     }
 
-                    <MudButton Variant="Variant.Text" OnClick="() => input.Comparables.Add(new())">Weitere Wohnung</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="AddComparableAsync">Vergleichswohnung hinzufügen</MudButton>
                 }
                 else
                 {
@@ -228,6 +238,26 @@ else
 </InteractiveShell>
 
 @code {
+    private async Task AddComparableAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<ComparableFlatDialog>("Vergleichswohnung", new DialogParameters(), ListDialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: ComparableFlatInput added })
+        {
+            input.Comparables.Add(added);
+        }
+    }
+
+    private async Task EditComparableAsync(ComparableFlatInput flat)
+    {
+        var dialog = await Dialogs.ShowAsync<ComparableFlatDialog>("Vergleichswohnung bearbeiten", new DialogParameters { ["Existing"] = flat }, ListDialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: ComparableFlatInput changed })
+        {
+            input.Comparables[input.Comparables.IndexOf(flat)] = changed;
+        }
+    }
+
+    private static readonly DialogOptions ListDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
+
     private enum Step
     {
         Declare,

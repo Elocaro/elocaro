@@ -56,8 +56,7 @@ public class FirstHourBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
             await page.GetByLabel("Straße und Hausnummer", new() { Exact = true }).FillAsync("Lindenweg 3");
             await page.GetByLabel("PLZ", new() { Exact = true }).FillAsync("50667");
             await page.GetByLabel("Ort", new() { Exact = true }).FillAsync("Köln");
-            await page.GetByLabel("Wohnung 1", new() { Exact = true }).FillAsync("Wohnung 1");
-            await page.GetByLabel("Wohnfläche 1").FillAsync("55");
+            await AddSetupUnitAsync(page, "Wohnung 1", "55");
             await next.ClickAsync();
             await page.GetByLabel("Buchhaltung ab (Monat)").FillAsync($"{firstOfLastMonth:MM}.{firstOfLastMonth:yyyy}");
             await page.GetByLabel("Buchhaltung ab (Monat)").PressAsync("Tab");

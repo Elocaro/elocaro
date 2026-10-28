@@ -66,10 +66,8 @@ public class SetupWizardBrowserTests(PostgresFixture postgres) : BrowserTestBasi
         await page.GetByLabel("Straße und Hausnummer", new() { Exact = true }).FillAsync("Lindenweg 3");
         await page.GetByLabel("PLZ", new() { Exact = true }).FillAsync("50667");
         await page.GetByLabel("Ort", new() { Exact = true }).FillAsync("Köln");
-        await page.GetByLabel("Wohnung 1", new() { Exact = true }).FillAsync("Wohnung 1");
-        await page.GetByLabel("Wohnfläche 1").FillAsync("55,5");
-        await page.GetByRole(AriaRole.Button, new() { Name = "Weitere Wohnung" }).ClickAsync();
-        await page.GetByLabel("Wohnung 2", new() { Exact = true }).FillAsync("Wohnung 2");
+        await AddSetupUnitAsync(page, "Wohnung 1", "55,5");
+        await AddSetupUnitAsync(page, "Wohnung 2");
         await next.ClickAsync();
 
         await Assertions.Expect(heading).ToHaveTextAsync("Buchhaltung und Vorlagen");
