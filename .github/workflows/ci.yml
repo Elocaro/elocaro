@@ -90,7 +90,7 @@ jobs:
           rm deploy/.env
 
       - name: App-Image bauen
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           load: true
@@ -99,7 +99,7 @@ jobs:
           cache-to: type=gha,scope=elocaro,mode=max
 
       - name: Backup-Image bauen
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: deploy/backup
           load: true
