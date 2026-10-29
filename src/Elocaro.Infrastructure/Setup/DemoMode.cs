@@ -1,4 +1,5 @@
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Admin;
 using Elocaro.Application.Setup;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -37,6 +38,9 @@ public static partial class DemoMode
         }
 
         var loaded = await scope.ServiceProvider.GetRequiredService<IDemoData>().LoadAsync(cancellationToken);
+
+        // Show everything and skip the setup wizard: visitors want to see the whole range of functions.
+        await scope.ServiceProvider.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>(), true, Enum.GetValues<AppOption>(), cancellationToken);
         DemoIsReady(logger, loaded.Succeeded);
     }
 
