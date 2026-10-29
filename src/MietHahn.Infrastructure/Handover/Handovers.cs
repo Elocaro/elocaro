@@ -12,11 +12,12 @@ using MietHahn.Domain.Metering;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Common;
+using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Templates;
 
-namespace MietHahn.Infrastructure.Leases;
+namespace MietHahn.Infrastructure.Handover;
 
 internal sealed class Handovers(MietHahnDbContext db, IPdfGenerator pdf, IFileStore files, IDocumentLibrary documents, IMeterService meters, TimeProvider clock) : IHandovers
 {

@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- Modulzyklus Leases↔Metering aufgelöst: Das Übergabeprotokoll (`Handovers`) verbindet Vertrag und Zähler und liegt deshalb in einem eigenen Modul `Handover`, das niemand sonst benutzt; die Baseline sinkt auf 3 Zyklen.
 - Modulzyklus OperatingCosts↔Receipts aufgelöst: Die Kostengruppe gehört zur Kostenart (`Domain.Receipts`); die Baseline sinkt auf 4 Zyklen.
 - Modulzyklen Bank↔Receipts und Bank↔Tax aufgelöst: CSV-Zerlegung und Zeichensatz-Erkennung der Importe liegen als Bausteine in Common; die Baseline sinkt auf 5 Zyklen.
 - Modulzyklen Finance↔Properties und Leases↔Receipts aufgelöst: Die Beschreibung eines Mietverhältnisses (`LeaseDescriptions`) und der String-Helfer `Truncate` liegen jetzt bei Leases bzw. Common; die Baseline sinkt auf 7 Zyklen.

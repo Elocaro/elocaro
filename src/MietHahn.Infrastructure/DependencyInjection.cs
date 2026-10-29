@@ -42,6 +42,7 @@ using MietHahn.Infrastructure.Deadlines;
 using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Files;
 using MietHahn.Infrastructure.Finance;
+using MietHahn.Infrastructure.Handover;
 using MietHahn.Infrastructure.Heating;
 using MietHahn.Infrastructure.Identity;
 using MietHahn.Infrastructure.Jobs;
