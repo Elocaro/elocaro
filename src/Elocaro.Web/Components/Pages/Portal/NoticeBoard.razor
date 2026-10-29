@@ -1,0 +1,68 @@
+@page "/portal/aushaenge"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Notices
+@inject INotices Notices
+@inject AuthenticationStateProvider Authentication
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="Aushänge" Subtitle="Mitteilungen der Verwaltung für Ihr Haus." Back="/portal" BackText="Übersicht" />
+    <ErrorList Errors="errors" />
+
+    @if (items is not null)
+    {
+        @if (items.Count == 0)
+        {
+            <EmptyState Text="Zurzeit gibt es keine Aushänge." />
+        }
+
+        @foreach (var item in items)
+        {
+            <section class="panel">
+                <header>
+                    <h2>@item.Title</h2>
+                    <span class="small">@item.Property · ab @Format.Date(item.ValidFrom)@(item.ValidUntil is { } until ? $" bis {Format.Date(until)}" : "")</span>
+                </header>
+                <p class="ticket-description">@item.Body</p>
+                @foreach (var fileId in item.FileIds)
+                {
+                    <p><a href="/dateien/@fileId" target="_blank" rel="noopener">Anhang öffnen</a></p>
+                }
+                @if (item.Read)
+                {
+                    <p class="small">Als gelesen bestätigt.</p>
+                }
+                else
+                {
+                    <MudButton Variant="@(item.RequiresAcknowledgement ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="() => AcknowledgeAsync(item.Id)">
+                        @(item.RequiresAcknowledgement ? "Gelesen bestätigen (erforderlich)" : "Gelesen")
+                    </MudButton>
+                }
+            </section>
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<TenantNotice>? items;
+    private IReadOnlyList<string>? errors;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+
+    private async Task LoadAsync() => items = await Notices.CurrentAsync(await UserAsync());
+
+    private async Task AcknowledgeAsync(Guid id)
+    {
+        var result = await Notices.AcknowledgeAsync(await UserAsync(), id);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Danke, das Lesen ist vermerkt.");
+        }
+
+        await LoadAsync();
+    }
+}

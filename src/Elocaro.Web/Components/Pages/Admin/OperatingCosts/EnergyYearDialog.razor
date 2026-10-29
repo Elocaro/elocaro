@@ -1,0 +1,72 @@
+@using Elocaro.Application.Heating
+@using MudBlazor
+
+@* Dialog "calorific value of a year" (gas): adds a row or changes one in the list of the heating settings; saved with the page. *@
+<EditForm Model="data" OnValidSubmit="Save" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <div class="form-grid">
+                <AppYearSelect T="int" @bind-Value="data.Year" Label="Jahr" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="data.CalorificValue" Label="Brennwert" Suffix="kWh/m³" Hint="z. B. 11,2" />
+                <AppNumberField T="decimal?" @bind-Value="data.StateNumber" Label="Zustandszahl" Hint="z. B. 0,9" />
+                <AppNumberField T="decimal?" @bind-Value="data.CarbonPricePerTon" Label="CO₂-Preis" Suffix="€/t" Hint="Nur für die berechnete CO₂-Menge, z. B. 55" />
+                <AppTextField @bind-Value="data.Note" Label="Quelle / Notiz" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(Existing is null ? "Jahr hinzufügen" : "Übernehmen")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly FuelEnergyYearInput data = new();
+    private IReadOnlyList<string>? errors;
+
+    /// <summary>Set: change this row instead of adding a new one.</summary>
+    [Parameter]
+    public FuelEnergyYearInput? Existing { get; set; }
+
+    /// <summary>The year proposed for a new row.</summary>
+    [Parameter]
+    public int DefaultYear { get; set; }
+
+    /// <summary>All rows of the list; a year may appear only once.</summary>
+    [Parameter]
+    public IReadOnlyList<FuelEnergyYearInput> Rows { get; set; } = [];
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } row)
+        {
+            data.Year = row.Year;
+            data.CalorificValue = row.CalorificValue;
+            data.StateNumber = row.StateNumber;
+            data.CarbonPricePerTon = row.CarbonPricePerTon;
+            data.Note = row.Note;
+        }
+        else
+        {
+            data.Year = DefaultYear;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save()
+    {
+        if (Rows.Any(row => row.Year == data.Year && !ReferenceEquals(row, Existing)))
+        {
+            errors = [$"Für {data.Year} gibt es schon einen Eintrag. Ändern Sie diesen oder wählen Sie ein anderes Jahr."];
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(data));
+    }
+}

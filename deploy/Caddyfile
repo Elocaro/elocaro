@@ -2,7 +2,7 @@
 	email {$ACME_EMAIL}
 }
 
-{$MIETHAHN_DOMAIN} {
+{$ELOCARO_DOMAIN} {
 	encode zstd gzip
 
 	header {

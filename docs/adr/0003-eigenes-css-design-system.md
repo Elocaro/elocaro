@@ -5,7 +5,7 @@
 
 ## Kontext
 
-Blazor-Vorlagen bringen Bootstrap mit, Alternativen wären Pico.css oder Tailwind. MietHahn hat wenige, wiederkehrende Bausteine: Formulare, Tabellen, Statusanzeigen, Karten, Navigation. Es wird statisch gerendert (kein JS-Framework) und soll mobil gut bedienbar sein.
+Blazor-Vorlagen bringen Bootstrap mit, Alternativen wären Pico.css oder Tailwind. Elocaro hat wenige, wiederkehrende Bausteine: Formulare, Tabellen, Statusanzeigen, Karten, Navigation. Es wird statisch gerendert (kein JS-Framework) und soll mobil gut bedienbar sein.
 
 ## Entscheidung
 

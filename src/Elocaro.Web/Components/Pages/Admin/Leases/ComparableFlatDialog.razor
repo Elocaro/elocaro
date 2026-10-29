@@ -1,0 +1,44 @@
+@using Elocaro.Application.Leases
+@using MudBlazor
+
+@* Dialog "comparable flat" of a rent increase based on comparables: adds a row or changes one; saved with the page. *@
+<EditForm Model="data" OnValidSubmit="Save" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Address" Label="Anschrift" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="data.Area" Label="Fläche" Suffix="m²" />
+                <AppNumberField T="decimal?" @bind-Value="data.Rent" Label="Nettokaltmiete" Suffix="€" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(Existing is null ? "Hinzufügen" : "Übernehmen")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly ComparableFlatInput data = new();
+
+    [Parameter]
+    public ComparableFlatInput? Existing { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } flat)
+        {
+            data.Address = flat.Address;
+            data.Area = flat.Area;
+            data.Rent = flat.Rent;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save() => MudDialog.Close(DialogResult.Ok(data));
+}

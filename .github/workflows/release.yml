@@ -17,9 +17,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: miethahn
+          - name: elocaro
             context: .
-          - name: miethahn-backup
+          - name: elocaro-backup
             context: deploy/backup
     steps:
       - uses: actions/checkout@v4

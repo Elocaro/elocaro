@@ -1,0 +1,102 @@
+@page "/portal/zaehler"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Portal
+@using Elocaro.Web.Components.Controls
+@inject ITenantPortal Portal
+@inject AuthenticationStateProvider Authentication
+
+<InteractiveShell>
+    <PageHeader Title="Zählerstände melden" Subtitle="Lesen Sie Ihre Zähler ab und tragen Sie den Stand ein. Ihr Vermieter prüft und übernimmt ihn." />
+
+    <ErrorList Errors="errors" />
+    @if (saved)
+    {
+        <Notice Level="NoticeLevel.Success">Danke, der Stand wurde gemeldet. Ihr Vermieter prüft ihn und übernimmt ihn.</Notice>
+    }
+
+    @if (meters is null)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else if (meters.Count == 0)
+    {
+        <EmptyState Text="Für Ihre Wohnung sind keine Zähler hinterlegt, die Sie ablesen müssten." />
+    }
+    else
+    {
+        @foreach (var meter in meters)
+        {
+            var entry = Entry(meter.Id);
+            <section id="@($"meter-{meter.Id}")">
+                <h2>@meter.Name<span class="small"> · @meter.RentalUnit@(string.IsNullOrWhiteSpace(meter.Number) ? "" : $" · Nr. {meter.Number}")</span></h2>
+                <p class="small">
+                    @if (meter.LastValue is { } last)
+                    {
+                        <text>Letzter Stand: @last.ToString("#,##0.###", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) am @Format.Date(meter.LastDate!.Value).</text>
+                    }
+                    else
+                    {
+                        <text>Es liegt noch kein Stand vor.</text>
+                    }
+                </p>
+                @if (meter.Pending is { } pending)
+                {
+                    <Notice Level="NoticeLevel.Info">Gemeldet: @pending.Value.ToString("#,##0.###", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) am @Format.Date(pending.Date). Der Vermieter hat ihn noch nicht geprüft. Eine neue Meldung ersetzt diese.</Notice>
+                }
+                <EditForm Model="entry" OnValidSubmit="() => SubmitAsync(meter.Id)" novalidate>
+                    <DataAnnotationsValidator />
+                    <div class="form-grid">
+                        <AppDateField @bind-Value="entry.Date" Label="Ablesedatum" Required="true" />
+                        <AppNumberField T="decimal?" @bind-Value="entry.Value" Label="Zählerstand" Required="true" />
+                        <AppTextField @bind-Value="entry.Note" Label="Anmerkung" />
+                    </div>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy">Stand melden</MudButton>
+                </EditForm>
+            </section>
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private readonly Dictionary<Guid, PortalReadingInput> entries = [];
+    private IReadOnlyList<PortalMeter>? meters;
+    private IReadOnlyList<string>? errors;
+    private bool saved;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private PortalReadingInput Entry(Guid id)
+    {
+        if (!entries.TryGetValue(id, out var entry))
+        {
+            entries[id] = entry = new PortalReadingInput { Date = DateOnly.FromDateTime(DateTime.Today) };
+        }
+
+        return entry;
+    }
+
+    private async Task LoadAsync() => meters = await Portal.MetersAsync((await Authentication.GetAuthenticationStateAsync()).User);
+
+    private async Task SubmitAsync(Guid id)
+    {
+        busy = true;
+        saved = false;
+        try
+        {
+            var result = await Portal.ReportReadingAsync((await Authentication.GetAuthenticationStateAsync()).User, id, Entry(id));
+            errors = result.Succeeded ? null : result.Errors;
+            if (result.Succeeded)
+            {
+                saved = true;
+                entries.Remove(id);
+                await LoadAsync();
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

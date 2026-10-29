@@ -1,0 +1,47 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/abrechnungen"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Statements
+@inject IStatements Statements
+
+<InteractiveShell>
+    <PageHeader Title="Abrechnungen" Subtitle="Alle abgeschlossenen Nebenkostenabrechnungen dieses Objekts, je Abrechnungsjahr." Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung")">Neue Abrechnung</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (statements is null)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else if (statements.Count == 0)
+    {
+        <EmptyState Text="Es ist noch keine Abrechnung freigegeben. „Neue Abrechnung“ führt Schritt für Schritt durch die Erstellung." />
+    }
+    else
+    {
+        <MudTable T="StatementSummary" Items="statements" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" id="statements">
+            <HeaderContent>
+                <MudTh>Zeitraum</MudTh><MudTh>Fassung</MudTh><MudTh>Freigegeben</MudTh><MudTh Style="text-align:right">Gesamtkosten</MudTh><MudTh Style="text-align:right">Vermieteranteil</MudTh><MudTh>Bemerkung</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Zeitraum"><a href="/verwaltung/abrechnungen/@context.Id">@Format.Period(context.BillingPeriod)</a></MudTd>
+                <MudTd DataLabel="Fassung">@context.Revision@(context.Current ? "" : " (ersetzt)")</MudTd>
+                <MudTd DataLabel="Freigegeben">@Format.Day(context.ReleasedAt)</MudTd>
+                <MudTd DataLabel="Gesamtkosten" Style="text-align:right">@Format.Money(context.TotalCosts)</MudTd>
+                <MudTd DataLabel="Vermieteranteil" Style="text-align:right">@Format.Money(context.LandlordTotal)</MudTd>
+                <MudTd DataLabel="Bemerkung">@context.Note</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<StatementSummary>? statements;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync() => statements = await Statements.ListAsync(PropertyId);
+}

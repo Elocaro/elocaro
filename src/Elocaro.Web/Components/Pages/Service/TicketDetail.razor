@@ -1,0 +1,83 @@
+@page "/service/tickets/{Id:guid}"
+@rendermode InteractiveServer
+@using Elocaro.Application.Files
+@using Elocaro.Application.Tickets
+@using Elocaro.Web.Components.Controls
+@inject ITicketWork Work
+@inject IFileStore Files
+@inject AuthenticationStateProvider Authentication
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="Auftrag" Back="/service" BackText="Meine Aufträge" />
+    @* The thread loads through the same scoped DbContext, so it starts only after this page has finished loading. *@
+    @if (loaded)
+    {
+        <TicketThread Id="Id" />
+    }
+    <ErrorList Errors="errors" />
+    @if (view is not null)
+    {
+        <TicketWorkPanel @key="version" View="view" Add="AddWorkAsync" OnInvoice="InvoiceAsync" />
+    }
+</InteractiveShell>
+
+@code {
+    private TicketWorkView? view;
+    private IReadOnlyList<string>? errors;
+    private int version;
+    private bool loaded;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        loaded = true;
+    }
+
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+
+    private async Task LoadAsync() => view = await Work.GetAsync(await UserAsync(), Id);
+
+    private async Task<IReadOnlyList<string>?> AddWorkAsync(WorkInput input)
+    {
+        var result = await Work.AddWorkAsync(await UserAsync(), Id, input);
+        if (!result.Succeeded)
+        {
+            return result.Errors;
+        }
+
+        Notify.Success("Die Arbeit ist eingetragen.");
+        await LoadAsync();
+        version++;
+        return null;
+    }
+
+    private async Task InvoiceAsync(IReadOnlyList<FileSelection> files)
+    {
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await using var content = files[0].Open();
+            var stored = await Files.SaveAsync(content, files[0].Name);
+            var result = await Work.AddInvoiceAsync(await UserAsync(), Id, stored.Id);
+            errors = result.Succeeded ? null : result.Errors;
+            if (result.Succeeded)
+            {
+                Notify.Success("Die Rechnung ist hochgeladen.");
+                await LoadAsync();
+                version++;
+            }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+    }
+}

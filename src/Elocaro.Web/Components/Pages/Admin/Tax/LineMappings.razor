@@ -1,0 +1,81 @@
+@page "/verwaltung/finanzen/anlage-v-zeilen"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IAnlageVService Admin
+@inject TimeProvider Clock
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="Anlage V: Zeilennummern" Subtitle="@($"Steuerjahr {year}")" />
+
+    <ErrorList Errors="errors" />
+
+    <p class="small">
+        Die Zeilennummern des Vordrucks ändern sich jährlich. Die vorbelegten Werte sind Platzhalter und müssen am amtlichen Vordruck des Steuerjahres geprüft werden.
+    </p>
+
+    <div class="form-row search-bar" role="search">
+        <AppYearSelect T="int" Value="year" ValueChanged="OnYearChanged" Label="Steuerjahr" />
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Bezeichnung</th><th>Art</th><th>Zeile</th><th>Quelle</th></tr></thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>@row.Label</td>
+                        <td>@(row.Section == AnlageVSection.Income ? "Einnahme" : "Werbungskosten")</td>
+                        <td>
+                            <AppNumberField T="int?" Value="lines[row.Category]" ValueChanged="@(v => lines[row.Category] = v)" Label="@($"Zeile für {row.Label}")" Min="1" Max="200" />
+                        </td>
+                        <td>@(row.IsDefault ? "Vorbelegung" : "gepflegt")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Speichern</MudButton>
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<LineMappingRow> rows = [];
+    private Dictionary<AnlageVCategory, int?> lines = [];
+    private IReadOnlyList<string>? errors;
+    private int year;
+
+    // The query string only provides the start value (see ADR 0005).
+    [SupplyParameterFromQuery(Name = "jahr")]
+    private int? InitialYear { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        year = InitialYear ?? Elocaro.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+        await LoadAsync();
+    }
+
+    private async Task OnYearChanged(int value)
+    {
+        year = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        rows = await Admin.GetMappingAsync(year);
+        lines = rows.ToDictionary(r => r.Category, r => (int?)r.LineNumber);
+    }
+
+    private async Task SaveAsync()
+    {
+        var mapping = lines.Where(l => l.Value is not null).ToDictionary(l => l.Key, l => l.Value!.Value);
+        var result = await Admin.SaveMappingAsync(year, mapping);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Zeilennummern wurden gespeichert.");
+            await LoadAsync();
+        }
+    }
+}

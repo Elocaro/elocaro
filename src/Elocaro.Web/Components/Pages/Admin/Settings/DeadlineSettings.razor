@@ -1,0 +1,94 @@
+@page "/verwaltung/einstellungen/fristen"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Common
+@using Elocaro.Application.Deadlines
+@inject IDeadlines Admin
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Einstellungen Fristen" Subtitle="Erinnerungen per E-Mail und Kalender-Abo." />
+
+    <ErrorList Errors="errors" />
+
+    @if (data is not null)
+    {
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <section>
+                <h2>E-Mail-Erinnerungen</h2>
+                <p class="small">Die Mails gehen an alle Administratoren. Jede Frist wird nur einmal gemeldet; Fristen mit eigenem Vorlauf (z. B. Zinsbindung) gelten für sich.</p>
+                <div class="form-grid">
+                    <AppNumberField T="int" @bind-Value="data.DefaultLeadDays" Label="Vorlauf (Tage)" Hint="So viele Tage vor der Fälligkeit kommt die Erinnerung, sofern die Frist keinen eigenen Vorlauf hat." />
+                </div>
+                <AppCheckBox @bind-Value="data.SendReminders" Label="Erinnerung zum Vorlauf senden" />
+                <AppCheckBox @bind-Value="data.SendWeeklySummary" Label="Montags eine Wochenübersicht senden (Überfälliges und die nächsten 30 Tage)" />
+            </section>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    }
+
+    <section>
+        <h2>Kalender-Abo (iCal)</h2>
+        <details class="explain">
+            <summary>Kalender-Abo</summary>
+            <p class="small">Alle Fristen der nächsten 12 Monate als Abo für den eigenen Kalender. Wer den Link kennt, sieht die Fristen ohne Anmeldung: Link nicht weitergeben. Ein neuer Link macht den alten ungültig.</p>
+        </details>
+        @if (calendarUrl is { } url)
+        {
+            <p><a href="@url">@url</a></p>
+            <MudButton Variant="Variant.Outlined" OnClick="() => RenewAsync(true)">Neuen Link erzeugen</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RenewAsync(false)">Abo abschalten</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => RenewAsync(true)">Abo-Link erzeugen</MudButton>
+        }
+    </section>
+</InteractiveShell>
+
+@code {
+    private DeadlineSettingsInput? data;
+    private string? calendarUrl;
+    private IReadOnlyList<string>? errors;
+
+    protected override async Task OnInitializedAsync()
+    {
+        data = await Admin.SettingsAsync();
+        await LoadLinkAsync();
+    }
+
+    private async Task LoadLinkAsync()
+    {
+        var path = await Admin.CalendarPathAsync();
+        calendarUrl = path is null ? null : new Uri(new Uri(Navigation.BaseUri), path.TrimStart('/')).ToString();
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Admin.SaveSettingsAsync(data!);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Einstellungen wurden gespeichert.");
+        }
+    }
+
+    private async Task RenewAsync(bool enable)
+    {
+        if (!enable && !await Confirm.AskAsync("Abo abschalten", "Der Link funktioniert danach nicht mehr. Abonnierte Kalender erhalten keine Fristen mehr.", "Ja, abschalten"))
+        {
+            return;
+        }
+
+        var result = await Admin.RenewCalendarLinkAsync(enable);
+        errors = result.Succeeded ? null : result.Errors;
+        await LoadLinkAsync();
+        if (result.Succeeded)
+        {
+            Notify.Success(enable ? "Der neue Link ist aktiv." : "Das Abo ist abgeschaltet.");
+        }
+    }
+}

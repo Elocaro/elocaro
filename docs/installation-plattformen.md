@@ -1,6 +1,6 @@
 # Installation auf verschiedenen Plattformen
 
-MietHahn besteht aus einem Docker-Compose-Stack ([deploy/docker-compose.yml](../deploy/docker-compose.yml)): App, PostgreSQL, Gotenberg (PDF), Backup und Caddy (TLS). Jede Plattform, die Docker Compose ausführen kann, kann ihn betreiben. Die Wege unten nutzen dieselbe Datei und dieselbe `deploy/.env`; es gibt **keine plattformspezifischen Vorlagen**, die nicht auf allen Systemen geprüft wären.
+Elocaro besteht aus einem Docker-Compose-Stack ([deploy/docker-compose.yml](../deploy/docker-compose.yml)): App, PostgreSQL, Gotenberg (PDF), Backup und Caddy (TLS). Jede Plattform, die Docker Compose ausführen kann, kann ihn betreiben. Die Wege unten nutzen dieselbe Datei und dieselbe `deploy/.env`; es gibt **keine plattformspezifischen Vorlagen**, die nicht auf allen Systemen geprüft wären.
 
 > **Stand der Prüfung:** Geprüft ist der Weg auf einem Linux-Server mit Docker Engine und Compose-Plugin ([Betrieb](betrieb.md), `deploy/install.sh`). Die Hinweise zu den Plattformen darunter beruhen auf deren Dokumentation und sind **nicht** auf jeder Plattform ausprobiert. Wer sie nutzt, hilft mit einer Rückmeldung als Issue.
 
@@ -17,11 +17,11 @@ Debian 12 oder Ubuntu 24.04 mit Docker Engine: `git clone …`, `./deploy/instal
 
 ## Portainer (Stack)
 
-Stack aus dem Repository anlegen: *Stacks → Add stack → Repository* mit URL `https://github.com/TheR00st3r/MietHahn`, Compose-Pfad `deploy/docker-compose.yml`. Die Werte aus `deploy/.env` als Umgebungsvariablen des Stacks eintragen (Portainer: *Environment variables → Advanced mode*, Inhalt der `.env` einfügen). Caddy belegt 80/443; läuft schon ein anderer Proxy auf dem Host, `ports` des Dienstes `caddy` anpassen und den eigenen Proxy auf `app:8080` zeigen lassen.
+Stack aus dem Repository anlegen: *Stacks → Add stack → Repository* mit URL `https://github.com/elocaro/elocaro`, Compose-Pfad `deploy/docker-compose.yml`. Die Werte aus `deploy/.env` als Umgebungsvariablen des Stacks eintragen (Portainer: *Environment variables → Advanced mode*, Inhalt der `.env` einfügen). Caddy belegt 80/443; läuft schon ein anderer Proxy auf dem Host, `ports` des Dienstes `caddy` anpassen und den eigenen Proxy auf `app:8080` zeigen lassen.
 
 ## Coolify
 
-Ressource *Docker Compose* aus dem Git-Repository mit Compose-Datei `deploy/docker-compose.yml`. Coolify bringt einen eigenen Proxy mit: den Dienst `caddy` entfernen oder abschalten, die Domain in Coolify dem Dienst `app` (Port 8080) zuweisen und `Application__BaseUrl` auf `https://<domain>/` setzen (Umgebungsvariable `MIETHAHN_DOMAIN` in der `.env`).
+Ressource *Docker Compose* aus dem Git-Repository mit Compose-Datei `deploy/docker-compose.yml`. Coolify bringt einen eigenen Proxy mit: den Dienst `caddy` entfernen oder abschalten, die Domain in Coolify dem Dienst `app` (Port 8080) zuweisen und `Application__BaseUrl` auf `https://<domain>/` setzen (Umgebungsvariable `ELOCARO_DOMAIN` in der `.env`).
 
 ## Synology (Container Manager)
 
@@ -33,7 +33,7 @@ Das Plugin *Docker Compose Manager* installieren, einen Stack mit dem Inhalt von
 
 ## Proxmox
 
-MietHahn läuft in einer **VM** (oder einem LXC-Container mit aktiviertem Nesting) mit Docker; darin wie auf einem eigenen Server installieren. Die Datensicherung der Proxmox-Umgebung ersetzt nicht das Backup von MietHahn: Datenbank und Dateiablage sichert der Backup-Dienst konsistent.
+Elocaro läuft in einer **VM** (oder einem LXC-Container mit aktiviertem Nesting) mit Docker; darin wie auf einem eigenen Server installieren. Die Datensicherung der Proxmox-Umgebung ersetzt nicht das Backup von Elocaro: Datenbank und Dateiablage sichert der Backup-Dienst konsistent.
 
 ## Raspberry Pi und andere ARM-Geräte
 

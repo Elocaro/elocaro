@@ -1,0 +1,50 @@
+@page "/konto/link"
+@inject IAccountService Accounts
+
+<PageTitle>Anmeldelink anfordern – Elocaro</PageTitle>
+
+<h1>Anmelden per E-Mail</h1>
+
+@if (sent)
+{
+    <Notice Level="NoticeLevel.Success">
+        Falls ein passendes Konto existiert, haben wir Ihnen einen Anmeldelink geschickt. Er ist 15 Minuten gültig.
+    </Notice>
+}
+else
+{
+    <p>Sie erhalten einen Link, mit dem Sie sich ohne Passwort anmelden können (für Mieter, Handwerker und Hausmeister).</p>
+    <EditForm Model="Input" FormName="magic-link" OnValidSubmit="RequestAsync">
+        <DataAnnotationsValidator />
+        <div class="field">
+            <label for="email">E-Mail-Adresse</label>
+            <InputText id="email" type="email" @bind-Value="Input!.Email" autocomplete="email" />
+            <ValidationMessage For="() => Input!.Email" />
+        </div>
+        <button type="submit" class="button button-primary">Link senden</button>
+    </EditForm>
+}
+
+<div class="account-links"><a href="/konto/anmelden">Mit Passwort anmelden</a></div>
+
+@code {
+    private bool sent;
+
+    [SupplyParameterFromForm(FormName = "magic-link")]
+    private EmailInput? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task RequestAsync()
+    {
+        await Accounts.RequestMagicLinkAsync(Input!.Email.Trim());
+        sent = true; // same response for known and unknown addresses
+    }
+
+    private sealed class EmailInput
+    {
+        [Required(ErrorMessage = "Bitte die E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string Email { get; set; } = "";
+    }
+}

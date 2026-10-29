@@ -1,0 +1,83 @@
+@page "/verwaltung/vertraege/{Id:guid}/kommunikation"
+@rendermode InteractiveServer
+@using Elocaro.Application.Notices
+@inject IMessages Messages
+@inject INotices Notices
+@inject AuthenticationStateProvider Authentication
+
+<InteractiveShell>
+    <PageHeader Title="Kommunikation" Subtitle="Nachrichten und Aushänge zu diesem Mietverhältnis (Nachweis)." Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag">
+        <Actions>
+            <a class="button" href="/verwaltung/nachrichten/neu?vertrag=@Id">Nachricht schreiben</a>
+        </Actions>
+    </PageHeader>
+
+    @if (threads is not null && notices is not null)
+    {
+        <section>
+            <h2>Nachrichten</h2>
+            @if (threads.Count == 0)
+            {
+                <EmptyState Compact="true" Text="Keine Nachrichten." />
+            }
+
+            @foreach (var thread in threads)
+            {
+                <details>
+                    <summary><strong>@thread.Row.Subject</strong> <span class="small">@Format.Timestamp(thread.Row.LastMessageAt)</span></summary>
+                    <ul class="ticket-thread">
+                        @foreach (var message in thread.Messages)
+                        {
+                            <li>
+                                <span class="meta">@message.Author · @Format.Timestamp(message.At)@(message.FromTenant ? " · Mieter" : " · Verwaltung")</span>
+                                <p>@message.Text</p>
+                                @foreach (var fileId in message.FileIds)
+                                {
+                                    <p><a href="/dateien/@fileId" target="_blank" rel="noopener">Anhang öffnen</a></p>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </details>
+            }
+        </section>
+
+        <section>
+            <h2>Aushänge während der Mietzeit</h2>
+            @if (notices.Count == 0)
+            {
+                <EmptyState Compact="true" Text="Keine Aushänge." />
+            }
+            else
+            {
+                <ul class="todos">
+                    @foreach (var notice in notices)
+                    {
+                        <li class="todo">
+                            <a href="/verwaltung/aushaenge/@notice.Id">@notice.Title</a>
+                            <span class="small">
+                                @Format.Date(notice.ValidFrom)@(notice.ValidUntil is { } until ? $" bis {Format.Date(until)}" : "") ·
+                                @(notice.Readers.Count == 0 ? "kein Portalzugang" : string.Join(", ", notice.Readers.Select(r => r.ReadAt is { } at ? $"{r.Name} gelesen {Format.Timestamp(at)}" : $"{r.Name} nicht gelesen")))
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<ThreadView>? threads;
+    private IReadOnlyList<LeaseNotice>? notices;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        threads = await Messages.ForLeaseAsync(user, Id);
+        notices = await Notices.ForLeaseAsync(user, Id);
+    }
+}

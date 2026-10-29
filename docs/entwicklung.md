@@ -13,15 +13,15 @@ docker compose -f deploy/docker-compose.dev.yml up -d
 
 | Dienst | Adresse | Zweck |
 |---|---|---|
-| PostgreSQL 18 | `localhost:5432` (miethahn/miethahn) | Datenbank |
+| PostgreSQL 18 | `localhost:5432` (elocaro/elocaro) | Datenbank |
 | Mailpit | SMTP `localhost:1025`, Web http://localhost:8025 | fängt alle ausgehenden Mails ab |
 | Gotenberg 8 | http://localhost:3000 | HTML → PDF (Chromium) |
 
-Die Verbindung für die Entwicklung steht in `src/MietHahn.Web/appsettings.Development.json`. In Produktion kommt sie **nur** aus der Umgebung: `ConnectionStrings__MietHahn=...`.
+Die Verbindung für die Entwicklung steht in `src/Elocaro.Web/appsettings.Development.json`. In Produktion kommt sie **nur** aus der Umgebung: `ConnectionStrings__Elocaro=...`.
 
 Beim Start wendet die App ausstehende Migrationen automatisch an. Abschalten mit `Database__AutoMigrate=false`. Beim allerersten Start auf einer leeren DB protokolliert EF/Npgsql einmal einen fehlgeschlagenen `SELECT` auf die History-Tabelle `__ef_migrations`. Das ist erwartet.
 
-Die Dateiablage liegt in der Entwicklung unter `src/MietHahn.Web/data/files` (per `.gitignore` ausgeschlossen).
+Die Dateiablage liegt in der Entwicklung unter `src/Elocaro.Web/data/files` (per `.gitignore` ausgeschlossen).
 
 ## Sprache im Code
 
@@ -58,16 +58,16 @@ Rein deutsche Rechtsbegriffe ohne gängige Übersetzung behalten ihren Kern (z. 
 ```bash
 dotnet build                              # Warnungen gelten als Fehler
 dotnet test                               # alle Tests (Integrationstests brauchen Docker)
-dotnet test --project tests/MietHahn.Domain.Tests
+dotnet test --project tests/Elocaro.Domain.Tests
 dotnet format                             # Formatierung anwenden (CI prüft mit --verify-no-changes)
-dotnet run --project src/MietHahn.Web
+dotnet run --project src/Elocaro.Web
 dotnet tool restore                       # lokale Tools (dotnet-ef)
 ```
 
 ## Migrationen
 
 ```bash
-dotnet ef migrations add <Name> -p src/MietHahn.Infrastructure -s src/MietHahn.Infrastructure -o Persistence/Migrations
+dotnet ef migrations add <Name> -p src/Elocaro.Infrastructure -s src/Elocaro.Infrastructure -o Persistence/Migrations
 ```
 
 - Für jede Modelländerung wird eine Migration angelegt. Der Test `Model_and_migrations_are_in_sync` schlägt sonst fehl.
@@ -86,7 +86,7 @@ dotnet ef migrations add <Name> -p src/MietHahn.Infrastructure -s src/MietHahn.I
 | Namen | Tabellen und Spalten in snake_case (`EFCore.NamingConventions`) |
 | Geld | `decimal` → `numeric(18,2)`. Abweichende Präzision (Mengen, Faktoren) per `HasPrecision` je Property |
 | Datum | `DateOnly` → `date`, Zeitpunkte `DateTimeOffset` → `timestamptz` (UTC) |
-| Sortierung | Namensspalten mit `.UseCollation(MietHahnDbContext.GermanCollation)` (ICU `de-DE`) |
+| Sortierung | Namensspalten mit `.UseCollation(ElocaroDbContext.GermanCollation)` (ICU `de-DE`) |
 | Konfiguration | Je Entität eine `IEntityTypeConfiguration<T>` in `Infrastructure/Persistence/Configurations/`, sie wird automatisch gefunden |
 
 ### Zeiträume (`Period`)
@@ -130,7 +130,7 @@ Statisches SSR mit Blazor (ADR 0001) und eigenem Design-System (ADR 0003, `wwwro
 
 | Komponente | Zweck |
 |---|---|
-| `PageHeader` | `<h1>`, Seitentitel („X – MietHahn“), Zurück-Link, Aktionen |
+| `PageHeader` | `<h1>`, Seitentitel („X – Elocaro“), Zurück-Link, Aktionen |
 | `FormField` | Beschriftung + Eingabe + Hinweis + Validierungsmeldung |
 | `InputAmount` | Geldbeträge de-DE („1.234,56“, „1234.56“, „-12 €“), rundet auf Cent, Zahlentastatur |
 | `SortHeader`, `Pagination` + `TableQuery` | Sortieren/Blättern über Query-Parameter (`?sortierung=…&absteigend=true&seite=2`), unbekannte Spalten fallen auf den Standard zurück |
@@ -166,7 +166,7 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Monate mit `<i
 
 - **Sicherer Standard:** Jede Seite verlangt eine Anmeldung (Fallback-Policy). Öffentliche Seiten markiert man explizit mit `@attribute [AllowAnonymous]`; das tun z. B. alle Seiten unter `Components/Account/Login/` per `_Imports.razor`.
 - **Erster Start:** `/konto/einrichtung` legt den ersten Administrator an (nur solange kein Konto existiert). Danach ist die Zwei-Faktor-Einrichtung Pflicht.
-- **Zwei-Faktor-Pflicht** für `Admin` und `Manager`: Solange 2FA fehlt, leitet `UseTwoFactorRequirement()` jede Seite außerhalb von `/konto` auf `/konto/sicherheit/zwei-faktor` um. Grundlage ist der Claim `miethahn:2fa`, der nach dem Aktivieren per `RefreshSignInAsync` erneuert wird. Der QR-Code wird serverseitig als SVG erzeugt (QRCoder), es gibt 10 Wiederherstellungscodes.
+- **Zwei-Faktor-Pflicht** für `Admin` und `Manager`: Solange 2FA fehlt, leitet `UseTwoFactorRequirement()` jede Seite außerhalb von `/konto` auf `/konto/sicherheit/zwei-faktor` um. Grundlage ist der Claim `elocaro:2fa`, der nach dem Aktivieren per `RefreshSignInAsync` erneuert wird. Der QR-Code wird serverseitig als SVG erzeugt (QRCoder), es gibt 10 Wiederherstellungscodes.
 - **Magic Link** (`IAccountService.RequestMagicLinkAsync`): Token mit 32 Byte Zufall, in der DB nur als SHA-256-Hash, 15 Minuten gültig, einmalig verwendbar. Eingelöst wird erst per POST-Klick auf der Seite, damit Mail-Scanner den Link nicht verbrauchen. Für Admin und Verwalter gesperrt (würde 2FA umgehen).
 - **Einladungen** (`IAccountService.InviteAsync`): Admin, Verwalter und Hausmeister erhalten einen Link zum Festlegen des Passworts, Mieter und Handwerker einen Anmeldelink. Beides ist 7 Tage gültig. Die Überladung mit `invitedBy` (Name des Vermieterprofils) nennt den Vermieter in Betreff und Text der Mail, damit Mieter den Absender erkennen. `ResendInvitationAsync` sendet eine neue Einladung, solange sich das Konto nie angemeldet hat. Die Personenakte (Tab *Zugang*) zeigt den Stand: „Einladung wird versendet“, „gesendet, noch nicht angemeldet“, „nicht zugestellt“ (aus der Mail-Warteschlange) oder „angemeldet, zuletzt am …“; Einrichten und erneutes Senden fragen vorher nach.
 - **Passwörter:** mindestens 12 Zeichen, keine Zeichenklassen-Pflicht (NIST). Reset-Link 2 Stunden gültig. Nach 5 Fehlversuchen 15 Minuten Sperre. Konten mit `Locked = true` können sich nicht anmelden (wirksam spätestens nach 10 Minuten durch die Security-Stamp-Prüfung).
@@ -185,7 +185,7 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Monate mit `<i
 | `Policies.Portal` | Mieter | `Components/Pages/Portal/` |
 | `Policies.For(AccessRight.X)` | Admin oder Verwalter mit Recht X | z. B. `Admin/Users` (Benutzerverwaltung), `Admin/Operations` (System) |
 
-- **Rechte** (`AccessRight`: Stammdaten, Finanzen, Benutzerverwaltung, System) liegen als Claims `miethahn:permission` am Konto. Admins haben immer alle, Verwalter standardmäßig Stammdaten und Finanzen. Gepflegt wird unter `/verwaltung/benutzer/{id}`.
+- **Rechte** (`AccessRight`: Stammdaten, Finanzen, Benutzerverwaltung, System) liegen als Claims `elocaro:permission` am Konto. Admins haben immer alle, Verwalter standardmäßig Stammdaten und Finanzen. Gepflegt wird unter `/verwaltung/benutzer/{id}`.
 - Unterordner-`_Imports.razor` **ergänzen** die Richtlinie des Elternordners (beide müssen erfüllt sein).
 - **Wirksamkeit:** Der Security-Stamp wird bei jeder Anfrage geprüft und der Principal neu aus der DB aufgebaut. Rollen- und Rechteänderungen gelten damit ab der nächsten Anfrage, Sperren meldet sofort ab. Wer den Stamp ändert (z. B. Authenticator-Schlüssel neu erzeugen, 2FA aktivieren, Passwort ändern), muss danach `SignInManager.RefreshSignInAsync` aufrufen.
 - **Startseite** `/` leitet je Rolle nach `/verwaltung`, `/service` oder `/portal`.
@@ -211,7 +211,7 @@ await mailVersand.EinreihenAsync(new MailAuftrag(["mieter@example.de"], "test", 
 
 - Mails werden **beim Einreihen gerendert** und in `outgoing_mails` gespeichert. Das ist zugleich der Versandnachweis. Optional gibt es einen fachlichen `Reference`, z. B. `statement:<id>`.
 - Der Job `mail-outbox` stellt alle 30 s per SMTP (MailKit) zu. Bei Fehlern wird mit Backoff wiederholt (1, 2, 4 … Minuten, höchstens 6 h), nach 8 Versuchen ist die Mail „fehlgeschlagen“. Unter `/verwaltung/system/mails` sieht man den Status, kann erneut senden und eine Testnachricht verschicken.
-- Vorlagen liegen unter `src/MietHahn.Infrastructure/Mail/Templates/<name>.sbn` (Scriban, als Ressource eingebettet). Der Name besteht nur aus `a-z0-9-`. Jede Vorlage setzt `{{ capture subject }}…{{ end }}`, optional eine Textfassung per `capture text`, sonst wird sie aus dem HTML abgeleitet. Der Rahmen kommt aus `_layout.sbn`.
+- Vorlagen liegen unter `src/Elocaro.Infrastructure/Mail/Templates/<name>.sbn` (Scriban, als Ressource eingebettet). Der Name besteht nur aus `a-z0-9-`. Jede Vorlage setzt `{{ capture subject }}…{{ end }}`, optional eine Textfassung per `capture text`, sonst wird sie aus dem HTML abgeleitet. Der Rahmen kommt aus `_layout.sbn`.
 - Konfiguration: Abschnitt `Mail` (`SenderAddress`, `SenderName`, `ReplyTo`, `Smtp:Host/Port/Security/UserName/Password`). `Security` ist `StartTls` (587), `SslOnConnect` (465) oder `None` (nur lokal).
 
 ### Vorlagen (Scriban)
@@ -246,7 +246,7 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 
 ### Datensicherung & Vollexport
 
-- `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusFile`, Format siehe `deploy/backup/miethahn-backup.sh`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warning` (täglich 8:05, Mail an aktive Admins).
+- `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusFile`, Format siehe `deploy/backup/elocaro-backup.sh`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warning` (täglich 8:05, Mail an aktive Admins).
 - `IDataExport` erzeugt den Vollexport generisch aus dem relationalen EF-Modell: neue Tabellen sind automatisch enthalten. Geheimnisse mit `[NoExport]` (Klasse oder Eigenschaft) ausnehmen und die Liste in `DataExportTests.Every_table_is_exported_or_deliberately_excluded` ergänzen. `[Confidential]` (z. B. IBAN) bleibt im Export, denn es sind fachliche Daten.
 - Der ZIP-Export wird zuerst in eine temporäre Datei geschrieben: Die Eintrags-Streams von `ZipArchive` schreiben beim Schließen synchron, und Kestrel erlaubt kein synchrones Schreiben.
 
@@ -308,14 +308,14 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
   - **CSV** (`CsvParser`, `CsvProfile`): Spalten über Überschriften (Alternativen mit „|“), Vorspann wird übersprungen, Soll/Haben oder Betrag, Name je Richtung (DKB), Zerlegung per Regex (comdirect), Zeichensatz auto (UTF-8, sonst Windows-1252). Mitgeliefert: Sparkasse (CSV-CAMT), Volksbank, DKB, ING, comdirect sowie Commerzbank, Deutsche Bank und N26 (`CsvDefaults`). Die Testdateien von Commerzbank, Deutsche Bank und N26 sind nach dem dokumentierten Exportaufbau nachgebaut, nicht aus echten Exporten: Abweichungen bitte als Issue melden (anonymisierte Datei anhängen), bis dahin hilft ein eigenes Profil. Eigene Profile unter `/verwaltung/bank/csv-profile`. Passen mehrere Profile, gewinnt das mit den meisten erkannten Spalten.
   - SEPA-Kennungen im Verwendungszweck (`SepaPurpose`: EREF+, MREF+, CRED+, SVWZ+, ABWA+).
 - **Duplikate** (`TransactionFingerprint`): SHA-256 aus Konto-IBAN, Buchungsdatum, Betrag, Verwendungszweck (ohne Leerraum, Großschreibung), Gegen-IBAN und End-to-End-ID; gleiche Umsätze innerhalb einer Datei werden durchnummeriert. Eindeutiger Index (Konto, Hash) auch über gelöschte Umsätze. Die IBAN eines Kontos mit Umsätzen ist daher nicht änderbar.
-- Testdateien (anonymisiert) für alle Formate liegen unter `tests/MietHahn.Integration.Tests/Bank/TestFiles`; neue Bankformate dort mit einem Beispiel ergänzen.
+- Testdateien (anonymisiert) für alle Formate liegen unter `tests/Elocaro.Integration.Tests/Bank/TestFiles`; neue Bankformate dort mit einem Beispiel ergänzen.
 
 ### Bank: FinTS-Direktabruf
 
 Bedienung und Registrierung: [banking-fints.md](banking-fints.md). Technik:
 
-- **Konfiguration:** Abschnitt `FinTs` (`FinTsOptions`: `ProductId`, `ProductVersion`, `TanTimeoutSeconds`), in Docker optional über `FINTS_PRODUCT_ID` und `FINTS_PRODUCT_VERSION`. Die Registrierungsnummer von MietHahn ist Standardwert (`FinTsOptions.DefaultProductId`); `ProductId` überschreibt sie für Forks. libfintx kennt die Nummer nur global (`FinTsGlobals.ProductId`/`Version`); sie wird vor jedem Abruf gesetzt.
-- **Konto:** `BankAccount.FinTsUrl` (nur https), `FinTsBankCode` (8 Ziffern), `FinTsUserId` (mit DataProtection, Zweck `MietHahn.FinTs.UserId`, verschlüsselt; ver- und entschlüsselt wird in `BankService`). `SetFinTs` verlangt alle drei Werte oder keinen. Die PIN wird nie gespeichert.
+- **Konfiguration:** Abschnitt `FinTs` (`FinTsOptions`: `ProductId`, `ProductVersion`, `TanTimeoutSeconds`), in Docker optional über `FINTS_PRODUCT_ID` und `FINTS_PRODUCT_VERSION`. Die Registrierungsnummer von Elocaro ist Standardwert (`FinTsOptions.DefaultProductId`); `ProductId` überschreibt sie für Forks. libfintx kennt die Nummer nur global (`FinTsGlobals.ProductId`/`Version`); sie wird vor jedem Abruf gesetzt.
+- **Konto:** `BankAccount.FinTsUrl` (nur https), `FinTsBankCode` (8 Ziffern), `FinTsUserId` (mit DataProtection, Zweck `Elocaro.FinTs.UserId`, verschlüsselt; ver- und entschlüsselt wird in `BankService`). `SetFinTs` verlangt alle drei Werte oder keinen. Die PIN wird nie gespeichert.
 - **Ablauf** (`Infrastructure/Bank/FinTs`): `FinTsService.StartAsync` prüft Konto und PIN und startet den Dialog im Hintergrund (`FinTsSession` in `FinTsSessions`, nur im Speicher). Der Hintergrundlauf spricht nur mit der Bank und berührt die Datenbank nicht: Synchronisation → `Accounts` (Konto per IBAN wählen) → `Transactions_camt` (camt.053). Die TAN-Rückfrage von libfintx (`TANDialog`) wartet in `FinTsSession.AskAsync`, bis die Oberfläche `ProvideTan` bzw. `ConfirmApproval` ruft; Phase `TanRequired` oder, bei `IsDecoupled`, `ApprovalRequired`. Die Oberfläche (`FinTsFetch.razor`) fragt `StateAsync` jede Sekunde ab.
 - **Ergebnis:** `StateAsync` legt im Aufrufkontext (also mit dem angemeldeten Benutzer im Änderungsprotokoll) ein `BankImport` mit `BankFormat.FinTs` an. Der Inhalt ist eine JSON-Liste (`FinTsPayload`), `BankFileReader` erkennt sie; Vorschau, Duplikaterkennung und Import laufen wie bei Dateien. `FinTsMapping` übersetzt `CamtTransaction` (vorgemerkte Einträge entfallen).
 - **Sicherheit:** libfintx erhält `NullLoggerFactory`; bei Fehlern wird nur der Ausnahmetyp protokolliert; die PIN wird nach dem Dialog überschrieben; ein Fehlversuch bricht ab, Bankmeldungen 9930/9931/9942 bekommen einen Hinweis.
@@ -328,7 +328,7 @@ Bedienung und Registrierung: [banking-fints.md](banking-fints.md). Technik:
 - **Katalog:** `TemplateCatalog` (Application) beschreibt je Art die Platzhalter, die Hilfsfunktionen (`money`, `date`, `number`, `text_to_html`, `include`) und liefert die Beispieldaten (`LetterModel`). Neue Arten: Enum-Wert, Modell, `Placeholders` und `Sample` ergänzen.
 - **Bausteine:** `{{ include 'Name' }}` im Text. `ScribanRenderer.RenderText(…, snippets)` löst `include` ausschließlich gegen die übergebenen Bausteine auf (`SnippetLoader`), ein Zugriff auf Dateien oder Datenbank aus der Vorlage ist nicht möglich. `TemplateSnippets.LoadAsync` liest sie; `PdfGenerator` tut das bei `PdfRequest.TemplateText` selbst. Ein Baustein, der noch in einem anderen Text eingebunden ist, lässt sich weder löschen noch umbenennen.
 - **Standardvorlagen:** `TemplateDefaults` (eingebettete `Documents/Templates/*.sbn`): Bausteine *Grußformel* und *Bankverbindung* (nur mit IBAN im Vermieterprofil), Schreiben *Ankündigung von Arbeiten* und *Allgemeines Schreiben*. `InstallDefaultsAsync` legt nur fehlende an (nach Namen) und fasst vorhandene nie an. Die Texte sind Ausgangspunkte mit Hinweis auf die rechtliche Prüfung.
-- **Import/Export:** JSON `{format: "miethahn-template", version: 1, name, kind, description, subject, body}` (`/verwaltung/einstellungen/vorlagen/{id}/export.json`, Import auf der Listenseite, höchstens 300 KB). Beim Import wird wie beim Speichern geprüft; ein vorhandener Name bekommt „(Import)“, „(Import 2)“ …
+- **Import/Export:** JSON `{format: "elocaro-template", version: 1, name, kind, description, subject, body}` (`/verwaltung/einstellungen/vorlagen/{id}/export.json`, Import auf der Listenseite, höchstens 300 KB). Beim Import wird wie beim Speichern geprüft; ein vorhandener Name bekommt „(Import)“, „(Import 2)“ …
 - **Vorschau:** `PreviewAsync` rendert den ungespeicherten Text über `IPdfGenerator` (`PdfRequest.TemplateText`) mit Beispielanschrift. Die Seite legt das PDF kurz im Speicher ab (`TemplatePreviews`, 10 Minuten) und zeigt es über `/verwaltung/einstellungen/vorlagen/vorschau/{id}.pdf` im Rahmen.
 - **Schreiben an Mieter (Serienbrief)** `/verwaltung/dokumente/schreiben` (Recht **Stammdaten**), `ILetters`/`Letters`: Empfänger sind die laufenden Mietverträge eines Objekts. Je Mietvertrag entstehen ein PDF (Anschrift und Anrede wie bei Mahnungen über `LetterParts`, Modell `LetterModel` mit den echten Daten), ein `Document` (Kategorie Schriftverkehr, am Mietvertrag, optional im Portal freigegeben) und optional eine E-Mail (Mailvorlage `letter`, PDF im Anhang). Jedes Schreiben läuft in einer eigenen Transaktion: ein Fehler (z. B. fehlende Adresse, Vorlagenfehler) stoppt die anderen nicht und steht im Ergebnis. Mieter ohne E-Mail-Adresse bekommen das PDF trotzdem, mit Hinweis.
 - **Unveränderlichkeit:** `Document.TemplateRevisionId` verweist auf die Fassung, aus der das Dokument entstand. Erzeugte Dokumente sind gespeicherte Dateien; eine spätere Änderung oder das Löschen der Vorlage berührt sie nicht (Löschen ist logisch, die Fassungen bleiben).
@@ -664,7 +664,7 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 - **Oberfläche:** Objektseite, Reiter „Eigentümer“ (Recht Stammdaten).
 - **Anlage V je Eigentümer:** `IAnlageVService.GetForOwnerAsync` rechnet dieselbe Auswertung des Objekts und setzt jede Buchung mit dem Anteil des Eigentümers an (`PropertyOwner.YearShare`: nach Tagen gewichteter Jahresanteil, 50 % bis Juni und 100 % ab Juli = rund 75 %), je Buchung auf den Cent gerundet. Die Prüfung auf verbilligte Vermietung bleibt die des ganzen Objekts. Hinweise nennen den Anteil, die Rundung und einen Anteilswechsel im Jahr. Auf der Anlage-V-Seite gibt es die Auswahl „Auswertung für“ (Ganzes Objekt oder Eigentümer); CSV und PDF nehmen `?eigentuemer={personId}`; wer im Jahr nichts besaß, bekommt 404. Eine Feststellungserklärung der Gemeinschaft (Anlage FB) ist nicht umgesetzt.
 - **Rolle „Eigentümer“:** `Roles.Owner`, Policy `Policies.Owner`, Start `/eigentuemer`. Wie Verwaltung mit Passwort und 2FA (`Roles.RequiringTwoFactor`, kein Magic Link), weil Steuerzahlen sichtbar sind. Der Zugang kommt aus der Person (`Person.UserId`): `SetUpAccessAsync` vergibt die Rolle an Personen, die Eigentümer sind und keine Mieter. `IOwnerPortal` (`Infrastructure/Portal/OwnerPortal.cs`) leitet die Person immer aus dem Konto ab; ein fremdes Objekt oder ein Jahr ohne Eigentum liefert nichts (Seite „Keine Auswertung“, CSV 404). Seiten: `/eigentuemer` (Objekte mit Anteil) und `/eigentuemer/objekte/{id}/anlage-v?jahr=` mit CSV. Zeilen ohne Links in die Verwaltung; die Verwaltungsseiten und -exporte bleiben gesperrt.
-- **Vermieterprofil je Objekt:** Es kann mehrere `LandlordProfile`s geben (Einstellungen → Vermieter: Reiter je Profil, „+ Weiteres Profil“; das älteste ist das Standardprofil und nicht löschbar, ein von einem Objekt verwendetes ebenfalls nicht). `Property.LandlordProfileId` (leer = Standard, Auswahl „Absender auf Dokumenten“ in den Objektangaben, sobald es mehr als ein Profil gibt). `LandlordProfiles.ForPropertyAsync/ForUnitAsync` löst das Profil auf; `PdfRequest.PropertyId` sorgt dafür, dass `PdfGenerator` Briefkopf und Fußzeile des Objekts nimmt. Umgestellt sind Mietvertrag, Schreiben, Mieterhöhung, Mahnung, Abrechnungsversand, Übergabeprotokoll, Aushang-PDF und Anlage-V-PDF. Auch die Benachrichtigungs-Mails nennen das Profil des Objekts (Aushänge und Dokumente: das Objekt des ersten Aushangs bzw. des laufenden Mietverhältnisses des Empfängers; Nachrichten: Objekt des Mietverhältnisses; Tickets: Objekt des Tickets), und im Portal zeigen Kontaktblock und Notfallhinweis (Startseite, Meldung anlegen je gewähltem Mietverhältnis) die Angaben des Profils des Objekts. Mails an die Verwaltung nennen weiter „MietHahn“.
+- **Vermieterprofil je Objekt:** Es kann mehrere `LandlordProfile`s geben (Einstellungen → Vermieter: Reiter je Profil, „+ Weiteres Profil“; das älteste ist das Standardprofil und nicht löschbar, ein von einem Objekt verwendetes ebenfalls nicht). `Property.LandlordProfileId` (leer = Standard, Auswahl „Absender auf Dokumenten“ in den Objektangaben, sobald es mehr als ein Profil gibt). `LandlordProfiles.ForPropertyAsync/ForUnitAsync` löst das Profil auf; `PdfRequest.PropertyId` sorgt dafür, dass `PdfGenerator` Briefkopf und Fußzeile des Objekts nimmt. Umgestellt sind Mietvertrag, Schreiben, Mieterhöhung, Mahnung, Abrechnungsversand, Übergabeprotokoll, Aushang-PDF und Anlage-V-PDF. Auch die Benachrichtigungs-Mails nennen das Profil des Objekts (Aushänge und Dokumente: das Objekt des ersten Aushangs bzw. des laufenden Mietverhältnisses des Empfängers; Nachrichten: Objekt des Mietverhältnisses; Tickets: Objekt des Tickets), und im Portal zeigen Kontaktblock und Notfallhinweis (Startseite, Meldung anlegen je gewähltem Mietverhältnis) die Angaben des Profils des Objekts. Mails an die Verwaltung nennen weiter „Elocaro“.
 - **Tests:** Domain (`PropertyOwnerTests`), Integration (`Properties/PropertyOwnerTests`), Web (`Tax/AnlageVPageTests`, `Portal/OwnerPortalTests`: nur eigene Objekte und Anteile, Verwaltung gesperrt, andere Rollen ohne Zugang).
 
 ### Funkzähler-Import und Verbrauchsinformation (#55)
@@ -690,12 +690,12 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 
 | Projekt | Inhalt |
 |---|---|
-| `MietHahn.Domain.Tests` | Reine Unit-Tests der Fachlogik (Rechenkerne), ohne I/O |
-| `MietHahn.Integration.Tests` | Gegen echtes PostgreSQL (Testcontainers, `postgres:18-alpine`). `PostgresFixture` startet einen Container je Testlauf, **jeder Test bekommt eine eigene Datenbank**, die beim Aufräumen wieder gelöscht wird (`DropDatabaseAsync`; sonst läuft die Platte des CI-Runners voll). `InfrastructureEnvironment` liefert die komplett registrierte Infrastruktur (migrierte DB, temporäre Dateiablage, `FakeTimeProvider`). Mailtests laufen gegen einen echten SMTP-Server (`MailpitFixture`) |
-| `MietHahn.Web.Tests` | Komponenten mit bUnit (`BunitContext`). Ende-zu-Ende über HTTP mit `MietHahnWebFactory` (echte App, eigene DB je Test) und `TestBrowser`: lädt Seiten, folgt Weiterleitungen und schickt Blazor-Formulare inklusive Antiforgery-Token ab (Formular über den `FormName`). TOTP-Codes liefert `TestHelpers.Totp` |
-| `MietHahn.Web.Tests/Browser` | Echte Browser-Tests mit Playwright (Chromium) gegen die per Kestrel gestartete App: 360-px-Breite ohne horizontales Scrollen, Navigation, Formulare mit `blazor.web.js`. `Browser/FirstHourBrowserTests` spielt „die erste Stunde“ nach (Einrichtungsassistent → Mieter → Vertrag → Vertrags-PDF → Einladung → Kontoauszug → Zuordnung, am Desktop und bei 390 px) und schlägt bei jedem Fehlerhinweis (`Notice` mit Stufe Fehler) fehl; wer einen dieser Schritte umbaut, hält ihn damit nutzbar. Ohne installierten Browser werden sie übersprungen (Trait `Category=Browser`). Browser installieren: `pwsh tests/MietHahn.Web.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` |
-| `MietHahn.TestHelpers` | Gemeinsame Fixtures (PostgreSQL, Mailpit, Gotenberg) und Hilfen; selbst kein Testprojekt |
-| `MietHahn.Architecture.Tests` | Schichtregeln (NetArchTest) |
+| `Elocaro.Domain.Tests` | Reine Unit-Tests der Fachlogik (Rechenkerne), ohne I/O |
+| `Elocaro.Integration.Tests` | Gegen echtes PostgreSQL (Testcontainers, `postgres:18-alpine`). `PostgresFixture` startet einen Container je Testlauf, **jeder Test bekommt eine eigene Datenbank**, die beim Aufräumen wieder gelöscht wird (`DropDatabaseAsync`; sonst läuft die Platte des CI-Runners voll). `InfrastructureEnvironment` liefert die komplett registrierte Infrastruktur (migrierte DB, temporäre Dateiablage, `FakeTimeProvider`). Mailtests laufen gegen einen echten SMTP-Server (`MailpitFixture`) |
+| `Elocaro.Web.Tests` | Komponenten mit bUnit (`BunitContext`). Ende-zu-Ende über HTTP mit `ElocaroWebFactory` (echte App, eigene DB je Test) und `TestBrowser`: lädt Seiten, folgt Weiterleitungen und schickt Blazor-Formulare inklusive Antiforgery-Token ab (Formular über den `FormName`). TOTP-Codes liefert `TestHelpers.Totp` |
+| `Elocaro.Web.Tests/Browser` | Echte Browser-Tests mit Playwright (Chromium) gegen die per Kestrel gestartete App: 360-px-Breite ohne horizontales Scrollen, Navigation, Formulare mit `blazor.web.js`. `Browser/FirstHourBrowserTests` spielt „die erste Stunde“ nach (Einrichtungsassistent → Mieter → Vertrag → Vertrags-PDF → Einladung → Kontoauszug → Zuordnung, am Desktop und bei 390 px) und schlägt bei jedem Fehlerhinweis (`Notice` mit Stufe Fehler) fehl; wer einen dieser Schritte umbaut, hält ihn damit nutzbar. Ohne installierten Browser werden sie übersprungen (Trait `Category=Browser`). Browser installieren: `pwsh tests/Elocaro.Web.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` |
+| `Elocaro.TestHelpers` | Gemeinsame Fixtures (PostgreSQL, Mailpit, Gotenberg) und Hilfen; selbst kein Testprojekt |
+| `Elocaro.Architecture.Tests` | Schichtregeln (NetArchTest) |
 
 Laufzeit der Tests: Die rund hundert Migrationen laufen nur einmal je Testlauf in eine Vorlagen-Datenbank (`PostgresFixture.CreateMigratedDatabaseAsync`); jede Testdatenbank ist eine Kopie davon (`CREATE DATABASE … TEMPLATE`). `CreateDatabaseAsync` liefert weiterhin eine leere Datenbank (Migrations- und Persistenztests). Alle Browser-Tests teilen sich ein Chromium (`BrowserTestBasis`, je Test ein eigener Kontext). xUnit führt Tests **einer Klasse nacheinander** aus, Klassen parallel (`xunit.runner.json`, `maxParallelThreads`); lange Durchläufe gehören deshalb auf mehrere Klassen verteilt (die Seiten-Sweeps stehen als `PageSweepPart1…6` in `Browser/PageSweepTests.cs`, jeder Teil prüft ein Sechstel der Routen). Stabilität unter Last (`BrowserTestBasis`): Jeder Browser-Kontext löst nach jedem `input` sofort `change` aus, damit „Feld füllen, dann klicken“ nicht vom Verlassen des Feldes abhängt; `SelectAsync` wartet, bis die Liste geschlossen ist und das Feld den gewählten Eintrag zeigt (der Server hat die Wahl dann übernommen). Neue Tests mit Auswahlfeldern im Dialog nutzen `SelectAsync`, nie eigene Klickfolgen. Zum Finden langsamer Tests: `dotnet test --report-trx` und die `duration` je Test auswerten.
 
@@ -714,7 +714,7 @@ dotnet test -- --report-trx --results-directory testergebnisse --coverage --cove
 | Workflow | Auslöser | Inhalt |
 |---|---|---|
 | `.github/workflows/ci.yml` | Push auf den Default-Branch (`ccr-*`, vorsorglich auch `main`), Pull Requests, manuell | Speicherplatz freiräumen, Restore, `dotnet format --verify-no-changes`, Release-Build (Warnungen sind Fehler), Playwright-Chromium installieren, alle Tests inkl. Testcontainers und Browser-Tests. TRX und Cobertura als Artefakt `testergebnisse` (14 Tage). Zweiter Job baut App- und Backup-Image (Layer-Cache über `type=gha`) und führt `deploy/backup/restore-test.sh` aus |
-| `.github/workflows/release.yml` | Tag `v*.*.*` | Multi-Arch-Images (`linux/amd64`, `linux/arm64`) `ghcr.io/ther00st3r/miethahn` und `…/miethahn-backup` mit Tags `1.2.3`, `1.2`, `sha-…` und `latest` |
+| `.github/workflows/release.yml` | Tag `v*.*.*` | Multi-Arch-Images (`linux/amd64`, `linux/arm64`) `ghcr.io/elocaro/elocaro` und `…/elocaro-backup` mit Tags `1.2.3`, `1.2`, `sha-…` und `latest` |
 | `.github/dependabot.yml` | wöchentlich | NuGet (gruppiert: .NET-Plattform, Testpakete; Quartz-Major-Updates ausgeschlossen, siehe Architektur), Docker-Basisimages, Compose-Images, Actions |
 
 Vor dem Push lokal dasselbe prüfen: `dotnet format --verify-no-changes && dotnet build -c Release && dotnet test`. Workflows lassen sich mit [actionlint](https://github.com/rhysd/actionlint) prüfen. Release-Ablauf und Branch-Schutz stehen in [CONTRIBUTING.md](../CONTRIBUTING.md).
@@ -723,12 +723,12 @@ Vor dem Push lokal dasselbe prüfen: `dotnet format --verify-no-changes && dotne
 
 Ein schaltbares Fachmodul braucht drei Dinge:
 
-1. einen Wert in `AppModule` und einen Eintrag in `ModuleCatalog` (`MietHahn.Application/Admin/ModuleCatalog.cs`): Titel, Beschreibung, „Wofür?“, Inhalte, Abhängigkeiten, URL-Präfixe und Job-Namen. `ModuleCatalogTests` prüft die Vollständigkeit.
+1. einen Wert in `AppModule` und einen Eintrag in `ModuleCatalog` (`Elocaro.Application/Admin/ModuleCatalog.cs`): Titel, Beschreibung, „Wofür?“, Inhalte, Abhängigkeiten, URL-Präfixe und Job-Namen. `ModuleCatalogTests` prüft die Vollständigkeit.
 2. Seiten und Downloads über die URL-Präfixe (bzw. `EntityPages` für Unterseiten eines Objekts oder Vertrags) zuordnen. `UseModuleGate` antwortet für abgeschaltete Module mit 404, `AdminNavModel` blendet Bereiche und Tabs aus.
 3. Todo-Quellen mit `[Module(AppModule.X)]` an der Klasse kennzeichnen (das Dashboard überspringt sie bei abgeschaltetem Modul); Quartz-Jobs über ihren Schlüsselnamen in `ModuleInfo.Jobs` eintragen (`ModuleJobGate` unterdrückt sie).
 
 Kern-Seiten (Objekte, Personen, Verträge, Mieterkonto, Benutzer, Einstellungen) gehören zu keinem Modul.
-Tests, die einen Administrator auf dem Dashboard erwarten, laufen mit abgeschlossener Einrichtung (`MietHahnWebFactory.CompleteSetupAsync`).
+Tests, die einen Administrator auf dem Dashboard erwarten, laufen mit abgeschlossener Einrichtung (`ElocaroWebFactory.CompleteSetupAsync`).
 
 ## Neue Option
 

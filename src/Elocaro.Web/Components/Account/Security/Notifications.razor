@@ -1,0 +1,22 @@
+@page "/konto/benachrichtigungen"
+
+<PageTitle>Benachrichtigungen – Elocaro</PageTitle>
+
+<h1>Benachrichtigungen</h1>
+
+<p>Auf diesem Gerät können Sie sich über neue Nachrichten, Meldungen, Fristen und Dokumente benachrichtigen lassen, auch wenn Elocaro nicht geöffnet ist. Die Benachrichtigung enthält nur einen kurzen Hinweis; Inhalte sehen Sie erst nach dem Öffnen und der Anmeldung.</p>
+
+<div id="push-settings">
+    <p id="push-status" role="status">Wird geprüft …</p>
+    <button type="button" id="push-toggle" class="button button-primary" hidden>Benachrichtigungen einschalten</button>
+</div>
+
+<noscript><p>Für Benachrichtigungen wird JavaScript benötigt.</p></noscript>
+
+<Notice Level="NoticeLevel.Info">
+    Auf dem iPhone und iPad funktionieren Benachrichtigungen nur, wenn Elocaro zum Home-Bildschirm hinzugefügt ist (Teilen → „Zum Home-Bildschirm“) und von dort geöffnet wird. Die Einstellung gilt für das jeweilige Gerät; auf einem weiteren Gerät schalten Sie sie dort ein.
+</Notice>
+
+<p><a href="/konto/sicherheit">Zurück zu Konto &amp; Sicherheit</a></p>
+
+<script src="/js/push.js"></script>

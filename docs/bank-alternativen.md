@@ -5,7 +5,7 @@ Stand der Bewertung (Issue #107). Preise und Bedingungen der Anbieter ändern si
 ## Heute
 
 - **CSV/CAMT/MT940-Import** aus dem Onlinebanking: immer verfügbar, unabhängig von Registrierung und Bank.
-- **FinTS-Direktabruf** (libfintx): ohne Dritte, aber nur gegen Beispieldaten getestet; photoTAN/QR-Verfahren werden nicht angezeigt (Decoupled-Verfahren wie pushTAN, SecureGo plus, BestSign funktionieren vorgesehen). Bei PSD2 verlangt die Bank etwa alle 90 Tage wieder eine starke Authentifizierung; MietHahn zeigt dann die TAN-Abfrage.
+- **FinTS-Direktabruf** (libfintx): ohne Dritte, aber nur gegen Beispieldaten getestet; photoTAN/QR-Verfahren werden nicht angezeigt (Decoupled-Verfahren wie pushTAN, SecureGo plus, BestSign funktionieren vorgesehen). Bei PSD2 verlangt die Bank etwa alle 90 Tage wieder eine starke Authentifizierung; Elocaro zeigt dann die TAN-Abfrage.
 
 ## Aggregatoren (optionale Anbindung)
 

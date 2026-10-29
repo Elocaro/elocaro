@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# MietHahn installation: asks for the basics, writes deploy/.env and starts the stack.
+# Elocaro installation: asks for the basics, writes deploy/.env and starts the stack.
 #
 #   ./deploy/install.sh              interactive, with a real domain (Let's Encrypt)
 #   ./deploy/install.sh --lokal      try it out on this machine (https://localhost, self-signed certificate)
 #   ./deploy/install.sh --nur-env    write deploy/.env only, do not start anything
 #   ./deploy/install.sh --force      overwrite an existing deploy/.env (the old file is kept as .env.bak)
 #
-# Every question can be answered up front through the environment (MIETHAHN_DOMAIN, ACME_EMAIL, MAIL_SENDER, SMTP_HOST,
-# SMTP_PORT, SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD); with MIETHAHN_NONINTERACTIVE=1 nothing is asked.
+# Every question can be answered up front through the environment (ELOCARO_DOMAIN, ACME_EMAIL, MAIL_SENDER, SMTP_HOST,
+# SMTP_PORT, SMTP_SECURITY, SMTP_USER, SMTP_PASSWORD); with ELOCARO_NONINTERACTIVE=1 nothing is asked.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -32,7 +32,7 @@ fail() { printf 'Fehler: %s\n' "$*" >&2; exit 1; }
 ask() {
   local var=$1 question=$2 default=${3-} current=${!1-}
   if [ -n "$current" ]; then return; fi
-  if [ "${MIETHAHN_NONINTERACTIVE:-0}" = 1 ] || [ ! -t 0 ]; then
+  if [ "${ELOCARO_NONINTERACTIVE:-0}" = 1 ] || [ ! -t 0 ]; then
     printf -v "$var" '%s' "$default"
     return
   fi
@@ -62,11 +62,11 @@ if [ -f .env ] && [ "$FORCE" = 0 ]; then
   fail "deploy/.env existiert bereits. Mit --force überschreiben (Sicherung als .env.bak) oder die Datei von Hand anpassen."
 fi
 
-say "MietHahn einrichten"
+say "Elocaro einrichten"
 say ""
 
 if [ "$LOCAL" = 1 ]; then
-  MIETHAHN_DOMAIN=localhost
+  ELOCARO_DOMAIN=localhost
   ACME_EMAIL=${ACME_EMAIL:-admin@localhost.invalid}
   MAIL_SENDER=${MAIL_SENDER:-verwaltung@localhost.invalid}
   SMTP_HOST=${SMTP_HOST:-localhost}
@@ -74,10 +74,10 @@ if [ "$LOCAL" = 1 ]; then
   say "E-Mails werden nicht zugestellt, solange kein SMTP-Server eingetragen ist (deploy/.env)."
 else
   say "Die Domain muss per A/AAAA-Eintrag auf diesen Server zeigen, Port 80 und 443 müssen offen sein."
-  ask MIETHAHN_DOMAIN "Domain (z. B. vermietung.example.de)"
-  [ -n "$MIETHAHN_DOMAIN" ] || fail "Ohne Domain geht es nicht. Zum Ausprobieren: ./deploy/install.sh --lokal"
-  ask ACME_EMAIL "Kontakt-E-Mail für Let's Encrypt" "admin@$MIETHAHN_DOMAIN"
-  ask MAIL_SENDER "Absenderadresse für E-Mails an Mieter" "verwaltung@$MIETHAHN_DOMAIN"
+  ask ELOCARO_DOMAIN "Domain (z. B. vermietung.example.de)"
+  [ -n "$ELOCARO_DOMAIN" ] || fail "Ohne Domain geht es nicht. Zum Ausprobieren: ./deploy/install.sh --lokal"
+  ask ACME_EMAIL "Kontakt-E-Mail für Let's Encrypt" "admin@$ELOCARO_DOMAIN"
+  ask MAIL_SENDER "Absenderadresse für E-Mails an Mieter" "verwaltung@$ELOCARO_DOMAIN"
   ask SMTP_HOST "SMTP-Server des Mailanbieters (z. B. smtp.example.de)"
   [ -n "$SMTP_HOST" ] || fail "Ohne SMTP-Server können keine Einladungen und Abrechnungen verschickt werden."
 fi
@@ -86,13 +86,13 @@ ask MAIL_SENDER_NAME "Absendername" "Hausverwaltung"
 ask SMTP_PORT "SMTP-Port" "587"
 ask SMTP_SECURITY "Verschlüsselung (StartTls für Port 587, SslOnConnect für 465)" "StartTls"
 ask SMTP_USER "SMTP-Benutzer (leer lassen, wenn keiner nötig ist)" "${MAIL_SENDER:-}"
-if [ -z "${SMTP_PASSWORD:-}" ] && [ "${MIETHAHN_NONINTERACTIVE:-0}" != 1 ] && [ -t 0 ]; then
+if [ -z "${SMTP_PASSWORD:-}" ] && [ "${ELOCARO_NONINTERACTIVE:-0}" != 1 ] && [ -t 0 ]; then
   read -r -s -p "SMTP-Passwort (leer lassen, wenn keins nötig ist): " SMTP_PASSWORD
   echo
 fi
 SMTP_PASSWORD=${SMTP_PASSWORD:-}
 
-for pair in "Domain:$MIETHAHN_DOMAIN" "E-Mail:$ACME_EMAIL" "Absender:$MAIL_SENDER" "Absendername:${MAIL_SENDER_NAME:-}" "SMTP-Server:$SMTP_HOST" \
+for pair in "Domain:$ELOCARO_DOMAIN" "E-Mail:$ACME_EMAIL" "Absender:$MAIL_SENDER" "Absendername:${MAIL_SENDER_NAME:-}" "SMTP-Server:$SMTP_HOST" \
             "SMTP-Port:${SMTP_PORT:-}" "SMTP-Verschlüsselung:${SMTP_SECURITY:-}" "SMTP-Benutzer:${SMTP_USER:-}" "SMTP-Passwort:$SMTP_PASSWORD"; do
   check_value "${pair%%:*}" "${pair#*:}"
 done
@@ -106,7 +106,7 @@ RESTIC_PASSWORD=$(secret)
 
 cat > .env <<ENVFILE
 # Erzeugt von deploy/install.sh am $(date +%Y-%m-%d). Nicht committen.
-MIETHAHN_DOMAIN='$MIETHAHN_DOMAIN'
+ELOCARO_DOMAIN='$ELOCARO_DOMAIN'
 ACME_EMAIL='$ACME_EMAIL'
 
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
@@ -143,10 +143,10 @@ if [ "$ENV_ONLY" = 1 ]; then
 fi
 
 say ""
-say "Starte MietHahn (beim ersten Mal werden die Images geladen) ..."
+say "Starte Elocaro (beim ersten Mal werden die Images geladen) ..."
 docker compose -f docker-compose.yml --env-file .env up -d
 
-url="https://$MIETHAHN_DOMAIN"
+url="https://$ELOCARO_DOMAIN"
 insecure=""
 [ "$LOCAL" = 1 ] && insecure="-k"
 say "Warte, bis $url antwortet (höchstens 3 Minuten) ..."
@@ -159,11 +159,11 @@ done
 
 if [ "$ready" = 1 ]; then
   say ""
-  say "MietHahn läuft: $url"
+  say "Elocaro läuft: $url"
   say "Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, danach Zwei-Faktor-Anmeldung)."
 else
   say ""
-  say "MietHahn antwortet noch nicht unter $url."
+  say "Elocaro antwortet noch nicht unter $url."
   say "Bei einer echten Domain: DNS-Eintrag und offene Ports 80/443 prüfen (das Zertifikat braucht sie)."
   say "Protokolle: docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs -f"
   exit 1

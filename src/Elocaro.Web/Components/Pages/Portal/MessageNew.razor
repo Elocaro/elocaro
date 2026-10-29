@@ -1,0 +1,83 @@
+@page "/portal/nachrichten/neu"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Files
+@using Elocaro.Application.Notices
+@using Elocaro.Web.Components.Controls
+@inject IMessages Messages
+@inject IFileStore Files
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Neue Nachricht" Subtitle="Ihre Nachricht geht direkt an die Hausverwaltung." Back="/portal/nachrichten" BackText="Nachrichten" />
+    <ErrorList Errors="errors" />
+
+    @if (targets is { Count: 0 })
+    {
+        <EmptyState Text="Ihrem Konto ist kein laufendes Mietverhältnis zugeordnet. Bitte wenden Sie sich an Ihren Vermieter." />
+    }
+    else if (targets is not null)
+    {
+        <EditForm Model="input" OnValidSubmit="SubmitAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                @if (targets.Count > 1)
+                {
+                    <AppSelect T="Guid?" @bind-Value="input.LeaseId" Label="Wohnung" Items="targets.Select(t => (Guid?)t.LeaseId).ToList()" Text="@(id => targets.FirstOrDefault(t => t.LeaseId == id) is { } t ? $"{t.Unit} ({t.Property})" : "")" />
+                }
+                <AppTextField @bind-Value="input.Subject" Label="Betreff" Required="true" />
+                <AppTextField @bind-Value="input.Text" Label="Nachricht" Required="true" Lines="6" />
+            </div>
+            <div class="form-row">
+                <AppFileUpload Text="Anhang hinzufügen" Multiple="true" OnSelectedMany="files => selected = files" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy">Senden</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
+
+@code {
+    private readonly NewThread input = new();
+    private IReadOnlyList<MessageTarget>? targets;
+    private IReadOnlyList<FileSelection> selected = [];
+    private IReadOnlyList<string>? errors;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        targets = await Messages.TargetsAsync((await Authentication.GetAuthenticationStateAsync()).User);
+        input.LeaseId = targets.Count > 0 ? targets[0].LeaseId : null;
+    }
+
+    private async Task SubmitAsync()
+    {
+        busy = true;
+        try
+        {
+            var ids = new List<Guid>();
+            foreach (var file in selected)
+            {
+                await using var content = file.Open();
+                ids.Add((await Files.SaveAsync(content, file.Name)).Id);
+            }
+
+            var result = await Messages.StartAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            if (result.Succeeded)
+            {
+                Navigation.NavigateTo($"/portal/nachrichten/{result.Id}");
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

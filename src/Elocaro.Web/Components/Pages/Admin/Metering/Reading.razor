@@ -1,0 +1,201 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/ablesung"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IMeterService Admin
+@inject IPropertyService Properties
+@inject IFileStore Storage
+@inject TimeProvider Clock
+@inject Notifier Notify
+
+@* Reading round through a building (phone): one meter after the other without reloading; the camera opens for the photo. *@
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (property is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+    <PageHeader Title="Ablese-Runde" Subtitle="@($"{Format.Date(ReferenceDate)}{(TypeValue == ReadingType.InterimReading ? " · Zwischenablesung" : "")}")"
+                Back="@($"/verwaltung/objekte/{PropertyId}/zaehler")" BackText="Alle Zähler" />
+
+    <ErrorList Errors="errors" />
+
+    @if (round.Count == 0)
+    {
+        <EmptyState Text="Keine aktiven Zähler für diese Runde." />
+    }
+    else if (step >= round.Count)
+    {
+        <Notice Level="NoticeLevel.Success">Runde abgeschlossen: @round.Count(z => z.LastReading?.Date == ReferenceDate) von @round.Count Zählern erfasst.</Notice>
+        <ul class="todos">
+            @foreach (var z in round)
+            {
+                <li class="todo @(z.LastReading?.Date == ReferenceDate ? "" : "todo-soon")">
+                    <a href="/verwaltung/zaehler/@z.Id">@z.Name</a> <span class="small">@z.Assignment · @z.Number</span>
+                    <p class="small">@(z.LastReading?.Date == ReferenceDate ? $"{Format.Quantity(z.LastReading.Value, Labels.From(z.MeasurementUnit))}" : "nicht erfasst")</p>
+                </li>
+            }
+        </ul>
+        <MudButton Variant="Variant.Outlined" OnClick="() => GoTo(0)">Runde erneut durchgehen</MudButton>
+    }
+    else
+    {
+        var meter = round[step];
+        var recorded = meter.LastReading?.Date == ReferenceDate;
+
+        <p class="small" aria-live="polite">Zähler @(step + 1) von @round.Count</p>
+        <progress class="progress" max="@round.Count" value="@step">@(step + 1) von @round.Count</progress>
+
+        <div class="reading-card">
+            <h2>@meter.Name</h2>
+            <p>@Labels.From(meter.Type) · <strong>Nr. @meter.Number</strong></p>
+            <p class="small">@meter.Assignment@(meter.Location is null ? "" : " · " + meter.Location)</p>
+            @if (meter.LastReading is { } lastReading)
+            {
+                <p class="small">Letzter Stand: @Format.Quantity(lastReading.Value, Labels.From(meter.MeasurementUnit)) am @Format.Date(lastReading.Date)</p>
+            }
+        </div>
+
+        @if (recorded)
+        {
+            <Notice Level="NoticeLevel.Success">Für diesen Tag bereits erfasst.</Notice>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => GoTo(step + 1)">Weiter</MudButton>
+        }
+        else
+        {
+            @if (warnings is { Count: > 0 })
+            {
+                <Notice Level="NoticeLevel.Warning">
+                    <ul>
+                        @foreach (var w in warnings)
+                        {
+                            <li>@w</li>
+                        }
+                    </ul>
+                </Notice>
+            }
+
+            <EditForm Model="entry" OnValidSubmit="SaveAsync" novalidate>
+                <DataAnnotationsValidator />
+                <div class="input-large">
+                    <AppNumberField T="decimal?" @bind-Value="entry.Value" Label="@($"Zählerstand ({Labels.From(meter.MeasurementUnit)})")" Required="true" />
+                </div>
+                <div class="form-row">
+                    <AppFileUpload Text="@(photo is null ? "Foto vom Zähler" : "Foto ersetzen")" Accept="image/*" Capture="environment" OnSelected="OnPhotoSelected" />
+                </div>
+                <div class="form-row">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(warnings is { Count: > 0 } ? "Trotzdem speichern & weiter" : "Speichern & weiter")</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="() => GoTo(step + 1)">Überspringen</MudButton>
+                </div>
+            </EditForm>
+        }
+    }
+}
+</InteractiveShell>
+
+@code {
+    private PropertyDetails? property;
+    private IReadOnlyList<MeterRow> round = [];
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<string>? warnings;
+    private ReadingInput entry = new();
+    private FileSelection? photo;
+    private Guid? photoId;
+    private int step;
+    private bool loaded;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    // The query string only provides the start values (see ADR 0005).
+    [SupplyParameterFromQuery(Name = "schritt")]
+    private int InitialStep { get; set; }
+
+    [SupplyParameterFromQuery(Name = "einheit")]
+    private Guid? Unit { get; set; }
+
+    [SupplyParameterFromQuery(Name = "datum")]
+    private DateOnly? Date { get; set; }
+
+    [SupplyParameterFromQuery(Name = "art")]
+    private string? Kind { get; set; }
+
+    private DateOnly ReferenceDate => Date ?? Elocaro.Domain.Common.GermanTime.Today(Clock.GetUtcNow());
+
+    private ReadingType TypeValue => Enum.TryParse<ReadingType>(Kind, out var kind) && kind is ReadingType.InterimReading or ReadingType.Estimate ? kind : ReadingType.Reading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        property = await Properties.GetAsync(PropertyId);
+        if (property is not null)
+        {
+            round = await Admin.RoundAsync(PropertyId, Unit);
+            step = Math.Clamp(InitialStep, 0, round.Count);
+            NewEntry();
+        }
+
+        loaded = true;
+    }
+
+    private void NewEntry()
+    {
+        entry = new ReadingInput { Date = ReferenceDate, Kind = TypeValue };
+        photo = null;
+        photoId = null;
+        warnings = null;
+        errors = null;
+    }
+
+    private void GoTo(int target)
+    {
+        step = Math.Clamp(target, 0, round.Count);
+        NewEntry();
+    }
+
+    private void OnPhotoSelected(FileSelection selection)
+    {
+        photo = selection;
+        photoId = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (photo is { Length: > 0 } && photoId is null)
+        {
+            try
+            {
+                await using var content = photo.Open();
+                photoId = (await Storage.SaveAsync(content, photo.Name)).Id;
+            }
+            catch (FileRejectedException ex)
+            {
+                errors = [ex.Message];
+                return;
+            }
+        }
+
+        entry.Confirmed = warnings is { Count: > 0 };
+        var meter = round[step];
+        var result = await Admin.RecordReadingAsync(meter.Id, entry, photoId);
+        if (result.Succeeded)
+        {
+            Notify.Success($"{meter.Name}: gespeichert.");
+            round = await Admin.RoundAsync(PropertyId, Unit);
+            GoTo(step + 1);
+        }
+        else if (result.NeedsConfirmation)
+        {
+            warnings = result.Warnings;
+            errors = null;
+        }
+        else
+        {
+            errors = result.Errors;
+            warnings = null;
+        }
+    }
+}

@@ -1,0 +1,28 @@
+@page "/portal/tickets"
+@attribute [StreamRendering]
+@using Elocaro.Application.Tickets
+@inject ITickets Tickets
+
+<PageHeader Title="Meine Meldungen" Subtitle="Schäden und Anliegen, die Sie gemeldet haben.">
+    <Actions>
+        <a class="button button-primary" href="/portal/tickets/neu">Problem melden</a>
+    </Actions>
+</PageHeader>
+
+@if (rows is null)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else
+{
+    <TicketTable Rows="rows" BasePath="/portal/tickets" EmptyText="Sie haben noch nichts gemeldet." />
+}
+
+@code {
+    private IReadOnlyList<TicketRow>? rows;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync() => rows = await Tickets.ListAsync(HttpContext.User, openOnly: false);
+}

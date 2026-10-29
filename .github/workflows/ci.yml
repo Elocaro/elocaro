@@ -53,7 +53,7 @@ jobs:
         run: dotnet build --no-restore -c Release
 
       - name: Playwright-Browser installieren
-        run: pwsh tests/MietHahn.Web.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+        run: pwsh tests/Elocaro.Web.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
 
       # Integration tests start PostgreSQL, Mailpit and Gotenberg via Testcontainers (Docker is available on the runner).
       - name: Tests
@@ -85,7 +85,7 @@ jobs:
       - name: Installationsskript prüfen
         run: |
           bash -n deploy/install.sh
-          MIETHAHN_NONINTERACTIVE=1 MIETHAHN_DOMAIN=ci.example.de SMTP_HOST=smtp.example.de SMTP_PASSWORD='a$b"c' deploy/install.sh --nur-env
+          ELOCARO_NONINTERACTIVE=1 ELOCARO_DOMAIN=ci.example.de SMTP_HOST=smtp.example.de SMTP_PASSWORD='a$b"c' deploy/install.sh --nur-env
           docker compose -f deploy/docker-compose.yml --env-file deploy/.env config > /dev/null
           rm deploy/.env
 
@@ -94,19 +94,19 @@ jobs:
         with:
           context: .
           load: true
-          tags: miethahn:test
-          cache-from: type=gha,scope=miethahn
-          cache-to: type=gha,scope=miethahn,mode=max
+          tags: elocaro:test
+          cache-from: type=gha,scope=elocaro
+          cache-to: type=gha,scope=elocaro,mode=max
 
       - name: Backup-Image bauen
         uses: docker/build-push-action@v6
         with:
           context: deploy/backup
           load: true
-          tags: miethahn-backup:test
-          cache-from: type=gha,scope=miethahn-backup
-          cache-to: type=gha,scope=miethahn-backup,mode=max
+          tags: elocaro-backup:test
+          cache-from: type=gha,scope=elocaro-backup
+          cache-to: type=gha,scope=elocaro-backup,mode=max
 
       # Back up → delete volumes → restore into an empty database → app starts, data identical
       - name: Restore-Test
-        run: deploy/backup/restore-test.sh miethahn:test miethahn-backup:test
+        run: deploy/backup/restore-test.sh elocaro:test elocaro-backup:test

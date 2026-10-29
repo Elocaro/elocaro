@@ -1,0 +1,211 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/zaehler"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IMeterService Admin
+@inject IReadingReports Reports
+@inject IPropertyService Properties
+@inject TimeProvider Clock
+@inject Notifier Notify
+@inject IDialogService Dialogs
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (property is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+    <PageHeader Title="Zähler" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name">
+        <Actions>
+            @if (meter.Count > 0)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/ablesung")">Ablese-Runde starten</MudButton>
+                <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{PropertyId}/zaehlerimport")">Stände importieren (CSV)</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <ErrorList Errors="errors" />
+
+    @if (reports.Count > 0)
+    {
+        <section>
+            <h2>Gemeldete Stände prüfen</h2>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Zähler</th><th>Gemeldet von</th><th class="number">Gemeldeter Stand</th><th class="number">Vorher</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var r in reports)
+                        {
+                            <tr>
+                                <td><a href="/verwaltung/zaehler/@r.MeterId">@r.MeterName</a> <span class="small">@r.Assignment</span></td>
+                                <td>@r.ReportedBy<br /><span class="small">@Format.Date(r.Date)@(r.Note is null ? "" : " · " + r.Note)</span></td>
+                                <td class="number">@Format.Quantity(r.Value, Labels.From(r.Unit))</td>
+                                <td class="number">@Format.Quantity(r.PreviousValue, Labels.From(r.Unit))<br /><span class="small">@Format.Date(r.PreviousDate)</span></td>
+                                <td>
+                                    @foreach (var w in r.Warnings)
+                                    {
+                                        <StatusChip Level="StatusLevel.Warning">@w</StatusChip>
+                                    }
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="() => AcceptAsync(r)">@(r.Warnings.Count > 0 ? "Trotzdem übernehmen" : "Übernehmen")</MudButton>
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="() => RejectAsync(r)">Ablehnen</MudButton>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    @if (meter.Count == 0)
+    {
+        <EmptyState Text="Noch keine Zähler. Legen Sie Hauptzähler, Wohnungszähler und Allgemeinstrom an." />
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Zähler</th><th>Zuordnung</th><th class="number">Letzter Stand</th><th>Eichfrist</th></tr></thead>
+                <tbody>
+                    @foreach (var z in meter)
+                    {
+                        <tr>
+                            <td>
+                                <a href="/verwaltung/zaehler/@z.Id">@z.Name</a>
+                                <span class="small">@(z.Name == Labels.From(z.Type) ? "" : Labels.From(z.Type) + " · ")Nr. @z.Number@(z.MainMeterId is not null ? " · Unterzähler" : "")</span>
+                            </td>
+                            <td>@z.Assignment</td>
+                            <td class="number">@Format.Quantity(z.LastReading?.Value, Labels.From(z.MeasurementUnit))<br /><span class="small">@Format.Date(z.LastReading?.Date)</span></td>
+                            <td>
+                                @if (z.CalibrationDueDate is { } deadline)
+                                {
+                                    <StatusChip Level="@(deadline < today ? StatusLevel.Error : deadline <= today.AddDays(90) ? StatusLevel.Warning : StatusLevel.Neutral)">@Format.Date(deadline)</StatusChip>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <section>
+        <MudButton Variant="@(meter.Count == 0 ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="CreateAsync">Zähler hinzufügen</MudButton>
+    </section>
+}
+</InteractiveShell>
+
+@code {
+    private PropertyDetails? property;
+    private IReadOnlyList<MeterRow> meter = [];
+    private IReadOnlyList<ReadingReportRow> reports = [];
+    private IReadOnlyList<string>? errors;
+    private DateOnly today;
+    private MeterCreation creation = new();
+    private bool loaded;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        today = Elocaro.Domain.Common.GermanTime.Today(Clock.GetUtcNow());
+        creation = new MeterCreation { InstalledOn = today };
+        property = await Properties.GetAsync(PropertyId);
+        if (property is not null)
+        {
+            meter = await Admin.ListAsync(PropertyId);
+            reports = await Reports.OpenAsync(PropertyId);
+        }
+
+        loaded = true;
+    }
+
+    private bool derived;
+    private readonly Dictionary<Guid, int> signs = [];
+    private static readonly int[] termChoices = [0, 1, -1];
+
+    private static string TermText(int sign) => sign switch { 1 => "+ addieren", -1 => "− abziehen", _ => "– nicht verwenden –" };
+
+    private async Task CreateAsync()
+    {
+        creation = new MeterCreation { InstalledOn = today };
+        derived = false;
+        signs.Clear();
+        RenderFragment fields = @<text>
+            <MeterEditor Data="creation.Data" Units="property!.Units" MainMeter="meter" />
+            <AppCheckBox @bind-Value="derived" Label="Rechenzähler: Der Verbrauch ergibt sich aus anderen Zählern (z. B. Hauptzähler 1. und 2. OG minus Zähler 2. OG)" />
+            @if (derived)
+            {
+                <fieldset class="field">
+                    <legend>Zähler, aus denen berechnet wird</legend>
+                    @foreach (var source in meter.Where(m => !m.IsDerived && m.Type == creation.Data.Type && m.RemovedOn is null))
+                    {
+                        <AppSelect T="int" Value="signs.GetValueOrDefault(source.Id)" ValueChanged="@(v => signs[source.Id] = v)" Label="@($"{source.Name} (Nr. {source.Number})")" Items="termChoices" Text="TermText" />
+                    }
+                    <span class="field-hint">Beispiel Kaltwasser 1. OG: Zähler „1. und 2. OG“ addieren, Zähler „2. OG“ abziehen. Es gibt keine eigenen Stände; der Verbrauch wird aus den Zählerständen der gewählten Zähler berechnet.</span>
+                </fieldset>
+            }
+            else
+            {
+                <AppDateField @bind-Value="creation.InstalledOn" Label="Eingebaut am" Required="true" Hint="Bei vorhandenen Zählern: Tag der ersten Ablesung" />
+                <AppNumberField T="decimal?" @bind-Value="creation.InitialReading" Label="Stand an diesem Tag" Required="true" />
+            }
+        </text>;
+        if (await Dialogs.ShowFormAsync("Zähler hinzufügen", creation, fields, SaveCreationAsync, "Zähler anlegen"))
+        {
+            Notify.Success("Der Zähler wurde angelegt.");
+            meter = await Admin.ListAsync(PropertyId);
+        }
+    }
+
+    private Task<Result> SaveCreationAsync()
+    {
+        if (derived)
+        {
+            creation.Terms = [.. signs.Where(s => s.Value != 0).Select(s => new MeterTermInput(s.Key, s.Value < 0))];
+            creation.InstalledOn = null;
+            creation.InitialReading = null;
+        }
+        else
+        {
+            creation.Terms = [];
+            if (creation.InstalledOn is null || creation.InitialReading is null)
+            {
+                return Task.FromResult(new Result(false, ["Bitte Einbaudatum und Stand angeben."]));
+            }
+        }
+
+        return Admin.CreateAsync(PropertyId, creation);
+    }
+
+    private async Task AcceptAsync(ReadingReportRow row)
+    {
+        var result = await Reports.AcceptAsync(row.Id, confirmed: row.Warnings.Count > 0);
+        errors = result.Succeeded ? null : [.. result.Errors, .. result.Warnings];
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Stand wurde übernommen.");
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task RejectAsync(ReadingReportRow row)
+    {
+        var result = await Reports.RejectAsync(row.Id, null);
+        errors = result.Succeeded ? null : result.Errors;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        meter = await Admin.ListAsync(PropertyId);
+        reports = await Reports.OpenAsync(PropertyId);
+    }
+}

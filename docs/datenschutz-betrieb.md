@@ -1,6 +1,6 @@
 # Datenschutz und technische Maßnahmen (Entwurf)
 
-Arbeitsgrundlage für Betreiber von MietHahn: Wer mit MietHahn Mieterdaten verarbeitet, ist **Verantwortlicher** im Sinne der DSGVO und braucht ein Verzeichnis der Verarbeitungstätigkeiten (Art. 30 DSGVO, bei privaten Vermietern mit wenigen Mietern oft entbehrlich, aber hilfreich) und eine Beschreibung der technischen und organisatorischen Maßnahmen (TOM, Art. 32). Dieses Dokument beschreibt, was MietHahn dafür **technisch** bietet, abgeglichen mit dem Code (Stand der Vorlage: Oktober 2026). Es ist **keine Rechtsberatung** und noch nicht juristisch geprüft (Issue #91, #86). Wer MietHahn für andere betreibt (Hosting), ist Auftragsverarbeiter und braucht zusätzlich einen Vertrag nach Art. 28 DSGVO (siehe unten).
+Arbeitsgrundlage für Betreiber von Elocaro: Wer mit Elocaro Mieterdaten verarbeitet, ist **Verantwortlicher** im Sinne der DSGVO und braucht ein Verzeichnis der Verarbeitungstätigkeiten (Art. 30 DSGVO, bei privaten Vermietern mit wenigen Mietern oft entbehrlich, aber hilfreich) und eine Beschreibung der technischen und organisatorischen Maßnahmen (TOM, Art. 32). Dieses Dokument beschreibt, was Elocaro dafür **technisch** bietet, abgeglichen mit dem Code (Stand der Vorlage: Oktober 2026). Es ist **keine Rechtsberatung** und noch nicht juristisch geprüft (Issue #91, #86). Wer Elocaro für andere betreibt (Hosting), ist Auftragsverarbeiter und braucht zusätzlich einen Vertrag nach Art. 28 DSGVO (siehe unten).
 
 ## Verarbeitungstätigkeiten (Muster)
 
@@ -41,6 +41,6 @@ Arbeitsgrundlage für Betreiber von MietHahn: Wer mit MietHahn Mieterdaten verar
 
 **Organisatorisch (Betreiber ergänzen)**: Verpflichtung auf Vertraulichkeit, Umgang mit Zugangsdaten, Notfallplan, regelmäßige Updates (Hinweise im Dashboard bei fehlender Sicherung).
 
-## Wenn MietHahn für andere betrieben wird (Hosting)
+## Wenn Elocaro für andere betrieben wird (Hosting)
 
 Zusätzlich nötig (nicht Teil der Software): Vertrag zur Auftragsverarbeitung (Art. 28), Verzeichnis der Verarbeitungstätigkeiten als Auftragsverarbeiter, Liste der Unterauftragnehmer (Rechenzentrum, Mail-Relay, Backup-Speicher), Löschkonzept bei Vertragsende (Vollexport, siehe `docs/betrieb.md`), Datenschutzerklärung der Website. Ein Anwalt sollte die Verträge erstellen; Muster (z. B. von Branchenverbänden) können als Ausgangspunkt dienen.

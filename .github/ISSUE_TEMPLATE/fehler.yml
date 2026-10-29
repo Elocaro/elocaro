@@ -20,7 +20,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: Steht unter „Über MietHahn“ im Benutzermenü.
+      description: Steht unter „Über Elocaro“ im Benutzermenü.
   - type: dropdown
     id: geraet
     attributes:

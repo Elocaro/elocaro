@@ -1,6 +1,6 @@
 # Marktanalyse: Software für private Vermieter (Stand Oktober 2026)
 
-Ziel: Verstehen, was bestehende Lösungen gut und schlecht machen, und daraus den Funktionsumfang von MietHahn ableiten.
+Ziel: Verstehen, was bestehende Lösungen gut und schlecht machen, und daraus den Funktionsumfang von Elocaro ableiten.
 
 ## Betrachtete Lösungen
 
@@ -25,10 +25,10 @@ Ziel: Verstehen, was bestehende Lösungen gut und schlecht machen, und daraus de
 
 ## Was schlecht läuft (vermeiden)
 
-1. **Lock-in & Datenhoheit:** Daten beim SaaS-Anbieter, Export schwach. → MietHahn ist self-hosted, alle Daten exportierbar.
+1. **Lock-in & Datenhoheit:** Daten beim SaaS-Anbieter, Export schwach. → Elocaro ist self-hosted, alle Daten exportierbar.
 2. **Paywalls / Zusatzmodule:** Kernfunktionen (Heizkosten, Portal) kosten extra. → Alles inklusive.
 3. **Überladene UIs:** Funktionen schwer zu finden. → Aufgabenorientierte Oberfläche („Was ist zu tun?“-Dashboard).
-4. **Lücken bei der Heizkostenabrechnung:** Eigenabrechnung nach HeizkostenV inkl. CO₂-Kostenaufteilung ist selten gut gelöst, meist wird ein Messdienst vorausgesetzt. → MietHahn rechnet selbst.
+4. **Lücken bei der Heizkostenabrechnung:** Eigenabrechnung nach HeizkostenV inkl. CO₂-Kostenaufteilung ist selten gut gelöst, meist wird ein Messdienst vorausgesetzt. → Elocaro rechnet selbst.
 5. **Kein Sonderfall WG mit Einzelzimmerverträgen:** Zimmer als Untereinheiten fehlen in den meisten Tools.
 6. **Formfehler in Abrechnungen** (Fristen, Ausweis der Gesamtkosten und Schlüssel, §35a). → Plausibilitätsprüfungen vor dem Versand.
 

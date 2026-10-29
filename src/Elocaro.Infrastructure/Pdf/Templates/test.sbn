@@ -1,0 +1,12 @@
+<p>Sehr geehrte Damen und Herren,</p>
+<p>dies ist ein Testdokument von Elocaro. Es prüft Briefkopf, Anschriftfeld und Fußzeile.</p>
+<table>
+  <thead><tr><th>Position</th><th class="number">Betrag</th></tr></thead>
+  <tbody>
+  {{~ for p in items ~}}
+    <tr><td>{{ p.name }}</td><td class="number">{{ money p.amount }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+  <tfoot><tr><td>Summe</td><td class="number">{{ money total }}</td></tr></tfoot>
+</table>
+<p>Mit freundlichen Grüßen</p>

@@ -1,0 +1,142 @@
+@inherits DataComponent
+@using MudBlazor
+@using Elocaro.Domain.Common
+@using Elocaro.Application.Documents
+@inject IPropertyOwners Owners
+@inject Notifier Notify
+@inject IDialogService Dialogs
+@inject Confirmations Confirm
+@inject TimeProvider Clock
+
+<section>
+    <h2>Eigentümer und Anteile</h2>
+    <details class="explain">
+        <summary>Miteigentum</summary>
+        <p class="small">Ohne Eintrag gehört das Objekt allein dem Vermieter. Bei Miteigentum nach Bruchteilen tragen Sie jeden Eigentümer mit seinem Anteil ein; die Anteile sollen zusammen 100 % ergeben.</p>
+    </details>
+    <ErrorList Errors="errors" />
+
+    @if (ownership is not null)
+    {
+        @foreach (var hint in ownership.Hints)
+        {
+            <Notice Level="NoticeLevel.Warning">@hint</Notice>
+        }
+
+        @if (ownership.Owners.Count == 0)
+        {
+            <EmptyState Text="Noch keine Eigentümer erfasst." />
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Eigentümer</th><th class="number">Anteil</th><th>Gültig</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var owner in ownership.Owners)
+                        {
+                            <tr>
+                                <td><a href="/verwaltung/personen/@owner.PersonId">@owner.Name</a>@if (owner.Current) {<StatusChip Level="StatusLevel.Success">aktuell</StatusChip>}</td>
+                                <td class="number">@owner.SharePercent.ToString("0.##") %</td>
+                                <td>@(owner.ValidFrom is { } from ? $"ab {Format.Date(from)}" : "seit jeher")@(owner.ValidTo is { } to ? $" bis {Format.Date(to)}" : "")</td>
+                                <td>
+                                    <MudButton Variant="Variant.Text" OnClick="() => EditAsync(owner)" aria-label="@($"Eintrag von {owner.Name} bearbeiten")">Bearbeiten</MudButton>
+                                    @if (owner.ValidTo is null)
+                                    {
+                                        <MudButton Variant="Variant.Text" OnClick="() => EndAsync(owner)" aria-label="@($"Eigentum von {owner.Name} beenden")">Beenden</MudButton>
+                                    }
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAsync(owner)" aria-label="@($"Eintrag von {owner.Name} entfernen")">Entfernen</MudButton>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+
+    @if (people is not null)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddAsync">Eigentümer hinzufügen</MudButton>
+    }
+</section>
+
+@code {
+    private PropertyOwnership? ownership;
+    private IReadOnlyList<(Guid Id, string Name)>? people;
+    private IReadOnlyList<string>? errors;
+    private readonly OwnerInput input = new();
+    private Guid? editing;
+
+    private async Task EditAsync(OwnerRow owner)
+    {
+        Fill(owner.Id, owner.PersonId, owner.SharePercent, owner.ValidFrom, owner.ValidTo);
+        await ShowAsync();
+    }
+
+    private void Fill(Guid? id, Guid? personId, decimal? share, DateOnly? from, DateOnly? to)
+    {
+        editing = id;
+        input.PersonId = personId;
+        input.SharePercent = share;
+        input.ValidFrom = from;
+        input.ValidTo = to;
+    }
+
+    [Parameter, EditorRequired]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        people = (await GetAsync<IDocumentLibrary, ReferenceOptions>(d => d.ReferenceOptionsAsync())).People.OrderBy(p => p.Name, StringComparer.CurrentCulture).Select(p => (p.Id, p.Name)).ToList();
+        await LoadAsync();
+    }
+
+    // Own scope per load: several sections of the page load at the same time (see DataComponent).
+    private async Task LoadAsync() => ownership = await GetAsync<IPropertyOwners, PropertyOwnership>(o => o.GetAsync(PropertyId));
+
+    private async Task AddAsync()
+    {
+        Fill(null, null, null, null, null);
+        await ShowAsync();
+    }
+
+    private async Task ShowAsync()
+    {
+        RenderFragment fields = @<text>
+            <OptionSelect @bind-Value="input.PersonId" Label="Person" Options="people" />
+            <AppNumberField T="decimal?" @bind-Value="input.SharePercent" Label="Anteil" Suffix="%" Required="true" />
+            <AppDateField @bind-Value="input.ValidFrom" Label="Gültig ab" Hint="leer = seit jeher" />
+            <AppDateField @bind-Value="input.ValidTo" Label="Gültig bis" Hint="leer = bis auf Weiteres" />
+        </text>;
+        var id = editing;
+        if (await Dialogs.ShowFormAsync(id is null ? "Eigentümer hinzufügen" : "Eigentümer bearbeiten", input, fields,
+                () => id is { } existing ? Owners.UpdateAsync(PropertyId, existing, input) : Owners.AddAsync(PropertyId, input), id is null ? "Eigentümer hinzufügen" : "Änderung speichern"))
+        {
+            errors = null;
+            Notify.Success(id is null ? "Der Eigentümer wurde eingetragen." : "Der Eintrag wurde gespeichert.");
+            await LoadAsync();
+        }
+    }
+
+    private async Task EndAsync(OwnerRow owner)
+    {
+        var today = GermanTime.Today(Clock.GetUtcNow());
+        if (await Confirm.AskAsync("Eigentum beenden", $"Soll das Eigentum von {owner.Name} heute ({Format.Date(today)}) enden?", "Ja, beenden"))
+        {
+            var result = await Owners.EndAsync(PropertyId, owner.Id, today);
+            errors = result.Succeeded ? null : result.Errors;
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveAsync(OwnerRow owner)
+    {
+        if (await Confirm.AskAsync("Eintrag entfernen", $"Soll der Eintrag von {owner.Name} entfernt werden? Zum Beenden eines Eigentums bitte „Beenden“ wählen.", "Ja, entfernen"))
+        {
+            var result = await Owners.RemoveAsync(PropertyId, owner.Id);
+            errors = result.Succeeded ? null : result.Errors;
+            await LoadAsync();
+        }
+    }
+}

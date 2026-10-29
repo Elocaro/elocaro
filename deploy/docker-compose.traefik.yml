@@ -1,10 +1,10 @@
-# MietHahn hinter einem vorhandenen Traefik statt Caddy
+# Elocaro hinter einem vorhandenen Traefik statt Caddy
 #   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.traefik.yml --env-file deploy/.env up -d
 #
 # Voraussetzung: Traefik läuft schon, hat einen HTTPS-Entrypoint und einen ACME-Resolver und liegt in einem
 # externen Docker-Netz. Die Namen kommen aus deploy/.env (Vorgaben unten); die Weiterleitung von HTTP auf HTTPS
 # gehört in die Traefik-Konfiguration.
-name: miethahn
+name: elocaro
 
 services:
   # Caddy wird nicht gestartet (das Profil ist nie aktiv); TLS übernimmt Traefik.
@@ -16,18 +16,18 @@ services:
     labels:
       traefik.enable: "true"
       traefik.docker.network: ${TRAEFIK_NETWORK:-traefik}
-      traefik.http.routers.miethahn.rule: Host(`${MIETHAHN_DOMAIN}`)
-      traefik.http.routers.miethahn.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
-      traefik.http.routers.miethahn.tls.certresolver: ${TRAEFIK_CERTRESOLVER:-letsencrypt}
-      traefik.http.routers.miethahn.middlewares: miethahn-headers,miethahn-limit,miethahn-compress
-      traefik.http.services.miethahn.loadbalancer.server.port: "8080"
-      traefik.http.services.miethahn.loadbalancer.healthcheck.path: /health/live
-      traefik.http.services.miethahn.loadbalancer.healthcheck.interval: 30s
+      traefik.http.routers.elocaro.rule: Host(`${ELOCARO_DOMAIN}`)
+      traefik.http.routers.elocaro.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.elocaro.tls.certresolver: ${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      traefik.http.routers.elocaro.middlewares: elocaro-headers,elocaro-limit,elocaro-compress
+      traefik.http.services.elocaro.loadbalancer.server.port: "8080"
+      traefik.http.services.elocaro.loadbalancer.healthcheck.path: /health/live
+      traefik.http.services.elocaro.loadbalancer.healthcheck.interval: 30s
       # wie im Caddyfile: HSTS, Uploads bis 30 MB, Kompression
-      traefik.http.middlewares.miethahn-headers.headers.stsSeconds: "31536000"
-      traefik.http.middlewares.miethahn-headers.headers.stsIncludeSubdomains: "true"
-      traefik.http.middlewares.miethahn-limit.buffering.maxRequestBodyBytes: "31457280"
-      traefik.http.middlewares.miethahn-compress.compress: "true"
+      traefik.http.middlewares.elocaro-headers.headers.stsSeconds: "31536000"
+      traefik.http.middlewares.elocaro-headers.headers.stsIncludeSubdomains: "true"
+      traefik.http.middlewares.elocaro-limit.buffering.maxRequestBodyBytes: "31457280"
+      traefik.http.middlewares.elocaro-compress.compress: "true"
 
 networks:
   traefik:

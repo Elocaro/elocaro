@@ -3,7 +3,7 @@
 ## Überblick
 
 ```
-Internet ──443/80──▶ caddy (TLS, Let's Encrypt) ──▶ app:8080 (MietHahn)
+Internet ──443/80──▶ caddy (TLS, Let's Encrypt) ──▶ app:8080 (Elocaro)
                                                       ├─▶ postgres:5432 (nur intern)
                                                       └─▶ gotenberg:3000 (nur intern)
 backup (nachts) ──▶ postgres + Volume dateien ──▶ restic-Repository (S3/SFTP/…)
@@ -11,10 +11,10 @@ backup (nachts) ──▶ postgres + Volume dateien ──▶ restic-Repository 
 
 | Dienst | Image | Daten |
 |---|---|---|
-| `app` | `ghcr.io/ther00st3r/miethahn` (chiseled, Non-Root, ohne Shell) | Volume `files` → `/data` (Belege, Fotos, PDFs) |
+| `app` | `ghcr.io/elocaro/elocaro` (chiseled, Non-Root, ohne Shell) | Volume `files` → `/data` (Belege, Fotos, PDFs) |
 | `postgres` | `postgres:18-alpine` | Volume `postgres` (Daten inkl. Anmelde-Schlüssel) |
 | `gotenberg` | `gotenberg/gotenberg:8.38.1` | – |
-| `backup` | `ghcr.io/ther00st3r/miethahn-backup` (pg_dump + restic) | Volumes `backup-status`, `backup-cache`; Repository extern bzw. `deploy/backup-repo` |
+| `backup` | `ghcr.io/elocaro/elocaro-backup` (pg_dump + restic) | Volumes `backup-status`, `backup-cache`; Repository extern bzw. `deploy/backup-repo` |
 | `caddy` | `caddy:2.10-alpine` | Volumes `caddy-data`, `caddy-config` (Zertifikate) |
 
 PostgreSQL und Gotenberg liegen im Netz `intern` ohne Internetzugang. Die App ist zusätzlich im Netz `extern` (ausgehend für SMTP, später FinTS und KI-API). Von außen erreichbar ist nur Caddy.
@@ -31,23 +31,23 @@ PostgreSQL und Gotenberg liegen im Netz `intern` ohne Internetzugang. Die App is
 **Mit Installationsskript (empfohlen):**
 
 ```bash
-git clone https://github.com/TheR00st3r/MietHahn.git && cd MietHahn
+git clone https://github.com/elocaro/elocaro.git && cd Elocaro
 ./deploy/install.sh            # fragt Domain, Kontakt-Mail und SMTP ab, erzeugt die Passwörter, schreibt deploy/.env und startet alles
 ```
 
-Das Skript prüft Docker und Compose, schreibt `deploy/.env` (Rechte 600, ein vorhandenes `.env` wird nur mit `--force` ersetzt und als `.env.bak` gesichert), startet den Stack und wartet, bis die Adresse antwortet. Optionen: `--lokal` (Probelauf auf `https://localhost` mit selbst signiertem Zertifikat, ohne Domain), `--nur-env` (nur die Datei schreiben). Alle Fragen lassen sich über Umgebungsvariablen vorab beantworten (`MIETHAHN_DOMAIN`, `ACME_EMAIL`, `MAIL_SENDER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`, `SMTP_PASSWORD`; mit `MIETHAHN_NONINTERACTIVE=1` wird nichts gefragt). Das Sicherungsziel steht danach auf „lokal“; ein externes Ziel richten Sie wie unter [Backup](#backup) beschrieben ein.
+Das Skript prüft Docker und Compose, schreibt `deploy/.env` (Rechte 600, ein vorhandenes `.env` wird nur mit `--force` ersetzt und als `.env.bak` gesichert), startet den Stack und wartet, bis die Adresse antwortet. Optionen: `--lokal` (Probelauf auf `https://localhost` mit selbst signiertem Zertifikat, ohne Domain), `--nur-env` (nur die Datei schreiben). Alle Fragen lassen sich über Umgebungsvariablen vorab beantworten (`ELOCARO_DOMAIN`, `ACME_EMAIL`, `MAIL_SENDER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`, `SMTP_PASSWORD`; mit `ELOCARO_NONINTERACTIVE=1` wird nichts gefragt). Das Sicherungsziel steht danach auf „lokal“; ein externes Ziel richten Sie wie unter [Backup](#backup) beschrieben ein.
 
 **Von Hand:**
 
 ```bash
-git clone https://github.com/TheR00st3r/MietHahn.git && cd MietHahn
+git clone https://github.com/elocaro/elocaro.git && cd Elocaro
 cp deploy/.env.example deploy/.env
 nano deploy/.env        # Domain, Passwörter, SMTP eintragen (Datenbankpasswort: openssl rand -base64 32)
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env ps
 ```
 
-Nach 1–2 Minuten ist MietHahn unter `https://<domain>` erreichbar. Beim ersten Aufruf führt die Seite durch die **Ersteinrichtung** (Admin-Konto, danach Zwei-Faktor-Anmeldung).
+Nach 1–2 Minuten ist Elocaro unter `https://<domain>` erreichbar. Beim ersten Aufruf führt die Seite durch die **Ersteinrichtung** (Admin-Konto, danach Zwei-Faktor-Anmeldung).
 
 Anschließend:
 1. Unter *Einstellungen → E-Mail-Versand* eine Testnachricht senden.
@@ -60,14 +60,14 @@ Alle Einstellungen kommen über Umgebungsvariablen in `deploy/.env` (eingetragen
 
 | Variable | Bedeutung |
 |---|---|
-| `MIETHAHN_DOMAIN`, `ACME_EMAIL` | Domain und Kontakt für Let's Encrypt; daraus wird `Application__BaseUrl` (Links in Mails) |
+| `ELOCARO_DOMAIN`, `ACME_EMAIL` | Domain und Kontakt für Let's Encrypt; daraus wird `Application__BaseUrl` (Links in Mails) |
 | `POSTGRES_PASSWORD` | Datenbankpasswort |
 | `MAIL_*`, `SMTP_*` | Absender und SMTP-Zugang (`SMTP_SECURITY`: `StartTls` für Port 587, `SslOnConnect` für 465) |
-| `MIETHAHN_IMAGE` | Image-Tag, Standard `ghcr.io/ther00st3r/miethahn:latest`; empfohlen: feste Version, z. B. `ghcr.io/ther00st3r/miethahn:0.1.0` (Änderungen siehe `CHANGELOG.md`). Die laufende Version steht unter „Über MietHahn“ (`/ueber`) |
+| `ELOCARO_IMAGE` | Image-Tag, Standard `ghcr.io/elocaro/elocaro:latest`; empfohlen: feste Version, z. B. `ghcr.io/elocaro/elocaro:0.1.0` (Änderungen siehe `CHANGELOG.md`). Die laufende Version steht unter „Über Elocaro“ (`/ueber`) |
 
 ## Belegauslesung (optional, KI)
 
-Beim Erfassen eines Belegs kann MietHahn aus dem hochgeladenen PDF bzw. Foto einen **Vorschlag** auslesen (Lieferant, IBAN, Rechnungsnummer und -datum, Leistungszeitraum, Brutto/Netto/USt, Kostenart, § 35a, Brennstoffmenge und CO₂). Der Vorschlag füllt nur das Formular vor; gespeichert wird erst, wenn Sie bestätigen. Unsicher erkannte Felder sind gelb markiert, Unstimmigkeiten (Netto + USt ≠ Brutto, ungewöhnlicher Steuersatz, ungültige IBAN, unmögliche Daten) stehen als Warnung darüber.
+Beim Erfassen eines Belegs kann Elocaro aus dem hochgeladenen PDF bzw. Foto einen **Vorschlag** auslesen (Lieferant, IBAN, Rechnungsnummer und -datum, Leistungszeitraum, Brutto/Netto/USt, Kostenart, § 35a, Brennstoffmenge und CO₂). Der Vorschlag füllt nur das Formular vor; gespeichert wird erst, wenn Sie bestätigen. Unsicher erkannte Felder sind gelb markiert, Unstimmigkeiten (Netto + USt ≠ Brutto, ungewöhnlicher Steuersatz, ungültige IBAN, unmögliche Daten) stehen als Warnung darüber.
 
 **Standard ist „Keiner“: Es verlässt kein Dokument den Server.** Der Anbieter wird ausschließlich über Umgebungsvariablen (`deploy/.env`) gewählt, ein Wechsel braucht keine Codeänderung:
 
@@ -88,7 +88,7 @@ Beim Erfassen eines Belegs kann MietHahn aus dem hochgeladenen PDF bzw. Foto ein
 - **Ollama:** Läuft Ollama auf dem eigenen Server oder im eigenen Netz, bleiben die Belege dort. Ollama liest **nur Fotos (JPG, PNG), keine PDF-Dateien**; ein PDF muss als Foto/Scan hochgeladen werden. Die App erreicht Ollama über das Netz `extern`; der Compose-Dienst `app` kennt dafür `host.docker.internal`.
 - Gesendet wird nur auf Klick auf **„Vorschlag aus Beleg auslesen“**, nie im Hintergrund. Jede Übergabe steht im Zugriffsprotokoll (Audit-Log, „Beleg zur Auslesung an … übergeben“). Prompts, Dokumentinhalte und der Schlüssel erscheinen in keinem Log.
 - Die Seitenanzeige nennt den Verbrauch der letzten Auslesung (Eingabe-/Ausgabe-Tokens) als Kostenhinweis. Die Preise legt der Anbieter fest.
-- **Lernen:** Wird ein Beleg mit Kostenart gespeichert, merkt sich MietHahn „Lieferant → Kostenart“ (Tabelle `supplier_cost_type_rules`, im Änderungsprotokoll und in der Datensicherung). Beim nächsten Beleg dieses Lieferanten hat die gelernte Kostenart Vorrang vor dem Modell.
+- **Lernen:** Wird ein Beleg mit Kostenart gespeichert, merkt sich Elocaro „Lieferant → Kostenart“ (Tabelle `supplier_cost_type_rules`, im Änderungsprotokoll und in der Datensicherung). Beim nächsten Beleg dieses Lieferanten hat die gelernte Kostenart Vorrang vor dem Modell.
 
 Beispiel `deploy/.env` für Claude:
 
@@ -100,9 +100,9 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 ## Belege per E-Mail (optional)
 
-MietHahn kann ein Postfach abrufen und die Anhänge (PDF, JPG, PNG) als **offene Belege** ablegen: ohne Betrag und Kostenart, mit dem Hinweis „Betrag fehlt“ in der Belegliste und auf der Übersicht. Beträge und Kostenart ergänzen Sie danach wie bei jedem Beleg.
+Elocaro kann ein Postfach abrufen und die Anhänge (PDF, JPG, PNG) als **offene Belege** ablegen: ohne Betrag und Kostenart, mit dem Hinweis „Betrag fehlt“ in der Belegliste und auf der Übersicht. Beträge und Kostenart ergänzen Sie danach wie bei jedem Beleg.
 
-Voraussetzung ist ein eigenes Postfach mit IMAP-Zugang (z. B. `belege@ihre-domain.de`); ein Mailserver gehört nicht zu MietHahn. Einstellungen (Umgebungsvariablen mit `__` statt `:`):
+Voraussetzung ist ein eigenes Postfach mit IMAP-Zugang (z. B. `belege@ihre-domain.de`); ein Mailserver gehört nicht zu Elocaro. Einstellungen (Umgebungsvariablen mit `__` statt `:`):
 
 | Schlüssel | Bedeutung |
 |---|---|
@@ -110,18 +110,18 @@ Voraussetzung ist ein eigenes Postfach mit IMAP-Zugang (z. B. `belege@ihre-domai
 | `ReceiptInbox__Host`, `Port`, `Security` | IMAP-Server, Standard Port 993 und `SslOnConnect` |
 | `ReceiptInbox__UserName`, `Password` | Zugangsdaten des Postfachs |
 | `ReceiptInbox__AllowedSenders__0` … | erlaubte Absender: Adresse oder `@domain`; **ohne Eintrag wird nichts abgerufen** |
-| `ReceiptInbox__ProcessedFolder` | Ordner für verarbeitete Mails (Standard `MietHahn-verarbeitet`), leer = nur als gelesen markieren |
+| `ReceiptInbox__ProcessedFolder` | Ordner für verarbeitete Mails (Standard `Elocaro-verarbeitet`), leer = nur als gelesen markieren |
 | `ReceiptInbox__MaxAttachmentMegabytes` | Größenlimit je Anhang, Standard 15 |
 | `ReceiptInbox__Extract` | `true` liest die Daten mit der [Belegauslesung](#belegauslesung-optional-ki) aus (nur wenn diese bereit ist; Dokumente verlassen dann ggf. den Server) |
 
-**Sicherheit:** Die Absenderadresse einer Mail lässt sich fälschen. Verwenden Sie eine nicht öffentliche Adresse und ein Postfach, dessen Server SPF/DKIM prüft und Spam aussortiert. Mails anderer Absender, ohne verwertbaren Anhang oder mit zu großen Dateien werden nicht übernommen (nur im Log vermerkt). Eine Virenprüfung führt MietHahn nicht durch; setzen Sie sie am Mailserver ein.
+**Sicherheit:** Die Absenderadresse einer Mail lässt sich fälschen. Verwenden Sie eine nicht öffentliche Adresse und ein Postfach, dessen Server SPF/DKIM prüft und Spam aussortiert. Mails anderer Absender, ohne verwertbaren Anhang oder mit zu großen Dateien werden nicht übernommen (nur im Log vermerkt). Eine Virenprüfung führt Elocaro nicht durch; setzen Sie sie am Mailserver ein.
 
 ## Benachrichtigungen auf dem Gerät (Web-Push)
 
-MietHahn ist als Web-App installierbar. Jeder Benutzer kann unter *Konto & Sicherheit → Benachrichtigungen auf diesem Gerät* Hinweise einschalten, die auch ohne geöffnete Seite erscheinen: neue Nachrichten, Meldungen (Tickets), Fristen, neue Dokumente und Aushänge, Zählerstand-Erinnerungen, Verbrauchsinformation und die Warnung zur Datensicherung. Sie folgen den bestehenden Benachrichtigungs-Mails: wer eine solche Mail bekäme und Push eingeschaltet hat, bekommt zusätzlich den Hinweis.
+Elocaro ist als Web-App installierbar. Jeder Benutzer kann unter *Konto & Sicherheit → Benachrichtigungen auf diesem Gerät* Hinweise einschalten, die auch ohne geöffnete Seite erscheinen: neue Nachrichten, Meldungen (Tickets), Fristen, neue Dokumente und Aushänge, Zählerstand-Erinnerungen, Verbrauchsinformation und die Warnung zur Datensicherung. Sie folgen den bestehenden Benachrichtigungs-Mails: wer eine solche Mail bekäme und Push eingeschaltet hat, bekommt zusätzlich den Hinweis.
 
 - **Datenschutz:** Die Push-Nachricht selbst ist leer. Das Gerät holt Titel und Kurztext nach dem Aufwecken vom eigenen Server (nur mit gültiger Anmeldung); beim Push-Dienst des Browser-Herstellers (Google, Mozilla, Apple, Microsoft) liegt kein Inhalt. Die Hinweise sind absichtlich allgemein („Neue Nachricht“).
-- **Abschalten:** Pro Gerät am selben Schalter. Ungültig gewordene Geräte entfernt MietHahn selbst.
+- **Abschalten:** Pro Gerät am selben Schalter. Ungültig gewordene Geräte entfernt Elocaro selbst.
 - **iPhone/iPad:** Push geht nur für Web-Apps, die zum Home-Bildschirm hinzugefügt wurden (Teilen → „Zum Home-Bildschirm“).
 - **Technik:** Der Server erzeugt beim ersten Aufruf ein VAPID-Schlüsselpaar (privater Schlüssel durch Data Protection geschützt in der Datenbank; bei Verlust der Schlüsselringe müssen Geräte neu abonnieren). Die Absenderkennung ist `Push__Contact` (Standard: die Absenderadresse der Mails). Zugelassen sind nur die Push-Dienste von Google, Mozilla, Apple und Microsoft; weitere Hosts über `Push__AllowedHosts__0` …. Der Versand läuft über den Job `push-dispatch` (jede Minute). Bei Verbindungen ohne HTTPS (außer `localhost`) stehen Service Worker und Push nicht zur Verfügung.
 - **Offline:** Ein Service Worker zeigt bei fehlender Verbindung eine Hinweisseite statt der Browser-Fehlerseite; die Anwendung selbst benötigt weiterhin eine Verbindung.
@@ -133,7 +133,7 @@ curl https://<domain>/health        # {"status":"Healthy","checks":{"database":�
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs -f app
 ```
 
-- `/health/live` meldet, ob der Prozess antwortet. Darauf prüfen Docker (`HEALTHCHECK` per `dotnet MietHahn.Web.dll healthcheck`) und Caddy.
+- `/health/live` meldet, ob der Prozess antwortet. Darauf prüfen Docker (`HEALTHCHECK` per `dotnet Elocaro.Web.dll healthcheck`) und Caddy.
 - `/health` prüft Datenbank, Gotenberg und ob die Dateiablage beschreibbar ist. Antwort 503 bei Problemen, ohne Fehlerdetails.
 
 ## Update
@@ -143,13 +143,13 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env pull
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 ```
 
-Datenbank-Migrationen laufen beim Start automatisch. Vorher sichern: `docker compose … run --rm backup backup`. Für reproduzierbare Updates `MIETHAHN_IMAGE` auf eine Version setzen und gezielt hochzählen.
+Datenbank-Migrationen laufen beim Start automatisch. Vorher sichern: `docker compose … run --rm backup backup`. Für reproduzierbare Updates `ELOCARO_IMAGE` auf eine Version setzen und gezielt hochzählen.
 
 ### PostgreSQL-Major-Upgrade (z. B. 18 → 19)
 
 Das Datenformat ist zwischen Major-Versionen nicht kompatibel:
 1. Sichern: `docker compose … run --rm backup backup`.
-2. `docker compose … down`, Volume `miethahn_postgres` umbenennen oder löschen.
+2. `docker compose … down`, Volume `elocaro_postgres` umbenennen oder löschen.
 3. Image von `postgres` **und** die Basis in `deploy/backup/Dockerfile` anheben, `up -d postgres`.
 4. `docker compose … run --rm backup restore`, dann `up -d`.
 
@@ -245,7 +245,7 @@ Auf der Startseite erinnert ab Oktober des Folgejahres eine Aufgabe an die Abrec
 
 ## Backup
 
-Der Dienst `backup` (Image `ghcr.io/ther00st3r/miethahn-backup`, Quelle `deploy/backup/`) sichert jede Nacht um `BACKUP_TIME` (Standard 02:30):
+Der Dienst `backup` (Image `ghcr.io/elocaro/elocaro-backup`, Quelle `deploy/backup/`) sichert jede Nacht um `BACKUP_TIME` (Standard 02:30):
 
 1. die Datenbank per `pg_dump` (Custom-Format; passt zur PostgreSQL-Version, da das Image auf `postgres:18-alpine` basiert),
 2. das Volume `files` (Belege, Fotos, PDFs),
@@ -266,10 +266,10 @@ In `deploy/.env`:
 Beispiele für `RESTIC_REPOSITORY` (alle von restic unterstützten Ziele funktionieren):
 
 ```
-s3:https://s3.eu-central-1.amazonaws.com/mein-bucket/miethahn     # AWS, Hetzner Object Storage, Wasabi, MinIO …
-sftp:backup@nas.example.de:/volume1/miethahn                      # SFTP: Schlüssel nach deploy/backup-ssh/ (id_ed25519 + known_hosts)
-rest:https://benutzer:passwort@backup.example.de/miethahn          # restic REST-Server
-azure:miethahn-backup:/                                           # Azure Blob: Container miethahn-backup, dazu AZURE_ACCOUNT_NAME und AZURE_ACCOUNT_KEY (oder AZURE_ACCOUNT_SAS) in deploy/.env
+s3:https://s3.eu-central-1.amazonaws.com/mein-bucket/elocaro     # AWS, Hetzner Object Storage, Wasabi, MinIO …
+sftp:backup@nas.example.de:/volume1/elocaro                      # SFTP: Schlüssel nach deploy/backup-ssh/ (id_ed25519 + known_hosts)
+rest:https://benutzer:passwort@backup.example.de/elocaro          # restic REST-Server
+azure:elocaro-backup:/                                           # Azure Blob: Container elocaro-backup, dazu AZURE_ACCOUNT_NAME und AZURE_ACCOUNT_KEY (oder AZURE_ACCOUNT_SAS) in deploy/.env
 ```
 
 Das Repository wird beim ersten Lauf angelegt. Danach einmal von Hand sichern und prüfen:
@@ -317,19 +317,19 @@ Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP D
 `deploy/backup/restore-test.sh` spielt den Ablauf vollständig durch und läuft in der CI bei jedem Push: App gegen leere Datenbank starten, Testdaten anlegen, sichern, **alle Volumes löschen**, in eine leere Datenbank wiederherstellen, dann Schema, Inhalt jeder Tabelle (Prüfsumme) sowie Dateien samt Eigentümer vergleichen. Zum Schluss muss die App auf dem wiederhergestellten Stand starten. Lokal:
 
 ```bash
-docker build -t miethahn:lokal . && docker build -t miethahn-backup:lokal deploy/backup
+docker build -t elocaro:lokal . && docker build -t elocaro-backup:lokal deploy/backup
 deploy/backup/restore-test.sh
 ```
 
 ## Vollexport
 
-Unabhängig vom Backup lässt sich unter *Einstellungen → Datensicherung* (Recht *System*) ein **Vollexport** als ZIP herunterladen. Er ist ohne MietHahn lesbar:
+Unabhängig vom Backup lässt sich unter *Einstellungen → Datensicherung* (Recht *System*) ein **Vollexport** als ZIP herunterladen. Er ist ohne Elocaro lesbar:
 
 - `data/<table>.json` und `data/<table>.csv` (Semikolon, UTF-8 mit BOM, Dezimalkomma; für Excel) für jede Tabelle, gelöschte Datensätze eingeschlossen,
 - `files/<id>/<originalname>` für alle hochgeladenen Dateien,
 - `manifest.json` (Tabellen, Spalten, Datentypen, Zeilenzahlen) und `LIESMICH.txt` (Formatbeschreibung).
 
-Nicht enthalten sind Passwort-Hashes, Tokens, Anmeldelinks und Cookie-Schlüssel. Jeder Export wird im Audit-Log vermerkt. Zum Wiederherstellen von MietHahn dient das Backup, nicht der Export.
+Nicht enthalten sind Passwort-Hashes, Tokens, Anmeldelinks und Cookie-Schlüssel. Jeder Export wird im Audit-Log vermerkt. Zum Wiederherstellen von Elocaro dient das Backup, nicht der Export.
 
 ## Hosting in Azure
 
@@ -348,8 +348,8 @@ Sie hängt die App an das externe Traefik-Netz und setzt Router, Zertifikats-Res
 ## Lokal ausprobieren
 
 ```bash
-docker build -t miethahn:lokal .
-MIETHAHN_DOMAIN=localhost MIETHAHN_IMAGE=miethahn:lokal POSTGRES_PASSWORD=test ACME_EMAIL=a@b.de \
+docker build -t elocaro:lokal .
+ELOCARO_DOMAIN=localhost ELOCARO_IMAGE=elocaro:lokal POSTGRES_PASSWORD=test ACME_EMAIL=a@b.de \
   MAIL_SENDER=test@localhost SMTP_HOST=localhost \
   docker compose -f deploy/docker-compose.yml up -d --no-build
 ```
@@ -374,8 +374,8 @@ Für `localhost` stellt Caddy ein Zertifikat seiner internen CA aus (Browserwarn
 
 - Am Vertrag gibt es **Mieterhöhung**. Der Assistent zeigt die Rahmendaten (Mietmodell, Miete, letzte Erhöhung, Kappungsgrenze, frühester Zugang) und führt durch die vier Fälle: **Vergleichsmiete** (§ 558 BGB), **Indexmiete** (§ 557b), **Staffel** (Information) und **Betriebskostenpauschale** (§ 560).
 - **Vergleichsmiete:** Mietspiegel (Spanne und Einordnung der Wohnung in €/m²), drei Vergleichswohnungen oder Gutachten eingeben. „Prüfen“ zeigt, ob 15 Monate und das Jahr seit der letzten Erhöhung eingehalten sind, ob die Kappungsgrenze (20 %, bzw. 15 % wo das am Objekt eingestellt ist) und die Vergleichsmiete passen, und wie hoch die Miete höchstens sein darf. Die Kappungsgrenze stellt man am **Objekt** ein.
-- **Modernisierung (§ 559 BGB):** Maßnahme beschreiben, die auf die Wohnung entfallenden Kosten und den Instandhaltungsanteil eingeben. MietHahn rechnet 8 % der umlagefähigen Kosten im Jahr, begrenzt auf 3 € je m² in sechs Jahren (2 € bei einer Miete unter 7 €/m², frühere Erhöhungen zählen mit). Das **vereinfachte Verfahren** (§ 559c, bis 10.000 €, pauschal 30 % Abzug) ist eine Option. Wurde die Maßnahme nicht angekündigt oder wurden die angekündigten Kosten um mehr als 10 % überschritten, beginnt die Erhöhung sechs Monate später. Die Erhöhung braucht keine Zustimmung: mit dem erfassten Zugang steht die neue Miete im Vertrag. Das Schreiben enthält Berechnung, Kappungsgrenze, Fristen und den Hinweis zum Härteeinwand; **die Vorlage muss rechtlich geprüft werden**.
-- Nach „Schreiben erzeugen“ liegt das PDF bei den Dokumenten des Vertrags. Nach dem Versand das Datum des **Zugangs** erfassen; daraus berechnet MietHahn die Termine (Zustimmung bis Ende des zweiten Kalendermonats, Wirkung ab dem dritten). Stimmt der Mieter zu, **Zustimmung erfassen**: die neue Miete steht dann ab dem Wirkungstag im Vertrag. Bei Indexmiete und Pauschale wird die neue Miete schon mit dem Zugang eingetragen, weil keine Zustimmung nötig ist.
+- **Modernisierung (§ 559 BGB):** Maßnahme beschreiben, die auf die Wohnung entfallenden Kosten und den Instandhaltungsanteil eingeben. Elocaro rechnet 8 % der umlagefähigen Kosten im Jahr, begrenzt auf 3 € je m² in sechs Jahren (2 € bei einer Miete unter 7 €/m², frühere Erhöhungen zählen mit). Das **vereinfachte Verfahren** (§ 559c, bis 10.000 €, pauschal 30 % Abzug) ist eine Option. Wurde die Maßnahme nicht angekündigt oder wurden die angekündigten Kosten um mehr als 10 % überschritten, beginnt die Erhöhung sechs Monate später. Die Erhöhung braucht keine Zustimmung: mit dem erfassten Zugang steht die neue Miete im Vertrag. Das Schreiben enthält Berechnung, Kappungsgrenze, Fristen und den Hinweis zum Härteeinwand; **die Vorlage muss rechtlich geprüft werden**.
+- Nach „Schreiben erzeugen“ liegt das PDF bei den Dokumenten des Vertrags. Nach dem Versand das Datum des **Zugangs** erfassen; daraus berechnet Elocaro die Termine (Zustimmung bis Ende des zweiten Kalendermonats, Wirkung ab dem dritten). Stimmt der Mieter zu, **Zustimmung erfassen**: die neue Miete steht dann ab dem Wirkungstag im Vertrag. Bei Indexmiete und Pauschale wird die neue Miete schon mit dem Zugang eingetragen, weil keine Zustimmung nötig ist.
 - Die Texte sind **Basisvorlagen und keine Rechtsberatung** (Einstellungen → Vorlagen → Standardvorlagen). Bitte rechtlich prüfen lassen; das Gutachten oder die Mietspiegelauszüge sind dem Schreiben beizufügen.
 
 Mieter können den Entwurf auch **digital unterschreiben** (einfache elektronische Unterschrift mit persönlichem Link und Protokollseite); Voraussetzungen und Grenzen stehen in [digitale-unterschrift.md](digitale-unterschrift.md).
@@ -384,5 +384,5 @@ Mieter können den Entwurf auch **digital unterschreiben** (einfache elektronisc
 
 - Am Vertrag gibt es **Übergabe Einzug** und **Übergabe Auszug**. Das Protokoll wird mit den Räumen, Schlüsselarten und Zählern aus den Stammdaten vorbelegt und lässt sich bequem am **Smartphone** ausfüllen: Zustand je Raum und Bauteil, Mängel mit Fotos (die Kamera öffnet sich direkt), Schlüssel, Zählerstände mit Foto.
 - Beim **Auszug** startet das Protokoll mit dem Stand vom Einzug. Der Vergleich zeigt, welche Mängel neu sind, was sich verschlechtert hat und welche Schlüssel fehlen. Außerdem wird die **neue Anschrift** der Mieter erfasst (sie wird beim Unterschreiben bei den Mietern hinterlegt) und im Protokoll auf die spätere Nebenkostenabrechnung und die Kautionsabrechnung hingewiesen.
-- **Unterschreiben** kann der Mieter direkt auf dem Gerät (Finger oder Stift), oder man druckt die PDF-Vorschau aus und legt den unterschriebenen Scan ab. Das Protokoll liegt danach bei den Dokumenten des Vertrags und im Mieterportal. Die Zählerstände werden als **Zwischenablesung** zum Übergabetag erfasst und in der Nebenkostenabrechnung verwendet; läuft ein Zähler rückwärts oder weicht stark ab, fragt MietHahn vor dem Ablegen nach.
+- **Unterschreiben** kann der Mieter direkt auf dem Gerät (Finger oder Stift), oder man druckt die PDF-Vorschau aus und legt den unterschriebenen Scan ab. Das Protokoll liegt danach bei den Dokumenten des Vertrags und im Mieterportal. Die Zählerstände werden als **Zwischenablesung** zum Übergabetag erfasst und in der Nebenkostenabrechnung verwendet; läuft ein Zähler rückwärts oder weicht stark ab, fragt Elocaro vor dem Ablegen nach.
 - Ein unterschriebenes Protokoll ist unveränderlich. Fehler im Entwurf lassen sich vor dem Unterschreiben korrigieren.

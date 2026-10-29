@@ -82,7 +82,7 @@ Regeln für neue Seiten: keine eigenen `height`-/`overflow`-Konstrukte für das 
 
 Die älteren Namen `--color-*` und `--radius` sind Aliase und nur für vorhandenen Code gedacht.
 
-Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gilt die Systemeinstellung; der Benutzer kann sie im Benutzermenü auf *Hell* oder *Dunkel* festlegen. Das speichert das Cookie `miethahn.theme` (`ThemePreference`) und setzt `data-theme` am `<html>`-Element.
+Hell/Dunkel: Jede Farbrolle ist mit `light-dark(hell, dunkel)` definiert. Es gilt die Systemeinstellung; der Benutzer kann sie im Benutzermenü auf *Hell* oder *Dunkel* festlegen. Das speichert das Cookie `elocaro.theme` (`ThemePreference`) und setzt `data-theme` am `<html>`-Element.
 
 ## Bewegung
 
@@ -217,6 +217,6 @@ Deutsch, Sie-Form, sachlich. Buttons mit Verb („Speichern“, „Vertrag anleg
 
 - `UiRulesTests` (Architektur): Bausteine statt Rohmarkup.
 - `UiAuditTests`/`PageSmokeTests` (Browser): Bedienelemente auf dem Handy (Touch-Ziel mindestens 44 px, Buttons als Pill, schwebende Hauptaktion ausgenommen), Textkontrast nach WCAG AA in Hell und Dunkel auf den Hauptseiten, alle Bereiche bei 360 px ohne horizontales Scrollen (nennt die überstehenden Elemente).
-- Screenshot-Tour zum Ansehen: `MIETHAHN_TOUR=1 MIETHAHN_HEADED=1 MIETHAHN_TOUR_DIR=/pfad dotnet test --filter Screenshot_tour` (sichtbarer Browser: `MIETHAHN_HEADED=1`, braucht ein Display). Die Tour über alle Seiten mit Daten (`Screenshot_tour_of_all_pages`) lässt sich mit `MIETHAHN_TOUR_ONLY=/personen,bank/regeln` auf Pfade beschränken, die einen der Teile enthalten.
+- Screenshot-Tour zum Ansehen: `ELOCARO_TOUR=1 ELOCARO_HEADED=1 ELOCARO_TOUR_DIR=/pfad dotnet test --filter Screenshot_tour` (sichtbarer Browser: `ELOCARO_HEADED=1`, braucht ein Display). Die Tour über alle Seiten mit Daten (`Screenshot_tour_of_all_pages`) lässt sich mit `ELOCARO_TOUR_ONLY=/personen,bank/regeln` auf Pfade beschränken, die einen der Teile enthalten.
 
 Auf dem Handy wachsen Kartenlisten (`MudTable`) mit dem Inhalt und scrollen mit der Seite; der Info-Button steht in der Titelzeile, solange er die einzige Nebenaktion ist.

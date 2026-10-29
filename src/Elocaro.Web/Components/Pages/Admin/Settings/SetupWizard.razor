@@ -1,0 +1,520 @@
+@page "/verwaltung/einrichtung"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Admin
+@using Elocaro.Application.Documents
+@using Elocaro.Application.Finance
+@using Elocaro.Application.Properties
+@inject IModuleState State
+@inject IFinanceSettings Finance
+@inject ITenantAccounts Accounts
+@inject ILandlordProfileService LandlordProfiles
+@inject IPropertyService Properties
+@inject IDocumentTemplates Templates
+@inject Notifier Notify
+@inject IDialogService Dialogs
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Einrichtungsassistent" Subtitle="In wenigen Schritten ist Elocaro auf Sie zugeschnitten und das Wichtigste angelegt." />
+
+    <ErrorList Errors="errors" />
+
+    @if (choices is not null)
+    {
+        <Wizard Steps="Steps" @bind-Current="step" Model="CurrentModel" FinishText="Einrichtung abschließen" OnFinish="FinishAsync"
+                SkipText="@(State.SetupCompleted ? null : "Später")" OnSkip="LaterAsync" ProgressLabel="Fortschritt der Einrichtung">
+            @switch (Key)
+            {
+                case StepKey.Welcome:
+                    <p class="help">
+                        Elocaro kann sehr viel. Das meiste davon brauchen Sie vielleicht (noch) nicht. Wir schalten zuerst nur ein, was zu Ihnen passt,
+                        und legen dann Ihre Absenderdaten und das erste Objekt an. Alles Weitere zeigt Ihnen die Übersicht Schritt für Schritt.
+                    </p>
+                    @if (!State.SetupCompleted)
+                    {
+                        <fieldset>
+                            <legend>Wie vermieten Sie?</legend>
+                            <AppRadioGroup T="Profile" Value="profile" ValueChanged="ChooseProfile" ValueExpression="() => profile"
+                                           Items="Enum.GetValues<Profile>()" Text="ProfileText" />
+                        </fieldset>
+                        <p class="help">Das ist nur eine Vorauswahl. Im nächsten Schritt können Sie jede Funktion einzeln ein- oder ausschalten.</p>
+                    }
+                    <Notice Level="NoticeLevel.Info">
+                        Nichts davon ist endgültig. Sie können Funktionen jederzeit unter Einstellungen &rarr; Module ein- und ausschalten
+                        und diesen Assistenten dort erneut starten. Die Daten bleiben erhalten. Immer dabei sind Objekte, Personen, Verträge und das Mieterkonto.
+                    </Notice>
+                    break;
+
+                case StepKey.Features:
+                    @foreach (var choice in choices)
+                    {
+                        var info = ModuleCatalog.Info(choice.Module);
+                        <div class="module-choice">
+                            <AppCheckBox Value="choice.On" ValueChanged="on => Set(choice, on)" ValueExpression="() => choice.On" Label="@info.Title" />
+                            <p class="help">@info.Summary</p>
+                            <details>
+                                <summary>Was gehört dazu?</summary>
+                                <p class="help">@info.Purpose</p>
+                                <ul>
+                                    @foreach (var item in info.Includes)
+                                    {
+                                        <li>@item</li>
+                                    }
+                                </ul>
+                                @if (info.Requires.Length > 0)
+                                {
+                                    <p class="small">Dafür wird auch @string.Join(", ", info.Requires.Select(r => ModuleCatalog.Info(r).Title)) eingeschaltet.</p>
+                                }
+                            </details>
+                        </div>
+                    }
+                    break;
+
+                case StepKey.Rental:
+                    @foreach (var group in Groups)
+                    {
+                        <fieldset class="wizard-group">
+                            <legend>@group</legend>
+                            <p class="help">@GroupQuestion(group)</p>
+                            @foreach (var option in options!.Where(o => ModuleCatalog.Info(o.Option).Group == group))
+                            {
+                                var info = ModuleCatalog.Info(option.Option);
+                                <AppCheckBox @bind-Value="option.On" Label="@info.Title" />
+                                <p class="help">@info.Description</p>
+                            }
+                        </fieldset>
+                    }
+                    @if (!options!.Any(o => o.On && o.Option == AppOption.BillingPrepayment) && choices.Any(c => c.On && c.Module == AppModule.OperatingCosts))
+                    {
+                        <Notice Level="NoticeLevel.Info">Ohne Vorauszahlungen gibt es keine jährliche Abrechnung. Die Nebenkostenabrechnung brauchen Sie dann vermutlich nicht: Sie können sie unter „Nebenkostenabrechnung“ im vorigen Schritt abschalten.</Notice>
+                    }
+                    break;
+
+                case StepKey.Profile:
+                    <p class="help">Name und Anschrift erscheinen in Briefkopf und Fußzeile aller Dokumente, die Elocaro für Sie erzeugt (Mietvertrag, Abrechnung, Mahnung).</p>
+                    <div class="form-grid">
+                        <AppTextField @bind-Value="profileInput.Name" Label="Name" Required="true" Autocomplete="name" />
+                        <AppTextField @bind-Value="profileInput.Street" Label="Straße und Hausnummer" Required="true" Autocomplete="street-address" />
+                        <AppTextField @bind-Value="profileInput.PostalCode" Label="PLZ" Required="true" Autocomplete="postal-code" />
+                        <AppTextField @bind-Value="profileInput.City" Label="Ort" Required="true" Autocomplete="address-level2" />
+                        <AppTextField @bind-Value="profileInput.Email" Label="E-Mail" Type="email" />
+                        <AppTextField @bind-Value="profileInput.Phone" Label="Telefon" Type="tel" />
+                    </div>
+                    <p class="help">IBAN, Steuernummer und Notdienst tragen Sie später unter Einstellungen &rarr; Vermieter ein.</p>
+                    break;
+
+                case StepKey.Property:
+                    <AppCheckBox @bind-Value="createProperty" Label="Erstes Objekt jetzt anlegen" />
+                    <p class="help">Ohne Haken überspringt „Weiter“ diesen Schritt; Sie können das Objekt jederzeit unter Objekte anlegen.</p>
+                    @if (createProperty)
+                    {
+                        <p class="help">Ein Haus oder eine Wohnanlage mit seinen Wohnungen. Mieter und Verträge kommen danach.</p>
+                        <div class="form-grid">
+                            <AppTextField @bind-Value="propertyInput.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Lindenweg 3“" />
+                            <AppTextField @bind-Value="propertyInput.Street" Label="Straße und Hausnummer" Required="true" />
+                            <AppTextField @bind-Value="propertyInput.PostalCode" Label="PLZ" Required="true" />
+                            <AppTextField @bind-Value="propertyInput.City" Label="Ort" Required="true" />
+                        </div>
+                        <h3>Wohnungen</h3>
+                        <p class="help">Bezeichnung und Wohnfläche genügen; Zimmerzahl, Ausstattung und Zähler ergänzen Sie später.</p>
+                        @if (unitRows.Count > 0)
+                        {
+                            <MudTable T="SetupUnitRow" Items="unitRows" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" Dense="true" id="unit-rows">
+                                <HeaderContent>
+                                    <MudTh>Bezeichnung</MudTh><MudTh Style="text-align:right">Wohnfläche</MudTh><MudTh></MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="row">
+                                    <MudTd DataLabel="Bezeichnung">@row.Name</MudTd>
+                                    <MudTd DataLabel="Wohnfläche" Style="text-align:right">@Format.Area(row.Area)</MudTd>
+                                    <MudTd Style="text-align:right; white-space:nowrap">
+                                        <MudButton Variant="Variant.Text" OnClick="() => EditUnitAsync(row)" aria-label="@($"{row.Name} bearbeiten")">Bearbeiten</MudButton>
+                                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => unitRows.Remove(row)" aria-label="@($"{row.Name} entfernen")">Entfernen</MudButton>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                        <MudButton Variant="Variant.Outlined" OnClick="AddUnitAsync">Wohnung hinzufügen</MudButton>
+                    }
+                    break;
+
+                case StepKey.Books:
+                    @if (accountingOpen)
+                    {
+                        <h3>Mieten automatisch buchen</h3>
+                        <p class="help">
+                            Ab welchem Monat soll Elocaro die Monatsmieten als Sollstellungen anlegen? Ohne Angabe entstehen keine automatischen Sollstellungen
+                            und das Mieterkonto bleibt leer. Rückstände aus der Zeit davor tragen Sie später als Saldovortrag ein. Sie können das auch später unter
+                            Forderungen &rarr; Einstellungen festlegen.
+                        </p>
+                        <div class="form-grid">
+                            <AppMonthField @bind-Value="accountingMonth" Label="Buchhaltung ab (Monat)" Hint="z. B. 01.2026" />
+                        </div>
+                    }
+                    @if (installTemplates)
+                    {
+                        <h3>Vorlagen</h3>
+                        <p class="help">Für Mietvertrag, Mieterhöhung, Mahnung und Schreiben legen wir die Standardvorlagen an. Prüfen Sie die Texte vor dem Einsatz unter Einstellungen &rarr; Vorlagen.</p>
+                    }
+                    break;
+
+                default:
+                    <h3>Eingeschaltete Module</h3>
+                    <ul class="wizard-chips">
+                        @foreach (var choice in choices.Where(c => c.On))
+                        {
+                            <li>@ModuleCatalog.Info(choice.Module).Title</li>
+                        }
+                    </ul>
+                    @if (choices.Any(c => !c.On))
+                    {
+                        <h3>Nicht benötigt</h3>
+                        <ul class="wizard-chips is-off">
+                            @foreach (var choice in choices.Where(c => !c.On))
+                            {
+                                <li>@ModuleCatalog.Info(choice.Module).Title</li>
+                            }
+                        </ul>
+                    }
+                    @if (SelectedOptions.Count > 0)
+                    {
+                        <h3>Ihre Vermietung</h3>
+                        <ul class="wizard-chips">
+                            @foreach (var title in SelectedOptions)
+                            {
+                                <li>@title</li>
+                            }
+                        </ul>
+                    }
+                    <h3>Wird angelegt</h3>
+                    <ul>
+                        @if (needsProfile)
+                        {
+                            <li>Vermieterprofil: @(string.IsNullOrWhiteSpace(profileInput.Name) ? "–" : profileInput.Name)</li>
+                        }
+                        @if (needsProperty && createProperty)
+                        {
+                            <li>Objekt „@propertyInput.Name“ mit @unitRows.Count(r => !string.IsNullOrWhiteSpace(r.Name)) Wohnung(en)</li>
+                        }
+                        @if (installTemplates)
+                        {
+                            <li>Standardvorlagen für Dokumente</li>
+                        }
+                        @if (accountingOpen && !string.IsNullOrWhiteSpace(accountingMonth))
+                        {
+                            <li>Mieten buchen ab @accountingMonth</li>
+                        }
+                        @if (!needsProfile && !(needsProperty && createProperty) && !installTemplates && string.IsNullOrWhiteSpace(accountingMonth))
+                        {
+                            <li>Nur die Auswahl der Funktionen wird gespeichert.</li>
+                        }
+                    </ul>
+                    <Notice Level="NoticeLevel.Info">
+                        Danach zeigt die Übersicht, was als Nächstes zu tun ist (Mieter, Mietvertrag, Bankkonto). Prüfen Sie unter
+                        <a href="/verwaltung/system/mails">Einstellungen &rarr; E-Mail-Versand</a> mit einer Test-Mail, ob Mails ankommen.
+                    </Notice>
+                    break;
+            }
+        </Wizard>
+    }
+</InteractiveShell>
+
+@code {
+    private static readonly Profile[] AllProfiles = Enum.GetValues<Profile>();
+
+    private List<ModuleChoice>? choices;
+    private List<OptionChoice>? options;
+    private IReadOnlyList<string>? errors;
+    private bool accountingOpen;
+    private string? accountingMonth;
+    private bool needsProfile;
+    private bool needsProperty;
+    private bool createProperty;
+    private Guid? createdProperty;
+    private Profile profile = Profile.Few;
+    private int step;
+    private readonly LandlordProfileInput profileInput = new();
+    private readonly PropertyInput propertyInput = new();
+    private readonly List<SetupUnitRow> unitRows = [];
+
+    private async Task AddUnitAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<SetupUnitDialog>("Wohnung hinzufügen", new DialogParameters(), UnitDialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: SetupUnitRow added })
+        {
+            unitRows.Add(added);
+        }
+    }
+
+    private async Task EditUnitAsync(SetupUnitRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<SetupUnitDialog>("Wohnung bearbeiten", new DialogParameters { ["Existing"] = row }, UnitDialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: SetupUnitRow changed })
+        {
+            unitRows[unitRows.IndexOf(row)] = changed;
+        }
+    }
+
+    private static readonly DialogOptions UnitDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
+
+    private enum Profile
+    {
+        Few,
+        Many,
+        Rooms,
+    }
+
+    private enum StepKey
+    {
+        Welcome,
+        Features,
+        Rental,
+        Profile,
+        Property,
+        Books,
+        Summary,
+    }
+
+    private bool InstallTemplatesChosen => choices!.Any(c => c.On && c.Module == AppModule.Documents);
+
+    private bool installTemplates => InstallTemplatesChosen;
+
+    private IReadOnlyList<StepKey> Keys
+    {
+        get
+        {
+            var keys = new List<StepKey> { StepKey.Welcome, StepKey.Features };
+            if (Groups.Count > 0)
+            {
+                keys.Add(StepKey.Rental);
+            }
+
+            if (needsProfile)
+            {
+                keys.Add(StepKey.Profile);
+            }
+
+            if (needsProperty)
+            {
+                keys.Add(StepKey.Property);
+            }
+
+            if (accountingOpen || installTemplates)
+            {
+                keys.Add(StepKey.Books);
+            }
+
+            keys.Add(StepKey.Summary);
+            return keys;
+        }
+    }
+
+    private StepKey Key => Keys[Math.Clamp(step, 0, Keys.Count - 1)];
+
+    /// <summary>The model of the current step; the wizard checks its DataAnnotations before "Next".</summary>
+    private object? CurrentModel => Key switch
+    {
+        StepKey.Profile => profileInput,
+        StepKey.Property when createProperty => propertyInput,
+        _ => null,
+    };
+
+    /// <summary>The question groups to ask: those of the core and of the modules that were switched on.</summary>
+    private IReadOnlyList<string> Groups => ModuleCatalog.Options
+        .Where(o => o.Module is not { } module || choices!.Any(c => c.On && c.Module == module))
+        .Select(o => o.Group).Distinct().ToList();
+
+    private List<string> SelectedOptions => options!
+        .Where(o => o.On && Groups.Contains(ModuleCatalog.Info(o.Option).Group))
+        .Select(o => ModuleCatalog.Info(o.Option).Title).ToList();
+
+    private IReadOnlyList<WizardStepInfo> Steps => Keys.Select(key => key switch
+    {
+        StepKey.Welcome => new WizardStepInfo("Willkommen", Description: "Ein paar Fragen, dann ist Elocaro auf Sie zugeschnitten."),
+        StepKey.Features => new WizardStepInfo("Funktionen", Description: "Schalten Sie ein, was Sie brauchen. Alles andere bleibt unsichtbar und still."),
+        StepKey.Rental => new WizardStepInfo("Ihre Vermietung", Description: "Damit Formulare nur zeigen, was für Sie wichtig ist."),
+        StepKey.Profile => new WizardStepInfo("Ihre Absenderdaten", Description: "Sie erscheinen auf allen Dokumenten."),
+        StepKey.Property => new WizardStepInfo("Erstes Objekt", Description: "Das Haus und seine Wohnungen; Sie können es auch später anlegen."),
+        StepKey.Books => new WizardStepInfo("Buchhaltung und Vorlagen", Description: "Ab wann Mieten gebucht werden und welche Textvorlagen es gibt."),
+        _ => new WizardStepInfo("Zusammenfassung", Description: "Das haben Sie gewählt. Mit „Einrichtung abschließen“ wird es gespeichert."),
+    }).ToList();
+
+    private static string GroupQuestion(string group) => group switch
+    {
+        ModuleCatalog.RentModelGroup => "Welche Mietmodelle verwenden Sie? Die Vergleichsmiete (normale Miete mit Erhöhung nach § 558 BGB) ist immer dabei.",
+        ModuleCatalog.DunningGroup => "Wie soll das Mahnwesen arbeiten? Mahnungen werden immer nur vorgeschlagen und erst nach Ihrer Freigabe versendet.",
+        ModuleCatalog.UnitsGroup => "Was vermieten Sie? Wohnungen sind immer dabei.",
+        ModuleCatalog.LeaseGroup => "Welche Angaben möchten Sie im Mietvertrag erfassen?",
+        ModuleCatalog.TaxGroup => "Welche Teile der Steuer-Vorbereitung brauchen Sie? Die Anlage V selbst ist immer dabei.",
+        _ => "Wie rechnen Sie die Nebenkosten mit Ihren Mietern ab? Wählen Sie alles, was vorkommt.",
+    };
+
+    private static string ProfileText(Profile value) => value switch
+    {
+        Profile.Many => "Ich habe einen größeren Bestand oder einen Hausmeister",
+        Profile.Rooms => "Ich vermiete einzelne Zimmer (WG)",
+        _ => "Ich vermiete selbst einige Wohnungen",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var selection = await State.GetAsync();
+        accountingOpen = (await Finance.GetAsync()).AccountingStart is null;
+        needsProfile = await LandlordProfiles.GetAsync() is null;
+        needsProperty = (await Properties.ListAsync(null)).Count == 0;
+        choices = ModuleCatalog.All.Select(info => new ModuleChoice(info.Module) { On = selection.Enabled.Contains(info.Module) }).ToList();
+        options = ModuleCatalog.Options.Select(info => new OptionChoice(info.Option) { On = selection.EnabledOptions.Contains(info.Option) }).ToList();
+        if (!State.SetupCompleted)
+        {
+            ChooseProfile(Profile.Few);
+        }
+    }
+
+    /// <summary>
+    /// A starting point for the modules and the options, from the answer to "Wie vermieten Sie?". The next steps let the user change every
+    /// one of them; nothing is chosen "for everything".
+    /// </summary>
+    private void ChooseProfile(Profile value)
+    {
+        profile = value;
+        var off = value == Profile.Many ? [] : new[] { AppModule.Tickets, AppModule.Notices };
+        foreach (var choice in choices!)
+        {
+            choice.On = !off.Contains(choice.Module);
+        }
+
+        HashSet<AppOption> on = [AppOption.BillingPrepayment, AppOption.TaxLoans, AppOption.TaxDepreciation, AppOption.LeaseDeposit];
+        switch (value)
+        {
+            case Profile.Many:
+                on.UnionWith([AppOption.RentModelGraduated, AppOption.RentModelIndex, AppOption.TaxDatev, AppOption.UnitParking, AppOption.LeaseGuarantor]);
+                break;
+            case Profile.Rooms:
+                on.UnionWith([AppOption.RoomRental, AppOption.BillingFlatRate]);
+                break;
+        }
+
+        foreach (var option in options!)
+        {
+            option.On = on.Contains(option.Option);
+        }
+    }
+
+    private void Set(ModuleChoice choice, bool on)
+    {
+        choice.On = on;
+        if (on)
+        {
+            // Switching on a module also switches on what it needs.
+            foreach (var required in ModuleCatalog.WithRequirements([choice.Module]))
+            {
+                choices!.First(c => c.Module == required).On = true;
+            }
+        }
+        else
+        {
+            // Switching off a module also switches off what needs it.
+            foreach (var other in choices!.Where(c => c.On && ModuleCatalog.WithRequirements([c.Module]).Contains(choice.Module)))
+            {
+                other.On = false;
+            }
+        }
+    }
+
+    private async Task FinishAsync()
+    {
+        errors = null;
+        var problems = new List<string>();
+
+        if (needsProfile && !string.IsNullOrWhiteSpace(profileInput.Name))
+        {
+            await LandlordProfiles.SaveAsync(profileInput);
+            needsProfile = false;
+        }
+
+        if (needsProperty && createProperty && !string.IsNullOrWhiteSpace(propertyInput.Name))
+        {
+            await CreatePropertyAsync(problems);
+        }
+
+        if (problems.Count > 0)
+        {
+            errors = problems;
+            return;
+        }
+
+        await State.SaveAsync(choices!.Where(c => c.On).Select(c => c.Module), completeSetup: true, options!.Where(o => o.On).Select(o => o.Option));
+
+        if (installTemplates)
+        {
+            await Templates.InstallDefaultsAsync();
+        }
+
+        if (accountingOpen && DateOnly.TryParseExact(accountingMonth + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var accountingStart))
+        {
+            var finance = await Finance.GetAsync();
+            finance.AccountingStart = accountingStart;
+            await Finance.SaveAsync(finance);
+            await Accounts.GenerateChargesAsync();
+        }
+
+        Notify.Success("Die Einrichtung ist abgeschlossen.");
+        Navigation.NavigateTo("/verwaltung");
+    }
+
+    private async Task CreatePropertyAsync(List<string> problems)
+    {
+        if (createdProperty is null)
+        {
+            var created = await Properties.CreateAsync(propertyInput);
+            if (!created.Succeeded)
+            {
+                problems.AddRange(created.Errors);
+                return;
+            }
+
+            createdProperty = created.Id;
+        }
+
+        // On a retry the property exists already; units that were created before are not created twice.
+        var existing = (await Properties.GetAsync(createdProperty!.Value))?.Units.Select(u => u.Name).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+        foreach (var row in unitRows.Where(r => !string.IsNullOrWhiteSpace(r.Name) && !existing.Contains(r.Name.Trim())))
+        {
+            var unit = await Properties.CreateUnitAsync(createdProperty.Value, new UnitInput { Name = row.Name.Trim() });
+            if (!unit.Succeeded)
+            {
+                problems.AddRange(unit.Errors.Select(e => $"{row.Name}: {e}"));
+                continue;
+            }
+
+            if (row.Area is > 0)
+            {
+                var area = await Properties.SetUnitAreaAsync(unit.Id!.Value, new AreaInput { From = new DateOnly(DateTime.Today.Year - 1, 1, 1), Area = row.Area });
+                if (!area.Succeeded)
+                {
+                    problems.AddRange(area.Errors.Select(e => $"{row.Name}: {e}"));
+                }
+            }
+        }
+    }
+
+    private async Task LaterAsync()
+    {
+        await State.SkipSetupAsync();
+        Navigation.NavigateTo("/verwaltung");
+    }
+
+    private sealed class OptionChoice(AppOption option)
+    {
+        public AppOption Option { get; } = option;
+
+        public bool On { get; set; }
+    }
+
+    private sealed class ModuleChoice(AppModule module)
+    {
+        public AppModule Module { get; } = module;
+
+        public bool On { get; set; }
+    }
+}

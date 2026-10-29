@@ -1,7 +1,7 @@
-# Unterstützung für MietHahn. Der Eintrag wird erst aktiv, wenn hier ein Konto steht:
+# Unterstützung für Elocaro. Der Eintrag wird erst aktiv, wenn hier ein Konto steht:
 # Zeile einkommentieren und den Namen eintragen (GitHub zeigt dann den Button „Sponsor“).
 # Hinweise: docs/foerderung.md
 #
 # github: [DEIN-GITHUB-NAME]
 # open_collective: DEIN-COLLECTIVE
-# custom: ["https://example.org/miethahn-unterstuetzen"]
+# custom: ["https://example.org/elocaro-unterstuetzen"]

@@ -60,9 +60,9 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
 - **Standardmiete:** Erhöhung auf die ortsübliche Vergleichsmiete (§558 BGB). Prüft 15 Monate Wartezeit und 1 Jahr seit der letzten Erhöhung, Kappungsgrenze 20 % bzw. 15 % (konfigurierbar je Gemeinde) in 3 Jahren. Begründung: Mietspiegel oder 3 Vergleichswohnungen. Zustimmung des Mieters nötig, mit Fristen.
 - **Indexmiete (§557b):** Anpassung nach VPI (Destatis, Basis 2020=100), frühestens 12 Monate nach der letzten Anpassung, Erklärung in Textform. Wirksam ab dem übernächsten Monat. Neue Miete = Miete × VPI neu ÷ VPI alt, auf Cent gerundet; die Prozentänderung wird mit einer Nachkommastelle angezeigt.
 - **Staffelmiete (§557a):** Staffeln mit Datum und Betrag, werden automatisch zu Sollstellungen.
-- **Pauschale (WG-Zimmer):** Betriebskostenpauschale. Erhöhung nur, wenn sie vertraglich vorbehalten ist (§560 Abs. 1), und nur bei gestiegenen Kosten. MietHahn stellt intern dennoch **Ist-Kosten der WG-Wohnung den Pauschaleinnahmen gegenüber**.
+- **Pauschale (WG-Zimmer):** Betriebskostenpauschale. Erhöhung nur, wenn sie vertraglich vorbehalten ist (§560 Abs. 1), und nur bei gestiegenen Kosten. Elocaro stellt intern dennoch **Ist-Kosten der WG-Wohnung den Pauschaleinnahmen gegenüber**.
 
-> ⚠️ **Hinweis Heizkosten bei WG-Pauschale:** Die HeizkostenV hat Vorrang vor vertraglichen Vereinbarungen (§2 HeizkostenV). Eine Pauschale, die Heizung und Warmwasser abdeckt, ist bei zentraler Heizung grundsätzlich nicht zulässig. Mieter können dann die Heizkosten um 15 % kürzen (§12). Ausnahme ist nur das selbst bewohnte Zweifamilienhaus. **Empfehlung:** rechtlich prüfen lassen. Eine Alternative wäre eine verbrauchsabhängige Abrechnung der WG-Wohnung über deren Wärmemengenzähler, verteilt auf die Zimmer nach Fläche. MietHahn soll beide Varianten abbilden können.
+> ⚠️ **Hinweis Heizkosten bei WG-Pauschale:** Die HeizkostenV hat Vorrang vor vertraglichen Vereinbarungen (§2 HeizkostenV). Eine Pauschale, die Heizung und Warmwasser abdeckt, ist bei zentraler Heizung grundsätzlich nicht zulässig. Mieter können dann die Heizkosten um 15 % kürzen (§12). Ausnahme ist nur das selbst bewohnte Zweifamilienhaus. **Empfehlung:** rechtlich prüfen lassen. Eine Alternative wäre eine verbrauchsabhängige Abrechnung der WG-Wohnung über deren Wärmemengenzähler, verteilt auf die Zimmer nach Fläche. Elocaro soll beide Varianten abbilden können.
 
 ## Betriebskostenabrechnung (BetrKV, §556 BGB)
 
@@ -139,6 +139,6 @@ NK-/Heizkostenabrechnung, Mietvertrag, Zimmervertrag (WG), Mieterhöhung (Vergle
 
 ## Datenschutz (DSGVO)
 
-Umsetzung in MietHahn: Auskunft je Person als JSON-Download (Personenakte → „DSGVO-Auskunft“), Zugriffsprotokoll beim Öffnen von Personenakten, Vorschlagsliste unter *Stammdaten → Datenschutz* (10 Jahre nach Ende des letzten Vertrags, Personen ohne Vertrag nach 12 Monaten), Anonymisierung entfernt die Daten endgültig, auch aus dem Änderungsprotokoll. Gelöscht wird nie automatisch.
+Umsetzung in Elocaro: Auskunft je Person als JSON-Download (Personenakte → „DSGVO-Auskunft“), Zugriffsprotokoll beim Öffnen von Personenakten, Vorschlagsliste unter *Stammdaten → Datenschutz* (10 Jahre nach Ende des letzten Vertrags, Personen ohne Vertrag nach 12 Monaten), Anonymisierung entfernt die Daten endgültig, auch aus dem Änderungsprotokoll. Gelöscht wird nie automatisch.
 
 Verarbeitungsverzeichnis-Vorlage, Datenexport je Person (Auskunft Art. 15), Löschkonzept (Fristen nach Vertragsende, Aufbewahrungspflichten beachten), Audit-Log für Zugriffe und Änderungen, verschlüsselte Backups.

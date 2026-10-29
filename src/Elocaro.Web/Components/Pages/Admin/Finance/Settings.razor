@@ -1,0 +1,86 @@
+@page "/verwaltung/finanzen/einstellungen"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Admin
+@inject IModuleState State
+@inject IFinanceSettings Admin
+@inject ITenantAccounts Accounts
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="Einstellungen Finanzen" Subtitle="Buchhaltungsbeginn, Verrechnung von Zahlungen und Mahnwesen." />
+
+    @if (data is not null)
+    {
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppMonthField @bind-Value="AccountingMonth" Label="Buchhaltung ab (Monat)"
+                              Hint="Ab diesem Monat entstehen die Monatsmieten automatisch. Rückstände aus der Zeit davor als „Saldovortrag“ im Mieterkonto erfassen." />
+            </div>
+            <fieldset class="field">
+                <legend>Verrechnung von Teilzahlungen</legend>
+                <AppRadioGroup @bind-Value="data.Allocation" Items="Enum.GetValues<AllocationOrder>()" Text="@(v => Labels.From(v))" />
+                <span class="field-hint">Hat der Mieter bestimmt, welche Forderung er bezahlt (z. B. „Kaution“), gilt diese zuerst. Bestandteile einer Monatsmiete werden anteilig getilgt.</span>
+            </fieldset>
+            @if (State.IsEnabled(AppModule.Dunning))
+            {
+            <section id="mahnwesen" aria-labelledby="dunning-heading">
+                <h2 id="dunning-heading">Mahnwesen</h2>
+                <Notice Level="NoticeLevel.Info">
+                    Die Vorgaben sind Voreinstellungen und <strong>keine Rechtsberatung</strong>. Mahngebühren dürfen nur tatsächlich entstandene Kosten
+                    abdecken, die Verzugszinsen und die Mahnvorlage sollten vor dem produktiven Einsatz rechtlich geprüft werden.
+                </Notice>
+                <div class="form-grid">
+                    <AppNumberField T="int" @bind-Value="data.DunningGraceDays" Label="Karenzzeit (Tage)" Hint="Ein Posten gilt erst nach so vielen Tagen über der Fälligkeit als Rückstand." />
+                    <AppNumberField T="int" @bind-Value="data.DaysUntilFirstNotice" Label="Tage bis zur 1. Mahnung" Hint="Wartezeit nach der Zahlungserinnerung." />
+                    <AppNumberField T="int" @bind-Value="data.DaysUntilSecondNotice" Label="Tage bis zur 2. Mahnung" Hint="Wartezeit nach der 1. Mahnung." />
+                    <AppNumberField T="int" @bind-Value="data.DunningDeadlineDays" Label="Zahlungsfrist im Schreiben (Tage)" />
+                    <AppNumberField T="decimal?" @bind-Value="data.DunningMinimumAmount" Label="Mindestbetrag" Suffix="€" Hint="Rückstände darunter werden nicht gemahnt." />
+                    @if (State.IsVisible(AppOption.DunningFees))
+                    {
+                        <AppNumberField T="decimal?" @bind-Value="data.ReminderFee" Label="Gebühr Zahlungserinnerung" Suffix="€" Hint="Üblicherweise 0 €." />
+                        <AppNumberField T="decimal?" @bind-Value="data.FirstNoticeFee" Label="Gebühr 1. Mahnung" Suffix="€" Hint="Nur tatsächlich entstandene Kosten (z. B. Porto); 0 € = keine." />
+                        <AppNumberField T="decimal?" @bind-Value="data.SecondNoticeFee" Label="Gebühr 2. Mahnung" Suffix="€" Hint="Nur tatsächlich entstandene Kosten; 0 € = keine." />
+                    }
+                </div>
+                @if (State.IsVisible(AppOption.DunningInterest))
+                {
+                    <AppCheckBox @bind-Value="data.ChargeDefaultInterest" Label="Verzugszinsen ab der 1. Mahnung berechnen (§ 288 Abs. 1 BGB: Basiszinssatz + 5 Prozentpunkte)" />
+                    <div class="form-grid">
+                        <AppNumberField T="decimal?" @bind-Value="data.BaseRate" Label="Basiszinssatz (% p. a.)"
+                                        Hint="Ändert sich zum 1.1. und 1.7.; den aktuellen Wert veröffentlicht die Deutsche Bundesbank. Ohne Wert werden keine Zinsen berechnet." />
+                        <AppDateField @bind-Value="data.BaseRateAsOf" Label="Basiszinssatz gültig seit" Hint="Zur Kontrolle, wann der Wert zuletzt gepflegt wurde." />
+                        <AppNumberField T="decimal?" @bind-Value="data.InterestMarginPoints" Label="Aufschlag (Prozentpunkte)" Hint="Gesetzlich 5 Prozentpunkte bei Verbrauchern (§ 288 Abs. 1 BGB)." />
+                    </div>
+                    @if (data.ChargeDefaultInterest && data.BaseRate is null)
+                    {
+                        <Notice Level="NoticeLevel.Info">Ohne Basiszinssatz werden keine Verzugszinsen berechnet.</Notice>
+                    }
+                }
+            </section>
+            }
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
+
+@code {
+    private FinanceSettingsInput? data;
+
+    /// <summary>The accounting start as "yyyy-MM" for the month field; always the first day of the month.</summary>
+    private string? AccountingMonth
+    {
+        get => data!.AccountingStart?.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+        set => data!.AccountingStart = DateOnly.TryParseExact(value + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var month) ? month : null;
+    }
+
+    protected override async Task OnInitializedAsync() => data = await Admin.GetAsync();
+
+    private async Task SaveAsync()
+    {
+        await Admin.SaveAsync(data!);
+        var count = await Accounts.GenerateChargesAsync();
+        Notify.Success(count == 0 ? "Gespeichert." : $"Gespeichert. {count} Sollstellungen angelegt oder angeglichen.");
+    }
+}

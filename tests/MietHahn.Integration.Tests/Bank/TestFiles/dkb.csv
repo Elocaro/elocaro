@@ -1,8 +1,0 @@
-﻿"Girokonto";"DE89370400440532013000"
-""
-"Kontostand vom 06.02.2026:";"13.031,17 €"
-""
-"Buchungsdatum";"Wertstellung";"Status";"Zahlungspflichtige*r";"Zahlungsempfänger*in";"Verwendungszweck";"Umsatztyp";"IBAN";"Betrag (€)";"Gläubiger-ID";"Mandatsreferenz";"Kundenreferenz"
-"02.02.26";"02.02.26";"Gebucht";"Anna Schmidt";"Max Vermieter";"Miete Februar 2026";"Eingang";"DE93370501981234567890";"770";"";"";"MIETE-2026-02"
-"05.02.26";"05.02.26";"Gebucht";"Max Vermieter";"Stadtwerke Musterstadt";"Abschlag Strom Allgemein 02/2026";"Ausgang";"DE83500105175555555555";"-84,5";"DE98ZZZ09999999999";"SW-4711";""
-"06.02.26";"06.02.26";"Vorgemerkt";"Ben Weber";"Max Vermieter";"Miete";"Eingang";"DE52120300001111111111";"770";"";"";""

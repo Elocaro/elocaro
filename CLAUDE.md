@@ -1,4 +1,4 @@
-# MietHahn – Hinweise für Claude
+# Elocaro – Hinweise für Claude
 
 Self-hosted Vermieterverwaltung: .NET 10, Blazor Static SSR, PostgreSQL 18 (EF Core/Npgsql), Quartz, Gotenberg, MailKit.
 Details: [docs/entwicklung.md](docs/entwicklung.md) (Konventionen, Glossar, Tests), [docs/ui.md](docs/ui.md) (UI-Leitfaden, verbindlich für jede Seite), [docs/betrieb.md](docs/betrieb.md), [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -19,5 +19,5 @@ Details: [docs/entwicklung.md](docs/entwicklung.md) (Konventionen, Glossar, Test
 - Vor jedem Commit: `dotnet format --verify-no-changes && dotnet build && dotnet test` (Warnungen sind Fehler;
   Integrations- und Web-Tests brauchen Docker, Browser-Tests Playwright-Chromium).
 - Commits mit `Closes #<Issue>` bzw. `Refs #<Issue>`; Funktionen immer mit Tests und Doku in `docs/` abschließen.
-- Modelländerungen brauchen eine Migration (`dotnet ef migrations add <Name> -p src/MietHahn.Infrastructure
-  -s src/MietHahn.Infrastructure -o Persistence/Migrations`), sonst schlägt `Model_and_migrations_are_in_sync` fehl.
+- Modelländerungen brauchen eine Migration (`dotnet ef migrations add <Name> -p src/Elocaro.Infrastructure
+  -s src/Elocaro.Infrastructure -o Persistence/Migrations`), sonst schlägt `Model_and_migrations_are_in_sync` fehl.

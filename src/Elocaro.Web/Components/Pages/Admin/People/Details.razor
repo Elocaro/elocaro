@@ -1,0 +1,368 @@
+@page "/verwaltung/personen/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Privacy
+@inject IPersonService Admin
+@inject IPrivacyService Privacy
+@inject IDialogService Dialogs
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (person is null)
+{
+    <PageHeader Title="Person nicht gefunden" Back="/verwaltung/personen" BackText="Alle Personen" />
+}
+else
+{
+
+<PageHeader Title="@person.DisplayName" Subtitle="@Subtitle" Back="/verwaltung/personen" BackText="Alle Personen">
+    <Actions>
+        @if (person.AnonymizedAt is null)
+        {
+            <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
+        }
+        <a class="button" href="/verwaltung/personen/@Id/auskunft" download>DSGVO-Auskunft</a>
+    </Actions>
+</PageHeader>
+
+<ErrorList Errors="errors" />
+
+@if (person.AnonymizedAt is { } anonymized)
+{
+    <Notice Level="NoticeLevel.Info">Die personenbezogenen Daten wurden am @Format.Timestamp(anonymized) entfernt (DSGVO).</Notice>
+}
+
+<div class="summary-card">
+<dl class="details">
+    @if (person.Data.Email is not null)
+    {
+        <dt>E-Mail</dt><dd><a href="mailto:@person.Data.Email">@person.Data.Email</a></dd>
+    }
+    @if (person.Data.Phone is not null)
+    {
+        <dt>Telefon</dt><dd><a href="tel:@person.Data.Phone">@person.Data.Phone</a></dd>
+    }
+    @if (person.Data.Mobile is not null)
+    {
+        <dt>Mobil</dt><dd><a href="tel:@person.Data.Mobile">@person.Data.Mobile</a></dd>
+    }
+    @if (person.Data.DateOfBirth is not null)
+    {
+        <dt>Geburtsdatum</dt><dd>@Format.Date(person.Data.DateOfBirth)</dd>
+    }
+    @if (person.Data.Notes is not null)
+    {
+        <dt>Notizen</dt><dd>@person.Data.Notes</dd>
+    }
+</dl>
+</div>
+
+<MudTabs @ref="tabs" Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Verträge & Vorgänge">
+@if (person.References.Count == 0)
+{
+    <EmptyState Compact="true" Text="Keine Verträge oder Vorgänge." />
+}
+@if (person.References.Count > 0)
+{
+    <section>
+        <h2>Verträge &amp; Vorgänge</h2>
+        <ul>
+            @foreach (var reference in person.References)
+            {
+                <li>
+                    <strong>@reference.Role:</strong>
+                    @if (reference.Link is not null)
+                    {
+                        <a href="@reference.Link">@reference.Description</a>
+                    }
+                    else
+                    {
+                        @reference.Description
+                    }
+                    @if (!reference.Active)
+                    {
+                        <StatusChip>beendet</StatusChip>
+                    }
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+    </MudTabPanel>
+    <MudTabPanel Text="Anschrift & Bank" Visible="@(person.AnonymizedAt is null)">
+<section>
+        <h2>Anschrift</h2>
+        @if (person.Address is null)
+        {
+            <EmptyState Compact="true" Text="Keine aktuelle Anschrift hinterlegt." />
+        }
+        else
+        {
+            <p>@person.Address.SingleLine <span class="small">(@Format.Period(person.Address.Validity))</span></p>
+        }
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="NewAddressAsync">Neue Anschrift (Umzug, Einzug, Auszug)</MudButton>
+        @if (person.Addresses.Count > 1)
+        {
+            <h3>Frühere und künftige Anschriften</h3>
+            <ul class="small">
+                @foreach (var entry in person.Addresses)
+                {
+                    <li>@Format.Period(entry.Validity): @entry.SingleLine</li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section>
+        <h2>Bankverbindungen</h2>
+        <p class="small">Alle Konten, von denen die Person zahlt: eingehende Zahlungen werden über die IBAN zugeordnet.</p>
+        @if (person.BankDetails.Count > 0)
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>IBAN</th><th>Kontoinhaber</th><th>BIC</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var bank in person.BankDetails)
+                        {
+                            <tr>
+                                <td><code>@bank.Iban</code></td>
+                                <td>@bank.AccountHolder</td>
+                                <td>@bank.Bic</td>
+                                <td><MudButton Variant="Variant.Text" OnClick="() => EditBankDetailsAsync(bank)" aria-label="@($"IBAN {bank.Iban} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveBankDetailsAsync(bank)" aria-label="@($"IBAN {bank.Iban} entfernen")">Entfernen</MudButton></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddBankDetailsAsync" Class="mt-3">IBAN hinzufügen</MudButton>
+    </section>
+
+        </MudTabPanel>
+    <MudTabPanel Text="Zugang" Visible="@(person.AnonymizedAt is null)">
+<section>
+        <h2>Zugang</h2>
+        @if (person.Access is { } access)
+        {
+            <p>
+                Konto <a href="/verwaltung/benutzer/@access.UserId">@access.Email</a> (@Elocaro.Application.Accounts.Roles.DisplayName(access.Role))
+                @if (access.Locked)
+                {
+                    <StatusChip Level="StatusLevel.Error">gesperrt</StatusChip>
+                }
+            </p>
+            @if (access.LastSignInAt is { } lastSignIn)
+            {
+                <p class="small" id="access-state">Angemeldet, zuletzt am @Format.Timestamp(lastSignIn).</p>
+            }
+            else
+            {
+                <p id="access-state">
+                    @switch (access.Invitation)
+                    {
+                        case { Status: Elocaro.Domain.Communication.MailStatus.Sent } sent:
+                            <StatusChip Level="StatusLevel.Warning">Einladung gesendet, noch nicht angemeldet</StatusChip>
+                            <span class="small">Versendet am @Format.Timestamp(sent.At). Der Link ist sieben Tage gültig.</span>
+                            break;
+                        case { Status: Elocaro.Domain.Communication.MailStatus.Failed } failed:
+                            <StatusChip Level="StatusLevel.Error">Einladung nicht zugestellt</StatusChip>
+                            <span class="small">Letzter Versuch am @Format.Timestamp(failed.At). Unter <a href="/verwaltung/system/mails">Einstellungen → E-Mail-Versand</a> steht der Grund.</span>
+                            break;
+                        case { }:
+                            <StatusChip>Einladung wird versendet</StatusChip>
+                            <span class="small">Die Mail geht in den nächsten Minuten raus.</span>
+                            break;
+                        default:
+                            <StatusChip>noch nicht angemeldet</StatusChip>
+                            break;
+                    }
+                </p>
+                @if (!access.Locked)
+                {
+                    <MudButton Variant="Variant.Outlined" OnClick="ResendInvitationAsync">Einladung erneut senden</MudButton>
+                }
+            }
+        }
+        else
+        {
+            <p class="small">Mit einem Zugang sieht die Person ihre Verträge, Dokumente und Tickets im Portal (Mieter) bzw. im Servicebereich.</p>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(person.Data.Email is null)" OnClick="SetUpAccessAsync">Zugang einrichten und einladen</MudButton>
+            @if (person.Data.Email is null)
+            {
+                <p class="small">Dafür zuerst eine E-Mail-Adresse hinterlegen.</p>
+            }
+        }
+    </section>
+
+        </MudTabPanel>
+    <MudTabPanel Text="Dokumente">
+<DocumentsSection PersonId="Id" />
+
+    </MudTabPanel>
+    <MudTabPanel Text="Datenschutz" Visible="@(person.AnonymizedAt is null)">
+<section>
+        <h2>Löschen &amp; Datenschutz</h2>
+        @if (person.References.Count == 0)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Person löschen</MudButton>
+        }
+        else if (person.References.Any(b => b.Active))
+        {
+            <p class="small">Solange Verträge laufen, kann die Person weder gelöscht noch anonymisiert werden.</p>
+        }
+        else
+        {
+            <p class="small">Nach Ablauf der Aufbewahrungsfrist erscheint die Person unter <a href="/verwaltung/datenschutz">Datenschutz</a> zur Anonymisierung.</p>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="AnonymizeAsync">Jetzt anonymisieren</MudButton>
+        }
+    </section>
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
+<ChangeHistory EntityType="@nameof(Person)" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
+}
+</InteractiveShell>
+
+@code {
+    private PersonDetails? person;
+    private PersonInput data = new();
+    private MudTabs? tabs;
+    private IReadOnlyList<string>? errors;
+    private bool loaded;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private string Subtitle
+    {
+        get
+        {
+            var parts = new List<string>(person!.References.Select(b => b.Role).Distinct());
+            if (person.Data.ContactType != ContactType.None)
+            {
+                parts.Add(Labels.From(person.Data.ContactType) + (person.Data.Occupation is null ? "" : $" ({person.Data.Occupation})"));
+            }
+
+            return parts.Count == 0 ? "Privatperson" : string.Join(", ", parts);
+        }
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        person = await Admin.GetAsync(Id);
+        data = person?.Data ?? new();
+        loaded = true;
+    }
+
+    private async Task NewAddressAsync() => await ShowDialogAsync<AddressDialog>("Neue Anschrift");
+
+    private async Task EditBankDetailsAsync(BankDetailsView bank)
+    {
+        var dialog = await Dialogs.ShowAsync<BankDetailsDialog>("Bankverbindung bearbeiten", new DialogParameters { ["PersonId"] = Id, ["Existing"] = bank }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task AddBankDetailsAsync() => await ShowDialogAsync<BankDetailsDialog>("IBAN hinzufügen");
+
+    private async Task ShowDialogAsync<TDialog>(string title)
+        where TDialog : Microsoft.AspNetCore.Components.IComponent
+    {
+        var parameters = new DialogParameters { ["PersonId"] = Id };
+        var dialog = await Dialogs.ShowAsync<TDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveBankDetailsAsync(BankDetailsView bank)
+    {
+        if (await Confirm.AskAsync("IBAN entfernen", $"Soll die IBAN {bank.Iban} entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveBankDetailsAsync(Id, bank.Id), "Die IBAN wurde entfernt.");
+        }
+    }
+
+    private async Task SetUpAccessAsync()
+    {
+        if (await Confirm.AskAsync("Zugang einrichten und einladen", $"{person!.DisplayName} erhält eine E-Mail an {person.Data.Email} mit einem Anmeldelink.", "Ja, einladen"))
+        {
+            await ExecuteAsync(Admin.SetUpAccessAsync(Id), "Der Zugang wurde eingerichtet. Die Einladung geht in den nächsten Minuten per E-Mail raus.");
+        }
+    }
+
+    private async Task ResendInvitationAsync()
+    {
+        if (await Confirm.AskAsync("Einladung erneut senden", $"{person!.DisplayName} erhält eine neue Einladung an {person.Access!.Email}. Der bisherige Link bleibt bis zum Ablauf gültig.", "Ja, senden"))
+        {
+            await ExecuteAsync(Admin.ResendInvitationAsync(Id), "Die Einladung wird erneut versendet.");
+        }
+    }
+
+    private async Task AnonymizeAsync()
+    {
+        if (await Confirm.AskAsync(
+            "Person anonymisieren",
+            "Name, Kontaktdaten, Anschriften, IBANs und die Werte im Änderungsprotokoll werden endgültig entfernt. Das lässt sich nicht rückgängig machen. Aufbewahrungspflichten beachten!",
+            "Ja, endgültig anonymisieren"))
+        {
+            await ExecuteAsync(Privacy.AnonymizeAsync(Id), "Die Person wurde anonymisiert.");
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await Confirm.AskAsync("Person löschen", $"{person!.DisplayName} wird gelöscht. Fortfahren?", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var result = await Admin.DeleteAsync(Id);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/personen?meldung=geloescht");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+        }
+
+        await LoadAsync();
+    }
+
+    // "Bearbeiten" opens the data of the person in a dialog (no switching to another tab).
+    private async Task EditAsync()
+    {
+        RenderFragment fields = @<PersonEditor Data="data" />;
+        if (await Dialogs.ShowFormAsync("Person bearbeiten", data, fields, () => Admin.UpdateAsync(Id, data)))
+        {
+            Notify.Success("Die Angaben wurden gespeichert.");
+        }
+
+        await LoadAsync(); // after cancelling, too: drops the unsaved changes of the shared model
+    }
+}

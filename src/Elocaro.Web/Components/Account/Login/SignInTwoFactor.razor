@@ -1,0 +1,80 @@
+@page "/konto/anmelden/zwei-faktor"
+@inject SignInManager<ApplicationUser> Login
+@inject Redirector Redirector
+
+<PageTitle>Zwei-Faktor-Anmeldung – Elocaro</PageTitle>
+
+<h1>Bestätigungscode</h1>
+<p>Bitte geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.</p>
+
+<StatusMessage Message="@errors" IsError="true" />
+
+<EditForm Model="Input" FormName="two-factor" OnValidSubmit="ValidateAsync">
+    <DataAnnotationsValidator />
+    <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+    <input type="hidden" name="RememberMe" value="@RememberMe" />
+    <div class="field">
+        <label for="code">Code</label>
+        <InputText id="code" @bind-Value="Input!.Code" autocomplete="one-time-code" inputmode="numeric" />
+        <ValidationMessage For="() => Input!.Code" />
+    </div>
+    <div class="field field-checkbox">
+        <InputCheckbox id="device" @bind-Value="Input!.RememberDevice" />
+        <label for="device">Dieses Gerät 30 Tage lang merken</label>
+    </div>
+    <button type="submit" class="button button-primary">Anmelden</button>
+</EditForm>
+
+<div class="account-links">
+    <a href="/konto/anmelden/wiederherstellungscode?ReturnUrl=@Uri.EscapeDataString(ReturnUrl ?? "")">Kein Zugriff auf die App? Mit Wiederherstellungscode anmelden</a>
+</div>
+
+@code {
+    private string? errors;
+
+    [SupplyParameterFromForm(FormName = "two-factor")]
+    private TwoFactorInput? Input { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "angemeldetBleiben")]
+    private bool RememberMe { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        if (await Login.GetTwoFactorAuthenticationUserAsync() is null)
+        {
+            Redirector.To("/konto/anmelden");
+        }
+    }
+
+    private async Task ValidateAsync()
+    {
+        var code = Input!.Code.Replace(" ", "", StringComparison.Ordinal).Replace("-", "", StringComparison.Ordinal);
+        var result = await Login.TwoFactorAuthenticatorSignInAsync(code, RememberMe, Input.RememberDevice);
+
+        if (result.Succeeded)
+        {
+            Redirector.To(ReturnUrl);
+        }
+        else if (result.IsLockedOut)
+        {
+            Redirector.To("/konto/gesperrt");
+        }
+        else
+        {
+            errors = "Der Code ist ungültig.";
+        }
+    }
+
+    private sealed class TwoFactorInput
+    {
+        [Required(ErrorMessage = "Bitte den Code eingeben.")]
+        [StringLength(7, MinimumLength = 6, ErrorMessage = "Der Code hat 6 Ziffern.")]
+        public string Code { get; set; } = "";
+
+        public bool RememberDevice { get; set; }
+    }
+}

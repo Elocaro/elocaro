@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- **Umbenennung:** Das Produkt heißt jetzt **Elocaro** (bisher MietHahn): Projekte, Namensräume, Images, Umgebungsvariablen (`ELOCARO_*`), Datenbank, Oberfläche, Mails, PDF und Doku. Neues Logo und neue Icons (PNG für Installation und Apple-Touch). Bestehende Installationen ziehen per Sicherung und Wiederherstellung um (`docs/umbenennung.md`): Alle Sitzungen enden, Push-Benachrichtigungen werden neu eingeschaltet, eine FinTS-Kennung ist neu einzugeben. Wiederherstellung mit nicht mehr lesbaren Push-Schlüsseln erzeugt jetzt neue Schlüssel statt abzubrechen.
 - Modulzyklen Documents↔Finance und Documents↔Leases aufgelöst: Serienbriefe und Dokumentbereitschaft liegen im eigenen Modul `Correspondence`, die Dokumentenbibliothek fragt Vertragsbezüge über `IDocumentLeaseSource` ab, die Leases implementiert; es bleibt ein Zyklus (Leases↔Properties).
 - Modulzyklus Leases↔Metering aufgelöst: Das Übergabeprotokoll (`Handovers`) verbindet Vertrag und Zähler und liegt deshalb in einem eigenen Modul `Handover`, das niemand sonst benutzt; die Baseline sinkt auf 3 Zyklen.
 - Modulzyklus OperatingCosts↔Receipts aufgelöst: Die Kostengruppe gehört zur Kostenart (`Domain.Receipts`); die Baseline sinkt auf 4 Zyklen.
@@ -71,7 +72,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Belegung: Schematische Haus-Ansicht „Haus heute“ mit Geschossen, Wohnungen und WG-Zimmern, farbig nach vermietet, Mietende absehbar, Rückstand und leer; ein Klick führt zur Einheit (Closes #127).
 - Übersicht: Verlaufsgrafik für Soll und Eingang der letzten zwölf Monate mit der Linie des offenen Saldos sowie Balken für die Kosten der Belege je Jahr (Closes #128).
 - Vorlage „Änderung des Umlageschlüssels (§ 556a Abs. 2 BGB)“ unter den Standardvorlagen, z. B. für Müll nach Personen; die Erklärung muss dem Mieter vor Beginn des Abrechnungszeitraums in Textform zugehen. Mit dem Personenschlüssel zählt jede Person im Haus (mehrere Zimmer eines Vertrags einmal), ein leeres Zimmer als eine Person zulasten des Vermieters (Closes #132).
-- Fristen: Bei Auszug und Einzug erinnert MietHahn an die Zwischenablesung der Zähler der Einheit (Link in die Ablesung mit Einheit und Datum), damit der Verbrauch nicht interpoliert werden muss (Closes #136).
+- Fristen: Bei Auszug und Einzug erinnert Elocaro an die Zwischenablesung der Zähler der Einheit (Link in die Ablesung mit Einheit und Datum), damit der Verbrauch nicht interpoliert werden muss (Closes #136).
 - Umlageschlüssel: Je Kostenart lässt sich einstellen, ob leere WG-Zimmer nicht angesetzt werden (die vermieteten Zimmer tragen den ganzen Anteil der WG) statt beim Vermieter zu bleiben; mit Hinweis auf die rechtliche Folge (Closes #133).
 - WG: Der Anteil der Zimmer an der Gemeinschaftsfläche wird aus Wohnfläche minus Zimmerflächen vorgeschlagen (gleichmäßig oder nach Zimmerfläche) und mit einem Klick übernommen (Einheit → Zimmer, Closes #134).
 - Gas: Brennwert und Zustandszahl je Abrechnungsjahr in den Heizungseinstellungen (kWh je m³ = Brennwert × Zustandszahl) ersetzen den festen Energieinhalt; ohne Jahreswert gibt die Vorschau einen Hinweis (Closes #130).
@@ -105,7 +106,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Datenimport aus einer Tabelle (CSV): Objekte, Einheiten mit Wohnfläche, Mieter, Verträge, Kaution und Saldovortrag mit Prüfung vorab; alles oder nichts, wiederholbar ohne Doppelungen.
 - Mieterportal: Seite „Konto“ mit Saldo, Forderungen und Zahlungen der eigenen Mietverhältnisse.
 - Seite „Rechtsstände“: Basiszinssatz, Verbraucherpreisindex, CO₂-Stufen und Gradtagszahlen mit Stand, Quelle und Zustand; Dashboard-Hinweis bei fehlenden oder veralteten Werten.
-- Lizenz AGPL-3.0, Seite „Über MietHahn“ (`/ueber`) mit Version, Lizenz und Quellcode-Link.
+- Lizenz AGPL-3.0, Seite „Über Elocaro“ (`/ueber`) mit Version, Lizenz und Quellcode-Link.
 - README mit Screenshots, Zielgruppe und Grenzen; `SECURITY.md`; Issue-Vorlagen.
 - `deploy/install.sh`: Installation in einem Schritt (auch `--lokal` zum Ausprobieren), prüft in der CI die Konfiguration.
 - Version der Anwendung aus dem Release-Tag (`VERSION`-Build-Argument im Dockerfile).

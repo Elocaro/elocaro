@@ -1,0 +1,101 @@
+@page "/verwaltung/dokumente/neu"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Files
+@inject IDocumentLibrary Storage
+@inject IFileStore Files
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Dokument hochladen" Subtitle="Datei hochladen und einem Objekt, einer Einheit, einem Vertrag oder einer Person zuordnen." Back="/verwaltung/dokumente" BackText="Alle Dokumente" />
+
+    <ErrorList Errors="errors" />
+
+    @if (selection is not null)
+    {
+        <EditForm EditContext="context" OnSubmit="UploadAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-row">
+                <AppFileUpload Text="Datei auswählen *" Accept="application/pdf,image/*" OnSelected="OnFileSelected" />
+            </div>
+            <p class="small">PDF oder Foto. Fotos werden verkleinert und ohne Metadaten (GPS) gespeichert.</p>
+            <DocumentEditor Data="data" Options="selection" TitleRequired="false" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Hochladen</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
+
+@code {
+    private ReferenceOptions? selection;
+    private EditContext? context;
+    private DocumentInput data = new();
+    private FileSelection? file;
+    private IReadOnlyList<string>? errors;
+
+    [SupplyParameterFromQuery(Name = "objekt")]
+    private Guid? PropertyId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "einheit")]
+    private Guid? UnitId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "vertrag")]
+    private Guid? LeaseId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "person")]
+    private Guid? PersonId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "kategorie")]
+    private string? Category { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        data = new DocumentInput { PropertyId = PropertyId, UnitId = UnitId, LeaseId = LeaseId, PersonId = PersonId };
+        if (Enum.TryParse<DocumentCategory>(Category, out var category) && Enum.IsDefined(category))
+        {
+            data.Category = category;
+        }
+        context = new EditContext(data);
+        selection = await Storage.ReferenceOptionsAsync();
+    }
+
+    private void OnFileSelected(FileSelection selected) => file = selected;
+
+    private async Task UploadAsync()
+    {
+        if (file is null || file.Length == 0)
+        {
+            errors = ["Bitte eine Datei auswählen."];
+            return;
+        }
+
+        // Without a title the file name is used.
+        if (string.IsNullOrWhiteSpace(data.Title))
+        {
+            data.Title = Path.GetFileNameWithoutExtension(file.Name);
+        }
+
+        if (!context!.Validate())
+        {
+            return;
+        }
+
+        try
+        {
+            await using var content = file.Open();
+            var saved = await Files.SaveAsync(content, file.Name);
+            var result = await Storage.CreateAsync(saved.Id, data);
+            if (result.Succeeded)
+            {
+                Navigation.NavigateTo($"/verwaltung/dokumente/{result.Id}?meldung=angelegt");
+            }
+            else
+            {
+                errors = result.Errors;
+            }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+    }
+}

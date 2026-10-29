@@ -1,0 +1,127 @@
+@page "/portal/tickets/neu"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Admin
+@using Elocaro.Application.Files
+@using Elocaro.Application.Tickets
+@using Elocaro.Domain.Tickets
+@using Elocaro.Web.Components.Controls
+@inject ITickets Tickets
+@inject IFileStore Files
+@inject ILandlordProfileService Landlord
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Problem melden" Subtitle="Beschreiben Sie das Problem möglichst genau, am besten mit einem Foto. Die Hausverwaltung kümmert sich darum und Sie sehen hier den Stand." Back="/portal/tickets" BackText="Meine Meldungen" />
+
+    @if (emergency is not null)
+    {
+        <div class="emergency" role="note">
+            <strong>Notfall? Wasserrohrbruch, Gasgeruch, Brand?</strong>
+            <p>Bitte nicht hier melden, sondern sofort anrufen (bei Gefahr 112):</p>
+            <p>@emergency</p>
+        </div>
+    }
+    else
+    {
+        <div class="emergency" role="note">
+            <strong>Notfall? Wasserrohrbruch, Gasgeruch, Brand?</strong>
+            <p>Bitte nicht hier melden, sondern sofort den Notruf 112 und Ihren Vermieter anrufen.</p>
+        </div>
+    }
+
+    <ErrorList Errors="errors" />
+
+    @if (targets is { Count: 0 })
+    {
+        <EmptyState Text="Ihrem Konto ist kein laufendes Mietverhältnis zugeordnet. Bitte wenden Sie sich an Ihren Vermieter." />
+    }
+    else if (targets is not null)
+    {
+        <EditForm Model="input" OnValidSubmit="SubmitAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                @if (targets.Count > 1)
+                {
+                    <AppSelect T="Guid?" @bind-Value="input.LeaseId" Label="Wohnung" Items="targets.Select(t => (Guid?)t.LeaseId).ToList()" Text="@(id => targets.FirstOrDefault(t => t.LeaseId == id) is { } t ? $"{t.Unit} ({t.Property})" : "")" />
+                }
+                <AppTextField @bind-Value="input.Title" Label="Worum geht es?" Required="true" Hint="z. B. „Heizkörper im Bad bleibt kalt“" />
+                <AppSelect T="TicketCategory" @bind-Value="input.Category" Label="Kategorie" Items="Enum.GetValues<TicketCategory>()" Text="@(v => Labels.From(v))" />
+                <AppSelect T="TicketUrgency" @bind-Value="input.Urgency" Label="Dringlichkeit" Items="Enum.GetValues<TicketUrgency>()" Text="@(v => Labels.From(v))" />
+                <AppCheckBox @bind-Value="input.CommonArea" Label="Das Problem ist in den Allgemeinflächen (Treppenhaus, Keller, Garten), nicht in meiner Wohnung" />
+                <AppTextField @bind-Value="input.Location" Label="Wo genau?" Hint="z. B. „Bad“, „Küche“, „Treppenhaus 2. OG“" />
+                <AppTextField @bind-Value="input.Description" Label="Beschreibung" Required="true" Lines="5" />
+                <AppTextField @bind-Value="input.AccessTimes" Label="Wann sind Sie erreichbar?" Hint="Zeiten, zu denen jemand zu Ihnen kommen kann" />
+            </div>
+
+            <div class="form-row">
+                <AppFileUpload Text="Fotos aufnehmen oder wählen" Accept="image/*" Multiple="true" OnSelectedMany="OnFiles" />
+            </div>
+            <p class="small">Bis zu @Ticket.MaxPhotos Fotos@(selected.Count > 0 ? $" (gewählt: {Math.Min(selected.Count, Ticket.MaxPhotos)})" : "").</p>
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy">Meldung absenden</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
+
+@code {
+    private readonly TicketReport input = new();
+    private IReadOnlyList<ReportTarget>? targets;
+    private IReadOnlyList<FileSelection> selected = [];
+    private IReadOnlyList<string>? errors;
+    private readonly Dictionary<Guid, string?> emergencyByProperty = [];
+
+    private string? emergency => targets?.FirstOrDefault(t => t.LeaseId == input.LeaseId) is { } target ? emergencyByProperty.GetValueOrDefault(target.PropertyId) : null;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        targets = await Tickets.ReportTargetsAsync(user);
+        input.LeaseId = targets.Count > 0 ? targets[0].LeaseId : null;
+        foreach (var propertyId in targets.Select(t => t.PropertyId).Distinct())
+        {
+            emergencyByProperty[propertyId] = await Landlord.EmergencyInfoAsync(propertyId);
+        }
+    }
+
+    private void OnFiles(IReadOnlyList<FileSelection> files) => selected = files;
+
+    private async Task SubmitAsync()
+    {
+        if (selected.Count > Ticket.MaxPhotos)
+        {
+            errors = [$"Bitte höchstens {Ticket.MaxPhotos} Fotos wählen."];
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var ids = new List<Guid>();
+            foreach (var file in selected)
+            {
+                await using var content = file.Open();
+                ids.Add((await Files.SaveAsync(content, file.Name)).Id);
+            }
+
+            var result = await Tickets.ReportAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            if (result.Succeeded)
+            {
+                Navigation.NavigateTo($"/portal/tickets/{result.Id}");
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

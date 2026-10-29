@@ -1,0 +1,40 @@
+@page "/verwaltung/bank/konten/neu"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Properties
+@inject IBankService Bank
+@inject IPropertyService PropertyService
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Bankkonto anlegen" Subtitle="Konto für Mieteingänge, Darlehen oder Rücklagen. Die Umsätze kommen später per Datei-Import oder FinTS und werden Mietern und Kostenarten zugeordnet." Back="/verwaltung/bank/konten" BackText="Alle Konten" />
+
+    <ErrorList Errors="errors" />
+
+    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+        <DataAnnotationsValidator />
+        <AccountEditor Data="data" Properties="properties" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Anlegen</MudButton>
+    </EditForm>
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<PropertyOverview> properties = [];
+    private IReadOnlyList<string>? errors;
+    private readonly BankAccountInput data = new();
+
+    protected override async Task OnInitializedAsync() => properties = await PropertyService.ListAsync(null);
+
+    private async Task SaveAsync()
+    {
+        var result = await Bank.CreateAccountAsync(data);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/verwaltung/bank/konten/{result.Id}?meldung=angelegt");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

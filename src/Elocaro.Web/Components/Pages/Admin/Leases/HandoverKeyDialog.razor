@@ -1,0 +1,45 @@
+@using Elocaro.Domain.Leases
+@using MudBlazor
+
+@* Dialog "key kind" of the handover record: adds a row or changes one; saved with the page. *@
+<EditForm Model="data" OnValidSubmit="Save" novalidate class="dialog-form">
+    <MudDialog>
+        <DialogContent>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Kind" Label="Art" Required="true" Hint="z. B. Haustür, Keller, Briefkasten" />
+                <AppNumberField T="int" @bind-Value="data.Count" Label="Anzahl" Min="0" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(Existing is null ? "Hinzufügen" : "Übernehmen")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly HandoverKey data = new();
+
+    [Parameter]
+    public HandoverKey? Existing { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } key)
+        {
+            data.Kind = key.Kind;
+            data.Count = key.Count;
+        }
+        else
+        {
+            data.Count = 1;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save() => MudDialog.Close(DialogResult.Ok(data));
+}

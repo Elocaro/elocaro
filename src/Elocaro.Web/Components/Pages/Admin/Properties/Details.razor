@@ -1,0 +1,304 @@
+@page "/verwaltung/objekte/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Files
+@using Elocaro.Application.Admin
+@inject IPropertyService Admin
+@inject IModuleState ModuleState
+@inject ILandlordProfileService LandlordProfiles
+@inject IFileStore Storage
+@inject IDialogService Dialogs
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (property is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+
+<PageHeader Title="Übersicht" Back="/verwaltung/objekte" BackText="Alle Objekte">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
+        @if (ModuleState.IsEnabled(AppModule.Receipts) || property.Units.Count == 0)
+        {
+            @* Rare actions in a menu; links to sub-pages belong in the workspace tabs, not in the header (docs/ui.md). *@
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+                @if (ModuleState.IsEnabled(AppModule.Receipts))
+                {
+                    <MudMenuItem Href="@($"/verwaltung/objekte/{Id}/belegimport")">Kassenbuch importieren</MudMenuItem>
+                }
+                @if (property.Units.Count == 0)
+                {
+                    <MudMenuItem OnClick="DeleteAsync">Objekt löschen</MudMenuItem>
+                }
+            </MudMenu>
+        }
+    </Actions>
+</PageHeader>
+
+<ErrorList Errors="errors" />
+@if (property.ValidationHints.Count > 0)
+{
+    <Notice Level="NoticeLevel.Info">
+        <strong>Bitte prüfen:</strong>
+        <ul>
+            @foreach (var hint in property.ValidationHints)
+            {
+                <li>@hint</li>
+            }
+        </ul>
+    </Notice>
+}
+
+@if (property.ImageFileId is not null || property.Data.CadastralDistrict is not null || property.Data.ParcelNumber is not null || property.Data.PropertyTaxReference is not null || property.Data.Notes is not null)
+{
+<div class="property-header">
+    @if (property.ImageFileId is { } image)
+    {
+        <img class="property-image" src="/dateien/@image" alt="Foto von @property.Data.Name" />
+    }
+    <dl class="details">
+        @if (property.Data.CadastralDistrict is not null || property.Data.ParcelNumber is not null)
+        {
+            <dt>Grundbuch</dt><dd>@property.Data.CadastralDistrict @property.Data.ParcelNumber</dd>
+        }
+        @if (property.Data.PropertyTaxReference is not null)
+        {
+            <dt>Grundsteuer</dt><dd>@property.Data.PropertyTaxReference</dd>
+        }
+        @if (property.Data.Notes is not null)
+        {
+            <dt>Notizen</dt><dd>@property.Data.Notes</dd>
+        }
+    </dl>
+</div>
+}
+
+<MudTabs @ref="tabs" Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="@($"Einheiten ({property.Units.Count})")">
+<section>
+    @if (property.Units.Count == 0)
+    {
+        <EmptyState Text="Noch keine Einheiten. Fügen Sie unten die erste Einheit hinzu." />
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Einheit</th><th>Lage</th><th class="number">Wohnfläche</th><th>Mietobjekt</th><th>Belegung</th></tr></thead>
+                <tbody>
+                    @foreach (var unit in property.Units)
+                    {
+                        @for (var i = 0; i < unit.RentalUnits.Count; i++)
+                        {
+                            var rentalUnit = unit.RentalUnits[i];
+                            <tr>
+                                @* Repeated in every row (no merged cells) so the table can become cards on smartphones; the repeats are hidden on wide screens. *@
+                                <td class="@(i > 0 ? "repeat" : null)" aria-hidden="@(i > 0 ? "true" : null)">
+                                    <a href="/verwaltung/einheiten/@unit.Id" tabindex="@(i > 0 ? -1 : null)">@unit.Name</a>
+                                    @if (unit.IsSharedFlat)
+                                    {
+                                        <StatusChip>WG</StatusChip>
+                                    }
+                                </td>
+                                <td class="@(i > 0 ? "repeat" : null)" aria-hidden="@(i > 0 ? "true" : null)">@unit.Location</td>
+                                <td class="number@(i > 0 ? " repeat" : "")" aria-hidden="@(i > 0 ? "true" : null)">@Format.Area(unit.LivingArea)</td>
+                                <td>
+                                    @if (rentalUnit.IsRoom)
+                                    {
+                                        <a href="/verwaltung/zimmer/@rentalUnit.Id">@rentalUnit.Name</a>
+                                        <span class="small">@Format.Area(rentalUnit.Area)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>ganze Einheit</span>
+                                    }
+                                </td>
+                                <td><OccupancyDisplay Occupancy="rentalUnit.Occupancy" RentalUnitId="rentalUnit.Id" /></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddUnitAsync">Einheit hinzufügen</MudButton>
+</section>
+
+    </MudTabPanel>
+    <MudTabPanel Text="Flächen">
+<AreaSection Save="input => Admin.SetAreaAsync(Id, input)" OnSaved="LoadAsync" Current="property.Area" History="property.AreaHistory"
+                 AreaText="Gesamtfläche" AdditionalText="Gemeinschaftsfläche" AdditionalHint="Treppenhaus, Keller, Waschküche …" />
+
+    @if (property.Units.Count > 0)
+    {
+        <section>
+            <h2>Flächen der Einheiten</h2>
+            <p class="small">Die Abrechnung verteilt nach den Flächen der Einheiten. Gesamt- und Gemeinschaftsfläche oben dienen nur der Plausibilitätsprüfung.</p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Einheit</th><th class="number">Wohnfläche</th></tr></thead>
+                    <tbody>
+                        @foreach (var unit in property.Units)
+                        {
+                            <tr>
+                                <td><a href="/verwaltung/einheiten/@unit.Id">@unit.Name</a></td>
+                                <td class="number">
+                                    @if (unit.LivingArea is null)
+                                    {
+                                        <span class="small">keine Fläche, wird mit 0 verrechnet</span>
+                                    }
+                                    else
+                                    {
+                                        @Format.Area(unit.LivingArea)
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot><tr><th>Summe</th><th class="number">@Format.Area(property.Units.Sum(u => u.LivingArea ?? 0m))</th></tr></tfoot>
+                </table>
+            </div>
+        </section>
+    }
+
+    </MudTabPanel>
+    <MudTabPanel Text="Eigentümer">
+<OwnersSection PropertyId="Id" />
+<LandlordSection PropertyId="Id" />
+
+    </MudTabPanel>
+    <MudTabPanel Text="Foto">
+        <ErrorList Errors="editErrors" />
+        <section>
+            <h2>Foto</h2>
+            <div class="form-row">
+                <AppFileUpload Text="@(property.ImageFileId is null ? "Foto hochladen" : "Foto ersetzen")" Accept="image/jpeg,image/png,image/webp,image/heic" Capture="environment" OnSelected="UploadImageAsync" />
+                @if (property.ImageFileId is not null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="RemoveImageAsync">Foto entfernen</MudButton>
+                }
+            </div>
+            <p class="small">Fotos werden verkleinert, gedreht und ohne Metadaten (GPS) gespeichert.</p>
+        </section>
+    </MudTabPanel>
+    <MudTabPanel Text="Dokumente">
+<DocumentsSection PropertyId="Id" />
+
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
+<ChangeHistory EntityType="@nameof(Property)" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
+}
+</InteractiveShell>
+
+@code {
+    private PropertyDetails? property;
+    private PropertyInput data = new();
+    private IReadOnlyList<string>? editErrors;
+    private MudTabs? tabs;
+    private IReadOnlyList<string>? errors;
+    private bool loaded;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private IReadOnlyList<LandlordProfileRow> profiles = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        profiles = await LandlordProfiles.ListAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        property = await Admin.GetAsync(Id);
+        data = property?.Data ?? new();
+        loaded = true;
+    }
+
+    private async Task AddUnitAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<UnitDialog>("Einheit hinzufügen", new DialogParameters { ["PropertyId"] = Id }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await Confirm.AskAsync("Objekt löschen", $"„{property!.Data.Name}“ mit {property.Units.Count} Einheit(en) wird gelöscht. Fortfahren?", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var result = await Admin.DeleteAsync(Id);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/objekte?meldung=geloescht");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    // "Bearbeiten" opens the data of the property in a dialog (no switching to another tab).
+    private async Task SaveAsync()
+    {
+        RenderFragment fields = @<PropertyEditor Data="data" Profiles="profiles" />;
+        if (await Dialogs.ShowFormAsync("Objekt bearbeiten", data, fields, () => Admin.UpdateAsync(Id, data)))
+        {
+            Notify.Success("Die Angaben wurden gespeichert.");
+        }
+
+        await LoadAsync(); // after cancelling, too: drops the unsaved changes of the shared model
+    }
+
+    private async Task UploadImageAsync(FileSelection selection)
+    {
+        try
+        {
+            await using var content = selection.Open();
+            var file = await Storage.SaveAsync(content, selection.Name);
+            await ApplyImageAsync(file.Id, "Das Foto wurde gespeichert.");
+        }
+        catch (FileRejectedException ex)
+        {
+            editErrors = [ex.Message];
+        }
+    }
+
+    private async Task RemoveImageAsync()
+    {
+        if (await Confirm.AskAsync("Foto entfernen", "Soll das Foto des Objekts entfernt werden?", "Ja, Foto entfernen"))
+        {
+            await ApplyImageAsync(null, "Das Foto wurde entfernt.");
+        }
+    }
+
+    private async Task ApplyImageAsync(Guid? fileId, string success)
+    {
+        var result = await Admin.SetImageAsync(Id, fileId);
+        editErrors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditAsync() => await SaveAsync();
+}

@@ -1,0 +1,19 @@
+@using Elocaro.Application.Admin
+@inject NavigationManager Navigation
+@inject IModuleState Modules
+
+@* Tab bar of the current page (see AdminNavModel.TabsFor). *@
+@if (tabs is not null)
+{
+    <TabBar Tabs="tabs.Tabs" Label="@tabs.Label" />
+}
+
+@code {
+    private NavTabSet? tabs;
+
+    /// <summary>The property of a unit, room, meter or statement page; it gets that property's tabs.</summary>
+    [Parameter]
+    public Guid? PropertyId { get; set; }
+
+    protected override void OnParametersSet() => tabs = AdminNavModel.TabsFor(new Uri(Navigation.Uri).AbsolutePath, Modules, PropertyId);
+}

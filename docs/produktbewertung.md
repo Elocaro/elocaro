@@ -1,6 +1,6 @@
 # Produkt-, UX- und Vertriebsbewertung (Stand 24.10.2026, Commit 59527c2)
 
-Ergänzt die [Marktanalyse](marktanalyse.md). Sicht des UX-Experten und des Produktmanagers. Ziel: herausfinden, was fehlt, damit MietHahn in irgendeiner Form vertrieben werden kann.
+Ergänzt die [Marktanalyse](marktanalyse.md). Sicht des UX-Experten und des Produktmanagers. Ziel: herausfinden, was fehlt, damit Elocaro in irgendeiner Form vertrieben werden kann.
 
 ## 0. Methodik und Grenzen
 
@@ -17,7 +17,7 @@ Was der Test **nicht** belegt: Verhalten echter Erstnutzer (Zielgruppe), Lastver
 
 ## 1. Management Summary
 
-1. **Funktional und im Detail ist MietHahn auffallend reif.** Alle 36 geprüften Verwaltungsseiten antworten fehlerfrei, ohne Konsolenfehler; die Oberfläche läuft auf dem Handy ohne horizontales Scrollen; Vertrags-PDF, Einladungsmail, Mieterportal, CSV-Import und Zuordnungsvorschläge funktionierten im Test. Die Umsatzzuordnung mit Begründung je Vorschlag ist besser als alles, was die recherchierten Wettbewerber beschreiben.
+1. **Funktional und im Detail ist Elocaro auffallend reif.** Alle 36 geprüften Verwaltungsseiten antworten fehlerfrei, ohne Konsolenfehler; die Oberfläche läuft auf dem Handy ohne horizontales Scrollen; Vertrags-PDF, Einladungsmail, Mieterportal, CSV-Import und Zuordnungsvorschläge funktionierten im Test. Die Umsatzzuordnung mit Begründung je Vorschlag ist besser als alles, was die recherchierten Wettbewerber beschreiben.
 2. **Das größte UX-Problem sind versteckte Voraussetzungen.** Bis ein einfacher Mietvertrag als PDF vorliegt, muss man ein Vermieterprofil, Standardvorlagen, Wohnfläche und Buchhaltungsbeginn anlegen. Das System sagt das erst *nach* dem Fehlversuch. Der Einrichtungsassistent fragt nur Module ab (19 Schritte), nicht diese Daten.
 3. **Vertrieb scheitert heute nicht an Funktionen, sondern an Grundlagen:** Das Repository ist privat, es gibt **keine Lizenz**, keinen Release-Tag, kein öffentliches Image, und `global.json` verlangt ein .NET-11-Preview-SDK, das die dokumentierte Docker-/CI-Build-Kette sehr wahrscheinlich bricht (siehe 6.1).
 4. **Zielgruppenrealität:** Self-Hosting auf einem VPS schließt die breite Masse der Kleinvermieter aus. Der realistische Weg ist eine gestaffelte Strategie: erst Open Source für Selbsthoster (Reichweite, Feedback), dann ein verwaltetes Hosting (Einnahmen), flankiert von Installationshilfen.
@@ -46,7 +46,7 @@ Was der Test **nicht** belegt: Verhalten echter Erstnutzer (Zielgruppe), Lastver
 6. **Bedienung:** komplex, veraltet oder unübersichtlich.
 7. **Schwache Mobile-App.**
 
-MietHahn adressiert 2, 3, 4, 5 strukturell; 6 und 7 sind offen und hängen an der UX (Abschnitt 3).
+Elocaro adressiert 2, 3, 4, 5 strukturell; 6 und 7 sind offen und hängen an der UX (Abschnitt 3).
 
 ## 3. UX-Bewertung auf Basis des Tests
 
@@ -80,11 +80,11 @@ MietHahn adressiert 2, 3, 4, 5 strukturell; 6 und 7 sind offen und hängen an de
 | **P7** | **Personendialog zu schwergewichtig für den Normalfall** | Niedrig-Mittel | Der Dialog „Person anlegen“ zeigt 16 Felder (u. a. Titel, Firma, Kontaktart, Gewerk/Sparte, Geburtsdatum, Anschrift, Land) für den häufigsten Fall „Mieter mit Name und E-Mail“. |
 | **P8** | **Mieterportal zeigt bei künftigem Mietbeginn „Miete 0,00 €“** | Mittel (Fehler) | Vertrag mit Beginn 01.11.2026, heute 24.10.2026: Verwaltung zeigt korrekt 980,00 €, das Portal „Miete 0,00 € im Monat“ und „Monatliche Miete Gesamt 0,00 €“. Typischer Fall beim Anlegen vor Einzug. |
 | **P9** | **Portal zeigt keinen Zahlungsstand** | Mittel (Lücke) | Das Portal kennt Dokumente, Vertrag, Verbrauch, Nachrichten, Meldungen, Kontakt, aber weder Mieterkonto noch Salden oder Zahlungseingänge. Das ist der häufigste Mieter-Wunsch gegenüber Verwaltungen und ein Kernmerkmal von immocloud/hellohousing. |
-| **P10** | **Einladung ohne Rückfrage und ohne Status** | Niedrig-Mittel | „Zugang einrichten und einladen“ sendet sofort; die Seite zeigt danach nur „Konto anna@…“ ohne „Einladung gesendet am …“ oder erneutes Senden. Die Mail lag erst nach einigen Minuten im Postfach (Warteschlange), ohne Hinweis. Die Mail kommt von „MietHahn“ ohne Namen des Vermieters: Mieter könnten sie für Phishing halten. |
+| **P10** | **Einladung ohne Rückfrage und ohne Status** | Niedrig-Mittel | „Zugang einrichten und einladen“ sendet sofort; die Seite zeigt danach nur „Konto anna@…“ ohne „Einladung gesendet am …“ oder erneutes Senden. Die Mail lag erst nach einigen Minuten im Postfach (Warteschlange), ohne Hinweis. Die Mail kommt von „Elocaro“ ohne Namen des Vermieters: Mieter könnten sie für Phishing halten. |
 | **P11** | **Unterstützende Texte uneinheitlich** | Niedrig | Leerzustände duzen („Lege zuerst …“, „Füge unten …“), alles andere siezt. „Monatsmieten aktualisieren“ meldet „Die Monatsmieten sind aktuell“, auch wenn kein Buchhaltungsbeginn gesetzt ist (irreführend). „Abweichung zum Vorjahr (± %)“ im Assistenten hat keine Erklärung. |
 | **P12** | **CSV-Import erkennt Spalten nur teilweise** | Niedrig-Mittel | Mit der Kopfzeile „Auftraggeber/Empfänger“ blieb „Gegenseite“ leer; dadurch schlug die Zuordnung die Miete nur mit „48 % (niedrig)“ vor, obwohl Betrag, Wohnung und Zeitraum passten. Echte Bankexporte (z. B. Sparkasse) wurden nicht getestet; ein CSV-Profil lässt sich anlegen. |
 | **P13** | **Handy: Info-Schaltfläche belegt eine ganze Zeile; Karten ohne einheitlichen Innenabstand** | Niedrig | Im Portal beginnt Fließtext links bündig vor der Überschrift („Keine ungelesenen Dokumente.“); lange Formulare ohne mitlaufende Speichern-Schaltfläche. |
-| **P14** | **Kaution nur als Betrag und Notiz** | Lücke | Laut Assistent: „MietHahn verwaltet kein Kautionskonto.“ Anlage, Verzinsung, Rückzahlung und Verrechnung fehlen. |
+| **P14** | **Kaution nur als Betrag und Notiz** | Lücke | Laut Assistent: „Elocaro verwaltet kein Kautionskonto.“ Anlage, Verzinsung, Rückzahlung und Verrechnung fehlen. |
 
 ### 3.3 Aufgabenorientierte Messung (Einzelprüfer, geschätzt)
 
@@ -105,7 +105,7 @@ Nicht getestet: Heizkostenabrechnung, Mieterhöhung, Mahnlauf, Tickets/Handwerke
 
 ### 3.4 Vergleich Oberfläche (Einschätzung)
 
-| Kriterium | MietHahn | immocloud | objego | vermietet.de | WISO | hellohousing |
+| Kriterium | Elocaro | immocloud | objego | vermietet.de | WISO | hellohousing |
 |---|---|---|---|---|---|---|
 | Modernes Design | sehr gut | sehr gut | gut | mittel | schwach | gut |
 | Orientierung/Navigation | mittel (P6) | gut | gut | mittel | schwach | mittel |
@@ -120,9 +120,9 @@ Nicht getestet: Heizkostenabrechnung, Mieterhöhung, Mahnlauf, Tickets/Handwerke
 
 ## 4. Funktionsvergleich
 
-● vorhanden · ◐ teilweise/unklar · ○ fehlt. MietHahn-Spalte aus Test, Doku und Code; Wettbewerber aus Anbieterangaben und Testberichten.
+● vorhanden · ◐ teilweise/unklar · ○ fehlt. Elocaro-Spalte aus Test, Doku und Code; Wettbewerber aus Anbieterangaben und Testberichten.
 
-| Funktion | MietHahn | immocloud | objego | vermietet.de | WISO | hellohousing |
+| Funktion | Elocaro | immocloud | objego | vermietet.de | WISO | hellohousing |
 |---|---|---|---|---|---|---|
 | Objekte/Einheiten/WG-Zimmer | ● | ● | ● | ● | ● | ● |
 | Standard-/Index-/Staffelmiete | ● | ● | ◐ | ● | ● | ◐ |
@@ -176,10 +176,10 @@ Nicht getestet: Heizkostenabrechnung, Mieterhöhung, Mahnlauf, Tickets/Handwerke
 |---|---|---|---|
 | V1 | **Keine Lizenz.** Das Repository ist privat, hat keine `LICENSE`-Datei, keine Lizenzangabe auf GitHub. | Ohne Lizenz darf niemand die Software legal nutzen oder weitergeben. | Entscheidung + Datei, Stunden |
 | V2 | **`global.json` verlangt `11.0.100-preview.7.26381.103`** (Commit c9ddd0f „Updates“, vorher `10.0.100`), Zielframework ist `net10.0`. Auf einem Rechner mit SDK 10.0.401 bricht jeder `dotnet`-Befehl im Repo mit „A compatible .NET SDK was not found“ ab (so im Test geschehen; der Test lief mit einer lokal korrigierten Kopie). Das Dockerfile kopiert `global.json` in das Image `sdk:10.0`, die CI nutzt `global-json-file`. Beides schlägt dadurch sehr wahrscheinlich fehl; ich habe `docker build` und die CI-Läufe selbst nicht ausgeführt. | Release-Image und Selbstbau nicht möglich. Vermutlich unbeabsichtigt. | Minuten, aber sofort |
-| V3 | **Kein Release.** Keine Git-Tags, keine GitHub-Releases, GHCR-Paket nicht veröffentlicht (privat). Dokumentierter Install-Weg nutzt `ghcr.io/ther00st3r/miethahn:latest`. | Die Installationsanleitung läuft für Dritte ins Leere. | Stunden |
+| V3 | **Kein Release.** Keine Git-Tags, keine GitHub-Releases, GHCR-Paket nicht veröffentlicht (privat). Dokumentierter Install-Weg nutzt `ghcr.io/elocaro/elocaro:latest`. | Die Installationsanleitung läuft für Dritte ins Leere. | Stunden |
 | V4 | **Haftung und Rechtsstände.** Die App kennzeichnet selbst: Vorlagen „Texte vor dem Einsatz prüfen“, CO₂-Tabellen und Gradtagszahlen „Stand/prüfen“, Mahnvorlage „rechtlich prüfen“, FinTS „nur gegen Beispieldaten getestet“. | Für Dritte brauchbar nur mit Haftungsausschluss, juristisch geprüften Standardtexten und einem Pflegeprozess (z. B. Basiszinssatz halbjährlich, CO₂-Stufen, VPI). | Wochen, fortlaufend |
-| V5 | **Name und Marke.** „MietHahn“ ist nicht geprüft (DPMA/EUIPO), Domain/Handle unklar. FinTS-Registrierung ist für „MietHahn“ eingetragen. | Umbenennung nach Start wäre teuer (Registrierung, Image-Namen). | Tage |
-| V6 | **Kein sichtbarer Auftritt.** README ohne Screenshots, Demo oder „Warum MietHahn“; keine Landingpage, keine Beispieldaten. | Interessenten können nicht ohne Installation beurteilen. | Tage |
+| V5 | **Name und Marke.** „Elocaro“ ist nicht geprüft (DPMA/EUIPO), Domain/Handle unklar. FinTS-Registrierung ist für „Elocaro“ eingetragen. | Umbenennung nach Start wäre teuer (Registrierung, Image-Namen). | Tage |
+| V6 | **Kein sichtbarer Auftritt.** README ohne Screenshots, Demo oder „Warum Elocaro“; keine Landingpage, keine Beispieldaten. | Interessenten können nicht ohne Installation beurteilen. | Tage |
 | V7 | **Installationshürde.** VPS, Domain, DNS, Docker, SMTP, Backup-Ziel. Bei typischen Kleinvermietern nicht vorhanden. | Reichweite auf Technikaffine begrenzt. | siehe 6.3 |
 | V8 | **Kein Support-Kanal.** Weder Forum noch Issue-Vorlagen noch Zusagen. | Wiederholt genau die Kritik an vermietet.de. | gering, aber laufend |
 
@@ -209,7 +209,7 @@ Nicht getestet: Heizkostenabrechnung, Mieterhöhung, Mahnlauf, Tickets/Handwerke
 
 ### 6.4 Positionierung (Vorschlag)
 
-> **MietHahn: die Vermieterverwaltung, die Ihnen gehört.** Nebenkosten- und Heizkostenabrechnung nach deutschem Recht, Bankabgleich, Mieterportal und Steuerunterlagen, ohne Abo-Falle, mit allen Daten bei Ihnen und einem Export, der ohne MietHahn lesbar bleibt.
+> **Elocaro: die Vermieterverwaltung, die Ihnen gehört.** Nebenkosten- und Heizkostenabrechnung nach deutschem Recht, Bankabgleich, Mieterportal und Steuerunterlagen, ohne Abo-Falle, mit allen Daten bei Ihnen und einem Export, der ohne Elocaro lesbar bleibt.
 
 Belegbare Aussagen für die Außendarstellung: alle Daten exportierbar (Vollexport JSON/CSV/ZIP), keine Module hinter Bezahlschranke, Heizkosten-Eigenabrechnung mit CO₂-Aufteilung, WG-Zimmerverträge, Eigentümer je Objekt, 2FA-Pflicht, hohe Testabdeckung (165 Testdateien im Repository, fachliche Tests für Rechenkerne). Nicht behaupten, solange nicht belegt: „rechtssicher“, „FinTS für alle Banken“.
 
@@ -228,7 +228,7 @@ Belegbare Aussagen für die Außendarstellung: alle Daten exportierbar (Vollexpo
 1. Lizenz und Geschäftsmodell (AGPL/Open Core/Hosting-Vorbehalt).
 2. Primäre Zielgruppe: Selbsthoster oder wachsender Privatvermieter mit Hosting?
 3. Wer pflegt Rechtsstände dauerhaft, und mit welcher Haftungsaussage?
-4. Markenprüfung für „MietHahn“ vor dem öffentlichen Start.
+4. Markenprüfung für „Elocaro“ vor dem öffentlichen Start.
 5. Portalumfang: Mieterkonto lesend ja/nein; Zahlungen bewusst ausgeschlossen?
 
 ## 8. Methodenhinweis zur Aussagekraft
@@ -251,7 +251,7 @@ Anlass: Ziel „die einfachste und vollständigste Software zur Unterstützung v
 
 ### 9.2 Wo Wettbewerber heute besser sind
 
-| Bereich | Wettbewerber | MietHahn | Wirkung auf das Ziel | Issue |
+| Bereich | Wettbewerber | Elocaro | Wirkung auf das Ziel | Issue |
 |---|---|---|---|---|
 | **Betrieb ohne Technik** | SaaS, Anmeldung genügt | Selbst betriebener Server | größte Hürde für Kleinvermieter | Hosting-Pilot (#100), Skript (erledigt) |
 | **Bankanbindung** | immocloud über finAPI, hellohousing | FinTS direkt, nur gegen Beispieldaten getestet, photoTAN fehlt; CSV-Import als Rückweg | Automatik ist ein Kernversprechen | #107 |
@@ -276,7 +276,7 @@ Was die Wettbewerber **nicht** besser machen (nach den Quellen): Mieterportal gi
 
 ### 9.4 Einordnung zum Ziel
 
-- **Vollständig:** Für private Vermieter mit Wohnraum deckt MietHahn den Ablauf von Einzug bis Auszug, Miete, Nebenkosten, Heizkosten, Kaution, Steuer und Mieterportal ab, mit mehr eingebauter Führung (Checkliste, Voraussetzungen vorab, Erklärungen je Seite) als die recherchierten Wettbewerber. Es bleiben die Lücken in 9.3 und die Bankanbindung.
+- **Vollständig:** Für private Vermieter mit Wohnraum deckt Elocaro den Ablauf von Einzug bis Auszug, Miete, Nebenkosten, Heizkosten, Kaution, Steuer und Mieterportal ab, mit mehr eingebauter Führung (Checkliste, Voraussetzungen vorab, Erklärungen je Seite) als die recherchierten Wettbewerber. Es bleiben die Lücken in 9.3 und die Bankanbindung.
 - **Einfach:** Die Bedienung ist nach dem zweiten Durchlauf ohne Fehlversuch möglich; die größte Hürde ist nicht die Oberfläche, sondern der Betrieb (Server, Domain, Mailversand). Ob die Oberfläche für Erstnutzer einfach genug ist, belegt nur der Test mit echten Vermietern (#90).
 - **Ehrlich zu sagen:** Funktionsumfang und Rechtstexte sind hinter ihren Anbietern bei Support, Apps und geprüften Texten. Das lässt sich im Nebenprojekt nur teilweise schließen; die Reihenfolge der Issues #104 bis #111 folgt dem Nutzen für das Ziel.
 

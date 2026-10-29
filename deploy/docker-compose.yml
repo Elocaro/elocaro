@@ -1,16 +1,16 @@
-# MietHahn – production on a VPS
+# Elocaro – production on a VPS
 #   cp deploy/.env.example deploy/.env   # adjust values
 #   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
-name: miethahn
+name: elocaro
 
 services:
   app:
-    image: ${MIETHAHN_IMAGE:-ghcr.io/ther00st3r/miethahn:latest}
+    image: ${ELOCARO_IMAGE:-ghcr.io/elocaro/elocaro:latest}
     build:
       context: ..
       dockerfile: Dockerfile
       args:
-        VERSION: ${MIETHAHN_VERSION:-0.0.0-dev}
+        VERSION: ${ELOCARO_VERSION:-0.0.0-dev}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -18,11 +18,11 @@ services:
       gotenberg:
         condition: service_started
     environment:
-      ConnectionStrings__MietHahn: "Host=postgres;Database=miethahn;Username=miethahn;Password=${POSTGRES_PASSWORD};GSS Encryption Mode=Disable"
-      Application__BaseUrl: "https://${MIETHAHN_DOMAIN}/"
+      ConnectionStrings__Elocaro: "Host=postgres;Database=elocaro;Username=elocaro;Password=${POSTGRES_PASSWORD};GSS Encryption Mode=Disable"
+      Application__BaseUrl: "https://${ELOCARO_DOMAIN}/"
       Pdf__GotenbergUrl: "http://gotenberg:3000"
       Mail__SenderAddress: ${MAIL_SENDER}
-      Mail__SenderName: ${MAIL_SENDER_NAME:-MietHahn}
+      Mail__SenderName: ${MAIL_SENDER_NAME:-Elocaro}
       Mail__ReplyTo: ${MAIL_REPLY_TO:-}
       Mail__Smtp__Host: ${SMTP_HOST}
       Mail__Smtp__Port: ${SMTP_PORT:-587}
@@ -52,13 +52,13 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: miethahn
+      POSTGRES_USER: elocaro
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: miethahn
+      POSTGRES_DB: elocaro
     volumes:
       - postgres:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U miethahn -d miethahn"]
+      test: ["CMD-SHELL", "pg_isready -U elocaro -d elocaro"]
       interval: 10s
       retries: 10
     networks: [intern]
@@ -72,7 +72,7 @@ services:
 
   # Nightly backup (pg_dump + file storage) with restic; see docs/betrieb.md
   backup:
-    image: ${MIETHAHN_BACKUP_IMAGE:-ghcr.io/ther00st3r/miethahn-backup:latest}
+    image: ${ELOCARO_BACKUP_IMAGE:-ghcr.io/elocaro/elocaro-backup:latest}
     build:
       context: ./backup
     restart: unless-stopped
@@ -87,11 +87,11 @@ services:
       BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-7}
       BACKUP_KEEP_WEEKLY: ${BACKUP_KEEP_WEEKLY:-4}
       BACKUP_KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-12}
-      # S3-compatible targets (e.g. RESTIC_REPOSITORY=s3:https://s3.eu-central-1.amazonaws.com/bucket/miethahn)
+      # S3-compatible targets (e.g. RESTIC_REPOSITORY=s3:https://s3.eu-central-1.amazonaws.com/bucket/elocaro)
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
-      # Azure Blob Storage (e.g. RESTIC_REPOSITORY=azure:miethahn-backup:/); key or SAS token
+      # Azure Blob Storage (e.g. RESTIC_REPOSITORY=azure:elocaro-backup:/); key or SAS token
       AZURE_ACCOUNT_NAME: ${AZURE_ACCOUNT_NAME:-}
       AZURE_ACCOUNT_KEY: ${AZURE_ACCOUNT_KEY:-}
       AZURE_ACCOUNT_SAS: ${AZURE_ACCOUNT_SAS:-}
@@ -115,7 +115,7 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      MIETHAHN_DOMAIN: ${MIETHAHN_DOMAIN}
+      ELOCARO_DOMAIN: ${ELOCARO_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

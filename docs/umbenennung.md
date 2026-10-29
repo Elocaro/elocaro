@@ -55,3 +55,16 @@ Die neue Anwendung läuft in einem **neuen Stack** (`~/Elocaro`, neue Volumes, n
 - Ist FinTS in der Produktivinstanz eingerichtet?
 - Sind in der Produktivinstanz Push-Abonnements von Mietern in Gebrauch?
 - Gibt es in den Daten selbst (eigene Vorlagen, Absenderprofile, Aushänge) Texte mit dem alten Namen?
+
+## Stand Code-Umbenennung (29.10.2026)
+
+Umgesetzt: Projekte, Ordner, Namensräume, `ElocaroDbContext`, Konfigurationsschlüssel (`ConnectionStrings:Elocaro`), Umgebungsvariablen `ELOCARO_*`, Image-Namen, Compose-Projektname, Datenbank und Benutzer `elocaro`, Backup-Skript `elocaro-backup.sh` (Host und Tag `elocaro`), Name des Data-Protection-Schlüsselrings, Claim-Namen, Oberfläche, Mail- und PDF-Texte, Doku, neue Icons (SVG und PNG), Architekturtest `NamingRulesTests` gegen Rückfälle. Härtung: Nicht lesbare Push-Schlüssel werden ersetzt statt den Versand abzubrechen.
+
+**Offene Folgen außerhalb des Codes:**
+
+- **FinTS-Produktregistrierung** bei der Deutschen Kreditwirtschaft wurde unter dem früheren Produktnamen beantragt. Die Registrierungsnummer im Code bleibt unverändert. Die Namensänderung dem Registrierungsdienst melden (Kontakt über <https://www.fints.org/de/hersteller/produktregistrierung>) und klären, ob eine neue Registrierung nötig ist.
+- **Azure:** Ressourcengruppe und Backup-Container (`…-backup`) der bestehenden Instanz tragen noch den alten Namen. Die Doku beschreibt die Neuanlage mit neuen Namen; für den Umzug siehe Schritt 3 oben.
+- **Verzeichnis auf dem Entwicklungsrechner:** Der Arbeitsordner heißt noch wie früher; er lässt sich außerhalb von Git umbenennen.
+- **Repository und Pakete:** Umzug nach `github.com/elocaro/elocaro` und neue GHCR-Pakete stehen aus. Bis dahin zeigen Links in Doku und Website auf das künftige Repository.
+- **Screenshots** in README, `docs/bilder` und `site/` zeigen noch die alte Oberfläche und sind neu aufzunehmen.
+- **E-Mail-Adresse** in Impressum und Datenschutz der Website (bestehendes Postfach) gegen eine Adresse mit dem neuen Namen tauschen, sobald die Domain feststeht.

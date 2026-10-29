@@ -18,7 +18,7 @@ Ursprünglich war MariaDB vorgegeben. Der etablierte EF-Core-Provider Pomelo.Ent
 ## Begründung
 
 - Npgsql wird eng mit dem EF-Core-Team entwickelt und ist zu jeder EF-Version am ersten Tag verfügbar. Das Versions-Lag tritt nicht bei jedem .NET-Release erneut auf.
-- **Zeitraum-Typen (`daterange`) und Exclusion Constraints** (`btree_gist`) erzwingen überlappungsfreie Gültigkeiten direkt in der DB, z. B. „ein aktiver Vertrag je Mietobjekt“ oder „ein Mietbestandteil je Art und Zeitpunkt“. Das ist zentral für MietHahn, weil fast alles historisiert ist.
+- **Zeitraum-Typen (`daterange`) und Exclusion Constraints** (`btree_gist`) erzwingen überlappungsfreie Gültigkeiten direkt in der DB, z. B. „ein aktiver Vertrag je Mietobjekt“ oder „ein Mietbestandteil je Art und Zeitpunkt“. Das ist zentral für Elocaro, weil fast alles historisiert ist.
 - **Transaktionale DDL:** Eine fehlgeschlagene Migration wird vollständig zurückgerollt.
 - Strenge Typen und `numeric` ohne stilles Abschneiden. `jsonb` für Rechenprotokolle, OCR-Ergebnisse und Audit-Diffs.
 - Betrieb (Docker, `pg_dump`, Testcontainers) ist gleichwertig einfach.

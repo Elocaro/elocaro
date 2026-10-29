@@ -22,14 +22,14 @@
 
 ```
 src/
-  MietHahn.Domain/          Entitäten, Value Objects (Geld, Zeitraum, Fläche), Domänenregeln, reine Rechenkerne
-  MietHahn.Application/     Use Cases (Commands/Queries), Interfaces (IBankImporter, IReceiptExtractor, IPdfRenderer, IMailer)
-  MietHahn.Infrastructure/  EF Core (PostgreSQL), Migrations, Banking-Parser, FinTS, OCR-Provider, Gotenberg, MailKit, Quartz
-  MietHahn.Web/             Blazor SSR: Areas /verwaltung, /portal (Mieter), /service (Hausmeister/Handwerker)
+  Elocaro.Domain/          Entitäten, Value Objects (Geld, Zeitraum, Fläche), Domänenregeln, reine Rechenkerne
+  Elocaro.Application/     Use Cases (Commands/Queries), Interfaces (IBankImporter, IReceiptExtractor, IPdfRenderer, IMailer)
+  Elocaro.Infrastructure/  EF Core (PostgreSQL), Migrations, Banking-Parser, FinTS, OCR-Provider, Gotenberg, MailKit, Quartz
+  Elocaro.Web/             Blazor SSR: Areas /verwaltung, /portal (Mieter), /service (Hausmeister/Handwerker)
 tests/
-  MietHahn.Domain.Tests/        Rechenkerne (NK, HK, CO₂, AfA, Index) mit Golden-Master-Fällen
-  MietHahn.Integration.Tests/   Testcontainers PostgreSQL, Gotenberg
-  MietHahn.Web.Tests/           bUnit + Playwright E2E
+  Elocaro.Domain.Tests/        Rechenkerne (NK, HK, CO₂, AfA, Index) mit Golden-Master-Fällen
+  Elocaro.Integration.Tests/   Testcontainers PostgreSQL, Gotenberg
+  Elocaro.Web.Tests/           bUnit + Playwright E2E
 deploy/
   docker-compose.yml, Caddyfile, backup/
 ```
@@ -48,7 +48,7 @@ deploy/
 
 ## Architekturregeln (Tests)
 
-`tests/MietHahn.Architecture.Tests` hält die Regeln dieses Dokuments fest; ein Verstoß bricht den Build:
+`tests/Elocaro.Architecture.Tests` hält die Regeln dieses Dokuments fest; ein Verstoß bricht den Build:
 
 - **Schichten** (`LayerRulesTests`): Domain kennt nichts, Application nur Domain, Infrastructure nicht Web; die Domain nutzt keine Frameworks.
 - **Zugriff** (`AccessRulesTests`): Jede Seite mit `@page` nennt ihren Zugriff ausdrücklich (`[Authorize(Policy = …)]` an der Seite oder in der `_Imports.razor` des Ordners, sonst `[AllowAnonymous]`). Anonym sind nur die dort aufgelisteten Seiten (Anmeldung, Fehler, Links mit Token). Jeder Bereich verlangt seine Policy (Verwaltung, Eigentümer, Portal, Service). Die Fallback-Richtlinie („angemeldet“) ist nur das Netz darunter.

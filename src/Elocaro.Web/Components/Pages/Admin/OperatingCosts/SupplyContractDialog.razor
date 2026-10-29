@@ -1,0 +1,227 @@
+@using Elocaro.Domain.Receipts
+@using MudBlazor
+@inject ISupplyContracts Supply
+@inject Notifier Notify
+
+@* Dialog "create supply contract": choose what is supplied, the meters and the first tariff. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+
+            <h3>1. Was wird geliefert?</h3>
+            @if (Contract is null)
+            {
+                <AppSelect T="SupplyPreset" Value="preset" ValueChanged="OnPresetChanged" Label="Art der Lieferung" Items="SupplyPreset.All" Text="@(p => p.Label)" />
+                <p class="small">@preset.Description</p>
+            }
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Name" Label="Bezeichnung" Required="true" />
+                <AppTextField @bind-Value="data.Supplier" Label="Lieferant" />
+            </div>
+            @if (preset.Custom)
+            {
+                <div class="form-grid">
+                    <AppSelect T="string" @bind-Value="data.CostType" Label="Kostenart" Required="true" Items="costTypes.Select(t => t.Key).ToList()" Text="@(k => CostTypeName(k))" EmptyText="– bitte wählen –" />
+                    <AppSelect T="MeterType" Value="data.MeterType" ValueChanged="OnMeterTypeChanged" Label="Zählerart" Items="meterTypes" Text="Labels.From" />
+                    <AppSelect T="SupplyBasis" @bind-Value="data.Basis" Label="Verbrauch" Items="Enum.GetValues<SupplyBasis>()" Text="Labels.From" />
+                    <AppSelect T="PriceUnit" @bind-Value="data.PriceUnit" Label="Preiseinheit" Items="Enum.GetValues<PriceUnit>()" Text="Labels.From" />
+                    @if (IsHeating)
+                    {
+                        <AppSelect T="HeatingCostKind?" @bind-Value="data.HeatingKind" Label="Art der Heizkosten" Items="heatingKinds" Text="@(k => k is { } v ? Labels.From(v) : "")" EmptyText="– bitte wählen –" />
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="small">Kostenart: @CostTypeName(data.CostType) · Preis in @Labels.From(data.PriceUnit)</p>
+            }
+
+            <h3>2. Welche Zähler?</h3>
+            @if (meters.Count == 0)
+            {
+                <Notice Level="NoticeLevel.Warning">Für diese Zählerart gibt es noch keinen Zähler im Objekt. Bitte zuerst unter „Zähler“ anlegen.</Notice>
+            }
+            else
+            {
+                <fieldset class="field">
+                    <legend>@preset.MeterHint</legend>
+                    @foreach (var meter in meters)
+                    {
+                        <AppCheckBox Value="data.MeterIds.Contains(meter.Id)" ValueChanged="@(v => Toggle(meter.Id, v))" Label="@(meter.Label + (meter.IsHouseMeter ? "" : " · Wohnung"))" />
+                    }
+                </fieldset>
+            }
+
+            @if (data.Basis == SupplyBasis.MainMeter && hasUnitMeters)
+            {
+                @if (data.MeterType == MeterType.ColdWater)
+                {
+                    <AppSelect T="UnitMeterScope" @bind-Value="data.UnitMeters" Label="Wohnungszähler am Hauptzähler" Items="Enum.GetValues<UnitMeterScope>()" Text="Labels.From" Hint="Warmwasser wird aus dem Wasser des Hauptzählers erwärmt. Hat das Warmwasser einen eigenen Hauptzähler, nur Kaltwasser wählen." />
+                }
+
+                <AppSelect T="DeviationHandling" @bind-Value="data.Deviation" Label="Differenz Hauptzähler zu Wohnungszählern" Items="Enum.GetValues<DeviationHandling>()" Text="Labels.From" Hint="Zeigt der Hauptzähler mehr als die Wohnungszähler zusammen (Leitungsverlust, Garten, Zählertoleranz)?" />
+            }
+
+            @if (Contract is null)
+            {
+                <h3>3. Tarif</h3>
+                <div class="form-grid">
+                    <AppDateField @bind-Value="data.Tariff.From" Label="Gilt ab" Required="true" />
+                    <AppNumberField T="decimal?" @bind-Value="data.Tariff.UnitPrice" Label="@($"Preis ({Labels.From(data.PriceUnit)}, brutto)")" />
+                    <AppNumberField T="decimal?" @bind-Value="data.Tariff.BaseFeePerMonth" Label="Grundpreis je Monat (brutto)" Suffix="€" />
+                </div>
+                <p class="small">Später wechselnde Preise legen Sie als weiteren Tarif mit Stichtag an.</p>
+            }
+            else
+            {
+                <p class="small">Die Tarife bearbeiten Sie in der Tabelle des Vertrags.</p>
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(Contract is null ? "Vertrag anlegen" : "Speichern")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private static readonly MeterType[] meterTypes = [MeterType.ColdWater, MeterType.Electricity, MeterType.Gas, MeterType.Heat, MeterType.HotWater];
+    private static readonly HeatingCostKind?[] heatingKinds = Enum.GetValues<HeatingCostKind>().Select(k => (HeatingCostKind?)k).ToArray();
+    private static readonly IReadOnlyList<Elocaro.Domain.Receipts.CostType> costTypes = Elocaro.Domain.Receipts.CostTypes.All.Where(t => t.Allocable).ToList();
+
+    private SupplyContractInput data = new();
+    private SupplyPreset preset = SupplyPreset.All[0];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid PropertyId { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<MeterOption> AllMeters { get; set; } = [];
+
+    [Parameter]
+    public DateOnly DefaultFrom { get; set; }
+
+    /// <summary>Set: edit this contract (the tariffs stay) instead of creating a new one.</summary>
+    [Parameter]
+    public SupplyContractView? Contract { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>The usual types supply the whole house (main meters); only the free choice offers the meters of the flats too.</summary>
+    private IReadOnlyList<MeterOption> meters => [.. AllMeters.Where(m => m.Type == data.MeterType && (preset.Custom || m.IsHouseMeter))];
+
+    private bool hasUnitMeters => AllMeters.Any(m => m.Type == data.MeterType && !m.IsHouseMeter);
+
+    private bool IsHeating => Elocaro.Domain.Receipts.CostTypes.Find(data.CostType) is { } type && CostGroups.Of(type.Key) == CostGroup.Heating;
+
+    protected override void OnInitialized()
+    {
+        data.Tariff.From = DefaultFrom;
+        if (Contract is { } contract)
+        {
+            preset = SupplyPreset.All[^1];
+            data = new SupplyContractInput
+            {
+                Name = contract.Name,
+                Supplier = contract.Supplier,
+                CostType = contract.CostType,
+                MeterType = contract.MeterType,
+                Basis = contract.Basis,
+                PriceUnit = contract.PriceUnit,
+                HeatingKind = contract.HeatingKind,
+                Deviation = contract.Deviation,
+                UnitMeters = contract.UnitMeters,
+                MeterIds = [.. contract.MeterIds ?? []],
+            };
+            return;
+        }
+
+        Apply(preset);
+    }
+
+    private void OnPresetChanged(SupplyPreset value)
+    {
+        preset = value;
+        Apply(value);
+    }
+
+    private void Apply(SupplyPreset value)
+    {
+        if (!value.Custom)
+        {
+            data.CostType = value.CostType;
+            data.MeterType = value.MeterType;
+            data.Basis = value.Basis;
+            data.PriceUnit = value.PriceUnit;
+            data.HeatingKind = value.HeatingKind;
+        }
+
+        data.Name = value.Name;
+        data.MeterIds.Clear();
+
+        // A single main meter of the type is the obvious choice.
+        var houseMeters = meters.Where(m => m.IsHouseMeter).ToList();
+        if (houseMeters.Count == 1 && !value.Custom)
+        {
+            data.MeterIds.Add(houseMeters[0].Id);
+        }
+    }
+
+    private void OnMeterTypeChanged(MeterType type)
+    {
+        data.MeterType = type;
+        data.MeterIds.Clear();
+        data.PriceUnit = type is MeterType.Gas or MeterType.Electricity or MeterType.Heat ? PriceUnit.KilowattHour : PriceUnit.CubicMeter;
+    }
+
+    private void Toggle(Guid id, bool selected)
+    {
+        if (selected)
+        {
+            if (!data.MeterIds.Contains(id))
+            {
+                data.MeterIds.Add(id);
+            }
+        }
+        else
+        {
+            data.MeterIds.Remove(id);
+        }
+    }
+
+    private static string CostTypeName(string? key) =>
+        Elocaro.Domain.Receipts.CostTypes.Find(key ?? "") is { } type ? (type.BetrKvNumber is { } n ? $"{n}. " : "") + type.Name : "";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = Contract is { } contract ? await Supply.UpdateAsync(contract.Id, data) : await Supply.CreateAsync(PropertyId, data);
+        if (result.Succeeded)
+        {
+            Notify.Success(Contract is null ? "Der Versorgungsvertrag wurde angelegt." : "Der Versorgungsvertrag wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(result.Id));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    /// <summary>Typical supply contracts with their cost type, meter type and price unit; "Andere" leaves everything open.</summary>
+    internal sealed record SupplyPreset(string Label, string Name, string Description, string MeterHint, bool Custom, string CostType, MeterType MeterType, SupplyBasis Basis, PriceUnit PriceUnit, HeatingCostKind? HeatingKind)
+    {
+        public static IReadOnlyList<SupplyPreset> All { get; } =
+        [
+            new("Wasser (Frischwasser)", "Wasser", "Kosten der Wasserversorgung (Nr. 2 BetrKV) nach dem Verbrauch am Hauptwasserzähler.", "Hauptwasserzähler des Hauses", false, "betrkv-02", MeterType.ColdWater, SupplyBasis.MainMeter, PriceUnit.CubicMeter, null),
+            new("Abwasser (Entwässerung)", "Abwasser", "Kosten der Entwässerung (Nr. 3 BetrKV), meist nach dem Frischwasserverbrauch berechnet.", "Hauptwasserzähler des Hauses", false, "betrkv-03", MeterType.ColdWater, SupplyBasis.MainMeter, PriceUnit.CubicMeter, null),
+            new("Allgemeinstrom (Treppenhaus, Keller)", "Allgemeinstrom", "Nr. 11 BetrKV: Hauptzähler minus die Zähler der Wohnungen. Bitte den Hauptzähler wählen.", "Hauptstromzähler des Hauses", false, "betrkv-11", MeterType.Electricity, SupplyBasis.CommonArea, PriceUnit.KilowattHour, null),
+            new("Gas für die Heizung", "Gas", "Brennstoff der Heizung (Nr. 4 BetrKV): Verbrauch am Gaszähler, Abrechnung nach Heizkostenverordnung. Der Energieinhalt je m³ steht in den Heizungseinstellungen.", "Gaszähler des Hauses", false, "betrkv-04", MeterType.Gas, SupplyBasis.MainMeter, PriceUnit.KilowattHour, HeatingCostKind.Fuel),
+            new("Andere Lieferung", "", "Alle Angaben selbst wählen.", "Zähler, aus deren Verbrauch die Kosten berechnet werden", true, "", MeterType.ColdWater, SupplyBasis.MainMeter, PriceUnit.CubicMeter, null),
+        ];
+    }
+}

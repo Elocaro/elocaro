@@ -9,20 +9,20 @@
 set -eu
 
 cd "$(dirname "$0")/.."
-export MIETHAHN_IMAGE="${1:-miethahn:lokal}"
-export MIETHAHN_BACKUP_IMAGE="${2:-miethahn-backup:lokal}"
-export MIETHAHN_DOMAIN=localhost ACME_EMAIL=test@example.de POSTGRES_PASSWORD=restoretest
+export ELOCARO_IMAGE="${1:-elocaro:lokal}"
+export ELOCARO_BACKUP_IMAGE="${2:-elocaro-backup:lokal}"
+export ELOCARO_DOMAIN=localhost ACME_EMAIL=test@example.de POSTGRES_PASSWORD=restoretest
 export MAIL_SENDER=test@example.de SMTP_HOST=localhost RESTIC_PASSWORD=restoretest
 WORKDIR=$(mktemp -d)
 export BACKUP_LOCAL_PATH="$WORKDIR/repo" BACKUP_SSH_PATH="$WORKDIR/ssh"
 
-dc() { docker compose -p miethahn-restoretest -f docker-compose.yml "$@"; }
+dc() { docker compose -p elocaro-restoretest -f docker-compose.yml "$@"; }
 log() { printf '\n==> %s\n' "$*"; }
 cleanup_files() {
     rc=$?
     dc down -v --remove-orphans > /dev/null 2>&1 || true
     # The repository is owned by root (from the container); without root privileges (CI runner) delete it inside the container.
-    docker run --rm --entrypoint sh -v "$WORKDIR:/cleanup" "$MIETHAHN_BACKUP_IMAGE" -c 'rm -rf /cleanup/repo /cleanup/ssh' > /dev/null 2>&1 || true
+    docker run --rm --entrypoint sh -v "$WORKDIR:/cleanup" "$ELOCARO_BACKUP_IMAGE" -c 'rm -rf /cleanup/repo /cleanup/ssh' > /dev/null 2>&1 || true
     rm -rf "$WORKDIR" || true
     exit "$rc"
 }

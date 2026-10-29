@@ -1,0 +1,91 @@
+@page "/verwaltung/system/datensicherung"
+@using Elocaro.Application.Operations
+@using Elocaro.Web.Operations
+@inject IBackupStatus BackupStatus
+
+<PageHeader Title="Datensicherung" Subtitle="Nächtliches Backup, Wiederherstellung und Vollexport aller Daten." />
+
+<section>
+    <h2>Letzte Sicherung</h2>
+    @if (state is not null)
+    {
+        <Notice Level="Level(state.State)">@state.Description</Notice>
+        @if (state.Timestamp is not null)
+        {
+            <dl class="details">
+                <dt>Zeitpunkt</dt>
+                <dd>@Format.Timestamp(state.Timestamp)</dd>
+                <dt>Ergebnis</dt>
+                <dd>
+                    @if (state.State == BackupState.Failed)
+                    {
+                        <StatusChip Level="StatusLevel.Error">fehlgeschlagen</StatusChip>
+                    }
+                    else
+                    {
+                        <StatusChip Level="StatusLevel.Success">erfolgreich</StatusChip>
+                    }
+                </dd>
+                @if (state.Snapshot is not null)
+                {
+                    <dt>Snapshot</dt>
+                    <dd><code>@state.Snapshot[..Math.Min(8, state.Snapshot.Length)]</code></dd>
+                }
+                @if (state.DurationSeconds is not null)
+                {
+                    <dt>Dauer</dt>
+                    <dd>@state.DurationSeconds s</dd>
+                }
+                @if (!string.IsNullOrWhiteSpace(state.Message))
+                {
+                    <dt>Meldung</dt>
+                    <dd>@state.Message</dd>
+                }
+            </dl>
+        }
+
+        @if (state.State == BackupState.NotConfigured)
+        {
+            <p>Der Backup-Container aus <code>deploy/docker-compose.yml</code> meldet hier sein Ergebnis, sobald
+            <code>Backup__StatusFile</code> gesetzt ist. Einrichtung: <code>docs/betrieb.md</code>, Abschnitt „Backup“.</p>
+        }
+        else if (state.NeedsAttention)
+        {
+            <p>Logs prüfen und eine Sicherung von Hand anstoßen:</p>
+            <pre><code>docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs backup
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm backup backup</code></pre>
+            <p>Solange das Problem besteht, erhalten Administratoren täglich um 8 Uhr eine Warnung per E-Mail.</p>
+        }
+    }
+</section>
+
+<section>
+    <h2>Vollexport</h2>
+    <p>Alle Daten als ZIP: jede Tabelle als JSON und CSV (für Excel), dazu alle hochgeladenen Dateien und eine
+    Beschreibung des Formats. Der Export ist ohne Elocaro lesbar, enthält aber keine Passwörter oder Anmeldetokens.
+    Er enthält alle personenbezogenen Daten: sicher aufbewahren. Der Export wird im Audit-Log vermerkt.</p>
+    <form method="post" action="@ExportEndpoint.Path">
+        <AntiforgeryToken />
+        <button type="submit" class="button button-primary">Vollexport herunterladen</button>
+    </form>
+</section>
+
+<section>
+    <h2>Wiederherstellen</h2>
+    <p>Eine Sicherung wird auf dem Server eingespielt, nicht hier in der Oberfläche: App stoppen, dann
+    <code>run --rm backup wiederherstellen</code>. Die Schritt-für-Schritt-Anleitung (auch für einen neuen Server)
+    steht in <code>docs/betrieb.md</code>.</p>
+</section>
+
+@code {
+    private BackupSnapshot? state;
+
+    protected override async Task OnInitializedAsync() => state = await BackupStatus.QueryAsync();
+
+    private static NoticeLevel Level(BackupState level) => level switch
+    {
+        BackupState.Ok => NoticeLevel.Success,
+        BackupState.NotConfigured => NoticeLevel.Info,
+        _ => NoticeLevel.Error,
+    };
+}

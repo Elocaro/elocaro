@@ -4,7 +4,7 @@
 
 ## Idee
 
-MietHahn stützt sich auf Werte aus Gesetz und Statistik (Seite *Einstellungen → Rechtsstände*): Basiszinssatz, Verbraucherpreisindex, CO₂-Stufentabelle, Gradtagszahlen und die Standardvorlagen. Heute pflegt der Betreiber der Installation sie von Hand. Das Abo liefert sie als **geprüfte, signierte Aktualisierung**: Die Installation erfährt, dass sich etwas ändert, prüft die Signatur und übernimmt die Werte mit einem Klick.
+Elocaro stützt sich auf Werte aus Gesetz und Statistik (Seite *Einstellungen → Rechtsstände*): Basiszinssatz, Verbraucherpreisindex, CO₂-Stufentabelle, Gradtagszahlen und die Standardvorlagen. Heute pflegt der Betreiber der Installation sie von Hand. Das Abo liefert sie als **geprüfte, signierte Aktualisierung**: Die Installation erfährt, dass sich etwas ändert, prüft die Signatur und übernimmt die Werte mit einem Klick.
 
 Verkauft wird die **Verantwortung und Pflege**, nicht der Zugriff auf öffentliche Zahlen. Basiszinssatz und Index sind öffentlich; wer sie selbst eintragen will, kann das weiter kostenlos.
 
@@ -17,7 +17,7 @@ Verkauft wird die **Verantwortung und Pflege**, nicht der Zugriff auf öffentlic
 | Standardvorlagen (Mietvertrag, Mieterhöhung, Mahnung …) | mitgeliefert, „vor dem Einsatz prüfen“ | rechtlich geprüfte Fassungen mit Version und Prüfdatum, bei Rechtsprechungsänderungen aktualisiert |
 | Hinweis bei Änderungen | Dashboard-Hinweis bei veralteten Werten (vorhanden) | Hinweis mit konkretem Änderungstext |
 
-Ohne Abo bleibt MietHahn voll nutzbar; es gibt keine Sperre.
+Ohne Abo bleibt Elocaro voll nutzbar; es gibt keine Sperre.
 
 ## Paketformat
 
