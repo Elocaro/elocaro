@@ -2,7 +2,7 @@
 
 **Die Vermieterverwaltung, die Ihnen gehört.** Elocaro ist eine selbst betriebene Verwaltung für private Vermieter: Objekte, Mieter und Verträge, Mieteingänge, Nebenkosten- und Heizkostenabrechnung, Steuerunterlagen und ein Mieterportal. Alle Daten liegen bei Ihnen, jederzeit vollständig exportierbar, ohne Abo und ohne Module hinter einer Bezahlschranke.
 
-![Umsätze zuordnen: Vorschläge mit Begründung](docs/bilder/umsaetze-zuordnen.png)
+![Haus heute: Wohnungen, WG-Zimmer und Belegung auf einen Blick](docs/bilder/haus-belegung.png)
 
 ## Was Elocaro kann
 
@@ -14,9 +14,9 @@
 - **Dokumente:** Mietvertrag, Mieterhöhung, Übergabeprotokoll, Schreiben aus Vorlagen als PDF.
 - **Betrieb:** Zwei-Faktor-Anmeldung, Audit-Log, nächtliche Datensicherung, Vollexport (JSON/CSV/Dateien), Handy-Oberfläche und installierbare Web-App.
 
-| Abrechnungs-Assistent | Mietvertrag | Handy |
+| Objekt mit Einheiten | Umsätze zuordnen | Handy |
 |---|---|---|
-| ![Abrechnungs-Assistent](docs/bilder/abrechnungs-assistent.png) | ![Mietvertrag](docs/bilder/mietvertrag.png) | ![Aufgaben auf dem Handy](docs/bilder/handy-aufgaben.png) |
+| ![Objekt mit Wohnungen, WG-Zimmern und Mietern](docs/bilder/objekt-uebersicht.png) | ![Umsätze zuordnen](docs/bilder/umsaetze-zuordnen.png) | ![Belegung auf dem Handy](docs/bilder/handy-belegung.png) |
 
 ## Für wen ist das?
 
@@ -34,12 +34,9 @@ git clone https://github.com/Elocaro/elocaro.git && cd elocaro
 
 Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, Zwei-Faktor-Anmeldung, Einrichtungsassistent).
 
-## Grenzen (ehrlich gesagt)
+## Grenzen
 
-- Elocaro ist **keine Rechts- und keine Steuerberatung**. Vorlagen, Rechenwerte (Basiszinssatz, CO₂-Stufen, Gradtagszahlen) und Hinweise sind Arbeitshilfen. Prüfen Sie Texte und Beträge, bevor Sie sie verwenden oder versenden. Die Seite „Über Elocaro“ und die Seiteninfos nennen die jeweiligen Rechtsgrundlagen.
-- Der FinTS-Abruf ist bisher nur gegen Beispieldaten getestet; Verfahren mit Bild-TAN (photoTAN, QR) werden noch nicht angezeigt. Der Kontoauszug-Import per Datei funktioniert unabhängig davon.
-- Es gibt keine native App (nur die installierbare Web-App) und noch keine direkte ELSTER-Übermittlung.
-- Betrieb, Updates und Datensicherung liegen bei Ihnen. Hilfe gibt es über die [Issues](https://github.com/Elocaro/elocaro/issues), nicht über eine Hotline.
+Elocaro ist **keine Rechts- und keine Steuerberatung**. Vorlagen und Rechenwerte sind Arbeitshilfen; bitte vor dem Einsatz prüfen. Hilfe gibt es über die [Issues](https://github.com/Elocaro/elocaro/issues).
 
 **Stack:** .NET 10 · Blazor Static SSR · PostgreSQL · Docker Compose
 
