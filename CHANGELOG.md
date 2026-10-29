@@ -4,7 +4,12 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+## [0.1.0] - 2026-10-29
+
+Erste veröffentlichte Version.
+
 ### Geändert
+- **Marke:** Neue Farbwelt in Waldgrün (Erfolg als gelbliches Grün, damit Status und Marke unterscheidbar bleiben) und neues Logo (Dach über E); eigene Symbole für maskierbare und monochrome App-Icons.
 - **Umbenennung:** Das Produkt heißt jetzt **Elocaro** (bisher MietHahn): Projekte, Namensräume, Images, Umgebungsvariablen (`ELOCARO_*`), Datenbank, Oberfläche, Mails, PDF und Doku. Neues Logo und neue Icons (PNG für Installation und Apple-Touch). Bestehende Installationen ziehen per Sicherung und Wiederherstellung um: Alle Sitzungen enden, Push-Benachrichtigungen werden neu eingeschaltet, eine FinTS-Kennung ist neu einzugeben. Wiederherstellung mit nicht mehr lesbaren Push-Schlüsseln erzeugt jetzt neue Schlüssel statt abzubrechen.
 - Modulzyklen Documents↔Finance und Documents↔Leases aufgelöst: Serienbriefe und Dokumentbereitschaft liegen im eigenen Modul `Correspondence`, die Dokumentenbibliothek fragt Vertragsbezüge über `IDocumentLeaseSource` ab, die Leases implementiert; es bleibt ein Zyklus (Leases↔Properties).
 - Modulzyklus Leases↔Metering aufgelöst: Das Übergabeprotokoll (`Handovers`) verbindet Vertrag und Zähler und liegt deshalb in einem eigenen Modul `Handover`, das niemand sonst benutzt; die Baseline sinkt auf 3 Zyklen.
