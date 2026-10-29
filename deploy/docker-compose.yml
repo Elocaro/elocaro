@@ -107,7 +107,7 @@ services:
 
   # TLS (Let's Encrypt) and reverse proxy
   caddy:
-    image: caddy:2.10-alpine
+    image: caddy:2.11-alpine
     restart: unless-stopped
     depends_on: [app]
     ports:
