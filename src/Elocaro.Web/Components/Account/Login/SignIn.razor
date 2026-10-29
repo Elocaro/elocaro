@@ -14,15 +14,16 @@
 {
     <Notice Level="NoticeLevel.Info">
         <strong>Demo:</strong> Die Beispieldaten sind erfunden und werden jede Nacht zurückgesetzt. Bitte keine echten Daten eingeben.
-        Alle Konten haben das Passwort <code>@Demo.Value.AdminPassword</code>:
-        <ul>
-            <li><code>@Demo.Value.AdminEmail</code> (Administrator)</li>
-            @foreach (var user in DemoOptions.Users)
-            {
-                <li><code>@user.Email</code> (@user.Role: @user.Description)</li>
-            }
-        </ul>
+        Wählen Sie eine Rolle, die Anmeldung erfolgt automatisch.
     </Notice>
+    <EditForm Model="DemoLogin" FormName="demo-login" OnValidSubmit="DemoSignInAsync" class="demo-roles">
+        <button type="submit" name="DemoLogin.Email" value="@Demo.Value.AdminEmail" class="button button-outlined"><strong>Administrator</strong><span>alles, auch Einstellungen und Benutzer</span></button>
+        @foreach (var user in DemoOptions.Users)
+        {
+            <button type="submit" name="DemoLogin.Email" value="@user.Email" class="button button-outlined"><strong>@user.Role</strong><span>@user.Description</span></button>
+        }
+    </EditForm>
+    <p class="demo-hint">Oder manuell anmelden (Passwort für alle Konten: <code>@Demo.Value.AdminPassword</code>):</p>
 }
 
 <StatusMessage Message="@(SignedOut ? "Sie wurden abgemeldet." : null)" />
@@ -59,6 +60,9 @@
     [SupplyParameterFromForm(FormName = "login")]
     private SignInInput? Input { get; set; }
 
+    [SupplyParameterFromForm(FormName = "demo-login")]
+    private DemoLoginInput? DemoLogin { get; set; }
+
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
@@ -71,15 +75,28 @@
     protected override async Task OnInitializedAsync()
     {
         Input ??= new();
+        DemoLogin ??= new();
         if (HttpMethods.IsGet(HttpContext.Request.Method) && await Accounts.InitialSetupPossibleAsync())
         {
             Redirector.To("/konto/einrichtung");
         }
     }
 
-    private async Task SignInAsync()
+    private Task SignInAsync() => SignInAsync(Input!.Email.Trim(), Input.Password, Input.RememberMe);
+
+    /// <summary>Demo only: signs in as one of the demo accounts with the published password.</summary>
+    private async Task DemoSignInAsync()
     {
-        var result = await Login.PasswordSignInAsync(Input!.Email.Trim(), Input.Password, Input.RememberMe, lockoutOnFailure: true);
+        var email = DemoLogin!.Email;
+        if (Demo.Value.Enabled && (email == Demo.Value.AdminEmail || DemoOptions.Users.Any(u => u.Email == email)))
+        {
+            await SignInAsync(email, Demo.Value.AdminPassword, rememberMe: false);
+        }
+    }
+
+    private async Task SignInAsync(string email, string password, bool rememberMe)
+    {
+        var result = await Login.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
@@ -90,7 +107,7 @@
             Redirector.To("/konto/anmelden/zwei-faktor", new Dictionary<string, object?>
             {
                 ["ReturnUrl"] = ReturnUrl,
-                ["AngemeldetBleiben"] = Input.RememberMe,
+                ["AngemeldetBleiben"] = rememberMe,
             });
         }
         else if (result.IsLockedOut)
@@ -102,6 +119,11 @@
             // Deliberately no distinction (unknown address, wrong password, locked account).
             errors = "E-Mail-Adresse oder Passwort ist falsch.";
         }
+    }
+
+    private sealed class DemoLoginInput
+    {
+        public string Email { get; set; } = "";
     }
 
     private sealed class SignInInput

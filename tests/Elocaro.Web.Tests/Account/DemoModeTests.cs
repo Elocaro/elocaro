@@ -15,14 +15,18 @@ public class DemoModeTests(PostgresFixture postgres) : AccountTestBase(postgres)
     };
 
     [Fact]
-    public async Task Sign_in_page_shows_the_demo_credentials()
+    public async Task Sign_in_page_offers_a_button_per_role_and_the_password_for_manual_sign_in()
     {
         using var browser = App.Browser();
 
         var page = await browser.GetAsync("/konto/anmelden");
 
         Assert.Equal("/konto/anmelden", page.Path);
-        Assert.Contains(DemoEmail, page.Text, StringComparison.Ordinal);
+        foreach (var role in new[] { "Administrator", "Verwalter", "Hausmeister", "Handwerker", "Eigentümer", "Mieter" })
+        {
+            Assert.Contains(role, page.Text, StringComparison.Ordinal);
+        }
+
         Assert.Contains(DemoPassword, page.Text, StringComparison.Ordinal);
     }
 
@@ -80,5 +84,31 @@ public class DemoModeTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var start = await browser.GetAsync("/verwaltung");
 
         Assert.DoesNotContain("Datensicherung prüfen", start.Text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("demo@elocaro.de", "/verwaltung")]
+    [InlineData("mieter@elocaro.de", "/portal")]
+    public async Task A_demo_role_button_signs_in_without_typing_the_password(string email, string area)
+    {
+        using var browser = App.Browser();
+        var page = await browser.GetAsync("/konto/anmelden");
+
+        await browser.SubmitAsync(page, "demo-login", new Dictionary<string, string> { ["DemoLogin.Email"] = email });
+
+        var start = await browser.GetAsync("/");
+        Assert.StartsWith(area, start.Path, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_demo_button_does_not_sign_in_other_accounts()
+    {
+        using var browser = App.Browser();
+        var page = await browser.GetAsync("/konto/anmelden");
+
+        await browser.SubmitAsync(page, "demo-login", new Dictionary<string, string> { ["DemoLogin.Email"] = "unbekannt@example.de" });
+
+        var start = await browser.GetAsync("/", followRedirects: false);
+        Assert.Equal(HttpStatusCode.Redirect, start.Status);
     }
 }
