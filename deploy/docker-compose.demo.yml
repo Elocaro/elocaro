@@ -1,0 +1,23 @@
+# Elocaro as a public demo (throw-away data, published password). Use together with the production file on its OWN server:
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.demo.yml --env-file deploy/.env up -d
+# Details: docs/betrieb.md → "Demo-Instanz"
+services:
+  app:
+    environment:
+      Demo__Enabled: "true"
+      Demo__AdminEmail: ${DEMO_EMAIL:-demo@elocaro.de}
+      Demo__AdminPassword: ${DEMO_PASSWORD:?Demo-Passwort fehlt (DEMO_PASSWORD in deploy/.env)}
+      # Nobody receives mail from the demo: no sender, no SMTP server
+      Mail__Smtp__Host: ""
+      FinTs__ProductId: ""
+      ReceiptExtraction__Provider: None
+
+  # No backups: the demo starts from scratch every night
+  backup:
+    profiles: ["aus"]
+
+  caddy:
+    volumes:
+      - ./Caddyfile.demo:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config

@@ -1,9 +1,11 @@
 using System.Net;
 using System.Threading.RateLimiting;
+using Elocaro.Application.Setup;
 using Elocaro.Infrastructure.Identity;
 using Elocaro.Web.AccessControl;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace Elocaro.Web.Account;
 
@@ -62,7 +64,9 @@ internal static class AccountExtensions
     public static IApplicationBuilder UseTwoFactorRequirement(this IApplicationBuilder app) =>
         app.Use(async (context, next) =>
         {
+            // A public demo instance has no two-factor authentication (the password is published on the sign-in page).
             if (AccountClaims.MustSetUpTwoFactor(context.User)
+                && !context.RequestServices.GetRequiredService<IOptions<DemoOptions>>().Value.Enabled
                 && !context.Request.Path.StartsWithSegments(AccountPath, StringComparison.OrdinalIgnoreCase)
                 && !IsStaticFile(context.Request.Path))
             {

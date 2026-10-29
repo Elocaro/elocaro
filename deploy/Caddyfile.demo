@@ -1,0 +1,23 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$ELOCARO_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# the demo must not show up in search engines
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+
+	request_body {
+		max_size 5MB
+	}
+
+	reverse_proxy app:8080 {
+		health_uri /health/live
+		health_interval 30s
+	}
+}

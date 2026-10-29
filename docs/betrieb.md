@@ -331,6 +331,23 @@ Unabhängig vom Backup lässt sich unter *Einstellungen → Datensicherung* (Rec
 
 Nicht enthalten sind Passwort-Hashes, Tokens, Anmeldelinks und Cookie-Schlüssel. Jeder Export wird im Audit-Log vermerkt. Zum Wiederherstellen von Elocaro dient das Backup, nicht der Export.
 
+## Demo-Instanz
+
+Eine öffentliche Demo zeigt Elocaro mit erfundenen Beispieldaten (ein Haus, vier Wohnungen, drei Mieter). Sie gehört **auf einen eigenen Server**, getrennt von echten Daten: Der Demo-Benutzer ist Administrator mit veröffentlichtem Passwort, und Besucher können Dateien hochladen.
+
+1. Server wie unter [Installation](#installation) vorbereiten (Docker, Domain, z. B. `demo.example.de`) und das Repository klonen.
+2. `deploy/.env` aus `deploy/.env.example` anlegen: Domain, `POSTGRES_PASSWORD`, `RESTIC_PASSWORD` (wird nicht benutzt) und zusätzlich `DEMO_PASSWORD` (öffentlich) und optional `DEMO_EMAIL`.
+3. Starten:
+
+   ```bash
+   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.demo.yml --env-file deploy/.env up -d
+   ```
+
+   `Demo__Enabled=true` legt beim ersten Start den Demo-Benutzer an und lädt die Beispieldaten. Die Anmeldeseite zeigt E-Mail-Adresse und Passwort an, Zwei-Faktor ist abgeschaltet. Mail-Versand, Datensicherung und FinTS sind aus; die Seiten sind für Suchmaschinen gesperrt (`deploy/Caddyfile.demo`).
+4. Jede Nacht zurücksetzen (Cron): `30 3 * * * /pfad/zu/elocaro/deploy/demo/reset.sh >> /var/log/elocaro-demo-reset.log 2>&1`. Das Skript löscht Datenbank und Dateien und startet neu mit frischen Beispieldaten; das Zertifikat bleibt erhalten.
+
+Den Demo-Schalter **nie** auf einer Instanz mit echten Daten setzen.
+
 ## Hosting in Azure
 
 Eine Anleitung für den Betrieb auf einer Azure-VM (Ressourcen, Firewall, Blob-Backup, Budget) steht in [azure.md](azure.md).

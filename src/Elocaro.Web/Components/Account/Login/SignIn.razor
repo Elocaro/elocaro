@@ -2,10 +2,21 @@
 @inject IAccountService Accounts
 @inject SignInManager<ApplicationUser> Login
 @inject Redirector Redirector
+@using Elocaro.Application.Setup
+@using Microsoft.Extensions.Options
+@inject IOptions<DemoOptions> Demo
 
 <PageTitle>Anmelden – Elocaro</PageTitle>
 
 <h1>Anmelden</h1>
+
+@if (Demo.Value.Enabled)
+{
+    <Notice Level="NoticeLevel.Info">
+        <strong>Demo:</strong> Melden Sie sich mit <code>@Demo.Value.AdminEmail</code> und dem Passwort <code>@Demo.Value.AdminPassword</code> an.
+        Die Beispieldaten sind erfunden und werden jede Nacht zurückgesetzt. Bitte keine echten Daten eingeben.
+    </Notice>
+}
 
 <StatusMessage Message="@(SignedOut ? "Sie wurden abgemeldet." : null)" />
 <StatusMessage Message="@errors" IsError="true" />

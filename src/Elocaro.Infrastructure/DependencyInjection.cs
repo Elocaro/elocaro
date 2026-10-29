@@ -87,6 +87,7 @@ public static class DependencyInjection
 
         services.Configure<ApplicationOptions>(configuration.GetSection(ApplicationOptions.Section));
         services.Configure<FinTsOptions>(configuration.GetSection(FinTsOptions.Section));
+        services.Configure<Application.Setup.DemoOptions>(configuration.GetSection(Application.Setup.DemoOptions.Section));
 
         AddPersistence(services, configuration);
         AddIdentity(services);
