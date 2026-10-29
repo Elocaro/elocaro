@@ -36,7 +36,10 @@ git tag v0.1.0 && git push origin v0.1.0
 
 Vorher `CHANGELOG.md` (Abschnitt „Unveröffentlicht“ → neue Version mit Datum) abschließen. Die Version aus dem Tag landet über das Build-Argument `VERSION` in der Anwendung („Über Elocaro“).
 
-Neue GHCR-Pakete sind zunächst privat. Entweder unter *Packages → elocaro → Package settings* auf öffentlich stellen
-oder auf dem Server einmalig `docker login ghcr.io` mit einem Token (Scope `read:packages`) ausführen.
+Neue GHCR-Pakete sind zunächst privat, und die Compose-Dateien ziehen `ghcr.io/elocaro/elocaro:latest`. Nach dem **ersten**
+Release deshalb beide Pakete (`elocaro` und `elocaro-backup`) unter *Packages → Package settings → Danger Zone* auf
+**öffentlich** stellen (die Organisation muss öffentliche Pakete erlauben: *Organization settings → Packages*) und prüfen,
+dass `docker pull ghcr.io/elocaro/elocaro:latest` ohne Anmeldung funktioniert. Für ein privates Paket gilt stattdessen:
+auf dem Server einmalig `docker login ghcr.io` mit einem Token (Scope `read:packages`) ausführen.
 
 Abhängigkeiten aktualisiert Dependabot wöchentlich (EF Core/ASP.NET/Npgsql gruppiert, Quartz-Major ausgenommen).

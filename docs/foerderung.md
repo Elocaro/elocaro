@@ -8,7 +8,7 @@ Elocaro ist ein Nebenprojekt unter der AGPL-3.0 und bleibt frei nutzbar. Es gibt
 
 | Weg | Wofür | Hinweis |
 |---|---|---|
-| **Fehler und Erfahrungen melden** | Das Projekt verbessert sich am meisten durch echte Nutzung | [Issues](https://github.com/Elocaro/elocaro/issues) und Diskussionen; keine Mieterdaten in Beschreibungen |
+| **Fehler und Erfahrungen melden** | Das Projekt verbessert sich am meisten durch echte Nutzung | [Issues](https://github.com/Elocaro/elocaro/issues); keine Mieterdaten in Beschreibungen |
 | **Regelmäßig unterstützen** | Betrieb, Pflege, Fehlerbehebung | Über das Sponsoring-Konto, sobald es eingerichtet ist (siehe `.github/FUNDING.yml`) |
 | **Eine Funktion finanzieren** | Ihr Bedarf wird früher gebaut | [Feature-Sponsoring](feature-sponsoring.md) |
 | **Rechtsstände-Abo** (geplant) | Geprüfte Vorlagen und Tabellen als signierte Aktualisierungen | – |

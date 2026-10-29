@@ -39,7 +39,7 @@ Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, Zwei-Fak
 - Elocaro ist **keine Rechts- und keine Steuerberatung**. Vorlagen, Rechenwerte (Basiszinssatz, CO₂-Stufen, Gradtagszahlen) und Hinweise sind Arbeitshilfen. Prüfen Sie Texte und Beträge, bevor Sie sie verwenden oder versenden. Die Seite „Über Elocaro“ und die Seiteninfos nennen die jeweiligen Rechtsgrundlagen.
 - Der FinTS-Abruf ist bisher nur gegen Beispieldaten getestet; Verfahren mit Bild-TAN (photoTAN, QR) werden noch nicht angezeigt. Der Kontoauszug-Import per Datei funktioniert unabhängig davon.
 - Es gibt keine native App (nur die installierbare Web-App) und noch keine direkte ELSTER-Übermittlung.
-- Betrieb, Updates und Datensicherung liegen bei Ihnen. Hilfe gibt es über die [Diskussionen](https://github.com/Elocaro/elocaro/discussions) und [Issues](https://github.com/Elocaro/elocaro/issues), nicht über eine Hotline.
+- Betrieb, Updates und Datensicherung liegen bei Ihnen. Hilfe gibt es über die [Issues](https://github.com/Elocaro/elocaro/issues), nicht über eine Hotline.
 
 **Stack:** .NET 10 · Blazor Static SSR · PostgreSQL · Docker Compose
 

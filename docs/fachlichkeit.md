@@ -4,13 +4,15 @@ Anforderungen und Fachmodell. Rechtliche Hinweise sind Umsetzungshinweise, **kei
 
 ## Ausgangslage
 
-- 1 Mehrfamilienhaus mit 4 Wohneinheiten, eine davon ist eine **WG mit Einzelverträgen je Zimmer**. Weitere Häuser müssen verwaltbar sein.
+Elocaro ist auf diesen Zuschnitt ausgelegt:
+
+- Wohnhäuser mit mehreren Wohneinheiten, auch **WGs mit Einzelverträgen je Zimmer**. Beliebig viele Objekte sind verwaltbar.
 - Alleineigentum ist der Normalfall. Eigentümer je Objekt mit Anteilen (Miteigentum nach Bruchteilen) lassen sich erfassen; ohne Eintrag gehört das Objekt dem Vermieter allein.
-- Keine WEG, keine Gewerbeeinheiten.
-- **Heizung zentral (Gas/Öl)**, Warmwasser zentral, **Wärmemengenzähler je Wohnung**, Abrechnung **selbst** (kein Messdienst).
-- Zähler: Wasserzähler je Wohnung, Hauptzähler, Allgemeinstrom. Keine Funkzähler.
-- WG-Zimmer zahlen eine **Pauschale** und bekommen keine NK-Abrechnung.
-- Keine Altdaten-Migration, Start im aktuellen Jahr.
+- Keine WEG-Verwaltung, keine Gewerbeeinheiten.
+- **Zentrale Heizung (Gas/Öl)** und zentrales Warmwasser, wahlweise mit Wärmemengenzähler je Wohnung; Abrechnung **selbst** (kein Messdienst).
+- Zähler: Wasserzähler je Wohnung, Hauptzähler, Allgemeinstrom; Funkzähler nur über den Import.
+- WG-Zimmer zahlen eine **Pauschale** und bekommen keine Nebenkostenabrechnung.
+- Keine Altdaten-Migration; der Start erfolgt im laufenden Jahr (Import per CSV ist möglich).
 
 ## Nutzer & Rollen
 
@@ -84,7 +86,7 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
 
 > ⚠️ **Keine Rechtssicherheit.** Die Rechenwege folgen der Heizkostenverordnung und dem CO2KostAufG nach bestem Verständnis. Die hinterlegten Tabellen (CO₂-Stufen, Gradtagszahlen) sind **versionierte Daten mit dem Status „Stand/prüfen“**: Sie wurden nicht gegen die amtlichen Quellen geprüft und müssen es vor dem Versand einer Abrechnung werden. Die Oberfläche weist an jeder Stelle darauf hin (Einstellungen, Vorschau, Warnungen im Rechenprotokoll).
 
-**Festlegungen für dieses Haus** (zugleich die Standardwerte):
+**Festlegungen** (zugleich die Standardwerte):
 
 | Frage | Festlegung / Standardwert |
 |---|---|
