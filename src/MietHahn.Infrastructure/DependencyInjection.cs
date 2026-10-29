@@ -38,6 +38,7 @@ using MietHahn.Infrastructure.Admin;
 using MietHahn.Infrastructure.Audit;
 using MietHahn.Infrastructure.Bank;
 using MietHahn.Infrastructure.Bank.FinTs;
+using MietHahn.Infrastructure.Correspondence;
 using MietHahn.Infrastructure.Deadlines;
 using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Files;
@@ -272,6 +273,7 @@ public static class DependencyInjection
         services.AddScoped<ILeaseContracts, LeaseContracts>();
         services.AddScoped<IRentIncreases, RentIncreases>();
         services.AddScoped<IHandovers, Handovers>();
+        services.AddScoped<IDocumentLeaseSource, DocumentLeaseSource>();
         services.AddScoped<IFileShare, DocumentFileShare>();
         services.AddScoped<ITodoSource, DocumentExpiryTodos>();
         services.AddScoped<IPersonalDataSource, DocumentPersonalData>();

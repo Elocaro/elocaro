@@ -12,8 +12,6 @@ public partial class ModuleRulesTests
     /// <summary>Pairs of modules that use each other today (alphabetical), counting namespaces of Application, Domain and Infrastructure. Goal: empty.</summary>
     private static readonly string[] KnownCycles =
     [
-        "Documents <-> Finance",
-        "Documents <-> Leases",
         "Leases <-> Properties",
     ];
 
@@ -36,8 +34,8 @@ public partial class ModuleRulesTests
     [Fact]
     public void Top_level_modules_are_used_by_no_other_module()
     {
-        // Import, setup, overview figures, legal references and the handover protocol read from many modules for the screens; nothing may build on them.
-        string[] topLevel = ["Setup", "Portfolio", "Legal", "Handover"];
+        // Import, setup, overview figures, legal references and the handover protocol and the letters read from many modules for the screens; nothing may build on them.
+        string[] topLevel = ["Setup", "Portfolio", "Legal", "Handover", "Correspondence"];
         var uses = ModuleUses();
         var violations = uses.Where(kv => !topLevel.Contains(kv.Key))
             .SelectMany(kv => kv.Value.Where(topLevel.Contains).Select(u => $"{kv.Key} -> {u}"))

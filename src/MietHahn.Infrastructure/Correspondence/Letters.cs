@@ -11,12 +11,13 @@ using MietHahn.Domain.Documents;
 using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
+using MietHahn.Infrastructure.Documents;
 using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
 using MietHahn.Infrastructure.Properties;
 using MietHahn.Infrastructure.Templates;
 
-namespace MietHahn.Infrastructure.Documents;
+namespace MietHahn.Infrastructure.Correspondence;
 
 internal sealed class Letters(MietHahnDbContext db, IPdfGenerator pdf, IDocumentLibrary documents, IMailSender mail, TimeProvider clock, ITenantAccounts tenantAccounts, IDeposits deposits) : ILetters
 {

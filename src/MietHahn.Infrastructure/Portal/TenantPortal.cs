@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MietHahn.Application.Accounts;
 using MietHahn.Application.Common;
+using MietHahn.Application.Documents;
 using MietHahn.Application.Portal;
 using MietHahn.Domain.Admin;
 using MietHahn.Domain.Common;
@@ -19,7 +20,7 @@ using MietHahn.Infrastructure.Properties;
 
 namespace MietHahn.Infrastructure.Portal;
 
-internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock, MietHahn.Application.Finance.ITenantAccounts accounts) : ITenantPortal
+internal sealed class TenantPortal(MietHahnDbContext db, IDocumentLeaseSource leaseSource, TimeProvider clock, MietHahn.Application.Finance.ITenantAccounts accounts) : ITenantPortal
 {
     private DateOnly Today => GermanTime.Today(clock.GetUtcNow());
 
@@ -268,7 +269,7 @@ internal sealed class TenantPortal(MietHahnDbContext db, TimeProvider clock, Mie
         }
 
         // Only documents released for this very account count, whatever file id the caller passes.
-        var visible = await DocumentShares.VisibleAsync(db, user, Today, cancellationToken);
+        var visible = await DocumentShares.VisibleAsync(db, leaseSource, user, Today, cancellationToken);
         var documents = await visible.Where(d => d.FileId == fileId).Select(d => d.Id).ToListAsync(cancellationToken);
         var known = await db.Set<DocumentRead>().Where(l => l.UserId == userId && documents.Contains(l.DocumentId)).Select(l => l.DocumentId).ToListAsync(cancellationToken);
         var added = false;

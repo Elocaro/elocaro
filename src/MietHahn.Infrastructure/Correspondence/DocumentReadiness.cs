@@ -8,7 +8,7 @@ using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Common;
 using MietHahn.Infrastructure.Persistence;
 
-namespace MietHahn.Infrastructure.Documents;
+namespace MietHahn.Infrastructure.Correspondence;
 
 internal sealed class DocumentReadiness(MietHahnDbContext db, ILandlordProfileService landlord, TimeProvider clock) : IDocumentReadiness
 {

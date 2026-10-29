@@ -10,16 +10,14 @@ using MietHahn.Application.Todos;
 using MietHahn.Domain.Common;
 using MietHahn.Domain.Documents;
 using MietHahn.Domain.Files;
-using MietHahn.Domain.Leases;
 using MietHahn.Domain.People;
 using MietHahn.Domain.Properties;
 using MietHahn.Infrastructure.Common;
-using MietHahn.Infrastructure.Leases;
 using MietHahn.Infrastructure.Persistence;
 
 namespace MietHahn.Infrastructure.Documents;
 
-internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) : IDocumentLibrary
+internal sealed class DocumentLibrary(MietHahnDbContext db, IDocumentLeaseSource leaseSource, TimeProvider clock) : IDocumentLibrary
 {
     public async Task<IReadOnlyList<DocumentRow>> SearchAsync(DocumentQuery search, CancellationToken cancellationToken = default)
     {
@@ -34,13 +32,13 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
         {
             // A property also includes the documents of its units and leases.
             var units = db.Set<Unit>().Where(e => e.PropertyId == property).Select(e => e.Id);
-            var leases = db.Set<Lease>().Where(v => units.Contains(v.UnitId)).Select(v => v.Id);
+            var leases = leaseSource.LeaseIdsOfUnits(units);
             query = query.Where(d => d.PropertyId == property || (d.UnitId != null && units.Contains(d.UnitId.Value)) || (d.LeaseId != null && leases.Contains(d.LeaseId.Value)));
         }
 
         if (search.UnitId is { } unit)
         {
-            var leases = db.Set<Lease>().Where(v => v.UnitId == unit).Select(v => v.Id);
+            var leases = leaseSource.LeaseIdsOfUnit(unit);
             query = query.Where(d => d.UnitId == unit || (d.LeaseId != null && leases.Contains(d.LeaseId.Value)));
         }
 
@@ -51,7 +49,7 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
 
         if (search.PersonId is { } person)
         {
-            var leases = db.Set<LeaseParty>().Where(p => p.PersonId == person).Select(p => p.LeaseId);
+            var leases = leaseSource.LeaseIdsOfPerson(person);
             query = query.Where(d => d.PersonId == person || (d.LeaseId != null && leases.Contains(d.LeaseId.Value)));
         }
 
@@ -120,7 +118,7 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
 
     public async Task<IReadOnlyList<DocumentRow>> SharedAsync(ClaimsPrincipal user, Guid? propertyId = null, CancellationToken cancellationToken = default)
     {
-        var visible = await DocumentShares.VisibleAsync(db, user, GermanTime.Today(clock.GetUtcNow()), cancellationToken);
+        var visible = await DocumentShares.VisibleAsync(db, leaseSource, user, GermanTime.Today(clock.GetUtcNow()), cancellationToken);
         var documents = await visible.OrderByDescending(d => d.Date ?? DateOnly.MinValue).ThenByDescending(d => d.CreatedAt).ToListAsync(cancellationToken);
         var lines = await RowsAsync(documents, cancellationToken);
         if (propertyId is null)
@@ -144,17 +142,11 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
     public async Task<ReferenceOptions> ReferenceOptionsAsync(CancellationToken cancellationToken = default)
     {
         var properties = await db.Set<Property>().AsNoTracking().OrderBy(o => o.Name).Select(o => new ReferenceOption(o.Id, o.Name)).ToListAsync(cancellationToken);
-        var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
-        var units = rentalUnits.Values.Where(m => m.RoomId is null).Select(m => new ReferenceOption(m.Id, $"{m.Name} ({m.Property})")).ToList();
-        var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).ToListAsync(cancellationToken);
-        var personIds = leases.SelectMany(v => v.Parties.Select(p => p.PersonId)).Distinct().ToList();
         var people = await db.Set<Person>().AsNoTracking().Where(p => p.AnonymizedAt == null).OrderBy(p => p.LastName).ThenBy(p => p.FirstName).ToListAsync(cancellationToken);
-        var names = people.ToDictionary(p => p.Id, p => p.DisplayName);
         return new ReferenceOptions(
             properties,
-            units,
-            leases.OrderByDescending(v => v.Start).Select(v => new ReferenceOption(v.Id,
-                $"{rentalUnits.GetValueOrDefault(v.RentalUnitId)?.Name}: {LeaseService.TenantText(v, names)} (ab {v.Start:dd.MM.yyyy})")).ToList(),
+            await leaseSource.UnitOptionsAsync(cancellationToken),
+            await leaseSource.LeaseOptionsAsync(cancellationToken),
             people.Select(p => new ReferenceOption(p.Id, p.DisplayName)).ToList());
     }
 
@@ -179,7 +171,7 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
 
         if ((data.PropertyId is { } o && !await db.Set<Property>().AnyAsync(x => x.Id == o, cancellationToken))
             || (data.UnitId is { } e && !await db.Set<Unit>().AnyAsync(x => x.Id == e, cancellationToken))
-            || (data.LeaseId is { } v && !await db.Set<Lease>().AnyAsync(x => x.Id == v, cancellationToken))
+            || (data.LeaseId is { } v && !await leaseSource.LeaseExistsAsync(v, cancellationToken))
             || (data.PersonId is { } p && !await db.Set<Person>().AnyAsync(x => x.Id == p, cancellationToken)))
         {
             throw new RuleViolationException("Ein gewählter Bezug wurde nicht gefunden.");
@@ -196,9 +188,8 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
         var fileIds = documents.Select(d => d.FileId).ToList();
         var files = await db.Set<StoredFile>().AsNoTracking().Where(f => fileIds.Contains(f.Id)).ToDictionaryAsync(f => f.Id, cancellationToken);
         var properties = await db.Set<Property>().AsNoTracking().ToDictionaryAsync(o => o.Id, o => o.Name, cancellationToken);
-        var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
         var leaseIds = documents.Where(d => d.LeaseId is not null).Select(d => d.LeaseId!.Value).Distinct().ToList();
-        var leases = await db.Set<Lease>().AsNoTracking().Where(v => leaseIds.Contains(v.Id)).ToDictionaryAsync(v => v.Id, v => v.RentalUnitId, cancellationToken);
+        var (unitNames, leases) = await leaseSource.NamesAsync(leaseIds, cancellationToken);
         var personIds = documents.Where(d => d.PersonId is not null).Select(d => d.PersonId!.Value).Distinct().ToList();
         var people = (await db.Set<Person>().AsNoTracking().Where(p => personIds.Contains(p.Id)).ToListAsync(cancellationToken)).ToDictionary(p => p.Id, p => p.DisplayName);
 
@@ -212,12 +203,12 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
 
             if (d.UnitId is { } e)
             {
-                reference.Add(rentalUnits.GetValueOrDefault(e)?.Name ?? "Einheit");
+                reference.Add(unitNames.GetValueOrDefault(e) ?? "Einheit");
             }
 
             if (d.LeaseId is { } v)
             {
-                reference.Add("Vertrag " + (leases.TryGetValue(v, out var m) ? rentalUnits.GetValueOrDefault(m)?.Name : ""));
+                reference.Add("Vertrag " + (leases.TryGetValue(v, out var m) ? unitNames.GetValueOrDefault(m) : ""));
             }
 
             if (d.PersonId is { } p)
@@ -253,7 +244,7 @@ internal sealed class DocumentLibrary(MietHahnDbContext db, TimeProvider clock) 
 /// </summary>
 internal static class DocumentShares
 {
-    public static async Task<IQueryable<Document>> VisibleAsync(MietHahnDbContext db, ClaimsPrincipal user, DateOnly today, CancellationToken cancellationToken)
+    public static async Task<IQueryable<Document>> VisibleAsync(MietHahnDbContext db, IDocumentLeaseSource leaseSource, ClaimsPrincipal user, DateOnly today, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
         var none = db.Set<Document>().Where(_ => false);
@@ -271,10 +262,7 @@ internal static class DocumentShares
                 return none;
             }
 
-            var leases = db.Set<Lease>().Where(v => v.Parties.Any(p => personIds.Contains(p.PersonId) && p.Role == PartyRole.Tenant));
-            var leaseIds = leases.Select(v => v.Id);
-            var current = leases.Where(v => v.Term.From <= today && (v.Term.To == null || v.Term.To >= today));
-            var unitIds = current.Select(v => v.UnitId);
+            var (leaseIds, unitIds) = leaseSource.TenantScopeOf(personIds, today);
             var propertyIds = db.Set<Unit>().Where(e => unitIds.Contains(e.Id)).Select(e => e.PropertyId);
             return documents.Where(d => d.SharedWithTenants && (
                 (d.PersonId != null && personIds.Contains(d.PersonId.Value))
@@ -287,7 +275,7 @@ internal static class DocumentShares
         {
             var propertyIds = db.Set<PropertyAssignment>().Where(z => z.UserId == userId).Select(z => z.PropertyId);
             var unitIds = db.Set<Unit>().Where(e => propertyIds.Contains(e.PropertyId)).Select(e => e.Id);
-            var leaseIds = db.Set<Lease>().Where(v => unitIds.Contains(v.UnitId)).Select(v => v.Id);
+            var leaseIds = leaseSource.LeaseIdsOfUnits(unitIds);
             return documents.Where(d => d.SharedWithCaretakers && (
                 (d.PropertyId != null && propertyIds.Contains(d.PropertyId.Value))
                 || (d.UnitId != null && unitIds.Contains(d.UnitId.Value))
@@ -299,10 +287,10 @@ internal static class DocumentShares
 }
 
 /// <summary>Allows tenants and caretakers to download the files of released documents (<c>/dateien/{id}</c>).</summary>
-internal sealed class DocumentFileShare(MietHahnDbContext db, TimeProvider clock) : IFileShare
+internal sealed class DocumentFileShare(MietHahnDbContext db, IDocumentLeaseSource leaseSource, TimeProvider clock) : IFileShare
 {
     public async Task<bool> IsSharedAsync(Guid fileId, ClaimsPrincipal user, CancellationToken cancellationToken = default) =>
-        await (await DocumentShares.VisibleAsync(db, user, GermanTime.Today(clock.GetUtcNow()), cancellationToken)).AnyAsync(d => d.FileId == fileId, cancellationToken);
+        await (await DocumentShares.VisibleAsync(db, leaseSource, user, GermanTime.Today(clock.GetUtcNow()), cancellationToken)).AnyAsync(d => d.FileId == fileId, cancellationToken);
 }
 
 /// <summary>Dashboard: documents whose validity ends within 60 days (e.g. energy certificate, insurance).</summary>
