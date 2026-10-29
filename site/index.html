@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MietHahn – Vermieterverwaltung zum Selbst-Betreiben</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%93%3C/text%3E%3C/svg%3E">
-<meta property="og:title" content="MietHahn – Vermieterverwaltung zum Selbst-Betreiben">
+<title>Elocaro – Vermieterverwaltung zum Selbst-Betreiben</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<meta property="og:title" content="Elocaro – Vermieterverwaltung zum Selbst-Betreiben">
 <meta property="og:description" content="Freie Verwaltung für private Vermieter: Mieter, Zahlungen, Nebenkosten, Steuer, Mieterportal. Ihre Daten bleiben bei Ihnen.">
 <meta property="og:image" content="umsaetze-zuordnen.png">
 <meta property="og:type" content="website">
@@ -15,12 +15,12 @@
 <body>
 <header>
   <nav class="top" aria-label="Hauptnavigation">
-    <a class="brand" href="./">MietHahn 🐓</a>
+    <a class="brand" href="./"><img class="logo" src="logo.svg" alt="" width="28" height="28"><span>Elocaro</span></a>
     <a href="#funktionen">Funktionen</a>
     <a href="#warum">Warum selbst betreiben</a>
     <a href="#demo">Demo</a>
     <a href="#installation">Installation</a>
-    <a href="https://github.com/TheR00st3r/MietHahn">GitHub</a>
+    <a href="https://github.com/elocaro/elocaro">GitHub</a>
   </nav>
   <h1>Die Vermieterverwaltung, die Ihnen gehört.</h1>
   <p class="lead">Mieter, Zahlungen, Nebenkosten, Steuer und ein Mieterportal in einer freien Anwendung, die Sie selbst betreiben. Ihre Daten liegen bei Ihnen, jederzeit vollständig exportierbar, ohne Abo und ohne Funktionen hinter einer Bezahlschranke.</p>
@@ -30,7 +30,7 @@
 <main>
   <p><img src="umsaetze-zuordnen.png" alt="Kontoumsätze zuordnen: Vorschläge mit Begründung" width="1280" height="630"></p>
 
-  <h2 id="funktionen">Was MietHahn kann</h2>
+  <h2 id="funktionen">Was Elocaro kann</h2>
   <div class="grid">
     <div class="card"><h3>Bestand und Verträge</h3><p>Objekte, Wohnungen, WG-Zimmer, Verträge mit Standard-, Staffel- oder Indexmiete, Mietvertrag als PDF, Mieterhöhung (§ 557 bis 559 BGB), digitale Unterschrift, Übergabeprotokoll.</p></div>
     <div class="card"><h3>Geld</h3><p>Mieterkonto mit automatischen Sollstellungen, Bankabgleich per Kontoauszug oder FinTS, Zuordnungsvorschläge mit Begründung, Mahnwesen mit Freigabe, Kautionsführung.</p></div>
@@ -53,7 +53,7 @@
   <h2>Im Vergleich</h2>
   <div class="table-wrapper" tabindex="0" role="region" aria-label="Vergleichstabelle">
   <table>
-    <thead><tr><th><span class="sr-only">Kriterium</span></th><th>MietHahn</th><th>Cloud-Dienste (z. B. immocloud, vermietet.de)</th><th>Tabellenkalkulation</th></tr></thead>
+    <thead><tr><th><span class="sr-only">Kriterium</span></th><th>Elocaro</th><th>Cloud-Dienste (z. B. immocloud, vermietet.de)</th><th>Tabellenkalkulation</th></tr></thead>
     <tbody>
       <tr><th>Wohin gehen die Daten?</th><td>auf Ihren Server</td><td>zum Anbieter</td><td>auf Ihren Rechner</td></tr>
       <tr><th>Kosten</th><td>kostenlos (AGPL), Server nach Wahl</td><td>Abo, oft nach Wohnungszahl</td><td>kostenlos</td></tr>
@@ -68,7 +68,7 @@
 
   <h2 id="installation">Installation</h2>
   <p>Voraussetzung: ein Server mit Docker (ab 2 GB RAM) und eine Domain.</p>
-<pre tabindex="0">git clone https://github.com/TheR00st3r/MietHahn.git &amp;&amp; cd MietHahn
+<pre tabindex="0">git clone https://github.com/elocaro/elocaro.git &amp;&amp; cd elocaro
 ./deploy/install.sh --lokal      # Probelauf auf https://localhost
 ./deploy/install.sh              # echte Installation mit Domain und Let's Encrypt</pre>
   <ol class="steps">
@@ -76,18 +76,18 @@
     <li>Die zwei Befehle oben ausführen; der Probelauf (<code>--lokal</code>) braucht keine Domain.</li>
     <li>Im Browser den Administrator anlegen, die Zwei-Faktor-Anmeldung einrichten und dem Einrichtungsassistenten folgen.</li>
   </ol>
-  <p>Der erste Aufruf führt durch die Einrichtung. Ausführlich: <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/docs/betrieb.md">Betrieb und Installation</a>, <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/docs/handbuch.md">Anwenderhandbuch</a>.</p>
+  <p>Der erste Aufruf führt durch die Einrichtung. Ausführlich: <a href="https://github.com/elocaro/elocaro/blob/HEAD/docs/betrieb.md">Betrieb und Installation</a>, <a href="https://github.com/elocaro/elocaro/blob/HEAD/docs/handbuch.md">Anwenderhandbuch</a>.</p>
 
   <h2>Ehrlich gesagt</h2>
   <ul>
-    <li>MietHahn ist <strong>keine Rechts- und keine Steuerberatung</strong>. Vorlagen und Rechenwerte sind Arbeitshilfen; bitte vor dem Einsatz prüfen.</li>
+    <li>Elocaro ist <strong>keine Rechts- und keine Steuerberatung</strong>. Vorlagen und Rechenwerte sind Arbeitshilfen; bitte vor dem Einsatz prüfen.</li>
     <li>Der FinTS-Abruf ist noch nicht mit echten Bankkonten abgenommen; der Import von Kontoauszügen funktioniert unabhängig davon.</li>
     <li>Es gibt keine native App (nur die installierbare Web-App) und keine direkte ELSTER-Übermittlung.</li>
     <li>Betrieb, Updates und Datensicherung liegen bei Ihnen.</li>
   </ul>
 
   <h2>Unterstützen</h2>
-  <p>MietHahn ist ein Nebenprojekt und bleibt frei nutzbar. Wer es unterstützen möchte, findet die Wege in der <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/docs/foerderung.md">Förderung</a>: Spenden, Finanzierung einzelner Funktionen und bezahlte Einrichtung.</p>
+  <p>Elocaro ist ein Nebenprojekt und bleibt frei nutzbar. Wer es unterstützen möchte, findet die Wege in der <a href="https://github.com/elocaro/elocaro/blob/HEAD/docs/foerderung.md">Förderung</a>: Spenden, Finanzierung einzelner Funktionen und bezahlte Einrichtung.</p>
 
   <h2>Weitere Ansichten</h2>
   <div class="gallery">
@@ -97,7 +97,7 @@
   </div>
 </main>
 <footer>
-  <p>MietHahn steht unter der GNU Affero General Public License v3. <a href="https://github.com/TheR00st3r/MietHahn">Quellcode</a> · <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/SECURITY.md">Sicherheit</a> · <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/SUPPORT.md">Hilfe</a></p>
+  <p>Elocaro steht unter der GNU Affero General Public License v3. <a href="https://github.com/elocaro/elocaro">Quellcode</a> · <a href="https://github.com/elocaro/elocaro/blob/HEAD/SECURITY.md">Sicherheit</a> · <a href="https://github.com/elocaro/elocaro/blob/HEAD/SUPPORT.md">Hilfe</a></p>
   <p><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · Diese Seite setzt keine Cookies und lädt nichts von Dritten.</p>
 </footer>
 </body>

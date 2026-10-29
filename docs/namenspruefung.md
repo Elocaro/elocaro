@@ -79,7 +79,9 @@ Ausgeschieden: Wetterhahn, Hahnenschrei (belegt), Lodgly (nahe Lodgify), Rentio 
 
 Für die Prüfung durch die Fachperson zusätzlich suchen: *Elocaro, Elcaro, Elokaro, Eloquaro, Elocari, Elocara, Elo Caro*.
 
-## Plan für eine Umbenennung
+## Plan für eine Umbenennung (überholt)
+
+> Ersetzt durch [umbenennung.md](umbenennung.md). Beschluss: alles umbenennen und die Produktivinstanz per Backup und Restore auf einen neuen Stack umziehen. Die Tabelle „Nicht ändern“ unten gilt nicht mehr.
 
 **Voraussetzung:** Markenprüfung für den neuen Namen ohne Hindernis (siehe oben), Domain und GitHub-Organisation gesichert. Erst dann umbenennen.
 

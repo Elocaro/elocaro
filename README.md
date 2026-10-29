@@ -51,6 +51,7 @@ Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, Zwei-Fak
 - [Marktanalyse](docs/marktanalyse.md) und [Produktbewertung](docs/produktbewertung.md): was bestehende Software gut und schlecht macht, wie MietHahn dasteht
 - [Vertriebsplan](docs/vertriebsplan.md): Weg zur Veröffentlichung
 - [Namensprüfung](docs/namenspruefung.md): Befunde und Prüfauftrag zur Marke (#87)
+- [Umbenennung](docs/umbenennung.md): Plan und Datenübernahme beim Wechsel des Produktnamens
 - [Fachlichkeit & Anforderungen](docs/fachlichkeit.md): Ergebnis des Anforderungsinterviews
 - [Architektur](docs/architektur.md): Technologie, Struktur, Meilensteine
 - [Entwicklung](docs/entwicklung.md): lokale Umgebung, Migrationen, Konventionen, Tests
