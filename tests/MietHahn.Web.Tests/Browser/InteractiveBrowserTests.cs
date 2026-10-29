@@ -55,7 +55,7 @@ public class InteractiveBrowserTests(PostgresFixture postgres) : BrowserTestBasi
     }
 
     [Fact]
-    public async Task Person_is_created_in_a_dialog_without_leaving_the_list_and_audited_with_the_user()
+    public async Task Person_is_created_on_a_form_page_and_audited_with_the_user()
     {
         var page = await SignedInAsAdminAsync(mobile: false);
 
@@ -65,29 +65,22 @@ public class InteractiveBrowserTests(PostgresFixture postgres) : BrowserTestBasi
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
             await Assertions.Expect(page.Locator("tbody")).ToContainTextAsync("Noch keine Personen.");
 
-            await page.GetByRole(AriaRole.Button, new() { Name = "Person anlegen" }).ClickAsync();
-            var dialog = page.Locator(".mud-dialog");
-            await Assertions.Expect(dialog).ToBeVisibleAsync();
-
-            // On a small window the actions stay reachable (content scrolls, buttons are pinned).
-            await page.SetViewportSizeAsync(1280, 500);
-            await Assertions.Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Person anlegen" })).ToBeInViewportAsync();
-            await page.SetViewportSizeAsync(1280, 900);
+            await page.GetByRole(AriaRole.Link, new() { Name = "Person anlegen" }).ClickAsync();
+            await page.WaitForURLAsync("**/verwaltung/personen/neu");
+            await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
             // Validation: the last name is required, nothing is saved.
-            await dialog.GetByRole(AriaRole.Button, new() { Name = "Person anlegen" }).ClickAsync();
-            await Assertions.Expect(dialog).ToContainTextAsync("Bitte den Nachnamen bzw. Firmennamen angeben.");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Person anlegen", Exact = true }).ClickAsync();
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte den Nachnamen bzw. Firmennamen angeben.");
 
-            await dialog.GetByLabel("Vorname").FillAsync("Clara");
-            await dialog.GetByLabel("Nachname bzw. Name").FillAsync("Neumann");
-            await dialog.GetByLabel("E-Mail").FillAsync("clara@example.de");
-            await dialog.GetByRole(AriaRole.Button, new() { Name = "Person anlegen" }).ClickAsync();
+            await page.GetByLabel("Vorname").FillAsync("Clara");
+            await page.GetByLabel("Nachname bzw. Name").FillAsync("Neumann");
+            await page.GetByLabel("E-Mail").FillAsync("clara@example.de");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Person anlegen", Exact = true }).ClickAsync();
 
-            // Dialog closes, snackbar confirms, the list shows the person; no page change.
-            await Assertions.Expect(dialog).ToHaveCountAsync(0);
-            await ExpectSnackbarAsync(page, "Die Person wurde angelegt.");
-            await Assertions.Expect(page.Locator("tbody")).ToContainTextAsync("Neumann, Clara");
-            Assert.EndsWith("/verwaltung/personen", page.Url, StringComparison.Ordinal);
+            // Redirects to the new person's page.
+            await page.WaitForURLAsync("**/verwaltung/personen/*?meldung=angelegt");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Neumann");
         });
 
         // The audit fields name the signed-in user, not "system" (there is no HttpContext inside a circuit).

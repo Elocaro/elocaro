@@ -2,12 +2,11 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @inject IPersonService Admin
-@inject IDialogService Dialogs
 
 <InteractiveShell>
     <PageHeader Title="Personen" Subtitle="Mieter, Bürgen und Kontakte wie Hausmeister, Handwerker und Versorger.">
         <Actions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">Person anlegen</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/personen/neu">Person anlegen</MudButton>
         </Actions>
     </PageHeader>
 
@@ -94,16 +93,6 @@
     {
         filter = value;
         await LoadAsync();
-    }
-
-    private async Task CreateAsync()
-    {
-        var dialog = await Dialogs.ShowAsync<PersonDialog>("Person anlegen", new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-        {
-            await LoadAsync();
-        }
     }
 
     private async Task LoadAsync() => people = await Admin.SearchAsync(new PersonQuery(search, filter));

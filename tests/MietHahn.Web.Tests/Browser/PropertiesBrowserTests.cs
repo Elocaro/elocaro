@@ -107,12 +107,17 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             // Add a unit (name required), then open it and add a room.
             await OpenTabAsync(page, "Einheiten");
             await page.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen" }).ClickAsync();
-            await dialog.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen" }).ClickAsync();
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen", Exact = true }).ClickAsync();
             await Assertions.Expect(dialog).ToContainTextAsync("Bezeichnung");
             await dialog.GetByLabel("Bezeichnung").FillAsync("Wohnung 4");
             await dialog.GetByLabel("Lage").FillAsync("OG");
             await dialog.GetByLabel("Wohnfläche").FillAsync("55,5");
-            await dialog.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen" }).ClickAsync();
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Speichern und weitere anlegen" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "Die Einheit wurde hinzugefügt.");
+            await Assertions.Expect(dialog.GetByLabel("Bezeichnung")).ToHaveValueAsync("");
+            await dialog.GetByLabel("Bezeichnung").FillAsync("Wohnung 5");
+            await dialog.GetByLabel("Wohnfläche").FillAsync("40");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Einheit hinzufügen", Exact = true }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Einheit wurde hinzugefügt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("55,5");
             await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("Keine Wohnfläche");

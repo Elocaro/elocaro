@@ -2,28 +2,31 @@
 @inject IPropertyService Admin
 @inject Notifier Notify
 
-@* Dialog "add unit" (name, location, type, living area); the details are entered on the unit page afterwards. *@
+@* Dialog "add unit": the same fields as editing, plus living area. "Save and add another" keeps the dialog open for the next unit. *@
 <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
     <DataAnnotationsValidator />
     <MudDialog>
         <DialogContent>
             <ErrorList Errors="errors" />
-            <UnitEditor Data="data" WithFeatures="false" />
+            <UnitEditor Data="data" />
             <div class="form-grid">
                 <AppNumberField T="decimal?" @bind-Value="area.Area" Label="Wohnfläche" Suffix="m²" Hint="Für Umlage und Mietvertrag nötig; lässt sich auch später unter Flächen eintragen." />
                 <AppDateField @bind-Value="area.From" Label="Fläche gültig ab" Hint="Meist Baujahr oder ein Stichtag vor dem ersten Mietbeginn." />
             </div>
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="Cancel">Abbrechen</MudButton>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Einheit hinzufügen</MudButton>
+            <MudButton OnClick="Cancel">@(created > 0 ? "Schließen" : "Abbrechen")</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" OnClick="@(() => addAnother = true)">Speichern und weitere anlegen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => addAnother = false)">Einheit hinzufügen</MudButton>
         </DialogActions>
     </MudDialog>
 </EditForm>
 
 @code {
-    private readonly UnitInput data = new();
-    private readonly AreaInput area = new() { From = new DateOnly(DateTime.Today.Year - 1, 1, 1) };
+    private UnitInput data = new();
+    private AreaInput area = NewArea();
+    private int created;
+    private bool addAnother;
     private IReadOnlyList<string>? errors;
 
     [Parameter, EditorRequired]
@@ -32,10 +35,25 @@
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
-    private void Cancel() => MudDialog.Cancel();
+    private static AreaInput NewArea() => new() { From = new DateOnly(DateTime.Today.Year - 1, 1, 1) };
+
+    private void Cancel()
+    {
+        if (created > 0)
+        {
+            MudDialog.Close(DialogResult.Ok(created));
+        }
+        else
+        {
+            MudDialog.Cancel();
+        }
+    }
 
     private async Task SaveAsync()
     {
+        var another = addAnother;
+        addAnother = false;
+
         if (area.Area is not null && area.From is null)
         {
             errors = ["Bitte angeben, ab wann die Fläche gilt."];
@@ -43,7 +61,14 @@
         }
 
         var result = await Admin.CreateUnitAsync(PropertyId, data);
-        if (result.Succeeded && area.Area is not null && result.Id is { } unitId)
+        if (!result.Succeeded)
+        {
+            errors = result.Errors;
+            return;
+        }
+
+        created++;
+        if (area.Area is not null && result.Id is { } unitId)
         {
             var areaResult = await Admin.SetUnitAreaAsync(unitId, area);
             if (!areaResult.Succeeded)
@@ -52,14 +77,16 @@
             }
         }
 
-        if (result.Succeeded)
+        Notify.Success("Die Einheit wurde hinzugefügt.");
+        if (another)
         {
-            Notify.Success("Die Einheit wurde hinzugefügt.");
-            MudDialog.Close(DialogResult.Ok(result.Id));
+            data = new UnitInput { Type = data.Type };
+            area = NewArea();
+            errors = null;
         }
         else
         {
-            errors = result.Errors;
+            MudDialog.Close(DialogResult.Ok(created));
         }
     }
 }
