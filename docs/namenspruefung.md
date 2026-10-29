@@ -77,7 +77,7 @@ Ausgeschieden: Wetterhahn, Hahnenschrei (belegt), Lodgly (nahe Lodgify), Rentio 
 - **ELO** (ELO Digital Office, Dokumentenmanagement): gleicher Wortanfang, Software für Büros.
 - Aussprache: „Elocaro“ kann als „Eloquaro“ gelesen werden. In Italienisch, Spanisch und Portugiesisch bedeutet *caro* „teuer, lieb“.
 
-Für die Prüfung durch die Fachperson zusätzlich suchen: *Elocaro, Elcaro, Elocaro, Elokaro, Eloquaro, Elocari, Elocara, Elo Caro*.
+Für die Prüfung durch die Fachperson zusätzlich suchen: *Elocaro, Elcaro, Elokaro, Eloquaro, Elocari, Elocara, Elo Caro*.
 
 ## Plan für eine Umbenennung
 
