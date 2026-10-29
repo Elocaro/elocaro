@@ -4,43 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MietHahn – Vermieterverwaltung zum Selbst-Betreiben</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%93%3C/text%3E%3C/svg%3E">
+<meta property="og:title" content="MietHahn – Vermieterverwaltung zum Selbst-Betreiben">
+<meta property="og:description" content="Freie Verwaltung für private Vermieter: Mieter, Zahlungen, Nebenkosten, Steuer, Mieterportal. Ihre Daten bleiben bei Ihnen.">
+<meta property="og:image" content="umsaetze-zuordnen.png">
+<meta property="og:type" content="website">
 <meta name="description" content="Freie, selbst betriebene Verwaltung für private Vermieter: Mieter, Zahlungen, Nebenkosten, Steuer, Mieterportal. Ihre Daten bleiben bei Ihnen.">
-<style>
-:root { --bg:#fff8f6; --fg:#1f1a18; --muted:#5a4e49; --accent:#a73f17; --card:#ffffff; --line:#e6d6d0; }
-@media (prefers-color-scheme: dark) { :root { --bg:#1c1311; --fg:#f1dfda; --muted:#c3b0aa; --accent:#ffb59e; --card:#271b18; --line:#4a3732; } }
-* { box-sizing: border-box; }
-body { margin:0; font:16px/1.55 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
-a { color:var(--accent); }
-header, main, footer { max-width:60rem; margin:0 auto; padding:0 1rem; }
-header { padding-top:2rem; }
-h1 { font-size:2rem; line-height:1.2; margin:.5rem 0; }
-h2 { margin-top:2.5rem; }
-.lead { font-size:1.15rem; color:var(--muted); max-width:40rem; }
-.cta { display:inline-block; margin:.5rem .5rem .5rem 0; padding:.6rem 1.1rem; border-radius:.5rem; background:var(--accent); color:var(--bg); text-decoration:none; font-weight:600; }
-.cta.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
-.grid { display:grid; gap:1rem; grid-template-columns:repeat(auto-fit, minmax(16rem, 1fr)); }
-.card { background:var(--card); border:1px solid var(--line); border-radius:.6rem; padding:1rem; }
-.card h3 { margin:.1rem 0 .4rem; }
-img { max-width:100%; height:auto; border-radius:.5rem; border:1px solid var(--line); }
-table { border-collapse:collapse; width:100%; background:var(--card); }
-th, td { border:1px solid var(--line); padding:.45rem .6rem; text-align:left; vertical-align:top; }
-.table-wrapper { overflow-x:auto; }
-pre { background:var(--card); border:1px solid var(--line); border-radius:.5rem; padding:1rem; overflow-x:auto; }
-footer { padding:2rem 1rem 3rem; color:var(--muted); font-size:.9rem; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <p><strong>MietHahn 🐓</strong></p>
+  <nav class="top" aria-label="Hauptnavigation">
+    <a class="brand" href="./">MietHahn 🐓</a>
+    <a href="#funktionen">Funktionen</a>
+    <a href="#warum">Warum selbst betreiben</a>
+    <a href="#demo">Demo</a>
+    <a href="#installation">Installation</a>
+    <a href="https://github.com/TheR00st3r/MietHahn">GitHub</a>
+  </nav>
   <h1>Die Vermieterverwaltung, die Ihnen gehört.</h1>
   <p class="lead">Mieter, Zahlungen, Nebenkosten, Steuer und ein Mieterportal in einer freien Anwendung, die Sie selbst betreiben. Ihre Daten liegen bei Ihnen, jederzeit vollständig exportierbar, ohne Abo und ohne Funktionen hinter einer Bezahlschranke.</p>
-  <a class="cta" href="#installation">Installieren</a>
-  <a class="cta secondary" href="https://github.com/TheR00st3r/MietHahn">Quellcode auf GitHub</a>
+  <a class="cta" href="#demo">Demo ansehen</a>
+  <a class="cta secondary" href="#installation">Installieren</a>
 </header>
 <main>
   <p><img src="umsaetze-zuordnen.png" alt="Kontoumsätze zuordnen: Vorschläge mit Begründung" width="1200"></p>
 
-  <h2>Was MietHahn kann</h2>
+  <h2 id="funktionen">Was MietHahn kann</h2>
   <div class="grid">
     <div class="card"><h3>Bestand und Verträge</h3><p>Objekte, Wohnungen, WG-Zimmer, Verträge mit Standard-, Staffel- oder Indexmiete, Mietvertrag als PDF, Mieterhöhung (§ 557 bis 559 BGB), digitale Unterschrift, Übergabeprotokoll.</p></div>
     <div class="card"><h3>Geld</h3><p>Mieterkonto mit automatischen Sollstellungen, Bankabgleich per Kontoauszug oder FinTS, Zuordnungsvorschläge mit Begründung, Mahnwesen mit Freigabe, Kautionsführung.</p></div>
@@ -49,6 +39,16 @@ footer { padding:2rem 1rem 3rem; color:var(--muted); font-size:.9rem; }
     <div class="card"><h3>Mieterportal</h3><p>Dokumente, Nachrichten, Schadensmeldungen mit Foto, Zählerstände melden, Verbrauch, Mieterkonto. Benachrichtigungen auf dem Handy.</p></div>
     <div class="card"><h3>Betrieb</h3><p>Zwei-Faktor-Anmeldung, Änderungsprotokoll, nächtliche verschlüsselte Datensicherung, Vollexport, Handy-Oberfläche.</p></div>
   </div>
+
+  <h2 id="warum">Warum selbst betreiben?</h2>
+  <div class="grid">
+    <div class="card"><h3>Ihre Daten, Ihr Server</h3><p>Mieterdaten, Verträge und Kontoumsätze bleiben bei Ihnen. Keine fremde Cloud, kein Anbieter, der Preise oder Bedingungen ändert.</p></div>
+    <div class="card"><h3>Kein Abo, kein Lock-in</h3><p>Alle Funktionen sind enthalten. Der Vollexport (JSON, CSV, Dateien) steht jederzeit bereit.</p></div>
+    <div class="card"><h3>Nachprüfbar</h3><p>Der Quellcode ist offen (AGPL-3.0). Die Rechenwerte tragen eine Quelle und einen Prüfvermerk.</p></div>
+  </div>
+
+  <h2 id="demo">Demo</h2>
+  <p class="note">Eine öffentliche Demo mit Beispieldaten ist in Vorbereitung. Sie wird täglich zurückgesetzt, enthält keine echten Daten und verschickt keine E-Mails. Bis dahin zeigen die Bilder und der <a href="#installation">Probelauf auf dem eigenen Rechner</a> den Funktionsumfang.</p>
 
   <h2>Im Vergleich</h2>
   <div class="table-wrapper">
@@ -71,7 +71,12 @@ footer { padding:2rem 1rem 3rem; color:var(--muted); font-size:.9rem; }
 <pre>git clone https://github.com/TheR00st3r/MietHahn.git &amp;&amp; cd MietHahn
 ./deploy/install.sh --lokal      # Probelauf auf https://localhost
 ./deploy/install.sh              # echte Installation mit Domain und Let's Encrypt</pre>
-  <p>Der erste Aufruf führt durch die Einrichtung. Ausführlich: <a href="https://github.com/TheR00st3r/MietHahn/blob/main/docs/betrieb.md">Betrieb und Installation</a>, <a href="https://github.com/TheR00st3r/MietHahn/blob/main/docs/handbuch.md">Anwenderhandbuch</a>.</p>
+  <ol class="steps">
+    <li>Server mit Docker und eine Domain bereitstellen.</li>
+    <li>Die zwei Befehle oben ausführen; der Probelauf (<code>--lokal</code>) braucht keine Domain.</li>
+    <li>Im Browser den Administrator anlegen, die Zwei-Faktor-Anmeldung einrichten und dem Einrichtungsassistenten folgen.</li>
+  </ol>
+  <p>Der erste Aufruf führt durch die Einrichtung. Ausführlich: <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/docs/betrieb.md">Betrieb und Installation</a>, <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/docs/handbuch.md">Anwenderhandbuch</a>.</p>
 
   <h2>Ehrlich gesagt</h2>
   <ul>
@@ -82,9 +87,9 @@ footer { padding:2rem 1rem 3rem; color:var(--muted); font-size:.9rem; }
   </ul>
 
   <h2>Unterstützen</h2>
-  <p>MietHahn ist ein Nebenprojekt und bleibt frei nutzbar. Wer es unterstützen möchte, findet die Wege in der <a href="https://github.com/TheR00st3r/MietHahn/blob/main/docs/foerderung.md">Förderung</a>: Spenden, Finanzierung einzelner Funktionen und bezahlte Einrichtung.</p>
+  <p>MietHahn ist ein Nebenprojekt und bleibt frei nutzbar. Wer es unterstützen möchte, findet die Wege in der <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/docs/foerderung.md">Förderung</a>: Spenden, Finanzierung einzelner Funktionen und bezahlte Einrichtung.</p>
 
-  <h3>Bilder</h3>
+  <h2>Weitere Ansichten</h2>
   <div class="grid">
     <p><img src="abrechnungs-assistent.png" alt="Abrechnungs-Assistent" width="600"></p>
     <p><img src="mietvertrag.png" alt="Mietvertrag" width="600"></p>
@@ -92,8 +97,8 @@ footer { padding:2rem 1rem 3rem; color:var(--muted); font-size:.9rem; }
   </div>
 </main>
 <footer>
-  <p>MietHahn steht unter der GNU Affero General Public License v3. <a href="https://github.com/TheR00st3r/MietHahn">Quellcode</a> · <a href="https://github.com/TheR00st3r/MietHahn/blob/main/SECURITY.md">Sicherheit</a> · <a href="https://github.com/TheR00st3r/MietHahn/blob/main/SUPPORT.md">Hilfe</a></p>
-  <p>Anbieterkennzeichnung (Impressum) und Datenschutzerklärung der Website: <em>vor der Veröffentlichung vom Betreiber zu ergänzen</em>.</p>
+  <p>MietHahn steht unter der GNU Affero General Public License v3. <a href="https://github.com/TheR00st3r/MietHahn">Quellcode</a> · <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/SECURITY.md">Sicherheit</a> · <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/SUPPORT.md">Hilfe</a></p>
+  <p><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · Diese Seite setzt keine Cookies und lädt nichts von Dritten.</p>
 </footer>
 </body>
 </html>
