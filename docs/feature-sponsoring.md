@@ -31,5 +31,5 @@ Die Richtwerte sind Annahmen und gehören vor dem Start an den eigenen Stundensa
 ## Voraussetzungen, bevor Geld fließt
 
 - Konto und Rechnungsweg stehen (siehe [Unterstützen](foerderung.md), Hinweise für den Betreiber).
-- AGB mit Haftungsbegrenzung liegen vor (Issue #101).
+- AGB mit Haftungsbegrenzung liegen vor.
 - Die Funktionsliste ist öffentlich in den Issues; geplante Funktionen werden nicht versprochen.

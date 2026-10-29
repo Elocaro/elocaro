@@ -1,7 +1,5 @@
 # Banking: FinTS-Direktabruf & Produktregistrierung
 
-Gehört zu Issue „FinTS/HBCI-Direktabruf der Kontoumsätze“ (Epic M2).
-
 ## Warum eine Produktregistrierung?
 
 Seit 2019 akzeptieren deutsche Banken FinTS-Verbindungen nur noch von **registrierten Kundenprodukten**. Jede Software, die per FinTS mit einer Bank spricht, muss beim Verbindungsaufbau (Dialoginitialisierung, Segment `HKVVB`, Feld „Produktbezeichnung“) eine **Produktregistrierungsnummer** mitschicken. Ohne sie lehnen die meisten Banken die Verbindung ab, oder sie funktioniert nur eingeschränkt bzw. mit Warnhinweis.

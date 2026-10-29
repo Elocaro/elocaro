@@ -29,4 +29,4 @@ Ursprünglich war MariaDB vorgegeben. Der etablierte EF-Core-Provider Pomelo.Ent
 - Docker Compose: Service `postgres` statt `mariadb`. Backup via `pg_dump`.
 - Quartz.NET nutzt den PostgreSQL-ADO-Store.
 - Kollation: deutsche Sortierung über ICU-Kollation (`de-DE-x-icu`) für Namensspalten, wo nötig.
-- Die Vorgabe MariaDB aus dem Interview ist damit aufgehoben.
+- Die Vorgabe MariaDB aus den ersten Anforderungen ist damit aufgehoben.

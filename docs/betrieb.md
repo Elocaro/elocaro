@@ -31,7 +31,7 @@ PostgreSQL und Gotenberg liegen im Netz `intern` ohne Internetzugang. Die App is
 **Mit Installationsskript (empfohlen):**
 
 ```bash
-git clone https://github.com/elocaro/elocaro.git && cd Elocaro
+git clone https://github.com/Elocaro/elocaro.git && cd elocaro
 ./deploy/install.sh            # fragt Domain, Kontakt-Mail und SMTP ab, erzeugt die Passwörter, schreibt deploy/.env und startet alles
 ```
 
@@ -40,7 +40,7 @@ Das Skript prüft Docker und Compose, schreibt `deploy/.env` (Rechte 600, ein vo
 **Von Hand:**
 
 ```bash
-git clone https://github.com/elocaro/elocaro.git && cd Elocaro
+git clone https://github.com/Elocaro/elocaro.git && cd elocaro
 cp deploy/.env.example deploy/.env
 nano deploy/.env        # Domain, Passwörter, SMTP eintragen (Datenbankpasswort: openssl rand -base64 32)
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d

@@ -1,6 +1,6 @@
 # Fachlichkeit & Anforderungen
 
-Ergebnis des Anforderungsinterviews (Oktober 2026). Rechtliche Hinweise sind Umsetzungshinweise, **keine Rechtsberatung**.
+Anforderungen und Fachmodell. Rechtliche Hinweise sind Umsetzungshinweise, **keine Rechtsberatung**.
 
 ## Ausgangslage
 
@@ -84,7 +84,7 @@ Konto ─ Umsatz ─ Zuordnung ─ Sollstellung (Offener Posten)
 
 > ⚠️ **Keine Rechtssicherheit.** Die Rechenwege folgen der Heizkostenverordnung und dem CO2KostAufG nach bestem Verständnis. Die hinterlegten Tabellen (CO₂-Stufen, Gradtagszahlen) sind **versionierte Daten mit dem Status „Stand/prüfen“**: Sie wurden nicht gegen die amtlichen Quellen geprüft und müssen es vor dem Versand einer Abrechnung werden. Die Oberfläche weist an jeder Stelle darauf hin (Einstellungen, Vorschau, Warnungen im Rechenprotokoll).
 
-**Festlegungen für dieses Haus** (Antworten auf die offenen Fragen aus Issue #30, zugleich die Standardwerte):
+**Festlegungen für dieses Haus** (zugleich die Standardwerte):
 
 | Frage | Festlegung / Standardwert |
 |---|---|

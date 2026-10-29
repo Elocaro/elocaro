@@ -1,6 +1,6 @@
 # Datenschutz und technische Maßnahmen (Entwurf)
 
-Arbeitsgrundlage für Betreiber von Elocaro: Wer mit Elocaro Mieterdaten verarbeitet, ist **Verantwortlicher** im Sinne der DSGVO und braucht ein Verzeichnis der Verarbeitungstätigkeiten (Art. 30 DSGVO, bei privaten Vermietern mit wenigen Mietern oft entbehrlich, aber hilfreich) und eine Beschreibung der technischen und organisatorischen Maßnahmen (TOM, Art. 32). Dieses Dokument beschreibt, was Elocaro dafür **technisch** bietet, abgeglichen mit dem Code (Stand der Vorlage: Oktober 2026). Es ist **keine Rechtsberatung** und noch nicht juristisch geprüft (Issue #91, #86). Wer Elocaro für andere betreibt (Hosting), ist Auftragsverarbeiter und braucht zusätzlich einen Vertrag nach Art. 28 DSGVO (siehe unten).
+Arbeitsgrundlage für Betreiber von Elocaro: Wer mit Elocaro Mieterdaten verarbeitet, ist **Verantwortlicher** im Sinne der DSGVO und braucht ein Verzeichnis der Verarbeitungstätigkeiten (Art. 30 DSGVO, bei privaten Vermietern mit wenigen Mietern oft entbehrlich, aber hilfreich) und eine Beschreibung der technischen und organisatorischen Maßnahmen (TOM, Art. 32). Dieses Dokument beschreibt, was Elocaro dafür **technisch** bietet, abgeglichen mit dem Code (Stand der Vorlage: Oktober 2026). Es ist **keine Rechtsberatung** und noch nicht juristisch geprüft. Wer Elocaro für andere betreibt (Hosting), ist Auftragsverarbeiter und braucht zusätzlich einen Vertrag nach Art. 28 DSGVO (siehe unten).
 
 ## Verarbeitungstätigkeiten (Muster)
 
