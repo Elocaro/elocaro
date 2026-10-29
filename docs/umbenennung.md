@@ -68,3 +68,31 @@ Umgesetzt: Projekte, Ordner, Namensräume, `ElocaroDbContext`, Konfigurationssch
 - **Repository und Pakete:** Umzug nach `github.com/elocaro/elocaro` und neue GHCR-Pakete stehen aus. Bis dahin zeigen Links in Doku und Website auf das künftige Repository.
 - **Screenshots** in README, `docs/bilder` und `site/` zeigen noch die alte Oberfläche und sind neu aufzunehmen.
 - **E-Mail-Adresse** in Impressum und Datenschutz der Website (bestehendes Postfach) gegen eine Adresse mit dem neuen Namen tauschen, sobald die Domain feststeht.
+
+## Durchführung des Umzugs (29.10.2026)
+
+Die Produktivinstanz `mieten.hahnsfamily.de` läuft seit 14:15 Uhr im neuen Stack `~/Elocaro` (Commit 44c942f). Ausfallzeit: wenige Minuten, vom Stoppen der alten App bis zum Start der neuen. Ergebnis: Zeilenzahlen aller 122 Tabellen vor und nach dem Umzug identisch, `/health` meldet alle Prüfungen `Healthy`, das Zertifikat wurde übernommen (kein neuer Abruf bei Let's Encrypt), die erste Sicherung des neuen Stacks lief fehlerfrei.
+
+**Was anders war als geplant (für künftige Umbenennungen):**
+
+1. **Dump-Dateiname:** Das Backup-Skript legt den Dump als `<Datenbankname>.dump` ab. Die alten Snapshots enthalten `…/work/<alter Name>.dump`, das neue `restore` sucht `elocaro.dump` und bricht ab. Die Datenbank wurde deshalb mit denselben Schritten von Hand eingespielt (`restic restore`, `DROP/CREATE DATABASE`, `pg_restore --no-owner`, Dateien kopieren, `chown 1654`).
+2. **Quartz speichert alles unter dem Planernamen** (`sched_name`) und die Job-Klassen als Typnamen mit Assembly. Nach dem Umzug legte der neue Planer seine 14 Jobs selbst an (Planername geändert), die 14 alten Jobs unter dem alten Planernamen blieben als verwaiste Zeilen liegen und wurden gelöscht. Zusätzlich wurden die Klassennamen der alten Zeilen vor dem Start korrigiert, damit nichts auf nicht mehr vorhandene Typen zeigt.
+3. **Texte in der Datenbank:** Eine Standardvorlage (Mietschuldenfreiheitsbescheinigung) und ihre Version nannten den alten Produktnamen im Text und wurden angepasst. **Unverändert blieben** 3 versendete E-Mails (Betreff) und 3 Audit-Einträge: Sie dokumentieren, was tatsächlich versendet oder geändert wurde.
+4. **Backup-Repository:** Neuer Container `elocaro-backup` im bestehenden Speicherkonto, per `restic init --copy-chunker-params` und `restic copy` aus dem alten gefüllt. Danach im neuen Repository `restic tag --set elocaro` und `restic rewrite --new-host elocaro --forget`. Weil sich die Snapshot-IDs durch das Umschreiben ändern, kopiert ein erneutes `restic copy` ältere Snapshots doppelt; die Aufbewahrungsregel des nächsten Backups räumt das auf.
+5. **Zertifikat:** Die Volumes `caddy-data` und `caddy-config` wurden in die neuen Volumes kopiert (alter Caddy vorher gestoppt).
+6. **Keine Anmeldung neu nötig:** Passwörter und Zwei-Faktor-Schlüssel stammen aus der Datenbank und blieben gültig. Die Sitzungen sind beendet (neuer Data-Protection-Name), das ist erwartet.
+
+**Rückfall (solange die alten Reste bestehen):**
+
+```bash
+cd ~/Elocaro && docker compose -f deploy/docker-compose.yml --env-file deploy/.env stop
+cd ~/MietHahn/deploy && docker compose --env-file .env start postgres gotenberg app caddy backup
+```
+
+Die alte Instanz hat ihre eigenen Volumes und den Datenstand von 14:12 Uhr; Änderungen im neuen Stack gingen bei einem Rückfall verloren.
+
+**Aufräumen (nach einigen Wochen Betrieb ohne Auffälligkeiten):**
+
+- Alte Container und Volumes (`docker compose … down -v` im alten Verzeichnis), die Images mit altem Namen, die Verzeichnisse `~/MietHahn` und `~/MietHahn.alt`.
+- Alten Azure-Container (`…-backup` mit altem Namen) löschen. Der Name des **Speicherkontos** enthält den alten Namen und lässt sich nicht ändern; wer ihn loswerden will, legt ein neues Konto an und kopiert das Repository erneut mit `restic copy`.
+- Die Ressourcengruppe in Azure trägt ebenfalls noch den alten Namen (Umbenennen geht nur durch Neuanlegen und Verschieben).
