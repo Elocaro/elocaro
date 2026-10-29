@@ -2,6 +2,9 @@
 @using QRCoder
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> Login
+@using Elocaro.Application.Admin
+@using Microsoft.Extensions.Options
+@inject IOptions<DemoOptions> Demo
 
 <PageTitle>Zwei-Faktor-Anmeldung – Elocaro</PageTitle>
 
@@ -20,6 +23,11 @@ else if (user?.TwoFactorEnabled == true)
         <a href="/konto/sicherheit/wiederherstellungscodes">Neue Wiederherstellungscodes erzeugen</a>
         <a href="/konto/sicherheit">Zurück</a>
     </div>
+}
+else if (Demo.Value.Enabled)
+{
+    <Notice Level="NoticeLevel.Info">In der Demo lässt sich die Zwei-Faktor-Anmeldung nicht einrichten.</Notice>
+    <div class="account-links"><a href="/konto/sicherheit">Zurück</a></div>
 }
 else if (user is not null)
 {
@@ -96,6 +104,11 @@ else if (user is not null)
 
     private async Task ActivateAsync()
     {
+        if (Demo.Value.Enabled)
+        {
+            return;
+        }
+
         var code = Input!.Code.Replace(" ", "", StringComparison.Ordinal).Replace("-", "", StringComparison.Ordinal);
         if (!await UserManager.VerifyTwoFactorTokenAsync(user!, UserManager.Options.Tokens.AuthenticatorTokenProvider, code))
         {

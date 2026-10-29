@@ -5,7 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
-- Demo-Modus (`Demo__Enabled`): legt beim ersten Start einen Demo-Benutzer ohne Zwei-Faktor an, lädt die Beispieldaten und zeigt die Zugangsdaten auf der Anmeldeseite; dazu `deploy/docker-compose.demo.yml`, `deploy/Caddyfile.demo` und `deploy/demo/reset.sh` für das nächtliche Zurücksetzen (siehe Betrieb → Demo-Instanz).
+- Demo-Modus (`Demo__Enabled`): legt beim ersten Start einen Demo-Benutzer ohne Zwei-Faktor an, lädt die Beispieldaten legt je Rolle einen Demo-Benutzer an (Verwalter, Hausmeister, Handwerker, Eigentümer, Mieter), sperrt Passwortänderung und Zwei-Faktor-Einrichtung, blendet die Sicherungsmeldung aus und zeigt die Zugangsdaten auf der Anmeldeseite; dazu `deploy/docker-compose.demo.yml`, `deploy/Caddyfile.demo` und `deploy/demo/reset.sh` für das nächtliche Zurücksetzen (siehe Betrieb → Demo-Instanz).
 
 ## [0.1.0] - 2026-10-29
 

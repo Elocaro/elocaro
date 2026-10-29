@@ -2,7 +2,7 @@
 @inject IAccountService Accounts
 @inject SignInManager<ApplicationUser> Login
 @inject Redirector Redirector
-@using Elocaro.Application.Setup
+@using Elocaro.Application.Admin
 @using Microsoft.Extensions.Options
 @inject IOptions<DemoOptions> Demo
 
@@ -13,8 +13,15 @@
 @if (Demo.Value.Enabled)
 {
     <Notice Level="NoticeLevel.Info">
-        <strong>Demo:</strong> Melden Sie sich mit <code>@Demo.Value.AdminEmail</code> und dem Passwort <code>@Demo.Value.AdminPassword</code> an.
-        Die Beispieldaten sind erfunden und werden jede Nacht zurückgesetzt. Bitte keine echten Daten eingeben.
+        <strong>Demo:</strong> Die Beispieldaten sind erfunden und werden jede Nacht zurückgesetzt. Bitte keine echten Daten eingeben.
+        Alle Konten haben das Passwort <code>@Demo.Value.AdminPassword</code>:
+        <ul>
+            <li><code>@Demo.Value.AdminEmail</code> (Administrator)</li>
+            @foreach (var user in DemoOptions.Users)
+            {
+                <li><code>@user.Email</code> (@user.Role: @user.Description)</li>
+            }
+        </ul>
     </Notice>
 }
 

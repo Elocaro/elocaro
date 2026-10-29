@@ -343,7 +343,7 @@ Eine öffentliche Demo zeigt Elocaro mit erfundenen Beispieldaten (ein Haus, vie
    docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.demo.yml --env-file deploy/.env up -d
    ```
 
-   `Demo__Enabled=true` legt beim ersten Start den Demo-Benutzer an und lädt die Beispieldaten. Die Anmeldeseite zeigt E-Mail-Adresse und Passwort an, Zwei-Faktor ist abgeschaltet. Mail-Versand, Datensicherung und FinTS sind aus; die Seiten sind für Suchmaschinen gesperrt (`deploy/Caddyfile.demo`).
+   `Demo__Enabled=true` legt beim ersten Start den Demo-Benutzer an und lädt die Beispieldaten. Dazu gibt es je Rolle einen Demo-Benutzer (Verwalter, Hausmeister, Handwerker, Eigentümer, Mieter) mit demselben Passwort; die Anmeldeseite listet alle Konten auf. Zwei-Faktor ist abgeschaltet, Passwort und Zwei-Faktor lassen sich nicht ändern, die Sicherungsmeldung entfällt. Mail-Versand, Datensicherung und FinTS sind aus; die Seiten sind für Suchmaschinen gesperrt (`deploy/Caddyfile.demo`).
 4. Jede Nacht zurücksetzen (Cron): `30 3 * * * /pfad/zu/elocaro/deploy/demo/reset.sh >> /var/log/elocaro-demo-reset.log 2>&1`. Das Skript löscht Datenbank und Dateien und startet neu mit frischen Beispieldaten; das Zertifikat bleibt erhalten.
 
 Den Demo-Schalter **nie** auf einer Instanz mit echten Daten setzen.

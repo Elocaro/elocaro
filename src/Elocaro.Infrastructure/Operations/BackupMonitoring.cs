@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Admin;
 using Elocaro.Application.Communication;
 using Elocaro.Application.Operations;
 using Elocaro.Application.Todos;
@@ -13,14 +14,16 @@ using Quartz;
 namespace Elocaro.Infrastructure.Operations;
 
 /// <summary>Shows a backup problem on the dashboard (for accounts with the system permission).</summary>
-internal sealed class BackupTodos(IBackupStatus status) : ITodoSource
+internal sealed class BackupTodos(IBackupStatus status, IOptions<DemoOptions> demo) : ITodoSource
 {
     public const string Link = "/verwaltung/system/datensicherung";
 
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (!user.IsInRole(Roles.Admin) && !user.HasClaim(Permissions.ClaimType, nameof(AccessRight.System)))
+
+        // The demo instance has no backup on purpose.
+        if (demo.Value.Enabled || (!user.IsInRole(Roles.Admin) && !user.HasClaim(Permissions.ClaimType, nameof(AccessRight.System))))
         {
             return [];
         }

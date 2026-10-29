@@ -1,6 +1,6 @@
 using System.Net;
 using System.Threading.RateLimiting;
-using Elocaro.Application.Setup;
+using Elocaro.Application.Admin;
 using Elocaro.Infrastructure.Identity;
 using Elocaro.Web.AccessControl;
 using Microsoft.AspNetCore.Antiforgery;
