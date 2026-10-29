@@ -100,3 +100,20 @@ Für die Prüfung durch die Fachperson zusätzlich suchen: *Elocaro, Elcaro, Elo
 3. **Repository:** Umbenennen oder in die neue Organisation verschieben (GitHub leitet alte Adressen weiter), Pakete (GHCR) neu benennen.
 4. **Produktivinstanz zuletzt:** Zuerst Backup, dann neues Image ausrollen. Die Namen aus der Tabelle „Nicht ändern“ bleiben stehen.
 5. **Marke und Domain:** Anmeldung beim DPMA, Domain und Social-Handles sichern, Website auf die neue Domain.
+
+## Ergebnis der Registerabfragen (29.10.2026, von Hand durch den Projektinhaber)
+
+| Register | Suche | Ergebnis |
+|---|---|---|
+| EUIPO eSearch plus | `Elocaro` | 0 Marken, 0 Designs, 0 Inhaber, 0 Vertreter |
+| DPMAregister | `marke="Elocaro"` | keine Treffer |
+
+Eine automatisierte Abfrage war nicht möglich (die Register sperren Automatisierung); die Abfragen werden von Hand gemacht.
+
+**Aussage und Grenze:** Es gibt keine **identische** eingetragene Marke in Deutschland und in der EU. Eine Ähnlichkeitsprüfung ist das nicht. Offen sind vor allem **Elcaro** (ein Buchstabe weniger) und weitere Schreibweisen. Zu prüfen (DPMAregister, Syntax mit Platzhaltern; EUIPO entsprechend):
+
+- `marke="Elcaro"`, `marke="Elocar*"`, `marke="*locaro"`, `marke="Elokaro"`, `marke="Eloquaro"`, `marke="Elocari"`
+- jeweils auch ohne Klassenfilter und dann mit den Klassen 9, 35, 36, 42
+- zusätzlich WIPO Global Brand Database (internationale Registrierungen mit Schutz in DE oder EU)
+
+Nicht eingetragene Kennzeichen (Firmennamen, Domains, Titel) deckt keines der Markenregister ab.
