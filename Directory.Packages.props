@@ -21,7 +21,7 @@
     <PackageVersion Include="MudBlazor" Version="9.11.0" />
     <PackageVersion Include="QRCoder" Version="1.8.1" />
     <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.22.6" />
-    <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.22.6" />
+    <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.22.9" />
     <PackageVersion Include="Scriban" Version="7.5.1" />
     <PackageVersion Include="SkiaSharp" Version="4.153.1" />
     <!-- Transitive via MimeKit; pinned because of GHSA-846f-f764-76mx / GHSA-2fmv-rv2c-59x7 -->
