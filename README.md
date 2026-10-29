@@ -50,6 +50,7 @@ Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, Zwei-Fak
 - [Installation auf anderen Plattformen](docs/installation-plattformen.md): Portainer, Coolify, Synology, Unraid, Proxmox, ARM
 - [Marktanalyse](docs/marktanalyse.md) und [Produktbewertung](docs/produktbewertung.md): was bestehende Software gut und schlecht macht, wie MietHahn dasteht
 - [Vertriebsplan](docs/vertriebsplan.md): Weg zur Veröffentlichung
+- [Namensprüfung](docs/namenspruefung.md): Befunde und Prüfauftrag zur Marke (#87)
 - [Fachlichkeit & Anforderungen](docs/fachlichkeit.md): Ergebnis des Anforderungsinterviews
 - [Architektur](docs/architektur.md): Technologie, Struktur, Meilensteine
 - [Entwicklung](docs/entwicklung.md): lokale Umgebung, Migrationen, Konventionen, Tests
