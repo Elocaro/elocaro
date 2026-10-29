@@ -1,0 +1,64 @@
+@using MudBlazor
+@inject Notifier Notify
+
+@* Dialog "new area value from a cut-off date"; the service call is passed in (property, unit or room). *@
+<EditForm Model="input" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <div class="form-grid">
+                <AppDateField @bind-Value="input.From" Label="Gültig ab" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="input.Area" Label="@AreaText" Suffix="m²" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="input.SecondaryArea" Label="@AdditionalText" Suffix="m²" Hint="@AdditionalHint" />
+            </div>
+            <p class="small">Der bisherige Stand endet am Tag vor dem Stichtag und bleibt für frühere Abrechnungen erhalten.</p>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Fläche speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private AreaInput input = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Func<AreaInput, Task<Result>> Save { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string AreaText { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string AdditionalText { get; set; } = "";
+
+    [Parameter]
+    public string? AdditionalHint { get; set; }
+
+    /// <summary>The current values are pre-filled; the user only enters the cut-off date.</summary>
+    [Parameter]
+    public AreaReading? Current { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized() => input = new AreaInput { Area = Current?.Area, SecondaryArea = Current?.SecondaryArea };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Save(input);
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Fläche wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

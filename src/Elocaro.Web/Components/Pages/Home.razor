@@ -1,0 +1,14 @@
+@page "/"
+@attribute [Authorize]
+@using Elocaro.Web.AccessControl
+@inject NavigationManager Navigation
+
+@* Redirects to the matching area depending on the role. *@
+<PageTitle>Elocaro</PageTitle>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override void OnInitialized() => Navigation.NavigateTo(AccessControlExtensions.HomePage(HttpContext.User));
+}

@@ -1,0 +1,4 @@
+{{ capture subject }}Bitte Zählerstände zum Jahreswechsel melden{{ end }}
+<p>{{ salutation }}</p>
+<p>zum Jahreswechsel brauchen wir die Zählerstände Ihrer Wohnung für die Abrechnung {{ year }}. Bitte lesen Sie Ihre Zähler ab und tragen Sie die Stände im <a href="{{ link }}">Mieterportal</a> ein; das dauert nur wenige Minuten.</p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

@@ -1,0 +1,61 @@
+@page "/verwaltung/bank/regeln"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IMatchRules MatchRules
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<InteractiveShell>
+    <PageHeader Title="Zuordnungsregeln" Subtitle="Regeln gelten vor der automatischen Bewertung, die erste passende (niedrigste Priorität zuerst) bestimmt den Vorschlag." Back="/verwaltung/bank/zuordnung" BackText="Zuordnung">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/bank/regeln/neu">Regel anlegen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <ErrorList Errors="errors" />
+
+    @if (rules is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Regeln. Beispiel: „Gegen-IBAN der Stadtwerke → Kostenart Wasserversorgung, Objekt Lindenweg 3“." />
+    }
+    else if (rules is not null)
+    {
+        <MudTable T="MatchRuleRow" Items="rules" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Regel</MudTh><MudTh>Bedingung</MudTh><MudTh>Ziel</MudTh>
+                <MudTh Style="text-align:right"><MudTableSortLabel T="MatchRuleRow" SortBy="@(r => r.Priority)" InitialDirection="SortDirection.Ascending">Priorität</MudTableSortLabel></MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Regel"><a href="/verwaltung/bank/regeln/@context.Id">@context.Name</a></MudTd>
+                <MudTd DataLabel="Bedingung">@context.Condition</MudTd>
+                <MudTd DataLabel="Ziel">@context.Target</MudTd>
+                <MudTd DataLabel="Priorität" Style="text-align:right">@context.Priority</MudTd>
+                <MudTd><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(context)" aria-label="@($"Regel {context.Name} löschen")">Löschen</MudButton></MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<MatchRuleRow>? rules;
+    private IReadOnlyList<string>? errors;
+
+    protected override async Task OnInitializedAsync() => rules = await MatchRules.ListAsync();
+
+    private async Task DeleteAsync(MatchRuleRow rule)
+    {
+        if (!await Confirm.AskAsync("Regel löschen", $"Soll die Regel „{rule.Name}“ gelöscht werden? Bereits zugeordnete Umsätze bleiben unverändert.", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var result = await MatchRules.DeleteAsync(rule.Id);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Regel wurde gelöscht.");
+            rules = await MatchRules.ListAsync();
+        }
+    }
+}

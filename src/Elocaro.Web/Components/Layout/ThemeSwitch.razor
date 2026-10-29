@@ -1,0 +1,23 @@
+@using Elocaro.Web.Account
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+
+@* Light/dark/system switch of the user menu (segmented, works without JavaScript). *@
+<form method="post" action="/konto/darstellung" class="theme-switch">
+    <AntiforgeryToken />
+    <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+    <span class="small" id="@labelId">Darstellung</span>
+    <div role="group" aria-labelledby="@labelId">
+        <button type="submit" name="theme" value="system" aria-pressed="@(Theme is null)">System</button>
+        <button type="submit" name="theme" value="light" aria-pressed="@(Theme == "light")">Hell</button>
+        <button type="submit" name="theme" value="dark" aria-pressed="@(Theme == "dark")">Dunkel</button>
+    </div>
+</form>
+
+@code {
+    private readonly string labelId = "theme-label-" + Guid.NewGuid().ToString("N")[..6];
+
+    private string ReturnUrl => "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+
+    private string? Theme => ThemePreference.Read(HttpContextAccessor.HttpContext);
+}

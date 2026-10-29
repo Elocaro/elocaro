@@ -1,0 +1,49 @@
+@typeparam T
+@using System.Linq.Expressions
+@using MudBlazor
+@* Selection from a list (enum values, objects, ids). Items and the text function describe the entries; EmptyText adds an entry
+   for "no selection" (for nullable T). *@
+<MudSelect T="T" Value="Value" ValueChanged="ValueChanged" For="ValueExpression" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled"
+           ToStringFunc="Text" Variant="Variant.Outlined" ShrinkLabel="true">
+    @if (EmptyText is not null)
+    {
+        <MudSelectItem T="T" Value="default">@EmptyText</MudSelectItem>
+    }
+    @foreach (var item in Items)
+    {
+        <MudSelectItem T="T" Value="item">@Text(item)</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter]
+    public T? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<T?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<T?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public IEnumerable<T> Items { get; set; } = [];
+
+    [Parameter]
+    public Func<T?, string> Text { get; set; } = item => item?.ToString() ?? "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Text of an additional "nothing selected" entry.</summary>
+    [Parameter]
+    public string? EmptyText { get; set; }
+}

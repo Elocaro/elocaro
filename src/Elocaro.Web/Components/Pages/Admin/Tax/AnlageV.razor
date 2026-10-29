@@ -1,0 +1,187 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/anlage-v"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IAnlageVService Admin
+@inject IPropertyOwners Owners
+@inject TimeProvider Clock
+@inject Notifier Notify
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (report is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+    <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@(report.OwnerName is null ? null : $"{report.OwnerName} ({report.OwnerSharePercent:0.####} %)")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
+
+    <div class="form-row search-bar" role="search">
+        <AppYearSelect T="int" Value="year" ValueChanged="OnYearChanged" Label="Steuerjahr" />
+        @if (ownerChoices.Count > 0)
+        {
+            <AppSelect T="Guid?" Value="ownerId" ValueChanged="OnOwnerChanged" Label="Auswertung für" EmptyText="Ganzes Objekt" Items="ownerChoices.Select(o => (Guid?)o.PersonId).ToList()" Text="@(id => ownerChoices.FirstOrDefault(o => o.PersonId == id) is { } o ? $"{o.Name} ({o.SharePercent:0.##} %)" : "")" />
+        }
+        <AppCheckBox Value="forecast" ValueChanged="OnForecastChanged" Label="Totalüberschussprognose positiv" />
+        <div class="field-action">
+            <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.csv")">CSV exportieren</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.pdf")">PDF</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/finanzen/anlage-v-zeilen?jahr={year}")">Zeilennummern pflegen</MudButton>
+        </div>
+    </div>
+
+    <details class="explain">
+        <summary>Was bedeutet „Totalüberschussprognose positiv“?</summary>
+        <p>Das betrifft nur verbilligte Vermietung (Miete zwischen 50 % und 66 % der ortsüblichen Miete, § 21 Abs. 2 EStG). Ist die Prognose positiv, bleiben die Werbungskosten voll abziehbar, sonst werden sie anteilig gekürzt. Bei marktüblicher Miete hat der Haken keine Wirkung.</p>
+    </details>
+
+    @if (report.Warnings.Count > 0)
+    {
+        <Notice Level="NoticeLevel.Warning">
+            <strong>Bitte prüfen:</strong>
+            <ul>
+                @foreach (var warning in report.Warnings)
+                {
+                    <li>@warning</li>
+                }
+            </ul>
+        </Notice>
+    }
+
+    <details class="explain">
+        <summary>Zuflussprinzip</summary>
+        <p class="small">
+        Es zählen Zahlungen und Zahlungsabflüsse im Jahr (Zuflussprinzip, § 11 EStG). Regelmäßig wiederkehrende Zahlungen, die innerhalb von zehn Tagen um den Jahreswechsel
+        fällig sind und gezahlt werden, gehören zum Jahr der Fälligkeit. Die Zeilennummern sind je Steuerjahr pflegbar und vor dem Eintragen am amtlichen Vordruck zu prüfen.
+    </p>
+    </details>
+
+    <section>
+        <h2>Einnahmen</h2>
+        <AnlageVTable Lines="report.Result.Income" Total="report.Result.IncomeTotal" TotalText="Summe der Einnahmen" PropertyId="PropertyId" />
+    </section>
+
+    <section>
+        <h2>Werbungskosten</h2>
+        <AnlageVTable Lines="report.Result.Expenses" Total="report.Result.ExpenseTotal" TotalText="Summe der Werbungskosten" PropertyId="PropertyId" />
+    </section>
+
+    <dl class="summary">
+        @if (report.Result.Reduction != 0)
+        {
+            <dt>Kürzung der Werbungskosten (verbilligte Vermietung, @Format.Number(report.RentPercent ?? 0) % der ortsüblichen Miete)</dt><dd>@Format.Money(-report.Result.Reduction)</dd>
+            <dt>Abziehbare Werbungskosten</dt><dd>@Format.Money(report.Result.DeductibleExpenses)</dd>
+        }
+        <dt>Überschuss</dt><dd>@Format.Money(report.Result.Surplus)</dd>
+    </dl>
+
+    <section>
+        <h2>Verbilligte Vermietung</h2>
+        <details class="explain">
+            <summary>Verbilligte Vermietung (66-%-Grenze)</summary>
+            <p class="small">
+            Liegt die Miete (Kaltmiete und Umlagen) unter 66 % der ortsüblichen Miete, sind die Werbungskosten nur anteilig abziehbar (§ 21 Abs. 2 EStG).
+            Tragen Sie dafür die ortsübliche Jahresmiete einschließlich Umlagen für den vermieteten Zeitraum ein, zum Beispiel aus dem Mietspiegel.
+            @if (report.RentPercent is { } percent)
+            {
+                <text>Aktuell: @Format.Number(percent) % der ortsüblichen Miete.</text>
+            }
+        </p>
+        </details>
+        <div class="form-row">
+            <AppNumberField T="decimal?" @bind-Value="localRent" Label="Ortsübliche Jahresmiete" Suffix="€" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveLocalRentAsync">Speichern</MudButton>
+        </div>
+    </section>
+}
+</InteractiveShell>
+
+@code {
+    private AnlageVReport? report;
+    private int year;
+    private bool forecast;
+    private decimal? localRent;
+    private bool loaded;
+    private Guid? ownerId;
+    private IReadOnlyList<OwnerRow> ownerChoices = [];
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    // The query string only provides the start values (see ADR 0005).
+    [SupplyParameterFromQuery(Name = "jahr")]
+    private int? InitialYear { get; set; }
+
+    [SupplyParameterFromQuery(Name = "eigentuemer")]
+    private Guid? InitialOwner { get; set; }
+
+    [SupplyParameterFromQuery(Name = "prognose")]
+    private bool? InitialForecast { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        year = InitialYear ?? Elocaro.Domain.Common.GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+        forecast = InitialForecast ?? false;
+        if (InitialOwner is { } wanted)
+        {
+            await LoadOwnersAsync();
+            ownerId = ownerChoices.Any(o => o.PersonId == wanted) ? wanted : null;
+        }
+
+        await LoadAsync();
+        if (InitialOwner is null)
+        {
+            // After the evaluation is shown: the owner choice only appears when there are owners, and must not delay the page.
+            await LoadOwnersAsync();
+        }
+    }
+
+    private async Task LoadOwnersAsync() =>
+        ownerChoices = (await Owners.GetAsync(PropertyId)).Owners.Where(o => o.Current).DistinctBy(o => o.PersonId).ToList();
+
+    private string Link(string file) => $"/verwaltung/objekte/{PropertyId}/{file}?jahr={year}&prognose={forecast.ToString().ToLowerInvariant()}{(ownerId is { } owner ? $"&eigentuemer={owner}" : "")}";
+
+    private async Task OnYearChanged(int value)
+    {
+        year = value;
+        await LoadAsync();
+    }
+
+    private async Task OnOwnerChanged(Guid? value)
+    {
+        ownerId = value;
+        await LoadAsync();
+    }
+
+    private async Task OnForecastChanged(bool value)
+    {
+        forecast = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        report = ownerId is { } person
+            ? await Admin.GetForOwnerAsync(PropertyId, year, person, forecast) ?? await Admin.GetAsync(PropertyId, year, forecast)
+            : await Admin.GetAsync(PropertyId, year, forecast);
+        localRent = report?.LocalRent;
+        loaded = true;
+    }
+
+    private async Task SaveLocalRentAsync()
+    {
+        var result = await Admin.SaveLocalRentAsync(PropertyId, year, localRent);
+        if (result.Succeeded)
+        {
+            Notify.Success("Die ortsübliche Miete wurde gespeichert.");
+            await LoadAsync();
+        }
+        else
+        {
+            Notify.Error(string.Join(" ", result.Errors));
+        }
+    }
+}

@@ -1,0 +1,70 @@
+# Architektur
+
+## Leitentscheidungen
+
+| Thema | Entscheidung | Begründung |
+|---|---|---|
+| Laufzeit | **.NET 10 (LTS)**, C# | Vorgabe, LTS bis Nov. 2028 |
+| UI | **Blazor Web App, Static SSR** (Enhanced Navigation/Forms, Streaming Rendering). **Kein React**, kein WASM. Interaktive Server-Komponenten nur als begründete Ausnahme (ADR) | Vorgabe, einfaches Hosting, wenig JS, gut für mobile Erfassung |
+| Datenbank | **PostgreSQL** via EF Core 10 + **Npgsql** (siehe [ADR 0002](adr/0002-ef-core-provider.md)) | EF-Support ab dem ersten Tag, Zeitraum-Constraints, transaktionale Migrations |
+| Architekturstil | **Modularer Monolith**, ein Deployable | Kleine Nutzerzahl, einfacher Betrieb |
+| Auth | ASP.NET Core Identity + TOTP-2FA, Magic Link für Mieter/Handwerker | Vorgabe |
+| PDF | **Scriban**-HTML-Vorlagen → **Gotenberg** (Docker, Chromium) | Vorlagen ohne Code editierbar, ein Mechanismus für alle Dokumente |
+| Jobs | **Quartz.NET 4.x** (persistenter Store in PostgreSQL, Laufprotokoll) | Fristen, Sollstellungen, FinTS-Abruf, Mails |
+| Banking | Parser für CSV/CAMT.053/MT940; FinTS via **libfintx** (LGPL-3.0, als NuGet unverändert eingebunden) | Vorgabe: Import und Direktabruf |
+| OCR/KI | Interface `IReceiptExtractor` mit Providern **Claude API**, **Ollama** (lokal), **Keiner** | Konfigurierbar, Datenhoheit wählbar |
+| Mail | **MailKit** (SMTP) mit Outbox-Tabelle und Wiederholungen | Standard, Versandnachweis |
+| Bilder | **SkiaSharp** (EXIF-Drehung, Verkleinern, Metadaten entfernen) | MIT-Lizenz |
+| Dateien | Lokales Volume, Content-Addressed (SHA-256) | Einfach, backupbar |
+| Hosting | **Docker Compose** auf VPS: `app`, `postgres`, `gotenberg`, `backup` (restic), `caddy` (HTTPS/Let's Encrypt) | Vorgabe |
+
+## Lösungsstruktur
+
+```
+src/
+  Elocaro.Domain/          Entitäten, Value Objects (Geld, Zeitraum, Fläche), Domänenregeln, reine Rechenkerne
+  Elocaro.Application/     Use Cases (Commands/Queries), Interfaces (IBankImporter, IReceiptExtractor, IPdfRenderer, IMailer)
+  Elocaro.Infrastructure/  EF Core (PostgreSQL), Migrations, Banking-Parser, FinTS, OCR-Provider, Gotenberg, MailKit, Quartz
+  Elocaro.Web/             Blazor SSR: Areas /verwaltung, /portal (Mieter), /service (Hausmeister/Handwerker)
+tests/
+  Elocaro.Domain.Tests/        Rechenkerne (NK, HK, CO₂, AfA, Index) mit Golden-Master-Fällen
+  Elocaro.Integration.Tests/   Testcontainers PostgreSQL, Gotenberg
+  Elocaro.Web.Tests/           bUnit + Playwright E2E
+deploy/
+  docker-compose.yml, Caddyfile, backup/
+```
+
+**Abrechnungs-Rechenkerne** (NK, Heizkosten, CO₂, AfA, Mieterhöhung) sind reine Funktionen in `Domain` ohne DB-Zugriff. Sie liefern ein nachvollziehbares Rechenprotokoll, das im PDF und bei Prüfungen angezeigt wird.
+
+## Querschnitt
+
+- **Mandantenfähigkeit:** nicht nötig (eine Installation pro Vermieter). Alle Daten hängen aber an `PropertyId`, damit später Eigentümer je Objekt möglich sind.
+- **Historisierung:** Gültigkeitszeiträume statt Überschreiben, Audit-Log (wer, wann, was) für alle Änderungen.
+- **Sicherheit:** HTTPS über Caddy, Antiforgery (SSR-Forms), Rate-Limiting für Login/Magic Link, Secrets über Umgebungsvariablen bzw. Docker Secrets, FinTS-PIN wird nie gespeichert, Upload-Validierung (Typ/Größe).
+- **Backups:** nächtlich `pg_dump` + Datei-Volume, verschlüsselt (restic) im eigenen Container, Statusdatei → Dashboard/Warnmail, Restore-Test in der CI (`deploy/backup/`). Vollexport aller Daten als ZIP (JSON/CSV + Dateien) aus dem EF-Modell.
+- **Lokalisierung:** nur Deutsch, Formate de-DE, Zeitzone Europe/Berlin.
+- **Barrierearmut & Mobile:** responsive Layout, Erfassungsmasken (Zähler, Tickets) für Smartphones.
+- **CI:** GitHub Actions: Build, Tests (inkl. Testcontainers), Format/Analyzer, Docker-Image nach GHCR.
+
+## Architekturregeln (Tests)
+
+`tests/Elocaro.Architecture.Tests` hält die Regeln dieses Dokuments fest; ein Verstoß bricht den Build:
+
+- **Schichten** (`LayerRulesTests`): Domain kennt nichts, Application nur Domain, Infrastructure nicht Web; die Domain nutzt keine Frameworks.
+- **Zugriff** (`AccessRulesTests`): Jede Seite mit `@page` nennt ihren Zugriff ausdrücklich (`[Authorize(Policy = …)]` an der Seite oder in der `_Imports.razor` des Ordners, sonst `[AllowAnonymous]`). Anonym sind nur die dort aufgelisteten Seiten (Anmeldung, Fehler, Links mit Token). Jeder Bereich verlangt seine Policy (Verwaltung, Eigentümer, Portal, Service). Die Fallback-Richtlinie („angemeldet“) ist nur das Netz darunter.
+- **Web und Infrastructure** (`AccessRulesTests`): Seiten sprechen mit Application-Schnittstellen. Infrastructure-Typen kennt das Web nur in Start und Konto (feste Liste, darf schrumpfen, nicht wachsen).
+- **Module** (`ModuleRulesTests`): Die Ordner der Infrastructure sind fachliche Module, aber keine Assemblies. Wechselseitige Abhängigkeiten zwischen zwei Modulen sind eingefroren (`KnownCycles`): Ein neuer Zyklus bricht den Test, ein aufgelöster muss aus der Liste. Ziel: leere Liste. `Admin` ist aufgeteilt: Import, Beispieldaten und Einrichtung (`Setup`), Kennzahlen und Navigationskontext (`Portfolio`) Rechtsstände (`Legal`) das Übergabeprotokoll (`Handover`, es verbindet Vertrag und Zähler) und die Serienbriefe (`Correspondence`) sind oberste Module, die kein anderes Modul benutzen darf; der Modulschalter kennt keine Fachmodule mehr, jedes meldet seine Nutzung über `IOptionUsageSource`. Das Absenderprofil (`SenderProfiles`, `LandlordProfileService`) liegt im Modul `Properties`, weil dort die Verknüpfung Objekt → Profil gehört; `Admin` bleibt als Baustein (Modulschalter, Gates) ohne Fachbezug. Anrede und Adressblock (`LetterParts`) liegen in der Domain, `Common` enthält nur noch Querschnittshilfen. Die Prüfung zählt Verweise auf Namespaces von Application, Domain und Infrastructure; Stand: 1 Zyklus (Leases↔Properties). Serienbriefe und Dokumentbereitschaft liegen im Modul `Correspondence`, weil sie Dokumente mit Konten, Kautionen und Verträgen verbinden; die Dokumentenbibliothek kennt Verträge nur über `IDocumentLeaseSource`, die Leases implementiert. Die Kostengruppe (`CostGroup`, `CostGroups`) liegt bei den Kostenarten in `Domain.Receipts`, nicht bei den Umlageschlüsseln. Die Beschreibung eines Mietverhältnisses (Einheit und Mieter, `LeaseDescriptions`) gehört zu Leases, nicht zu Finance; CSV-Zerlegung und Zeichensatz-Erkennung (`CsvText`, `TextDecoding`) sind Bausteine in Common und kein Teil des Bankimports. Bausteine ohne Fachabhängigkeit: Common, Admin, Identity, Files, Mail, Templates, Notifications, Audit. Die Bausteine dürfen nicht auf Fachmodule verweisen.
+- **Oberfläche** (`UiRulesTests`): siehe `docs/ui.md`.
+
+## Meilensteine
+
+| # | Meilenstein | Inhalt |
+|---|---|---|
+| M0 | Fundament | Repo, Solution, CI, Docker, Auth, Rollen, Layout, Audit |
+| M1 | Stammdaten | Objekte, Einheiten, Zimmer, Mieter, Verträge, Mietmodelle, Zähler, Dokumentablage |
+| M2 | Finanzen & Bank | Sollstellungen, Konten, CSV/CAMT/MT940, FinTS, Zuordnung, Offene Posten, Mahnwesen, Belege + OCR |
+| M3 | Nebenkosten & Heizkosten | Kostenerfassung, Umlageschlüssel, Rechenkern BetrKV, HeizkostenV, CO₂, PDF, Versand, VZ-Anpassung |
+| M4 | Steuer | AfA, Darlehen, Erhaltungsaufwand, Anlage V, DATEV-Export |
+| M5 | Dokumente & Fristen | Vorlagen-Engine, Verträge, Mieterhöhung, Protokolle, Fristen-Erinnerungen |
+| M6 | Portal & Service | Mieterportal, Tickets, Aushänge, Hausmeister/Handwerker |
+| M7 | Später | ERiC, Eigentümer je Objekt, Funkzähler/UVI |

@@ -1,0 +1,267 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/afa"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDepreciationService Admin
+@inject Notifier Notify
+@inject IDialogService Dialogs
+@inject Confirmations Confirm
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (overview is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+
+<PageHeader Title="AfA" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName" />
+
+<ErrorList Errors="errors" />
+
+@if (overview.Plan is { Warnings.Count: > 0 } warnings)
+{
+    <Notice Level="NoticeLevel.Warning">
+        <strong>Bitte prüfen:</strong>
+        <ul>
+            @foreach (var warning in warnings.Warnings)
+            {
+                <li>@warning</li>
+            }
+        </ul>
+    </Notice>
+}
+
+<section>
+    <h2>Anschaffung</h2>
+    <details class="explain">
+        <summary>Kaufpreisaufteilung</summary>
+        <p class="small">
+        Den Anteil Grund und Boden können Sie mit der <a href="https://www.bundesfinanzministerium.de/Content/DE/Standardartikel/Themen/Steuern/Weitere_Steuerthemen/Einkommensteuer/Arbeitshilfe-Kaufpreisaufteilung.html" rel="noopener noreferrer">Arbeitshilfe des BMF zur Kaufpreisaufteilung</a> ermitteln.
+        Nebenkosten werden im selben Verhältnis wie der Kaufpreis auf Gebäude und Grund und Boden verteilt.
+    </p>
+    </details>
+    <EditForm Model="Acquisition" OnValidSubmit="SaveAcquisitionAsync" novalidate>
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <AppDateField @bind-Value="Acquisition.PurchaseDate" Label="Kaufdatum" Required="true" Hint="Übergang von Nutzen und Lasten" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.PurchasePrice" Label="Kaufpreis" Suffix="€" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.Notary" Label="Notar" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.LandRegistry" Label="Grundbuch" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.TransferTax" Label="Grunderwerbsteuer" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.Broker" Label="Makler" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.LandSharePercent" Label="Anteil Grund und Boden (%)" Required="true" />
+            <AppNumberField T="int?" @bind-Value="Acquisition.CompletionYear" Label="Baujahr / Fertigstellung" Required="true" Min="1700" Max="2100" Hint="Bestimmt den Satz: 2,5 % vor 1925, 2 % ab 1925, 3 % ab 2023" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.RateOverridePercent" Label="Abweichender AfA-Satz (%)" Hint="z. B. kürzere Restnutzungsdauer per Gutachten; leer = gesetzlicher Satz" />
+            <AppNumberField T="decimal?" @bind-Value="Acquisition.SpecialRatePercent" Label="Sonder-AfA (§ 7b EStG, % p. a.)" Hint="Optional; zusätzlich zur linearen AfA" />
+            <AppNumberField T="int" @bind-Value="Acquisition.SpecialYears" Label="Jahre der Sonder-AfA" Min="1" Max="20" />
+        </div>
+        <AppTextField @bind-Value="Acquisition.Notes" Label="Notiz" Lines="2" />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+    </EditForm>
+</section>
+
+@if (overview.Plan is { } plan)
+{
+    <section>
+        <h2>Abschreibungsplan</h2>
+        <dl class="summary">
+            <dt>Bemessungsgrundlage Gebäude</dt><dd>@Format.Money(plan.BuildingBase)</dd>
+            <dt>Grund und Boden (nicht abschreibbar)</dt><dd>@Format.Money(plan.LandValue)</dd>
+            <dt>AfA-Satz</dt><dd>@Format.Number(plan.RatePercent) %</dd>
+        </dl>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Jahr</th><th class="number">Gebäude</th><th class="number">Bewegliche WG</th><th class="number">AfA gesamt</th><th class="number">Restbuchwert</th></tr></thead>
+                <tbody>
+                    @foreach (var year in plan.Years)
+                    {
+                        <tr>
+                            <td>@year.Year</td>
+                            <td class="number">@Format.Money(year.Building)</td>
+                            <td class="number">@Format.Money(year.Movables)</td>
+                            <td class="number">@Format.Money(year.Total)</td>
+                            <td class="number">@Format.Money(year.BookValue)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+<section>
+    <h2>Nachträgliche Kosten</h2>
+    <details class="explain">
+        <summary>Nachträgliche Herstellungskosten</summary>
+        <p class="small">
+        Nachträgliche Herstellungskosten werden mit dem Gebäude abgeschrieben. Renovierungen und Modernisierungen zählen für die
+        15-%-Grenze der anschaffungsnahen Herstellungskosten (drei Jahre nach dem Kauf, netto). Belege der Kostenart „Instandhaltung“ werden automatisch
+        mitgezählt – hier nur Kosten eintragen, die nicht als Beleg erfasst sind. Die Verteilung von Erhaltungsaufwand findest du unter <a href="/verwaltung/objekte/@PropertyId/erhaltungsaufwand">Erhaltungsaufwand</a>.
+    </p>
+    </details>
+    @if (overview.Costs.Count > 0)
+    {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Datum</th><th>Beschreibung</th><th>Art</th><th class="number">Netto</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var cost in overview.Costs)
+                        {
+                            <tr>
+                                <td>@Format.Date(cost.Date)</td>
+                                <td>@cost.Description</td>
+                                <td>@(cost.IsMaintenance ? "Instandsetzung/Modernisierung" : "Herstellungskosten")</td>
+                                <td class="number">@Format.Money(cost.Amount)</td>
+                                <td><MudButton Variant="Variant.Text" OnClick="() => EditCostAsync(cost)" aria-label="@($"{cost.Description} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveCostAsync(cost)" aria-label="@($"{cost.Description} entfernen")">Entfernen</MudButton></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+    }
+
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddCostAsync">Kosten hinzufügen</MudButton>
+</section>
+
+<section>
+    <h2>Bewegliche Wirtschaftsgüter</h2>
+    <p class="small">Zum Beispiel die Einbauküche, abgeschrieben über die eigene Nutzungsdauer (üblich: 10 Jahre).</p>
+    @if (overview.Assets.Count > 0)
+    {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Bezeichnung</th><th>Angeschafft</th><th class="number">Kosten</th><th class="number">Nutzungsdauer</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var asset in overview.Assets)
+                        {
+                            <tr>
+                                <td>@asset.Name</td>
+                                <td>@Format.Date(asset.AcquisitionDate)</td>
+                                <td class="number">@Format.Money(asset.Cost)</td>
+                                <td class="number">@asset.UsefulLifeYears Jahre</td>
+                                <td><MudButton Variant="Variant.Text" OnClick="() => EditAssetAsync(asset)" aria-label="@($"{asset.Name} bearbeiten")">Bearbeiten</MudButton> <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveAssetAsync(asset)" aria-label="@($"{asset.Name} entfernen")">Entfernen</MudButton></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+    }
+
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddAssetAsync">Wirtschaftsgut hinzufügen</MudButton>
+</section>
+}
+</InteractiveShell>
+
+@code {
+    private DepreciationOverview? overview;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    private AcquisitionInput Acquisition { get; set; } = new();
+    private CostInput Cost { get; set; } = new();
+    private AssetInput Asset { get; set; } = new();
+    private bool loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        Acquisition = overview?.Acquisition ?? new();
+        loaded = true;
+    }
+
+    private async Task LoadAsync() => overview = await Admin.GetAsync(PropertyId);
+
+    private Task SaveAcquisitionAsync() => ExecuteAsync(Admin.SaveAcquisitionAsync(PropertyId, Acquisition), "Die Anschaffungsdaten wurden gespeichert.");
+
+
+    private async Task EditCostAsync(CostRow item)
+    {
+        Cost = new CostInput { Date = item.Date, Amount = item.Amount, Description = item.Description, IsMaintenance = item.IsMaintenance };
+        await ShowCostAsync(item.Id);
+    }
+
+    private async Task EditAssetAsync(AssetRow item)
+    {
+        Asset = new AssetInput { Name = item.Name, AcquisitionDate = item.AcquisitionDate, Cost = item.Cost, UsefulLifeYears = item.UsefulLifeYears };
+        await ShowAssetAsync(item.Id);
+    }
+
+    private async Task AddCostAsync()
+    {
+        Cost = new();
+        await ShowCostAsync(null);
+    }
+
+    private async Task ShowCostAsync(Guid? id)
+    {
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="Cost.Date" Label="Datum" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Cost.Amount" Label="Betrag (netto)" Suffix="€" Required="true" />
+            <AppTextField @bind-Value="Cost.Description" Label="Beschreibung" Required="true" />
+            <AppCheckBox @bind-Value="Cost.IsMaintenance" Label="Instandsetzung/Modernisierung (zählt für die 15-%-Grenze)" />
+        </text>;
+        if (await Dialogs.ShowFormAsync(id is null ? "Kosten hinzufügen" : "Kosten bearbeiten", Cost, fields,
+                () => id is { } existing ? Admin.UpdateCostAsync(PropertyId, existing, Cost) : Admin.AddCostAsync(PropertyId, Cost), id is null ? "Hinzufügen" : "Änderung speichern"))
+        {
+            Notify.Success(id is null ? "Die Kosten wurden hinzugefügt." : "Die Kosten wurden gespeichert.");
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveCostAsync(CostRow item)
+    {
+        if (await Confirm.AskAsync("Kosten entfernen", $"Sollen die Kosten „{item.Description}“ entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveCostAsync(PropertyId, item.Id), "Die Kosten wurden entfernt.");
+        }
+    }
+
+    private async Task AddAssetAsync()
+    {
+        Asset = new();
+        await ShowAssetAsync(null);
+    }
+
+    private async Task ShowAssetAsync(Guid? id)
+    {
+        RenderFragment fields = @<text>
+            <AppTextField @bind-Value="Asset.Name" Label="Bezeichnung" Required="true" />
+            <AppDateField @bind-Value="Asset.AcquisitionDate" Label="Angeschafft am" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="Asset.Cost" Label="Anschaffungskosten" Suffix="€" Required="true" />
+            <AppNumberField T="int" @bind-Value="Asset.UsefulLifeYears" Label="Nutzungsdauer (Jahre)" Min="1" Max="100" />
+        </text>;
+        if (await Dialogs.ShowFormAsync(id is null ? "Wirtschaftsgut hinzufügen" : "Wirtschaftsgut bearbeiten", Asset, fields,
+                () => id is { } existing ? Admin.UpdateAssetAsync(PropertyId, existing, Asset) : Admin.AddAssetAsync(PropertyId, Asset), id is null ? "Hinzufügen" : "Änderung speichern"))
+        {
+            Notify.Success(id is null ? "Das Wirtschaftsgut wurde hinzugefügt." : "Das Wirtschaftsgut wurde gespeichert.");
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveAssetAsync(AssetRow item)
+    {
+        if (await Confirm.AskAsync("Wirtschaftsgut entfernen", $"Soll das Wirtschaftsgut „{item.Name}“ entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveAssetAsync(PropertyId, item.Id), "Das Wirtschaftsgut wurde entfernt.");
+        }
+    }
+
+    private async Task<bool> ExecuteAsync(Task<Result> action, string message)
+    {
+        var result = await action;
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(message);
+        }
+
+        await LoadAsync();
+        return result.Succeeded;
+    }
+}

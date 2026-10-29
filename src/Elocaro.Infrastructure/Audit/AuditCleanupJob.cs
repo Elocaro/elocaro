@@ -1,0 +1,38 @@
+using Elocaro.Application.Audit;
+using Elocaro.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Quartz;
+
+namespace Elocaro.Infrastructure.Audit;
+
+/// <summary>Deletes audit entries after the retention periods expire (changes and access logged separately).</summary>
+[DisallowConcurrentExecution]
+internal sealed class AuditCleanupJob(AuditCleanup cleanup) : IJob
+{
+    public static readonly JobKey Key = new("audit-cleanup", "system");
+
+    public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        await cleanup.CleanUpAsync(cancellationToken);
+    }
+}
+
+internal sealed class AuditCleanup(ElocaroDbContext db, TimeProvider clock, IOptions<AuditOptions> options)
+{
+    public async Task<int> CleanUpAsync(CancellationToken cancellationToken = default)
+    {
+        var now = clock.GetUtcNow();
+        var changesCutoff = now.AddYears(-options.Value.RetentionYears);
+        var accessesCutoff = now.AddMonths(-options.Value.AccessLogRetentionMonths);
+
+        var changes = await db.Set<AuditEntry>()
+            .Where(a => a.Action != AuditAction.Read && a.Timestamp < changesCutoff)
+            .ExecuteDeleteAsync(cancellationToken);
+        var accesses = await db.Set<AuditEntry>()
+            .Where(a => a.Action == AuditAction.Read && a.Timestamp < accessesCutoff)
+            .ExecuteDeleteAsync(cancellationToken);
+        return changes + accesses;
+    }
+}

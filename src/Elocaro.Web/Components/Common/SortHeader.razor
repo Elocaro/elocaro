@@ -1,0 +1,33 @@
+@inject NavigationManager Navigation
+
+@* Column header with sort link (query parameters, works without JavaScript). *@
+<th scope="col" class="@CssClass" aria-sort="@AriaSort">
+    <a href="@Link" class="sort-link">@Text<span aria-hidden="true">@Arrow</span></a>
+</th>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Column { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public TableQuery Query { get; set; } = default!;
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    private bool Active => Query.SortOrder == Column;
+
+    private string AriaSort => !Active ? "none" : Query.Descending ? "descending" : "ascending";
+
+    private string Arrow => !Active ? "" : Query.Descending ? " ▼" : " ▲";
+
+    private string Link => Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        ["sortierung"] = Column,
+        ["absteigend"] = Active && !Query.Descending ? "true" : null,
+        ["seite"] = null,
+    });
+}

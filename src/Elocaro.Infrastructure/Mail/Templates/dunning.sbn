@@ -1,0 +1,5 @@
+{{ capture subject }}{{ level_name }} zu Ihrer Mietzahlung{{ end }}
+<p>{{ salutation }}</p>
+<p>im Anhang finden Sie unser Schreiben „{{ level_name }}“ vom {{ date letter_date }} zu offenen Beträgen aus Ihrem Mietverhältnis. Der Gesamtbetrag beträgt <strong>{{ money total }}</strong>, zahlbar bis zum <strong>{{ date deadline }}</strong>.</p>
+<p>Sollten Sie bereits gezahlt haben, betrachten Sie diese Nachricht bitte als gegenstandslos. Bei Zahlungsschwierigkeiten melden Sie sich gern bei uns.</p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

@@ -1,0 +1,203 @@
+@page "/auftrag/{Token}"
+@layout Elocaro.Web.Components.Layout.ContractorLayout
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Files
+@using Elocaro.Application.Tickets
+@using Elocaro.Domain.Tickets
+@using Elocaro.Web.Components.Controls
+@inject IContractorLinks Links
+@inject IFileStore Files
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageTitle>Auftrag – Elocaro</PageTitle>
+    @if (!loaded)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else if (ticket is null)
+    {
+        <PageHeader Title="Link nicht mehr gültig" />
+        <EmptyState Text="Dieser Link ist abgelaufen, wurde widerrufen oder der Auftrag ist abgeschlossen. Bitte wenden Sie sich an die Verwaltung." />
+    }
+    else
+    {
+        <PageHeader Title="@ticket.Title" Subtitle="@($"{ticket.Property}{(ticket.Unit is null ? " (Allgemeinflächen)" : $", {ticket.Unit}")}")" />
+        <ErrorList Errors="errors" />
+        <p>
+            <StatusChip Level="Labels.Level(ticket.Status)">@Labels.From(ticket.Status)</StatusChip>
+            <StatusChip Level="@(ticket.Urgency == TicketUrgency.High ? StatusLevel.Warning : StatusLevel.Neutral)">@Labels.From(ticket.Urgency)</StatusChip>
+            <StatusChip>@Labels.From(ticket.Category)</StatusChip>
+        </p>
+        <dl class="details">
+            @if (ticket.Location is not null)
+            {
+                <dt>Wo genau</dt><dd>@ticket.Location</dd>
+            }
+            @if (ticket.AppointmentOn is { } termin)
+            {
+                <dt>Termin</dt><dd>@Format.Date(termin)</dd>
+            }
+            <dt>Link für</dt><dd>@ticket.Recipient, gültig bis @Format.Timestamp(ticket.ExpiresAt)</dd>
+        </dl>
+        <p class="ticket-description">@ticket.Description</p>
+        <TicketPhotos FileIds="ticket.FileIds" Base="@FileBase" />
+
+        <div class="form-row">
+            @if (ticket.Status != TicketStatus.InProgress)
+            {
+                <MudButton Variant="Variant.Outlined" OnClick="() => SetStatusAsync(TicketStatus.InProgress)">Arbeit begonnen</MudButton>
+            }
+
+            @if (ticket.Status != TicketStatus.Done)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SetStatusAsync(TicketStatus.Done)">Erledigt melden</MudButton>
+            }
+        </div>
+
+        <section>
+            <h2>Verlauf</h2>
+            @if (ticket.Comments.Count == 0)
+            {
+                <EmptyState Compact="true" Text="Noch keine Kommentare." />
+            }
+            else
+            {
+                <ul class="ticket-thread">
+                    @foreach (var comment in ticket.Comments)
+                    {
+                        <li>
+                            <span class="meta">@comment.Author · @Format.Timestamp(comment.At)</span>
+                            <p>@comment.Text</p>
+                            <TicketPhotos FileIds="comment.FileIds" Base="@FileBase" />
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section>
+            <h2>Kommentar oder Fotos „nachher“</h2>
+            <AppTextField @bind-Value="text" Label="Kommentar" Lines="3" />
+            <div class="form-row">
+                <AppFileUpload Text="Fotos hinzufügen" Accept="image/*" Multiple="true" OnSelectedMany="files => photos = files" />
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CommentAsync" Disabled="busy">Absenden</MudButton>
+        </section>
+
+        <TicketWorkPanel @key="version" View="ticket.Work" FileBase="@FileBase" Add="AddWorkAsync" OnInvoice="InvoiceAsync" />
+    }
+</InteractiveShell>
+
+@code {
+    private ContractorTicket? ticket;
+    private bool loaded;
+    private bool busy;
+    private int version;
+    private string? text;
+    private IReadOnlyList<FileSelection> photos = [];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public string Token { get; set; } = "";
+
+    private string FileBase => $"/auftrag/{Token}/datei";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        loaded = true;
+    }
+
+    private async Task LoadAsync() => ticket = await Links.GetAsync(Token);
+
+    private async Task SetStatusAsync(TicketStatus status) =>
+        await FinishAsync(await Links.SetStatusAsync(Token, status), $"Der Stand ist jetzt „{Labels.From(status)}“.");
+
+    private async Task CommentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            errors = ["Bitte einen Kommentar schreiben."];
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            // The link is checked before anything is stored.
+            if (!await Links.IsValidAsync(Token))
+            {
+                await LoadAsync();
+                return;
+            }
+
+            var ids = new List<Guid>();
+            foreach (var file in photos.Take(Ticket.MaxPhotos))
+            {
+                await using var content = file.Open();
+                ids.Add((await Files.SaveAsync(content, file.Name)).Id);
+            }
+
+            await FinishAsync(await Links.CommentAsync(Token, text, ids), "Der Kommentar ist gesendet.");
+            if (errors is null)
+            {
+                text = null;
+                photos = [];
+            }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<IReadOnlyList<string>?> AddWorkAsync(WorkInput input)
+    {
+        var result = await Links.AddWorkAsync(Token, input);
+        if (!result.Succeeded)
+        {
+            return result.Errors;
+        }
+
+        await FinishAsync(result, "Die Arbeit ist eingetragen.");
+        return null;
+    }
+
+    private async Task InvoiceAsync(IReadOnlyList<FileSelection> files)
+    {
+        if (files.Count == 0 || !await Links.IsValidAsync(Token))
+        {
+            return;
+        }
+
+        try
+        {
+            await using var content = files[0].Open();
+            var stored = await Files.SaveAsync(content, files[0].Name);
+            await FinishAsync(await Links.AddInvoiceAsync(Token, stored.Id), "Die Rechnung ist hochgeladen.");
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+    }
+
+    private async Task FinishAsync(Elocaro.Application.Common.Result result, string success)
+    {
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+            version++;
+        }
+
+        await LoadAsync();
+    }
+}

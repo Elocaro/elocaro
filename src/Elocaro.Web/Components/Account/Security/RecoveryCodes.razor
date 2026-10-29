@@ -1,0 +1,15 @@
+@* Shows recovery codes once. *@
+<div class="recovery-codes">
+    <p><strong>Bewahren Sie diese Wiederherstellungscodes sicher auf</strong> (z. B. ausgedruckt oder im Passwortmanager). Jeder Code ermöglicht einmal die Anmeldung ohne Authenticator-App. Sie werden nur jetzt angezeigt.</p>
+    <ul class="codes">
+        @foreach (var entry in Codes)
+        {
+            <li><code>@entry</code></li>
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<string> Codes { get; set; } = [];
+}

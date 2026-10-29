@@ -1,0 +1,6 @@
+{{# Der Energieausweis muss dem Mieter bei der Besichtigung bzw. spätestens bei Vertragsabschluss vorgelegt oder übergeben werden (§ 80 GEG). Hier steht nur der Hinweis; den Ausweis selbst unter Dokumente ablegen und beilegen. }}
+<div style="page-break-before: always">
+<h2>Anlage: Hinweis zum Energieausweis</h2>
+<p>Der Energieausweis für das Gebäude {{ property_street }}, {{ property_postal_code }} {{ property_city }}{{ if energy_standard }} (Energetischer Standard der Wohnung: {{ energy_standard }}){{ end }} wurde dem Mieter spätestens bei Vertragsabschluss vorgelegt bzw. als Kopie übergeben (§ 80 Gebäudeenergiegesetz).</p>
+<p>Der Mieter bestätigt den Erhalt: ______________________________ (Datum, Unterschrift)</p>
+</div>

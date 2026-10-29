@@ -1,0 +1,83 @@
+@using System.Linq.Expressions
+@using MudBlazor
+@* Text input (also e-mail, phone, multi-line) in the look of the application. Use with @bind-Value; validation messages come from
+   the surrounding EditForm. Parameters contain no types of the component library, so the implementation can be replaced. *@
+<MudTextField T="string" Value="Value" ValueChanged="ValueChanged" For="ValueExpression" Label="@Label" HelperText="@Hint" Required="Required"
+              Lines="Lines" InputType="@MudInputType" InputMode="@Mode" Placeholder="@Placeholder" Disabled="Disabled" ReadOnly="ReadOnly" Immediate="Immediate"
+              DebounceInterval="DebounceMilliseconds" OnDebounceIntervalElapsed="OnDebounced" Clearable="Clearable" Adornment="@(Suffix is null ? Adornment.None : Adornment.End)" AdornmentText="@Suffix"
+              Variant="Variant.Outlined" ShrinkLabel="true" UserAttributes="@Extra" />
+
+@code {
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<string?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    /// <summary>"text" (default), "email", "tel", "password", "search".</summary>
+    [Parameter]
+    public string Type { get; set; } = "text";
+
+    [Parameter]
+    public int Lines { get; set; } = 1;
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public bool Clearable { get; set; }
+
+    /// <summary>Unit text at the end of the field, e.g. "€".</summary>
+    [Parameter]
+    public string? Suffix { get; set; }
+
+    /// <summary>Update the value on every keystroke (needed for live search; combine with <see cref="DebounceMilliseconds"/>).</summary>
+    [Parameter]
+    public bool Immediate { get; set; }
+
+    [Parameter]
+    public int DebounceMilliseconds { get; set; }
+
+    /// <summary>Raised after the debounce time with the current text.</summary>
+    [Parameter]
+    public EventCallback<string?> OnDebounced { get; set; }
+
+    [Parameter]
+    public string? Autocomplete { get; set; }
+
+    private InputType MudInputType => Type switch
+    {
+        "email" => InputType.Email,
+        "tel" => InputType.Telephone,
+        "password" => InputType.Password,
+        "search" => InputType.Search,
+        _ => InputType.Text,
+    };
+
+    private InputMode Mode => Type switch
+    {
+        "email" => InputMode.email,
+        "tel" => InputMode.tel,
+        _ => InputMode.text,
+    };
+
+    private Dictionary<string, object?> Extra => new() { ["autocomplete"] = Autocomplete ?? "off" };
+}

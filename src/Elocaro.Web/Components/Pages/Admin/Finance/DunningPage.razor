@@ -1,0 +1,198 @@
+@page "/verwaltung/finanzen/mahnungen/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDunning Dunning
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (details is null)
+{
+    <PageHeader Title="Mahnung nicht gefunden" Back="/verwaltung/finanzen/mahnungen" BackText="Mahnwesen" />
+    <ErrorList Errors="errors" />
+    <Notice Level="NoticeLevel.Info">Der Vorschlag existiert nicht mehr, zum Beispiel weil der Rückstand inzwischen bezahlt wurde. Es wurde nichts versendet.</Notice>
+}
+else
+{
+var row = details.Row;
+
+
+<PageHeader Title="@($"{Labels.From(row.Level)}: {row.Tenant}")" Subtitle="@row.RentalUnit" Back="/verwaltung/finanzen/mahnungen" BackText="Mahnwesen" />
+
+<ErrorList Errors="errors" />
+
+@if (row.Status == DunningStatus.Issued)
+{
+    <dl class="details">
+        <dt>Stufe</dt><dd>@Labels.From(row.Level)</dd>
+        <dt>Datum</dt><dd>@Format.Date(row.Date)</dd>
+        <dt>Zahlbar bis</dt><dd>@Format.Date(row.Deadline)</dd>
+        <dt>Rückstand</dt><dd>@Format.Money(row.Principal)</dd>
+        <dt>Mahngebühr</dt><dd>@Format.Money(row.Fee)</dd>
+        <dt>Verzugszinsen</dt><dd>@Format.Money(row.Interest)</dd>
+        <dt>Versand</dt><dd>@(row.SentByMail ? "per E-Mail versendet" : "nicht per E-Mail versendet (Postversand mit dem PDF)")</dd>
+    </dl>
+    @if (row.FileId is { } file)
+    {
+        <p><MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/dateien/{file}?download=true")">PDF herunterladen</MudButton></p>
+        <iframe class="document-preview" src="/dateien/@file" title="@($"{Labels.From(row.Level)} vom {Format.Date(row.Date)}")"></iframe>
+    }
+}
+else if (row.Status == DunningStatus.Dismissed)
+{
+    <Notice Level="NoticeLevel.Info">Dieser Vorschlag wurde am @Format.Date(row.Date) verworfen.</Notice>
+}
+else
+{
+<Notice Level="NoticeLevel.Info">
+    Basisvorlage, keine Rechtsberatung: Bitte Text, Fristen und Beträge vor der Freigabe prüfen. Es wird nichts versendet, bevor Sie „Freigeben“ wählen.
+</Notice>
+
+@if (details.TerminationHint is { } hint)
+{
+    <Notice Level="NoticeLevel.Info">
+        <strong>Kündigungsrelevanz:</strong>
+        Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
+        (@(hint.Relevance.TwoMonthlyRents ? "mindestens zwei Monatsmieten" : "mehr als eine Monatsmiete in zwei aufeinanderfolgenden Terminen")),
+        vgl. § 543 Abs. 2 Nr. 3 BGB. Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
+    </Notice>
+}
+
+@if (details.LandlordProfileMissing)
+{
+    <Notice Level="NoticeLevel.Error">Es ist noch kein Vermieterprofil hinterlegt. Es wird für Briefkopf und Absender benötigt. <a href="/verwaltung/einstellungen/vermieter">Jetzt anlegen</a></Notice>
+}
+
+<dl class="details">
+    <dt>Stufe</dt><dd>@Labels.From(row.Level)</dd>
+    <dt>Rückstand</dt><dd>@Format.Money(row.Principal) (ältester Posten fällig am @Format.Date(row.OldestDue))</dd>
+    <dt>Mahngebühr</dt><dd>@(row.Fee > 0 ? Format.Money(row.Fee) : "keine")</dd>
+    <dt>Verzugszinsen</dt>
+    <dd>
+        @if (row.Interest > 0)
+        {
+            <span>@Format.Money(row.Interest) (@Format.Number(details.InterestRate) % p. a.)</span>
+        }
+        else if (row.Level == DunningLevel.Reminder)
+        {
+            <span>bei der Zahlungserinnerung keine</span>
+        }
+        else if (details.InterestEnabled && details.InterestRate is null)
+        {
+            <span>Basiszinssatz fehlt, <a href="/verwaltung/finanzen/einstellungen#mahnwesen">in den Einstellungen pflegen</a></span>
+        }
+        else
+        {
+            <span>nicht berechnet</span>
+        }
+    </dd>
+    <dt>Zahlungsfrist</dt><dd>bis @Format.Date(details.Deadline) (ab heute)</dd>
+    <dt>Anschrift</dt><dd>@string.Join(", ", details.Address)</dd>
+    <dt>E-Mail</dt><dd>@(details.Recipients.Count == 0 ? "keine hinterlegt" : string.Join(", ", details.Recipients))</dd>
+</dl>
+
+<details class="group" id="claims" open="@(details.Claims.Count <= 5)">
+    <summary>
+        <span>Offene Posten</span>
+        <span class="small">@details.Claims.Count Posten</span>
+        <span class="group-sum">@Format.Money(details.Claims.Sum(c => c.Open))</span>
+    </summary>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Forderung</th><th>Fällig</th><th class="number">Betrag</th><th class="number">Offen</th></tr></thead>
+            <tbody>
+                @foreach (var c in details.Claims)
+                {
+                    <tr><td>@c.Text</td><td>@Format.Date(c.Due)</td><td class="number">@Format.Money(c.Amount)</td><td class="number">@Format.Money(c.Open)</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</details>
+
+<section>
+    <h2>Freigabe</h2>
+    <EditForm Model="data" OnValidSubmit="IssueAsync" novalidate>
+        <DataAnnotationsValidator />
+        @if (row.Fee > 0)
+        {
+            <AppCheckBox @bind-Value="data.IncludeFee" Label="@($"Mahngebühr von {Format.Money(row.Fee)} berechnen und im Mieterkonto buchen (nur tatsächlich entstandene Kosten)")" />
+        }
+        @if (row.Interest > 0)
+        {
+            <AppCheckBox @bind-Value="data.IncludeInterest" Label="@($"Verzugszinsen von {Format.Money(row.Interest)} berechnen und im Mieterkonto buchen")" />
+        }
+        <AppCheckBox @bind-Value="data.SendByMail" Disabled="@(details.Recipients.Count == 0)" Label="@($"Zusätzlich per E-Mail an {(details.Recipients.Count == 0 ? "die Mieter (keine Adresse hinterlegt)" : string.Join(", ", details.Recipients))} senden")" />
+        <p class="small">Ohne E-Mail entsteht nur das PDF zum Herunterladen für den Postversand.</p>
+        <div class="form-row">
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@details.LandlordProfileMissing">Freigeben</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DismissAsync">Vorschlag verwerfen</MudButton>
+        </div>
+    </EditForm>
+</section>
+
+@if (!details.LandlordProfileMissing)
+{
+    <section>
+        <h2>Vorschau</h2>
+        <iframe class="document-preview" src="@PreviewUrl" title="Vorschau: @Labels.From(row.Level)"></iframe>
+    </section>
+}
+}
+}
+</InteractiveShell>
+
+@code {
+    private DunningDetails? details;
+    private DunningIssueInput data = new();
+    private IReadOnlyList<string>? errors;
+    private bool loaded;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private string PreviewUrl => $"/verwaltung/finanzen/mahnungen/{Id}/vorschau.pdf?gebuehr={data.IncludeFee.ToString().ToLowerInvariant()}&zinsen={data.IncludeInterest.ToString().ToLowerInvariant()}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        details = await Dunning.GetAsync(Id);
+        data = new DunningIssueInput { SendByMail = details?.Recipients.Count > 0 };
+        loaded = true;
+    }
+
+    private async Task IssueAsync()
+    {
+        var result = await Dunning.IssueAsync(Id, data);
+        if (result.Succeeded)
+        {
+            Notify.Success(data.SendByMail ? "Die Mahnung wurde freigegeben und per E-Mail versendet. Das PDF steht zum Download bereit." : "Die Mahnung wurde freigegeben. Das PDF steht zum Download für den Postversand bereit.");
+            errors = null;
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+
+        details = await Dunning.GetAsync(Id);
+    }
+
+    private async Task DismissAsync()
+    {
+        if (!await Confirm.AskAsync("Vorschlag verwerfen", "Der Vorschlag wird verworfen. Für dieses Mietverhältnis gibt es danach 14 Tage lang keinen neuen Vorschlag.", "Ja, verwerfen"))
+        {
+            return;
+        }
+
+        var result = await Dunning.DismissAsync(Id);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Vorschlag wurde verworfen.");
+            details = await Dunning.GetAsync(Id);
+        }
+    }
+}

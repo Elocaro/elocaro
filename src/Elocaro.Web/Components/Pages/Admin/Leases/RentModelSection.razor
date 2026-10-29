@@ -1,0 +1,192 @@
+@using MudBlazor
+@using Elocaro.Application.Admin
+@inject ILeaseService Admin
+@inject IModuleState State
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject IDialogService Dialogs
+
+@* Rent model of a lease: standard (rent development), graduated or index-linked rent. Interactive: saves itself and reports changes. *@
+<section>
+    <h2>Mietmodell: @Labels.From(Model.Model)</h2>
+    <ErrorList Errors="errors" />
+
+    @switch (Model.Model)
+    {
+        case RentModel.Standard:
+            <dl class="details">
+                <dt>Letzte Erhöhung</dt><dd>@(Model.LastIncrease is { } last ? Format.Date(last) : "seit Mietbeginn unverändert")</dd>
+                @if (Model.BaseRentThreeYearsAgo is { } before && Model.BaseRent is { } now)
+                {
+                    <dt>Vor 3 Jahren</dt><dd>@Format.Money(before) (Steigerung @Format.Number(Math.Round((now / before - 1) * 100, 1)) %, Kappungsgrenze beachten)</dd>
+                }
+            </dl>
+            <details class="explain">
+                <summary>Erhöhung auf die Vergleichsmiete (§ 558 BGB)</summary>
+                <p class="small">Erhöhung auf die ortsübliche Vergleichsmiete (§ 558 BGB): frühestens 15 Monate nach Einzug bzw. letzter Erhöhung wirksam, höchstens 20 % (in angespannten Märkten 15 %) in 3 Jahren.</p>
+            </details>
+            break;
+
+        case RentModel.Graduated:
+            @if (Model.RentSteps.Count == 0)
+            {
+                <EmptyState Compact="true" Text="Noch keine Staffeln erfasst." />
+            }
+            else
+            {
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Ab</th><th class="number">Kaltmiete</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var rentStep in Model.RentSteps)
+                            {
+                                <tr>
+                                    <td>@Format.Date(rentStep.From)</td>
+                                    <td class="number">@Format.Money(rentStep.BaseRent)</td>
+                                    <td>
+                                        @if (rentStep.AppliedAt is not null)
+                                        {
+                                            <StatusChip Level="StatusLevel.Success">übernommen</StatusChip>
+                                        }
+                                        else
+                                        {
+                                            <StatusChip Level="StatusLevel.Warning">geplant</StatusChip>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (rentStep.AppliedAt is null)
+                                        {
+                                            <MudButton Variant="Variant.Text" OnClick="() => EditStepAsync(rentStep)" aria-label="@($"Staffel {Format.Date(rentStep.From)} bearbeiten")">Bearbeiten</MudButton>
+                                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveStepAsync(rentStep)" aria-label="@($"Staffel {Format.Date(rentStep.From)} entfernen")">Entfernen</MudButton>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            <p class="small">§ 557a BGB: Die Miete muss jeweils mindestens ein Jahr unverändert bleiben. Am Stichtag übernimmt Elocaro die Staffel automatisch als Kaltmiete.</p>
+            <MudButton Variant="@(Model.RentSteps.Count == 0 ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="AddStepAsync">Staffel hinzufügen</MudButton>
+            break;
+
+        case RentModel.Index:
+            <dl class="details">
+                <dt>Ausgangsindex</dt><dd>@Format.Number(Model.IndexBaseValue) (@Format.Month(Model.IndexBaseMonth))</dd>
+                <dt>Letzte Änderung</dt><dd>@(Model.LastIncrease is { } lastChange ? Format.Date(lastChange) : "seit Mietbeginn unverändert")</dd>
+            </dl>
+            @if (Model.Index is { } suggestion)
+            {
+                <Notice Level="@(suggestion.PossibleNow ? NoticeLevel.Success : NoticeLevel.Info)">
+                    <p>VPI @Format.Month(suggestion.CpiMonth): @Format.Number(suggestion.CpiValue) (@(suggestion.ChangePercent >= 0 ? "+" : "")@Format.Number(suggestion.ChangePercent) %) → neue Kaltmiete <strong>@Format.Money(suggestion.NewBaseRent)</strong> statt @Format.Money(Model.BaseRent).</p>
+                    <p class="small">Frühestens wirksam ab @Format.Date(suggestion.EarliestEffective) (ein Jahr nach der letzten Änderung).</p>
+                </Notice>
+                <EditForm Model="adjustment" OnValidSubmit="AdjustIndexAsync" novalidate class="form-row">
+                    <DataAnnotationsValidator />
+                    <AppDateField @bind-Value="adjustment.DeclaredOn" Label="Erklärung geht zu am" Required="true" Hint="Die neue Miete gilt ab dem übernächsten Monat (§ 557b Abs. 3 BGB)." />
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Anpassung übernehmen</MudButton>
+                </EditForm>
+            }
+            else
+            {
+                <p class="small">Kein VPI-Wert neuer als der Ausgangsindex. <a href="/verwaltung/vpi">Verbraucherpreisindex pflegen</a></p>
+            }
+            break;
+    }
+
+    @if (Choices.Count > 1)
+    {
+        <MudButton Variant="Variant.Text" OnClick="SetModelAsync">Mietmodell ändern</MudButton>
+    }
+</section>
+
+@code {
+    private RentModelForm input = new();
+    private RentStepInput graduated = new();
+    private IndexAdjustmentInput adjustment = new();
+    private IReadOnlyList<string>? errors;
+
+    /// <summary>The rent models on offer: the ones the landlord uses plus the current one of this lease.</summary>
+    private IReadOnlyList<RentModel> Choices => Enum.GetValues<RentModel>()
+        .Where(m => m == RentModel.Standard || m == Model.Model || State.IsVisible(ModuleCatalog.Of(m)))
+        .ToList();
+
+    [Parameter, EditorRequired]
+    public Guid LeaseId { get; set; }
+
+    [Parameter, EditorRequired]
+    public RentModelView Model { get; set; } = default!;
+
+    /// <summary>Called after a change was saved (the page reloads).</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    protected override void OnParametersSet() => input = RentModelForm.From(Model);
+
+    private async Task SetModelAsync()
+    {
+        input = RentModelForm.From(Model);
+        RenderFragment fields = @<text>
+            <AppSelect @bind-Value="input.Model" Label="Mietmodell" Items="Choices" Text="@(v => Labels.From(v))" />
+            @if (input.Model == RentModel.Index)
+            {
+                <AppMonthField @bind-Value="input.BaseMonth" Label="Indexmiete: Ausgangsmonat" Hint="Monat des Ausgangsindex, z. B. Mietbeginn" />
+                <AppNumberField T="decimal?" @bind-Value="input.BaseValue" Label="Indexmiete: Ausgangswert" Hint="VPI (2020 = 100), z. B. 117,4" />
+            }
+        </text>;
+        await ShowFormAsync("Mietmodell ändern", input, fields, () => Admin.SetRentModelAsync(LeaseId, input.AfterInput()), "Das Mietmodell wurde gespeichert.", "Mietmodell speichern");
+    }
+
+    private async Task AddStepAsync()
+    {
+        graduated = new();
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="graduated.From" Label="Ab" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="graduated.BaseRent" Label="Neue Kaltmiete" Suffix="€" Required="true" />
+        </text>;
+        await ShowFormAsync("Staffel hinzufügen", graduated, fields, () => Admin.AddRentStepAsync(LeaseId, graduated), "Die Staffel wurde gespeichert.", "Staffel speichern");
+    }
+
+    private async Task ShowFormAsync(string title, object model, RenderFragment fields, Func<Task<Result>> save, string success, string submit)
+    {
+        if (await Dialogs.ShowFormAsync(title, model, fields, save, submit))
+        {
+            Notify.Success(success);
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private Task AdjustIndexAsync() => ExecuteAsync(Admin.AdjustIndexAsync(LeaseId, adjustment), "Die Indexanpassung wurde übernommen.", () => adjustment = new());
+
+    private async Task EditStepAsync(RentStepView step)
+    {
+        var dialog = await Dialogs.ShowAsync<RentStepDialog>(
+            "Staffel bearbeiten",
+            new DialogParameters { ["LeaseId"] = LeaseId, ["Step"] = step },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private async Task RemoveStepAsync(RentStepView step)
+    {
+        if (await Confirm.AskAsync("Staffel entfernen", $"Soll die Staffel ab {Format.Date(step.From)} entfernt werden?", "Ja, entfernen"))
+        {
+            await ExecuteAsync(Admin.RemoveRentStepAsync(LeaseId, step.Id), "Die Staffel wurde entfernt.");
+        }
+    }
+
+    private async Task ExecuteAsync(Task<Result> command, string success, Action? reset = null)
+    {
+        var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            reset?.Invoke();
+            Notify.Success(success);
+            await OnChanged.InvokeAsync();
+        }
+    }
+}

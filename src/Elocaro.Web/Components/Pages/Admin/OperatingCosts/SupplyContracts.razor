@@ -1,0 +1,182 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/versorgung"
+@inject ISupplyContracts Supply
+@rendermode InteractiveServer
+@using MudBlazor
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject IDialogService Dialogs
+@inject TimeProvider Clock
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (overview is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+<PageHeader Title="Versorgungsverträge" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName">
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" id="supply-create">Versorgungsvertrag anlegen</MudButton>
+    </Actions>
+</PageHeader>
+
+<ErrorList Errors="errors" />
+
+<details class="explain">
+    <summary>Wie werden Versorger abgerechnet?</summary>
+    <p>
+        Wasser, Abwasser, Strom und Gas werden nach Verbrauch und Preis abgerechnet, nicht nach den Zahlungen des Versorgers. Hinterlegen Sie den Tarif; die
+        Kosten der Abrechnung ergeben sich aus den Zählerständen der gewählten Zähler. Abschlagsrechnungen zählen nicht als Kosten. Sobald die Jahresabrechnung
+        des Versorgers vorliegt, erfassen Sie sie als Beleg mit der Markierung „Jahresabrechnung des Versorgers“; sie ersetzt dann die Berechnung.
+    </p>
+</details>
+
+@if (overview.Contracts.Count == 0)
+{
+    <EmptyState Text="Noch keine Versorgungsverträge. Ohne Vertrag zählen die erfassten Belege als Kosten. Legen Sie oben einen Vertrag für Wasser, Abwasser, Allgemeinstrom oder Gas an." />
+}
+
+@foreach (var contract in overview.Contracts)
+{
+    <section id="@($"supply-{contract.Id}")">
+        <h2>@contract.Name@(contract.Supplier is { } supplier ? $" · {supplier}" : "")</h2>
+        <p class="small">
+            @contract.CostTypeName@(contract.HeatingKind is { } kind ? $" ({Labels.From(kind)})" : "") · @Labels.From(contract.MeterType) · @Labels.From(contract.Basis) ·
+            Zähler: @string.Join(", ", contract.Meters) · Preis @Labels.From(contract.PriceUnit)@(contract.Deviation == DeviationHandling.Landlord ? " · Differenz zu Wohnungszählern: Vermieter" : "")
+        </p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Gültig ab</th><th>bis</th><th class="number">Preis (@Labels.From(contract.PriceUnit))</th><th class="number">Grundpreis je Monat</th><th>Notiz</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var tariff in contract.Tariffs)
+                    {
+                        <tr>
+                            <td>@Format.Date(tariff.Validity.From)</td>
+                            <td>@(tariff.Validity.To is { } to ? Format.Date(to) : "offen")</td>
+                            <td class="number">@tariff.UnitPrice.ToString("0.######", German)</td>
+                            <td class="number">@Format.Money(tariff.BaseFeePerMonth)</td>
+                            <td class="small">@tariff.Note</td>
+                            <td>
+                                <MudButton Variant="Variant.Text" OnClick="() => EditTariffAsync(contract, tariff)" aria-label="@($"Tarif ab {Format.Date(tariff.Validity.From)} bearbeiten")">Bearbeiten</MudButton>
+                                @if (contract.Tariffs.Count > 1)
+                                {
+                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveTariffAsync(contract, tariff)" aria-label="@($"Tarif ab {Format.Date(tariff.Validity.From)} entfernen")">Entfernen</MudButton>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="actions">
+            <MudButton Variant="Variant.Outlined" OnClick="() => AddTariffAsync(contract)">Neuer Tarif</MudButton>
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+                <MudMenuItem OnClick="() => EditAsync(contract)">Vertrag bearbeiten</MudMenuItem>
+                <MudMenuItem OnClick="() => RemoveAsync(contract)">Vertrag entfernen</MudMenuItem>
+            </MudMenu>
+        </div>
+    </section>
+}
+
+}
+</InteractiveShell>
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+
+    private SupplyOverview? overview;
+    private IReadOnlyList<string>? errors;
+    private bool loaded;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        loaded = true;
+    }
+
+    private async Task LoadAsync() => overview = await Supply.GetAsync(PropertyId);
+
+    private DateOnly YearStart => new(GermanTime.Today(Clock.GetUtcNow()).Year, 1, 1);
+
+    private async Task CreateAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<SupplyContractDialog>(
+            "Versorgungsvertrag anlegen",
+            new DialogParameters { ["PropertyId"] = PropertyId, ["AllMeters"] = overview!.Meters, ["DefaultFrom"] = YearStart },
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditAsync(SupplyContractView contract)
+    {
+        var dialog = await Dialogs.ShowAsync<SupplyContractDialog>(
+            "Versorgungsvertrag bearbeiten",
+            new DialogParameters { ["PropertyId"] = PropertyId, ["AllMeters"] = overview!.Meters, ["Contract"] = contract },
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditTariffAsync(SupplyContractView contract, SupplyTariffView tariff)
+    {
+        var dialog = await Dialogs.ShowAsync<SupplyTariffDialog>(
+            "Tarif bearbeiten",
+            new DialogParameters { ["ContractId"] = contract.Id, ["PriceUnit"] = contract.PriceUnit, ["Tariff"] = tariff },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task AddTariffAsync(SupplyContractView contract)
+    {
+        var dialog = await Dialogs.ShowAsync<SupplyTariffDialog>(
+            $"Neuer Tarif: {contract.Name}",
+            new DialogParameters { ["ContractId"] = contract.Id, ["PriceUnit"] = contract.PriceUnit, ["DefaultFrom"] = YearStart },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveTariffAsync(SupplyContractView contract, SupplyTariffView tariff)
+    {
+        if (await Confirm.AskAsync("Tarif entfernen", $"Soll der Tarif ab {Format.Date(tariff.Validity.From)} entfernt werden?", "Ja, entfernen"))
+        {
+            await DoneAsync(await Supply.RemoveTariffAsync(contract.Id, tariff.Id), "Der Tarif wurde entfernt.");
+        }
+    }
+
+    private async Task RemoveAsync(SupplyContractView contract)
+    {
+        if (await Confirm.AskAsync("Vertrag entfernen", $"Soll der Versorgungsvertrag „{contract.Name}“ entfernt werden? Die Kosten ergeben sich dann wieder aus den Belegen.", "Ja, entfernen"))
+        {
+            await DoneAsync(await Supply.RemoveAsync(contract.Id), "Der Versorgungsvertrag wurde entfernt.");
+        }
+    }
+
+    private async Task DoneAsync(Result result, string message)
+    {
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(message);
+        }
+
+        await LoadAsync();
+    }
+}

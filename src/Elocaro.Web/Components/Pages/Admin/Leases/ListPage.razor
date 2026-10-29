@@ -1,0 +1,72 @@
+@page "/verwaltung/vertraege"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject ILeaseService Admin
+
+<InteractiveShell>
+    <PageHeader Title="Mietverträge" Subtitle="@(all ? "Alle Verträge, auch beendete." : "Laufende und künftige Verträge.")">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/vertraege/neu">Vertrag anlegen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <div class="chip-row" role="group" aria-label="Filter">
+        <button type="button" class="filter-chip" aria-pressed="@(all ? "true" : "false")" @onclick="() => OnAllChanged(!all)">
+            @if (all)
+            {
+                <Icon Path="@AppIcons.Check" />
+            }
+            Beendete anzeigen
+        </button>
+    </div>
+
+    @if (leases is { Count: 0 })
+    {
+        <EmptyState Text="Keine Verträge. Legen Sie zuerst Objekte und Personen an, dann den ersten Vertrag." />
+    }
+    else if (leases is not null)
+    {
+        <MudTable T="LeaseOverview" Items="leases" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="LeaseOverview" SortBy="@(l => l.RentalUnit)" InitialDirection="SortDirection.Ascending">Mietobjekt</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="LeaseOverview" SortBy="@(l => l.Tenant)">Mieter</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="LeaseOverview" SortBy="@(l => l.Start)">Laufzeit</MudTableSortLabel></MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh Style="text-align:right"><MudTableSortLabel T="LeaseOverview" SortBy="@(l => l.MonthlyRent)">Monatsmiete</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Mietobjekt"><a href="/verwaltung/vertraege/@context.Id">@context.RentalUnit</a> <span class="small">@context.Property</span></MudTd>
+                <MudTd DataLabel="Mieter">@context.Tenant</MudTd>
+                <MudTd DataLabel="Laufzeit">@Format.Date(context.Start) – @(context.End is null ? "unbefristet" : Format.Date(context.End))</MudTd>
+                <MudTd DataLabel="Status"><StatusChip Level="Labels.Level(context.Status)">@Labels.From(context.Status)</StatusChip></MudTd>
+                <MudTd DataLabel="Monatsmiete" Style="text-align:right">@Format.Money(context.MonthlyRent)</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+            </PagerContent>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<LeaseOverview>? leases;
+    private bool all;
+
+    // The query string only provides the start value (see ADR 0005).
+    [SupplyParameterFromQuery(Name = "alle")]
+    private bool InitialAll { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        all = InitialAll;
+        await LoadAsync();
+    }
+
+    private async Task OnAllChanged(bool value)
+    {
+        all = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => leases = await Admin.ListAsync(!all);
+}

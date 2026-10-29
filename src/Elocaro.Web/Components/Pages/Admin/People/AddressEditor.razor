@@ -1,0 +1,20 @@
+@* Address fields for interactive pages and dialogs. WithReferenceDate: asks "valid from" (move date). *@
+<div class="form-grid">
+    @if (WithReferenceDate)
+    {
+        <AppDateField @bind-Value="Address.From" Label="Gültig ab" Hint="Umzugsdatum" Required="true" />
+    }
+    <AppTextField @bind-Value="Address.Street" Label="Straße und Hausnummer" Required="@WithReferenceDate" />
+    <AppTextField @bind-Value="Address.PostalCode" Label="PLZ" Required="@WithReferenceDate" />
+    <AppTextField @bind-Value="Address.City" Label="Ort" Required="@WithReferenceDate" />
+    <AppTextField @bind-Value="Address.AddressLine2" Label="Zusatz" Hint="z. B. „c/o Müller“" />
+    <AppTextField @bind-Value="Address.Country" Label="Land" Hint="Leer = Deutschland" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public AddressInput Address { get; set; } = default!;
+
+    [Parameter]
+    public bool WithReferenceDate { get; set; }
+}

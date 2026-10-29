@@ -1,0 +1,6 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Bestätigt nur den Eingang der Kündigung des Mieters. Termine anpassen. }}
+<p>{{ salutation }}</p>
+<p>wir bestätigen den Eingang Ihrer Kündigung des Mietverhältnisses über {{ rental_unit }} ({{ property_street }}, {{ property_postal_code }} {{ property_city }}).</p>
+<p>Das Mietverhältnis endet {{ if lease_end }}zum <strong>{{ date lease_end }}</strong>{{ else }}zum [Datum eintragen]{{ end }}. Bitte geben Sie die Wohnung bis dahin geräumt und besenrein zurück; alle Schlüssel sind zurückzugeben.</p>
+<p>Zur Wohnungsübergabe vereinbaren wir mit Ihnen gern einen Termin: [Terminvorschlag eintragen]. Bitte teilen Sie uns Ihre neue Anschrift mit, damit wir Ihnen die Betriebskostenabrechnung und eine etwaige Kaution zusenden können. Zähler lesen wir bei der Übergabe gemeinsam ab.</p>
+{{ include 'Grußformel' }}

@@ -1,0 +1,65 @@
+@using Elocaro.Application.Audit
+@inherits DataComponent
+
+@* Shows the change history of a record from the audit log (collapsed). *@
+<details class="history">
+    <summary>Änderungshistorie (@(entries?.Count ?? 0))</summary>
+    @if (entries is { Count: 0 })
+    {
+        <EmptyState Compact="true" Text="Keine Einträge." />
+    }
+    else if (entries is not null)
+    {
+        <ol class="history-list">
+            @foreach (var entry in entries)
+            {
+                <li>
+                    <div class="history-header">
+                        <time>@Format.Timestamp(entry.Timestamp)</time>
+                        <span class="history-action">@ActionText(entry.Action)</span>
+                        <span class="history-user">@entry.User</span>
+                        @if (entry.Purpose is not null)
+                        {
+                            <span class="history-purpose">(@entry.Purpose)</span>
+                        }
+                    </div>
+                    @if (entry.Changes.Count > 0)
+                    {
+                        <table class="data-table history-fields">
+                            <thead><tr><th>Feld</th><th>Vorher</th><th>Nachher</th></tr></thead>
+                            <tbody>
+                                @foreach (var field in entry.Changes)
+                                {
+                                    <tr><td>@field.Field</td><td>@(field.Old ?? "–")</td><td>@(field.New ?? "–")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </li>
+            }
+        </ol>
+    }
+</details>
+
+@code {
+    private IReadOnlyList<AuditEntryView>? entries;
+
+    /// <summary>Class name of the entity (e.g. <c>nameof(Lease)</c>).</summary>
+    [Parameter, EditorRequired]
+    public string EntityType { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public Guid EntityId { get; set; }
+
+    protected override async Task OnParametersSetAsync() =>
+        entries = await GetAsync<IChangeHistory, IReadOnlyList<AuditEntryView>>(h => h.GetAsync(EntityType, EntityId));
+
+    private static string ActionText(AuditAction action) => action switch
+    {
+        AuditAction.Created => "angelegt",
+        AuditAction.Modified => "geändert",
+        AuditAction.Deleted => "gelöscht",
+        AuditAction.Read => "eingesehen",
+        _ => action.ToString(),
+    };
+}

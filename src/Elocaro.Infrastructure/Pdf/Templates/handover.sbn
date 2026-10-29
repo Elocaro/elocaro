@@ -1,0 +1,83 @@
+<p><strong>{{ type_name }}</strong> am {{ date handover_date }}</p>
+<table>
+  <tbody>
+    <tr><td>Mietsache</td><td>{{ rental_unit }}</td></tr>
+    <tr><td>Mieter</td><td>{{ tenants }}</td></tr>
+    <tr><td>Mietbeginn</td><td>{{ date lease_start }}</td></tr>
+    {{~ if lease_end ~}}<tr><td>Mietende</td><td>{{ date lease_end }}</td></tr>{{ end ~}}
+  </tbody>
+</table>
+
+{{~ for room in rooms ~}}
+<h2>{{ room.name }}</h2>
+<table>
+  <thead><tr><th>Bauteil</th><th>Zustand</th><th>Bemerkung</th></tr></thead>
+  <tbody>
+  {{~ for item in room.items ~}}
+    <tr><td>{{ item.component }}</td><td>{{ item.condition }}</td><td>{{ item.note }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+</table>
+{{~ end ~}}
+
+{{~ if defects.size > 0 ~}}
+<h2>Mängel und Auffälligkeiten</h2>
+{{~ for d in defects ~}}
+<p><strong>{{ d.room }}</strong>: {{ d.description }}{{ if d.known }} <span class="small">(bereits beim Einzug festgehalten)</span>{{ end }}</p>
+{{~ if d.photos.size > 0 ~}}<p>{{~ for photo in d.photos ~}}{{ photo }} {{~ end ~}}</p>{{~ end ~}}
+{{~ end ~}}
+{{~ end ~}}
+
+{{~ if keys.size > 0 ~}}
+<h2>Schlüssel</h2>
+<table>
+  <thead><tr><th>Art</th><th class="number">Anzahl</th></tr></thead>
+  <tbody>{{~ for k in keys ~}}<tr><td>{{ k.kind }}</td><td class="number">{{ k.count }}</td></tr>{{ end ~}}</tbody>
+</table>
+{{~ end ~}}
+
+{{~ if meters.size > 0 ~}}
+<h2>Zählerstände</h2>
+<table>
+  <thead><tr><th>Zähler</th><th>Nummer</th><th class="number">Stand</th></tr></thead>
+  <tbody>
+  {{~ for m in meters ~}}
+    <tr><td>{{ m.name }}</td><td>{{ m.number }}</td><td class="number">{{ if m.value }}{{ number m.value 3 }} {{ m.unit }}{{ else }}–{{ end }}</td></tr>
+    {{~ if m.photo ~}}<tr><td colspan="3">{{ m.photo }}</td></tr>{{~ end ~}}
+  {{~ end ~}}
+  </tbody>
+</table>
+<p class="small">Die Zählerstände werden als Zwischenablesung zum {{ date handover_date }} erfasst und für die Nebenkostenabrechnung verwendet.</p>
+{{~ end ~}}
+
+{{~ if remarks ~}}
+<h2>Bemerkungen</h2>
+<p>{{ text_to_html remarks }}</p>
+{{~ end ~}}
+
+{{~ if is_move_out ~}}
+{{~ if differences.size > 0 ~}}
+<h2>Vergleich mit dem Einzugsprotokoll</h2>
+<table>
+  <thead><tr><th>Bereich</th><th>Feststellung</th><th>Einordnung</th></tr></thead>
+  <tbody>{{~ for x in differences ~}}<tr><td>{{ x.room }}</td><td>{{ x.text }}</td><td>{{ x.kind }}</td></tr>{{ end ~}}</tbody>
+</table>
+{{~ end ~}}
+{{~ if new_address ~}}<p><strong>Neue Anschrift der Mieter:</strong> {{ new_address }}</p>{{~ end ~}}
+<h2>Hinweise zum Auszug</h2>
+<ul>
+  <li>Die Nebenkostenabrechnung für den Zeitraum bis zum Auszug erstellt der Vermieter nach Vorliegen der Abrechnung des Gesamtobjekts; sie wird an die oben genannte Anschrift gesendet. Die zum Auszug abgelesenen Zählerstände werden dafür verwendet.</li>
+  <li>Über die Mietsicherheit (Kaution) wird nach Ablauf einer angemessenen Prüffrist abgerechnet. Der Vermieter darf einen Teil bis zur Abrechnung der Nebenkosten einbehalten, soweit Nachforderungen zu erwarten sind. Festgestellte Mängel können mit der Kaution verrechnet werden.</li>
+  <li>Dieses Protokoll hält den Zustand zum Auszug fest; es schließt weitere Ansprüche, die erst später erkennbar werden, nicht aus.</li>
+</ul>
+{{~ end ~}}
+
+<table>
+  <tbody>
+    <tr>
+      <td>{{ tenant_signature }}<br>______________________________<br>Mieter: {{ signed_by }}</td>
+      <td>{{ landlord_signature }}<br>______________________________<br>Vermieter: {{ landlord }}</td>
+    </tr>
+  </tbody>
+</table>
+{{~ if signed_at ~}}<p class="small">Unterschrieben am {{ date signed_at }}.</p>{{~ end ~}}

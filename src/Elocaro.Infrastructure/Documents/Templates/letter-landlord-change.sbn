@@ -1,0 +1,10 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Information der Mieter über den Wechsel des Vermieters durch Eigentumsübergang (§ 566 BGB: Der Erwerber tritt in die Mietverhältnisse ein; § 566a BGB: er übernimmt die Kaution; § 566e BGB: Mitteilung des Eigentumsübergangs). Datum des Übergangs, bisherigen Vermieter und Regelung zu Abrechnungen vor dem Übergang ergänzen und vor dem Einsatz rechtlich prüfen. Als Absender dient das Vermieterprofil des Erwerbers. }}
+<p>{{ salutation }}</p>
+<p>wir informieren Sie darüber, dass das Haus {{ property_street }}, {{ property_postal_code }} {{ property_city }} mit Wirkung zum <strong>[Datum des Eigentumsübergangs]</strong> von [bisheriger Vermieter, z. B. Erbengemeinschaft …] auf <strong>{{ sender_name }}</strong> übergegangen ist. Damit ist {{ sender_name }} nach § 566 BGB anstelle des bisherigen Vermieters in Ihr Mietverhältnis über {{ rental_unit }} eingetreten. Der Mietvertrag gilt unverändert fort.</p>
+<p><strong>Miete und Nebenkosten</strong> zahlen Sie ab dem [Datum] auf das folgende Konto:</p>
+<p>{{ sender_name }}{{ if sender_iban }}<br>IBAN {{ sender_iban }}{{ end }}{{ if sender_bic }}<br>BIC {{ sender_bic }}{{ end }}{{ if sender_bank }}<br>{{ sender_bank }}{{ end }}</p>
+<p>Bitte ändern Sie ggf. Ihren Dauerauftrag bzw. das Lastschriftmandat; ein bestehendes SEPA-Mandat teilen wir Ihnen mit neuer Gläubiger-ID gesondert mit.</p>
+<p><strong>Kaution:</strong> Die von Ihnen geleistete Mietkaution{{ if deposit_received }} in Höhe von {{ money deposit_received }}{{ end }} hat der neue Vermieter nach § 566a BGB übernommen; er ist Ihnen gegenüber zur Rückzahlung verpflichtet.</p>
+<p><strong>Betriebs- und Heizkostenabrechnungen:</strong> [Regelung ergänzen, z. B. wer die Abrechnung für Zeiträume vor dem Eigentumsübergang erstellt.]</p>
+<p>Ansprechpartner für alle Anliegen ist künftig {{ sender_name }}.</p>
+{{ include 'Grußformel' }}

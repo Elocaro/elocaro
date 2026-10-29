@@ -1,0 +1,78 @@
+@using MudBlazor
+@inject IDialogService Dialogs
+
+@* Current area, history and the dialog for a new value from a cut-off date. Interactive counterpart of the former form section. *@
+<section>
+    <h2>Flächen</h2>
+    @if (Current is null)
+    {
+        <EmptyState Compact="true" Text="Noch keine Fläche hinterlegt." />
+    }
+    else
+    {
+        <dl class="details">
+            <dt>@AreaText</dt><dd>@Format.Area(Current.Area)</dd>
+            <dt>@AdditionalText</dt><dd>@Format.Area(Current.SecondaryArea)</dd>
+            <dt>Gültig</dt><dd>@Format.Period(Current.Validity)</dd>
+        </dl>
+    }
+
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="EnterAsync">@(Current is null ? "Fläche erfassen" : "Fläche ändern (neuer Stand ab Stichtag)")</MudButton>
+
+    @if (History.Count > 1)
+    {
+        <h3>Verlauf</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Zeitraum</th><th class="number">@AreaText</th><th class="number">@AdditionalText</th></tr></thead>
+                <tbody>
+                    @foreach (var entry in History)
+                    {
+                        <tr>
+                            <td>@Format.Period(entry.Validity)</td>
+                            <td class="number">@Format.Area(entry.Area)</td>
+                            <td class="number">@Format.Area(entry.SecondaryArea)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Func<AreaInput, Task<Result>> Save { get; set; } = default!;
+
+    /// <summary>Called after a new value was saved (the page reloads).</summary>
+    [Parameter]
+    public EventCallback OnSaved { get; set; }
+
+    [Parameter]
+    public AreaReading? Current { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<AreaReading> History { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string AreaText { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string AdditionalText { get; set; } = "";
+
+    [Parameter]
+    public string? AdditionalHint { get; set; }
+
+    private async Task EnterAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Save"] = Save, ["AreaText"] = AreaText, ["AdditionalText"] = AdditionalText, ["AdditionalHint"] = AdditionalHint, ["Current"] = Current,
+        };
+        var dialog = await Dialogs.ShowAsync<AreaDialog>(Current is null ? "Fläche erfassen" : "Fläche ändern", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            await OnSaved.InvokeAsync();
+        }
+    }
+}

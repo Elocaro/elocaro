@@ -1,0 +1,100 @@
+@page "/verwaltung/tickets/neu"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Deadlines
+@using Elocaro.Application.Documents
+@using Elocaro.Application.Files
+@using Elocaro.Application.Tickets
+@using Elocaro.Domain.Tickets
+@using Elocaro.Web.Components.Controls
+@inject ITickets Tickets
+@inject IDeadlines Deadlines
+@inject IDocumentLibrary Documents
+@inject IFileStore Files
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Ticket anlegen" Subtitle="Einen Schaden, Auftrag oder eine Anfrage zu einem Objekt festhalten, einer Person zuweisen und den Fortschritt verfolgen." Back="/verwaltung/tickets" BackText="Alle Tickets" />
+
+    <ErrorList Errors="errors" />
+
+    @if (options is not null)
+    {
+        <EditForm Model="input" OnValidSubmit="SubmitAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppSelect T="Guid?" @bind-Value="input.PropertyId" Label="Objekt" Required="true" Items="options.Properties.Select(o => (Guid?)o.Id).ToList()" Text="@(id => options.Properties.FirstOrDefault(o => o.Id == id)?.Name ?? "")" />
+                <AppSelect T="Guid?" @bind-Value="input.UnitId" Label="Einheit" EmptyText="Allgemeinflächen" Items="options.Units.Select(o => (Guid?)o.Id).ToList()" Text="@(id => options.Units.FirstOrDefault(o => o.Id == id)?.Name ?? "")" />
+                <AppTextField @bind-Value="input.Title" Label="Titel" Required="true" />
+                <AppSelect T="TicketCategory" @bind-Value="input.Category" Label="Kategorie" Items="Enum.GetValues<TicketCategory>()" Text="@(v => Labels.From(v))" />
+                <AppSelect T="TicketUrgency" @bind-Value="input.Urgency" Label="Dringlichkeit" Items="Enum.GetValues<TicketUrgency>()" Text="@(v => Labels.From(v))" />
+                <AppTextField @bind-Value="input.Location" Label="Wo genau?" />
+                <AppTextField @bind-Value="input.Description" Label="Beschreibung" Required="true" Lines="5" />
+                <AppSelect T="Guid?" @bind-Value="input.AssigneeId" Label="Zuweisen an" EmptyText="Noch niemand" Items="assignees.Select(o => (Guid?)o.Id).ToList()" Text="@(id => assignees.FirstOrDefault(o => o.Id == id)?.Name ?? "")" />
+                <AppDateField @bind-Value="input.AppointmentOn" Label="Termin" />
+            </div>
+            <div class="form-row">
+                <AppFileUpload Text="Fotos wählen" Accept="image/*" Multiple="true" OnSelectedMany="files => selected = files" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy">Anlegen</MudButton>
+        </EditForm>
+    }
+</InteractiveShell>
+
+@code {
+    private readonly AdminTicketInput input = new();
+    private ReferenceOptions? options;
+    private IReadOnlyList<ReferenceOption> assignees = [];
+    private IReadOnlyList<FileSelection> selected = [];
+    private IReadOnlyList<string>? errors;
+    private bool busy;
+
+    [SupplyParameterFromQuery(Name = "objekt")]
+    private Guid? PropertyId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "wartung")]
+    private Guid? TaskId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        options = await Documents.ReferenceOptionsAsync();
+        assignees = await Tickets.AssigneesAsync();
+        input.PropertyId = PropertyId;
+        if (TaskId is { } taskId && await Deadlines.TaskAsync(taskId) is { } task)
+        {
+            MaintenanceTicket.Prefill(input, task.Task);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        busy = true;
+        try
+        {
+            var ids = new List<Guid>();
+            foreach (var file in selected.Take(Ticket.MaxPhotos))
+            {
+                await using var content = file.Open();
+                ids.Add((await Files.SaveAsync(content, file.Name)).Id);
+            }
+
+            var result = await Tickets.CreateAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            if (result.Succeeded)
+            {
+                Navigation.NavigateTo($"/verwaltung/tickets/{result.Id}?meldung=angelegt");
+                return;
+            }
+
+            errors = result.Errors;
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

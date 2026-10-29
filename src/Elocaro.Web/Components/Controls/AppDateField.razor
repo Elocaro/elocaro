@@ -1,0 +1,75 @@
+@using System.Linq.Expressions
+@using MudBlazor
+@* Date input (TT.MM.JJJJ, typed with or without dots) with a calendar. Value is a DateOnly?; the validation message of the model is shown below. *@
+<div class="app-field">
+    <MudDatePicker @key="generation" Date="current" DateChanged="OnDateChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Clearable="Clearable"
+                   Editable="true" Culture="German" Variant="Variant.Outlined" ShrinkLabel="true" Placeholder="TT.MM.JJJJ" DateFormat="dd.MM.yyyy" Converter="converter"
+                   TextChanged="OnTextChanged" Error="errorText is not null" ErrorText="@errorText" />
+    @if (ValueExpression is not null && EditContext is not null)
+    {
+        <ValidationMessage For="ValueExpression" />
+    }
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+
+    [Parameter]
+    public DateOnly? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<DateOnly?> ValueChanged { get; set; }
+
+    /// <summary>Present inside an EditForm only; without it there is nothing to show messages from.</summary>
+    [CascadingParameter]
+    private Microsoft.AspNetCore.Components.Forms.EditContext? EditContext { get; set; }
+
+    [Parameter]
+    public Expression<Func<DateOnly?>>? ValueExpression { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool Clearable { get; set; } = true;
+
+    // The component keeps the chosen date itself: it re-renders when it raises ValueChanged, before the parent has passed the new
+    // Value down; reading the (still old) parameter then would reset the calendar to empty.
+    private DateTime? current;
+    private DateOnly? lastValue;
+
+    // The picker keeps the text as typed ("01112026"); a new key makes it show the date in the normal format after each change.
+    private int generation;
+    private string? errorText;
+    private readonly LenientDateConverter converter = new();
+
+    protected override void OnParametersSet()
+    {
+        if (Value != lastValue)
+        {
+            lastValue = Value;
+            current = Value?.ToDateTime(TimeOnly.MinValue);
+        }
+    }
+
+    // Typed text that cannot be read as a date is reported instead of silently dropped.
+    private void OnTextChanged(string? typed) =>
+        errorText = converter.LastReadFailed || (!string.IsNullOrWhiteSpace(typed) && LenientDateConverter.Read(typed, monthOnly: false) is null) ? "Bitte ein Datum wie 01.11.2026 eingeben." : null;
+
+    private async Task OnDateChanged(DateTime? date)
+    {
+        current = date;
+        errorText = null;
+        generation++;
+        await ValueChanged.InvokeAsync(date is null ? null : DateOnly.FromDateTime(date.Value));
+    }
+}

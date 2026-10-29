@@ -1,0 +1,130 @@
+@page "/verwaltung/bank/csv-profile"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IBankService Bank
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<InteractiveShell>
+    <PageHeader Title="CSV-Profile" Subtitle="Wie CSV-Exporte der Banken gelesen werden. Spalten werden über ihre Überschrift gefunden." Back="/verwaltung/bank/konten" BackText="Bankkonten" />
+
+    <ErrorList Errors="errors" />
+
+    <MudTable T="CsvProfileInput" Items="profiles" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true">
+        <HeaderContent>
+            <MudTh>Profil</MudTh><MudTh>Trennzeichen</MudTh><MudTh>Datum</MudTh><MudTh>Spalten (Datum · Betrag · Zweck)</MudTh><MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Profil">@context.Name @if (context.IsDefault) {<StatusChip>mitgeliefert</StatusChip>}</MudTd>
+            <MudTd DataLabel="Trennzeichen">@(context.Delimiter == "\t" ? "Tab" : context.Delimiter), Dezimal „@context.DecimalSeparator“</MudTd>
+            <MudTd DataLabel="Datum">@context.DateFormat</MudTd>
+            <MudTd DataLabel="Spalten"><span class="small">@context.BookingDateColumn · @(context.AmountColumn ?? $"{context.DebitColumn} / {context.CreditColumn}") · @context.PurposeColumn</span></MudTd>
+            <MudTd>
+                @if (context.Id is not null)
+                {
+                    <MudButton Variant="Variant.Text" OnClick="() => Edit(context)" aria-label="@($"Profil {context.Name} bearbeiten")">Bearbeiten</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(context)" aria-label="@($"Profil {context.Name} löschen")">Löschen</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <section>
+        <h2>@(editing is null ? "Eigenes Profil anlegen" : "Profil bearbeiten")</h2>
+        <p class="small">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Name" Label="Name" Required="true" />
+                <AppTextField @bind-Value="data.Delimiter" Label="Trennzeichen" Hint="; , oder \t für Tab" />
+                <AppSelect T="string" @bind-Value="data.DecimalSeparator" Label="Dezimaltrennzeichen" Items="decimalSeparators" Text="@(v => v == "," ? "Komma (1.234,56)" : "Punkt (1,234.56)")" />
+                <AppSelect T="string" @bind-Value="data.Charset" Label="Zeichensatz" Items="charsets" Text="CharsetText" />
+                <AppTextField @bind-Value="data.DateFormat" Label="Datumsformat" Hint="z. B. dd.MM.yyyy|dd.MM.yy oder yyyy-MM-dd" />
+            </div>
+            <h3>Spaltenüberschriften</h3>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.BookingDateColumn" Label="Buchungsdatum" Required="true" />
+            <AppTextField @bind-Value="data.ValueDateColumn" Label="Valutadatum" />
+            <AppTextField @bind-Value="data.AmountColumn" Label="Betrag" />
+            <AppTextField @bind-Value="data.DebitColumn" Label="Soll (Ausgang)" />
+            <AppTextField @bind-Value="data.CreditColumn" Label="Haben (Eingang)" />
+            <AppTextField @bind-Value="data.NameColumn" Label="Name Gegenseite" />
+            <AppTextField @bind-Value="data.IbanColumn" Label="IBAN Gegenseite" />
+            <AppTextField @bind-Value="data.BicColumn" Label="BIC Gegenseite" />
+            <AppTextField @bind-Value="data.PurposeColumn" Label="Verwendungszweck" />
+            <AppTextField @bind-Value="data.BookingTextColumn" Label="Buchungstext" />
+            <AppTextField @bind-Value="data.EndToEndColumn" Label="End-to-End-Referenz" />
+            <AppTextField @bind-Value="data.MandateReferenceColumn" Label="Mandatsreferenz" />
+            <AppTextField @bind-Value="data.CreditorIdColumn" Label="Gläubiger-ID" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editing is null ? "Profil anlegen" : "Änderung speichern")</MudButton>
+            @if (editing is not null)
+            {
+                <MudButton Variant="Variant.Text" OnClick="CancelEditAsync">Abbrechen</MudButton>
+            }
+        </EditForm>
+    </section>
+</InteractiveShell>
+
+@code {
+    private static readonly string[] decimalSeparators = [",", "."];
+    private static readonly string[] charsets = ["auto", "utf-8", "windows-1252"];
+
+    private IReadOnlyList<CsvProfileInput> profiles = [];
+    private IReadOnlyList<string>? errors;
+    private CsvProfileInput data = new();
+
+    protected override async Task OnInitializedAsync() => profiles = await Bank.CsvProfilesAsync();
+
+    private static string CharsetText(string? value) => value switch
+    {
+        "utf-8" => "UTF-8",
+        "windows-1252" => "Windows-1252 / ISO-8859-1",
+        _ => "automatisch",
+    };
+
+    private Guid? editing;
+
+    private async Task CancelEditAsync()
+    {
+        editing = null;
+        data = new();
+        profiles = await Bank.CsvProfilesAsync();
+    }
+
+    private void Edit(CsvProfileInput profile)
+    {
+        editing = profile.Id;
+        data = profile;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (await ExecuteAsync(Bank.SaveCsvProfileAsync(editing, data), editing is null ? "Das Profil wurde angelegt." : "Das Profil wurde gespeichert."))
+        {
+            editing = null;
+            data = new();
+        }
+    }
+
+    private async Task DeleteAsync(CsvProfileInput profile)
+    {
+        if (profile.Id is { } id && await Confirm.AskAsync("Profil löschen", $"Soll das Profil „{profile.Name}“ gelöscht werden?", "Ja, löschen"))
+        {
+            await ExecuteAsync(Bank.DeleteCsvProfileAsync(id), "Das Profil wurde gelöscht.");
+        }
+    }
+
+    private async Task<bool> ExecuteAsync(Task<Result> command, string success)
+    {
+        var result = await command;
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+            profiles = await Bank.CsvProfilesAsync();
+        }
+
+        return result.Succeeded;
+    }
+}

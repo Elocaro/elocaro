@@ -1,0 +1,44 @@
+@typeparam TValue
+@using System.Linq.Expressions
+
+@* Uniform form field: label, input (ChildContent), hint and validation message. *@
+<div class="field @CssClass @(Uncertain ? "field-uncertain" : null)">
+    <label for="@Id">@Label@(Required ? " *" : "")</label>
+    @ChildContent
+    @if (Hint is not null)
+    {
+        <span class="field-hint" id="@(Id)-hint">@Hint</span>
+    }
+    @if (Uncertain)
+    {
+        <span class="field-hint field-hint-uncertain">Unsicher erkannt, bitte prüfen.</span>
+    }
+    <ValidationMessage For="For" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public Expression<Func<TValue>> For { get; set; } = default!;
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>The value comes from an automatic extraction and is uncertain (highlighted with a hint).</summary>
+    [Parameter]
+    public bool Uncertain { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+}

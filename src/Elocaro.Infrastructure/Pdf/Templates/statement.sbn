@@ -1,0 +1,123 @@
+{{# BASISVORLAGE Betriebskostenabrechnung: formelle Anforderungen nach BGH-Rechtsprechung (Zeitraum, Gesamtkosten je Kostenart, Verteilerschlüssel mit Erläuterung, Anteil, Vorauszahlungen, Saldo). Siehe docs/entwicklung.md, Abschnitt Abrechnungs-PDF. Der Text muss vor dem produktiven Einsatz rechtlich geprüft werden (keine Rechtsberatung). }}
+<p>{{ salutation }}</p>
+<p>Nachstehend erhalten Sie die Abrechnung der Betriebskosten{{ if has_heating }} und Heizkosten{{ end }} für Ihr Mietverhältnis ({{ rental_unit }}) für den Abrechnungszeitraum vom <strong>{{ date period_from }}</strong> bis zum <strong>{{ date period_to }}</strong>{{ if tenancy_from }} (Ihre Mietzeit in diesem Zeitraum: {{ date tenancy_from }} bis {{ date tenancy_to }}, {{ days }} Tage){{ end }}.</p>
+{{~ if correction ~}}
+<p><strong>Korrigierte Abrechnung (Fassung {{ correction.revision }}).</strong> Diese Abrechnung ersetzt die bisherige Fassung. Grund der Korrektur: {{ correction.reason }}</p>
+{{~ end ~}}
+
+<h2>1. Betriebskosten</h2>
+<table>
+  <thead><tr><th>Kostenart</th><th>Verteilerschlüssel</th><th class="number">Gesamtkosten</th><th>Ihr Anteil am Schlüssel</th><th class="number">Ihr Anteil</th></tr></thead>
+  <tbody>
+  {{~ for l in operating_lines ~}}
+    <tr><td>{{ l.name }}</td><td>{{ l.key }}</td><td class="number">{{ money l.cost_total }}</td><td class="small">{{ l.basis }}</td><td class="number">{{ money l.share }}</td></tr>
+    {{~ if l.not_agreed != 0 ~}}
+    <tr><td colspan="5" class="small">Die Kostenart „{{ l.name }}“ ist im Mietvertrag nicht vereinbart; {{ money l.not_agreed }} werden Ihnen nicht berechnet.</td></tr>
+    {{~ end ~}}
+  {{~ end ~}}
+  </tbody>
+  <tfoot>
+    <tr><td colspan="4">Summe Ihrer Betriebskosten</td><td class="number">{{ money operating.share }}</td></tr>
+    <tr><td colspan="4">abzüglich geleisteter Vorauszahlungen (Soll {{ money operating.prepayments_due }})</td><td class="number">{{ money operating.prepayments_paid }}</td></tr>
+    <tr><td colspan="4"><strong>{{ if operating.balance >= 0 }}Nachzahlung Betriebskosten{{ else }}Guthaben Betriebskosten{{ end }}</strong></td><td class="number"><strong>{{ money operating.balance_abs }}</strong></td></tr>
+  </tfoot>
+</table>
+<p class="small">Die Verteilerschlüssel sind in der Spalte „Verteilerschlüssel“ benannt; „Ihr Anteil am Schlüssel“ zeigt die auf Sie entfallende Bezugsgröße im Verhältnis zur Gesamtgröße, zeitanteilig bei Änderungen während des Zeitraums. Kosten, die nicht auf die Mieter umgelegt werden können (z. B. Leerstand), trägt der Vermieter.</p>
+
+{{~ if heating ~}}
+<h2>2. Heiz- und Warmwasserkosten</h2>
+<p>Die Heizkosten wurden nach der Heizkostenverordnung verteilt, die CO₂-Kosten nach dem Kohlendioxidkostenaufteilungsgesetz. Einzelheiten stehen in der Anlage „Heizkostenabrechnung“.</p>
+<table>
+  <thead><tr><th>Kostenart</th><th>Verteilerschlüssel</th><th class="number">Gesamtkosten</th><th>Ihr Anteil am Schlüssel</th><th class="number">Ihr Anteil</th></tr></thead>
+  <tbody>
+  {{~ for l in heating_lines ~}}
+    <tr><td>{{ l.name }}</td><td>{{ l.key }}</td><td class="number">{{ money l.cost_total }}</td><td class="small">{{ l.basis }}</td><td class="number">{{ money l.share }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+  <tfoot>
+    <tr><td colspan="4">Summe Ihrer Heiz- und Warmwasserkosten (nach Abzug des CO₂-Vermieteranteils)</td><td class="number">{{ money heating.share }}</td></tr>
+    <tr><td colspan="4">abzüglich geleisteter Heizkostenvorauszahlungen (Soll {{ money heating.prepayments_due }})</td><td class="number">{{ money heating.prepayments_paid }}</td></tr>
+    <tr><td colspan="4"><strong>{{ if heating.balance >= 0 }}Nachzahlung Heizkosten{{ else }}Guthaben Heizkosten{{ end }}</strong></td><td class="number"><strong>{{ money heating.balance_abs }}</strong></td></tr>
+  </tfoot>
+</table>
+{{~ end ~}}
+
+<h2>{{ if has_heating }}3{{ else }}2{{ end }}. Ergebnis</h2>
+<table>
+  <tbody>
+    <tr><td>Gesamtergebnis der Abrechnung</td><td class="number"><strong>{{ if balance >= 0 }}Nachzahlung {{ else }}Guthaben {{ end }}{{ money balance_abs }}</strong></td></tr>
+    {{~ if correction ~}}
+    <tr><td>Bereits mit der bisherigen Fassung abgerechnet</td><td class="number">{{ money earlier_booked }}</td></tr>
+    <tr><td>Differenz aus der Korrektur</td><td class="number">{{ if to_book_raw >= 0 }}Nachzahlung {{ else }}Guthaben {{ end }}{{ money to_book_abs }}</td></tr>
+    {{~ end ~}}
+  </tbody>
+</table>
+
+{{~ if claim_waived ~}}
+<p>Ein Nachzahlungsbetrag wird aus dieser Abrechnung nicht geltend gemacht.</p>
+{{~ else if to_book > 0 ~}}
+<p>Bitte überweisen Sie den Betrag von <strong>{{ money to_book }}</strong> bis zum <strong>{{ date due }}</strong>{{ if iban }} auf das folgende Konto:</p>
+<p>{{ if bank }}{{ bank }}<br>{{ end }}IBAN {{ iban }}{{ if bic }}<br>BIC {{ bic }}{{ end }}<br>Verwendungszweck: {{ rental_unit }}, Abrechnung {{ period_label }}</p>{{ else }}.</p>{{ end }}
+{{~ else if to_book < 0 ~}}
+<p>Das Guthaben von <strong>{{ money to_book_abs }}</strong> erstatten wir Ihnen bis zum <strong>{{ date due }}</strong> auf das uns bekannte Konto oder verrechnen es mit Ihrer nächsten Mietzahlung. Teilen Sie uns bitte mit, falls Sie eine andere Bankverbindung wünschen.</p>
+{{~ else ~}}
+<p>Aus dieser Abrechnung ergibt sich kein weiterer Zahlungsbetrag.</p>
+{{~ end ~}}
+
+{{~ if proposals.size > 0 ~}}
+<h2>Anpassung Ihrer Vorauszahlungen (§ 560 Abs. 4 BGB)</h2>
+<p>Auf Grundlage dieser Abrechnung erklären wir die Anpassung Ihrer monatlichen Vorauszahlungen auf eine angemessene Höhe:</p>
+<table>
+  <thead><tr><th>Vorauszahlung</th><th class="number">bisher</th><th class="number">neu</th><th>ab</th></tr></thead>
+  <tbody>
+  {{~ for p in proposals ~}}
+    <tr><td>{{ p.name }}</td><td class="number">{{ money p.current }}</td><td class="number">{{ money p.proposed }}</td><td>{{ date p.effective_from }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+</table>
+<p class="small">Berechnung: Ihre Kosten im Abrechnungszeitraum, auf zwölf Monate hochgerechnet, geteilt durch zwölf{{ if safety_percent > 0 }} zuzüglich eines Sicherheitszuschlags von {{ number safety_percent 1 }} %{{ end }}, aufgerundet auf volle Euro.</p>
+{{~ end ~}}
+
+<h2>Belegeinsicht</h2>
+<p>Sie können die der Abrechnung zugrunde liegenden Belege (Rechnungen, Verträge, Zählerprotokolle) nach Terminabsprache bei uns einsehen. Auf Wunsch senden wir Ihnen gegen Erstattung der Kosten Kopien zu. Einwendungen gegen die Abrechnung müssen Sie uns spätestens zwölf Monate nach Zugang der Abrechnung mitteilen (§ 556 Abs. 3 Satz 5 BGB).</p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>
+
+{{~ if has_heating ~}}
+<div class="seitenumbruch"></div>
+<h2>Anlage: Heizkostenabrechnung {{ period_label }}</h2>
+{{~ if meters.size > 0 ~}}
+<h3>Zählerstände Ihrer Wohnung</h3>
+<table>
+  <thead><tr><th>Zähler</th><th>Art</th><th>Anfangsstand</th><th>Endstand</th><th class="number">Verbrauch</th></tr></thead>
+  <tbody>
+  {{~ for m in meters ~}}
+    <tr><td>{{ m.number }}</td><td>{{ m.type }}</td><td>{{ if m.derived }}aus anderen Zählern{{ else if m.start_value }}{{ number m.start_value 3 }} am {{ date m.start_date }}{{ else }}fehlt{{ end }}</td><td>{{ if m.derived }}errechnet{{ else if m.end_value }}{{ number m.end_value 3 }} am {{ date m.end_date }}{{ else }}fehlt{{ end }}</td><td class="number">{{ if m.consumption }}{{ number m.consumption 3 }} {{ m.unit }}{{ else }}–{{ end }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+</table>
+{{~ end ~}}
+{{~ for s in sections ~}}
+<h3>{{ s.title }}</h3>
+{{~ if s.notice ~}}<p class="small">{{ s.notice }}</p>{{~ end ~}}
+<table>
+  <tbody>
+  {{~ for e in s.entries ~}}
+    <tr><td>{{ e.title }}<br><span class="small">{{ e.formula }}{{ if e.values }} · {{ e.values }}{{ end }}{{ if e.note }} · {{ e.note }}{{ end }}</span></td><td class="number">{{ if e.result }}{{ number e.result 2 }}{{ if e.unit }} {{ e.unit }}{{ end }}{{ end }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+</table>
+{{~ end ~}}
+{{~ end ~}}
+
+{{~ if labor.any ~}}
+<div class="seitenumbruch"></div>
+<h2>Bescheinigung nach § 35a EStG für {{ period_label }}</h2>
+<p>Von den Ihnen berechneten Betriebskosten entfallen auf Arbeitskosten (ohne Material):</p>
+<table>
+  <tbody>
+    {{~ if labor.household != 0 ~}}<tr><td>Haushaltsnahe Dienstleistungen (§ 35a Abs. 2 Satz 1 EStG)</td><td class="number">{{ money labor.household }}</td></tr>{{~ end ~}}
+    {{~ if labor.tradesman != 0 ~}}<tr><td>Handwerkerleistungen (§ 35a Abs. 3 EStG)</td><td class="number">{{ money labor.tradesman }}</td></tr>{{~ end ~}}
+  </tbody>
+</table>
+<p class="small">Die Beträge sind anteilig auf Ihr Mietverhältnis berechnet. Sie können sie in Ihrer Einkommensteuererklärung geltend machen, soweit die Aufwendungen durch Überweisung auf das Konto des Leistungserbringers gezahlt wurden (§ 35a Abs. 5 Satz 3 EStG). Diese Bescheinigung ersetzt keine steuerliche Beratung.</p>
+{{~ end ~}}

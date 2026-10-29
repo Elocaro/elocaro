@@ -1,0 +1,56 @@
+@using MudBlazor
+@inject IPersonService Admin
+@inject Notifier Notify
+
+@* Dialog "add IBAN": all accounts a person pays from; incoming payments are assigned via the IBAN. *@
+<EditForm Model="bank" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <div class="form-grid">
+                <AppTextField @bind-Value="bank.Iban" Label="IBAN" Required="true" />
+                <AppTextField @bind-Value="bank.AccountHolder" Label="Kontoinhaber" Hint="Falls abweichend" />
+                <AppTextField @bind-Value="bank.Bic" Label="BIC" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(Existing is null ? "IBAN hinzufügen" : "Speichern")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private BankDetailsInput bank = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid PersonId { get; set; }
+
+    /// <summary>The entry to correct; empty = add a new IBAN.</summary>
+    [Parameter]
+    public BankDetailsView? Existing { get; set; }
+
+    protected override void OnInitialized() =>
+        bank = Existing is null ? new() : new BankDetailsInput { Iban = Existing.Iban, AccountHolder = Existing.AccountHolder, Bic = Existing.Bic };
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = Existing is null ? await Admin.AddBankDetailsAsync(PersonId, bank) : await Admin.UpdateBankDetailsAsync(PersonId, Existing.Id, bank);
+        if (result.Succeeded)
+        {
+            Notify.Success(Existing is null ? "Die IBAN wurde hinzugefügt." : "Die Bankverbindung wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

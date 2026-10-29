@@ -1,0 +1,7 @@
+{{ capture subject }}Elocaro: Fristen und Wartungen stehen an{{ end }}
+<p>Hallo,</p>
+<p>folgende Fristen sind bald fällig oder bereits überfällig:</p>
+<ul>
+{{ for entry in entries }}  <li>{{ entry }}</li>
+{{ end }}</ul>
+<p><a href="{{ link }}">Fristenkalender in Elocaro öffnen</a></p>

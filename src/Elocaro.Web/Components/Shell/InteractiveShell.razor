@@ -1,0 +1,61 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@* Frame of an interactive page: the providers MudBlazor needs (theme, dialogs, snackbars) and the light/dark mode of the site.
+   Use as the outermost element of every page with @rendermode InteractiveServer. The parameters contain no MudBlazor types. *@
+<MudThemeProvider @ref="provider" Theme="M3Theme.Theme" @bind-IsDarkMode="dark" ObserveSystemDarkModeChange="@(Preference is null)" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<span hidden data-interactive="@(interactive ? "true" : null)"></span>
+@ChildContent
+
+@code {
+    private MudThemeProvider? provider;
+    private bool dark;
+    private bool interactive;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    /// <summary>"light", "dark" or null (system); read from the cookie while prerendering and carried over to the circuit.</summary>
+    [PersistentState]
+    public string? Preference { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (HttpContext is not null)
+        {
+            Preference = ThemePreference.Read(HttpContext);
+        }
+
+        dark = Preference == "dark";
+    }
+
+    // Only runs once the circuit is connected (not while prerendering): the marker tells tests and scripts that the page reacts.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (Preference is null && provider is not null)
+        {
+            dark = await provider.GetSystemDarkModeAsync();
+        }
+
+        // Message after a redirect from another page (?meldung=gespeichert); fixed keys only, see StatusMessage.Keys.
+        if (QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query).TryGetValue("meldung", out var key) && StatusMessage.Keys.TryGetValue(key.ToString(), out var text))
+        {
+            Notify.Success(text);
+        }
+
+        interactive = true;
+        StateHasChanged();
+    }
+}

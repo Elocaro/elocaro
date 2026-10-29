@@ -1,0 +1,68 @@
+@using MudBlazor
+@inject IReceiptService Receipts
+@inject Notifier Notify
+
+@* Dialog "edit cost item" of a receipt: corrects the item in place. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <CostItemEditor Position="data" Options="Options" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private CostItemInput data = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid ReceiptId { get; set; }
+
+    [Parameter, EditorRequired]
+    public CostItemView Item { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ReceiptOptions Options { get; set; } = default!;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized() =>
+        data = new CostItemInput
+        {
+            CostType = Item.CostType,
+            Amount = Item.Amount,
+            PropertyId = Item.PropertyId,
+            UnitId = Item.UnitId,
+            SubtypeId = Item.SubtypeId,
+            From = Item.BillingPeriod.From,
+            To = Item.BillingPeriod.To,
+            Allocable = Item.Allocable,
+            Section35a = Item.Section35a,
+            HeatingKind = Item.HeatingKind,
+            LaborCosts = Item.LaborCosts,
+            Note = Item.Note,
+        };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Receipts.UpdateCostItemAsync(ReceiptId, Item.Id, data);
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Position wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(result.Id));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

@@ -1,0 +1,6 @@
+<h2 style="font-size: 20pt; margin-top: 0">Aushang</h2>
+<p><strong>{{ property }}</strong></p>
+{{~ for paragraph in paragraphs ~}}
+<p style="font-size: 13pt">{{ paragraph }}</p>
+{{~ end ~}}
+<p class="small">Gültig ab {{ date valid_from }}{{ if valid_until }} bis {{ date valid_until }}{{ end }}</p>

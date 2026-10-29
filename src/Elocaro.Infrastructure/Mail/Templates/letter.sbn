@@ -1,0 +1,4 @@
+{{ capture subject }}{{ title }}{{ end }}
+<p>{{ salutation }}</p>
+<p>im Anhang finden Sie unser Schreiben „{{ title }}“.</p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

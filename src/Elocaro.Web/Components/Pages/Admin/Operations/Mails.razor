@@ -1,0 +1,104 @@
+@page "/verwaltung/system/mails"
+@rendermode InteractiveServer
+@using MudBlazor
+@using System.ComponentModel.DataAnnotations
+@using Elocaro.Application.Common
+@using Elocaro.Application.Communication
+@using Elocaro.Domain.Communication
+@inject IMailService MailService
+@inject IMailSender MailSender
+@inject ICurrentUser CurrentUser
+@inject TimeProvider Clock
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="E-Mail-Versand" Subtitle="Ausgehende Nachrichten und ihr Zustellstatus." />
+
+    <section>
+        <h2>Testnachricht senden</h2>
+        <EditForm Model="test" OnValidSubmit="SendTestAsync" novalidate class="form-row">
+            <DataAnnotationsValidator />
+            <AppTextField @bind-Value="test.Recipient" Label="Empfänger" Type="email" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Testnachricht einreihen</MudButton>
+        </EditForm>
+    </section>
+
+    <section>
+        <h2>Letzte Nachrichten</h2>
+        @if (mails is { Count: 0 })
+        {
+            <EmptyState Text="Noch keine Nachrichten." />
+        }
+        else if (mails is not null)
+        {
+            <MudTable T="MailOverview" Items="mails" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+                <HeaderContent>
+                    <MudTh>Erstellt</MudTh><MudTh>An</MudTh><MudTh>Betreff</MudTh><MudTh>Status</MudTh><MudTh>Versuche</MudTh><MudTh>Gesendet / nächster Versuch</MudTh><MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Erstellt">@Format.Timestamp(context.CreatedAt)</MudTd>
+                    <MudTd DataLabel="An">@string.Join(", ", context.To)</MudTd>
+                    <MudTd DataLabel="Betreff">@context.Subject</MudTd>
+                    <MudTd DataLabel="Status"><StatusChip Level="Level(context.Status)" title="@context.LastError">@StatusText(context.Status)</StatusChip></MudTd>
+                    <MudTd DataLabel="Versuche">@context.Attempts</MudTd>
+                    <MudTd DataLabel="Gesendet / nächster Versuch">@(context.Status == MailStatus.Sent ? Format.Timestamp(context.SentAt) : Format.Timestamp(context.NextAttemptAt))</MudTd>
+                    <MudTd>
+                        @if (context.Status != MailStatus.Sent)
+                        {
+                            <MudButton Variant="Variant.Outlined" OnClick="() => RetryAsync(context.Id)">Erneut senden</MudButton>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+                </PagerContent>
+            </MudTable>
+        }
+    </section>
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<MailOverview>? mails;
+    private TestModel test = new();
+
+    protected override async Task OnInitializedAsync() => mails = await MailService.LatestAsync(100);
+
+    private async Task SendTestAsync()
+    {
+        await MailSender.EnqueueAsync(new MailRequest(
+            [test.Recipient!],
+            "test",
+            new { SentAt = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime), TriggeredBy = CurrentUser.Identifier }));
+        Notify.Success($"Testnachricht an {test.Recipient} wurde eingereiht und wird in Kürze versendet.");
+        test = new();
+        mails = await MailService.LatestAsync(100);
+    }
+
+    private async Task RetryAsync(Guid id)
+    {
+        await MailService.RetryAsync(id);
+        Notify.Success("Die Nachricht wird erneut versendet.");
+        mails = await MailService.LatestAsync(100);
+    }
+
+    private static string StatusText(MailStatus status) => status switch
+    {
+        MailStatus.Sent => "gesendet",
+        MailStatus.Failed => "fehlgeschlagen",
+        _ => "ausstehend",
+    };
+
+    private static StatusLevel Level(MailStatus status) => status switch
+    {
+        MailStatus.Sent => StatusLevel.Success,
+        MailStatus.Failed => StatusLevel.Error,
+        _ => StatusLevel.Warning,
+    };
+
+    private sealed class TestModel
+    {
+        [Required(ErrorMessage = "Bitte eine E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string? Recipient { get; set; }
+    }
+}

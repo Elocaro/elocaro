@@ -1,0 +1,70 @@
+@page "/verwaltung/datenschutz"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Privacy
+@inject IPrivacyService Privacy
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<InteractiveShell>
+    <PageHeader Title="Datenschutz" Subtitle="Personen, deren Daten nach Ablauf der Aufbewahrungsfrist nicht mehr benötigt werden." />
+
+    <ErrorList Errors="errors" />
+
+    <details class="explain">
+        <summary>Bevor Sie anonymisieren</summary>
+        <p class="small">
+        Elocaro schlägt nur vor, gelöscht wird nichts automatisch. Vor dem Anonymisieren prüfen, ob noch Fristen laufen
+        (z. B. offene Forderungen, Rechtsstreit). Eine Auskunft nach Art. 15 DSGVO gibt es in jeder Personenakte.
+    </p>
+    </details>
+
+    @if (suggestions is { Count: 0 })
+    {
+        <EmptyState Text="Derzeit gibt es keine Personen, deren Aufbewahrungsfrist abgelaufen ist." />
+    }
+    else if (suggestions is not null)
+    {
+        <MudTable T="AnonymizationSuggestion" Items="suggestions" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true">
+            <HeaderContent>
+                <MudTh>Person</MudTh>
+                <MudTh>Grund</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Person"><a href="/verwaltung/personen/@context.PersonId">@context.DisplayName</a></MudTd>
+                <MudTd DataLabel="Grund">@context.Reason</MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => AnonymizeAsync(context)" aria-label="@($"{context.DisplayName} anonymisieren")">Anonymisieren</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<AnonymizationSuggestion>? suggestions;
+    private IReadOnlyList<string>? errors;
+
+    protected override async Task OnInitializedAsync() => suggestions = await Privacy.SuggestionsAsync();
+
+    private async Task AnonymizeAsync(AnonymizationSuggestion suggestion)
+    {
+        if (!await Confirm.AskAsync(
+            "Person anonymisieren",
+            $"{suggestion.DisplayName}: Name, Kontaktdaten, Anschriften, IBANs und die Werte im Änderungsprotokoll werden endgültig entfernt. Das lässt sich nicht rückgängig machen.",
+            "Ja, anonymisieren"))
+        {
+            return;
+        }
+
+        var result = await Privacy.AnonymizeAsync(suggestion.PersonId);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Person wurde anonymisiert.");
+        }
+
+        suggestions = await Privacy.SuggestionsAsync();
+    }
+}

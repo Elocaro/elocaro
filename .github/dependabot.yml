@@ -1,0 +1,41 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      # EF Core, ASP.NET Core und Npgsql gemeinsam aktualisieren (Versionen müssen zusammenpassen)
+      dotnet-plattform:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+          - "Microsoft.EntityFrameworkCore*"
+          - "Microsoft.Extensions.*"
+          - "Npgsql*"
+          - "EFCore.NamingConventions"
+      tests:
+        patterns:
+          - "xunit*"
+          - "bunit"
+          - "Testcontainers*"
+          - "Microsoft.Testing.*"
+          - "Microsoft.Playwright"
+          - "NetArchTest.Rules"
+          - "PdfPig"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

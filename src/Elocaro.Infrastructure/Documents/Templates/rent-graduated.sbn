@@ -1,0 +1,19 @@
+{{# Freiwillige Information zur Staffelmiete (§ 557a BGB); die Staffel gilt ohne Erklärung zum vereinbarten Termin. }}
+<p>{{ salutation }}</p>
+<p>wir möchten Sie vorab darüber informieren, dass sich die Nettokaltmiete für Ihre Wohnung ({{ rental_unit }}) entsprechend der im Mietvertrag vereinbarten Staffelmiete (§ 557a BGB) zum <strong>{{ date effective_from }}</strong> ändert.</p>
+<table>
+  <tbody>
+    <tr><td>Bisherige Nettokaltmiete</td><td class="number">{{ money current_amount }}</td></tr>
+    <tr><td><strong>Nettokaltmiete ab {{ date effective_from }}</strong></td><td class="number"><strong>{{ money new_amount }}</strong></td></tr>
+  </tbody>
+</table>
+{{~ if next_steps.size > 1 ~}}
+<p>Die weiteren vereinbarten Stufen:</p>
+<table>
+  <thead><tr><th>Ab</th><th class="number">Nettokaltmiete</th></tr></thead>
+  <tbody>{{~ for s in next_steps ~}}<tr><td>{{ date s.from }}</td><td class="number">{{ money s.base_rent }}</td></tr>{{ end ~}}</tbody>
+</table>
+{{~ end ~}}
+<p>Einer Zustimmung bedarf es nicht. Bitte passen Sie gegebenenfalls Ihren Dauerauftrag an. Die Betriebskostenvorauszahlungen ändern sich nicht.</p>
+
+{{ include 'Grußformel' }}

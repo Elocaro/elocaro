@@ -1,0 +1,176 @@
+@using MudBlazor
+@using Elocaro.Application.Files
+@using Elocaro.Application.Tickets
+@using Elocaro.Domain.Tickets
+@using Elocaro.Web.Components.Controls
+@inject ITickets Tickets
+@inject IFileStore Files
+@inject AuthenticationStateProvider Authentication
+@inject Notifier Notify
+
+@* Report, photos, status and comments of a ticket for administration, tenant or assignee. What is offered depends on the account. *@
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (view is null)
+{
+    <EmptyState Text="Das Ticket wurde nicht gefunden." />
+}
+else
+{
+    <p>
+        <StatusChip Level="Labels.Level(view.Row.Status)">@Labels.From(view.Row.Status)</StatusChip>
+        <StatusChip Level="@(view.Row.Urgency == TicketUrgency.High ? StatusLevel.Warning : StatusLevel.Neutral)">@Labels.From(view.Row.Urgency)</StatusChip>
+        <StatusChip>@Labels.From(view.Row.Category)</StatusChip>
+    </p>
+
+    <dl class="details">
+        <dt>Ort</dt><dd>@view.Row.Property@(view.Row.Unit is null ? " (Allgemeinflächen)" : $", {view.Row.Unit}")@(view.Location is null ? "" : $" · {view.Location}")</dd>
+        <dt>Gemeldet</dt><dd>@Format.Timestamp(view.Row.ReportedAt)@(view.Row.Reporter is null ? " von der Verwaltung" : $" von {view.Row.Reporter}")</dd>
+        @if (view.Row.Assignee is not null)
+        {
+            <dt>Zuständig</dt><dd>@view.Row.Assignee@(view.Row.AppointmentOn is { } termin ? $" · Termin {Format.Date(termin)}" : "")</dd>
+        }
+        @if (view.AccessTimes is not null)
+        {
+            <dt>Zugang möglich</dt><dd>@view.AccessTimes</dd>
+        }
+    </dl>
+
+    <p class="ticket-description">@view.Description</p>
+    <TicketPhotos FileIds="view.FileIds" />
+
+    @if (view.CanSetStatus.Count > 0)
+    {
+        <div class="form-row">
+            <AppSelect T="TicketStatus?" Value="null" ValueChanged="SetStatusAsync" Label="Status ändern" Items="view.CanSetStatus.Select(s => (TicketStatus?)s).ToList()" Text="@(s => s is { } v ? Labels.From(v) : "")" />
+        </div>
+    }
+
+    <section>
+        <h2>Verlauf</h2>
+        @if (view.Comments.Count == 0)
+        {
+            <EmptyState Compact="true" Text="Noch keine Kommentare." />
+        }
+        else
+        {
+            <ul class="ticket-thread">
+                @foreach (var comment in view.Comments)
+                {
+                    <li class="@(comment.IsInternal ? "internal" : null)">
+                        <span class="meta">@comment.Author · @Format.Timestamp(comment.At)@(comment.IsInternal ? " · intern" : "")</span>
+                        <p>@comment.Text</p>
+                        <TicketPhotos FileIds="comment.FileIds" />
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    @if (view.CanComment)
+    {
+        <section>
+            <h2>Kommentar schreiben</h2>
+            <ErrorList Errors="errors" />
+            <AppTextField @bind-Value="text" Label="Kommentar" Lines="3" />
+            <div class="form-row">
+                <AppFileUpload Text="Fotos hinzufügen" Accept="image/*" Multiple="true" OnSelectedMany="OnFiles" />
+                @if (Admin)
+                {
+                    <AppCheckBox @bind-Value="isInternal" Label="Intern (für Mieter und Handwerker unsichtbar)" />
+                }
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CommentAsync" Disabled="busy">Absenden</MudButton>
+        </section>
+    }
+}
+
+@code {
+    private TicketView? view;
+    private bool loaded;
+    private bool busy;
+    private bool isInternal;
+    private string? text;
+    private IReadOnlyList<FileSelection> selected = [];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid Id { get; set; }
+
+    /// <summary>Administration: internal comments are possible.</summary>
+    [Parameter]
+    public bool Admin { get; set; }
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        loaded = true;
+    }
+
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+
+    private async Task LoadAsync() => view = await Tickets.GetAsync(await UserAsync(), Id);
+
+    private void OnFiles(IReadOnlyList<FileSelection> files) => selected = files;
+
+    private async Task SetStatusAsync(TicketStatus? status)
+    {
+        if (status is not { } value)
+        {
+            return;
+        }
+
+        var result = await Tickets.SetStatusAsync(await UserAsync(), Id, value);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success($"Der Status ist jetzt „{Labels.From(value)}“.");
+            await LoadAsync();
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private async Task CommentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            errors = ["Bitte einen Kommentar schreiben."];
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var ids = new List<Guid>();
+            foreach (var file in selected.Take(Ticket.MaxPhotos))
+            {
+                await using var content = file.Open();
+                ids.Add((await Files.SaveAsync(content, file.Name)).Id);
+            }
+
+            var result = await Tickets.CommentAsync(await UserAsync(), Id, text, isInternal, ids);
+            errors = result.Succeeded ? null : result.Errors;
+            if (result.Succeeded)
+            {
+                text = null;
+                isInternal = false;
+                selected = [];
+                await LoadAsync();
+                await OnChanged.InvokeAsync();
+            }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

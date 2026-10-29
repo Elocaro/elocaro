@@ -1,0 +1,90 @@
+{{# BASISVORLAGE Zimmervertrag für eine Wohngemeinschaft (Einzelmietvertrag über ein Zimmer mit Mitbenutzung der Gemeinschaftsflächen). Kein Rechtsrat: vor dem produktiven Einsatz rechtlich prüfen lassen. Die Daten kommen aus Objekt, Einheit, Zimmer und Vertrag. }}
+<h2>Mietvertrag über ein Zimmer in einer Wohngemeinschaft</h2>
+
+<h3>zwischen</h3>
+<p><strong>{{ sender_name }}</strong>, {{ sender_address }}<br>– nachfolgend „Vermieter“ –</p>
+<h3>und</h3>
+{{~ for t in tenants ~}}
+<p><strong>{{ t.name }}</strong>{{ if t.birth_date }}, geboren am {{ date t.birth_date }}{{ end }}{{ if t.address }}, {{ t.address }}{{ end }}</p>
+{{~ end ~}}
+<p>– nachfolgend „Mieter“ –</p>
+
+<h3>§ 1 Mietsache</h3>
+<p>(1) Vermietet wird im Haus {{ property_street }}, {{ property_postal_code }} {{ property_city }} in der Wohnung <strong>{{ unit_name }}</strong>{{ if unit_location }} ({{ unit_location }}){{ end }} {{ if room_name | string.contains ' und ' }}die Zimmer{{ else }}das Zimmer{{ end }} <strong>{{ room_name }}</strong>{{ if room_area }} mit ca. {{ number room_area 2 }} m²{{ end }}.</p>
+<p>(2) Der Mieter darf die Gemeinschaftsflächen der Wohnung (z. B. Küche, Bad, Flur{{ if amenities }}, {{ amenities }}{{ end }}) gemeinsam mit den anderen Bewohnern mitbenutzen{{ if common_area_share }}. Auf den Mieter entfällt rechnerisch ein Anteil von ca. {{ number common_area_share 2 }} m² der Gemeinschaftsflächen{{ end }}.{{ if other_rooms.size > 0 }} Die übrigen Zimmer der Wohnung sind getrennt vermietet:{{ for r in other_rooms }} {{ r }}{{ if !for.last }},{{ end }}{{ end }}.{{ end }}</p>
+<p>(3) Das Zimmer wird {{ furnishing }} überlassen.{{ if furnishing_list.size > 0 }} Mitvermietet sind folgende Gegenstände, die sich bei Einzug in ordnungsgemäßem Zustand befinden und bei Auszug zurückzugeben sind:</p>
+<ul>
+{{~ for item in furnishing_list ~}}<li>{{ item }}</li>{{ end ~}}
+</ul><p>{{ end }}</p>
+
+<h3>§ 2 Mietzeit und Kündigung</h3>
+{{~ if is_fixed_term ~}}
+<p>Das Mietverhältnis beginnt am <strong>{{ date start }}</strong> und ist befristet bis zum <strong>{{ date fixed_term_until }}</strong>. Der Befristungsgrund ist: [Grund nach § 575 BGB bitte eintragen].</p>
+{{~ else ~}}
+<p>Das Mietverhältnis beginnt am <strong>{{ date start }}</strong> und läuft auf unbestimmte Zeit.</p>
+{{~ end ~}}
+<p>Der Mieter kann mit einer Frist von {{ notice_period_months }} Monaten kündigen, spätestens am dritten Werktag eines Monats zum Ablauf des übernächsten Monats. Für Kündigungen des Vermieters gelten die gesetzlichen Fristen. {{# Bei Wohnraum in der Wohnung des Vermieters gelten Sonderregeln (§ 573a, § 549 Abs. 2 Nr. 2 BGB): bei Bedarf prüfen. }}</p>
+
+<h3>§ 3 Miete und Betriebskostenpauschale</h3>
+<table>
+  <tbody>
+    <tr><td>Miete für das Zimmer</td><td class="number">{{ money base_rent }}</td></tr>
+    {{~ if is_flat_rate ~}}<tr><td>Pauschale für Nebenkosten (Heizung, Wasser, Strom, Internet, Reinigung der Gemeinschaftsflächen u. a.)</td><td class="number">{{ money operating_cost_flat_rate }}</td></tr>
+    {{~ else if is_prepayment ~}}
+    <tr><td>Vorauszahlung Betriebskosten</td><td class="number">{{ money operating_cost_prepayment }}</td></tr>
+    {{~ if heating_cost_prepayment > 0 ~}}<tr><td>Vorauszahlung Heiz- und Warmwasserkosten</td><td class="number">{{ money heating_cost_prepayment }}</td></tr>{{ end ~}}
+    {{~ end ~}}
+    {{~ if furnishing_surcharge > 0 ~}}<tr><td>Möblierungszuschlag</td><td class="number">{{ money furnishing_surcharge }}</td></tr>{{ end ~}}
+    {{~ if parking_space > 0 ~}}<tr><td>Stellplatz</td><td class="number">{{ money parking_space }}</td></tr>{{ end ~}}
+    {{~ for c in other_components ~}}<tr><td>{{ c.name }}</td><td class="number">{{ money c.amount }}</td></tr>{{ end ~}}
+  </tbody>
+  <tfoot><tr><td>Gesamtmiete monatlich</td><td class="number">{{ money total_rent }}</td></tr></tfoot>
+</table>
+{{~ if is_flat_rate ~}}
+<p>Mit der Pauschale sind die Nebenkosten der Wohnung abgegolten; eine Abrechnung erfolgt nicht. Der Vermieter kann die Pauschale bei einer Erhöhung der Kosten nach § 560 BGB durch Erklärung in Textform anpassen.</p>
+{{~ end ~}}
+{{~ if is_graduated ~}}
+<p><strong>Staffelmiete (§ 557a BGB).</strong> Die Miete für das Zimmer erhöht sich zu folgenden Terminen auf den genannten Betrag:</p>
+<table>
+  <thead><tr><th>Ab</th><th class="number">Miete</th></tr></thead>
+  <tbody>{{~ for s in rent_steps ~}}<tr><td>{{ date s.from }}</td><td class="number">{{ money s.base_rent }}</td></tr>{{ end ~}}</tbody>
+</table>
+{{~ end ~}}
+<p>Die Miete ist monatlich im Voraus, spätestens bis zum {{ due_on_working_day }}. Werktag des Monats, zu zahlen{{ if direct_debit }} und wird im Lastschriftverfahren eingezogen{{ else if sender_iban }} auf das Konto IBAN {{ sender_iban }}{{ end }}.</p>
+
+<h3>§ 4 Kaution</h3>
+{{~ if deposit ~}}
+<p>Der Mieter leistet eine Kaution in Höhe von <strong>{{ money deposit }}</strong>{{ if deposit_note }} ({{ deposit_note }}){{ end }}; höchstens zulässig sind drei Monatsmieten ohne Nebenkosten ({{ money max_deposit }}), zahlbar in drei gleichen Teilbeträgen (§ 551 BGB).</p>
+{{~ else ~}}
+<p>Eine Kaution wird nicht vereinbart.</p>
+{{~ end ~}}
+
+<h3>§ 5 Zusammenleben und Gemeinschaftsflächen</h3>
+<p>(1) Die Bewohner nehmen aufeinander Rücksicht. Gemeinschaftsflächen sind sauber zu halten; die Reinigung erfolgt nach Absprache der Bewohner oder durch eine vom Vermieter beauftragte Reinigung (in der Pauschale enthalten, soweit vereinbart).</p>
+<p>(2) Der Mieter haftet für Schäden, die er oder seine Gäste an Zimmer und Gemeinschaftsflächen verursachen. Für Schäden, die keinem Bewohner zugeordnet werden können, haftet er nicht gesamtschuldnerisch mit den anderen Bewohnern.</p>
+<p>(3) Es gilt die als Anlage beigefügte Hausordnung. Eine Untervermietung oder die dauerhafte Aufnahme weiterer Personen bedarf der Zustimmung des Vermieters.</p>
+
+<h3>§ 6 Schönheitsreparaturen</h3>
+<p>Das Zimmer wird in ordnungsgemäßem Zustand übergeben. Schönheitsreparaturen während der Mietzeit obliegen dem Vermieter, soweit nichts anderes ausdrücklich schriftlich vereinbart ist. {{# Abwälzung nur nach anwaltlicher Prüfung (BGH-Rechtsprechung zu starren Fristen und unrenovierter Übergabe). }}</p>
+
+{{~ if notes ~}}
+<h3>§ 7 Besondere Vereinbarungen</h3>
+<p>{{ text_to_html notes }}</p>
+{{~ end ~}}
+
+<h3>Schlussbestimmungen</h3>
+<p>Änderungen und Ergänzungen dieses Vertrages bedürfen der Textform. Sollte eine Bestimmung unwirksam sein, bleibt der Vertrag im Übrigen wirksam.</p>
+
+<p>Anlagen: Hausordnung · Energieausweis · Datenschutzinformation · Übergabeprotokoll{{ if furnishing_list.size > 0 }} · Möblierungsliste (oben){{ end }}</p>
+
+<table>
+  <tbody>
+    <tr><td><br><br>______________________________<br>Ort, Datum, Vermieter<br>{{ sender_name }}</td>
+    <td><br><br>______________________________<br>Ort, Datum, Mieter<br>{{ tenant_names }}</td></tr>
+  </tbody>
+</table>
+
+{{ include 'Anlage Hausordnung' }}
+{{ include 'Anlage Energieausweis' }}
+{{ include 'Anlage Datenschutzinformation' }}
+{{ include 'Anlage Übergabeprotokoll' }}

@@ -1,0 +1,62 @@
+@using Elocaro.Web.Account
+@using Elocaro.Web.Operations
+<!DOCTYPE html>
+<html lang="de" data-theme="@Theme">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#146d29" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="preload" href="fonts/roboto-flex-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <ImportMap nonce="@Nonce" />
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+    @* Replaces Blazor's English default for a lost connection (see js/reconnect.js); the state classes come from the framework. *@
+    <dialog id="components-reconnect-modal" class="reconnect-modal" data-nosnippet aria-live="assertive">
+        <div class="reconnect-state reconnect-retrying">
+            <span class="reconnect-icon is-working" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" /></svg></span>
+            <p class="reconnect-title">Verbindung unterbrochen</p>
+            <p class="reconnect-text">Wir verbinden uns neu. Ungespeicherte Eingaben bleiben erhalten, solange das Fenster offen ist.</p>
+        </div>
+        <div class="reconnect-state reconnect-failed">
+            <span class="reconnect-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M22.99 9C19.15 5.16 13.8 3.76 8.84 4.78l2.52 2.52c3.47-.17 6.99 1.05 9.63 3.7l2-2zm-4 4c-1.29-1.29-2.84-2.13-4.49-2.56l3.53 3.53.96-.97zM2 3.05L5.07 6.1C3.6 6.82 2.22 7.78 1 9l1.99 2c1.24-1.24 2.67-2.16 4.2-2.77l2.24 2.24C7.81 10.89 6.27 11.73 5 13v.01L6.99 15c1.36-1.36 3.14-2.04 4.92-2.06L18.98 20l1.27-1.26L3.29 1.79 2 3.05zM9 17l3 3 3-3c-1.65-1.66-4.34-1.66-6 0z" /></svg></span>
+            <p class="reconnect-title">Keine Verbindung</p>
+            <p class="reconnect-text">Der Server ist gerade nicht erreichbar. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.</p>
+            <button type="button" id="components-reconnect-button" class="button button-primary">Erneut versuchen</button>
+        </div>
+        <div class="reconnect-state reconnect-ended">
+            <span class="reconnect-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" /></svg></span>
+            <p class="reconnect-title">Sitzung beendet</p>
+            <p class="reconnect-text">Die Sitzung ist abgelaufen oder der Server wurde neu gestartet. Laden Sie die Seite neu, um weiterzuarbeiten.</p>
+            <button type="button" id="components-reload-button" class="button button-primary">Seite neu laden</button>
+        </div>
+    </dialog>
+    <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="@Assets["js/shell.js"]"></script>
+    <script src="@Assets["js/reconnect.js"]"></script>
+    <script src="@Assets["js/pwa.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? Nonce => HttpContext?.Items[OperationsExtensions.CspNonceKey] as string;
+
+    private string? Theme => ThemePreference.Read(HttpContext);
+}

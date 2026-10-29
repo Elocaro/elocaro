@@ -1,0 +1,52 @@
+@using MudBlazor
+@* Fields of a person (and optionally the address) for interactive pages and dialogs; sits inside an EditForm with Model = Data.
+   Address = null: no address section (editing). The common case (name, e-mail, phone) is visible; the rest sits under "Weitere Angaben",
+   which is open from the start when editing or when one of those fields already has a value. *@
+<div class="form-grid">
+    <AppSelect @bind-Value="Data.Salutation" Label="Anrede" Items="Enum.GetValues<Salutation>()" Text="@(v => Labels.From(v))" />
+    <AppTextField @bind-Value="Data.FirstName" Label="Vorname" />
+    <AppTextField @bind-Value="Data.LastName" Label="Nachname bzw. Name" Required="true" />
+    <AppTextField @bind-Value="Data.Email" Label="E-Mail" Type="email" />
+    <AppTextField @bind-Value="Data.Phone" Label="Telefon" Type="tel" />
+</div>
+
+<MudButton Variant="Variant.Text" OnClick="() => more = !more" aria-expanded="@(more ? "true" : "false")" aria-controls="person-more" Class="person-more-toggle">
+    @(more ? "Weniger Angaben" : "Weitere Angaben")
+</MudButton>
+
+<div id="person-more" hidden="@(!more)">
+    @if (more)
+    {
+        <div class="form-grid">
+            <AppTextField @bind-Value="Data.Title" Label="Titel" Autocomplete="honorific-prefix" />
+            <AppTextField @bind-Value="Data.Company" Label="Firma" />
+            <AppSelect @bind-Value="Data.ContactType" Label="Kontaktart" Hint="Für Mieter und Bürgen „privat“ lassen." Items="Enum.GetValues<ContactType>()" Text="@(v => Labels.From(v))" />
+            <AppTextField @bind-Value="Data.Occupation" Label="Gewerk / Sparte" Hint="z. B. „Sanitär“ oder „Wasser“" />
+            <AppTextField @bind-Value="Data.Mobile" Label="Mobil" Type="tel" />
+            <AppDateField @bind-Value="Data.DateOfBirth" Label="Geburtsdatum" Hint="Nur wenn nötig (Datensparsamkeit)." />
+        </div>
+        <AppTextField @bind-Value="Data.Notes" Label="Notizen" Lines="3" />
+
+        @if (Address is not null)
+        {
+            <h2>Anschrift</h2>
+            <p class="small">Optional. Für Mieter die bisherige Anschrift (Voranschrift); beim Einzug wird sie fortgeschrieben.</p>
+            <AddressEditor Address="Address" />
+        }
+    }
+</div>
+
+@code {
+    private bool more;
+
+    [Parameter, EditorRequired]
+    public PersonInput Data { get; set; } = default!;
+
+    [Parameter]
+    public AddressInput? Address { get; set; }
+
+    protected override void OnInitialized() =>
+        more = Address is null
+            || !string.IsNullOrWhiteSpace(Data.Title) || !string.IsNullOrWhiteSpace(Data.Company) || !string.IsNullOrWhiteSpace(Data.Occupation)
+            || !string.IsNullOrWhiteSpace(Data.Mobile) || Data.DateOfBirth is not null || !string.IsNullOrWhiteSpace(Data.Notes) || Data.ContactType != default;
+}

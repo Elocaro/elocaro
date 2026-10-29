@@ -1,0 +1,98 @@
+@page "/portal/verbrauch"
+@attribute [StreamRendering]
+@using Elocaro.Application.Metering
+@using Elocaro.Domain.Metering
+@inject IConsumptionInformation Information
+@inject AuthenticationStateProvider Authentication
+
+<PageHeader Title="Verbrauch" Subtitle="Monatliche Verbrauchsinformation für Heizung und Warmwasser." />
+
+@if (leases is null)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (leases.Count == 0)
+{
+    <EmptyState Text="Für Ihre Wohnung liegen noch keine Verbrauchsdaten vor." />
+}
+else
+{
+    @foreach (var lease in leases)
+    {
+        <section>
+            @if (leases.Count > 1)
+            {
+                <h2>@lease.Unit</h2>
+            }
+
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Monat</th><th>Art</th><th class="number">Verbrauch</th><th class="number">Vormonat</th><th class="number">Vorjahresmonat</th><th class="number">Ihre Wohnung</th><th class="number">Durchschnitt im Haus</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var month in lease.Months)
+                        {
+                            @foreach (var line in month.Lines)
+                            {
+                                <tr>
+                                    <td>@Format.Month(month.Month)</td>
+                                    <td>@line.Label</td>
+                                    <td class="number">@(line.Current is { } current ? Amount(current, line.Unit) : "–")</td>
+                                    <td class="number">@Compare(line.Current, line.Previous, line.Unit)</td>
+                                    <td class="number">@Compare(line.Current, line.LastYear, line.Unit)</td>
+                                    <td class="number">@(line.Own is { } own ? $"{Number(own)} {Unit(line.Unit)} {line.BasisText}" : "–")</td>
+                                    <td class="number">@(line.Average is { } average ? $"{Number(average)} {Unit(line.Unit)} {line.BasisText}" : "–")</td>
+                                </tr>
+                                @if (line.Current is null && line.Hint is not null)
+                                {
+                                    <tr><td colspan="7" class="small">@line.Label: Der Verbrauch kann noch nicht berechnet werden, da Ablesewerte fehlen.</td></tr>
+                                }
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    <details class="explain">
+        <summary>Wie entsteht der Durchschnitt?</summary>
+        <p class="small">
+        Der Durchschnitt zeigt den Verbrauch der Wohnungen im Haus je Quadratmeter (Heizung) bzw. je Person (Warmwasser) und erscheint erst, wenn mindestens drei Wohnungen verglichen werden können.
+        Die Werte stammen aus der Fernablesung der Zähler.
+    </p>
+    </details>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+
+    private IReadOnlyList<TenantConsumption>? leases;
+
+    protected override async Task OnInitializedAsync() =>
+        leases = await Information.ForTenantAsync((await Authentication.GetAuthenticationStateAsync()).User, 12);
+
+    private static string Number(decimal value) => value.ToString("#,##0.##", German);
+
+    private static string Unit(MeasurementUnit unit) => unit switch
+    {
+        MeasurementUnit.CubicMeters => "m³",
+        MeasurementUnit.KilowattHours => "kWh",
+        MeasurementUnit.MegawattHours => "MWh",
+        _ => "l",
+    };
+
+    private static string Amount(decimal value, MeasurementUnit unit) => $"{Number(value)} {Unit(unit)}";
+
+    private static string Compare(decimal? current, decimal? reference, MeasurementUnit unit)
+    {
+        if (reference is not { } value)
+        {
+            return "–";
+        }
+
+        var change = ConsumptionComparison.ChangePercent(current, value);
+        return $"{Amount(value, unit)}{(change is { } percent ? $" ({(percent > 0 ? "+" : "")}{percent:0} %)" : "")}";
+    }
+}

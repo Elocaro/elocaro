@@ -1,0 +1,5 @@
+{{ capture subject }}Neue Nachricht im Mieterportal{{ end }}
+<p>{{ salutation }}</p>
+<p>{{ message }}</p>
+<p><a href="{{ link }}">Nachricht öffnen</a></p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

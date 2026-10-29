@@ -1,0 +1,44 @@
+@page "/verwaltung/bank/konten"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IBankService Bank
+
+<InteractiveShell>
+    <PageHeader Title="Bankkonten" Subtitle="Konten für Mieteingänge, Darlehen und Rücklagen; Umsätze per Datei-Import.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/bank/konten/neu">Konto anlegen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (accounts is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Bankkonten." />
+    }
+    else if (accounts is not null)
+    {
+        <MudTable T="BankAccountRow" Items="accounts" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Konto</MudTh><MudTh>IBAN</MudTh><MudTh>Art</MudTh><MudTh>Objekte</MudTh><MudTh>Umsätze</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Konto"><a href="/verwaltung/bank/konten/@context.Id">@context.Name</a>@if (context.Bank is not null) {<span class="small">&#32;@context.Bank</span>}</MudTd>
+                <MudTd DataLabel="IBAN">@context.Iban</MudTd>
+                <MudTd DataLabel="Art">@Labels.From(context.Type)</MudTd>
+                <MudTd DataLabel="Objekte">@(context.Properties.Count == 0 ? "alle" : string.Join(", ", context.Properties))</MudTd>
+                <MudTd DataLabel="Umsätze">
+                    <a href="/verwaltung/bank/umsaetze?konto=@context.Id">@(context.LastTransaction is { } last ? $"bis {Format.Date(last)}" : "keine")</a>
+                    @if (context.OpenTransactions > 0)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">@context.OpenTransactions offen</StatusChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<BankAccountRow>? accounts;
+
+    protected override async Task OnInitializedAsync() => accounts = await Bank.AccountsAsync();
+}

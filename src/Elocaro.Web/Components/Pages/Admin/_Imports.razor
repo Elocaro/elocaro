@@ -1,0 +1,4 @@
+@layout Elocaro.Web.Components.Layout.AdminLayout
+@using Elocaro.Application.Accounts
+@attribute [Authorize(Policy = Policies.Admin)]
+@using Elocaro.Web.Components.Pages.Admin.Documents

@@ -1,0 +1,21 @@
+@inherits LayoutComponentBase
+
+<SkipLink />
+<div class="app app-simple">
+    <header class="top-bar">
+        <BrandMark Href="/service" Section="Service" />
+        <UserMenu />
+    </header>
+    <div class="workspace">
+        <nav class="tab-bar" aria-label="Hauptnavigation">
+            <NavLink href="/service" Match="NavLinkMatch.All">Aufträge</NavLink>
+            <AuthorizeView Roles="@Elocaro.Application.Accounts.Roles.Caretaker">
+                <NavLink href="/service/routinen">Aufgaben</NavLink>
+                <NavLink href="/service/objekte">Objekte</NavLink>
+            </AuthorizeView>
+        </nav>
+        <main id="content" class="content">
+            @Body
+        </main>
+    </div>
+</div>

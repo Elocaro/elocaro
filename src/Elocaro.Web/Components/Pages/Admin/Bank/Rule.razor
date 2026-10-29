@@ -1,0 +1,135 @@
+@page "/verwaltung/bank/regeln/neu"
+@page "/verwaltung/bank/regeln/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IMatchRules MatchRules
+@inject IPaymentAssignment Assignment
+@inject NavigationManager Navigation
+@inject Confirmations Confirm
+
+<InteractiveShell>
+    <PageHeader Title="@(Id is null ? "Regel anlegen" : "Regel bearbeiten")" Subtitle="Eine Regel ordnet passende Umsätze künftig automatisch zu, z. B. jede Zahlung der Stadt Köln der Grundsteuer." Back="/verwaltung/bank/regeln" BackText="Alle Regeln" />
+
+    <ErrorList Errors="errors" />
+
+    @if (loaded && Id is not null && !exists)
+    {
+        <EmptyState Text="Die Regel wurde nicht gefunden." />
+    }
+    else if (loaded)
+    {
+        <details class="explain">
+            <summary>So wirken die Bedingungen</summary>
+            <p class="small">Alle ausgefüllten Bedingungen müssen zutreffen. Bei Namen und Verwendungszweck genügt ein Wort; mehrere Alternativen mit „;“ trennen (z. B. „Stadtwerke; SWK“). Groß- und Kleinschreibung spielt keine Rolle.</p>
+        </details>
+
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <h2>Bedingungen</h2>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Name" Label="Name der Regel" Required="true" />
+                <AppNumberField T="int" @bind-Value="data.Priority" Label="Priorität" Hint="Niedrigere Zahl wird zuerst geprüft" />
+                <AppSelect @bind-Value="data.Direction" Label="Gilt für" Items="Enum.GetValues<RuleDirection>()" Text="@(v => Labels.From(v))" />
+                <AppTextField @bind-Value="data.CounterpartyIban" Label="Gegen-IBAN" />
+                <AppTextField @bind-Value="data.CounterpartyContains" Label="Name der Gegenseite enthält" />
+                <AppTextField @bind-Value="data.PurposeContains" Label="Verwendungszweck enthält" />
+            </div>
+
+            <h2>Ziel</h2>
+            <div class="form-grid">
+                <AppSelect @bind-Value="data.Action" Label="Zuordnen als" Items="Enum.GetValues<RuleAction>()" Text="@(v => Labels.From(v))" Hint="Nicht benötigte Angaben werden verworfen." />
+                <CostTypeSelect @bind-Value="data.CostType" Label="Kostenart (Ausgabe)" EmptyText="–" />
+                <OptionSelect @bind-Value="data.PropertyId" Label="Objekt (Ausgabe)" Options="options.Properties.Select(o => (o.Id, o.Name)).ToList()" />
+                <OptionSelect @bind-Value="data.UnitId" Label="Nur Einheit (Ausgabe)" Options="options.Units.Select(o => (o.Id, o.Name)).ToList()" />
+                <AppSelect T="bool?" @bind-Value="data.Allocable" Label="Umlagefähig (Ausgabe)" Items="allocableChoices" Text="@(v => v == true ? "ja" : "nein")" EmptyText="nach Kostenart" />
+                <OptionSelect @bind-Value="data.LeaseId" Label="Mietverhältnis (Miete)" Options="options.Leases.Select(o => (o.Id, o.Text)).ToList()" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+
+        @if (Id is { } existing)
+        {
+            <section>
+                <h2>Löschen</h2>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Regel löschen</MudButton>
+            </section>
+            <ChangeHistory EntityType="MatchRule" EntityId="existing" />
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private static readonly IReadOnlyList<bool?> allocableChoices = [true, false];
+
+    private AssignmentOptions options = new([], [], [], [], []);
+    private MatchRuleInput data = new();
+    private IReadOnlyList<string>? errors;
+    private bool exists = true;
+    private bool loaded;
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "iban")]
+    private string? QueryIban { get; set; }
+
+    [SupplyParameterFromQuery(Name = "name")]
+    private string? QueryName { get; set; }
+
+    [SupplyParameterFromQuery(Name = "richtung")]
+    private string? QueryDirection { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        options = await Assignment.OptionsAsync();
+        if (Id is { } id)
+        {
+            var existing = await MatchRules.GetAsync(id);
+            exists = existing is not null;
+            if (existing is not null)
+            {
+                data = existing;
+            }
+        }
+        else
+        {
+            data.CounterpartyIban = QueryIban;
+            data.CounterpartyContains = QueryName;
+            data.Name = string.IsNullOrWhiteSpace(QueryName) ? "" : $"Regel für {QueryName}";
+            data.Direction = Enum.TryParse<RuleDirection>(QueryDirection, out var direction) ? direction : RuleDirection.Any;
+        }
+
+        loaded = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await MatchRules.SaveAsync(Id, data);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/bank/regeln?meldung=gespeichert");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await Confirm.AskAsync("Regel löschen", "Die Regel wird gelöscht. Bereits zugeordnete Umsätze bleiben unverändert.", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var result = await MatchRules.DeleteAsync(Id!.Value);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/bank/regeln?meldung=geloescht");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

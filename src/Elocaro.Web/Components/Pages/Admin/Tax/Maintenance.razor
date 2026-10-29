@@ -1,0 +1,143 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/erhaltungsaufwand"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IMaintenanceService Admin
+@inject Notifier Notify
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (overview is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+
+<PageHeader Title="Erhaltungsaufwand" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName" />
+
+<ErrorList Errors="errors" />
+
+@foreach (var warning in overview.Warnings)
+{
+    <Notice Level="NoticeLevel.Warning">@warning</Notice>
+}
+
+<details class="explain">
+    <summary>Erhaltungsaufwand verteilen</summary>
+    <p class="small">
+    Belegpositionen der Kostenart „Instandhaltung und Reparaturen“ sind Erhaltungsaufwand. Du kannst sie im Jahr der Zahlung sofort abziehen
+    oder gleichmäßig auf 2 bis 5 Jahre verteilen (§ 82b EStDV, nur bei überwiegend Wohnzwecken dienenden Gebäuden).
+    Aufwendungen, die zu Herstellungskosten gehören (Erweiterung, wesentliche Verbesserung, anschaffungsnahe Kosten über 15 % in den ersten drei Jahren),
+    gehören nicht hierher, sondern in die <a href="/verwaltung/objekte/@PropertyId/afa">AfA</a>.
+</p>
+</details>
+
+@if (overview.Items.Count == 0)
+{
+    <EmptyState Text="Für dieses Objekt gibt es noch keine Belegpositionen der Kostenart Instandhaltung." />
+}
+else
+{
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Beleg</th><th>Rechnung</th><th>Bezahlt</th><th class="number">Betrag</th><th>Behandlung</th><th>Verteilen auf</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var item in overview.Items)
+                    {
+                        <tr>
+                            <td><a href="/verwaltung/belege/@item.ReceiptId">@item.Description</a></td>
+                            <td>@Format.Date(item.InvoiceDate)</td>
+                            <td>@(item.PaidOn is { } paid ? Format.Date(paid) : "offen")</td>
+                            <td class="number">@Format.Money(item.Amount)</td>
+                            <td>@(item.Years is { } years ? $"verteilt auf {years} Jahre" : "sofort abgezogen")</td>
+                            <td>
+                                @if (item.PaidOn is not null)
+                                {
+                                    <AppSelect T="int" Value="YearsOf(item)" ValueChanged="@(v => chosenYears[item.CostItemId] = v)" Label="@($"Jahre für {item.Description}")" Items="yearChoices" Text="@(v => $"{v} Jahre")" />
+                                }
+                            </td>
+                            <td>
+                                @if (item.PaidOn is not null)
+                                {
+                                    <MudButton Variant="Variant.Outlined" OnClick="() => DistributeAsync(item)">Verteilen</MudButton>
+                                }
+                                @if (item.Years is not null)
+                                {
+                                    <MudButton Variant="Variant.Outlined" OnClick="() => RevokeAsync(item)">Sofort abziehen</MudButton>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+    @if (overview.Items.Any(i => i.Years is not null))
+    {
+        <section>
+            <h2>Laufende Verteilungen</h2>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Beleg</th><th>Jahr</th><th class="number">Jahresbetrag</th><th class="number">Restbetrag</th></tr></thead>
+                    <tbody>
+                        @foreach (var item in overview.Items.Where(i => i.Years is not null))
+                        {
+                            foreach (var instalment in item.Schedule)
+                            {
+                                <tr>
+                                    <td>@item.Description</td>
+                                    <td>@instalment.Year</td>
+                                    <td class="number">@Format.Money(instalment.Amount)</td>
+                                    <td class="number">@Format.Money(instalment.Remaining)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+}
+}
+</InteractiveShell>
+
+@code {
+    private static readonly int[] yearChoices = [2, 3, 4, 5];
+
+    private MaintenanceOverview? overview;
+    private IReadOnlyList<string>? errors;
+    private readonly Dictionary<Guid, int> chosenYears = [];
+    private bool loaded;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        overview = await Admin.GetAsync(PropertyId);
+        loaded = true;
+    }
+
+    private int YearsOf(MaintenanceItem item) => chosenYears.TryGetValue(item.CostItemId, out var chosen) ? chosen : item.Years ?? 3;
+
+    private Task DistributeAsync(MaintenanceItem item) =>
+        ExecuteAsync(Admin.DistributeAsync(PropertyId, new DistributionInput { CostItemId = item.CostItemId, Years = YearsOf(item) }), "Der Erhaltungsaufwand wird verteilt.");
+
+    private Task RevokeAsync(MaintenanceItem item) =>
+        ExecuteAsync(Admin.RevokeAsync(PropertyId, item.CostItemId), "Der Erhaltungsaufwand wird wieder sofort abgezogen.");
+
+    private async Task ExecuteAsync(Task<Result> action, string message)
+    {
+        var result = await action;
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(message);
+        }
+
+        overview = await Admin.GetAsync(PropertyId);
+    }
+}

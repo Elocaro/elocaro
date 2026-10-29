@@ -1,0 +1,108 @@
+@using MudBlazor
+@using Elocaro.Application.Files
+@using Elocaro.Application.Tickets
+@using Elocaro.Web.Components.Controls
+
+@* Working time, material and invoices of a ticket. Without OnAdd it is a read-only list. *@
+<section>
+    <h2>Arbeit und Material</h2>
+    @if (View.Work.Count == 0)
+    {
+        <EmptyState Compact="true" Text="Noch nichts erfasst." />
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Datum</th><th>Zeit</th><th>Material und Bemerkung</th><th>Von</th></tr></thead>
+                <tbody>
+                    @foreach (var row in View.Work)
+                    {
+                        <tr>
+                            <td>@Format.Date(row.WorkedOn)</td>
+                            <td>@Format.Hours(row.Minutes)</td>
+                            <td>@row.Material@(row.Material is not null && row.Note is not null ? " · " : "")@row.Note</td>
+                            <td>@row.Author</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot><tr><td>Summe</td><td colspan="3">@Format.Hours(View.Work.Sum(w => w.Minutes))</td></tr></tfoot>
+            </table>
+        </div>
+    }
+
+    @if (View.CanAdd && Add is not null)
+    {
+        <ErrorList Errors="errors" />
+        <div class="form-grid">
+            <AppDateField @bind-Value="input.WorkedOn" Label="Datum" Hint="leer = heute" />
+            <AppNumberField T="int" @bind-Value="input.Minutes" Label="Arbeitszeit in Minuten" />
+            <AppTextField @bind-Value="input.Material" Label="Material" />
+            <AppTextField @bind-Value="input.Note" Label="Bemerkung" />
+        </div>
+        <MudButton Variant="Variant.Outlined" OnClick="AddAsync">Eintragen</MudButton>
+    }
+</section>
+
+<section>
+    <h2>Rechnungen</h2>
+    @if (View.Invoices.Count == 0)
+    {
+        <EmptyState Compact="true" Text="Noch keine Rechnung hochgeladen." />
+    }
+    else
+    {
+        <ul class="todos">
+            @foreach (var invoice in View.Invoices)
+            {
+                <li class="todo"><a href="@FileBase/@invoice.FileId" target="_blank" rel="noopener">Rechnung vom @Format.Date(DateOnly.FromDateTime(invoice.At.LocalDateTime))</a> <span class="small">von @invoice.UploadedBy</span></li>
+            }
+        </ul>
+    }
+
+    @if (View.CanAdd && OnInvoice.HasDelegate)
+    {
+        <div class="form-row">
+            <AppFileUpload Text="Rechnung hochladen" Accept="application/pdf,image/*" OnSelectedMany="files => OnInvoice.InvokeAsync(files)" Multiple="false" />
+        </div>
+    }
+</section>
+
+@code {
+    private readonly WorkInput input = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public TicketWorkView View { get; set; } = new([], [], false);
+
+    [Parameter]
+    public string FileBase { get; set; } = "/dateien";
+
+    /// <summary>Returns the errors, or <c>null</c> if the entry was saved.</summary>
+    [Parameter]
+    public Func<WorkInput, Task<IReadOnlyList<string>?>>? Add { get; set; }
+
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
+
+    [Parameter]
+    public EventCallback<IReadOnlyList<FileSelection>> OnInvoice { get; set; }
+
+    private async Task AddAsync()
+    {
+        if (Add is null)
+        {
+            return;
+        }
+
+        errors = await Add(new WorkInput { WorkedOn = input.WorkedOn, Minutes = input.Minutes, Material = input.Material, Note = input.Note });
+        if (errors is null)
+        {
+            input.WorkedOn = null;
+            input.Minutes = 0;
+            input.Material = null;
+            input.Note = null;
+            await OnAdd.InvokeAsync();
+        }
+    }
+}

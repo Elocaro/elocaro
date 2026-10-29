@@ -1,0 +1,31 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet
+labels: [bug]
+body:
+  - type: textarea
+    id: was
+    attributes:
+      label: Was ist passiert?
+      description: Was haben Sie erwartet, was ist stattdessen passiert?
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: "1. …\n2. …"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Steht unter „Über Elocaro“ im Benutzermenü.
+  - type: dropdown
+    id: geraet
+    attributes:
+      label: Gerät
+      options: [Computer, Handy, Tablet]
+  - type: markdown
+    attributes:
+      value: "Bitte keine Namen, IBANs oder andere Daten von Mietern in Beschreibung oder Bildern. Sicherheitslücken bitte nicht hier melden, sondern wie in SECURITY.md beschrieben."

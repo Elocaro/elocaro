@@ -1,0 +1,39 @@
+<section id="faq">
+    <h2>Häufige Fragen</h2>
+    @foreach (var (question, answer) in Entries)
+    {
+        <details class="disclosure">
+            <summary>@question</summary>
+            <p>@answer</p>
+        </details>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public bool TenantsOnly { get; set; }
+
+    private IEnumerable<(string Question, string Answer)> Entries => TenantsOnly ? Tenant : Landlord;
+
+    private static readonly (string, string)[] Tenant =
+    [
+        ("Ich habe mein Passwort vergessen.", "Auf der Anmeldeseite gibt es „Passwort vergessen“. Sie erhalten eine E-Mail mit einem Link. Kommt keine Mail an, wenden Sie sich an Ihren Vermieter."),
+        ("Wie melde ich einen Schaden?", "Unter „Meldungen“ auf „Problem melden“: kurz beschreiben, am besten mit Foto. Sie sehen dort auch den Stand der Bearbeitung. Bei einem Notfall (Wasserrohrbruch, Gasgeruch) rufen Sie bitte sofort an."),
+        ("Wo sehe ich meine Zahlungen?", "Unter „Konto“: alle Forderungen und Zahlungen mit dem aktuellen Saldo. Stimmt etwas nicht, schreiben Sie Ihrem Vermieter unter „Nachrichten“."),
+        ("Wie melde ich Zählerstände?", "Unter „Zählerstände“ ablesen und eintragen. Ihr Vermieter prüft den Stand und übernimmt ihn."),
+        ("Wie ändere ich meine E-Mail-Adresse oder Telefonnummer?", "Unter „Kontakt“ den Änderungswunsch eintragen. Der Vermieter bestätigt ihn, erst dann gilt er."),
+        ("Wo finde ich meinen Mietvertrag und meine Abrechnung?", "Unter „Dokumente“. Neue Dokumente kündigen wir per E-Mail an."),
+    ];
+
+    private static readonly (string, string)[] Landlord =
+    [
+        ("Wo fange ich an?", "Mit dem Einrichtungsassistenten auf der Übersicht: Vermieterprofil, Objekt, Einheiten, Mieter und Vertrag. Wer schon Daten in einer Tabelle hat, nutzt unter Einstellungen den Datenimport. Zum Ausprobieren gibt es Beispieldaten."),
+        ("Warum fehlt eine Seite im Menü?", "Funktionen sind in Module gegliedert. Unter Einstellungen → Module schalten Sie ein, was Sie brauchen, etwa Zähler, Belege oder Nebenkostenabrechnung."),
+        ("Warum zeigt die Übersicht Hinweise?", "Die Übersicht sammelt, was Ihre Aufmerksamkeit braucht: Rückstände, Fristen, Kautionen, gemeldete Zählerstände, fehlende Angaben. Ein Hinweis verschwindet, sobald die Ursache erledigt ist."),
+        ("Wie ordne ich eine Zahlung zu?", "Bankumsätze erscheinen unter Bank → Zuordnen. Elocaro macht Vorschläge, die Sie bestätigen; mit Regeln geht es beim nächsten Mal automatisch."),
+        ("Wie erstelle ich die Nebenkostenabrechnung?", "Unter dem Objekt auf „Abrechnung“: Zeitraum wählen, Belege den Kostenarten zuordnen, Verteilung prüfen, Abrechnung erzeugen und an die Mieter versenden. Die Seite weist auf fehlende Angaben hin."),
+        ("Wie erhöhe ich die Miete?", "Im Vertrag auf „Mieterhöhung“ und das Verfahren wählen (Vergleichsmiete, Index, Staffel, Pauschale). Elocaro rechnet Fristen und Kappungsgrenze und erzeugt das Schreiben."),
+        ("Wie wechsle ich den Mieter?", "Den alten Vertrag beenden (Auszug mit Übergabeprotokoll und Kautionsabrechnung), danach einen neuen Vertrag für die Einheit anlegen und die Einzugsübergabe protokollieren."),
+        ("Sind die Vorlagen rechtssicher?", "Nein, sie sind Ausgangspunkte und keine Rechtsberatung. Lassen Sie Texte vor dem Einsatz prüfen."),
+    ];
+}

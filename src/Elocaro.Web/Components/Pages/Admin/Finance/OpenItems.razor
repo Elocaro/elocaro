@@ -1,0 +1,82 @@
+@page "/verwaltung/finanzen/offene-posten"
+@inject ITenantAccounts Accounts
+
+<PageHeader Title="Offene Posten" Subtitle="Fällige, nicht vollständig bezahlte Forderungen, nach Mietverhältnis gruppiert.">
+    <Actions>
+        <a class="button" href="/verwaltung/finanzen/offene-posten.csv">CSV exportieren</a>
+    </Actions>
+</PageHeader>
+
+@if (items is { Count: 0 })
+{
+    <EmptyState Text="Keine offenen Posten. Alles bezahlt." />
+}
+else if (items is not null)
+{
+    var leases = items.GroupBy(p => p.LeaseId).OrderByDescending(g => g.Sum(p => p.Open)).ToList();
+    <p><strong>Summe offen: @Format.Money(items.Sum(p => p.Open))</strong> <span class="small">in @items.Count Posten bei @leases.Count @(leases.Count == 1 ? "Mietverhältnis" : "Mietverhältnissen")</span></p>
+    <p class="help">Hier steht alles, was bereits fällig war und noch nicht bezahlt ist. Im Mieterkonto (Link unter jeder Gruppe) lassen sich Zahlungen buchen und Mahnungen prüfen.</p>
+    @foreach (var lease in leases)
+    {
+        var first = lease.First();
+        <details class="group" open="@(leases.Count <= 3)">
+            <summary>
+                <span>@first.Tenant</span>
+                <span class="small">@first.RentalUnit · @lease.Count() Posten, ältester seit @lease.Max(p => p.DaysOverdue) Tagen überfällig</span>
+                <span class="group-sum">@Format.Money(lease.Sum(p => p.Open))</span>
+            </summary>
+            @{ var rows = lease.OrderBy(p => p.Due).ToList(); }
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Forderung</th><th>Fällig</th><th class="number">Betrag</th><th class="number">Offen</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in rows.Take(Visible))
+                        {
+                            <tr>
+                                <td>@p.Text</td>
+                                <td>@Format.Date(p.Due) <span class="small">(@p.DaysOverdue Tage)</span></td>
+                                <td class="number">@Format.Money(p.Amount)</td>
+                                <td class="number">@Format.Money(p.Open)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (rows.Count > Visible)
+            {
+                <details class="disclosure">
+                    <summary>@(rows.Count - Visible) weitere Posten anzeigen</summary>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Forderung</th><th>Fällig</th><th class="number">Betrag</th><th class="number">Offen</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in rows.Skip(Visible))
+                        {
+                            <tr>
+                                <td>@p.Text</td>
+                                <td>@Format.Date(p.Due) <span class="small">(@p.DaysOverdue Tage)</span></td>
+                                <td class="number">@Format.Money(p.Amount)</td>
+                                <td class="number">@Format.Money(p.Open)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+                </details>
+            }
+            <p class="group-link"><a href="/verwaltung/vertraege/@first.LeaseId/konto">Zum Mieterkonto von @first.Tenant</a></p>
+        </details>
+    }
+}
+
+@code {
+    private const int Visible = 12;
+
+    private IReadOnlyList<OpenItem>? items;
+
+    protected override async Task OnInitializedAsync() => items = await Accounts.OpenItemsAsync();
+}

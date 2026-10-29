@@ -1,0 +1,18 @@
+{{# BASISVORLAGE Mieterhöhungserklärung bei Indexmiete (§ 557b BGB). Kein Rechtsrat: vor dem produktiven Einsatz rechtlich prüfen lassen. Die Erklärung muss in Textform erfolgen und die eingetretene Änderung des Preisindexes sowie die jeweilige Miete oder die Erhöhung in einem Geldbetrag angeben. }}
+<p>{{ salutation }}</p>
+<p>die Miete für die von Ihnen gemietete Wohnung ({{ rental_unit }}) ist im Mietvertrag an den vom Statistischen Bundesamt ermittelten Verbraucherpreisindex für Deutschland gekoppelt (Indexmiete, § 557b BGB). Hiermit erklären wir die Anpassung der Miete.</p>
+
+<table>
+  <tbody>
+    <tr><td>Verbraucherpreisindex im Ausgangsmonat ({{ date old_index_month }})</td><td class="number">{{ number old_index 1 }}</td></tr>
+    <tr><td>Verbraucherpreisindex im Monat {{ date new_index_month }}</td><td class="number">{{ number new_index 1 }}</td></tr>
+    <tr><td>Änderung des Index</td><td class="number">{{ number index_change_percent 1 }} %</td></tr>
+    <tr><td>Bisherige Nettokaltmiete</td><td class="number">{{ money current_amount }}</td></tr>
+    <tr><td>Erhöhung</td><td class="number">{{ money increase_amount }}</td></tr>
+    <tr><td><strong>Neue Nettokaltmiete</strong></td><td class="number"><strong>{{ money new_amount }}</strong></td></tr>
+  </tbody>
+</table>
+<p>Die neue Miete ergibt sich aus der bisherigen Miete multipliziert mit dem Quotienten aus dem neuen und dem bisherigen Indexstand ({{ number new_index 1 }} ÷ {{ number old_index 1 }}), kaufmännisch auf den Cent gerundet.</p>
+<p>Die geänderte Miete ist mit Beginn des übernächsten Monats nach Zugang dieser Erklärung zu zahlen, also ab dem <strong>{{ date effective_from }}</strong> (§ 557b Abs. 3 BGB). Die Betriebskostenvorauszahlungen ändern sich nicht. Die Miete muss jeweils mindestens ein Jahr unverändert bleiben; die letzte Änderung war {{ if last_increase }}zum {{ date last_increase }}{{ else }}der Mietbeginn am {{ date lease_start }}{{ end }}.</p>
+
+{{ include 'Grußformel' }}

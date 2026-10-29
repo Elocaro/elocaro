@@ -1,0 +1,109 @@
+@page "/verwaltung/bank/importe/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IBankService Bank
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (preview is null)
+{
+    <PageHeader Title="Import nicht gefunden" Back="/verwaltung/bank/konten" BackText="Alle Konten" />
+}
+else
+{
+    <PageHeader Title="@($"Import {preview.FileName}")" Subtitle="@($"{preview.Account} · {Labels.From(preview.Format)}{(preview.Profile is null ? "" : $" ({preview.Profile})")}")"
+                Back="@($"/verwaltung/bank/konten/{preview.BankAccountId}")" BackText="Zum Konto" />
+
+    <ErrorList Errors="errors" />
+
+    @if (preview.Status == ImportStatus.Imported)
+    {
+        <Notice Level="NoticeLevel.Info">Diese Datei wurde bereits importiert. <a href="/verwaltung/bank/umsaetze?konto=@preview.BankAccountId">Zu den Umsätzen</a></Notice>
+    }
+    else
+    {
+        @if (preview.DifferentIban is not null)
+        {
+            <Notice Level="NoticeLevel.Error">Die Datei gehört zum Konto @preview.DifferentIban, nicht zu „@preview.Account“. Bitte beim richtigen Konto importieren.</Notice>
+        }
+
+        <p>
+            <strong>@newItem neue Umsätze</strong>@(preview.Rows.Count - newItem > 0 ? $", {preview.Rows.Count - newItem} schon vorhanden (werden übersprungen)" : "").
+        </p>
+        @foreach (var hint in preview.Hints)
+        {
+            <p class="small">@hint</p>
+        }
+
+        <div class="form-row">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(preview.DifferentIban is not null || newItem == 0)" OnClick="ImportAsync">@newItem Umsätze importieren</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="DiscardAsync">Verwerfen</MudButton>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Buchung</th><th>Gegenseite</th><th>Verwendungszweck</th><th class="number">Betrag</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var line in preview.Rows)
+                    {
+                        <tr class="@(line.Duplicate ? "row-dimmed" : "")">
+                            <td>@Format.Date(line.Transaction.BookingDate)</td>
+                            <td>@line.Transaction.CounterpartyName<span class="small">&#32;@line.Transaction.CounterpartyIban</span></td>
+                            <td>@line.Transaction.Purpose</td>
+                            <td class="number">@Format.Money(line.Transaction.Amount)</td>
+                            <td>@if (line.Duplicate) {<StatusChip>schon vorhanden</StatusChip>}</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+</InteractiveShell>
+
+@code {
+    private ImportPreview? preview;
+    private int newItem;
+    private IReadOnlyList<string>? errors;
+    private bool loaded;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        preview = await Bank.PreviewAsync(Id);
+        newItem = preview?.Rows.Count(z => !z.Duplicate) ?? 0;
+        loaded = true;
+    }
+
+    private async Task ImportAsync()
+    {
+        var result = await Bank.ImportAsync(Id);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/verwaltung/bank/umsaetze?konto={preview!.BankAccountId}&meldung=importiert");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task DiscardAsync()
+    {
+        var result = await Bank.DiscardAsync(Id);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/verwaltung/bank/konten/{result.Id}?meldung=verworfen");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

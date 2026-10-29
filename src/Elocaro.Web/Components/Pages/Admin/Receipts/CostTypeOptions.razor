@@ -1,0 +1,19 @@
+@* Options for a cost type select, grouped into allocable (§ 2 BetrKV) and non-allocable. *@
+<optgroup label="Betriebskosten (§ 2 BetrKV, umlagefähig)">
+    @foreach (var kind in CostTypes.All.Where(k => k.Allocable))
+    {
+        <option value="@kind.Key" selected="@(kind.Key == Selected)">@kind.BetrKvNumber. @kind.Name</option>
+    }
+</optgroup>
+<optgroup label="Nicht umlagefähig">
+    @foreach (var kind in CostTypes.All.Where(k => !k.Allocable))
+    {
+        <option value="@kind.Key" selected="@(kind.Key == Selected)">@kind.Name</option>
+    }
+</optgroup>
+
+@code {
+    /// <summary>Only for plain <c>select</c> fields; with <c>InputSelect</c> the binding sets the selection.</summary>
+    [Parameter]
+    public string? Selected { get; set; }
+}

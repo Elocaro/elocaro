@@ -1,0 +1,389 @@
+@page "/verwaltung/abrechnungen/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Statements
+@using Elocaro.Domain.Statements
+@inject IStatementDispatch Dispatching
+@inject TimeProvider Clock
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (overview is null)
+{
+    <PageHeader Title="Abrechnung nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+var statement = overview.Statement;
+var summary = statement.Summary;
+var result = statement.Result;
+
+<PageHeader Title="@($"Abrechnung {Format.Period(summary.BillingPeriod)}")" Subtitle="@($"{statement.PropertyName} · Fassung {summary.Revision}")" Back="@($"/verwaltung/objekte/{summary.PropertyId}/abrechnungen")" BackText="Alle Abrechnungen">
+    <Actions>
+        @if (summary.Current)
+        {
+            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/objekte/{summary.PropertyId}/abrechnung?jahr={summary.BillingPeriod.From.Year}&schritt=6")">Korrigieren (neue Fassung)</MudButton>
+        }
+    </Actions>
+</PageHeader>
+
+<ErrorList Errors="errors" />
+
+<Notice Level="NoticeLevel.Info" id="frozen">
+    Freigegeben am @summary.ReleasedAt.ToString("dd.MM.yyyy HH:mm")@(summary.ReleasedBy is null ? "" : $" von {summary.ReleasedBy}"). Diese Fassung ist unveränderlich.
+    @if (!summary.Current)
+    {
+        <text> Sie wurde durch eine neuere Fassung ersetzt.</text>
+    }
+    @if (summary.Note is not null)
+    {
+        <text> Bemerkung: @summary.Note</text>
+    }
+</Notice>
+
+@if (statement.Difference is { } difference)
+{
+    <section id="difference">
+        <h2>Differenz zur vorherigen Fassung</h2>
+        @if (statement.ClaimsExcluded)
+        {
+            <Notice Level="NoticeLevel.Error">
+                Die Frist nach § 556 Abs. 3 BGB ist abgelaufen: Nachforderungen von @Format.Money(difference.AdditionalClaims) sind gegenüber den Mietern ausgeschlossen
+                (außer der Vermieter hat die verspätete Geltendmachung nicht zu vertreten). Guthaben von @Format.Money(difference.Credits) müssen erstattet werden.
+            </Notice>
+        }
+
+        @if (difference.Leases.Count == 0)
+        {
+            <p>Kein Mieter hat eine andere Nachzahlung oder ein anderes Guthaben.</p>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Mieter</th><th class="number">Bisher</th><th class="number">Neu</th><th class="number">Differenz</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in difference.Leases)
+                        {
+                            <tr>
+                                <td>@row.Label</td>
+                                <td class="number">@Format.Money(row.Previous)</td>
+                                <td class="number">@Format.Money(row.Current)</td>
+                                <td class="number">@Format.Money(Math.Abs(row.Difference)) @(row.Difference > 0 ? "zusätzlich zu zahlen" : "zu erstatten")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+<MudTabPanel Text="Versand">
+<section id="dispatch">
+    <h2>Versand an die Mieter</h2>
+    @if (overview.LandlordProfileMissing)
+    {
+        <Notice Level="NoticeLevel.Error">Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.</Notice>
+    }
+    <details class="explain">
+        <summary>Frist und Versand</summary>
+        <p class="small">
+        Frist für den Zugang: @Format.Date(overview.Deadline) (§ 556 Abs. 3 BGB). Der Versand legt das Schreiben in der Dateiablage und im Mieterportal ab,
+        bucht Nachzahlung bzw. Guthaben im Mieterkonto und schlägt eine Anpassung der Vorauszahlungen vor.
+    </p>
+    </details>
+    <EditForm Model="Send" class="dialog-form">
+        <div class="form-grid">
+            <AppSelect T="DispatchChannel" @bind-Value="Send.Channel" Label="Versandart" Items="Enum.GetValues<DispatchChannel>()" Text="@(c => c == DispatchChannel.Email ? "E-Mail mit PDF im Anhang" : "Postversand (PDF herunterladen und ausdrucken)")" />
+            <AppCheckBox @bind-Value="Send.ProposePrepayments" Label="Anpassung der Vorauszahlungen vorschlagen (§ 560 Abs. 4 BGB)" />
+            <AppNumberField T="decimal?" @bind-Value="Send.SafetyPercent" Label="Sicherheitszuschlag (%)" Min="0" Max="100" Hint="Leer = Standard aus der Konfiguration (Statements:PrepaymentSafetyPercent)." />
+            <AppDateField @bind-Value="Send.PrepaymentFrom" Label="Neue Vorauszahlung ab" Hint="Leer = erster Tag des übernächsten Monats." />
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table" id="dispatches">
+                <thead><tr><th>Mieter</th><th class="number">Saldo</th><th class="number">Zu buchen</th><th>Status</th><th>Aktion</th></tr></thead>
+                <tbody>
+                    @foreach (var tenancy in overview.Tenancies)
+                    {
+                        <tr>
+                            <td>@tenancy.Label<br /><span class="small">@tenancy.Rental@(tenancy.Emails.Count == 0 ? " · keine E-Mail-Adresse" : "")</span></td>
+                            <td class="number">@Format.Money(Math.Abs(tenancy.Balance)) @(tenancy.Balance >= 0 ? "Nachzahlung" : "Guthaben")</td>
+                            <td class="number">
+                                @if (tenancy.ClaimExcluded)
+                                {
+                                    <span title="Frist abgelaufen">nicht geltend gemacht</span>
+                                }
+                                else
+                                {
+                                    @Format.Money(tenancy.ToBook)
+                                }
+                            </td>
+                            <td>
+                                @if (tenancy.Dispatch is { } sent)
+                                {
+                                    <span>@(sent.Channel == DispatchChannel.Email ? "per E-Mail" : "per Post") am @Format.Date(sent.SentOn)</span>
+                                    @if (sent.MailStatus is not null)
+                                    {
+                                        <br /><span class="small">Mail: @sent.MailStatus@(sent.MailSentAt is { } at ? $" ({at.ToLocalTime():dd.MM.yyyy HH:mm})" : "")</span>
+                                    }
+
+                                    <br /><span class="small">@(sent.ReceivedOn is { } received ? $"Zugang am {received:dd.MM.yyyy}{(sent.ReceiptNote is null ? "" : $" ({sent.ReceiptNote})")}" : "Zugang nicht bestätigt")</span>
+                                }
+                                else
+                                {
+                                    <span>nicht versendet</span>
+                                }
+                            </td>
+                            <td>
+                                <a href="/verwaltung/abrechnungen/@Id/mieter/@tenancy.LeaseId/vorschau.pdf" target="_blank" rel="noopener">Vorschau (PDF)</a>
+                                @if (tenancy.Dispatch is { } done)
+                                {
+                                    <br /><a href="/dateien/@done.FileId?download=true">Schreiben herunterladen</a>
+                                }
+                                else if (summary.Current)
+                                {
+                                    <br /><MudButton Variant="Variant.Outlined" OnClick="() => DispatchAsync(tenancy.LeaseId)" aria-label="@($"Versenden: {tenancy.Label}")">Versenden</MudButton>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </EditForm>
+
+    @if (overview.Tenancies.Any(t => t.Dispatch is { ReceivedOn: null }))
+    {
+        <EditForm Model="Confirmation" class="dialog-form">
+            <h3>Zugang bestätigen</h3>
+            <div class="form-grid">
+                <AppDateField @bind-Value="Confirmation.ReceivedOn" Label="Zugangsdatum" Required="true" />
+                <AppTextField @bind-Value="Confirmation.Note" Label="Nachweis" Hint="z. B. Einwurf-Einschreiben, Lesebestätigung." />
+            </div>
+            @foreach (var tenancy in overview.Tenancies.Where(t => t.Dispatch is { ReceivedOn: null }))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ConfirmAsync(tenancy.Dispatch!.Id)">Zugang bestätigen: @tenancy.Label</MudButton>
+            }
+        </EditForm>
+    }
+
+    @if (overview.Tenancies.Any(t => t.Dispatch is not null && t.Dispatch.Proposals.Count > 0))
+    {
+        <h3>Vorschläge zur Anpassung der Vorauszahlungen</h3>
+            <div class="table-wrapper">
+                <table class="data-table" id="proposals">
+                    <thead><tr><th>Mieter</th><th>Vorauszahlung</th><th class="number">bisher</th><th class="number">Vorschlag</th><th>ab</th><th>Entscheidung</th></tr></thead>
+                    <tbody>
+                        @foreach (var tenancy in overview.Tenancies.Where(t => t.Dispatch is not null))
+                        {
+                            @foreach (var proposal in tenancy.Dispatch!.Proposals)
+                            {
+                                <tr>
+                                    <td>@tenancy.Label</td>
+                                    <td>@Labels.From(proposal.Component)</td>
+                                    <td class="number">@Format.Money(proposal.Current)</td>
+                                    <td class="number">@Format.Money(proposal.Proposed)</td>
+                                    <td>@Format.Date(proposal.EffectiveFrom)</td>
+                                    <td>
+                                        @if (proposal.Status == ProposalStatus.Open)
+                                        {
+                                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApplyAsync(proposal)">Übernehmen</MudButton>
+                                            <MudButton Variant="Variant.Outlined" OnClick="() => DeclineAsync(proposal)">Verwerfen</MudButton>
+                                        }
+                                        else
+                                        {
+                                            @(proposal.Status == ProposalStatus.Applied ? "übernommen" : "verworfen")@($" am {proposal.DecidedOn:dd.MM.yyyy}")
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+    }
+</section>
+
+</MudTabPanel>
+<MudTabPanel Text="Kosten">
+<section id="cost-types">
+    <h2>Kosten</h2>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Kosten</th><th class="number">Mieter</th><th class="number">Vermieter</th></tr></thead>
+            <tbody>
+                @foreach (var type in result.CostTypes)
+                {
+                    <tr><td>@type.Name</td><td>@type.Key</td><td class="number">@Format.Money(type.Total)</td><td class="number">@Format.Money(type.TenantTotal)</td><td class="number">@Format.Money(type.LandlordTotal)</td></tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr><th colspan="2">Summe</th><th class="number">@Format.Money(result.TotalCosts)</th><th class="number">@Format.Money(result.TenantTotal)</th><th class="number">@Format.Money(result.LandlordTotal)</th></tr>
+            </tfoot>
+        </table>
+    </div>
+</section>
+
+<section id="landlord-overview">
+    <h2>Gesamtübersicht für den Vermieter</h2>
+    <dl class="summary">
+        <dt>Gesamtkosten</dt><dd>@Format.Money(result.TotalCosts)</dd>
+        <dt>Auf die Mieter umgelegt</dt><dd>@Format.Money(result.TenantTotal)</dd>
+        <dt>Anteil des Vermieters (inkl. Leerstand)</dt><dd>@Format.Money(result.LandlordTotal)</dd>
+        <dt>Nachzahlungen der Mieter</dt><dd>@Format.Money(result.Tenants.Where(t => t.Balance > 0).Sum(t => t.Balance))</dd>
+        <dt>Guthaben der Mieter</dt><dd>@Format.Money(-result.Tenants.Where(t => t.Balance < 0).Sum(t => t.Balance))</dd>
+    </dl>
+    @if (result.Landlord.Count > 0)
+    {
+        <details class="group" open="@(result.Landlord.Count <= 8)">
+            <summary>
+                <span>Positionen des Vermieteranteils</span>
+                <span class="small">@result.Landlord.Count Positionen</span>
+                <span class="group-sum">@Format.Money(result.Landlord.Sum(p => p.Amount))</span>
+            </summary>
+            <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Grund</th><th>Bezeichnung</th><th class="number">Betrag</th></tr></thead>
+                <tbody>
+                    @foreach (var position in result.Landlord.OrderBy(p => p.Reason).ThenBy(p => p.Label, StringComparer.CurrentCulture))
+                    {
+                        <tr><td>@Labels.From(position.Reason)</td><td>@position.Label</td><td class="number">@Format.Money(position.Amount)</td></tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        </details>
+    }
+    @if (result.FlatRates.Count > 0)
+    {
+        <h3>Pauschale: Ist-Kosten gegen Einnahmen (intern)</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Mieter</th><th class="number">Ist-Kosten</th><th class="number">Pauschale gezahlt</th><th class="number">Differenz</th></tr></thead>
+                <tbody>
+                    @foreach (var flat in result.FlatRates)
+                    {
+                        <tr><td>@flat.Label (@flat.Rental)</td><td class="number">@Format.Money(flat.ActualCosts)</td><td class="number">@Format.Money(flat.Paid)</td><td class="number">@Format.Money(flat.Difference)</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+</MudTabPanel>
+<MudTabPanel Text="@($"Mieter ({result.Tenants.Count})")">
+<section id="tenants">
+    <h2>Mieter</h2>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Mieter</th><th>Mietobjekt</th><th>Mietzeit</th><th class="number">Saldo</th></tr></thead>
+            <tbody>
+                @foreach (var tenant in result.Tenants.OrderBy(t => t.Rental, StringComparer.CurrentCulture).ThenBy(t => t.Term.From))
+                {
+                    <tr>
+                        <td>@tenant.Label</td>
+                        <td>@tenant.Rental</td>
+                        <td>@Format.Period(tenant.Term.Intersect(result.BillingPeriod) ?? tenant.Term)</td>
+                        <td class="number">@Format.Money(Math.Abs(tenant.Balance)) @(tenant.Balance >= 0 ? "Nachzahlung" : "Guthaben")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+</MudTabPanel>
+</MudTabs>
+}
+</InteractiveShell>
+
+@code {
+    private DispatchOverview? overview;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private SendForm Send { get; set; } = new();
+    private ReceiptForm Confirmation { get; set; } = new();
+    private bool loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Confirmation = new() { ReceivedOn = GermanTime.Today(Clock.GetUtcNow()) };
+        overview = await Dispatching.OverviewAsync(Id);
+        loaded = true;
+    }
+
+    private async Task DispatchAsync(Guid leaseId)
+    {
+        var result = await Dispatching.DispatchAsync(Id, leaseId, new DispatchInput
+        {
+            Channel = Send.Channel,
+            ProposePrepayments = Send.ProposePrepayments,
+            SafetyPercent = Send.SafetyPercent,
+            PrepaymentFrom = Send.PrepaymentFrom,
+        });
+        await FinishAsync(result, "Die Abrechnung wurde versendet bzw. für den Postversand abgelegt.");
+    }
+
+    private async Task ConfirmAsync(Guid dispatchId)
+    {
+        if (Confirmation.ReceivedOn is null)
+        {
+            errors = ["Bitte das Zugangsdatum angeben."];
+            return;
+        }
+
+        var result = await Dispatching.ConfirmReceiptAsync(dispatchId, new DeliveryConfirmation { ReceivedOn = Confirmation.ReceivedOn, Note = Confirmation.Note });
+        await FinishAsync(result, "Der Zugang wurde vermerkt.");
+    }
+
+    private async Task ApplyAsync(ProposalRow proposal) =>
+        await FinishAsync(await Dispatching.ApplyProposalAsync(proposal.Id, null), "Die neue Vorauszahlung wurde übernommen.");
+
+    private async Task DeclineAsync(ProposalRow proposal)
+    {
+        if (await Confirm.AskAsync("Vorschlag verwerfen", "Soll der Vorschlag zur Anpassung der Vorauszahlung verworfen werden?", "Ja, verwerfen"))
+        {
+            await FinishAsync(await Dispatching.DeclineProposalAsync(proposal.Id), "Der Vorschlag wurde verworfen.");
+        }
+    }
+
+    private async Task FinishAsync(Result result, string message)
+    {
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(message);
+        }
+
+        overview = await Dispatching.OverviewAsync(Id);
+    }
+
+    private sealed class SendForm
+    {
+        public DispatchChannel Channel { get; set; }
+
+        public bool ProposePrepayments { get; set; } = true;
+
+        public decimal? SafetyPercent { get; set; }
+
+        public DateOnly? PrepaymentFrom { get; set; }
+    }
+
+    private sealed class ReceiptForm
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte das Zugangsdatum angeben.")]
+        public DateOnly? ReceivedOn { get; set; }
+
+        public string? Note { get; set; }
+    }
+}

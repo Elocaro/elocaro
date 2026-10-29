@@ -1,0 +1,15 @@
+{{# BASISVORLAGE Anpassung der Betriebskostenpauschale (§ 560 Abs. 1 und 4 BGB). Kein Rechtsrat: nur wirksam, wenn der Mietvertrag die Erhöhung vorsieht und der Grund bezeichnet und erläutert wird. Bei Heizung/Warmwasser hat die Heizkostenverordnung Vorrang. }}
+<p>{{ salutation }}</p>
+<p>die Betriebskosten für das Haus {{ property_street }} sind gestiegen. Nach der Vereinbarung im Mietvertrag erklären wir deshalb die Erhöhung der monatlichen Betriebskostenpauschale für Ihre Wohnung bzw. Ihr Zimmer ({{ rental_unit }}) nach § 560 Abs. 1 BGB.</p>
+<table>
+  <tbody>
+    <tr><td>Bisherige Pauschale</td><td class="number">{{ money current_amount }}</td></tr>
+    <tr><td>Erhöhung</td><td class="number">{{ money increase_amount }} ({{ number increase_percent 1 }} %)</td></tr>
+    <tr><td><strong>Neue Pauschale</strong></td><td class="number"><strong>{{ money new_amount }}</strong></td></tr>
+  </tbody>
+</table>
+<h3>Grund der Erhöhung</h3>
+<p>{{ text_to_html cost_reason }}</p>
+<p>Die erhöhte Pauschale schulden Sie ab Beginn des übernächsten Monats nach Zugang dieser Erklärung, also ab dem <strong>{{ date effective_from }}</strong> (§ 560 Abs. 2 BGB). Ermäßigen sich die Betriebskosten, sind wir verpflichtet, die Pauschale entsprechend herabzusetzen (§ 560 Abs. 3 BGB).</p>
+
+{{ include 'Grußformel' }}

@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    # ccr-*: development branches of Claude Code sessions, as long as they are pushed to directly.
+    branches: [main, "ccr-*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  build-und-test:
+    name: Build & Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # The tests start several containers and many databases; the runner's default free space is tight.
+      - name: Speicherplatz freiräumen
+        run: |
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/share/swift
+          df -h /
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: NuGet-Cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Formatierung prüfen
+        run: dotnet format --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Playwright-Browser installieren
+        run: pwsh tests/Elocaro.Web.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      # Integration tests start PostgreSQL, Mailpit and Gotenberg via Testcontainers (Docker is available on the runner).
+      # Browser tests on a shared runner now and then lose a page when the network of the machine changes (net::ERR_NETWORK_CHANGED):
+      # failed tests run again, twice at most, and only if few failed (a real defect is not retried away).
+      - name: Tests
+        run: >-
+          dotnet test --no-build -c Release
+          -- --report-trx --results-directory "${{ github.workspace }}/testergebnisse"
+          --coverage --coverage-output-format cobertura
+          --retry-failed-tests 2 --retry-failed-tests-max-tests 10
+
+      - name: Speicherplatz anzeigen
+        if: always()
+        run: df -h /
+
+      - name: Testergebnisse hochladen
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: testergebnisse
+          path: testergebnisse/
+          retention-days: 14
+
+  docker:
+    name: Docker & Restore-Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Installationsskript prüfen
+        run: |
+          bash -n deploy/install.sh
+          ELOCARO_NONINTERACTIVE=1 ELOCARO_DOMAIN=ci.example.de SMTP_HOST=smtp.example.de SMTP_PASSWORD='a$b"c' deploy/install.sh --nur-env
+          docker compose -f deploy/docker-compose.yml --env-file deploy/.env config > /dev/null
+          rm deploy/.env
+
+      - name: App-Image bauen
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: elocaro:test
+          cache-from: type=gha,scope=elocaro
+          cache-to: type=gha,scope=elocaro,mode=max
+
+      - name: Backup-Image bauen
+        uses: docker/build-push-action@v7
+        with:
+          context: deploy/backup
+          load: true
+          tags: elocaro-backup:test
+          cache-from: type=gha,scope=elocaro-backup
+          cache-to: type=gha,scope=elocaro-backup,mode=max
+
+      # Back up → delete volumes → restore into an empty database → app starts, data identical
+      - name: Restore-Test
+        run: deploy/backup/restore-test.sh elocaro:test elocaro-backup:test

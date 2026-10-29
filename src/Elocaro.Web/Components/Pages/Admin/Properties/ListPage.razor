@@ -1,0 +1,51 @@
+@page "/verwaltung/objekte"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IPropertyService Admin
+
+<InteractiveShell>
+    <PageHeader Title="Objekte" Subtitle="Häuser mit ihren Wohnungen und WG-Zimmern.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/objekte/neu">Objekt anlegen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (properties is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Objekte. Legen Sie zuerst ein Haus an, danach die Wohnungen." />
+    }
+    else if (properties is not null)
+    {
+        <MudTable T="PropertyOverview" Items="properties" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="PropertyOverview" SortBy="@(p => p.Name)" InitialDirection="SortDirection.Ascending">Objekt</MudTableSortLabel></MudTh>
+                <MudTh>Anschrift</MudTh>
+                <MudTh Style="text-align:right"><MudTableSortLabel T="PropertyOverview" SortBy="@(p => p.Units)">Einheiten</MudTableSortLabel></MudTh>
+                <MudTh Style="text-align:right">Wohnfläche</MudTh>
+                <MudTh>Belegung</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Objekt"><a href="/verwaltung/objekte/@context.Id">@context.Name</a></MudTd>
+                <MudTd DataLabel="Anschrift">@context.Address</MudTd>
+                <MudTd DataLabel="Einheiten" Style="text-align:right">@context.Units</MudTd>
+                <MudTd DataLabel="Wohnfläche" Style="text-align:right">@Format.Area(context.LivingArea)</MudTd>
+                <MudTd DataLabel="Belegung">
+                    @context.Rented von @context.RentalUnits vermietet
+                    @if (context.Vacancy > 0)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">@context.Vacancy leer</StatusChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+            </PagerContent>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<PropertyOverview>? properties;
+
+    protected override async Task OnInitializedAsync() => properties = await Admin.ListAsync();
+}

@@ -1,0 +1,7 @@
+Kontoumsätze;;;;;;;;;;;;;;;;;
+Kontonummer: DE89370400440532013000;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;
+Buchungstag;Wert;Umsatzart;Begünstigter / Auftraggeber;Verwendungszweck;IBAN;BIC;Kundenreferenz;Mandatsreferenz;Gläubiger ID;Fremde Gebühren;Betrag;Abweichender Empfänger;Anzahl der Aufträge;Anzahl der Schecks;Soll;Haben;Währung
+05.02.2026;05.02.2026;Lastschrift;Stadtwerke Musterstadt;Abschlag Strom Allgemein 02/2026;DE02120300000000202051;BYLADEM1001;;SW-4711;DE98ZZZ09999999999;;-84,50;;;;-84,50;;EUR
+02.02.2026;02.02.2026;Gutschrift;Anna Schmidt;Miete Februar 2026;DE93370501981234567890;COLSDE33XXX;MIETE-2026-02;;;;770,00;;;;;770,00;EUR
+Kontostand;13.031,17;;;;;;;;;;;;;;;;

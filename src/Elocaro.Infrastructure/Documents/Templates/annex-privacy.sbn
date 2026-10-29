@@ -1,0 +1,10 @@
+{{# Datenschutzinformation nach Art. 13 DSGVO (Mustertext, an die tatsächliche Verarbeitung anpassen und rechtlich prüfen). }}
+<div style="page-break-before: always">
+<h2>Anlage: Datenschutzinformation für Mieter (Art. 13 DSGVO)</h2>
+<p><strong>Verantwortlicher:</strong> {{ sender_name }}, {{ sender_address }}.</p>
+<p><strong>Zwecke und Rechtsgrundlagen:</strong> Wir verarbeiten Ihre Daten (Name, Anschrift, Geburtsdatum, Kontaktdaten, Bankverbindung, Vertragsdaten, Zahlungen) zur Begründung, Durchführung und Beendigung des Mietverhältnisses (Art. 6 Abs. 1 lit. b DSGVO), zur Erfüllung rechtlicher Pflichten, z. B. steuerlicher Aufbewahrungspflichten (lit. c), und zur Wahrung berechtigter Interessen, z. B. Forderungsmanagement (lit. f).</p>
+<p><strong>Empfänger:</strong> Dienstleister, soweit erforderlich (z. B. Steuerberater, Handwerker für vereinbarte Termine, Messdienstleister, Banken), sowie Behörden, soweit wir gesetzlich dazu verpflichtet sind.</p>
+<p><strong>Speicherdauer:</strong> Wir speichern Ihre Daten während des Mietverhältnisses und danach, solange gesetzliche Aufbewahrungsfristen (bis zu zehn Jahre) oder Verjährungsfristen bestehen.</p>
+<p><strong>Ihre Rechte:</strong> Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Widerspruch und Datenübertragbarkeit sowie Beschwerde bei einer Datenschutzaufsichtsbehörde.</p>
+<p>Die Bereitstellung der Daten ist für den Abschluss des Mietvertrages erforderlich.</p>
+</div>

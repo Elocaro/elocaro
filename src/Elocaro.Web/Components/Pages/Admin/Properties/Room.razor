@@ -1,0 +1,106 @@
+@page "/verwaltung/zimmer/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IPropertyService Admin
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject IDialogService Dialogs
+@inject Confirmations Confirm
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (room is null)
+{
+    <PageHeader Title="Zimmer nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+
+<PageHeader Title="@room.Data.Name" Subtitle="@($"{room.UnitName} · {room.PropertyName}")"
+            Back="@($"/verwaltung/einheiten/{room.UnitId}")" BackText="@room.UnitName">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" OnClick="EditAsync" StartIcon="@Icons.Material.Outlined.Edit">Bearbeiten</MudButton>
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+            <MudMenuItem OnClick="DeleteAsync">Zimmer löschen</MudMenuItem>
+        </MudMenu>
+    </Actions>
+</PageHeader>
+
+<ErrorList Errors="errors" />
+
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+    <MudTabPanel Text="Belegung">
+<section>
+    <h2>Belegung</h2>
+    <p><OccupancyDisplay Occupancy="room.Occupancy" /></p>
+</section>
+
+<LeaseHistory RentalUnitId="Id" />
+    </MudTabPanel>
+    <MudTabPanel Text="Flächen">
+<AreaSection Save="input => Admin.SetRoomAreaAsync(Id, input)" OnSaved="LoadAsync" Current="room.Area" History="room.AreaHistory"
+                 AreaText="Zimmerfläche" AdditionalText="Anteil Gemeinschaftsfläche" AdditionalHint="Anteil an Küche, Bad, Flur der WG (für Umlagen nach Fläche)." />
+    </MudTabPanel>
+    <MudTabPanel Text="Verlauf">
+<ChangeHistory EntityType="@nameof(Elocaro.Domain.Properties.Room)" EntityId="Id" />
+    </MudTabPanel>
+</MudTabs>
+}
+</InteractiveShell>
+
+@code {
+    private RoomDetails? room;
+    private RoomInput data = new();
+    private IReadOnlyList<string>? errors;
+    private bool loaded;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        room = await Admin.GetRoomAsync(Id);
+        if (room is not null)
+        {
+            data = room.Data;
+        }
+
+        loaded = true;
+    }
+
+    // "Bearbeiten" opens the data of the room in a dialog.
+    private async Task EditAsync()
+    {
+        RenderFragment fields = @<RoomEditor Data="data" />;
+        if (await Dialogs.ShowFormAsync("Zimmer bearbeiten", data, fields, () => Admin.UpdateRoomAsync(Id, data)))
+        {
+            Notify.Success("Die Angaben wurden gespeichert.");
+        }
+
+        await LoadAsync(); // after cancelling, too: drops the unsaved changes of the shared model
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await Confirm.AskAsync("Zimmer löschen", "Das Zimmer wird gelöscht. Fortfahren?", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var unitId = room!.UnitId;
+        var result = await Admin.DeleteRoomAsync(Id);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/verwaltung/einheiten/{unitId}?meldung=geloescht");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

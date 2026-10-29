@@ -1,0 +1,137 @@
+# Elocaro – production on a VPS
+#   cp deploy/.env.example deploy/.env   # adjust values
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+name: elocaro
+
+services:
+  app:
+    image: ${ELOCARO_IMAGE:-ghcr.io/elocaro/elocaro:latest}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${ELOCARO_VERSION:-0.0.0-dev}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gotenberg:
+        condition: service_started
+    environment:
+      ConnectionStrings__Elocaro: "Host=postgres;Database=elocaro;Username=elocaro;Password=${POSTGRES_PASSWORD};GSS Encryption Mode=Disable"
+      Application__BaseUrl: "https://${ELOCARO_DOMAIN}/"
+      Pdf__GotenbergUrl: "http://gotenberg:3000"
+      Mail__SenderAddress: ${MAIL_SENDER}
+      Mail__SenderName: ${MAIL_SENDER_NAME:-Elocaro}
+      Mail__ReplyTo: ${MAIL_REPLY_TO:-}
+      Mail__Smtp__Host: ${SMTP_HOST}
+      Mail__Smtp__Port: ${SMTP_PORT:-587}
+      Mail__Smtp__Security: ${SMTP_SECURITY:-StartTls}
+      Mail__Smtp__UserName: ${SMTP_USER:-}
+      Mail__Smtp__Password: ${SMTP_PASSWORD:-}
+      # Receipt extraction: None (default) | Claude | Ollama, see docs/betrieb.md
+      ReceiptExtraction__Provider: ${RECEIPT_AI_PROVIDER:-None}
+      ReceiptExtraction__AcceptExternalProcessing: ${RECEIPT_AI_ACCEPT_EXTERNAL:-false}
+      ReceiptExtraction__Claude__ApiKey: ${ANTHROPIC_API_KEY:-}
+      ReceiptExtraction__Claude__Model: ${RECEIPT_AI_CLAUDE_MODEL:-claude-sonnet-5-5}
+      ReceiptExtraction__Ollama__BaseUrl: ${OLLAMA_URL:-http://host.docker.internal:11434/}
+      ReceiptExtraction__Ollama__Model: ${OLLAMA_MODEL:-qwen2.5vl:7b}
+      # FinTS direct retrieval: registration number of the Deutsche Kreditwirtschaft, see docs/banking-fints.md (empty = off)
+      FinTs__ProductId: ${FINTS_PRODUCT_ID:-}
+      FinTs__ProductVersion: ${FINTS_PRODUCT_VERSION:-}
+      Backup__StatusFile: /backup-status/backup.json
+    volumes:
+      - files:/data
+      - backup-status:/backup-status:ro
+    # internal: database/Gotenberg; external: outbound for SMTP (later FinTS, AI API) and for Caddy
+    networks: [intern, extern]
+    # lets the app reach an Ollama on the Docker host (OLLAMA_URL)
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: elocaro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: elocaro
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elocaro -d elocaro"]
+      interval: 10s
+      retries: 10
+    networks: [intern]
+
+  # HTML → PDF. Reachable only on the internal network.
+  gotenberg:
+    image: gotenberg/gotenberg:8.39.0
+    restart: unless-stopped
+    command: ["gotenberg", "--api-timeout=60s", "--chromium-auto-start=true"]
+    networks: [intern]
+
+  # Nightly backup (pg_dump + file storage) with restic; see docs/betrieb.md
+  backup:
+    image: ${ELOCARO_BACKUP_IMAGE:-ghcr.io/elocaro/elocaro-backup:latest}
+    build:
+      context: ./backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-/repo}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD}
+      BACKUP_TIME: ${BACKUP_TIME:-02:30}
+      BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-7}
+      BACKUP_KEEP_WEEKLY: ${BACKUP_KEEP_WEEKLY:-4}
+      BACKUP_KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-12}
+      # S3-compatible targets (e.g. RESTIC_REPOSITORY=s3:https://s3.eu-central-1.amazonaws.com/bucket/elocaro)
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
+      # Azure Blob Storage (e.g. RESTIC_REPOSITORY=azure:elocaro-backup:/); key or SAS token
+      AZURE_ACCOUNT_NAME: ${AZURE_ACCOUNT_NAME:-}
+      AZURE_ACCOUNT_KEY: ${AZURE_ACCOUNT_KEY:-}
+      AZURE_ACCOUNT_SAS: ${AZURE_ACCOUNT_SAS:-}
+    volumes:
+      - files:/data
+      - backup-status:/status
+      - backup-cache:/cache
+      # Local repository (default) or SSH key for SFTP targets
+      - ${BACKUP_LOCAL_PATH:-./backup-repo}:/repo
+      - ${BACKUP_SSH_PATH:-./backup-ssh}:/root/.ssh:ro
+    # internal: database; external: upload to the backup target
+    networks: [intern, extern]
+
+  # TLS (Let's Encrypt) and reverse proxy
+  caddy:
+    image: caddy:2.11-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      ELOCARO_DOMAIN: ${ELOCARO_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [extern]
+
+networks:
+  intern:
+    internal: true   # database and Gotenberg: no internet access, reachable only by the app
+  extern: {}
+
+volumes:
+  postgres:
+  files:
+  backup-status:
+  backup-cache:
+  caddy-data:
+  caddy-config:

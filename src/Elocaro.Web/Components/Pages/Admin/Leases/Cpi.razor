@@ -1,0 +1,119 @@
+@page "/verwaltung/vpi"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject ICpiService Admin
+@inject Notifier Notify
+@inject IDialogService Dialogs
+
+<InteractiveShell>
+    <PageHeader Title="Verbraucherpreisindex" Subtitle="Monatswerte für Indexmieten (Destatis, Basis 2020 = 100, Tabelle 61111-0002)." />
+
+    <ErrorList Errors="errors" />
+
+    <section>
+        <h2>Werte pflegen</h2>
+        <p class="small">
+            Einzelne Monatswerte tragen Sie von Hand ein. Mehrere Monate lassen sich aus
+            <a href="https://www-genesis.destatis.de/datenbank/online/table/61111-0002" rel="noopener" target="_blank">GENESIS-Online, Tabelle 61111-0002</a>
+            als CSV importieren; vorhandene Monate werden aktualisiert.
+        </p>
+        <div class="form-row">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Wert erfassen</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="ImportAsync">CSV importieren</MudButton>
+        </div>
+    </section>
+
+    <section>
+        <h2>Werte</h2>
+        @if (values is { Count: 0 })
+        {
+            <EmptyState Text="Noch keine Indexwerte." />
+        }
+        else if (values is not null)
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Monat</th><th class="number">Wert</th><th>Quelle</th></tr></thead>
+                    <tbody>
+                        @foreach (var value in values)
+                        {
+                            <tr>
+                                <td>@Format.Month(value.Month)</td>
+                                <td class="number">@Format.Number(value.Value)</td>
+                                <td>@value.Source</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<CpiView>? values;
+    private IReadOnlyList<string>? errors;
+    private CpiInput input = new();
+    private ImportInput import = new();
+
+    protected override async Task OnInitializedAsync() => values = await Admin.ListAsync();
+
+    private async Task SaveAsync()
+    {
+        input = new();
+        RenderFragment fields = @<text>
+            <AppMonthField @bind-Value="input.Month" Label="Monat" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="input.Value" Label="Indexwert" Required="true" Hint="z. B. 121,7" />
+        </text>;
+        if (await Dialogs.ShowFormAsync("Indexwert erfassen", input, fields, SetValueAsync))
+        {
+            Notify.Success("Der Indexwert wurde gespeichert.");
+            values = await Admin.ListAsync();
+        }
+    }
+
+    private Task<Result> SetValueAsync()
+    {
+        if (!DateOnly.TryParseExact(input.Month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var month))
+        {
+            return Task.FromResult(new Result(false, ["Bitte einen Monat wählen."]));
+        }
+
+        return Admin.SetAsync(month, input.Value!.Value);
+    }
+
+    private async Task ImportAsync()
+    {
+        import = new();
+        RenderFragment fields = @<AppTextField @bind-Value="import.Csv" Label="CSV-Inhalt" Lines="6" Placeholder="2026;Januar;121,2" />;
+        RenderFragment note = @<p class="small">Die Monatswerte aus GENESIS-Online als CSV herunterladen und den Inhalt einfügen.</p>;
+        string? summary = null;
+        var imported = await Dialogs.ShowFormAsync("CSV importieren", import, fields, async () =>
+        {
+            var result = await Admin.ImportAsync(import.Csv ?? "");
+            summary = $"Import: {result.Added} neu, {result.Modified} geändert, {result.Unchanged} unverändert.";
+            return result.Errors.Count > 0 ? new Result(false, [summary, .. result.Errors]) : new Result(true, []);
+        }, "Importieren", note);
+        values = await Admin.ListAsync();
+        if (imported && summary is not null)
+        {
+            errors = null;
+            Notify.Success(summary);
+        }
+    }
+
+    private sealed class CpiInput
+    {
+        [Required(ErrorMessage = "Bitte einen Monat wählen.")]
+        public string? Month { get; set; }
+
+        [Required(ErrorMessage = "Bitte den Indexwert angeben.")]
+        [Range(typeof(decimal), "1", "1000", ErrorMessage = "Bitte einen Indexwert wie 121,7 angeben.", ParseLimitsInInvariantCulture = true)]
+        public decimal? Value { get; set; }
+    }
+
+    private sealed class ImportInput
+    {
+        public string? Csv { get; set; }
+    }
+}

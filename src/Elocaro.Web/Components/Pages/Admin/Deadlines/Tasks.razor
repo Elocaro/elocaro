@@ -1,0 +1,67 @@
+@page "/verwaltung/fristen/wartung"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDeadlines Admin
+@inject IPropertyService Properties
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Wartung" Subtitle="Wiederkehrende Pflichten von Hand eintragen: Rauchmelder, Heizungswartung, Schornsteinfeger, Legionellenprüfung und mehr." Back="/verwaltung/fristen" BackText="Fristen" />
+
+    <ErrorList Errors="errors" />
+
+    @if (tasks is { Count: 0 })
+    {
+        <EmptyState Text="Noch keine Wartungen eingetragen." />
+    }
+    else if (tasks is not null)
+    {
+        <MudTable T="TaskListItem" Items="tasks" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true">
+            <HeaderContent>
+                <MudTh>Wartung</MudTh><MudTh>Objekt</MudTh><MudTh>Nächste Fälligkeit</MudTh><MudTh>Abstand</MudTh><MudTh>Zuletzt erledigt</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Wartung"><a href="/verwaltung/fristen/wartung/@context.Id">@context.Title</a>@if (!context.Active) { <span class="small">&#32;(abgeschlossen)</span> }</MudTd>
+                <MudTd DataLabel="Objekt">@(context.PropertyName ?? "alle")</MudTd>
+                <MudTd DataLabel="Nächste Fälligkeit">@(context.Active ? Format.Date(context.DueOn) : "–")</MudTd>
+                <MudTd DataLabel="Abstand">@Labels.Interval(context.IntervalMonths)</MudTd>
+                <MudTd DataLabel="Zuletzt erledigt">@Format.Date(context.LastDoneOn)</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <section>
+        <h2>Wartung eintragen</h2>
+        <EditForm Model="data" OnValidSubmit="CreateAsync" novalidate>
+            <DataAnnotationsValidator />
+            <TaskEditor Data="data" Properties="properties" />
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Eintragen</MudButton>
+        </EditForm>
+    </section>
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<TaskListItem>? tasks;
+    private IReadOnlyList<PropertyOverview> properties = [];
+    private IReadOnlyList<string>? errors;
+    private readonly TaskInput data = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        tasks = await Admin.TasksAsync();
+        properties = await Properties.ListAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        var result = await Admin.CreateTaskAsync(data);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/verwaltung/fristen/wartung/{result.Id}?meldung=angelegt");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

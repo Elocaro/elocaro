@@ -1,0 +1,2 @@
+{{# Bausteine und Schreiben sind Ausgangspunkte und keine Rechtsberatung: Texte vor dem Einsatz prüfen. }}
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

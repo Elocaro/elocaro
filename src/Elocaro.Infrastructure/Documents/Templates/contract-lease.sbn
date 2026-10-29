@@ -1,0 +1,121 @@
+{{# BASISVORLAGE Wohnraummietvertrag. Kein Rechtsrat: vor dem produktiven Einsatz rechtlich prüfen lassen (insbesondere Schönheitsreparaturen und Kleinreparaturen nach der Rechtsprechung des BGH, Kaution § 551 BGB, Mietpreisbremse, Kündigungsfristen, Befristung § 575 BGB). Die Daten kommen aus Objekt, Einheit, Vertrag und Personen. }}
+<h2>Mietvertrag über Wohnraum</h2>
+
+<h3>zwischen</h3>
+<p><strong>{{ sender_name }}</strong>, {{ sender_address }}<br>– nachfolgend „Vermieter“ –</p>
+<h3>und</h3>
+{{~ for t in tenants ~}}
+<p><strong>{{ t.name }}</strong>{{ if t.birth_date }}, geboren am {{ date t.birth_date }}{{ end }}{{ if t.address }}, {{ t.address }}{{ end }}</p>
+{{~ end ~}}
+<p>– nachfolgend „Mieter“ (mehrere Mieter haften als Gesamtschuldner) –</p>
+
+<h3>§ 1 Mietsache</h3>
+<p>(1) Vermietet wird im Haus {{ property_street }}, {{ property_postal_code }} {{ property_city }}{{ if year_built }} (Baujahr {{ year_built }}){{ end }} die Wohnung <strong>{{ unit_name }}</strong>{{ if unit_location }} ({{ unit_location }}){{ end }}{{ if room_count }} mit {{ number room_count 1 }} Zimmern{{ end }}{{ if living_area }}, Wohnfläche ca. {{ number living_area 2 }} m²{{ end }}.</p>
+<p>(2) Zur Wohnung gehören{{ if bathroom }}: {{ bathroom }}{{ else }} die üblichen Nebenräume{{ end }}{{ if balcony }}, Balkon/Terrasse{{ end }}{{ if fitted_kitchen }}, Einbauküche{{ end }}{{ if amenities }}, {{ amenities }}{{ end }}.{{ if heating_type }} Die Wohnung wird beheizt mit: {{ heating_type }}.{{ end }}{{ if energy_standard }} Energetischer Standard: {{ energy_standard }}.{{ end }}</p>
+<p>(3) Die Wohnfläche dient der Beschreibung; Abweichungen berechtigen nicht zur Minderung, solange sie 10 % nicht überschreiten.</p>
+
+<h3>§ 2 Mietzeit und Kündigung</h3>
+{{~ if is_fixed_term ~}}
+<p>(1) Das Mietverhältnis beginnt am <strong>{{ date start }}</strong> und ist befristet bis zum <strong>{{ date fixed_term_until }}</strong>. Es endet dann, ohne dass es einer Kündigung bedarf. Der Befristungsgrund ist: [Grund nach § 575 BGB bitte eintragen].</p>
+{{~ else ~}}
+<p>(1) Das Mietverhältnis beginnt am <strong>{{ date start }}</strong> und läuft auf unbestimmte Zeit.</p>
+{{~ end ~}}
+<p>(2) Der Mieter kann das Mietverhältnis mit einer Frist von {{ notice_period_months }} Monaten kündigen, spätestens am dritten Werktag eines Monats zum Ablauf des übernächsten Monats. Für Kündigungen des Vermieters gelten die gesetzlichen Fristen (§ 573c BGB) und das Erfordernis eines berechtigten Interesses (§ 573 BGB).</p>
+
+<h3>§ 3 Miete</h3>
+<table>
+  <tbody>
+    <tr><td>Grundmiete (Nettokaltmiete)</td><td class="number">{{ money base_rent }}</td></tr>
+    {{~ if is_prepayment ~}}
+    <tr><td>Vorauszahlung Betriebskosten</td><td class="number">{{ money operating_cost_prepayment }}</td></tr>
+    {{~ if heating_cost_prepayment > 0 ~}}<tr><td>Vorauszahlung Heiz- und Warmwasserkosten</td><td class="number">{{ money heating_cost_prepayment }}</td></tr>{{ end ~}}
+    {{~ else if is_flat_rate ~}}
+    <tr><td>Betriebskostenpauschale</td><td class="number">{{ money operating_cost_flat_rate }}</td></tr>
+    {{~ end ~}}
+    {{~ if parking_space > 0 ~}}<tr><td>Stellplatz</td><td class="number">{{ money parking_space }}</td></tr>{{ end ~}}
+    {{~ if furnishing_surcharge > 0 ~}}<tr><td>Möblierungszuschlag</td><td class="number">{{ money furnishing_surcharge }}</td></tr>{{ end ~}}
+    {{~ for c in other_components ~}}<tr><td>{{ c.name }}</td><td class="number">{{ money c.amount }}</td></tr>{{ end ~}}
+  </tbody>
+  <tfoot><tr><td>Gesamtmiete monatlich</td><td class="number">{{ money total_rent }}</td></tr></tfoot>
+</table>
+{{~ if is_inclusive ~}}
+<p>Die Betriebskosten sind in der Miete enthalten (Inklusivmiete).</p>
+{{~ end ~}}
+{{~ if is_graduated ~}}
+<p><strong>Staffelmiete (§ 557a BGB).</strong> Die Grundmiete erhöht sich jeweils zu den folgenden Terminen auf den genannten Betrag; die Miete bleibt jeweils mindestens ein Jahr unverändert. Eine Erhöhung nach den §§ 558 bis 559b BGB ist während der Laufzeit der Staffelmiete ausgeschlossen.</p>
+<table>
+  <thead><tr><th>Ab</th><th class="number">Grundmiete</th></tr></thead>
+  <tbody>{{~ for s in rent_steps ~}}<tr><td>{{ date s.from }}</td><td class="number">{{ money s.base_rent }}</td></tr>{{ end ~}}</tbody>
+</table>
+{{~ else if is_index ~}}
+<p><strong>Indexmiete (§ 557b BGB).</strong> Die Grundmiete richtet sich nach dem vom Statistischen Bundesamt ermittelten Verbraucherpreisindex für Deutschland{{ if index_base_month }} (Ausgangsindex {{ date index_base_month }}{{ if index_base_value }}: {{ number index_base_value 1 }}{{ end }}){{ end }}. Sie muss jeweils mindestens ein Jahr unverändert bleiben. Eine Änderung ist durch Erklärung in Textform geltend zu machen; die eingetretene Änderung des Index und die neue Miete sind anzugeben. Die geänderte Miete ist mit Beginn des übernächsten Monats nach Zugang der Erklärung zu zahlen. Eine Erhöhung nach § 558 BGB ist ausgeschlossen.</p>
+{{~ else ~}}
+<p>Die Miete kann nach den gesetzlichen Vorschriften (§§ 558 ff. BGB) erhöht werden.</p>
+{{~ end ~}}
+
+<h3>§ 4 Betriebskosten</h3>
+{{~ if is_prepayment ~}}
+<p>(1) Der Mieter trägt die Betriebskosten im Sinne des § 2 Betriebskostenverordnung (BetrKV), soweit sie nachfolgend aufgeführt sind. Über die Vorauszahlungen wird jährlich abgerechnet; der Vermieter legt die Abrechnung spätestens zwölf Monate nach Ende des Abrechnungszeitraums vor (§ 556 Abs. 3 BGB). Nachzahlungen und Guthaben sind innerhalb von 30 Tagen nach Zugang auszugleichen.</p>
+<p>(2) Umgelegt werden:</p>
+<ul>
+{{~ for k in cost_types ~}}<li>{{ if k.number }}Nr. {{ k.number }}: {{ end }}{{ k.name }}</li>{{ end ~}}
+</ul>
+{{~ if excluded_cost_types.size > 0 ~}}
+<p>(3) Nicht umgelegt werden:{{ for k in excluded_cost_types }} {{ k.name }}{{ if !for.last }};{{ end }}{{ end }}.</p>
+{{~ end ~}}
+<p>(4) Neu entstehende oder erhöhte Betriebskosten können nach § 560 BGB umgelegt, die Vorauszahlungen durch Erklärung in Textform angemessen angepasst werden.</p>
+{{~ else if is_flat_rate ~}}
+<p>Die Betriebskosten werden mit der monatlichen Pauschale von {{ money operating_cost_flat_rate }} abgegolten. Eine Abrechnung erfolgt nicht. Der Vermieter kann die Pauschale nach § 560 Abs. 1 BGB bei Erhöhung der Betriebskosten durch Erklärung in Textform anpassen.</p>
+{{~ else ~}}
+<p>Mit der Miete sind sämtliche Betriebskosten abgegolten. Der Vermieter kann Erhöhungen der Betriebskosten nach § 560 BGB geltend machen, soweit dies zulässig vereinbart ist.</p>
+{{~ end ~}}
+
+{{~ if is_prepayment || heating_consumption_based ~}}
+<h3>§ 5 Heizkosten</h3>
+<p>Die Kosten der Heizung und Warmwasserversorgung werden nach der Heizkostenverordnung abgerechnet, und zwar überwiegend nach dem erfassten Verbrauch. Der Mieter duldet die Ablesung der Verbrauchserfassungsgeräte.</p>
+{{~ end ~}}
+
+<h3>§ 6 Zahlung</h3>
+<p>Die Miete ist monatlich im Voraus, spätestens bis zum {{ due_on_working_day }}. Werktag des Monats, zu zahlen{{ if direct_debit }} und wird im Lastschriftverfahren eingezogen{{ else if sender_iban }} auf das Konto {{ if sender_bank }}bei der {{ sender_bank }}, {{ end }}IBAN {{ sender_iban }}{{ end }}. Maßgeblich für die Rechtzeitigkeit ist der Eingang beim Vermieter.</p>
+
+<h3>§ 7 Kaution</h3>
+{{~ if deposit ~}}
+<p>Der Mieter leistet eine Mietsicherheit (Kaution) in Höhe von <strong>{{ money deposit }}</strong>{{ if deposit_note }} ({{ deposit_note }}){{ end }}. Sie darf höchstens das Dreifache der monatlichen Grundmiete ({{ money max_deposit }}) betragen und ist in drei gleichen monatlichen Teilleistungen zu zahlen, die erste zu Beginn des Mietverhältnisses (§ 551 BGB). Der Vermieter legt sie getrennt von seinem Vermögen bei einem Kreditinstitut zu dem für Spareinlagen mit dreimonatiger Kündigungsfrist üblichen Zinssatz an.</p>
+{{~ else ~}}
+<p>Eine Mietsicherheit wird nicht vereinbart.</p>
+{{~ end ~}}
+
+<h3>§ 8 Schönheitsreparaturen und Kleinreparaturen</h3>
+{{# Hinweis BGH: Starre Fristen und Quotenabgeltungsklauseln sind unwirksam; wird die Wohnung unrenoviert übergeben, ist eine Abwälzung der Schönheitsreparaturen ohne angemessenen Ausgleich unwirksam (BGH VIII ZR 185/14, VIII ZR 163/18). Die Basisvorlage lässt die Schönheitsreparaturen deshalb beim Vermieter. Eine Abwälzung nur nach anwaltlicher Prüfung ergänzen. }}
+<p>(1) Die Wohnung wird in ordnungsgemäßem Zustand übergeben. Die Durchführung von Schönheitsreparaturen während der Mietzeit obliegt dem Vermieter, soweit nichts anderes ausdrücklich schriftlich vereinbart ist. Der Mieter hat die Wohnung pfleglich zu behandeln und zu reinigen.</p>
+<p>(2) Der Mieter trägt die Kosten kleiner Instandhaltungen an Teilen der Wohnung, die seinem direkten und häufigen Zugriff ausgesetzt sind, bis zu 100 € im Einzelfall und höchstens 8 % der Jahresgrundmiete im Kalenderjahr.</p>
+
+<h3>§ 9 Gebrauch der Wohnung</h3>
+<p>(1) Die Wohnung darf nur zu Wohnzwecken genutzt werden{{ if person_count }}; zum Einzug sind {{ person_count }} Person(en) vorgesehen{{ end }}. Eine Untervermietung oder Gebrauchsüberlassung an Dritte bedarf der Zustimmung des Vermieters.</p>
+<p>(2) Für das Haus gilt die als Anlage beigefügte Hausordnung.</p>
+<p>(3) Der Mieter hat Schäden und Mängel dem Vermieter unverzüglich anzuzeigen. Der Vermieter darf die Wohnung nach Ankündigung zur Prüfung des Zustands und zur Ablesung betreten.</p>
+
+{{~ if notes ~}}
+<h3>§ 10 Besondere Vereinbarungen</h3>
+<p>{{ text_to_html notes }}</p>
+{{~ end ~}}
+
+<h3>Schlussbestimmungen</h3>
+<p>Änderungen und Ergänzungen dieses Vertrages bedürfen der Textform. Sollte eine Bestimmung unwirksam sein, bleibt der Vertrag im Übrigen wirksam. Der Mieter erhält eine Ausfertigung dieses Vertrages mit den Anlagen.</p>
+{{~ if guarantors.size > 0 ~}}
+<p>Die Bürgschaft folgt in einer gesonderten Bürgschaftserklärung von:{{ for g in guarantors }} {{ g.name }}{{ end }}.</p>
+{{~ end ~}}
+
+<p>Anlagen: Hausordnung · Energieausweis · Datenschutzinformation · Übergabeprotokoll</p>
+
+<table>
+  <tbody>
+    <tr><td><br><br>______________________________<br>Ort, Datum, Vermieter<br>{{ sender_name }}</td>
+    <td><br><br>______________________________<br>Ort, Datum, Mieter<br>{{ tenant_names }}</td></tr>
+  </tbody>
+</table>
+
+{{ include 'Anlage Hausordnung' }}
+{{ include 'Anlage Energieausweis' }}
+{{ include 'Anlage Datenschutzinformation' }}
+{{ include 'Anlage Übergabeprotokoll' }}

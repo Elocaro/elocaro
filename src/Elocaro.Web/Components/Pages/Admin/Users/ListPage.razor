@@ -1,0 +1,65 @@
+@page "/verwaltung/benutzer"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IUserManagementService Admin
+@inject IDialogService Dialogs
+
+<InteractiveShell>
+    <PageHeader Title="Benutzer" Subtitle="Wer Zugang zu Elocaro hat – Verwaltung, Hausmeister, Handwerker und Mieter.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="InviteAsync">Person einladen</MudButton>
+        </Actions>
+    </PageHeader>
+
+        <MudTable T="UserOverview" Items="users" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="UserOverview" SortBy="@(u => u.DisplayName)" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel></MudTh>
+                <MudTh>E-Mail</MudTh>
+                <MudTh>Rolle</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Letzte Anmeldung</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name"><a href="/verwaltung/benutzer/@context.Id">@context.DisplayName</a></MudTd>
+                <MudTd DataLabel="E-Mail">@context.Email</MudTd>
+                <MudTd DataLabel="Rolle">@Roles.DisplayName(context.Role)</MudTd>
+                <MudTd DataLabel="Status">
+                    @if (context.Locked)
+                    {
+                        <StatusChip Level="StatusLevel.Error">gesperrt</StatusChip>
+                    }
+                    else if (!context.InvitationAccepted)
+                    {
+                        <StatusChip Level="StatusLevel.Warning">eingeladen</StatusChip>
+                    }
+                    else
+                    {
+                        <StatusChip Level="StatusLevel.Success">aktiv</StatusChip>
+                    }
+                    @if (context.TwoFactorEnabled)
+                    {
+                        <StatusChip title="Zwei-Faktor-Anmeldung aktiv">2FA</StatusChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Letzte Anmeldung">@Format.Timestamp(context.LastSignInAt)</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+            </PagerContent>
+        </MudTable>
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<UserOverview> users = [];
+
+    protected override async Task OnInitializedAsync() => users = await Admin.ListAsync();
+
+    private async Task InviteAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<InviteDialog>("Person einladen", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false })
+        {
+            users = await Admin.ListAsync();
+        }
+    }
+}

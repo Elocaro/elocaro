@@ -1,0 +1,336 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/umlageschluessel"
+@inject IDialogService Dialogs
+@inject ICostAllocation Allocation
+@rendermode InteractiveServer
+@using Elocaro.Domain.Receipts
+@using MudBlazor
+@inject ICostSubtypes Subtypes
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject TimeProvider Clock
+@inject IJSRuntime JS
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (overview is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+
+<PageHeader Title="Umlageschlüssel" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName" />
+
+<ErrorList Errors="errors" />
+
+<details class="explain">
+    <summary>Wie gelten Umlageschlüssel?</summary>
+    <p>
+        Der Schlüssel einer Kostenart gilt ab einem Stichtag; frühere Stände bleiben für die Abrechnung erhalten. Ohne Schlüssel rechnet die Vorschau
+        mit der Wohnfläche und weist darauf hin. Heiz- und Warmwasserkosten werden nach der Heizkostenverordnung abgerechnet (eigener Rechenkern, Einstellungen unter „Heizkosten“).
+    </p>
+</details>
+
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
+<MudTabPanel Text="Schlüssel">
+
+<section>
+    <h2>Gültig am @Format.Date(overview.Day)</h2>
+    <div class="table-wrapper">
+        <table class="data-table" id="cost-keys">
+            <thead><tr><th>Kostenart</th><th>Schlüssel</th><th>Vorwegabzug</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var row in overview.Rows)
+                {
+                    <tr id="@($"key-{row.CostType}")">
+                        <td>@(row.BetrKvNumber is { } n ? $"{n}. " : "")@row.Name</td>
+                        @if (row.Group == CostGroup.Heating)
+                        {
+                            <td colspan="3" class="small">Abrechnung nach HeizkostenV, siehe <a href="/verwaltung/objekte/@PropertyId/heizung">Heizkosten-Einstellungen</a></td>
+                        }
+                        else if (row.Current is { } current)
+                        {
+                            <td>@KeyText(current) <span class="small">ab @Format.Date(current.Validity.From)@(row.History.Count > 1 ? $" · {row.History.Count} Stände" : "")</span></td>
+                            <td data-label="Vorwegabzug">@PreDeduction(current)</td>
+                            <td class="row-actions"><MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => PickAsync(row.CostType)" aria-label="@($"Schlüssel ändern: {row.Name}")">Ändern</MudButton></td>
+                        }
+                        else
+                        {
+                            <td colspan="2" class="small">@(row.History.Count > 0 ? $"beendet / noch nicht gültig · {row.History.Count} Stände" : "kein Schlüssel (Standard: Wohnfläche)")</td>
+                            <td class="row-actions"><MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => PickAsync(row.CostType)" aria-label="@($"Schlüssel festlegen: {row.Name}")">Festlegen</MudButton></td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section id="key-form">
+    <h2>Schlüssel festlegen</h2>
+    <EditForm Model="Rule" OnValidSubmit="SetAsync" novalidate>
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <AppSelect T="string" @bind-Value="Rule.CostType" Label="Kostenart" Required="true" Items="overview.Rows.Where(r => r.Group == CostGroup.Operating).Select(r => r.CostType).ToList()" Text="@(t => CostTypeName(t))" EmptyText="– bitte wählen –" />
+            <AppDateField @bind-Value="Rule.From" Label="Gilt ab" Required="true" Hint="Der bisherige Schlüssel endet am Vortag." />
+            <AppSelect T="AllocationKey" @bind-Value="Rule.Key" Label="Schlüssel" Items="Enum.GetValues<AllocationKey>()" Text="Labels.From" />
+            <AppSelect T="MeterType?" @bind-Value="Rule.MeterType" Label="Zählertyp (bei Verbrauch)" Items="meterTypes" Text="@(t => t is { } v ? Labels.From(v) : "")" EmptyText="–" Hint="Die Zähler dieses Typs, die den Einheiten zugeordnet sind, bestimmen den Verbrauch." />
+            <AppNumberField T="decimal?" @bind-Value="Rule.PreDeductionPercent" Label="Vorwegabzug (%)" Hint="Anteil, der vor der Umlage abgezogen wird und beim Vermieter bleibt (z. B. Gewerbe, Garten)." />
+            <AppNumberField T="decimal?" @bind-Value="Rule.PreDeductionAmount" Label="oder Vorwegabzug (€ pro Jahr)" Suffix="€" />
+            <AppTextField @bind-Value="Rule.PreDeductionNote" Label="Begründung Vorwegabzug" />
+        </div>
+        <AppCheckBox @bind-Value="Rule.ExcludeVacantRooms" Label="Leere WG-Zimmer nicht ansetzen" />
+        <details class="explain">
+            <summary>Wer trägt leere Zimmer?</summary>
+            <p class="small">Ohne Haken trägt der Vermieter den Anteil leerer Zimmer (Standard bei Flächenschlüsseln). Mit Haken tragen die vermieteten Zimmer den ganzen Anteil der WG: nur vertretbar, wenn die Kosten vom Leerstand abhängen; bei Verbrauchsschlüsseln ist es immer so.</p>
+        </details>
+        <fieldset class="field">
+            <legend>Prozentsätze je Einheit (nur bei „Fester Prozentsatz“)</legend>
+            <div class="form-grid">
+                @for (var i = 0; i < overview.Units.Count; i++)
+                {
+                    var index = i;
+                    <AppTextField @bind-Value="Rule.Shares[index].Percent" Label="@($"{overview.Units[index].Name} (%)")" />
+                }
+            </div>
+            <span class="field-hint">Die Summe darf höchstens 100 % betragen; der Rest bleibt beim Vermieter.</span>
+        </fieldset>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Schlüssel speichern</MudButton>
+    </EditForm>
+</section>
+
+<section>
+    <h2>Schlüssel beenden</h2>
+    <EditForm Model="End" OnValidSubmit="EndAsync" novalidate>
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <AppSelect T="string" @bind-Value="End.CostType" Label="Kostenart" Required="true" Items="overview.Rows.Where(r => r.Current is not null).Select(r => r.CostType).ToList()" Text="@(t => overview.Rows.FirstOrDefault(r => r.CostType == t)?.Name ?? "")" EmptyText="– bitte wählen –" />
+            <AppDateField @bind-Value="End.LastDay" Label="Letzter Tag" Required="true" />
+        </div>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Schlüssel beenden</MudButton>
+    </EditForm>
+</section>
+</MudTabPanel>
+
+@if (overview.SharedFlats.Count > 0)
+{
+    <MudTabPanel Text="Wohngemeinschaften">
+    <section id="shared-flats">
+        <h2>Wohngemeinschaften</h2>
+        <details class="explain">
+            <summary>Wie funktioniert die Pauschale?</summary>
+            <p class="small">
+            Pauschale: Die Zimmer erhalten keine Abrechnung, die Ist-Kosten der Wohnung werden intern den Pauschalzahlungen gegenübergestellt.
+            Verteilen: Die Kosten der Wohnung werden nach Zimmerfläche (inkl. Anteil Gemeinschaftsflächen) auf die Zimmer verteilt.
+            Bei Heizung und Warmwasser ist die Pauschale rechtlich zu prüfen (HeizkostenV, siehe Hinweis in der Fachdokumentation).
+        </p>
+        </details>
+        @foreach (var flat in overview.SharedFlats)
+        {
+            <fieldset class="field">
+                <legend>@flat.Name (@string.Join(", ", flat.Rooms))</legend>
+                <AppRadioGroup T="SharedFlatBilling" Value="flatModes[flat.UnitId]" ValueChanged="@(m => flatModes[flat.UnitId] = m)" Items="Enum.GetValues<SharedFlatBilling>()" Text="Labels.From" />
+            </fieldset>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SetFlatsAsync">Abrechnungsmodus speichern</MudButton>
+    </section>
+    </MudTabPanel>
+}
+
+<MudTabPanel Text="@($"Unterarten ({subtypes.Count})")">
+<section id="subtypes">
+    <h2>Eigene Unterarten</h2>
+    <details class="explain">
+        <summary>Wozu Unterarten?</summary>
+        <p class="small">Unterarten verfeinern eine Kostenart (z. B. „Gebäudeversicherung“ und „Haftpflicht“ unter Nr. 13). Sie erscheinen am Beleg und im Rechenprotokoll; der Umlageschlüssel gilt für die Kostenart.</p>
+    </details>
+    @if (subtypes.Count > 0)
+    {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Unterart</th><th>Kostenart</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var subtype in subtypes)
+                        {
+                            <tr>
+                                <td>@subtype.Name</td>
+                                <td>@subtype.CostTypeName</td>
+                                <td><MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveSubtypeAsync(subtype)" aria-label="@($"{subtype.Name} entfernen")">Entfernen</MudButton></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+    }
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddSubtypeAsync">Unterart anlegen</MudButton>
+</section>
+</MudTabPanel>
+</MudTabs>
+}
+</InteractiveShell>
+
+@code {
+    private CostAllocationOverview? overview;
+    private IReadOnlyList<CostSubtypeView> subtypes = [];
+    private IReadOnlyList<string>? errors;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    private static readonly MeterType?[] meterTypes = Enum.GetValues<MeterType>().Select(t => (MeterType?)t).ToArray();
+
+    private CostRuleInput Rule { get; set; } = new();
+    private EndInput End { get; set; } = new();
+    private SubtypeInput Subtype { get; set; } = new();
+    private readonly Dictionary<Guid, SharedFlatBilling> flatModes = [];
+    private bool loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = GermanTime.Today(Clock.GetUtcNow());
+        Rule = new() { From = today };
+        End = new() { LastDay = today };
+        await LoadAsync();
+        if (overview is not null)
+        {
+            ResetRule();
+        }
+
+        loaded = true;
+    }
+
+    private async Task PickAsync(string costType)
+    {
+        Rule.CostType = costType;
+        await JS.InvokeVoidAsync("elocaroScrollTo", "key-form");
+    }
+
+    private void ResetRule()
+    {
+        Rule = new() { From = GermanTime.Today(Clock.GetUtcNow()) };
+        foreach (var unit in overview!.Units)
+        {
+            Rule.Shares.Add(new UnitShareInput { UnitId = unit.Id.ToString() });
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        overview = await Allocation.GetAsync(PropertyId, GermanTime.Today(Clock.GetUtcNow()));
+        subtypes = await Subtypes.ListAsync();
+        flatModes.Clear();
+        foreach (var flat in overview?.SharedFlats ?? [])
+        {
+            flatModes[flat.UnitId] = flat.Mode;
+        }
+    }
+
+    private string CostTypeName(string? costType)
+    {
+        var row = overview?.Rows.FirstOrDefault(r => r.CostType == costType);
+        return row is null ? "" : (row.BetrKvNumber is { } n ? $"{n}. " : "") + row.Name;
+    }
+
+    private async Task SetAsync()
+    {
+        if (await DoneAsync(await Allocation.SetRuleAsync(PropertyId, Rule), "Der Umlageschlüssel wurde gespeichert."))
+        {
+            ResetRule();
+        }
+    }
+
+    private async Task EndAsync() =>
+        await DoneAsync(await Allocation.EndRuleAsync(PropertyId, End.CostType, End.LastDay!.Value), "Der Umlageschlüssel wurde beendet.");
+
+    private async Task SetFlatsAsync()
+    {
+        foreach (var (unit, mode) in flatModes)
+        {
+            var result = await Allocation.SetSharedFlatBillingAsync(unit, mode);
+            if (!result.Succeeded)
+            {
+                await DoneAsync(result, "");
+                return;
+            }
+        }
+
+        await DoneAsync(Result.Ok(), "Der Abrechnungsmodus wurde gespeichert.");
+    }
+
+    private async Task AddSubtypeAsync()
+    {
+        Subtype = new();
+        RenderFragment fields = @<text>
+            <AppSelect T="string" @bind-Value="Subtype.CostType" Label="Kostenart" Required="true" Items="overview!.Rows.Select(r => r.CostType).ToList()" Text="@(t => CostTypeName(t))" EmptyText="– bitte wählen –" />
+            <AppTextField @bind-Value="Subtype.Name" Label="Name der Unterart" Required="true" />
+        </text>;
+        if (await Dialogs.ShowFormAsync("Unterart anlegen", Subtype, fields, () => Subtypes.AddAsync(Subtype.CostType, Subtype.Name), "Unterart anlegen"))
+        {
+            Notify.Success("Die Unterart wurde angelegt.");
+            await LoadAsync();
+        }
+    }
+
+    private async Task RemoveSubtypeAsync(CostSubtypeView subtype)
+    {
+        if (await Confirm.AskAsync("Unterart entfernen", $"Soll die Unterart „{subtype.Name}“ entfernt werden?", "Ja, entfernen"))
+        {
+            await DoneAsync(await Subtypes.RemoveAsync(subtype.Id), "Die Unterart wurde entfernt.");
+        }
+    }
+
+    private async Task<bool> DoneAsync(Result result, string message)
+    {
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(message);
+        }
+
+        await LoadAsync();
+        return result.Succeeded;
+    }
+
+    private static string KeyText(CostRuleView rule) => rule.Key switch
+    {
+        AllocationKey.Consumption => $"Verbrauch ({Labels.From(rule.MeterType ?? MeterType.ColdWater)})",
+        AllocationKey.FixedPercent => "Fester Prozentsatz: " + string.Join(", ", rule.Shares.Select(a => $"{a.UnitName} {Format.Number(a.Percent)} %")),
+        _ => Labels.From(rule.Key),
+    };
+
+    private static string PreDeduction(CostRuleView rule) =>
+        rule.PreDeductionPercent is { } percent ? $"{Format.Number(percent)} %{Note(rule)}"
+        : rule.PreDeductionAmount is { } amount ? $"{Format.Money(amount)} / Jahr{Note(rule)}"
+        : "";
+
+    private static string Note(CostRuleView rule) => rule.PreDeductionNote is { } note ? $" ({note})" : "";
+
+    private sealed class EndInput
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte die Kostenart wählen.")]
+        public string CostType { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte den letzten Tag angeben.")]
+        public DateOnly? LastDay { get; set; }
+    }
+
+    private sealed class SubtypeInput
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte die Kostenart wählen.")]
+        public string CostType { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte einen Namen angeben.")]
+        [System.ComponentModel.DataAnnotations.StringLength(100)]
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class FlatInput
+    {
+        public string? UnitId { get; set; }
+
+        public string? Mode { get; set; }
+    }
+}

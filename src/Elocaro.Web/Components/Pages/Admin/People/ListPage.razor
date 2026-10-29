@@ -1,0 +1,110 @@
+@page "/verwaltung/personen"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IPersonService Admin
+
+<InteractiveShell>
+    <PageHeader Title="Personen" Subtitle="Mieter, Bürgen und Kontakte wie Hausmeister, Handwerker und Versorger.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/personen/neu">Person anlegen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <div class="form-row search-bar" role="search">
+        <MudTextField T="string" ShrinkLabel="true" Label="Suche" Value="@search" Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="OnSearchChanged"
+                      Variant="Variant.Outlined" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Placeholder="Name, E-Mail, Telefon, IBAN, Gewerk" />
+        <MudSelect T="PersonFilter" Label="Anzeigen" Value="filter" ValueChanged="OnFilterChanged" Variant="Variant.Outlined">
+            <MudSelectItem Value="PersonFilter.All">Alle</MudSelectItem>
+            <MudSelectItem Value="PersonFilter.Private">Mieter &amp; Privatpersonen</MudSelectItem>
+            <MudSelectItem Value="PersonFilter.Contacts">Kontakte</MudSelectItem>
+        </MudSelect>
+    </div>
+
+    <MudTable T="PersonOverview" Items="people" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25"
+             >
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="PersonOverview" SortBy="@(p => p.SortName)" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel></MudTh>
+            <MudTh>Rolle</MudTh>
+            <MudTh><MudTableSortLabel T="PersonOverview" SortBy="@(p => p.City)">Ort</MudTableSortLabel></MudTh>
+            <MudTh>Kontakt</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">
+                <a href="/verwaltung/personen/@context.Id">@context.SortName</a>
+                @if (context.HasAccess)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text" title="Hat einen Zugang">Zugang</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Rolle">@RoleText(context)</MudTd>
+            <MudTd DataLabel="Ort">@context.City</MudTd>
+            <MudTd DataLabel="Kontakt">
+                @if (context.Email is not null)
+                {
+                    <a href="mailto:@context.Email">@context.Email</a>
+                }
+                @if (context.Phone is not null)
+                {
+                    <span class="small">&#32;@context.Phone</span>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <EmptyState Text="@EmptyText" />
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+        </PagerContent>
+    </MudTable>
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<PersonOverview> people = [];
+    private string? search;
+    private PersonFilter filter = PersonFilter.All;
+
+    // The query string only provides the start values (a static router does not pass later URL changes on to a page that is
+    // interactive on its own); afterwards the state of the component counts.
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? InitialSearch { get; set; }
+
+    // Enums cannot be bound directly from the query string.
+    [SupplyParameterFromQuery(Name = "filter")]
+    private string? InitialFilter { get; set; }
+
+    private string EmptyText => !string.IsNullOrWhiteSpace(search) ? $"Keine Treffer für „{search}“."
+        : filter != PersonFilter.All ? "Keine Personen in dieser Auswahl." : "Noch keine Personen.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        search = InitialSearch;
+        filter = Enum.TryParse<PersonFilter>(InitialFilter, out var initial) ? initial : PersonFilter.All;
+        await LoadAsync();
+    }
+
+    private async Task OnSearchChanged(string? text)
+    {
+        search = text;
+        await LoadAsync();
+    }
+
+    private async Task OnFilterChanged(PersonFilter value)
+    {
+        filter = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => people = await Admin.SearchAsync(new PersonQuery(search, filter));
+
+    private static string RoleText(PersonOverview person)
+    {
+        var parts = new List<string>(person.Roles);
+        if (person.ContactType != ContactType.None)
+        {
+            parts.Add(Labels.From(person.ContactType) + (person.Occupation is null ? "" : $" ({person.Occupation})"));
+        }
+
+        return parts.Count == 0 ? "–" : string.Join(", ", parts);
+    }
+}

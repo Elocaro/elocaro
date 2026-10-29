@@ -1,0 +1,69 @@
+@page "/verwaltung/personen/aenderungen"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.People
+@inject IContactChangeRequests Requests
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="Änderungen der Kontaktdaten" Subtitle="Von Mietern im Portal beantragt; sie gelten erst nach Ihrer Bestätigung." />
+
+    <ErrorList Errors="errors" />
+
+    @if (items is { Count: 0 })
+    {
+        <EmptyState Text="Keine offenen Anträge." />
+    }
+    else if (items is not null)
+    {
+        <div class="work-list">
+            @foreach (var item in items)
+            {
+                <section class="work-card">
+                    <h2><a href="/verwaltung/personen/@item.PersonId">@item.Person</a></h2>
+                    <p class="small">Beantragt am @Format.Timestamp(item.RequestedAt)</p>
+                    <dl class="details">
+                        <dt>E-Mail</dt><dd>@Change(item.CurrentEmail, item.Email)</dd>
+                        <dt>Telefon</dt><dd>@Change(item.CurrentPhone, item.Phone)</dd>
+                        <dt>Mobil</dt><dd>@Change(item.CurrentMobile, item.Mobile)</dd>
+                    </dl>
+                    <div class="actions">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApproveAsync(item)">Übernehmen</MudButton>
+                        <MudButton Variant="Variant.Outlined" OnClick="() => RejectAsync(item)">Ablehnen</MudButton>
+                    </div>
+                </section>
+            }
+        </div>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<ContactChangeView>? items;
+    private IReadOnlyList<string>? errors;
+
+    protected override async Task OnInitializedAsync() => items = await Requests.OpenAsync();
+
+    private static string Change(string? current, string? requested) =>
+        current == requested ? (current ?? "–") + " (unverändert)" : $"{current ?? "–"} → {requested ?? "(entfällt)"}";
+
+    private async Task ApproveAsync(ContactChangeView item)
+    {
+        await Finish(await Requests.ApproveAsync(item.Id), "Die Kontaktdaten wurden übernommen.");
+    }
+
+    private async Task RejectAsync(ContactChangeView item)
+    {
+        await Finish(await Requests.RejectAsync(item.Id, null), "Der Antrag wurde abgelehnt.");
+    }
+
+    private async Task Finish(Elocaro.Application.Common.Result result, string success)
+    {
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+        }
+
+        items = await Requests.OpenAsync();
+    }
+}

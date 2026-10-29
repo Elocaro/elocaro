@@ -1,0 +1,76 @@
+@using MudBlazor
+@inject ISupplyContracts Supply
+@inject Notifier Notify
+
+@* Dialog "new tariff" of a supply contract. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <p class="small">@(Tariff is null ? "Der bisherige Tarif endet am Vortag." : "Der Beginn muss zwischen dem Beginn des vorherigen und des nächsten Tarifs liegen.")</p>
+            <div class="form-grid">
+                <AppDateField @bind-Value="data.From" Label="Gilt ab" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="data.UnitPrice" Label="@($"Preis ({Labels.From(PriceUnit)}, brutto)")" />
+                <AppNumberField T="decimal?" @bind-Value="data.BaseFeePerMonth" Label="Grundpreis je Monat (brutto)" Suffix="€" />
+                <AppTextField @bind-Value="data.Note" Label="Notiz" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Tarif speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly SupplyTariffInput data = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid ContractId { get; set; }
+
+    /// <summary>Set: edit this tariff instead of adding a new one.</summary>
+    [Parameter]
+    public SupplyTariffView? Tariff { get; set; }
+
+    [Parameter]
+    public PriceUnit PriceUnit { get; set; }
+
+    [Parameter]
+    public DateOnly DefaultFrom { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Tariff is { } tariff)
+        {
+            data.From = tariff.Validity.From;
+            data.UnitPrice = tariff.UnitPrice;
+            data.BaseFeePerMonth = tariff.BaseFeePerMonth;
+            data.Note = tariff.Note;
+        }
+        else
+        {
+            data.From = DefaultFrom;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = Tariff is { } tariff ? await Supply.UpdateTariffAsync(ContractId, tariff.Id, data) : await Supply.AddTariffAsync(ContractId, data);
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Tarif wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(result.Id));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

@@ -1,0 +1,54 @@
+@using MudBlazor
+@inject ILeaseService Leases
+@inject Notifier Notify
+
+@* Dialog "edit rent step": corrects date and rent of a step that has not been adopted yet. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <div class="form-grid">
+                <AppDateField @bind-Value="data.From" Label="Ab" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="data.BaseRent" Label="Neue Kaltmiete" Suffix="€" Required="true" />
+            </div>
+            <p class="small">§ 557a BGB: Die Miete muss jeweils mindestens ein Jahr unverändert bleiben.</p>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private RentStepInput data = new();
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid LeaseId { get; set; }
+
+    [Parameter, EditorRequired]
+    public RentStepView Step { get; set; } = default!;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized() => data = new RentStepInput { From = Step.From, BaseRent = Step.BaseRent };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Leases.UpdateRentStepAsync(LeaseId, Step.Id, data);
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Staffel wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(Step.Id));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

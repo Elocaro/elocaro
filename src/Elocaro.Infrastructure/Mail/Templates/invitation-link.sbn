@@ -1,0 +1,10 @@
+{{ capture subject }}Ihr Zugang zu Elocaro{{ if landlord }} ({{ landlord }}){{ end }}{{ end }}
+<p>Hallo {{ display_name }},</p>
+{{ if landlord }}
+<p><strong>{{ landlord }}</strong> hat für Sie einen Zugang als <strong>{{ role }}</strong> zum Mieterportal eingerichtet. Dort finden Sie Ihre Dokumente und Vertragsdaten und können Nachrichten und Meldungen senden. Über den folgenden Link melden Sie sich an – ein Passwort ist nicht nötig:</p>
+{{ else }}
+<p>für Sie wurde ein Zugang als <strong>{{ role }}</strong> eingerichtet. Über den folgenden Link melden Sie sich an – ein Passwort ist nicht nötig:</p>
+{{ end }}
+<p><a href="{{ link }}">Jetzt anmelden</a></p>
+<p>Der Link ist {{ valid_days }} Tage gültig und kann nur einmal verwendet werden. Später können Sie jederzeit auf der Anmeldeseite einen neuen Link anfordern.</p>
+<p>Falls Sie diese Nachricht nicht erwartet haben, können Sie sie ignorieren.</p>

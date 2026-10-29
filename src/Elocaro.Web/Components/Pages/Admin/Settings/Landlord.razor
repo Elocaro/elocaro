@@ -1,0 +1,130 @@
+@page "/verwaltung/einstellungen/vermieter"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Elocaro.Application.Admin
+@inject ILandlordProfileService Profile
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Vermieter" Subtitle="Absenderangaben für Briefkopf, Fußzeile und Zahlungshinweise in Dokumenten." />
+
+    @if (profiles.Count > 0)
+    {
+        <nav class="tab-bar" aria-label="Vermieterprofile">
+            @foreach (var row in profiles)
+            {
+                <a href="@(row.IsDefault ? "/verwaltung/einstellungen/vermieter" : $"/verwaltung/einstellungen/vermieter?profil={row.Id}")" aria-current="@(row.Id == Selected?.Id || (Selected is null && row.IsDefault) ? "page" : null)">@(row.IsDefault ? $"{row.Name} (Standard)" : row.Name)</a>
+            }
+
+            <a href="/verwaltung/einstellungen/vermieter?profil=neu" aria-current="@(creating ? "page" : null)">+ Weiteres Profil</a>
+        </nav>
+        <details class="explain">
+            <summary>Mehrere Vermieter</summary>
+            <p class="small">Das Standardprofil gilt für alle Objekte. Bei Miteigentum oder mehreren Vermietern lässt sich je Objekt ein anderes Profil wählen (Objekt → Angaben → „Absender auf Dokumenten“).</p>
+        </details>
+    }
+
+    @if (newItem)
+    {
+        <Notice Level="NoticeLevel.Info">Noch kein Vermieterprofil hinterlegt – ohne diese Angaben können keine Dokumente erzeugt werden.</Notice>
+    }
+
+    @if (data is not null)
+    {
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Name" Label="Name" Required="true" Autocomplete="name" />
+                <AppTextField @bind-Value="data.AddressLine2" Label="Zusatz" Hint="z. B. „Hausverwaltung Hauptstraße 5“" />
+                <AppTextField @bind-Value="data.Street" Label="Straße und Hausnummer" Required="true" Autocomplete="street-address" />
+                <AppTextField @bind-Value="data.PostalCode" Label="PLZ" Required="true" Autocomplete="postal-code" />
+                <AppTextField @bind-Value="data.City" Label="Ort" Required="true" Autocomplete="address-level2" />
+                <AppTextField @bind-Value="data.Phone" Label="Telefon" Type="tel" Autocomplete="tel" />
+                <AppTextField @bind-Value="data.Email" Label="E-Mail" Type="email" Autocomplete="email" />
+            </div>
+
+            <h2>Bankverbindung &amp; Steuer</h2>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Iban" Label="IBAN" Hint="Erscheint in der Fußzeile und in Zahlungsaufforderungen." />
+                <AppTextField @bind-Value="data.Bic" Label="BIC" />
+                <AppTextField @bind-Value="data.Bank" Label="Bank" />
+                <AppTextField @bind-Value="data.TaxNumber" Label="Steuernummer" />
+            </div>
+
+            <h2>Notdienst</h2>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.EmergencyInfo" Label="Notdienst für Mieter" Lines="3" Hint="Nummern und Hinweise für Notfälle (Wasserrohrbruch, Gas, Heizungsausfall); erscheint im Portal." />
+            </div>
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+            @if (Selected is { IsDefault: false } chosen)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(chosen)">Profil löschen</MudButton>
+            }
+        </EditForm>
+        <ErrorList Errors="errors" />
+    }
+</InteractiveShell>
+
+@code {
+    private bool newItem;
+    private bool creating;
+    private LandlordProfileInput? data;
+    private IReadOnlyList<LandlordProfileRow> profiles = [];
+    private IReadOnlyList<string>? errors;
+
+    [SupplyParameterFromQuery(Name = "profil")]
+    private string? ProfileKey { get; set; }
+
+    private LandlordProfileRow? Selected => Guid.TryParse(ProfileKey, out var id) ? profiles.FirstOrDefault(p => p.Id == id) : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        profiles = await Profile.ListAsync();
+        creating = ProfileKey == "neu" && profiles.Count > 0;
+        var loaded = creating ? null : Selected is { } chosen ? await Profile.GetAsync(chosen.Id) : await Profile.GetAsync();
+        newItem = !creating && loaded is null;
+        data = loaded ?? new();
+    }
+
+    private async Task SaveAsync()
+    {
+        errors = null;
+        if (creating || Selected is not null)
+        {
+            var result = await Profile.SaveAsync(creating ? null : Selected!.Id, data!);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            Notify.Success("Die Vermieterangaben wurden gespeichert.");
+            Navigation.NavigateTo($"/verwaltung/einstellungen/vermieter?profil={result.Id}", forceLoad: true);
+            return;
+        }
+
+        await Profile.SaveAsync(data!);
+        newItem = false;
+        profiles = await Profile.ListAsync();
+        Notify.Success("Die Vermieterangaben wurden gespeichert.");
+    }
+
+    private async Task DeleteAsync(LandlordProfileRow row)
+    {
+        if (await Confirm.AskAsync("Profil löschen", $"Soll das Profil „{row.Name}“ gelöscht werden?", "Ja, löschen"))
+        {
+            var result = await Profile.DeleteAsync(row.Id);
+            if (result.Succeeded)
+            {
+                Navigation.NavigateTo("/verwaltung/einstellungen/vermieter", forceLoad: true);
+            }
+            else
+            {
+                errors = result.Errors;
+            }
+        }
+    }
+}

@@ -1,0 +1,41 @@
+@inherits LayoutComponentBase
+@using Elocaro.Application.Admin
+@using Elocaro.Application.Portfolio
+@inject NavigationManager Navigation
+@inject IModuleState Modules
+@inject INavigationContext NavContext
+
+<SkipLink />
+<div class="@("app app-admin" + (IsFocus ? " is-focus" : ""))">
+    <header class="top-bar">
+        <BrandMark Href="/verwaltung" />
+        <QuickSearch @rendermode="InteractiveServer" />
+        <UserMenu />
+    </header>
+    <nav class="sidebar" aria-label="Hauptnavigation">
+        <AdminNavigation />
+    </nav>
+    <div class="@("workspace" + (HasTabs ? " has-tabs" : ""))">
+        <ContextBar Context="context" />
+        <RecordHeader Property="context?.Property" />
+        <ContextTabs PropertyId="context?.PropertyId" />
+        <main id="content" class="content">
+            @Body
+        </main>
+    </div>
+    <BottomBar />
+</div>
+
+@code {
+    // With a tab bar the "back to the list" link of a page is redundant on wide screens (the tab leads there).
+    // The setup wizard takes the whole window: no navigation that leads away in the middle of it.
+    private bool IsFocus => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/verwaltung/einrichtung", StringComparison.OrdinalIgnoreCase);
+
+    private bool HasTabs => AdminNavModel.TabsFor(Path, Modules, context?.PropertyId) is not null;
+
+    private PageContext? context;
+
+    private string Path => new Uri(Navigation.Uri).AbsolutePath;
+
+    protected override async Task OnParametersSetAsync() => context = await NavContext.ResolveAsync(Path);
+}

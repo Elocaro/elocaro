@@ -1,0 +1,61 @@
+@using Elocaro.Application.Admin
+@inject IModuleState State
+@* Fields of a unit; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Wohnung 1“" />
+    <AppTextField @bind-Value="Data.Location" Label="Lage" Hint="z. B. „EG links“" />
+    <AppSelect @bind-Value="Data.Type" Label="Art" Items="Types" Text="@(v => Labels.From(v))" />
+    <AppNumberField T="decimal?" @bind-Value="Data.RoomCount" Label="Zimmeranzahl" Hint="z. B. 2,5" />
+    <AppTextField @bind-Value="Data.Bathroom" Label="Bad" Hint="z. B. „Wanne und Dusche, Fenster“" />
+    <AppTextField @bind-Value="Data.EnergyStandard" Label="Energiestandard" />
+</div>
+<div class="form-row">
+    <AppCheckBox @bind-Value="Data.Balcony" Label="Balkon/Terrasse" />
+    <AppCheckBox @bind-Value="Data.FittedKitchen" Label="Einbauküche" />
+</div>
+<AppTextField @bind-Value="Data.Amenities" Label="Weitere Ausstattung" Lines="2" />
+<fieldset class="field">
+    <legend>Von den Mietern selbst bezahlt</legend>
+    <details class="explain">
+        <summary>Direkt abgerechnete Kosten</summary>
+        <p class="small">Kosten, die die Mieter dieser Wohnung direkt an den Versorger zahlen. Die Wohnung nimmt an der Umlage dieser Kostenart nicht teil, weder Mieter noch Vermieter tragen einen Anteil dafür.</p>
+    </details>
+    @foreach (var type in SelfPayable)
+    {
+        <AppCheckBox Value="Data.SelfPaidCostTypes.Contains(type.Key)" ValueChanged="@(v => TogglePaid(type.Key, v))" Label="@(type.BetrKvNumber is { } n ? $"{n}. {type.Name}" : type.Name)" />
+    }
+</fieldset>
+
+@code {
+    [Parameter, EditorRequired]
+    public UnitInput Data { get; set; } = default!;
+
+    /// <summary>Cost types that are typically paid by the tenants themselves.</summary>
+    private static readonly string[] selfPayable = ["betrkv-02", "betrkv-03", "betrkv-08", "betrkv-11", "betrkv-15", "betrkv-16"];
+
+    private static IEnumerable<Elocaro.Domain.Receipts.CostType> SelfPayable => Elocaro.Domain.Receipts.CostTypes.All.Where(t => selfPayable.Contains(t.Key));
+
+    private void TogglePaid(string key, bool paid)
+    {
+        if (paid)
+        {
+            if (!Data.SelfPaidCostTypes.Contains(key))
+            {
+                Data.SelfPaidCostTypes.Add(key);
+            }
+        }
+        else
+        {
+            Data.SelfPaidCostTypes.Remove(key);
+        }
+    }
+}
+
+@code {
+    /// <summary>Unit types on offer: apartments and other units always, parking spaces and commercial units when used.</summary>
+    private IReadOnlyList<UnitType> Types => Enum.GetValues<UnitType>()
+        .Where(t => t is UnitType.Apartment or UnitType.Miscellaneous || t == Data.Type
+            || (t == UnitType.ParkingSpace && State.IsVisible(AppOption.UnitParking))
+            || (t == UnitType.Commercial && State.IsVisible(AppOption.UnitCommercial)))
+        .ToList();
+}

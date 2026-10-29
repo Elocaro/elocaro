@@ -1,0 +1,61 @@
+@using MudBlazor
+@using System.ComponentModel.DataAnnotations
+@inject IAccountService Accounts
+@inject Notifier Notify
+
+@* Dialog "invite person": creates the account and sends the invitation mail. *@
+<EditForm Model="invitation" OnValidSubmit="InviteAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <div class="form-grid">
+                <AppTextField @bind-Value="invitation.DisplayName" Label="Name" Required="true" />
+                <AppTextField @bind-Value="invitation.Email" Label="E-Mail-Adresse" Type="email" Required="true" />
+                <AppSelect @bind-Value="invitation.Role" Label="Rolle" Items="Roles.All" Text="@(r => Roles.DisplayName(r!))" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Einladung senden</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly InvitationInput invitation = new();
+    private IReadOnlyList<string>? errors;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task InviteAsync()
+    {
+        var result = await Accounts.InviteAsync(invitation.Email.Trim(), invitation.DisplayName.Trim(), invitation.Role);
+        if (result.Succeeded)
+        {
+            Notify.Success($"Die Einladung an {invitation.Email} wurde verschickt.");
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private sealed class InvitationInput
+    {
+        [Required(ErrorMessage = "Bitte einen Namen angeben.")]
+        [StringLength(200)]
+        public string DisplayName { get; set; } = "";
+
+        [Required(ErrorMessage = "Bitte eine E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        public string Role { get; set; } = Roles.Tenant;
+    }
+}

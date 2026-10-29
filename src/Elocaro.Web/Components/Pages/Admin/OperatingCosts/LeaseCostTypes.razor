@@ -1,0 +1,90 @@
+@page "/verwaltung/vertraege/{LeaseId:guid}/kostenarten"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject ICostAllocation Allocation
+@inject Notifier Notify
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (agreement is null)
+{
+    <PageHeader Title="Vertrag nicht gefunden" Back="/verwaltung/vertraege" BackText="Alle Verträge" />
+}
+else
+{
+    <PageHeader Title="Vereinbarte Kostenarten" Subtitle="@agreement.Description" Back="@($"/verwaltung/vertraege/{LeaseId}")" BackText="Zum Mietvertrag" />
+
+    <ErrorList Errors="errors" />
+
+    <details class="explain">
+        <summary>Warum nur vereinbarte Kostenarten?</summary>
+        <p class="small">
+        Nur Kostenarten, die im Mietvertrag als umlagefähig vereinbart sind, dürfen dem Mieter in Rechnung gestellt werden (§ 556 Abs. 1 BGB, BetrKV).
+        Standard: alle Kostenarten laut Vertragsvorlage. Der Anteil einer nicht vereinbarten Kostenart bleibt beim Vermieter.
+    </p>
+    </details>
+
+    <div class="table-wrapper">
+        <table class="data-table" id="agreement" data-nostack>
+            <thead><tr><th>Nr. (BetrKV)</th><th>Kostenart (Haken = vereinbart)</th></tr></thead>
+            <tbody>
+                @foreach (var row in agreement.Rows)
+                {
+                    <tr>
+                        <td>@(row.BetrKvNumber is { } n ? $"{n}." : "")</td>
+                        <td><AppCheckBox Value="agreed.Contains(row.CostType)" ValueChanged="@(on => Toggle(row.CostType, on))" Label="@row.Name" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Speichern</MudButton>
+}
+</InteractiveShell>
+
+@code {
+    private LeaseCostAgreement? agreement;
+    private IReadOnlyList<string>? errors;
+    private readonly HashSet<string> agreed = [];
+    private bool loaded;
+
+    [Parameter]
+    public Guid LeaseId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        agreement = await Allocation.GetLeaseAgreementAsync(LeaseId);
+        if (agreement is not null)
+        {
+            agreed.UnionWith(agreement.Rows.Where(r => r.Agreed).Select(r => r.CostType));
+        }
+
+        loaded = true;
+    }
+
+    private void Toggle(string costType, bool on)
+    {
+        if (on)
+        {
+            agreed.Add(costType);
+        }
+        else
+        {
+            agreed.Remove(costType);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var excluded = agreement!.Rows.Select(r => r.CostType).Where(t => !agreed.Contains(t)).ToList();
+        var result = await Allocation.SetLeaseAgreementAsync(LeaseId, excluded);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die vereinbarten Kostenarten wurden gespeichert.");
+        }
+    }
+}

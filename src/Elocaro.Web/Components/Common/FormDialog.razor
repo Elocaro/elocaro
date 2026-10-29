@@ -1,0 +1,58 @@
+@using MudBlazor
+@using Elocaro.Application.Common
+
+@* Generic dialog around a small form: the page supplies the model, the fields and the save call (see FormDialogExtensions.ShowFormAsync). *@
+<EditForm Model="Model" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            <div class="form-grid">
+                @Fields
+            </div>
+            @Note
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@SubmitText</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public object Model { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public RenderFragment Fields { get; set; } = default!;
+
+    /// <summary>Explanation below the fields.</summary>
+    [Parameter]
+    public RenderFragment? Note { get; set; }
+
+    [Parameter, EditorRequired]
+    public Func<Task<Result>> Save { get; set; } = default!;
+
+    [Parameter]
+    public string SubmitText { get; set; } = "Speichern";
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        var result = await Save();
+        if (result.Succeeded)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

@@ -1,0 +1,40 @@
+@using MudBlazor
+
+@* Dialog "flat" of the setup wizard: adds a row or changes one. *@
+<EditForm Model="data" OnValidSubmit="Save" novalidate class="dialog-form">
+    <MudDialog>
+        <DialogContent>
+            <div class="form-grid">
+                <AppTextField @bind-Value="data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Wohnung 1, EG links“" />
+                <AppNumberField T="decimal?" @bind-Value="data.Area" Label="Wohnfläche" Suffix="m²" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(Existing is null ? "Hinzufügen" : "Übernehmen")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private readonly SetupUnitRow data = new();
+
+    [Parameter]
+    public SetupUnitRow? Existing { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } row)
+        {
+            data.Name = row.Name;
+            data.Area = row.Area;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save() => MudDialog.Close(DialogResult.Ok(data));
+}

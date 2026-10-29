@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+
+<SkipLink />
+<div class="app app-simple">
+    <header class="top-bar">
+        <BrandMark Href="/portal" />
+        <UserMenu />
+    </header>
+    <div class="workspace">
+        <nav class="tab-bar" aria-label="Hauptnavigation">
+            <NavLink href="/portal" Match="NavLinkMatch.All">Übersicht</NavLink>
+            <NavLink href="/portal/tickets">Meldungen</NavLink>
+            <NavLink href="/portal/nachrichten">Nachrichten</NavLink>
+            <NavLink href="/portal/konto">Konto</NavLink>
+            <NavLink href="/portal/dokumente">Dokumente</NavLink>
+            <NavLink href="/portal/verbrauch">Verbrauch</NavLink>
+            <NavLink href="/portal/zaehler">Zählerstände</NavLink>
+            <NavLink href="/portal/vertrag">Vertrag</NavLink>
+            <NavLink href="/portal/kontakt">Kontakt</NavLink>
+        </nav>
+        <main id="content" class="content">
+            @Body
+        </main>
+    </div>
+</div>

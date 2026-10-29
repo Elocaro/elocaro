@@ -1,0 +1,24 @@
+@using MudBlazor
+
+@* Dialog "ignore transaction": optional note why (private, transfer between own accounts …). Result: the note (empty if none). *@
+<MudDialog>
+    <DialogContent>
+        <p>Ignorierte Umsätze tauchen weder in der Zuordnung noch in den Auswertungen auf; sie lassen sich später wieder öffnen.</p>
+        <AppTextField @bind-Value="note" Label="Notiz (optional)" Placeholder="z. B. privat, Umbuchung" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Ignorieren</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? note;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(note ?? ""));
+}

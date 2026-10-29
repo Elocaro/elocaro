@@ -1,0 +1,3 @@
+Buchungstag;Wertstellung;Umsatzart;Buchungstext;Betrag;Währung;IBAN Kontoinhaber
+05.02.2026;05.02.2026;Lastschrift;Empfänger: Stadtwerke Musterstadt Buchungstext: Abschlag Strom Allgemein 02/2026 Ref. 98765/1;-84,50;EUR;DE89370400440532013000
+02.02.2026;02.02.2026;Gutschrift;Auftraggeber: Anna Schmidt Buchungstext: Miete Februar 2026 Ref. 1234567890/12;770,00;EUR;DE89370400440532013000

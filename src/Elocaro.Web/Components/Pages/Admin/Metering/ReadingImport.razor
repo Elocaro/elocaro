@@ -1,0 +1,131 @@
+@page "/verwaltung/objekte/{PropertyId:guid}/zaehlerimport"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IMeterImport Import
+@inject IPropertyService Properties
+@inject Notifier Notify
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (property is null)
+{
+    <PageHeader Title="Objekt nicht gefunden" Back="/verwaltung/objekte" BackText="Alle Objekte" />
+}
+else
+{
+    <PageHeader Title="Zählerstände importieren" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name" />
+
+    <details class="explain">
+        <summary>Welche Dateien passen?</summary>
+        <p class="small">
+        CSV-Export eines Funkablesesystems (z. B. von Techem, ista, Minol, Brunata oder Kamstrup). Die Spalten werden an der Kopfzeile erkannt:
+        Zählernummer, Datum und Zählerstand. Die Zähler müssen im Objekt mit derselben Nummer angelegt sein. Ein Stand, der schon erfasst ist, wird übersprungen;
+        rückwärts laufende Stände und Stände außerhalb der Einbauzeit werden nicht übernommen.
+    </p>
+    </details>
+
+    <AppFileUpload Text="CSV-Datei wählen" Accept=".csv,.txt" OnSelected="SelectedAsync" />
+    <ErrorList Errors="errors" />
+
+    @if (preview is not null)
+    {
+        <ErrorList Errors="preview.Errors" />
+        @if (preview.Rows.Count > 0)
+        {
+            <p>@preview.New neue Stände von @preview.Rows.Count Zeilen.</p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Zeile</th><th>Zähler</th><th>Datum</th><th class="number">Stand</th><th>Ergebnis</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in preview.Rows.Take(500))
+                        {
+                            <tr>
+                                <td>@row.Line</td>
+                                <td>@row.MeterNumber@(row.MeterName is null ? "" : $" · {row.MeterName}")</td>
+                                <td>@(row.Date is { } date ? Format.Date(date) : "–")</td>
+                                <td class="number">@(row.Value is { } value ? value.ToString("#,##0.###", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) : "–")</td>
+                                <td><StatusChip Level="@LevelOf(row.Status)">@TextOf(row.Status)</StatusChip> @row.Note</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (preview.Rows.Count > 500)
+            {
+                <p class="small">Angezeigt sind die ersten 500 Zeilen; übernommen werden alle neuen Stände.</p>
+            }
+        }
+
+        @if (preview.CanImport)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ImportAsync" Disabled="busy">@preview.New Stände übernehmen</MudButton>
+        }
+    }
+}
+</InteractiveShell>
+
+@code {
+    private PropertyDetails? property;
+    private ReadingImportPreview? preview;
+    private byte[]? file;
+    private IReadOnlyList<string>? errors;
+    private bool loaded;
+    private bool busy;
+
+    [Parameter]
+    public Guid PropertyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        property = await Properties.GetAsync(PropertyId);
+        loaded = true;
+    }
+
+    private async Task SelectedAsync(FileSelection selection)
+    {
+        errors = null;
+        await using var content = selection.Open();
+        using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer);
+        file = buffer.ToArray();
+        preview = await Import.PreviewAsync(PropertyId, file);
+    }
+
+    private async Task ImportAsync()
+    {
+        busy = true;
+        try
+        {
+            var outcome = await Import.ImportAsync(PropertyId, file!);
+            errors = outcome.Succeeded ? null : outcome.Errors;
+            if (outcome.Succeeded)
+            {
+                Notify.Success($"{outcome.Imported} Zählerstände wurden übernommen" + (outcome.Skipped > 0 ? $", {outcome.Skipped} Zeilen übersprungen." : "."));
+                preview = null;
+                file = null;
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static StatusLevel LevelOf(ImportRowStatus status) => status switch
+    {
+        ImportRowStatus.New => StatusLevel.Success,
+        ImportRowStatus.Duplicate => StatusLevel.Neutral,
+        _ => StatusLevel.Warning,
+    };
+
+    private static string TextOf(ImportRowStatus status) => status switch
+    {
+        ImportRowStatus.New => "neu",
+        ImportRowStatus.Duplicate => "schon erfasst",
+        ImportRowStatus.UnknownMeter => "Zähler unbekannt",
+        _ => "nicht übernommen",
+    };
+}

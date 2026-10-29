@@ -1,0 +1,38 @@
+@* Fields of a receipt for interactive pages; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    <OptionSelect @bind-Value="Data.SupplierId" Label="Lieferant (Kontakt)" Options="Options.Suppliers.Select(l => (l.Id, l.Name)).ToList()" />
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.SupplierName))"><AppTextField @bind-Value="Data.SupplierName" Label="oder Name" Hint="Kontakte unter Personen anlegen; sonst hier den Namen eintragen." /></UncertainMark>
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.InvoiceNumber))"><AppTextField @bind-Value="Data.InvoiceNumber" Label="Rechnungsnummer" /></UncertainMark>
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.InvoiceDate))"><AppDateField @bind-Value="Data.InvoiceDate" Label="Rechnungsdatum" Required="true" /></UncertainMark>
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.ServiceFrom))"><AppDateField @bind-Value="Data.ServiceFrom" Label="Leistung von" /></UncertainMark>
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.ServiceTo))"><AppDateField @bind-Value="Data.ServiceTo" Label="Leistung bis" /></UncertainMark>
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Gross))"><AppNumberField T="decimal?" @bind-Value="Data.Gross" Label="Brutto" Suffix="€" Required="true" Hint="Gutschriften negativ" /></UncertainMark>
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Net))"><AppNumberField T="decimal?" @bind-Value="Data.Net" Label="Netto" Suffix="€" /></UncertainMark>
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Vat))"><AppNumberField T="decimal?" @bind-Value="Data.Vat" Label="Umsatzsteuer" Suffix="€" /></UncertainMark>
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.DueOn))"><AppDateField @bind-Value="Data.DueOn" Label="Fällig am" /></UncertainMark>
+    <AppDateField @bind-Value="Data.PaidOn" Label="Bezahlt am" Hint="Bei Bankumsätzen später über die Zuordnung." />
+</div>
+<details class="field">
+    <summary>Brennstoff (Menge, CO₂)</summary>
+    <div class="form-grid">
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.FuelQuantity))"><AppNumberField T="decimal?" @bind-Value="Data.FuelQuantity" Label="Menge" /></UncertainMark>
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.FuelUnit))"><AppTextField @bind-Value="Data.FuelUnit" Label="Einheit" Hint="l, kWh, kg, m³" /></UncertainMark>
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Co2Kg))"><AppNumberField T="decimal?" @bind-Value="Data.Co2Kg" Label="CO₂ (kg)" Hint="Pflichtangabe des Lieferanten (CO2KostAufG)" /></UncertainMark>
+    </div>
+</details>
+<AppCheckBox @bind-Value="Data.SupplierStatement" Label="Jahresabrechnung des Versorgers (keine Abschlagsrechnung)" />
+<AppTextField @bind-Value="Data.Note" Label="Notiz" Lines="2" />
+
+@code {
+    [Parameter, EditorRequired]
+    public ReceiptInput Data { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ReceiptOptions Options { get; set; } = default!;
+
+    /// <summary>Fields of an automatic suggestion that are uncertain (names of <see cref="ReceiptSuggestion"/>).</summary>
+    [Parameter]
+    public IReadOnlySet<string>? Uncertain { get; set; }
+
+    private bool Marked(string field) => Uncertain?.Contains(field) == true;
+}

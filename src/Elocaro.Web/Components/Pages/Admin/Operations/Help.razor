@@ -1,0 +1,41 @@
+@page "/verwaltung/hilfe"
+
+<PageTitle>Hilfe – Elocaro</PageTitle>
+<PageHeader Title="Hilfe" Subtitle="Schritt für Schritt durch die häufigsten Aufgaben, mit Fragen und Begriffen." />
+
+<nav aria-label="Auf dieser Seite" class="prose">
+    <a href="#erste-schritte">Erste Schritte</a> · <a href="#aufgaben">Aufgaben</a> · <a href="#faq">Fragen</a> · <a href="#glossar">Begriffe</a>
+</nav>
+
+<section id="erste-schritte" class="prose">
+    <h2>Erste Schritte</h2>
+    <ol>
+        <li><strong>Vermieterprofil:</strong> Einstellungen → Vermieter. Name, Anschrift und Bankverbindung stehen später auf allen Schreiben.</li>
+        <li><strong>Objekt und Einheiten:</strong> Bestand → Objekte → Neu. Legen Sie das Haus an, dann die Wohnungen mit Wohnfläche.</li>
+        <li><strong>Mieter und Vertrag:</strong> Bestand → Verträge → Neu. Mieter, Mietbeginn, Kaltmiete, Betriebskostenvorauszahlung und Kaution.</li>
+        <li><strong>Zahlungen:</strong> Unter Bank ein Konto anlegen und Umsätze importieren; Elocaro ordnet sie den Forderungen zu.</li>
+        <li><strong>Mieterzugang:</strong> Bei der Person (Personen → Mieter) den Portalzugang einrichten, damit er Zahlungen, Dokumente und Meldungen selbst sieht.</li>
+    </ol>
+    <p class="small">Hilfe beim Start: der Einrichtungsassistent auf der Übersicht und die Beispieldaten unter Einstellungen → Datenimport.</p>
+</section>
+
+<section id="aufgaben" class="prose">
+    <h2>Aufgaben</h2>
+    <h3>Mieter anlegen</h3>
+    <p>Bestand → Personen → Neu: Name, Anrede, Anschrift, E-Mail. Die Person wird danach im Vertrag als Mieter gewählt. Mehrere Mieter eines Vertrags sind möglich.</p>
+    <h3>Eine Zahlung einer Miete zuordnen</h3>
+    <p>Geld → Bank → Zuordnen: Zu jedem Umsatz schlägt Elocaro einen Vertrag und eine Forderung vor. Bestätigen Sie den Vorschlag oder wählen Sie selbst. Zahlungen außerhalb des Bankimports (etwa bar) erfassen Sie im Mieterkonto des Vertrags.</p>
+    <h3>Nebenkosten abrechnen</h3>
+    <p>Belege erfassen (Belege), dann beim Objekt Abrechnung → Neu. Prüfen Sie Kostenarten und Verteilung. Die Abrechnung geht dem Mieter spätestens zwölf Monate nach Ende des Abrechnungszeitraums zu.</p>
+    <h3>Miete erhöhen</h3>
+    <p>Im Vertrag unter „Vertrag“ → Mieterhöhung. Wählen Sie das Verfahren; Elocaro nennt Fristen und Grenzen und erzeugt das Schreiben als PDF.</p>
+    <h3>Mieterwechsel</h3>
+    <p>Im Vertrag unter „Ein- & Auszug“: Mieterwechsel, Übergabe Auszug mit Protokoll und Zählerständen; die Kaution rechnen Sie im Vertrag ab. Wohnungsgeberbestätigung und Kautionsabrechnung unter Kommunikation → Dokumente → Schreiben an Mieter erzeugen. Danach neuen Vertrag und Einzugsprotokoll anlegen.</p>
+</section>
+
+<div class="prose">
+    <HelpFaq />
+    <HelpGlossary />
+</div>
+
+<Notice Level="NoticeLevel.Info">Elocaro ersetzt keine Rechts- oder Steuerberatung. Prüfen Sie Texte und Beträge, bevor Sie sie verwenden.</Notice>

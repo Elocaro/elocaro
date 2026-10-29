@@ -1,0 +1,24 @@
+<p>Zum Vertrag: <strong>{{ contract_title }}</strong></p>
+<table>
+  <tbody>
+    <tr><td>Mietsache</td><td>{{ rental_unit }}</td></tr>
+    <tr><td>Mieter</td><td>{{ tenants }}</td></tr>
+    <tr><td>Dokument (Entwurf)</td><td>{{ document_name }}</td></tr>
+    <tr><td>Prüfsumme SHA-256</td><td style="font-family: monospace; word-break: break-all;">{{ document_hash }}</td></tr>
+  </tbody>
+</table>
+
+<h2>Unterschriften</h2>
+{{~ for s in signers ~}}
+<table>
+  <tbody>
+    <tr><td>{{ s.role }}</td><td><strong>{{ s.name }}</strong></td></tr>
+    <tr><td>Eingegebener Name</td><td>{{ s.typed_name }}</td></tr>
+    <tr><td>Zeitpunkt</td><td>{{ s.signed_at }}</td></tr>
+    <tr><td>IP-Adresse</td><td>{{ s.ip_address }}</td></tr>
+    <tr><td>Unterschrift</td><td>{{ if s.image }}{{ s.image }}{{ else }}<em>nur Namenseingabe</em>{{ end }}</td></tr>
+  </tbody>
+</table>
+{{~ end ~}}
+
+<p class="small">Die Unterzeichner haben das oben genannte Dokument über einen persönlichen Link aufgerufen, gelesen und mit einer einfachen elektronischen Signatur unterschrieben. Die Prüfsumme belegt, dass jeder Unterzeichner dieselbe Fassung gesehen hat. Dies ist keine qualifizierte elektronische Signatur im Sinne des § 126a BGB und ersetzt keine eigenhändige Unterschrift, wo das Gesetz die Schriftform verlangt.</p>

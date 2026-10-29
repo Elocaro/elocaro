@@ -1,0 +1,35 @@
+# Local development services. The app itself runs on the host via `dotnet run`.
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+name: elocaro-dev
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: elocaro
+      POSTGRES_PASSWORD: elocaro
+      POSTGRES_DB: elocaro
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elocaro"]
+      interval: 5s
+      retries: 10
+
+  # Catches all mails: web UI http://localhost:8025, SMTP localhost:1025
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  # HTML → PDF (Chromium); API http://localhost:3000
+  gotenberg:
+    image: gotenberg/gotenberg:8.39.0
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:

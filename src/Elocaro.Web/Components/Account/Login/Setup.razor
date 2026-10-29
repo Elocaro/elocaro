@@ -1,0 +1,85 @@
+@page "/konto/einrichtung"
+@inject IAccountService Accounts
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> Login
+@inject Redirector Redirector
+
+<PageTitle>Ersteinrichtung – Elocaro</PageTitle>
+
+<h1>Ersteinrichtung</h1>
+<p>Willkommen! Legen Sie das Administrator-Konto an. Anschließend richten Sie die Zwei-Faktor-Anmeldung ein.</p>
+
+<ErrorList Errors="errors" />
+
+<EditForm Model="Input" FormName="setup" OnValidSubmit="CreateAsync">
+    <DataAnnotationsValidator />
+    <div class="field">
+        <label for="display-name">Ihr Name</label>
+        <InputText id="display-name" @bind-Value="Input!.DisplayName" autocomplete="name" />
+        <ValidationMessage For="() => Input!.DisplayName" />
+    </div>
+    <div class="field">
+        <label for="email">E-Mail-Adresse</label>
+        <InputText id="email" type="email" @bind-Value="Input!.Email" autocomplete="username" />
+        <ValidationMessage For="() => Input!.Email" />
+    </div>
+    <div class="field">
+        <label for="password">Passwort (mindestens 12 Zeichen)</label>
+        <InputText id="password" type="password" @bind-Value="Input!.Password" autocomplete="new-password" />
+        <ValidationMessage For="() => Input!.Password" />
+    </div>
+    <div class="field">
+        <label for="password2">Passwort wiederholen</label>
+        <InputText id="password2" type="password" @bind-Value="Input!.PasswordConfirmation" autocomplete="new-password" />
+        <ValidationMessage For="() => Input!.PasswordConfirmation" />
+    </div>
+    <button type="submit" class="button button-primary">Administrator anlegen</button>
+</EditForm>
+
+@code {
+    private IReadOnlyList<string>? errors;
+
+    [SupplyParameterFromForm(FormName = "setup")]
+    private SetupInput? Input { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        if (!await Accounts.InitialSetupPossibleAsync())
+        {
+            Redirector.To("/konto/anmelden");
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var result = await Accounts.CreateFirstAdminAsync(Input!.Email, Input.DisplayName, Input.Password);
+        if (!result.Succeeded)
+        {
+            errors = result.Errors;
+            return;
+        }
+
+        var user = await UserManager.FindByIdAsync(result.UserId!.Value.ToString());
+        await Login.SignInAsync(user!, isPersistent: false);
+        Redirector.To(AccountExtensions.TwoFactorSetupPath);
+    }
+
+    private sealed class SetupInput
+    {
+        [Required(ErrorMessage = "Bitte Ihren Namen angeben.")]
+        [StringLength(200)]
+        public string DisplayName { get; set; } = "";
+
+        [Required(ErrorMessage = "Bitte eine E-Mail-Adresse angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Bitte ein Passwort angeben.")]
+        [StringLength(200, MinimumLength = 12, ErrorMessage = "Das Passwort muss mindestens 12 Zeichen lang sein.")]
+        public string Password { get; set; } = "";
+
+        [Compare(nameof(Password), ErrorMessage = "Die Passwörter stimmen nicht überein.")]
+        public string PasswordConfirmation { get; set; } = "";
+    }
+}

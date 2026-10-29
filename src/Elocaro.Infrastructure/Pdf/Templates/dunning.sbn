@@ -1,0 +1,37 @@
+{{# BASISVORLAGE Mahnwesen: Der Text ist eine Vorlage und muss vor dem produktiven Einsatz rechtlich geprüft werden (keine Rechtsberatung). Die Vorlagenverwaltung (M5) ersetzt sie später. }}
+<p>{{ salutation }}</p>
+{{~ if is_reminder ~}}
+<p>zu unserem Bedauern konnten wir bis heute keinen Zahlungseingang für die nachstehend aufgeführten Beträge zu Ihrem Mietverhältnis ({{ rental_unit }}) feststellen. Vielleicht ist die Zahlung nur übersehen worden oder hat sich mit diesem Schreiben überschnitten. Wir bitten Sie, den offenen Betrag bis zum <strong>{{ date deadline }}</strong> zu überweisen.</p>
+{{~ else if is_first_notice ~}}
+<p>trotz unserer {{ if previous }}{{ previous.level_name }} vom {{ date previous.date }}{{ else }}Zahlungserinnerung{{ end }} konnten wir für die nachstehend aufgeführten Beträge zu Ihrem Mietverhältnis ({{ rental_unit }}) keinen vollständigen Zahlungseingang feststellen. Die Beträge sind fällig. Wir fordern Sie auf, den offenen Gesamtbetrag bis zum <strong>{{ date deadline }}</strong> zu überweisen.</p>
+{{~ else ~}}
+<p>trotz unserer {{ if previous }}{{ previous.level_name }} vom {{ date previous.date }}{{ else }}bisherigen Schreiben{{ end }} sind die nachstehend aufgeführten Beträge zu Ihrem Mietverhältnis ({{ rental_unit }}) weiterhin offen. Wir fordern Sie letztmalig außergerichtlich auf, den offenen Gesamtbetrag bis zum <strong>{{ date deadline }}</strong> zu überweisen. Nach fruchtlosem Ablauf der Frist behalten wir uns weitere rechtliche Schritte vor.</p>
+{{~ end ~}}
+
+<table>
+  <thead><tr><th>Forderung</th><th>Fällig am</th><th class="number">Betrag</th><th class="number">Offen</th></tr></thead>
+  <tbody>
+  {{~ for c in claims ~}}
+    <tr><td>{{ c.text }}</td><td>{{ date c.due }}</td><td class="number">{{ money c.amount }}</td><td class="number">{{ money c.open }}</td></tr>
+  {{~ end ~}}
+  {{~ for c in other_claims ~}}
+    <tr><td>{{ c.text }}</td><td>{{ date c.due }}</td><td class="number">{{ money c.amount }}</td><td class="number">{{ money c.open }}</td></tr>
+  {{~ end ~}}
+  {{~ if fee > 0 ~}}
+    <tr><td>Mahngebühr ({{ level_name }}, tatsächlich entstandene Kosten)</td><td></td><td class="number"></td><td class="number">{{ money fee }}</td></tr>
+  {{~ end ~}}
+  {{~ if interest > 0 ~}}
+    <tr><td>Verzugszinsen bis {{ date interest_until }}{{ if previous_interest > 0 }} (abzüglich bereits berechneter Zinsen){{ end }}</td><td></td><td class="number"></td><td class="number">{{ money interest }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+  <tfoot><tr><td colspan="3">Gesamtbetrag</td><td class="number">{{ money total }}</td></tr></tfoot>
+</table>
+
+{{~ if interest > 0 && interest_rate ~}}
+<p class="small">Die Verzugszinsen wurden nach § 288 Abs. 1 BGB mit {{ number interest_rate 2 }} % p. a. (Basiszinssatz {{ number base_rate 2 }} % zuzüglich {{ number margin_points 2 }} Prozentpunkte) auf die jeweils offenen Beträge ab dem Tag nach der Fälligkeit bis zum {{ date interest_until }} berechnet.</p>
+{{~ end ~}}
+
+<p>Bitte überweisen Sie den Gesamtbetrag bis zum {{ date deadline }}{{ if iban }} auf das folgende Konto:</p>
+<p>{{ if bank }}{{ bank }}<br>{{ end }}IBAN {{ iban }}{{ if bic }}<br>BIC {{ bic }}{{ end }}<br>Verwendungszweck: {{ rental_unit }}</p>{{ else }}.</p>{{ end }}
+<p>Sollten Sie den Betrag zwischenzeitlich bereits überwiesen haben, betrachten Sie dieses Schreiben bitte als gegenstandslos. Bei Zahlungsschwierigkeiten bitten wir Sie, sich umgehend mit uns in Verbindung zu setzen, damit wir gemeinsam eine Lösung finden können.</p>
+<p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

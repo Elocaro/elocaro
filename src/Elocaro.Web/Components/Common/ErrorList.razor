@@ -1,0 +1,23 @@
+@if (Errors is { Count: > 0 })
+{
+    <Notice Level="NoticeLevel.Error">
+        @if (Errors.Count == 1)
+        {
+            @Errors[0]
+        }
+        else
+        {
+            <ul>
+                @foreach (var f in Errors)
+                {
+                    <li>@f</li>
+                }
+            </ul>
+        }
+    </Notice>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<string>? Errors { get; set; }
+}

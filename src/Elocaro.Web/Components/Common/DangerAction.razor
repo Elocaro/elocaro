@@ -1,0 +1,33 @@
+@* Risky action with confirmation without JavaScript: expand first, then confirm. *@
+<details class="danger-action">
+    <summary class="button button-danger">@Text</summary>
+    <div class="danger-action-content" role="alertdialog" aria-label="@Text">
+        <p>@Confirmation</p>
+        <form method="post" @formname="@FormName" @onsubmit="Confirmed">
+            <AntiforgeryToken />
+            @ChildContent
+            <button type="submit" class="button button-danger">@ConfirmText</button>
+        </form>
+    </div>
+</details>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Confirmation { get; set; } = "";
+
+    [Parameter]
+    public string ConfirmText { get; set; } = "Ja, ausführen";
+
+    [Parameter, EditorRequired]
+    public string FormName { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public EventCallback Confirmed { get; set; }
+
+    /// <summary>Additional (hidden) fields of the form.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

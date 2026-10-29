@@ -1,0 +1,23 @@
+<p>Nachweis der regelmäßigen Hausmeisteraufgaben für das Jahr <strong>{{ year }}</strong>, wie im Service-Bereich abgehakt.</p>
+
+{{~ if properties.size == 0 ~}}
+<p>Es sind keine Aufgaben angelegt.</p>
+{{~ end ~}}
+{{~ for property in properties ~}}
+<h2>{{ property.property }}</h2>
+{{~ for routine in property.routines ~}}
+<h3>{{ routine.title }} <span class="small">({{ routine.interval }}, {{ routine.count }}× erledigt)</span></h3>
+{{~ if routine.checks.size == 0 ~}}
+<p class="small">Keine Eintragung in {{ year }}.</p>
+{{~ else ~}}
+<table>
+  <thead><tr><th>Erledigt am</th><th>Erledigt von</th><th>Notiz</th><th>Foto</th></tr></thead>
+  <tbody>
+  {{~ for c in routine.checks ~}}
+    <tr><td>{{ date c.done_on }}</td><td>{{ c.done_by }}</td><td>{{ c.note }}</td><td>{{ if c.has_photo }}ja{{ end }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+</table>
+{{~ end ~}}
+{{~ end ~}}
+{{~ end ~}}

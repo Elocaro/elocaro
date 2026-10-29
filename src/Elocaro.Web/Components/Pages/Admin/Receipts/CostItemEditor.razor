@@ -1,0 +1,40 @@
+@* Fields of a cost item for interactive pages; sits inside an EditForm with Model = Position. *@
+<div class="form-grid">
+    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.CostType))"><CostTypeSelect @bind-Value="Position.CostType" Required="@Required" EmptyText="@(Required ? "– bitte wählen –" : "– später aufteilen –")" /></UncertainMark>
+    <OptionSelect @bind-Value="Position.PropertyId" Label="Objekt" Options="Options.Properties.Select(o => (o.Id, o.Name)).ToList()" />
+    @if (WithDetails)
+    {
+        <AppNumberField T="decimal?" @bind-Value="Position.Amount" Label="Betrag" Suffix="€" Hint="Leer = noch nicht aufgeteilter Rest" />
+        @if (Options.Subtypes.Count > 0)
+        {
+            <OptionSelect @bind-Value="Position.SubtypeId" Label="Unterart" Options="Options.Subtypes.Select(t => (t.Id, t.Name)).ToList()" />
+        }
+        <AppSelect T="HeatingCostKind?" @bind-Value="Position.HeatingKind" Label="Art der Heizkosten" Hint="Nur bei den Kostenarten 4 bis 6: Brennstoff, Betriebsstrom, Wartung … Die CO₂-Kosten laut Lieferant als eigene Position erfassen." Items="heatingKinds" Text="@(v => v is { } k ? Labels.From(k) : "")" EmptyText="– automatisch –" />
+        <OptionSelect @bind-Value="Position.UnitId" Label="Nur Einheit" Options="Options.Units.Select(e => (e.Id, e.Name)).ToList()" />
+        <AppDateField @bind-Value="Position.From" Label="Abrechnungszeitraum von" Hint="Leer = Leistungszeitraum bzw. Kalenderjahr" />
+        <AppDateField @bind-Value="Position.To" Label="bis" />
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Section35a))"><AppSelect @bind-Value="Position.Section35a" Label="§ 35a EStG" Items="Enum.GetValues<Section35a>()" Text="@(v => Labels.From(v))" /></UncertainMark>
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.LaborCosts))"><AppNumberField T="decimal?" @bind-Value="Position.LaborCosts" Label="davon Arbeitskosten" Suffix="€" Hint="Lohn-, Maschinen- und Fahrtkosten inkl. USt" /></UncertainMark>
+    }
+</div>
+
+@code {
+    private static readonly IReadOnlyList<HeatingCostKind?> heatingKinds = Enum.GetValues<HeatingCostKind>().Select(k => (HeatingCostKind?)k).ToList();
+
+    [Parameter, EditorRequired]
+    public CostItemInput Position { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ReceiptOptions Options { get; set; } = default!;
+
+    [Parameter]
+    public bool WithDetails { get; set; } = true;
+
+    [Parameter]
+    public bool Required { get; set; } = true;
+
+    [Parameter]
+    public IReadOnlySet<string>? Uncertain { get; set; }
+
+    private bool Marked(string field) => Uncertain?.Contains(field) == true;
+}

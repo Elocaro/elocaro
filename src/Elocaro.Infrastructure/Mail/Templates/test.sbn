@@ -1,0 +1,4 @@
+{{ capture subject }}Testnachricht von Elocaro{{ end }}
+<p>Hallo,</p>
+<p>dies ist eine Testnachricht. Wenn Sie sie lesen können, funktioniert der Mailversand.</p>
+<p>Gesendet am {{ date sent_at }} von {{ triggered_by }}.</p>

@@ -1,0 +1,156 @@
+@page "/verwaltung/bank/umsaetze"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IBankService Bank
+@inject IDialogService Dialogs
+@inject Notifier Notify
+
+<InteractiveShell>
+    <PageHeader Title="Umsätze" Subtitle="Importierte Kontoumsätze; offene warten auf Zuordnung." />
+
+    <ErrorList Errors="errors" />
+
+    <div class="form-row search-bar" role="search">
+        <AppSelect T="Guid?" Value="accountId" ValueChanged="OnAccountChanged" Label="Konto" Items="accountIds" Text="AccountText" EmptyText="Alle Konten" />
+        <AppSelect T="TransactionStatus?" Value="status" ValueChanged="OnStatusChanged" Label="Status" Items="statuses" Text="@(v => v is { } s ? Labels.From(s) : "")" EmptyText="Alle" />
+        <AppTextField Value="@search" Label="Suche" Type="search" Placeholder="Name, IBAN, Verwendungszweck" Immediate="true" DebounceMilliseconds="300" OnDebounced="OnSearchChanged" Clearable="true" />
+        <AppCheckBox Value="withoutReceipt" ValueChanged="OnWithoutReceiptChanged" Label="Zahlungen ohne Beleg" />
+    </div>
+
+    @if (transactions is { Count: 0 })
+    {
+        <EmptyState Text="Keine Umsätze in dieser Auswahl." />
+    }
+    else if (transactions is not null)
+    {
+        <p class="small">@transactions.Count Umsätze · Eingänge @Format.Money(transactions.Where(u => u.Amount > 0).Sum(u => u.Amount)) · Ausgänge @Format.Money(transactions.Where(u => u.Amount < 0).Sum(u => u.Amount))</p>
+        <MudTable T="TransactionRow" Items="transactions" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="50">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="TransactionRow" SortBy="@(u => u.BookingDate)" InitialDirection="SortDirection.Descending">Buchung</MudTableSortLabel></MudTh>
+                <MudTh>Gegenseite</MudTh><MudTh>Verwendungszweck</MudTh>
+                <MudTh Style="text-align:right"><MudTableSortLabel T="TransactionRow" SortBy="@(u => u.Amount)">Betrag</MudTableSortLabel></MudTh>
+                <MudTh>Status</MudTh><MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Buchung">@Format.Date(context.BookingDate)</MudTd>
+                <MudTd DataLabel="Gegenseite">@context.CounterpartyName<span class="small">&#32;@context.CounterpartyIban</span></MudTd>
+                <MudTd DataLabel="Verwendungszweck">
+                    @context.Purpose
+                    @if (context.BookingText is not null)
+                    {
+                        <span class="small">&#32;(@context.BookingText)</span>
+                    }
+                    @if (context.Note is not null)
+                    {
+                        <br /><span class="small">Notiz: @context.Note</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Betrag" Style="text-align:right">@Format.Money(context.Amount)</MudTd>
+                <MudTd DataLabel="Status"><StatusChip Level="Labels.Level(context.Status)">@Labels.From(context.Status)</StatusChip></MudTd>
+                <MudTd>
+                    @if (context.Status == TransactionStatus.Open)
+                    {
+                        <MudButton Variant="Variant.Outlined" OnClick="() => IgnoreAsync(context)" aria-label="@($"Umsatz vom {Format.Date(context.BookingDate)} ignorieren")">Ignorieren</MudButton>
+                    }
+                    else if (context.Status == TransactionStatus.Assigned)
+                    {
+                        <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/bank/umsaetze/{context.Id}/zuordnen")" aria-label="@($"Zuordnung des Umsatzes vom {Format.Date(context.BookingDate)} ansehen")">Zuordnung</MudButton>
+                    }
+                    else if (context.Status == TransactionStatus.Ignored)
+                    {
+                        <MudButton Variant="Variant.Outlined" OnClick="() => ReopenAsync(context)" aria-label="@($"Umsatz vom {Format.Date(context.BookingDate)} wieder öffnen")">Wieder öffnen</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 50, 100, 250 }" RowsPerPageString="Zeilen pro Seite" InfoFormat="{first_item}–{last_item} von {all_items}" AllItemsText="Alle" />
+            </PagerContent>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private static readonly IReadOnlyList<TransactionStatus?> statuses = Enum.GetValues<TransactionStatus>().Select(s => (TransactionStatus?)s).ToList();
+
+    private IReadOnlyList<BankAccountRow> accounts = [];
+    private IReadOnlyList<Guid?> accountIds = [];
+    private IReadOnlyList<TransactionRow>? transactions;
+    private IReadOnlyList<string>? errors;
+    private Guid? accountId;
+    private TransactionStatus? status;
+    private string? search;
+    private bool withoutReceipt;
+
+    // The query string only provides the start values (see ADR 0005).
+    [SupplyParameterFromQuery(Name = "konto")]
+    private Guid? InitialAccount { get; set; }
+
+    [SupplyParameterFromQuery(Name = "status")]
+    private string? InitialStatus { get; set; }
+
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? InitialSearch { get; set; }
+
+    [SupplyParameterFromQuery(Name = "ohneBeleg")]
+    private bool InitialWithoutReceipt { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        accounts = await Bank.AccountsAsync();
+        accountIds = accounts.Select(a => (Guid?)a.Id).ToList();
+        accountId = InitialAccount;
+        status = Enum.TryParse<TransactionStatus>(InitialStatus, out var parsed) ? parsed : null;
+        search = InitialSearch;
+        withoutReceipt = InitialWithoutReceipt;
+        await LoadAsync();
+    }
+
+    private string AccountText(Guid? id) => accounts.FirstOrDefault(a => a.Id == id)?.Name ?? "";
+
+    private async Task OnAccountChanged(Guid? value)
+    {
+        accountId = value;
+        await LoadAsync();
+    }
+
+    private async Task OnStatusChanged(TransactionStatus? value)
+    {
+        status = value;
+        await LoadAsync();
+    }
+
+    private async Task OnSearchChanged(string? text)
+    {
+        search = text;
+        await LoadAsync();
+    }
+
+    private async Task OnWithoutReceiptChanged(bool value)
+    {
+        withoutReceipt = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => transactions = await Bank.TransactionsAsync(new TransactionQuery(accountId, status, search, withoutReceipt));
+
+    private async Task IgnoreAsync(TransactionRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<IgnoreDialog>("Umsatz ignorieren", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is { Canceled: false, Data: string note })
+        {
+            await ChangeAsync(await Bank.IgnoreAsync(row.Id, note.Length == 0 ? null : note), "Der Umsatz wird ignoriert.");
+        }
+    }
+
+    private async Task ReopenAsync(TransactionRow row) => await ChangeAsync(await Bank.ReopenAsync(row.Id), "Der Umsatz ist wieder offen.");
+
+    private async Task ChangeAsync(Result result, string success)
+    {
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success(success);
+            await LoadAsync();
+        }
+    }
+}

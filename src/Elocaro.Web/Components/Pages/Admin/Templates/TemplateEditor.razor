@@ -1,0 +1,317 @@
+@page "/verwaltung/einstellungen/vorlagen/neu"
+@page "/verwaltung/einstellungen/vorlagen/{Id:guid}"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDocumentTemplates Templates
+@inject NavigationManager Navigation
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject TemplatePreviews Previews
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<InteractiveShell>
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (data is null)
+{
+    <PageHeader Title="Vorlage nicht gefunden" Back="/verwaltung/einstellungen/vorlagen" BackText="Alle Vorlagen" />
+}
+else
+{
+    <PageHeader Title="@(Id is null ? "Vorlage anlegen" : data.Name)" Subtitle="@(Id is null ? null : $"{Labels.From(data.Kind)} · Fassung {data.Revision}")"
+                Back="/verwaltung/einstellungen/vorlagen" BackText="Alle Vorlagen" />
+
+    <ErrorList Errors="errors" />
+
+<div class="split split-editor">
+<div class="split-main">
+
+    <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            @if (Id is null)
+            {
+                <AppSelect T="TemplateKind" Value="data.Kind" ValueChanged="OnKindChanged" Label="Art" Items="Enum.GetValues<TemplateKind>()" Text="@(v => Labels.From(v))" Hint="Ein Baustein wird in Schreiben mit {{ include 'Name' }} eingefügt." />
+            }
+
+            <AppTextField @bind-Value="data.Name" Label="Name" Required="true" Hint="@(data.Kind == TemplateKind.Snippet ? "So wird der Baustein in include '…' genannt" : "z. B. „Ankündigung Bauarbeiten“")" />
+            <AppTextField @bind-Value="data.Description" Label="Beschreibung" />
+            @if (data.Kind != TemplateKind.Snippet)
+            {
+                <AppTextField @bind-Value="data.Subject" Label="Betreff" Required="true" Hint="Titel des Dokuments; darf Platzhalter enthalten" Immediate="true" DebounceMilliseconds="500" OnDebounced="OnSubjectDebounced" />
+            }
+        </div>
+        <div id="template-body">
+            <CodeEditor Value="@data.Body" ValueChanged="OnBodyChanged" ValueExpression="() => data.Body" Label="Text" Required="true" Rows="22" Snippets="snippetNames"
+                        Hint="HTML mit Platzhaltern, z. B. <p>{{ salutation }}</p>. Strg+B fett, Strg+I kursiv, Strg+S speichern." />
+        </div>
+        <div class="form-row">
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="PreviewAsync">PDF-Vorschau</MudButton>
+            @if (Id is not null)
+            {
+                <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/einstellungen/vorlagen/{Id}/export.json")" download>Exportieren</MudButton>
+            }
+        </div>
+    </EditForm>
+
+    @if (previewId is not null)
+    {
+        <section>
+            <h2>Vorschau mit Beispieldaten</h2>
+            <iframe class="document-preview" src="/verwaltung/einstellungen/vorlagen/vorschau/@(previewId).pdf" title="Vorschau der Vorlage"></iframe>
+        </section>
+    }
+
+    @if (Id is not null)
+    {
+        <section>
+            <h2>Fassungen</h2>
+            <p class="small">Jede Änderung des Textes bleibt als Fassung erhalten. Erzeugte Dokumente ändern sich dadurch nie nachträglich.</p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Fassung</th><th>Gespeichert</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var revision in revisions)
+                        {
+                            <tr>
+                                <td>@revision.Number @if (revision.IsCurrent) {<StatusChip>aktuell</StatusChip>}</td>
+                                <td>@Format.Timestamp(revision.Timestamp)<span class="small">&#32;@revision.CreatedBy</span></td>
+                                <td>@if (!revision.IsCurrent) {<MudButton Variant="Variant.Text" OnClick="() => LoadAsync(revision.Id)">In den Editor laden</MudButton>}</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section>
+            <h2>Löschen</h2>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAsync">Vorlage löschen</MudButton>
+        </section>
+    }
+</div>
+
+<aside class="split-side placeholder-panel" aria-label="Vorschau, Platzhalter und Hilfsfunktionen">
+<MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-3" Class="detail-tabs" KeepPanelsAlive="true">
+<MudTabPanel Text="Vorschau">
+    <div class="preview-bar">
+        <p class="small">Live mit Beispieldaten, aktualisiert sich beim Schreiben. Seitenumbrüche zeigt die PDF-Vorschau.</p>
+        <span class="preview-zoom" role="group" aria-label="Größe der Vorschau">
+            <button type="button" class="code-tool" data-preview-zoom="out" aria-label="Vorschau verkleinern" title="Verkleinern">−</button>
+            <button type="button" class="code-tool" data-preview-zoom="fit" aria-label="Vorschau einpassen" title="Einpassen">Einpassen</button>
+            <button type="button" class="code-tool" data-preview-zoom="in" aria-label="Vorschau vergrößern" title="Vergrößern">+</button>
+        </span>
+    </div>
+    @if (liveErrors.Count > 0)
+    {
+        <Notice Level="NoticeLevel.Warning">@string.Join(" ", liveErrors)</Notice>
+    }
+    <iframe class="template-preview" @ref="frame" sandbox="allow-same-origin" title="Live-Vorschau der Vorlage"></iframe>
+</MudTabPanel>
+<MudTabPanel Text="Platzhalter">
+    <h2>Platzhalter</h2>
+    <p class="small">Ein Klick fügt den Platzhalter im Text an der Cursorposition ein. Fehlende oder falsch geschriebene Platzhalter werden beim Speichern gemeldet.</p>
+    <ul class="insert-list">
+        @foreach (var placeholder in TemplateCatalog.Placeholders(data.Kind))
+        {
+            <li>
+                <button type="button" class="insert-chip" data-insert="@("{{ " + placeholder.Name + " }}")" data-insert-target="#template-body textarea">@placeholder.Name</button>
+                <span class="small">@placeholder.Description<span class="insert-example"> · z. B. @placeholder.Example</span></span>
+            </li>
+        }
+    </ul>
+    <h3>Hilfsfunktionen</h3>
+    <ul class="insert-list">
+        @foreach (var function in TemplateCatalog.Functions)
+        {
+            <li>
+                <button type="button" class="insert-chip" data-insert="@("{{ " + function.Name + " }}")" data-insert-target="#template-body textarea">@function.Name</button>
+                <span class="small">@function.Description<span class="insert-example"> · <code>@function.Example</code></span></span>
+            </li>
+        }
+    </ul>
+    <p class="small">Bedingungen und Schleifen: <code>@("{{ if lease_end }} … {{ end }}")</code>.</p>
+    @if (snippetNames.Count > 0)
+    {
+        <h3>Vorhandene Bausteine</h3>
+        <ul class="insert-list">
+            @foreach (var name in snippetNames)
+            {
+                <li><button type="button" class="insert-chip" data-insert="@("{{ include '" + name + "' }}")" data-insert-target="#template-body textarea">@name</button></li>
+            }
+        </ul>
+    }
+</MudTabPanel>
+</MudTabs>
+</aside>
+</div>
+}
+</InteractiveShell>
+
+@code {
+    private TemplateInput? data;
+    private IReadOnlyList<TemplateRevisionRow> revisions = [];
+    private IReadOnlyList<string> snippetNames = [];
+    private IReadOnlyList<string>? errors;
+    private Guid? previewId;
+    private bool loaded;
+    private ElementReference frame;
+    private IJSObjectReference? module;
+    private IReadOnlyList<string> liveErrors = [];
+    private string? pendingHtml;
+    private int previewSerial;
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is { } id)
+        {
+            data = await Templates.GetAsync(id);
+            revisions = await Templates.RevisionsAsync(id);
+        }
+        else
+        {
+            data = new TemplateInput();
+        }
+
+        snippetNames = await Templates.SnippetNamesAsync();
+        await RefreshPreviewAsync();
+        loaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (pendingHtml is { } html && loaded)
+        {
+            pendingHtml = null;
+            module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/code-editor.js");
+            await module.InvokeVoidAsync("setPreview", frame, html);
+        }
+    }
+
+    private Task OnSubjectDebounced(string? subject) => RefreshPreviewAsync();
+
+    private async Task OnKindChanged(TemplateKind kind)
+    {
+        data!.Kind = kind;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task OnBodyChanged(string? text)
+    {
+        data!.Body = text ?? "";
+        await RefreshPreviewAsync();
+    }
+
+    /// <summary>Renders the current text as HTML (without the PDF service) and hands it to the preview frame; the newest request wins.</summary>
+    private async Task RefreshPreviewAsync()
+    {
+        if (data is null)
+        {
+            return;
+        }
+
+        var serial = ++previewSerial;
+        TemplateHtmlPreview result;
+        try
+        {
+            result = await Templates.PreviewHtmlAsync(data.Kind, data.Subject ?? "", data.Body ?? "");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The preview must never take the editor down with it.
+            result = new TemplateHtmlPreview(null, ["Die Vorschau ist gerade nicht möglich."]);
+        }
+
+        if (serial != previewSerial)
+        {
+            return;
+        }
+
+        liveErrors = result.Errors;
+        if (result.Html is { } html)
+        {
+            pendingHtml = html;
+        }
+
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (module is not null)
+            {
+                await module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone; nothing to release in the browser.
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Templates.SaveAsync(Id, data!);
+        if (!result.Succeeded)
+        {
+            errors = result.Errors;
+            return;
+        }
+
+        errors = null;
+        if (Id is null)
+        {
+            Navigation.NavigateTo($"/verwaltung/einstellungen/vorlagen/{result.Id}");
+            return;
+        }
+
+        data = await Templates.GetAsync(Id.Value);
+        revisions = await Templates.RevisionsAsync(Id.Value);
+        Notify.Success("Die Vorlage wurde gespeichert.");
+    }
+
+    private async Task PreviewAsync()
+    {
+        var preview = await Templates.PreviewAsync(data!.Kind, data.Subject ?? "", data.Body ?? "");
+        errors = preview.Errors.Count > 0 ? preview.Errors : null;
+        previewId = preview.Pdf is { } pdf ? Previews.Add(pdf) : null;
+    }
+
+    private async Task LoadAsync(Guid revisionId)
+    {
+        if (await Templates.RevisionAsync(revisionId) is { } revision)
+        {
+            data!.Subject = revision.Subject;
+            data.Body = revision.Body;
+            Notify.Success($"Fassung {revision.Number} ist im Editor. Zum Übernehmen speichern.");
+            await RefreshPreviewAsync();
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await Confirm.AskAsync("Vorlage löschen", $"Soll die Vorlage „{data!.Name}“ gelöscht werden? Bereits erzeugte Dokumente bleiben unverändert.", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var result = await Templates.DeleteAsync(Id!.Value);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/einstellungen/vorlagen");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

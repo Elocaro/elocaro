@@ -1,0 +1,18 @@
+@* Fields of a shared-flat room; sits inside an EditForm with Model = Data. *@
+<div class="form-grid">
+    <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Zimmer 1“" />
+    <AppSelect @bind-Value="Data.Furnishing" Label="Möblierung" Items="Enum.GetValues<Furnishing>()" Text="@(v => Labels.From(v))" />
+</div>
+<AppTextField @bind-Value="Data.FurnishingList" Label="Möblierungsliste" Lines="3" Hint="Was mit dem Zimmer übergeben wird, ein Gegenstand pro Zeile (für den Zimmervertrag)" />
+@if (WithNotes)
+{
+    <AppTextField @bind-Value="Data.Notes" Label="Notizen" Lines="2" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public RoomInput Data { get; set; } = default!;
+
+    [Parameter]
+    public bool WithNotes { get; set; } = true;
+}

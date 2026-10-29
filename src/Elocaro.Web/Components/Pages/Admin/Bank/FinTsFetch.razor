@@ -1,0 +1,188 @@
+@using MudBlazor
+@implements IDisposable
+@inject IFinTsService FinTs
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+@* Direct retrieval of the transactions via FinTS: PIN (only in memory), period, TAN or approval in the banking app.
+   The result lands in the usual import preview. *@
+<section>
+    <h2>Per FinTS abrufen</h2>
+    @if (!Enabled)
+    {
+        <p class="small">Für den Abruf unter „Angaben“ FinTS-URL, Bankleitzahl und Benutzerkennung der Bank eintragen und speichern.</p>
+    }
+    else
+    {
+        <details class="explain">
+            <summary>Wann wird eine TAN verlangt?</summary>
+            <p class="small">Die Bank verlangt aus Sicherheitsgründen etwa alle 90 Tage wieder eine TAN oder Freigabe in der Banking-App. Verfahren mit Bild (photoTAN, QR) werden noch nicht unterstützt: dann eine Freigabe-App der Bank nutzen oder die Umsatzdatei importieren.</p>
+        </details>
+        <ErrorList Errors="errors" />
+        @switch (state?.Phase)
+        {
+            case FinTsPhase.Running:
+                <p role="status">Verbindung zur Bank … Das kann einen Moment dauern.</p>
+                <MudButton Variant="Variant.Outlined" OnClick="CancelAsync">Abbrechen</MudButton>
+                break;
+            case FinTsPhase.TanRequired:
+                <Notice Level="NoticeLevel.Info">@(state.Message is { Length: > 0 } ? state.Message : "Die Bank verlangt eine TAN.")</Notice>
+                <div class="form-row">
+                    <AppTextField @bind-Value="tan" Label="TAN" Autocomplete="one-time-code" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitTan">TAN senden</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="CancelAsync">Abbrechen</MudButton>
+                </div>
+                break;
+            case FinTsPhase.ApprovalRequired:
+                <Notice Level="NoticeLevel.Info">@(state.Message is { Length: > 0 } ? state.Message : "Bitte den Abruf in der Banking-App freigeben.") Danach hier bestätigen.</Notice>
+                <div class="form-row">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ConfirmApproval">Freigabe erteilt</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="CancelAsync">Abbrechen</MudButton>
+                </div>
+                break;
+            default:
+                @if (state?.Phase == FinTsPhase.Failed)
+                {
+                    <Notice Level="NoticeLevel.Error">@state.Message</Notice>
+                }
+
+                <EditForm Model="this" OnSubmit="StartAsync" novalidate>
+                    <div class="form-grid">
+                        <AppTextField @bind-Value="pin" Label="PIN" Type="password" Autocomplete="off" Required="true" Hint="Wird nicht gespeichert und nur für diesen Abruf verwendet." />
+                        <AppDateField @bind-Value="from" Label="Von" />
+                        <AppDateField @bind-Value="to" Label="Bis" />
+                    </div>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Umsätze abrufen</MudButton>
+                </EditForm>
+                <details class="explain">
+                    <summary>Was passiert mit den abgerufenen Umsätzen?</summary>
+                    <p class="small">Die abgerufenen Umsätze erscheinen zuerst in einer Vorschau und werden erst nach Bestätigung übernommen. Nach einem Fehlversuch mit der PIN wird nicht erneut versucht, damit das Konto nicht gesperrt wird.</p>
+                </details>
+                break;
+        }
+    }
+</section>
+
+@code {
+    private readonly CancellationTokenSource disposed = new();
+    private IReadOnlyList<string>? errors;
+    private FinTsFetchState? state;
+    private Guid? fetchId;
+    private string? pin;
+    private string? tan;
+    private DateOnly? from;
+    private DateOnly? to;
+
+    [Parameter, EditorRequired]
+    public Guid BankAccountId { get; set; }
+
+    /// <summary>The account has FinTS access data (URL, bank code, user id).</summary>
+    [Parameter]
+    public bool Enabled { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        to = today;
+        from = today.AddDays(-90);
+    }
+
+    private async Task StartAsync()
+    {
+        errors = null;
+        state = null;
+        if (from is null || to is null)
+        {
+            errors = ["Bitte den Zeitraum angeben."];
+            return;
+        }
+
+        var result = await FinTs.StartAsync(BankAccountId, pin ?? "", from.Value, to.Value);
+        pin = null;
+        if (!result.Succeeded)
+        {
+            errors = result.Errors;
+            return;
+        }
+
+        fetchId = result.Id;
+        state = new FinTsFetchState(FinTsPhase.Running);
+        _ = PollAsync(result.Id!.Value);
+    }
+
+    private async Task PollAsync(Guid id)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            while (await timer.WaitForNextTickAsync(disposed.Token))
+            {
+                var current = await FinTs.StateAsync(id, disposed.Token);
+                if (current is null)
+                {
+                    break;
+                }
+
+                var changed = current != state;
+                state = current;
+                if (current.Phase == FinTsPhase.Completed && current.ImportId is { } importId)
+                {
+                    await InvokeAsync(() => Navigation.NavigateTo($"/verwaltung/bank/importe/{importId}"));
+                    return;
+                }
+
+                if (changed)
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+
+                if (current.Phase == FinTsPhase.Failed)
+                {
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void SubmitTan()
+    {
+        if (fetchId is { } id && !string.IsNullOrWhiteSpace(tan))
+        {
+            FinTs.ProvideTan(id, tan);
+            tan = null;
+            state = new FinTsFetchState(FinTsPhase.Running);
+        }
+    }
+
+    private void ConfirmApproval()
+    {
+        if (fetchId is { } id)
+        {
+            FinTs.ConfirmApproval(id);
+            state = new FinTsFetchState(FinTsPhase.Running);
+        }
+    }
+
+    private Task CancelAsync()
+    {
+        if (fetchId is { } id)
+        {
+            FinTs.Cancel(id);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        if (fetchId is { } id)
+        {
+            FinTs.Cancel(id);
+        }
+
+        disposed.Cancel();
+        disposed.Dispose();
+    }
+}

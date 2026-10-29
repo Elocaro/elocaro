@@ -1,0 +1,22 @@
+@* Small status label in a table or detail view (M3 assist chip). The level carries the meaning together with the text. *@
+<span class="status @LevelClass" @attributes="AdditionalAttributes">@ChildContent</span>
+
+@code {
+    [Parameter]
+    public StatusLevel Level { get; set; } = StatusLevel.Neutral;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>e.g. a <c>title</c> with the reason.</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string LevelClass => Level switch
+    {
+        StatusLevel.Success => "status-ok",
+        StatusLevel.Warning => "status-pending",
+        StatusLevel.Error => "status-error",
+        _ => "",
+    };
+}
