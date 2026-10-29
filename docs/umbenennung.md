@@ -65,7 +65,8 @@ Umgesetzt: Projekte, Ordner, Namensräume, `ElocaroDbContext`, Konfigurationssch
 - **FinTS-Produktregistrierung** bei der Deutschen Kreditwirtschaft wurde unter dem früheren Produktnamen beantragt. Die Registrierungsnummer im Code bleibt unverändert. Die Namensänderung dem Registrierungsdienst melden (Kontakt über <https://www.fints.org/de/hersteller/produktregistrierung>) und klären, ob eine neue Registrierung nötig ist.
 - **Azure:** Ressourcengruppe und Backup-Container (`…-backup`) der bestehenden Instanz tragen noch den alten Namen. Die Doku beschreibt die Neuanlage mit neuen Namen; für den Umzug siehe Schritt 3 oben.
 - **Verzeichnis auf dem Entwicklungsrechner:** Der Arbeitsordner heißt noch wie früher; er lässt sich außerhalb von Git umbenennen.
-- **Repository und Pakete:** Umzug nach `github.com/elocaro/elocaro` und neue GHCR-Pakete stehen aus. Bis dahin zeigen Links in Doku und Website auf das künftige Repository.
+- **Repository:** Am 29.10.2026 in die Organisation übertragen und umbenannt: `github.com/Elocaro/elocaro` (privat, alle Issues und der Verlauf erhalten, die alte Adresse leitet weiter). **GHCR-Pakete** entstehen mit dem nächsten Release-Lauf unter dem neuen Besitzer; auf der VM werden die Images weiter selbst gebaut. `SECURITY.md` verweist noch auf das Profil des persönlichen Kontos und ist auf die neue Kontaktadresse umzustellen.
+- **Website-Hosting:** Eigenes Hosting unter `elocaro.de` (noch nicht bereit); danach Impressum, Datenschutz und Kontaktadresse prüfen und die Demo-Adresse eintragen.
 - **Screenshots** in README, `docs/bilder` und `site/` zeigen noch die alte Oberfläche und sind neu aufzunehmen.
 - **E-Mail-Adresse** in Impressum und Datenschutz der Website (bestehendes Postfach) gegen eine Adresse mit dem neuen Namen tauschen, sobald die Domain feststeht.
 
