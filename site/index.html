@@ -28,7 +28,7 @@
   <a class="cta secondary" href="#installation">Installieren</a>
 </header>
 <main>
-  <p><img src="umsaetze-zuordnen.png" alt="Kontoumsätze zuordnen: Vorschläge mit Begründung" width="1200"></p>
+  <p><img src="umsaetze-zuordnen.png" alt="Kontoumsätze zuordnen: Vorschläge mit Begründung" width="1280" height="630"></p>
 
   <h2 id="funktionen">Was MietHahn kann</h2>
   <div class="grid">
@@ -51,9 +51,9 @@
   <p class="note">Eine öffentliche Demo mit Beispieldaten ist in Vorbereitung. Sie wird täglich zurückgesetzt, enthält keine echten Daten und verschickt keine E-Mails. Bis dahin zeigen die Bilder und der <a href="#installation">Probelauf auf dem eigenen Rechner</a> den Funktionsumfang.</p>
 
   <h2>Im Vergleich</h2>
-  <div class="table-wrapper">
+  <div class="table-wrapper" tabindex="0" role="region" aria-label="Vergleichstabelle">
   <table>
-    <thead><tr><th></th><th>MietHahn</th><th>Cloud-Dienste (z. B. immocloud, vermietet.de)</th><th>Tabellenkalkulation</th></tr></thead>
+    <thead><tr><th><span class="sr-only">Kriterium</span></th><th>MietHahn</th><th>Cloud-Dienste (z. B. immocloud, vermietet.de)</th><th>Tabellenkalkulation</th></tr></thead>
     <tbody>
       <tr><th>Wohin gehen die Daten?</th><td>auf Ihren Server</td><td>zum Anbieter</td><td>auf Ihren Rechner</td></tr>
       <tr><th>Kosten</th><td>kostenlos (AGPL), Server nach Wahl</td><td>Abo, oft nach Wohnungszahl</td><td>kostenlos</td></tr>
@@ -68,7 +68,7 @@
 
   <h2 id="installation">Installation</h2>
   <p>Voraussetzung: ein Server mit Docker (ab 2 GB RAM) und eine Domain.</p>
-<pre>git clone https://github.com/TheR00st3r/MietHahn.git &amp;&amp; cd MietHahn
+<pre tabindex="0">git clone https://github.com/TheR00st3r/MietHahn.git &amp;&amp; cd MietHahn
 ./deploy/install.sh --lokal      # Probelauf auf https://localhost
 ./deploy/install.sh              # echte Installation mit Domain und Let's Encrypt</pre>
   <ol class="steps">
@@ -90,10 +90,10 @@
   <p>MietHahn ist ein Nebenprojekt und bleibt frei nutzbar. Wer es unterstützen möchte, findet die Wege in der <a href="https://github.com/TheR00st3r/MietHahn/blob/HEAD/docs/foerderung.md">Förderung</a>: Spenden, Finanzierung einzelner Funktionen und bezahlte Einrichtung.</p>
 
   <h2>Weitere Ansichten</h2>
-  <div class="grid">
-    <p><img src="abrechnungs-assistent.png" alt="Abrechnungs-Assistent" width="600"></p>
-    <p><img src="mietvertrag.png" alt="Mietvertrag" width="600"></p>
-    <p><img src="handy-aufgaben.png" alt="Aufgaben auf dem Handy" width="300"></p>
+  <div class="gallery">
+    <figure><img src="abrechnungs-assistent.png" alt="Abrechnungs-Assistent mit Fortschritt und Prüfhinweisen" width="1280" height="840" loading="lazy"><figcaption>Abrechnungs-Assistent: Schritt für Schritt mit Fristwarnung</figcaption></figure>
+    <figure><img src="mietvertrag.png" alt="Mietvertrag mit Mietmodell und Bestandteilen" width="1440" height="900" loading="lazy"><figcaption>Mietvertrag mit Mietmodell und Bestandteilen</figcaption></figure>
+    <figure class="phone"><img src="handy-aufgaben.png" alt="Aufgaben und Fristen auf dem Handy" width="360" height="780" loading="lazy"><figcaption>Auf dem Handy: Aufgaben und Fristen</figcaption></figure>
   </div>
 </main>
 <footer>
