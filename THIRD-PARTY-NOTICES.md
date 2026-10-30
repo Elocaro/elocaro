@@ -9,13 +9,17 @@ Elocaro nutzt folgende Open-Source-Komponenten (als NuGet-Pakete bzw. Container-
 | .NET / ASP.NET Core / Entity Framework Core | MIT | Laufzeit, Web, ORM |
 | Npgsql, Npgsql.EntityFrameworkCore.PostgreSQL | PostgreSQL License | Datenbanktreiber |
 | EFCore.NamingConventions | Apache-2.0 | snake_case-Namen |
-| Quartz.NET | Apache-2.0 | Hintergrundjobs. Das Datenbankschema `src/Elocaro.Infrastructure/Persistenz/Sql/quartz_3_22_6_postgres.sql` stammt aus dem Quartz.NET-Repository |
+| Quartz.NET | Apache-2.0 | Hintergrundjobs. Das Datenbankschema `src/Elocaro.Infrastructure/Persistence/Sql/quartz_3_22_6_postgres.sql` stammt aus dem Quartz.NET-Repository |
 | MailKit / MimeKit | MIT | SMTP-Versand |
 | libfintx.FinTS | LGPL-3.0 | FinTS-Direktabruf der Kontoumsätze. Unverändert als NuGet-Paket eingebunden (dynamisches Linken); Quellcode: <https://github.com/libfintx/libfintx> |
+| MudBlazor | MIT | Oberflächenkomponenten (Auswahlfelder, Dialoge, Tabellen) |
 | Scriban | BSD-2-Clause | Vorlagen |
 | SkiaSharp | MIT | Bildaufbereitung |
 | QRCoder | MIT | QR-Code für die Zwei-Faktor-Einrichtung |
 | bUnit, AngleSharp (nur Tests) | MIT | Komponenten- und HTML-Tests |
+| Roboto Flex (Schrift, mitgeliefert unter `src/Elocaro.Web/wwwroot/fonts/`) | SIL Open Font License 1.1 | Schrift der Oberfläche; Lizenztext liegt neben den Dateien |
+| restic (im Backup-Container) | BSD-2-Clause | verschlüsselte Datensicherung |
+| Caddy (Container) | Apache-2.0 | TLS und Reverse-Proxy |
 | PostgreSQL (Container) | PostgreSQL License | Datenbank |
 | Gotenberg (Container) | MIT | HTML → PDF (Chromium, LibreOffice für PDF/A) |
 | Mailpit (Container, nur Entwicklung/Test) | MIT | Mail-Testserver |
