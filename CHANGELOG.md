@@ -4,6 +4,12 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Behoben
+- Belegung auf dem Handy: Beim Wechsel des Jahres springt die Seite nicht mehr nach oben, sondern bleibt an der Jahresleiste.
+- Dokumentenliste auf dem Handy: Schlagworte brachen den Titel buchstabenweise um; Titel und Schlagworte stehen jetzt in einer Zelle und umbrechen sauber.
+- Interaktive Seiten reagieren erst, wenn die Verbindung steht: Bis dahin nehmen Auswahlfelder, Schalter und Knöpfe keine Eingaben an und werden nach kurzer Zeit abgedunkelt, statt Tipps zu verschlucken (langsame Mobilfunkverbindung).
+- `manifest.webmanifest`, Symbole und App-Icon wurden auf Unterseiten nicht gefunden (404, „manifest is not valid JSON“), weil `<base>` nach den Links stand.
+
 ### Hinzugefügt
 - Demo-Modus (`Demo__Enabled`): legt beim ersten Start einen Demo-Benutzer ohne Zwei-Faktor an, lädt die Beispieldaten legt je Rolle einen Demo-Benutzer an (Verwalter, Hausmeister, Handwerker, Eigentümer, Mieter), sperrt Passwortänderung und Zwei-Faktor-Einrichtung, blendet die Sicherungsmeldung aus und zeigt die Zugangsdaten auf der Anmeldeseite; dazu `deploy/docker-compose.demo.yml`, `deploy/Caddyfile.demo` und `deploy/demo/reset.sh` für das nächtliche Zurücksetzen (siehe Betrieb → Demo-Instanz).
 

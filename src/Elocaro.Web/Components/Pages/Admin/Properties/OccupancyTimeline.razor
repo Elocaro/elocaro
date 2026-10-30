@@ -14,13 +14,14 @@ else
 
     <HouseOverview PropertyId="PropertyId" />
 
-    <nav class="plan-years" aria-label="Jahr wählen">
-        <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/belegung?jahr=@(year - 1)">‹ @(year - 1)</a>
+    @* The anchor keeps the view at the year bar after a change (the plan lies below the house overview). *@
+    <nav class="plan-years" id="plan-years" aria-label="Jahr wählen">
+        <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/belegung?jahr=@(year - 1)#plan-years">‹ @(year - 1)</a>
         <strong aria-current="page">@year</strong>
-        <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/belegung?jahr=@(year + 1)">@(year + 1) ›</a>
+        <a class="button button-outlined" href="/verwaltung/objekte/@PropertyId/belegung?jahr=@(year + 1)#plan-years">@(year + 1) ›</a>
         @if (year != today.Year)
         {
-            <a class="button button-text" href="/verwaltung/objekte/@PropertyId/belegung">Heute</a>
+            <a class="button button-text" href="/verwaltung/objekte/@PropertyId/belegung#plan-years">Heute</a>
         }
     </nav>
 

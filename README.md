@@ -26,6 +26,10 @@
 
 ## Ausprobieren
 
+Ohne Installation: die **[Demo](https://demo.elocaro.de)** mit erfundenen Beispieldaten. Auf der Anmeldeseite eine Rolle wählen (Administrator, Verwalter, Hausmeister, Handwerker, Eigentümer, Mieter); sie wird jede Nacht zurückgesetzt.
+
+Auf dem eigenen Rechner oder Server:
+
 ```bash
 git clone https://github.com/Elocaro/elocaro.git && cd elocaro
 ./deploy/install.sh --lokal      # Probelauf auf https://localhost

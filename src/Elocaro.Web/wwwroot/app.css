@@ -190,6 +190,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 .data-table th { font-size: 0.85rem; color: var(--color-text-muted); font-weight: 600; }
 .data-table td.number, .data-table th.number { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .data-table td a { white-space: nowrap; }
+.data-table .cell-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem; min-width: 0; }
 .table-wrapper { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--shape-lg); }
 
 .status { display: inline-block; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: var(--color-surface-2); }
@@ -769,6 +770,7 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
     .data-table.stackable tbody td[data-label]::before { content: attr(data-label); flex: none; max-width: 45%; color: var(--md-on-surface-variant); font-size: 0.8rem; font-weight: 600; text-align: left; }
     .data-table.stackable tbody td:not([data-label]) { justify-content: flex-start; text-align: left; }
     .data-table.stackable tbody td:empty { display: none; }
+    .data-table.stackable .cell-main { flex: 1; justify-content: flex-end; }
     .data-table.stackable tbody td a { white-space: normal; }
     .data-table.stackable tfoot { display: block; padding: 0.5rem 1rem; }
     .data-table.stackable tfoot tr { display: flex; justify-content: space-between; }
@@ -983,7 +985,7 @@ a.kpi:hover { background: var(--md-surface-container-high); }
 main p a, main .help a, main .small a, .message a { text-decoration: underline; text-underline-offset: 0.15em; }
 
 /* Occupancy plan (timeline per unit and room) */
-.plan-years { display: flex; gap: 0.75rem; align-items: center; margin: 0 0 var(--spacing); }
+.plan-years { display: flex; gap: 0.75rem; align-items: center; margin: 0 0 var(--spacing); scroll-margin-top: 4.5rem; }
 .plan-scroll { overflow-x: auto; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); background: var(--md-surface-container-lowest); }
 .plan { min-width: 720px; }
 .plan-row { display: grid; grid-template-columns: 9rem 1fr; border-bottom: 1px solid var(--md-outline-variant); }
@@ -1323,3 +1325,8 @@ fieldset { min-width: 0; }
     .page-header.is-compact { position: static; }
 }
 
+/* Interactive page that is prerendered but not yet connected (Components/Shell/InteractiveShell.razor): the controls are visible but would
+   swallow taps. They ignore input and, if loading takes longer than a moment, dim, so nobody taps into the void on a slow phone. */
+main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-control, .mud-checkbox, .mud-switch, .mud-radio-group, .mud-button-root, .mud-chip) { pointer-events: none; animation: pending-dim 0.25s 0.6s both; }
+@keyframes pending-dim { to { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-control, .mud-checkbox, .mud-switch, .mud-radio-group, .mud-button-root, .mud-chip) { animation-duration: 0s; } }

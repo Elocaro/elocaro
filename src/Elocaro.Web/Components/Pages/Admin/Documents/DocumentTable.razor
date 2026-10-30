@@ -21,15 +21,18 @@
             {
                 <tr>
                     <td>
-                        <a href="@(Internal ? $"/verwaltung/dokumente/{document.Id}" : $"/dateien/{document.FileId}")">@document.Title</a>
-                        @foreach (var day in document.Tags)
-                        {
-                            <StatusChip>@day</StatusChip>
-                        }
-                        @if (document.ExpiresOn is { } expiry)
-                        {
-                            <span class="small">&#32;gültig bis @Format.Date(expiry)</span>
-                        }
+                        @* One wrapper: in the stacked mobile layout every direct child of the cell would become a column of its own. *@
+                        <div class="cell-main">
+                            <a href="@(Internal ? $"/verwaltung/dokumente/{document.Id}" : $"/dateien/{document.FileId}")">@document.Title</a>
+                            @foreach (var tag in document.Tags)
+                            {
+                                <StatusChip>@tag</StatusChip>
+                            }
+                            @if (document.ExpiresOn is { } expiry)
+                            {
+                                <span class="small">&#32;gültig bis @Format.Date(expiry)</span>
+                            }
+                        </div>
                     </td>
                     <td>@Labels.From(document.Category)</td>
                     <td>@Format.Date(document.Date)</td>

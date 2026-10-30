@@ -6,13 +6,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    @* Before every link: relative URLs (manifest, icons) must resolve against "/" and not against the page, otherwise they are 404 on subpages. *@
+    <base href="/" />
     <meta name="theme-color" content="#146d29" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="icon.svg" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <base href="/" />
     <ResourcePreloader />
     <link rel="preload" href="fonts/roboto-flex-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" />
