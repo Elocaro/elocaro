@@ -26,6 +26,9 @@ internal sealed class StatementDeadlineSource(ElocaroDbContext db, TimeProvider 
             .Select(s => new { s.PropertyId, s.BillingPeriod.From, s.BillingPeriod.To }).ToListAsync(cancellationToken))
             .Select(s => (s.PropertyId, Period: new Period(s.From, s.To))).ToHashSet();
 
+        var dismissed = (await db.Set<StatementReminderDismissal>().AsNoTracking().Select(d => new { d.PropertyId, d.Year }).ToListAsync(cancellationToken))
+            .Select(d => (d.PropertyId, d.Year)).ToHashSet();
+
         var entries = new List<DeadlineEntry>();
         foreach (var year in new[] { today.Year - 1, today.Year })
         {
@@ -40,7 +43,7 @@ internal sealed class StatementDeadlineSource(ElocaroDbContext db, TimeProvider 
                 .Where(v => v.BillingType == BillingType.Prepayment && v.Term.From <= period.To && (v.Term.To == null || v.Term.To >= period.From))
                 .Join(db.Set<Unit>(), v => v.UnitId, u => u.Id, (v, u) => u.PropertyId)
                 .Distinct().ToListAsync(cancellationToken);
-            foreach (var property in properties.Where(p => billed.Contains(p.Id) && !released.Contains((p.Id, period))))
+            foreach (var property in properties.Where(p => billed.Contains(p.Id) && !released.Contains((p.Id, period)) && !dismissed.Contains((p.Id, year))))
             {
                 entries.Add(new DeadlineEntry(
                     $"statement:{property.Id}:{year}",

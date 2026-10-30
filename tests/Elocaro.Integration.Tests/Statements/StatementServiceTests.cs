@@ -198,6 +198,20 @@ public class StatementServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Dismissed_reminder_disappears_and_comes_back_when_shown_again()
+    {
+        environment.Clock.SetUtcNow(new DateTimeOffset(2027, 1, 5, 10, 0, 0, TimeSpan.Zero));
+        Assert.Single(await TodosAsync());
+
+        await WithAsync<IStatements, bool>(async s => { await s.SetReminderDismissedAsync(house, 2025, true, Ct); return true; });
+        Assert.Empty(await TodosAsync());
+        Assert.True((await WithAsync<IStatements, StatementWizard?>(s => s.PrepareAsync(house, Year(2025), cancellationToken: Ct)))!.ReminderDismissed);
+
+        await WithAsync<IStatements, bool>(async s => { await s.SetReminderDismissedAsync(house, 2025, false, Ct); return true; });
+        Assert.Single(await TodosAsync());
+    }
+
+    [Fact]
     public async Task Dashboard_is_empty_for_users_without_finance_right()
     {
         environment.Clock.SetUtcNow(new DateTimeOffset(2026, 12, 20, 10, 0, 0, TimeSpan.Zero));

@@ -49,9 +49,22 @@
 
     document.getElementById('components-reconnect-button')?.addEventListener('click', retry);
     document.getElementById('components-reload-button')?.addEventListener('click', () => location.reload());
+    const failed = () => modal.classList.contains('components-reconnect-failed');
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && modal.classList.contains('components-reconnect-failed')) {
+        if (document.visibilityState === 'visible' && failed()) {
             retry();
         }
     });
+    // Back online (e.g. after a tunnel or a night with the phone asleep): reconnect without waiting for a tap.
+    window.addEventListener('online', () => {
+        if (failed()) {
+            retry();
+        }
+    });
+    // While the dialog says "no connection" and the page is visible, keep trying quietly; the first success closes it or reloads the page.
+    setInterval(() => {
+        if (failed() && document.visibilityState === 'visible' && navigator.onLine !== false) {
+            retry();
+        }
+    }, 10000);
 })();

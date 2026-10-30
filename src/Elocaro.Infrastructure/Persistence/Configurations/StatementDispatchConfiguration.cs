@@ -3,6 +3,7 @@ using Elocaro.Domain.Documents;
 using Elocaro.Domain.Files;
 using Elocaro.Domain.Finance;
 using Elocaro.Domain.Leases;
+using Elocaro.Domain.Properties;
 using Elocaro.Domain.Statements;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -42,5 +43,15 @@ internal sealed class PrepaymentProposalConfiguration : IEntityTypeConfiguration
         builder.HasOne<StatementDispatch>().WithMany().HasForeignKey(p => p.DispatchId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Lease>().WithMany().HasForeignKey(p => p.LeaseId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(p => p.DispatchId);
+    }
+}
+
+internal sealed class StatementReminderDismissalConfiguration : IEntityTypeConfiguration<StatementReminderDismissal>
+{
+    public void Configure(EntityTypeBuilder<StatementReminderDismissal> builder)
+    {
+        builder.ToTable("statement_reminder_dismissals");
+        builder.HasOne<Property>().WithMany().HasForeignKey(d => d.PropertyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(d => new { d.PropertyId, d.Year }).IsUnique().HasFilter("NOT deleted");
     }
 }

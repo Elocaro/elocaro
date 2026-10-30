@@ -31,7 +31,7 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         var page = await SignedInAsAdminAsync();
 
         Assert.False(await page.IsVisibleAsync(".sidebar"));
-        Assert.False(await page.IsVisibleAsync(".top-bar"));
+        Assert.True(await page.IsVisibleAsync(".top-bar .brand"));
         Assert.True(await page.IsVisibleAsync(".bottom-bar"));
         Assert.False(await page.IsVisibleAsync(".mobile-navigation .navigation"));
 

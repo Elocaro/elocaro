@@ -6808,6 +6808,59 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                     b.ToTable("statement_dispatches", (string)null);
                 });
 
+            modelBuilder.Entity("Elocaro.Domain.Statements.StatementReminderDismissal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id")
+                        .HasName("pk_statement_reminder_dismissals");
+
+                    b.HasIndex("PropertyId", "Year")
+                        .IsUnique()
+                        .HasDatabaseName("ix_statement_reminder_dismissals_property_id_year")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("statement_reminder_dismissals", (string)null);
+                });
+
             modelBuilder.Entity("Elocaro.Domain.Tax.FinancingCost", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9564,6 +9617,16 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_statement_dispatches_billing_statements_statement_id");
+                });
+
+            modelBuilder.Entity("Elocaro.Domain.Statements.StatementReminderDismissal", b =>
+                {
+                    b.HasOne("Elocaro.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_statement_reminder_dismissals_properties_property_id");
                 });
 
             modelBuilder.Entity("Elocaro.Domain.Tax.FinancingCost", b =>

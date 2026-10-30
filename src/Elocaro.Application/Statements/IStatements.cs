@@ -22,6 +22,9 @@ public interface IStatements
     Task<IReadOnlyList<StatementSummary>> ListAsync(Guid propertyId, CancellationToken cancellationToken = default);
 
     Task<StoredStatement?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Hides (or shows again) the reminder for the statement of a calendar year on the dashboard and in the deadline list.</summary>
+    Task SetReminderDismissedAsync(Guid propertyId, int year, bool dismissed, CancellationToken cancellationToken = default);
 }
 
 public sealed record StatementSummary(Guid Id, Guid PropertyId, Period BillingPeriod, int Revision, DateTimeOffset ReleasedAt, string? ReleasedBy, decimal TotalCosts, decimal LandlordTotal, string? Note, bool Current);
@@ -33,6 +36,7 @@ public sealed record StoredStatement(StatementSummary Summary, string PropertyNa
 /// <param name="Previous">Result of the previous year (comparison basis), <c>null</c> if not calculable.</param>
 /// <param name="Released">Newest released revision of the period.</param>
 /// <param name="Deadline">State of the deadline under § 556 para. 3 BGB, <c>null</c> as long as no reminder is due.</param>
+/// <param name="ReminderDismissed">The reminder for this year is hidden (dashboard, deadline list).</param>
 public sealed record StatementWizard(
     OperatingCostPreview Preview,
     BillingResult? Previous,
@@ -40,7 +44,8 @@ public sealed record StatementWizard(
     DateOnly DeadlineDate,
     DeadlineState? Deadline,
     StatementSummary? Released,
-    decimal ThresholdPercent)
+    decimal ThresholdPercent,
+    bool ReminderDismissed = false)
 {
     public Period BillingPeriod => Preview.Result.BillingPeriod;
 

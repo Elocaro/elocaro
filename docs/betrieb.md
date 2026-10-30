@@ -231,7 +231,7 @@ Konfiguration (Abschnitt `Statements`, Umgebungsvariablen `Statements__…`):
 | `Statements__PaymentDays` | 30 | Tage ab Versand bis zur Fälligkeit einer Nachzahlung bzw. Auszahlung eines Guthabens |
 | `Statements__PrepaymentSafetyPercent` | 5 | Sicherheitszuschlag auf den Vorschlag für die neue Vorauszahlung (im Versanddialog überschreibbar) |
 
-Auf der Startseite erinnert ab Oktober des Folgejahres eine Aufgabe an die Abrechnung des Vorjahres, 6, 4 und 2 Wochen vor dem 31.12. wird sie dringlicher (§ 556 Abs. 3 BGB).
+Auf der Startseite erinnert ab Oktober des Folgejahres eine Aufgabe an die Abrechnung des Vorjahres, 6, 4 und 2 Wochen vor dem 31.12. wird sie dringlicher (§ 556 Abs. 3 BGB). Nach Fristablauf lässt sich die Abrechnung weiter erstellen. Soll die Erinnerung nicht mehr erscheinen, blendet man sie im Abrechnungs-Assistenten für das Jahr dauerhaft aus („Erinnerung für 2025 ausblenden“); dort lässt sie sich auch wieder einblenden.
 
 > Die mitgelieferte Abrechnungsvorlage (`Pdf/Templates/statement.sbn`, `Mail/Templates/statement.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte vor dem produktiven Einsatz rechtlich prüfen lassen. Die CO₂- und Gradtagstabellen der Heizkostenabrechnung sind „Stand/prüfen“ (siehe Entwicklung).
 

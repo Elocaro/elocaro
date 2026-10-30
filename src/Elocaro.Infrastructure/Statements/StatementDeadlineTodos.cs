@@ -32,6 +32,9 @@ internal sealed class StatementDeadlineTodos(ElocaroDbContext db, TimeProvider c
             .Select(s => new { s.PropertyId, s.BillingPeriod.From, s.BillingPeriod.To }).ToListAsync(cancellationToken))
             .Select(s => (s.PropertyId, Period: new Period(s.From, s.To))).ToHashSet();
 
+        var dismissed = (await db.Set<StatementReminderDismissal>().AsNoTracking().Select(d => new { d.PropertyId, d.Year }).ToListAsync(cancellationToken))
+            .Select(d => (d.PropertyId, d.Year)).ToHashSet();
+
         var todos = new List<TodoItem>();
         // The previous year is due; the year before is only shown while its deadline has just passed without a statement.
         foreach (var year in new[] { today.Year - 1, today.Year - 2 })
@@ -46,7 +49,7 @@ internal sealed class StatementDeadlineTodos(ElocaroDbContext db, TimeProvider c
                 .Where(v => v.BillingType == BillingType.Prepayment && v.Term.From <= period.To && (v.Term.To == null || v.Term.To >= period.From))
                 .Join(db.Set<Unit>(), v => v.UnitId, u => u.Id, (v, u) => u.PropertyId)
                 .Distinct().ToListAsync(cancellationToken);
-            foreach (var property in properties.Where(p => billed.Contains(p.Id) && !released.Contains((p.Id, period))))
+            foreach (var property in properties.Where(p => billed.Contains(p.Id) && !released.Contains((p.Id, period)) && !dismissed.Contains((p.Id, year))))
             {
                 var title = state.Level == DeadlineLevel.Expired
                     ? $"Frist für die Abrechnung {year} verstrichen: {property.Name}"

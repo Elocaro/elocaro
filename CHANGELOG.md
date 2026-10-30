@@ -11,6 +11,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - `manifest.webmanifest`, Symbole und App-Icon wurden auf Unterseiten nicht gefunden (404, „manifest is not valid JSON“), weil `<base>` nach den Links stand.
 
 ### Hinzugefügt
+- Abrechnungs-Erinnerung: Im Abrechnungs-Assistenten lässt sich die Erinnerung für ein Objekt und Jahr dauerhaft ausblenden (und wieder einblenden), zum Beispiel wenn die Frist verstrichen ist und keine Abrechnung mehr entsteht. Die Abrechnung bleibt weiter möglich.
+- Handy: Die Kopfleiste mit dem Namen Elocaro erscheint auch im Verwaltungsbereich. Verliert die Seite die Verbindung, versucht sie es im Hintergrund erneut, statt auf „Erneut versuchen“ zu warten.
 - Demo-Modus (`Demo__Enabled`): legt beim ersten Start einen Demo-Benutzer ohne Zwei-Faktor an, lädt die Beispieldaten legt je Rolle einen Demo-Benutzer an (Verwalter, Hausmeister, Handwerker, Eigentümer, Mieter), sperrt Passwortänderung und Zwei-Faktor-Einrichtung, blendet die Sicherungsmeldung aus und zeigt die Zugangsdaten auf der Anmeldeseite; dazu `deploy/docker-compose.demo.yml`, `deploy/Caddyfile.demo` und `deploy/demo/reset.sh` für das nächtliche Zurücksetzen (siehe Betrieb → Demo-Instanz).
 
 ## [0.1.0] - 2026-10-29

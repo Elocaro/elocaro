@@ -41,6 +41,18 @@ var result = w.Preview.Result;
         {
             <text><strong>Frist:</strong> Die Abrechnung muss spätestens am @Format.Date(deadline.Deadline) bei den Mietern sein (§ 556 Abs. 3 BGB), noch @deadline.Days Tage.</text>
         }
+        <p class="small">
+            @if (w.ReminderDismissed)
+            {
+                <text>Die Erinnerung auf der Startseite und in den Fristen ist ausgeblendet. </text>
+                <button type="button" class="button button-text" @onclick="() => DismissReminderAsync(false)">Erinnerung wieder einblenden</button>
+            }
+            else
+            {
+                <text>Die Abrechnung lässt sich trotzdem erstellen. Soll die Erinnerung nicht mehr erscheinen? </text>
+                <button type="button" class="button button-text" @onclick="() => DismissReminderAsync(true)">Erinnerung für @year ausblenden</button>
+            }
+        </p>
     </Notice>
 }
 
@@ -317,6 +329,12 @@ var result = w.Preview.Result;
     }
 
     private static decimal MonthsOf(Period period) => Math.Max(1, (period.To!.Value.Year - period.From.Year) * 12 + period.To.Value.Month - period.From.Month + 1);
+
+    private async Task DismissReminderAsync(bool dismissed)
+    {
+        await Statements.SetReminderDismissedAsync(PropertyId, year, dismissed);
+        await LoadAsync();
+    }
 
     private async Task ReleaseAsync()
     {

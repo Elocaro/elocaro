@@ -55,7 +55,8 @@ internal sealed class StatementService(ElocaroDbContext db, IOperatingCosts oper
             StatementDeadline.Of(billingPeriod),
             released is null ? StatementDeadline.StateOn(billingPeriod, today) : null,
             released,
-            thresholdPercent);
+            thresholdPercent,
+            await db.Set<StatementReminderDismissal>().AnyAsync(d => d.PropertyId == propertyId && d.Year == billingPeriod.From.Year, cancellationToken));
     }
 
     public async Task<Result> ReleaseAsync(Guid propertyId, Period billingPeriod, bool acknowledgeWarnings, string? note, CancellationToken cancellationToken = default)
@@ -156,6 +157,25 @@ internal sealed class StatementService(ElocaroDbContext db, IOperatingCosts oper
         }
 
         return new StoredStatement(ToSummary(statement, statement.CreatedBy, newest), propertyName, result, difference, excluded);
+    }
+
+    public async Task SetReminderDismissedAsync(Guid propertyId, int year, bool dismissed, CancellationToken cancellationToken = default)
+    {
+        var existing = await db.Set<StatementReminderDismissal>().SingleOrDefaultAsync(d => d.PropertyId == propertyId && d.Year == year, cancellationToken);
+        if (dismissed && existing is null)
+        {
+            db.Add(new StatementReminderDismissal(propertyId, year));
+        }
+        else if (!dismissed && existing is not null)
+        {
+            db.Remove(existing);
+        }
+        else
+        {
+            return;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static StatementSummary ToSummary(Domain.Statements.BillingStatement s, string? releasedBy, int newestRevision) =>

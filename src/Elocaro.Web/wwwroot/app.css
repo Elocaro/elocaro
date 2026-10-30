@@ -674,7 +674,9 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 /* ---------- Smartphone ---------- */
 @media (max-width: 899.98px) {
     :root { --content-gutter: 1rem; }
-    .app-admin .top-bar, .sidebar { display: none; }
+    .sidebar { display: none; }
+    /* On the phone the top bar only carries the name; search and account menu are in the menu sheet of the bottom bar */
+    .app-admin .top-bar .quick-search-trigger, .app-admin .top-bar .user-menu { display: none; }
     .content { padding-bottom: calc(5rem + var(--bottom-bar-height)); padding-inline: max(var(--content-gutter), env(safe-area-inset-left, 0px)); }
     .app-simple .content { padding-bottom: 2rem; }
 
