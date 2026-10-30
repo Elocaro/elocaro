@@ -14,6 +14,8 @@ public class AboutPageTests(PostgresFixture postgres) : AccountTestBase(postgres
         Assert.Equal(HttpStatusCode.OK, page.Status);
         Assert.Contains("Über Elocaro", page.Text);
         Assert.Contains("GNU Affero General Public License", page.Text);
+        Assert.Contains("© 2026 Andreas Hahn", page.Text);
+        Assert.Contains("AGPL-3.0-or-later", page.Text);
         Assert.NotNull(page.Document.QuerySelector("#app-version"));
         Assert.Contains(page.Document.QuerySelectorAll("a"), a => a.GetAttribute("href")!.StartsWith("https://github.com/", StringComparison.Ordinal));
         Assert.Contains(page.Document.QuerySelectorAll("a"), a => a.GetAttribute("href")!.EndsWith("docs/foerderung.md", StringComparison.Ordinal));

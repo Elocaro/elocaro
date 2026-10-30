@@ -7,7 +7,9 @@ public static class AppInfo
 {
     public const string SourceUrl = "https://github.com/elocaro/elocaro";
     public const string SupportUrl = SourceUrl + "/blob/HEAD/docs/foerderung.md";
-    public const string LicenseName = "GNU Affero General Public License v3.0";
+    public const string LicenseName = "GNU Affero General Public License v3.0 oder später (AGPL-3.0-or-later)";
+
+    public const string Copyright = "© 2026 Andreas Hahn";
 
     /// <summary>The release version (from the tag at build time); "Entwicklung" for local builds.</summary>
     public static string Version { get; } = ReadVersion();

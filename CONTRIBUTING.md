@@ -16,6 +16,12 @@ Oberflächentexte, URLs, Dokumentation und Commit-Nachrichten. Details und Gloss
 Konventionen, Testaufbau und Migrationen: [docs/entwicklung.md](docs/entwicklung.md).
 Oberfläche (Design-Tokens, Bausteine, Seitentypen, Checkliste für neue Seiten): [docs/ui.md](docs/ui.md). Neue Seiten halten sich daran.
 
+## Lizenz und Beitragsvereinbarung (CLA)
+
+Elocaro steht unter der [AGPL-3.0-or-later](LICENSE). Jeder Beitrag steht unter derselben Lizenz. Zusätzlich gilt die [Beitragsvereinbarung (CLA)](CLA.md): Das Urheberrecht bleibt bei dir, der Projektinhaber erhält aber das Recht, deinen Beitrag auch unter anderen Lizenzen weiterzugeben (zum Beispiel für eine kommerzielle Zweitlizenz). Du stimmst zu, indem du im Pull Request das Kästchen zur CLA ankreuzt. Ohne Zustimmung kann ein Beitrag nicht übernommen werden.
+
+Bitte keine echten Mieter- oder Bankdaten und keine Zugangsdaten in Beiträgen, Issues oder Testdaten.
+
 ## Empfohlene Branch-Protection für den Default-Branch
 
 In *Settings → Branches → Branch protection rules* (bzw. *Rulesets*):

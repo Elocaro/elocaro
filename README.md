@@ -74,4 +74,10 @@ Elocaro ist ein Nebenprojekt und bleibt frei nutzbar. Fehlerberichte und Erfahru
 
 ## Lizenz
 
-Elocaro steht unter der [GNU Affero General Public License v3.0](LICENSE). Drittanbieter-Komponenten und ihre Lizenzen: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Version, Lizenz und Quellcode-Link zeigt auch die Seite „Über Elocaro“ (`/ueber`).
+Copyright (C) 2026 Andreas Hahn
+
+Elocaro ist freie Software: Du kannst sie unter den Bedingungen der [GNU Affero General Public License](LICENSE), wie von der Free Software Foundation veröffentlicht, weitergeben und/oder verändern, entweder gemäß Version 3 der Lizenz oder (nach deiner Wahl) jeder späteren Version (`AGPL-3.0-or-later`).
+
+Elocaro wird in der Hoffnung verbreitet, dass es nützlich ist, aber **ohne jede Gewährleistung**, auch ohne die implizite Gewährleistung der Marktreife oder der Eignung für einen bestimmten Zweck. Details stehen in der Lizenz. Der Name „Elocaro“ und das Logo sind nicht Teil der Lizenz.
+
+Beiträge anderer stehen unter derselben Lizenz und unter der [Beitragsvereinbarung (CLA)](CLA.md), siehe [Mitarbeiten](CONTRIBUTING.md#lizenz-und-beitragsvereinbarung-cla). Drittanbieter-Komponenten und ihre Lizenzen: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Version, Lizenz und Quellcode-Link zeigt auch die Seite „Über Elocaro“ (`/ueber`).
