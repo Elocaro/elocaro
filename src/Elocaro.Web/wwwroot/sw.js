@@ -1,10 +1,10 @@
 // Service worker of the installed web app: an offline notice instead of the browser error page, and hints from the server.
 // The push message is empty; title and text are fetched from the server (so they never pass through the push service).
-const CACHE = 'elocaro-offline-v1';
+const CACHE = 'elocaro-offline-v2';
 const OFFLINE = '/offline.html';
 
 self.addEventListener('install', event => {
-    event.waitUntil(caches.open(CACHE).then(cache => cache.add(OFFLINE)));
+    event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([OFFLINE, '/offline.js'])));
     self.skipWaiting();
 });
 
@@ -15,6 +15,9 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     if (event.request.mode === 'navigate') {
         event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE)));
+    } else if (new URL(event.request.url).pathname === '/offline.js') {
+        // the offline page itself needs its script while there is no connection
+        event.respondWith(fetch(event.request).catch(() => caches.match('/offline.js')));
     }
 });
 

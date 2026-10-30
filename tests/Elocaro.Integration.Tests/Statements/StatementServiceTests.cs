@@ -212,6 +212,22 @@ public class StatementServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Wizard_warns_about_receipts_of_the_period_that_are_not_split()
+    {
+        Validate(await WithAsync<IReceiptService, Result>(s => s.CreateAsync(
+            new ReceiptInput { SupplierName = "Stadt Köln", InvoiceDate = new DateOnly(2026, 6, 1), Gross = 240m }, [], null, Ct)));
+        Validate(await WithAsync<IReceiptService, Result>(s => s.CreateAsync(
+            new ReceiptInput { SupplierName = "Anderes Jahr", InvoiceDate = new DateOnly(2024, 6, 1), Gross = 99m }, [], null, Ct)));
+
+        var wizard = (await WithAsync<IStatements, StatementWizard?>(s => s.PrepareAsync(house, Year(2026), cancellationToken: Ct)))!;
+
+        var warning = Assert.Single(wizard.For(WizardStep.Costs), f => f.Text.Contains("nicht vollständig auf Kostenarten", StringComparison.Ordinal));
+        Assert.Equal(FindingSeverity.Warning, warning.Severity);
+        Assert.Contains("240,00 €", warning.Text, StringComparison.Ordinal);
+        Assert.StartsWith("1 Beleg des Zeitraums", warning.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Dashboard_is_empty_for_users_without_finance_right()
     {
         environment.Clock.SetUtcNow(new DateTimeOffset(2026, 12, 20, 10, 0, 0, TimeSpan.Zero));

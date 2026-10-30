@@ -7,6 +7,7 @@ using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
 using Elocaro.Domain.Properties;
+using Elocaro.Domain.Receipts;
 using Elocaro.Domain.Statements;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +46,7 @@ internal sealed class StatementService(ElocaroDbContext db, IOperatingCosts oper
         findings.AddRange(await MeterFindingsAsync(propertyId, billingPeriod, cancellationToken));
         findings.AddRange(await OccupancyFindingsAsync(propertyId, billingPeriod, cancellationToken));
         findings.AddRange(await KeyFindingsAsync(propertyId, cancellationToken));
+        findings.AddRange(await UnsplitReceiptFindingsAsync(billingPeriod, cancellationToken));
 
         var today = GermanTime.Today(clock.GetUtcNow());
         var released = (await ListAsync(propertyId, cancellationToken)).FirstOrDefault(s => s.BillingPeriod == billingPeriod && s.Current);
@@ -182,6 +184,23 @@ internal sealed class StatementService(ElocaroDbContext db, IOperatingCosts oper
         new(s.Id, s.PropertyId, s.BillingPeriod, s.Revision, s.ReleasedAt, releasedBy, s.TotalCosts, s.LandlordTotal, s.Note, s.Revision == newestRevision);
 
     /// <summary>Meters in use during the period need a reading at the start and at the end of their use.</summary>
+    /// <summary>Receipts of the period without a (complete) split are missing in the statement: a warning with the open sum.</summary>
+    private async Task<List<PlausibilityFinding>> UnsplitReceiptFindingsAsync(Period period, CancellationToken cancellationToken)
+    {
+        var receipts = await db.Set<Receipt>().AsNoTracking().Include(r => r.Items)
+            .Where(r => !r.Incomplete && r.InvoiceDate <= period.To!.Value && (r.ServiceTo ?? r.InvoiceDate) >= period.From)
+            .ToListAsync(cancellationToken);
+        var open = receipts.Where(r => !r.IsFullyAllocated).ToList();
+        if (open.Count == 0)
+        {
+            return [];
+        }
+
+        var sum = open.Sum(r => r.Gross - r.Allocated);
+        var text = $"{(open.Count == 1 ? "1 Beleg des Zeitraums ist" : $"{open.Count} Belege des Zeitraums sind")} nicht vollständig auf Kostenarten und Objekte aufgeteilt ({GermanText.Money(sum)} offen) und fehlt in dieser Abrechnung: Unter Geld → Belege (Filter „nicht aufgeteilt“) zuordnen.";
+        return [new PlausibilityFinding(WizardStep.Costs, FindingSeverity.Warning, text)];
+    }
+
     private async Task<List<PlausibilityFinding>> MeterFindingsAsync(Guid propertyId, Period period, CancellationToken cancellationToken)
     {
         var end = period.To!.Value;

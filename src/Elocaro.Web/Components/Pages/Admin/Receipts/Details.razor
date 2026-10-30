@@ -241,7 +241,7 @@ else
 
     private async Task AddItemAsync()
     {
-        position = new() { PropertyId = selection!.Properties.Count == 1 ? selection.Properties[0].Id : null };
+        position = new() { PropertyId = selection!.Properties.Count == 1 ? selection.Properties[0].Id : null, Amount = receipt!.Open != 0 ? receipt.Open : null };
         RenderFragment fields = @<CostItemEditor Position="position" Options="selection!" />;
         if (await Dialogs.ShowFormAsync("Position hinzufügen", position, fields, () => Receipts.AddItemAsync(Id, position), "Position hinzufügen"))
         {

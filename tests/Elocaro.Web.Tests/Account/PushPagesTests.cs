@@ -16,6 +16,7 @@ public class PushPagesTests(PostgresFixture postgres) : AccountTestBase(postgres
         var worker = await anonymous.Http.GetAsync(new Uri("/sw.js", UriKind.Relative), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, worker.StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await anonymous.Http.GetAsync(new Uri("/offline.html", UriKind.Relative), TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await anonymous.Http.GetAsync(new Uri("/offline.js", UriKind.Relative), TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]

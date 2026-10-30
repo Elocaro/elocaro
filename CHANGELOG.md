@@ -12,6 +12,9 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - `manifest.webmanifest`, Symbole und App-Icon wurden auf Unterseiten nicht gefunden (404, „manifest is not valid JSON“), weil `<base>` nach den Links stand.
 
 ### Hinzugefügt
+- Abrechnungs-Assistent warnt, wenn Belege des Zeitraums noch nicht vollständig auf Kostenarten und Objekte aufgeteilt sind (mit offener Summe); sie fehlen sonst in der Abrechnung.
+- Die Offline-Seite der installierten Web-App versucht es selbst erneut und öffnet Elocaro, sobald der Server wieder antwortet.
+- „Jetzt aufteilen“ auf der Belegseite trägt den offenen Rest als Betrag vor.
 - Beleg erfassen überarbeitet: Die Seite hat zwei Schritte (Rechnung, Zuordnung). Sichtbar sind nur Lieferant, Rechnungsnummer, Datum und Brutto; Leistungszeitraum, Netto, Fälligkeit und Notiz stehen unter „Weitere Angaben“. Die Zuordnung zu Kostenart und Objekt gehört gleich dazu, auch auf mehrere Kostenarten oder Objekte aufgeteilt; eine Statuszeile zeigt live, was noch zu verteilen ist. Speichern ohne vollständige Verteilung fragt nach.
 - Brennstoff (nur Heizkosten) und „Art der Rechnung“ (Abschlag oder Jahresabrechnung des Versorgers, nur bei Wasser, Abwasser, Heizung und Allgemeinstrom) erscheinen nur noch, wenn die gewählte Kostenart es verlangt. Der Haken „Jahresabrechnung“ ist eine Auswahl mit Erklärung.
 - Belegseite: Oben steht „Noch … nicht aufgeteilt“ mit dem Knopf „Jetzt aufteilen“. Die Aufgabe auf der Startseite („Belege ohne vollständige Kostenaufteilung“) ist jetzt „bald fällig“, nennt die Summe und führt bei einem Beleg direkt dorthin.
