@@ -13,10 +13,7 @@
                 <a href="@HelpLink(context.User)">Hilfe</a>
                 <a href="/ueber">Über Elocaro</a>
                 <ThemeSwitch />
-                <form method="post" action="/konto/abmelden">
-                    <AntiforgeryToken />
-                    <button type="submit" class="button-link">Abmelden</button>
-                </form>
+                <LogoutConfirm />
             </div>
         }
         else
@@ -30,10 +27,7 @@
                 <a href="@HelpLink(context.User)">Hilfe</a>
                 <a href="/ueber">Über Elocaro</a>
                 <ThemeSwitch />
-                <form method="post" action="/konto/abmelden">
-                    <AntiforgeryToken />
-                    <button type="submit" class="button-link">Abmelden</button>
-                </form>
+                <LogoutConfirm />
             </div>
         </details>
         }

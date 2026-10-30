@@ -191,7 +191,9 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
 
         await page.ClickAsync(".user-menu > summary");
         Assert.Equal("Max Mustermann", (await page.TextContentAsync(".user-name"))!.Trim());
-        await page.ClickAsync(".user-menu >> text=Abmelden");
+        await page.ClickAsync(".user-menu .logout-confirm > summary");
+        Assert.Contains("Wirklich abmelden?", await page.TextContentAsync(".logout-confirm-content"), StringComparison.Ordinal);
+        await page.ClickAsync(".user-menu >> text=Ja, abmelden");
 
         await page.WaitForURLAsync("**/konto/anmelden?abgemeldet=true");
         Assert.Contains("Sie wurden abgemeldet.", await page.TextContentAsync("body"), StringComparison.Ordinal);

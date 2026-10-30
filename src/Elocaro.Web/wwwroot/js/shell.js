@@ -37,7 +37,25 @@
 
     // MudBlazor tab bars (detail pages) scroll natively on phones: keep the active tab inside the visible part.
     // The server re-renders the bar after a click, so look again a few times.
+    // A finger or wheel moving the bar wins: the active tab is not brought back while (and shortly after) the user scrolls it.
+    let tabsMovedAt = 0;
+    const userMovesTabs = () => { tabsMovedAt = Date.now(); };
+    document.addEventListener('touchmove', (event) => {
+        if (event.target instanceof Element && event.target.closest('.detail-tabs .mud-tabs-tabbar')) {
+            userMovesTabs();
+        }
+    }, { passive: true });
+    document.addEventListener('wheel', (event) => {
+        if (event.target instanceof Element && event.target.closest('.detail-tabs .mud-tabs-tabbar')) {
+            userMovesTabs();
+        }
+    }, { passive: true });
+
     const revealMudTab = () => {
+        if (Date.now() - tabsMovedAt < 2500) {
+            return;
+        }
+
         document.querySelectorAll('.detail-tabs .mud-tab-active').forEach((tab) => {
             const box = tab.closest('.mud-tabs-tabbar-content');
             if (!box || box.scrollWidth <= box.clientWidth) {
@@ -53,7 +71,7 @@
     };
 
     document.addEventListener('click', (event) => {
-        if (event.target instanceof Element && event.target.closest('.detail-tabs .mud-tab')) {
+        if (event.target instanceof Element && event.target.closest('.detail-tabs .mud-tab') && Date.now() - tabsMovedAt > 400) {
             [80, 300, 700].forEach((delay) => setTimeout(revealMudTab, delay));
         }
     });

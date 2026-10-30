@@ -1,0 +1,11 @@
+@* Logout with a question, without JavaScript: expand first, then confirm. *@
+<details class="logout-confirm">
+    <summary>Abmelden</summary>
+    <div class="logout-confirm-content" role="alertdialog" aria-label="Abmelden">
+        <p>Wirklich abmelden?</p>
+        <form method="post" action="/konto/abmelden">
+            <AntiforgeryToken />
+            <button type="submit" class="button button-primary">Ja, abmelden</button>
+        </form>
+    </div>
+</details>

@@ -671,6 +671,14 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .account-menu a { display: flex; align-items: center; min-height: 3rem; padding: 0 0.75rem; color: var(--md-on-surface); text-decoration: none; border-radius: var(--shape-full); }
 .account-menu a:hover, .account-menu .button-link:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
 
+/* Logout in the account menu: set apart, asks before it logs out */
+.logout-confirm { margin-top: 0.5rem; border-top: 1px solid var(--md-outline-variant); padding-top: 0.5rem; }
+.logout-confirm > summary { list-style: none; display: flex; align-items: center; min-height: 3rem; padding: 0 0.75rem; cursor: pointer; font-weight: 600; color: var(--md-error); border-radius: var(--shape-full); }
+.logout-confirm > summary::-webkit-details-marker { display: none; }
+.logout-confirm > summary:hover { background: color-mix(in srgb, var(--md-error) 10%, transparent); }
+.logout-confirm-content { margin: 0.25rem 0.5rem 0.5rem; padding: 0.75rem 1rem; border-radius: var(--shape-lg); background: var(--md-surface-container-high); }
+.logout-confirm-content p { margin: 0 0 0.5rem; font-weight: 600; }
+
 /* ---------- Smartphone ---------- */
 @media (max-width: 899.98px) {
     :root { --content-gutter: 1rem; }

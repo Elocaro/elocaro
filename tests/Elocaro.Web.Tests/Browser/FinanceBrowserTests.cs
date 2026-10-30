@@ -152,6 +152,26 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
     }
 
     [Fact]
+    public async Task Lease_term_is_corrected_in_a_dialog()
+    {
+        await SetUpAsync(monthsAgo: 3, new FinanceSettingsInput { AccountingStart = FirstOfMonth(-4) });
+        var lease = await LeaseIdAsync();
+        var page = await OpenAsync($"/verwaltung/vertraege/{lease}");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await page.GetByRole(AriaRole.Button, new() { Name = "Mietzeit korrigieren" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            var start = dialog.GetByLabel("Mietbeginn");
+            await start.FillAsync(German(FirstOfMonth(-4)));
+            await start.BlurAsync();
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Speichern", Exact = true }).ClickAsync();
+            await ExpectSnackbarAsync(page, "Die Mietzeit wurde gespeichert.");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync(German(FirstOfMonth(-4)));
+        });
+    }
+
+    [Fact]
     public async Task Charges_are_booked_on_the_tenant_account()
     {
         var today = GermanTime.Today(App.Clock.GetUtcNow());
