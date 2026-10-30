@@ -18,7 +18,7 @@ Oberfläche (Design-Tokens, Bausteine, Seitentypen, Checkliste für neue Seiten)
 
 ## Lizenz und Beitragsvereinbarung (CLA)
 
-Elocaro steht unter der [AGPL-3.0-or-later](LICENSE). Jeder Beitrag steht unter derselben Lizenz. Zusätzlich gilt die [Beitragsvereinbarung (CLA)](CLA.md): Das Urheberrecht bleibt bei dir, der Projektinhaber erhält aber das Recht, deinen Beitrag auch unter anderen Lizenzen weiterzugeben (zum Beispiel für eine kommerzielle Zweitlizenz). Du stimmst zu, indem du im Pull Request das Kästchen zur CLA ankreuzt. Ohne Zustimmung kann ein Beitrag nicht übernommen werden.
+Elocaro steht unter der [AGPL-3.0-or-later](LICENSE). Jeder Beitrag steht unter derselben Lizenz. Zusätzlich gilt die [Beitragsvereinbarung (CLA)](CLA.md): Das Urheberrecht bleibt bei dir, der Projektinhaber erhält aber das Recht, deinen Beitrag auch unter anderen Lizenzen weiterzugeben (zum Beispiel für eine kommerzielle Zweitlizenz). Du stimmst zu, indem du im Pull Request das Kästchen zur CLA ankreuzt (oder den Zustimmungssatz aus der CLA kommentierst). Die Action `CLA` prüft das und setzt den Status „CLA“ am Pull Request; ohne Zustimmung bleibt er rot und der Beitrag kann nicht übernommen werden. Projektinhaber, Mitglieder der Organisation und Bots (Dependabot) sind ausgenommen.
 
 Bitte keine echten Mieter- oder Bankdaten und keine Zugangsdaten in Beiträgen, Issues oder Testdaten.
 
@@ -27,7 +27,7 @@ Bitte keine echten Mieter- oder Bankdaten und keine Zugangsdaten in Beiträgen, 
 In *Settings → Branches → Branch protection rules* (bzw. *Rulesets*):
 
 - Pull Request vor dem Merge erforderlich
-- Statuschecks erforderlich: **Build & Test**, **Docker & Restore-Test**
+- Statuschecks erforderlich: **Build & Test**, **Docker & Restore-Test**, **CLA**
 - Branch muss vor dem Merge aktuell sein
 - Force-Pushes und Löschen verhindern
 

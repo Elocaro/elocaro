@@ -29,10 +29,6 @@ Der Projektinhaber ist nicht verpflichtet, deinen Beitrag zu übernehmen, zu beh
 
 ## 5. Zustimmung
 
-Du stimmst zu, indem du im Pull Request das Kästchen „Ich habe die Beitragsvereinbarung (CLA) gelesen und stimme zu“ ankreuzt oder in einem Kommentar schreibst: „Ich habe die CLA (Version 1.0) gelesen und stimme zu.“ Sie gilt dann für diesen und alle weiteren Beiträge, bis du sie schriftlich für künftige Beiträge widerrufst. Bereits übernommene Beiträge bleiben davon unberührt.
+Du stimmst zu, indem du im Pull Request das Kästchen „Ich habe die Beitragsvereinbarung (CLA) gelesen und stimme zu“ ankreuzt oder in einem Kommentar schreibst: „Ich habe die CLA (Version 1.0) gelesen und stimme zu.“ Ob die Zustimmung vorliegt, prüft ein Status „CLA“ am Pull Request. Sie gilt für diesen und alle weiteren Beiträge, bis du sie schriftlich für künftige Beiträge widerrufst. Bereits übernommene Beiträge bleiben davon unberührt.
 
 Es gilt deutsches Recht.
-
----
-
-*Hinweis zum Stand: Dieser Text ist eine Vorlage in einfacher Sprache. Er wurde nicht von einer Anwältin oder einem Anwalt geprüft; das sollte vor den ersten fremden Beiträgen nachgeholt werden.*

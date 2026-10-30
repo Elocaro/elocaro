@@ -12,7 +12,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - `manifest.webmanifest`, Symbole und App-Icon wurden auf Unterseiten nicht gefunden (404, „manifest is not valid JSON“), weil `<base>` nach den Links stand.
 
 ### Hinzugefügt
-- Lizenz geklärt: AGPL-3.0-or-later mit Urheberrechtsvermerk (README, „Über Elocaro“, Projektdateien) und Beitragsvereinbarung (`CLA.md`, Pull-Request-Vorlage, Hinweis in `CONTRIBUTING.md`).
+- Lizenz geklärt: AGPL-3.0-or-later mit Urheberrechtsvermerk (README, „Über Elocaro“, Projektdateien) und Beitragsvereinbarung (`CLA.md`, Pull-Request-Vorlage, Hinweis in `CONTRIBUTING.md`) mit automatischer Prüfung als Action `CLA`.
 - Abrechnungs-Assistent warnt, wenn Belege des Zeitraums noch nicht vollständig auf Kostenarten und Objekte aufgeteilt sind (mit offener Summe); sie fehlen sonst in der Abrechnung.
 - Die Offline-Seite der installierten Web-App versucht es selbst erneut und öffnet Elocaro, sobald der Server wieder antwortet.
 - „Jetzt aufteilen“ auf der Belegseite trägt den offenen Rest als Betrag vor.

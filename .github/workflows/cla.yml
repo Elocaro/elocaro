@@ -1,0 +1,52 @@
+name: CLA
+
+# Prüft, ob der Autor eines Pull Requests der Beitragsvereinbarung (CLA.md) zugestimmt hat: Kästchen in der Beschreibung angekreuzt
+# oder ein Kommentar des Autors mit dem Zustimmungssatz. Das Ergebnis erscheint als Status "CLA" am Pull Request.
+# pull_request_target läuft mit den Rechten des Zielrepositorys; es wird kein Code aus dem Pull Request ausgeführt oder ausgecheckt.
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  cla:
+    name: CLA
+    # Kommentare nur, wenn sie an einem Pull Request stehen
+    if: github.event_name == 'pull_request_target' || github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const number = context.payload.pull_request?.number ?? context.payload.issue.number;
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: number });
+
+            const author = pr.user.login;
+            // Projektinhaber und Mitglieder der Organisation brauchen keine Zustimmung, ebenso Bots (z. B. Dependabot).
+            const exempt = pr.user.type === 'Bot' || ['OWNER', 'MEMBER'].includes(pr.author_association);
+
+            const checked = /-\s*\[[xX]\]\s*Ich habe die \[?Beitragsvereinbarung \(CLA\)/.test(pr.body ?? '');
+            const sentence = /Ich habe die CLA \(Version \d+(\.\d+)?\) gelesen und stimme zu/;
+            const comments = await github.paginate(github.rest.issues.listComments, { ...context.repo, issue_number: number, per_page: 100 });
+            const commented = comments.some((c) => c.user.login === author && sentence.test(c.body ?? ''));
+
+            const agreed = exempt || checked || commented;
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: pr.head.sha,
+              context: 'CLA',
+              state: agreed ? 'success' : 'failure',
+              description: exempt ? 'Keine Zustimmung nötig (Projekt)'
+                : agreed ? 'Beitragsvereinbarung (CLA) zugestimmt'
+                : 'Bitte der CLA zustimmen: Kästchen in der Beschreibung ankreuzen',
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/HEAD/CLA.md`,
+            });
+            if (!agreed) {
+              core.setFailed('Die Zustimmung zur Beitragsvereinbarung (CLA.md) fehlt.');
+            }
