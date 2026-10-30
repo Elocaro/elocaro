@@ -21,7 +21,7 @@
 ## Für wen ist das?
 
 - **Gut geeignet:** private Vermieter mit etwa 3 bis 50 Einheiten, WG-Vermieter, Eigentümergemeinschaften, alle, die ihre Daten nicht in einer fremden Cloud haben wollen.
-- **Voraussetzung:** ein eigener Server (VPS mit Docker, ab 2 GB RAM) und eine Domain. Die [Installation](docs/betrieb.md#installation) dauert mit dem Skript wenige Minuten.
+- **Voraussetzung:** ein eigener Server (VPS mit Docker, ab 2 GB RAM) und eine Domain. Die [Installation](docs/installation.md) dauert mit dem Skript wenige Minuten.
 - **Nicht gedacht für:** Hausverwaltungen mit vielen Mandanten, Gewerbe mit Umsatzsteuer, Wohnungseigentümergemeinschaften (WEG-Verwaltung).
 
 ## Ausprobieren
@@ -36,7 +36,7 @@ git clone https://github.com/Elocaro/elocaro.git && cd elocaro
 ./deploy/install.sh              # echte Installation mit Domain und Let's Encrypt
 ```
 
-Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, Zwei-Faktor-Anmeldung, Einrichtungsassistent).
+Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, Zwei-Faktor-Anmeldung, Einrichtungsassistent). Alle Wege (Server, von Hand, NAS, Raspberry Pi, Azure) stehen in der [Installationsanleitung](docs/installation.md).
 
 ## Grenzen
 
@@ -48,7 +48,8 @@ Elocaro ist **keine Rechts- und keine Steuerberatung**. Vorlagen und Rechenwerte
 
 - [Website](https://elocaro.de) (eigenes Repository: [Elocaro/website](https://github.com/Elocaro/website))
 - [Anwenderhandbuch](docs/handbuch.md): erste Schritte und die häufigsten Aufgaben für Vermieter (auch in der Anwendung unter „Hilfe“)
-- [Betrieb](docs/betrieb.md): Installation auf einem VPS, Update, Backup & Restore, Vollexport, Sicherheit
+- [Installation](docs/installation.md): alle Wege im Überblick (Probelauf, Server mit Skript, von Hand, NAS und Plattformen) mit Checkliste und Fehlersuche
+- [Betrieb](docs/betrieb.md): Konfiguration auf einem VPS, Update, Backup & Restore, Vollexport, Sicherheit
 - [Installation auf anderen Plattformen](docs/installation-plattformen.md): Portainer, Coolify, Synology, Unraid, Proxmox, ARM
 - [Fachlichkeit & Anforderungen](docs/fachlichkeit.md): Rollen, Fachmodell und Festlegungen
 - [Architektur](docs/architektur.md): Technologie und Struktur

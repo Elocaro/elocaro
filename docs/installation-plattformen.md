@@ -1,5 +1,7 @@
 # Installation auf verschiedenen Plattformen
 
+Überblick über alle Wege: [Installation](installation.md).
+
 Elocaro besteht aus einem Docker-Compose-Stack ([deploy/docker-compose.yml](../deploy/docker-compose.yml)): App, PostgreSQL, Gotenberg (PDF), Backup und Caddy (TLS). Jede Plattform, die Docker Compose ausführen kann, kann ihn betreiben. Die Wege unten nutzen dieselbe Datei und dieselbe `deploy/.env`; es gibt **keine plattformspezifischen Vorlagen**, die nicht auf allen Systemen geprüft wären.
 
 > **Stand der Prüfung:** Geprüft ist der Weg auf einem Linux-Server mit Docker Engine und Compose-Plugin ([Betrieb](betrieb.md), `deploy/install.sh`). Die Hinweise zu den Plattformen darunter beruhen auf deren Dokumentation und sind **nicht** auf jeder Plattform ausprobiert. Wer sie nutzt, hilft mit einer Rückmeldung als Issue.

@@ -28,6 +28,8 @@ PostgreSQL und Gotenberg liegen im Netz `intern` ohne Internetzugang. Die App is
 
 ## Installation
 
+Eine Übersicht aller Wege (Probelauf, Server, NAS, Azure) mit Checkliste und Fehlersuche steht in [installation.md](installation.md); hier folgen die Einzelheiten.
+
 **Mit Installationsskript (empfohlen):**
 
 ```bash

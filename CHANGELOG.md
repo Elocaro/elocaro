@@ -12,6 +12,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - `manifest.webmanifest`, Symbole und App-Icon wurden auf Unterseiten nicht gefunden (404, „manifest is not valid JSON“), weil `<base>` nach den Links stand.
 
 ### Hinzugefügt
+- Neue Installationsanleitung `docs/installation.md` (und Unterseite `installation.html` auf der Website): Wahl des Weges, Probelauf, Server mit Skript, von Hand, NAS und Plattformen, Checkliste nach der Installation, Fehlersuche.
 - Abmelden im Benutzermenü ist abgesetzt und fragt „Wirklich abmelden?“.
 - Die Mietzeit eines Vertrags wird in einem Dialog korrigiert („Mietzeit korrigieren“ neben der Laufzeit).
 - Abrechnungs-Erinnerung: Im Abrechnungs-Assistenten lässt sich die Erinnerung für ein Objekt und Jahr dauerhaft ausblenden (und wieder einblenden), zum Beispiel wenn die Frist verstrichen ist und keine Abrechnung mehr entsteht. Die Abrechnung bleibt weiter möglich.
