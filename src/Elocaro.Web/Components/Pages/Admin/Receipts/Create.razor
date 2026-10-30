@@ -6,9 +6,10 @@
 @inject IReceiptExtraction Extraction
 @inject IFileStore Storage
 @inject NavigationManager Navigation
+@inject Confirmations Confirm
 
 <InteractiveShell>
-    <PageHeader Title="Beleg erfassen" Subtitle="Rechnung oder Kostenbeleg mit Datei erfassen. Danach teilen Sie den Betrag auf Kostenarten und Objekte auf; so fließt er in Abrechnung und Steuer ein." Back="/verwaltung/belege" BackText="Alle Belege" />
+    <PageHeader Title="Beleg erfassen" Subtitle="Rechnung oder Kostenbeleg mit Datei erfassen und gleich der Kostenart und dem Objekt zuordnen; so fließt der Betrag in Abrechnung und Steuer ein." Back="/verwaltung/belege" BackText="Alle Belege" />
 
     <ErrorList Errors="errors" />
 
@@ -36,12 +37,13 @@
             <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
         }
 
-        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+        <EditForm EditContext="editContext" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />
-            <ReceiptEditor Data="data" Options="selection" Uncertain="uncertain" />
-            <h2>Kostenart</h2>
-            <p class="small">Für eine Rechnung mit einer Kostenart. Aufteilen auf mehrere Kostenarten oder Objekte geht danach.</p>
-            <CostItemEditor Position="position" Options="selection" WithDetails="@(position.Section35a != Section35a.None)" Required="false" Uncertain="uncertain" />
+            <h2>1 · Rechnung</h2>
+            <ReceiptEditor Data="data" Options="selection" Uncertain="uncertain" CostTypes="positions.Select(p => p.CostType)" />
+            <h2>2 · Zuordnung zu Kostenart und Objekt</h2>
+            <p class="small">Hier entscheidet sich, in welche Abrechnung der Betrag fließt. Ohne Kostenart und Objekt fehlt der Beleg in der Nebenkostenabrechnung und in der Anlage V.</p>
+            <AllocationEditor Rows="positions" Options="selection" Gross="data.Gross" Uncertain="uncertain" />
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
     }
@@ -53,11 +55,28 @@
     private ExtractionOutcome? outcome;
     private IReadOnlySet<string>? uncertain;
     private ReceiptInput data = new();
-    private CostItemInput position = new();
+    private EditContext editContext = default!;
+    private List<CostItemInput> positions = [new()];
     private IReadOnlyList<FileSelection> selected = [];
     private List<Guid> storedIds = [];
 
-    protected override async Task OnInitializedAsync() => selection = await Receipts.OptionsAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        selection = await Receipts.OptionsAsync();
+        positions = [NewPosition()];
+        UseData(new ReceiptInput());
+    }
+
+    // The parts of the form depend on each other (amount, cost types, special fields): every change redraws the whole page.
+    private void UseData(ReceiptInput input)
+    {
+        data = input;
+        editContext = new EditContext(data);
+        editContext.OnFieldChanged += (_, _) => StateHasChanged();
+    }
+
+    /// <summary>An empty item; with only one property that property is already chosen.</summary>
+    private CostItemInput NewPosition() => new() { PropertyId = selection!.Properties.Count == 1 ? selection.Properties[0].Id : null };
 
     private void OnFilesSelected(IReadOnlyList<FileSelection> files)
     {
@@ -102,8 +121,8 @@
         outcome = await Extraction.SuggestAsync(storedIds);
         if (outcome.Suggestion is { } suggestion)
         {
-            data = SuggestionMapping.Apply(new ReceiptInput(), suggestion, outcome.SupplierId);
-            position = SuggestionMapping.ToPosition(suggestion, selection!);
+            UseData(SuggestionMapping.Apply(new ReceiptInput(), suggestion, outcome.SupplierId));
+            positions = [SuggestionMapping.ToPosition(suggestion, selection!)];
             uncertain = suggestion.UncertainFields();
         }
         else
@@ -115,12 +134,39 @@
     private async Task SaveAsync()
     {
         errors = null;
+        var items = AllocationEditor.Filled(positions);
+        var problems = new List<string>();
+        if (items.Any(p => p.PropertyId is null))
+        {
+            problems.Add("Bitte bei jeder Position das Objekt wählen.");
+        }
+
+        if (items.Count(p => p.Amount is null) > 1)
+        {
+            problems.Add("Bei mehreren Positionen darf nur eine ohne Betrag bleiben (sie erhält den Rest).");
+        }
+
+        if (problems.Count > 0)
+        {
+            errors = problems;
+            return;
+        }
+
+        var open = AllocationEditor.Open(items, data.Gross ?? 0m);
+        if (data.Gross is not null && open != 0m && !await Confirm.AskAsync(
+                "Beleg nicht vollständig verteilt",
+                $"{(items.Count == 0 ? "Der Beleg hat noch keine Kostenart und kein Objekt" : $"Es sind noch {Format.Money(open)} nicht verteilt")}. Der Betrag fehlt dann in Nebenkostenabrechnung und Anlage V. Der Beleg erscheint als Aufgabe auf der Startseite und in der Liste unter „nicht aufgeteilt“.",
+                "Trotzdem speichern"))
+        {
+            return;
+        }
+
         if (!await StoreAsync())
         {
             return;
         }
 
-        var result = await Receipts.CreateAsync(data, storedIds, position);
+        var result = await Receipts.CreateWithItemsAsync(data, storedIds, items);
         if (result.Succeeded)
         {
             Navigation.NavigateTo($"/verwaltung/belege/{result.Id}?meldung=gespeichert");

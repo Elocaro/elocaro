@@ -35,6 +35,14 @@ else
 
 <ErrorList Errors="errors" />
 
+@if (receipt.Open != 0 && selection is not null)
+{
+    <Notice Level="NoticeLevel.Warning" id="open-split">
+        <strong>Noch @Format.Money(receipt.Open) nicht aufgeteilt.</strong> Ohne Kostenart und Objekt fehlt dieser Betrag in Nebenkostenabrechnung und Anlage V.
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddItemAsync" Class="notice-action">Jetzt aufteilen</MudButton>
+    </Notice>
+}
+
 <div class="split">
     <div class="split-main">
         <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
@@ -51,7 +59,7 @@ else
         }
         <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />
-            <ReceiptEditor Data="data" Options="selection" Uncertain="uncertain" />
+            <ReceiptEditor Data="data" Options="selection" Uncertain="uncertain" CostTypes="receipt.Items.Select(i => i.CostType)" />
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
     </section>
@@ -62,7 +70,7 @@ else
     <h2>Kostenaufteilung</h2>
     @if (receipt.Open != 0)
     {
-        <Notice Level="NoticeLevel.Info">Noch @Format.Money(receipt.Open) nicht aufgeteilt (aufgeteilt @Format.Money(receipt.Allocated) von @Format.Money(receipt.Data.Gross)).</Notice>
+        <p class="small">Aufgeteilt: @Format.Money(receipt.Allocated) von @Format.Money(receipt.Data.Gross).</p>
     }
     @if (receipt.Items.Count > 0)
     {
@@ -233,7 +241,7 @@ else
 
     private async Task AddItemAsync()
     {
-        position = new();
+        position = new() { PropertyId = selection!.Properties.Count == 1 ? selection.Properties[0].Id : null };
         RenderFragment fields = @<CostItemEditor Position="position" Options="selection!" />;
         if (await Dialogs.ShowFormAsync("Position hinzufügen", position, fields, () => Receipts.AddItemAsync(Id, position), "Position hinzufügen"))
         {

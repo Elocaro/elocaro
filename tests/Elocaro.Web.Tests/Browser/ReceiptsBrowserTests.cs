@@ -48,14 +48,17 @@ public class ReceiptsBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await page.GetByLabel("Rechnungsnummer").FillAsync("R-117");
             await page.GetByLabel("Rechnungsdatum").FillAsync("30.04.2026");
             await page.GetByLabel("Brutto").FillAsync("595");
+            await page.GetByText("Weitere Angaben (Leistungszeitraum").ClickAsync();
             await page.GetByLabel("Netto").FillAsync("500");
             await page.GetByLabel("Umsatzsteuer").FillAsync("95");
+            await Assertions.Expect(page.Locator("#allocation-status")).ToContainTextAsync("Noch nicht verteilt: 595,00 €");
             await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
+            await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Trotzdem speichern" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/belege/*?meldung=gespeichert");
             await Assertions.Expect(page.Locator("h1")).ToContainTextAsync("Grünpflege Meier");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Noch 595,00 € nicht aufgeteilt");
+            await Assertions.Expect(page.Locator("#open-split")).ToContainTextAsync("Noch 595,00 € nicht aufgeteilt");
             await Assertions.Expect(page.Locator("iframe.document-preview")).ToBeVisibleAsync();
 
             // First position: tradesman/household service with labor costs.
@@ -98,8 +101,10 @@ public class ReceiptsBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await page.GetByLabel("oder Name").FillAsync("Stadt Köln");
             await page.GetByLabel("Rechnungsdatum").FillAsync("15.02.2026");
             await page.GetByLabel("Brutto").FillAsync("480");
+            await page.GetByText("Weitere Angaben (Leistungszeitraum").ClickAsync();
             await page.GetByLabel("Bezahlt am").FillAsync("15.02.2026");
             await SelectAsync(page, "Kostenart", "Grundsteuer", exact: false);
+            await Assertions.Expect(page.Locator("#allocation-status")).ToContainTextAsync("Vollständig verteilt: 480,00 €");
             await SelectAsync(page, "Objekt", "Lindenweg 3");
             await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
 
@@ -114,6 +119,61 @@ public class ReceiptsBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, löschen" }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/belege?meldung=geloescht");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Keine Belege in dieser Auswahl.");
+        });
+    }
+
+    [Fact]
+    public async Task Invoice_is_split_over_two_positions_while_it_is_entered()
+    {
+        await PropertyAsync();
+        var page = await OpenAsync("/verwaltung/belege/neu");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await page.GetByLabel("oder Name").FillAsync("Hausmeisterdienst Weber");
+            await page.GetByLabel("Rechnungsdatum").FillAsync("30.04.2026");
+            await page.GetByLabel("Brutto").FillAsync("595");
+            var first = page.Locator("fieldset.allocation-row").First;
+            await SelectAsync(page, "Kostenart", "14. Hauswart", first, exact: false);
+            await page.GetByRole(AriaRole.Button, new() { Name = "Auf weitere Kostenart oder weiteres Objekt aufteilen" }).ClickAsync();
+            var rows = page.Locator("fieldset.allocation-row");
+            await Assertions.Expect(rows).ToHaveCountAsync(2);
+
+            // The first position keeps 595 until it is lowered: the rest is open until the second takes it.
+            await rows.Nth(0).GetByLabel("Betrag", new() { Exact = true }).FillAsync("357");
+            await Assertions.Expect(page.Locator("#allocation-status")).ToContainTextAsync("Noch 238,00 € nicht verteilt");
+            await SelectAsync(page, "Kostenart", "10. Gartenpflege", rows.Nth(1), exact: false);
+            await rows.Nth(1).GetByLabel("Betrag", new() { Exact = true }).FillAsync("238");
+            await Assertions.Expect(page.Locator("#allocation-status")).ToContainTextAsync("Vollständig verteilt: 595,00 €");
+
+            await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync(); // no question: nothing is open
+            await page.WaitForURLAsync("**/verwaltung/belege/*?meldung=gespeichert");
+            await OpenTabAsync(page, "Kostenaufteilung");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Gartenpflege");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Hauswart");
+            await Assertions.Expect(page.Locator("tfoot")).ToContainTextAsync("595,00 €");
+            await Assertions.Expect(page.Locator("#open-split")).ToHaveCountAsync(0);
+        });
+    }
+
+    [Fact]
+    public async Task Fuel_and_supplier_statement_appear_only_for_matching_cost_types()
+    {
+        await PropertyAsync();
+        var page = await OpenAsync("/verwaltung/belege/neu");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Brennstoff" })).ToHaveCountAsync(0);
+            await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Art der Rechnung" })).ToHaveCountAsync(0);
+
+            await SelectAsync(page, "Kostenart", "Heizung", exact: false);
+            await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Brennstoff" })).ToBeVisibleAsync();
+            await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Art der Rechnung" })).ToBeVisibleAsync();
+
+            await SelectAsync(page, "Kostenart", "Gartenpflege", exact: false);
+            await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Brennstoff" })).ToHaveCountAsync(0);
+            await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Art der Rechnung" })).ToHaveCountAsync(0);
         });
     }
 
@@ -212,7 +272,7 @@ public class ReceiptsBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
         await page.Locator("input[type=file]").SetInputFilesAsync(PdfFile("r.pdf"));
         await page.GetByRole(AriaRole.Button, new() { Name = "Vorschlag aus Beleg auslesen" }).ClickAsync();
 
-        await Assertions.Expect(page.GetByLabel("§ 35a EStG", new() { Exact = true }).First).ToHaveValueAsync("Handwerkerleistung");
+        await Assertions.Expect(page.GetByLabel("§ 35a EStG").First).ToHaveValueAsync("Handwerkerleistung");
         await Assertions.Expect(page.GetByLabel("davon Arbeitskosten")).ToHaveValueAsync(new System.Text.RegularExpressions.Regex("^357"));
     }
 

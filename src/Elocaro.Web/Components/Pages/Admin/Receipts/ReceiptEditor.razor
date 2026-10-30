@@ -1,38 +1,74 @@
-@* Fields of a receipt for interactive pages; sits inside an EditForm with Model = Data. *@
+@using Elocaro.Domain.Receipts
+@* Fields of a receipt for interactive pages; sits inside an EditForm with Model = Data.
+   The essentials are always visible, the rest sits under "Weitere Angaben" (open as soon as one of them has a value). Fuel and the
+   annual statement of the supplier only appear when the cost types of the receipt call for them. *@
 <div class="form-grid">
     <OptionSelect @bind-Value="Data.SupplierId" Label="Lieferant (Kontakt)" Options="Options.Suppliers.Select(l => (l.Id, l.Name)).ToList()" />
     <UncertainMark Active="Marked(nameof(ReceiptSuggestion.SupplierName))"><AppTextField @bind-Value="Data.SupplierName" Label="oder Name" Hint="Kontakte unter Personen anlegen; sonst hier den Namen eintragen." /></UncertainMark>
     <UncertainMark Active="Marked(nameof(ReceiptSuggestion.InvoiceNumber))"><AppTextField @bind-Value="Data.InvoiceNumber" Label="Rechnungsnummer" /></UncertainMark>
     <UncertainMark Active="Marked(nameof(ReceiptSuggestion.InvoiceDate))"><AppDateField @bind-Value="Data.InvoiceDate" Label="Rechnungsdatum" Required="true" /></UncertainMark>
-    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.ServiceFrom))"><AppDateField @bind-Value="Data.ServiceFrom" Label="Leistung von" /></UncertainMark>
-    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.ServiceTo))"><AppDateField @bind-Value="Data.ServiceTo" Label="Leistung bis" /></UncertainMark>
     <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Gross))"><AppNumberField T="decimal?" @bind-Value="Data.Gross" Label="Brutto" Suffix="€" Required="true" Hint="Gutschriften negativ" /></UncertainMark>
-    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Net))"><AppNumberField T="decimal?" @bind-Value="Data.Net" Label="Netto" Suffix="€" /></UncertainMark>
-    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Vat))"><AppNumberField T="decimal?" @bind-Value="Data.Vat" Label="Umsatzsteuer" Suffix="€" /></UncertainMark>
-    <UncertainMark Active="Marked(nameof(ReceiptSuggestion.DueOn))"><AppDateField @bind-Value="Data.DueOn" Label="Fällig am" /></UncertainMark>
-    <AppDateField @bind-Value="Data.PaidOn" Label="Bezahlt am" Hint="Bei Bankumsätzen später über die Zuordnung." />
 </div>
-<details class="field">
-    <summary>Brennstoff (Menge, CO₂)</summary>
+
+@if (ShowFuel)
+{
+    <section class="context-fields" aria-label="Brennstoff">
+        <h3>Brennstoff</h3>
+        <p class="small">Menge und CO₂-Angabe des Lieferanten (CO2KostAufG) fließen in die Heizkostenabrechnung ein.</p>
+        <div class="form-grid">
+            <UncertainMark Active="Marked(nameof(ReceiptSuggestion.FuelQuantity))"><AppNumberField T="decimal?" @bind-Value="Data.FuelQuantity" Label="Menge" /></UncertainMark>
+            <UncertainMark Active="Marked(nameof(ReceiptSuggestion.FuelUnit))"><AppTextField @bind-Value="Data.FuelUnit" Label="Einheit" Hint="l, kWh, kg, m³" /></UncertainMark>
+            <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Co2Kg))"><AppNumberField T="decimal?" @bind-Value="Data.Co2Kg" Label="CO₂ (kg)" Hint="Pflichtangabe des Lieferanten" /></UncertainMark>
+        </div>
+    </section>
+}
+
+@if (ShowStatement)
+{
+    <section class="context-fields" aria-label="Art der Rechnung">
+        <h3>Art der Rechnung</h3>
+        <AppSelect T="bool" @bind-Value="Data.SupplierStatement" Label="Welche Rechnung ist das?" Items="statementKinds" Text="@(v => v ? "Jahresabrechnung des Versorgers" : "Abschlagsrechnung oder sonstige Rechnung")"
+                   Hint="Eine Jahresabrechnung ersetzt in der Nebenkostenabrechnung die Berechnung aus den Zählerständen; die Abschlagsrechnungen des Zeitraums werden dann nicht angesetzt." />
+    </section>
+}
+
+<details class="field" open="@ExtraOpen">
+    <summary>Weitere Angaben (Leistungszeitraum, Netto, Fälligkeit, Notiz)</summary>
     <div class="form-grid">
-        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.FuelQuantity))"><AppNumberField T="decimal?" @bind-Value="Data.FuelQuantity" Label="Menge" /></UncertainMark>
-        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.FuelUnit))"><AppTextField @bind-Value="Data.FuelUnit" Label="Einheit" Hint="l, kWh, kg, m³" /></UncertainMark>
-        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Co2Kg))"><AppNumberField T="decimal?" @bind-Value="Data.Co2Kg" Label="CO₂ (kg)" Hint="Pflichtangabe des Lieferanten (CO2KostAufG)" /></UncertainMark>
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.ServiceFrom))"><AppDateField @bind-Value="Data.ServiceFrom" Label="Leistung von" /></UncertainMark>
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.ServiceTo))"><AppDateField @bind-Value="Data.ServiceTo" Label="Leistung bis" /></UncertainMark>
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Net))"><AppNumberField T="decimal?" @bind-Value="Data.Net" Label="Netto" Suffix="€" /></UncertainMark>
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.Vat))"><AppNumberField T="decimal?" @bind-Value="Data.Vat" Label="Umsatzsteuer" Suffix="€" /></UncertainMark>
+        <UncertainMark Active="Marked(nameof(ReceiptSuggestion.DueOn))"><AppDateField @bind-Value="Data.DueOn" Label="Fällig am" /></UncertainMark>
+        <AppDateField @bind-Value="Data.PaidOn" Label="Bezahlt am" Hint="Bei Bankumsätzen später über die Zuordnung." />
     </div>
+    <AppTextField @bind-Value="Data.Note" Label="Notiz" Lines="2" />
 </details>
-<AppCheckBox @bind-Value="Data.SupplierStatement" Label="Jahresabrechnung des Versorgers (keine Abschlagsrechnung)" />
-<AppTextField @bind-Value="Data.Note" Label="Notiz" Lines="2" />
 
 @code {
+    private static readonly IReadOnlyList<bool> statementKinds = [false, true];
+
     [Parameter, EditorRequired]
     public ReceiptInput Data { get; set; } = default!;
 
     [Parameter, EditorRequired]
     public ReceiptOptions Options { get; set; } = default!;
 
+    /// <summary>Cost types of the receipt (its items): they decide which special fields appear.</summary>
+    [Parameter]
+    public IEnumerable<string> CostTypes { get; set; } = [];
+
     /// <summary>Fields of an automatic suggestion that are uncertain (names of <see cref="ReceiptSuggestion"/>).</summary>
     [Parameter]
     public IReadOnlySet<string>? Uncertain { get; set; }
 
     private bool Marked(string field) => Uncertain?.Contains(field) == true;
+
+    private bool ShowFuel => CostTypes.Any(t => CostGroups.Of(t) == CostGroup.Heating) || Data.FuelQuantity is not null || Data.Co2Kg is not null || !string.IsNullOrEmpty(Data.FuelUnit);
+
+    private bool ShowStatement => CostTypes.Any(CostGroups.HasSupplierStatement) || Data.SupplierStatement;
+
+    private bool ExtraOpen =>
+        Data.ServiceFrom is not null || Data.ServiceTo is not null || Data.Net is not null || Data.Vat is not null || Data.DueOn is not null
+        || Data.PaidOn is not null || !string.IsNullOrWhiteSpace(Data.Note);
 }

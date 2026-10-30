@@ -153,11 +153,52 @@ public class ReceiptServiceTests(PostgresFixture postgres) : IAsyncLifetime
 
         var todos = await TodosAsync();
         Assert.Contains(todos, a => a.Title == "Rechnung zahlen: Stadtwerke 120,00 €" && a.Urgency == Urgency.Soon);
-        Assert.Contains(todos, a => a.Title == "1 Belege ohne vollständige Kostenaufteilung");
+        Assert.Contains(todos, a => a.Title == "1 Beleg ohne vollständige Kostenaufteilung");
 
         Validate(await WithAsync(b => b.DeleteAsync(id, Ct)));
         Assert.Null(await WithAsync(b => b.GetAsync(id, Ct)));
         Assert.Empty(await TodosAsync());
+    }
+
+    [Fact]
+    public async Task Receipt_is_created_with_several_items_and_the_last_one_takes_the_rest()
+    {
+        var id = Validate(await WithAsync(b => b.CreateWithItemsAsync(
+            new ReceiptInput { SupplierName = "Hausmeisterdienst", InvoiceDate = new DateOnly(2026, 4, 30), Gross = 595m },
+            [],
+            [
+                new CostItemInput { CostType = "betrkv-14", PropertyId = house, Amount = 357m },
+                new CostItemInput { CostType = "betrkv-10", PropertyId = house },
+            ],
+            Ct)));
+
+        var receipt = (await WithAsync(b => b.GetAsync(id, Ct)))!;
+        Assert.Equal([357m, 238m], receipt.Items.Select(p => p.Amount).OrderByDescending(a => a));
+        Assert.Equal(0m, receipt.Open);
+        Assert.DoesNotContain(await TodosAsync(), a => a.Title.Contains("Kostenaufteilung", StringComparison.Ordinal));
+
+        var tooMuch = await WithAsync(b => b.CreateWithItemsAsync(
+            new ReceiptInput { SupplierName = "Hausmeisterdienst", InvoiceDate = new DateOnly(2026, 4, 30), Gross = 100m },
+            [],
+            [new CostItemInput { CostType = "betrkv-14", PropertyId = house, Amount = 80m }, new CostItemInput { CostType = "betrkv-10", PropertyId = house, Amount = 80m }],
+            Ct));
+        Assert.Contains("übersteigen den Rechnungsbetrag", tooMuch.Errors.Single(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Receipt_without_a_full_split_raises_one_dashboard_task_with_the_open_sum()
+    {
+        var first = await ReceiptAsync("A", new DateOnly(2026, 1, 1), 100m, null, null);
+        var todos = await TodosAsync();
+        var task = Assert.Single(todos, a => a.Title.Contains("Kostenaufteilung", StringComparison.Ordinal));
+        Assert.Equal(Urgency.Soon, task.Urgency);
+        Assert.Equal($"/verwaltung/belege/{first}", task.Link);
+        Assert.Contains("100,00 €", task.Details, StringComparison.Ordinal);
+
+        await ReceiptAsync("B", new DateOnly(2026, 1, 2), 50m, null, null);
+        task = Assert.Single(await TodosAsync(), a => a.Title.Contains("Kostenaufteilung", StringComparison.Ordinal));
+        Assert.Equal("2 Belege ohne vollständige Kostenaufteilung", task.Title);
+        Assert.Contains("150,00 €", task.Details, StringComparison.Ordinal);
     }
 
     private async Task<List<Guid>> IdsAsync(ReceiptQuery query) => (await WithAsync(b => b.SearchAsync(query, Ct))).Select(z => z.Id).ToList();

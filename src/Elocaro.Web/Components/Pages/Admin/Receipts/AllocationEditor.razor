@@ -1,0 +1,107 @@
+@using Elocaro.Domain.Common
+@* Distribution of a receipt over cost types and properties while it is entered. One row takes the whole amount; more rows split it.
+   The status line shows live what is still open, so that the distribution is not forgotten. *@
+<div class="allocation">
+    @for (var i = 0; i < Rows.Count; i++)
+    {
+        var row = Rows[i];
+        var index = i;
+        <fieldset class="allocation-row">
+            <legend>@(Rows.Count == 1 ? "Kostenart und Objekt" : $"Position {index + 1}")</legend>
+            <CostItemEditor Position="row" Options="Options" Required="false" WithDetails="true" Collapsible="true"
+                            AmountHint="@(Rows.Count == 1 ? "Leer = ganzer Rechnungsbetrag" : index == Rows.Count - 1 ? "Leer = Rest" : null)"
+                            Uncertain="@(index == 0 ? Uncertain : null)" />
+            @if (Rows.Count > 1)
+            {
+                <button type="button" class="button button-text allocation-remove" @onclick="() => Remove(index)" aria-label="@($"Position {index + 1} entfernen")">Position entfernen</button>
+            }
+        </fieldset>
+    }
+    <div class="allocation-footer">
+        <button type="button" class="button button-outlined" @onclick="Add">Auf weitere Kostenart oder weiteres Objekt aufteilen</button>
+        <Notice Level="Status.Level" id="allocation-status">@Status.Text</Notice>
+    </div>
+</div>
+
+@code {
+    private readonly record struct StatusInfo(NoticeLevel Level, string Text);
+
+    /// <summary>Items of the receipt; the page reads them on save (rows without a cost type are skipped).</summary>
+    [Parameter, EditorRequired]
+    public List<CostItemInput> Rows { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public ReceiptOptions Options { get; set; } = default!;
+
+    /// <summary>Gross amount of the receipt (from the form above).</summary>
+    [Parameter]
+    public decimal? Gross { get; set; }
+
+    [Parameter]
+    public IReadOnlySet<string>? Uncertain { get; set; }
+
+    /// <summary>Rows that carry a cost type: only they are saved.</summary>
+    public static IReadOnlyList<CostItemInput> Filled(IEnumerable<CostItemInput> rows) =>
+        [.. rows.Where(r => !string.IsNullOrWhiteSpace(r.CostType)).OrderBy(r => r.Amount is null ? 1 : 0)];
+
+    /// <summary>What is left of <paramref name="gross"/> after the explicit amounts; zero when a row without amount takes the rest.</summary>
+    public static decimal Open(IEnumerable<CostItemInput> rows, decimal gross)
+    {
+        var filled = Filled(rows);
+        return filled.Count == 0 ? gross : filled.Any(r => r.Amount is null) ? 0m : gross - filled.Sum(r => r.Amount!.Value);
+    }
+
+    private StatusInfo Status
+    {
+        get
+        {
+            var filled = Filled(Rows);
+            if (Gross is not { } gross)
+            {
+                return new(NoticeLevel.Info, "Tragen Sie oben den Rechnungsbetrag ein; dann zeigt sich hier, was noch zu verteilen ist.");
+            }
+
+            if (filled.Count == 0)
+            {
+                return new(NoticeLevel.Warning, $"Noch nicht verteilt: {GermanText.Money(gross)}. Ohne Kostenart und Objekt fehlt der Beleg in Nebenkostenabrechnung und Anlage V.");
+            }
+
+            if (filled.Any(r => r.PropertyId is null))
+            {
+                return new(NoticeLevel.Warning, "Bei mindestens einer Position fehlt noch das Objekt.");
+            }
+
+            var open = Open(filled, gross);
+            if (open == 0m)
+            {
+                return new(NoticeLevel.Success, filled.Any(r => r.Amount is null) && filled.Count > 1
+                    ? "Vollständig verteilt: Die Position ohne Betrag erhält den Rest."
+                    : $"Vollständig verteilt: {GermanText.Money(gross)}.");
+            }
+
+            return new(NoticeLevel.Warning, open > 0
+                ? $"Noch {GermanText.Money(open)} nicht verteilt."
+                : $"Die Positionen übersteigen den Rechnungsbetrag um {GermanText.Money(-open)}.");
+        }
+    }
+
+    private void Add()
+    {
+        // The first row keeps the whole amount until the user lowers it: set it explicitly so that "rest" can move to the new row.
+        if (Rows.Count == 1 && Rows[0].Amount is null && Gross is { } gross)
+        {
+            Rows[0].Amount = gross;
+        }
+
+        Rows.Add(new CostItemInput { PropertyId = Options.Properties.Count == 1 ? Options.Properties[0].Id : Rows[^1].PropertyId });
+    }
+
+    private void Remove(int index)
+    {
+        Rows.RemoveAt(index);
+        if (Rows.Count == 1)
+        {
+            Rows[0].Amount = null;
+        }
+    }
+}

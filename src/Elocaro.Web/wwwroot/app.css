@@ -1340,3 +1340,13 @@ fieldset { min-width: 0; }
 main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-control, .mud-checkbox, .mud-switch, .mud-radio-group, .mud-button-root, .mud-chip) { pointer-events: none; animation: pending-dim 0.25s 0.6s both; }
 @keyframes pending-dim { to { opacity: 0.55; } }
 @media (prefers-reduced-motion: reduce) { main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-control, .mud-checkbox, .mud-switch, .mud-radio-group, .mud-button-root, .mud-chip) { animation-duration: 0s; } }
+
+/* Receipt entry: distribution over cost types and properties */
+.allocation { display: flex; flex-direction: column; gap: 1rem; }
+.allocation-row { margin: 0; padding: 0.75rem 1rem 1rem; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); background: var(--md-surface-container-low, var(--md-surface)); }
+.allocation-row > legend { padding: 0 0.5rem; font: var(--type-label); font-weight: 600; color: var(--md-on-surface-variant); }
+.allocation-remove { margin-top: 0.5rem; color: var(--md-error); }
+.allocation-footer { display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+.allocation-footer .message { margin: 0; align-self: stretch; }
+.context-fields { margin: 1rem 0; padding: 0.75rem 1rem 1rem; border-left: 4px solid var(--md-primary); border-radius: var(--shape-md); background: var(--md-surface-container-low, var(--md-surface)); }
+.context-fields h3 { margin: 0 0 0.25rem; }

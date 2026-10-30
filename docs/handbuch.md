@@ -18,6 +18,7 @@ Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. W
 |---|---|---|
 | Mieter anlegen | Bestand → Personen → Neu | Name, Anrede, Anschrift, E-Mail; danach im Vertrag wählen |
 | Zahlung zuordnen | Geld → Bank → Zuordnen | Vorschlag bestätigen; mit Regeln geht es künftig automatisch. Barzahlungen im Mieterkonto des Vertrags |
+| Beleg erfassen | Geld → Belege → Beleg erfassen | Rechnung hochladen, Lieferant, Datum und Brutto eintragen und gleich unter „Zuordnung“ Kostenart und Objekt wählen; bei mehreren Kostenarten den Betrag aufteilen. Die Anzeige unter der Zuordnung nennt, was noch fehlt |
 | Nebenkosten abrechnen | Belege, dann Objekt → Abrechnung | Zeitraum, Kostenarten, Verteilung prüfen; Zugang beim Mieter binnen zwölf Monaten nach Ende des Zeitraums |
 | Miete erhöhen | Vertrag → Vertrag → Mieterhöhung | Verfahren wählen; Fristen und Grenzen werden gerechnet, das Schreiben entsteht als PDF |
 | Zählerstände | Objekt → Zähler | Ablese-Runde, CSV-Import oder Meldung der Mieter im Portal prüfen und übernehmen |
@@ -30,7 +31,7 @@ Umsätze zuordnen (Geld → Bank → Zuordnen): Vorschläge mit Begründung, bes
 
 ![Umsätze zuordnen](bilder/umsaetze-zuordnen.png)
 
-Nebenkostenabrechnung (Bestand → Objekt → Nebenkosten → Abrechnungs-Assistent): Schritt für Schritt mit Prüfhinweisen. Wasser, Abwasser, Strom und Gas rechnet Elocaro nach Verbrauch und Tarif (Objekt → Nebenkosten → Versorgungsverträge): Preis je Einheit und Grundpreis eintragen, die Kosten ergeben sich aus den Zählerständen. Abschlagsrechnungen zählen nicht; die Jahresabrechnung des Versorgers erfassen Sie später als Beleg mit der Markierung „Jahresabrechnung des Versorgers“, sie ersetzt die Berechnung.
+Nebenkostenabrechnung (Bestand → Objekt → Nebenkosten → Abrechnungs-Assistent): Schritt für Schritt mit Prüfhinweisen. Wasser, Abwasser, Strom und Gas rechnet Elocaro nach Verbrauch und Tarif (Objekt → Nebenkosten → Versorgungsverträge): Preis je Einheit und Grundpreis eintragen, die Kosten ergeben sich aus den Zählerständen. Abschlagsrechnungen zählen nicht; die Jahresabrechnung des Versorgers erfassen Sie später als Beleg mit der „Art der Rechnung“ „Jahresabrechnung des Versorgers“, sie ersetzt die Berechnung.
 
 ![Abrechnungs-Assistent](bilder/abrechnungs-assistent.png)
 

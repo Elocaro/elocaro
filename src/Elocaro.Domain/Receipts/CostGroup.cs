@@ -14,4 +14,10 @@ public enum CostGroup
 public static class CostGroups
 {
     public static CostGroup Of(string costType) => costType is "betrkv-04" or "betrkv-05" or "betrkv-06" ? CostGroup.Heating : CostGroup.Operating;
+
+    /// <summary>
+    /// Cost types a supplier invoices by advance payments and an annual statement (water, sewage, heating and hot water, common-area
+    /// electricity): only for these a receipt can be marked as the annual statement of the supplier.
+    /// </summary>
+    public static bool HasSupplierStatement(string costType) => costType is "betrkv-02" or "betrkv-03" or "betrkv-04" or "betrkv-05" or "betrkv-06" or "betrkv-11";
 }

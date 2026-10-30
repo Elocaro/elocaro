@@ -15,6 +15,12 @@ public interface IReceiptService
     /// <summary>Creates the receipt for already stored files, optionally right away with one item for the whole amount.</summary>
     Task<Result> CreateAsync(ReceiptInput data, IReadOnlyList<Guid> fileIds, CostItemInput? position = null, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Creates the receipt with several items in one step. The amounts are taken as entered; an item without amount takes the rest
+    /// and therefore has to be the last one.
+    /// </summary>
+    Task<Result> CreateWithItemsAsync(ReceiptInput data, IReadOnlyList<Guid> fileIds, IReadOnlyList<CostItemInput> positions, CancellationToken cancellationToken = default);
+
     Task<Result> UpdateAsync(Guid id, ReceiptInput data, CancellationToken cancellationToken = default);
 
     Task<Result> AddFilesAsync(Guid id, IReadOnlyList<Guid> fileIds, CancellationToken cancellationToken = default);

@@ -106,10 +106,14 @@ internal sealed class ReceiptService(ElocaroDbContext db) : IReceiptService
     }
 
     public Task<Result> CreateAsync(ReceiptInput data, IReadOnlyList<Guid> fileIds, CostItemInput? position = null, CancellationToken cancellationToken = default) =>
+        CreateWithItemsAsync(data, fileIds, position is null ? [] : [position], cancellationToken);
+
+    public Task<Result> CreateWithItemsAsync(ReceiptInput data, IReadOnlyList<Guid> fileIds, IReadOnlyList<CostItemInput> positions, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
             ArgumentNullException.ThrowIfNull(data);
             ArgumentNullException.ThrowIfNull(fileIds);
+            ArgumentNullException.ThrowIfNull(positions);
             var receipt = new Receipt(data.InvoiceDate ?? throw new RuleViolationException("Bitte das Rechnungsdatum angeben."), data.Gross ?? 0m);
             if (data.Incomplete)
             {
@@ -123,10 +127,16 @@ internal sealed class ReceiptService(ElocaroDbContext db) : IReceiptService
                 receipt.AddFile(fileId);
             }
 
-            if (position is not null && !string.IsNullOrWhiteSpace(position.CostType))
+            var filled = positions.Where(p => !string.IsNullOrWhiteSpace(p.CostType)).ToList();
+            foreach (var position in filled)
             {
                 await CreateCostItemAsync(receipt, position, cancellationToken);
-                await LearnAsync(receipt, position.CostType, cancellationToken);
+            }
+
+            // The supplier learns one cost type (the first); a split receipt says nothing clear about the others.
+            if (filled.Count > 0)
+            {
+                await LearnAsync(receipt, filled[0].CostType, cancellationToken);
             }
 
             db.Add(receipt);
@@ -393,11 +403,13 @@ internal sealed class ReceiptTodos(ElocaroDbContext db, TimeProvider clock) : IT
                 Urgency.Soon, "Die Belege warten ohne Betrag und Kostenart."));
         }
 
-        var open = receipts.Count(b => !b.IsFullyAllocated && !b.Incomplete);
-        if (open > 0)
+        var unsplit = receipts.Where(b => !b.IsFullyAllocated && !b.Incomplete).ToList();
+        if (unsplit.Count > 0)
         {
-            todos.Add(new TodoItem("Belege", $"{open} Belege ohne vollständige Kostenaufteilung", "/verwaltung/belege?aufteilen=true", Urgency.Info,
-                "Ohne Kostenart und Objekt fehlen sie in Nebenkostenabrechnung und Anlage V."));
+            var rest = unsplit.Sum(b => b.Gross - b.Items.Sum(p => p.Amount));
+            var title = unsplit.Count == 1 ? "1 Beleg ohne vollständige Kostenaufteilung" : $"{unsplit.Count} Belege ohne vollständige Kostenaufteilung";
+            todos.Add(new TodoItem("Belege", title, unsplit.Count == 1 ? $"/verwaltung/belege/{unsplit[0].Id}" : "/verwaltung/belege?aufteilen=true", Urgency.Soon,
+                $"Zusammen {Elocaro.Domain.Common.GermanText.Money(rest)} ohne Kostenart und Objekt: Der Betrag fehlt in Nebenkostenabrechnung und Anlage V."));
         }
 
         return todos;
