@@ -22,7 +22,7 @@ jobs:
   build-und-test:
     name: Build & Test
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       # The tests start several containers and many databases; the runner's default free space is tight.
       - name: Speicherplatz freiräumen
