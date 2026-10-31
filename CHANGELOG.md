@@ -12,6 +12,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - `manifest.webmanifest`, Symbole und App-Icon wurden auf Unterseiten nicht gefunden (404, „manifest is not valid JSON“), weil `<base>` nach den Links stand.
 
 ### Hinzugefügt
+- Notfallmappe (Einstellungen → System → Notfallmappe): eine verschlüsselte HTML-Datei, mit der Angehörige die Vermietung weiterführen können, auch wenn Elocaro oder der Server nicht erreichbar sind. Sie enthält eine Checkliste für die ersten 30 Tage, Ihre eigenen Hinweise, Objekte, laufende Mietverträge mit Kontaktdaten, Miete und Kaution, offene Posten, Fristen, Konten (ohne Zugangsdaten), Dienstleister und Versicherungen sowie Hinweise zur Wiederherstellung; auf Wunsch liegen die unterschriebenen Mietverträge bei. AES-256-GCM mit PBKDF2-SHA256 (600.000 Iterationen), entschlüsselt wird offline im Browser. Das Passwort wird nirgends gespeichert. Die Startseite erinnert an die Erneuerung nach zwölf Monaten.
 - Lizenz geklärt: AGPL-3.0-or-later mit Urheberrechtsvermerk (README, „Über Elocaro“, Projektdateien) und Beitragsvereinbarung (`CLA.md`, Pull-Request-Vorlage, Hinweis in `CONTRIBUTING.md`) mit automatischer Prüfung als Action `CLA`.
 - Abrechnungs-Assistent warnt, wenn Belege des Zeitraums noch nicht vollständig auf Kostenarten und Objekte aufgeteilt sind (mit offener Summe); sie fehlen sonst in der Abrechnung.
 - Die Offline-Seite der installierten Web-App versucht es selbst erneut und öffnet Elocaro, sobald der Server wieder antwortet.

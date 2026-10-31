@@ -6,6 +6,7 @@ using Elocaro.Application.Common;
 using Elocaro.Application.Communication;
 using Elocaro.Application.Deadlines;
 using Elocaro.Application.Documents;
+using Elocaro.Application.Emergency;
 using Elocaro.Application.Files;
 using Elocaro.Application.Finance;
 using Elocaro.Application.Heating;
@@ -244,6 +245,9 @@ public static class DependencyInjection
         services.AddScoped<ITodoSource, BackupTodos>();
         services.AddScoped<BackupWarning>();
         services.AddScoped<IDataExport, DataExport>();
+        services.AddScoped<Emergency.EmergencyFolderContent>();
+        services.AddScoped<IEmergencyFolder, Emergency.EmergencyFolderService>();
+        services.AddScoped<ITodoSource, Emergency.EmergencyFolderTodos>();
     }
 
     private static void AddMasterData(IServiceCollection services)

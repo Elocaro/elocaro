@@ -69,6 +69,7 @@ app.MapAccountEndpoints();
 app.MapFileEndpoints();
 app.MapHealthEndpoints();
 app.MapExportEndpoint();
+app.MapEmergencyFolderEndpoint();
 app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
 app.MapImportTemplateEndpoint();

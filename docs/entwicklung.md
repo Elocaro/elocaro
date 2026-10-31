@@ -250,6 +250,14 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - `IDataExport` erzeugt den Vollexport generisch aus dem relationalen EF-Modell: neue Tabellen sind automatisch enthalten. Geheimnisse mit `[NoExport]` (Klasse oder Eigenschaft) ausnehmen und die Liste in `DataExportTests.Every_table_is_exported_or_deliberately_excluded` ergänzen. `[Confidential]` (z. B. IBAN) bleibt im Export, denn es sind fachliche Daten.
 - Der ZIP-Export wird zuerst in eine temporäre Datei geschrieben: Die Eintrags-Streams von `ZipArchive` schreiben beim Schließen synchron, und Kestrel erlaubt kein synchrones Schreiben.
 
+### Notfallmappe
+
+- `IEmergencyFolder` (Application/Emergency, Umsetzung `EmergencyFolderService` in Infrastructure/Emergency) erzeugt die verschlüsselte Datei im Speicher. `EmergencyFolderContent` sammelt die Daten und rendert **eine** HTML-Seite; jeder Wert aus der Datenbank läuft durch `E()` (HTML-Kodierung, Umlaute bleiben lesbar). Neue Abschnitte schreiben nie rohe Werte ins Markup.
+- `EmergencyFolderEncryption` (AES-256-GCM, PBKDF2-SHA256 mit 600.000 Iterationen, Salt 16 und Nonce 12 Byte, Passwort NFC-normalisiert in UTF-8) und `UnlockPage` (Entsperrseite mit Skript, dessen Hash in der Content-Security-Policy der Datei steht). Format `elocaro-notfallmappe` Version 1: Datenblock `<script type="application/json" id="mappe-daten">` mit `iterations`, `salt`, `nonce`, `aad`, `ciphertext` (Base64, Chiffretext mit angehängtem 16-Byte-Tag wie in WebCrypto). Entschlüsselt ergibt es JSON `{ "html": "…", "files": [{ "name", "type", "data" }] }`. Ändert sich das Format, die Version erhöhen.
+- Das Passwort steht nur in `EmergencyFolderRequest` (dessen `ToString` nichts ausgibt) und wird nie gespeichert oder geloggt. Der Endpunkt `EmergencyFolderEndpoint` (POST, Antiforgery, `Policies.System`) speichert zuerst die Hinweise und liefert dann die Datei oder leitet mit einem festen Schlüssel (`?fehler=…`) zurück; nichts aus der Anfrage wird zurückgegeben.
+- Der einzige Datensatz `EmergencyFolder` (Tabelle `emergency_folders`) hält die Hinweise und `LastCreatedAt`; er steht automatisch im Vollexport. `EmergencyFolderTodos` ist die Erinnerung auf dem Dashboard (nie erzeugt oder älter als zwölf Monate, nur mit Recht *System*, nur wenn es ein Objekt gibt).
+- Tests: `EmergencyFolderTests` und `EmergencyFolderDocumentsTests` (Integration: Runde mit unabhängiger Entschlüsselung, falsches Passwort, Salt/Nonce, keine Geheimnisse, Kodierung, Größenlimit), `Operations/EmergencyFolderTests` (Web: Recht, Antiforgery, Audit, Aufgabe) und `EmergencyFolderBrowserTests` (Datei per `file://` öffnen, entsperren, falsches Passwort, 360 px).
+
 ### Mietverträge
 
 - `Lease` über ein Mietobjekt (`RentalUnitId` = Einheit ohne Zimmer oder WG-Zimmer; `UnitId` immer gesetzt, `RoomId` bei Zimmern). Der DB-Überlappungsschutz auf (`rental_unit_id`, `term_from`/`term_to`) verhindert zwei Verträge zum selben Tag.
