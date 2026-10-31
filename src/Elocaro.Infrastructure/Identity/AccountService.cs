@@ -49,7 +49,10 @@ internal sealed class AccountService(
     public Task<AccountResult> InviteAsync(string email, string displayName, string role, CancellationToken cancellationToken = default) =>
         InviteAsync(email, displayName, role, null, cancellationToken);
 
-    public async Task<AccountResult> InviteAsync(string email, string displayName, string role, string? invitedBy, CancellationToken cancellationToken = default)
+    public Task<AccountResult> InviteAsync(string email, string displayName, string role, string? invitedBy, CancellationToken cancellationToken = default) =>
+        InviteAsync(email, displayName, role, invitedBy, Permissions.ManagerDefault, cancellationToken);
+
+    public async Task<AccountResult> InviteAsync(string email, string displayName, string role, string? invitedBy, IReadOnlyCollection<AccessRight> managerPermissions, CancellationToken cancellationToken = default)
     {
         if (!Roles.All.Contains(role))
         {
@@ -70,9 +73,9 @@ internal sealed class AccountService(
         }
 
         await userManager.AddToRoleAsync(user, role);
-        if (role == Roles.Manager)
+        if (role == Roles.Manager && managerPermissions.Count > 0)
         {
-            await userManager.AddClaimsAsync(user, Permissions.ManagerDefault.Select(r => new System.Security.Claims.Claim(Permissions.ClaimType, r.ToString())));
+            await userManager.AddClaimsAsync(user, managerPermissions.Select(r => new System.Security.Claims.Claim(Permissions.ClaimType, r.ToString())));
         }
 
         await SendInvitationAsync(user, role, invitedBy, cancellationToken);

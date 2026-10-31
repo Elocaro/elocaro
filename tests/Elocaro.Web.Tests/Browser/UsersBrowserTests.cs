@@ -47,6 +47,43 @@ public class UsersBrowserTests(PostgresFixture postgres) : BrowserTestBasis(post
     }
 
     [Fact]
+    public async Task Manager_is_offered_neither_the_admin_role_nor_permissions_they_lack()
+    {
+        var otherId = await CreateAccountAsync(Roles.Manager, "verwalter@example.de");
+        var adminId = await CreateAccountAsync(Roles.Admin, "chef@example.de");
+        var page = await SignedInAsManagerAsync([AccessRight.UserManagement, AccessRight.MasterData]);
+        var roleChange = page.GetByRole(AriaRole.Button, new() { Name = "Rolle ändern" });
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await GotoInteractiveAsync(page, $"/verwaltung/benutzer/{otherId}");
+            await Assertions.Expect(roleChange).ToHaveCountAsync(1);
+            await Assertions.Expect(page.GetByLabel(Permissions.DisplayName(AccessRight.MasterData))).ToHaveCountAsync(1);
+            await Assertions.Expect(page.GetByLabel(Permissions.DisplayName(AccessRight.Finance))).ToHaveCountAsync(0);
+            await Assertions.Expect(page.GetByLabel(Permissions.DisplayName(AccessRight.System))).ToHaveCountAsync(0);
+            await page.Locator(".mud-select", new() { Has = page.Locator("[aria-label='Rolle']") }).First.Locator(".mud-input").First.ClickAsync();
+            await Assertions.Expect(page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Verwalter" })).ToHaveCountAsync(1);
+            await Assertions.Expect(page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Administrator" })).ToHaveCountAsync(0);
+
+            await GotoInteractiveAsync(page, $"/verwaltung/benutzer/{adminId}");
+            await Assertions.Expect(page.GetByText("Dieses Konto kann nur ein Administrator ändern.")).ToHaveCountAsync(1);
+            await Assertions.Expect(roleChange).ToHaveCountAsync(0);
+            await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Konto sperren" })).ToHaveCountAsync(0);
+
+            await GotoInteractiveAsync(page, "/verwaltung/benutzer");
+            await page.GetByRole(AriaRole.Link, new() { Name = "Max Mustermann" }).ClickAsync();
+            await Assertions.Expect(page.GetByText("Ihre eigene Rolle und Ihre eigenen Rechte kann nur ein Administrator ändern.")).ToHaveCountAsync(1);
+            await Assertions.Expect(roleChange).ToHaveCountAsync(0);
+
+            await GotoInteractiveAsync(page, "/verwaltung/benutzer");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Person einladen" }).ClickAsync();
+            await page.Locator(".mud-dialog .mud-select .mud-input").First.ClickAsync();
+            await Assertions.Expect(page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Mieter" })).ToHaveCountAsync(1);
+            await Assertions.Expect(page.Locator(".mud-popover-open .mud-list-item", new() { HasText = "Administrator" })).ToHaveCountAsync(0);
+        });
+    }
+
+    [Fact]
     public async Task Caretaker_gets_properties_assigned()
     {
         var caretakerId = await CreateAccountAsync(Roles.Caretaker, "hausmeister@example.de");

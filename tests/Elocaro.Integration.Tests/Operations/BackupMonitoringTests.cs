@@ -137,7 +137,8 @@ public class BackupMonitoringTests(PostgresFixture postgres) : IAsyncLifetime
             var locked = await accounts.InviteAsync("gesperrt@example.de", "Gesperrt", Roles.Admin, Ct);
             await accounts.InviteAsync("verwalter@example.de", "Verwalter", Roles.Manager, Ct);
             Assert.True(second.Succeeded && locked.Succeeded);
-            await scope.ServiceProvider.GetRequiredService<IUserManagementService>().LockAsync(locked.UserId!.Value, Ct);
+            var actor = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, second.UserId!.Value.ToString())], "Test"));
+            await scope.ServiceProvider.GetRequiredService<IUserManagementService>().LockAsync(actor, locked.UserId!.Value, Ct);
         }
 
         await WriteStatusAsync(succeeded: false, InfrastructureEnvironment.StartTime.AddHours(-7), "Fatal: unable to open repository");

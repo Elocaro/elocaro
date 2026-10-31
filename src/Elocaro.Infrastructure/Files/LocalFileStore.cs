@@ -24,7 +24,7 @@ internal sealed class LocalFileStore(ElocaroDbContext db, IOptions<FileStoreOpti
 
         if (type.IsImage)
         {
-            bytes = ImageProcessing.Prepare(bytes, type.MimeType, o.MaxImageEdge, o.JpegQuality) ?? bytes;
+            bytes = ImageProcessing.Prepare(bytes, type.MimeType, o.MaxImageEdge, o.MaxImageMegapixels, o.JpegQuality) ?? bytes;
         }
 
         var sha = Convert.ToHexStringLower(SHA256.HashData(bytes));

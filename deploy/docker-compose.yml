@@ -47,6 +47,7 @@ services:
     networks: [intern, extern]
     # lets the app reach an Ollama on the Docker host (OLLAMA_URL)
     extra_hosts: ["host.docker.internal:host-gateway"]
+    mem_limit: ${APP_MEM_LIMIT:-1536m}
 
   postgres:
     image: postgres:18-alpine
@@ -69,6 +70,7 @@ services:
     restart: unless-stopped
     command: ["gotenberg", "--api-timeout=60s", "--chromium-auto-start=true"]
     networks: [intern]
+    mem_limit: ${GOTENBERG_MEM_LIMIT:-1g}
 
   # Nightly backup (pg_dump + file storage) with restic; see docs/betrieb.md
   backup:

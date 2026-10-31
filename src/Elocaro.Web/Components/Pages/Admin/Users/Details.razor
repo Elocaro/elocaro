@@ -35,19 +35,27 @@ else
     <dt>Letzte Anmeldung</dt><dd>@Format.Timestamp(user.LastSignInAt)</dd>
 </dl>
 
-<section>
-    <h2>Rolle</h2>
-    <div class="form-row">
-        <AppSelect T="string" Value="role" ValueChanged="@(r => role = r!)" Label="Rolle" Items="Roles.All" Text="@(r => Roles.DisplayName(r!))" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeRoleAsync">Rolle ändern</MudButton>
-    </div>
-</section>
+@if (mayChangeAccess)
+{
+    <section>
+        <h2>Rolle</h2>
+        <div class="form-row">
+            <AppSelect T="string" Value="role" ValueChanged="@(r => role = r!)" Label="Rolle" Items="actor!.AssignableRoles" Text="@(r => Roles.DisplayName(r!))" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangeRoleAsync">Rolle ändern</MudButton>
+        </div>
+        <p class="small">Nach einer Änderung von Rolle oder Rechten muss sich die Person neu anmelden.</p>
+    </section>
+}
+else
+{
+    <p class="small">@(isOwnAccount ? "Ihre eigene Rolle und Ihre eigenen Rechte kann nur ein Administrator ändern." : "Dieses Konto kann nur ein Administrator ändern.")</p>
+}
 
-@if (user.Role == Roles.Manager)
+@if (mayChangeAccess && user.Role == Roles.Manager)
 {
     <section>
         <h2>Rechte</h2>
-        @foreach (var permission in Permissions.All)
+        @foreach (var permission in Permissions.All.Where(p => actor!.MayGrant(p) || user.Permissions.Contains(p)))
         {
             <AppCheckBox Value="permissionSelection.Contains(permission)" ValueChanged="@(on => Toggle(permissionSelection, permission, on))" Label="@Permissions.DisplayName(permission)" />
         }
@@ -75,7 +83,7 @@ else
     </section>
 }
 
-@if (!isOwnAccount)
+@if (!isOwnAccount && actor?.MayManage(user.Role) == true)
 {
     <section>
         <h2>Zugang</h2>
@@ -96,7 +104,10 @@ else
 
 @code {
     private UserOverview? user;
+    private UserManagementActor? actor;
+    private System.Security.Claims.ClaimsPrincipal principal = new();
     private bool isOwnAccount;
+    private bool mayChangeAccess;
     private bool loaded;
     private IReadOnlyList<string>? errors;
     private string role = Roles.Tenant;
@@ -112,16 +123,18 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var principal = (await Authentication).User;
+        principal = (await Authentication).User;
         isOwnAccount = UserManager.GetUserId(principal) == Id.ToString();
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
+        actor = await Admin.ActorAsync(principal);
         user = await Admin.GetAsync(Id);
         if (user is not null)
         {
+            mayChangeAccess = actor?.MayChangeAccess(Id, user.Role) == true;
             role = user.Role;
             permissionSelection.Clear();
             permissionSelection.UnionWith(user.Permissions);
@@ -148,9 +161,9 @@ else
         }
     }
 
-    private async Task ChangeRoleAsync() => await ExecuteAsync(Admin.ChangeRoleAsync(Id, role), "Die Rolle wurde geändert.");
+    private async Task ChangeRoleAsync() => await ExecuteAsync(Admin.ChangeRoleAsync(principal, Id, role), "Die Rolle wurde geändert.");
 
-    private async Task SetPermissionsAsync() => await ExecuteAsync(Admin.SetPermissionsAsync(Id, permissionSelection.ToList()), "Die Rechte wurden gespeichert.");
+    private async Task SetPermissionsAsync() => await ExecuteAsync(Admin.SetPermissionsAsync(principal, Id, permissionSelection.ToList()), "Die Rechte wurden gespeichert.");
 
     private async Task SetPropertiesAsync()
     {
@@ -170,7 +183,7 @@ else
             return;
         }
 
-        await ExecuteAsync(user.Locked ? Admin.UnlockAsync(Id) : Admin.LockAsync(Id), user.Locked ? "Das Konto wurde entsperrt." : "Das Konto wurde gesperrt.");
+        await ExecuteAsync(user.Locked ? Admin.UnlockAsync(principal, Id) : Admin.LockAsync(principal, Id), user.Locked ? "Das Konto wurde entsperrt." : "Das Konto wurde gesperrt.");
     }
 
     private async Task ExecuteAsync(Task<AccountResult> action, string success)

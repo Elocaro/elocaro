@@ -242,7 +242,8 @@ Auf der Startseite erinnert ab Oktober des Folgejahres eine Aufgabe an die Abrec
 - TLS und HSTS über Caddy; die App setzt CSP, `X-Frame-Options: DENY`, `nosniff`, Referrer- und Permissions-Policy.
 - Die App übernimmt Schema und Client-IP aus `X-Forwarded-*` nur von Absendern aus privaten Netzen (Docker-Netz). Die HTTPS-Umleitung macht Caddy (`Hosting__HttpsRedirection=false` im Image).
 - **Data-Protection-Schlüssel** (Cookies, Tokens) liegen in der Tabelle `data_protection_keys`. Anmeldungen überstehen so Neustarts und sind im DB-Backup enthalten. Die Schlüssel sind dort nicht zusätzlich verschlüsselt. Wer Zugriff auf die Datenbank hat, hat ohnehin Zugriff auf alle Daten; die Datenbank ist daher nur intern erreichbar. Die Warnung „No XML encryptor configured“ beim ersten Start ist erwartet.
-- Uploads: Caddy begrenzt auf 30 MB, die App zusätzlich auf `FileStore__MaxSizeMb` (25).
+- Uploads: Caddy begrenzt auf 30 MB, die App zusätzlich auf `FileStore__MaxSizeMb` (25). Fotos dürfen höchstens `FileStore__MaxImageMegapixels` (50) groß sein, darüber lehnt die App sie vor dem Dekodieren ab.
+- Speicherlimits: `app` höchstens `APP_MEM_LIMIT` (Standard `1536m`), `gotenberg` höchstens `GOTENBERG_MEM_LIMIT` (Standard `1g`), damit ein einzelner Container nicht den ganzen Server lahmlegt. Wird ein Limit erreicht, beendet Docker den Container und startet ihn neu; bei wiederholten Neustarts (`docker compose ps`, `docker inspect … OOMKilled`) den Wert in `deploy/.env` erhöhen.
 - Geheimnisse nur in `deploy/.env` (per `.gitignore` ausgeschlossen), Dateirechte `chmod 600 deploy/.env`.
 
 ## Backup

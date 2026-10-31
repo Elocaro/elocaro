@@ -13,5 +13,11 @@ public sealed class FileStoreOptions
     /// <summary>Longest image edge after downscaling, in pixels.</summary>
     public int MaxImageEdge { get; set; } = 2560;
 
+    /// <summary>
+    /// Largest image accepted, in megapixels. Decoding needs about 4 bytes per pixel regardless of the file size, and a small
+    /// file can declare huge dimensions. Checked before decoding.
+    /// </summary>
+    public int MaxImageMegapixels { get; set; } = 50;
+
     public int JpegQuality { get; set; } = 85;
 }

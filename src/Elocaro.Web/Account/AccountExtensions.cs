@@ -68,7 +68,7 @@ internal static class AccountExtensions
             if (AccountClaims.MustSetUpTwoFactor(context.User)
                 && !context.RequestServices.GetRequiredService<IOptions<DemoOptions>>().Value.Enabled
                 && !context.Request.Path.StartsWithSegments(AccountPath, StringComparison.OrdinalIgnoreCase)
-                && !IsStaticFile(context.Request.Path))
+                && !IsStaticFile(context))
             {
                 context.Response.Redirect(TwoFactorSetupPath);
                 return;
@@ -96,8 +96,16 @@ internal static class AccountExtensions
         return endpoints;
     }
 
-    private static bool IsStaticFile(PathString path) =>
-        path.StartsWithSegments("/_framework", StringComparison.Ordinal)
-        || path.StartsWithSegments("/_content", StringComparison.Ordinal)
-        || Path.HasExtension(path.Value);
+    /// <summary>
+    /// Decides by the matched endpoint, not by the look of the path: exports such as <c>offene-posten.csv</c> also end in a file
+    /// extension. Routing runs before this middleware (WebApplication adds it to the start of the pipeline); without a
+    /// matched endpoint a request counts as not static, so it is redirected.
+    /// </summary>
+    private static bool IsStaticFile(HttpContext context) =>
+        context.GetEndpoint()?.Metadata.GetMetadata<StaticFileEndpoint>() is not null
+        || context.Request.Path.StartsWithSegments("/_framework", StringComparison.Ordinal)
+        || context.Request.Path.StartsWithSegments("/_content", StringComparison.Ordinal);
+
+    /// <summary>Marks the endpoints of the static assets (see <c>MapStaticAssets</c> in Program.cs).</summary>
+    public sealed class StaticFileEndpoint;
 }

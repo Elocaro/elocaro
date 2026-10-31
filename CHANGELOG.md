@@ -4,6 +4,12 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Sicherheit
+- Die Zwei-Faktor-Pflicht galt nicht für Adressen mit Dateiendung: Ein Konto ohne eingerichtete Zwei-Faktor-Anmeldung konnte CSV-, DATEV-, Anlage-V- und PDF-Exporte abrufen. Ausgenommen sind jetzt nur noch echte statische Dateien.
+- Benutzerverwaltung: Wer kein Administrator ist, kann sich und anderen nicht mehr die Rolle Administrator geben, niemanden als Administrator einladen, Administratorkonten weder ändern noch sperren oder entsperren, die eigene Rolle und die eigenen Rechte nicht ändern und keine Rechte vergeben, die er selbst nicht hat. Das prüft der Server, die Oberfläche bietet es nicht mehr an.
+- Änderungen an Rolle oder Rechten melden das betroffene Konto ab, auch in offenen Seiten. Die neuen Rechte gelten ab der nächsten Anmeldung. Bisher galten entzogene Rollen in offenen Seiten weiter.
+- Bilder über 50 Megapixel (`FileStore__MaxImageMegapixels`) werden beim Hochladen abgelehnt. Eine kleine Datei mit riesigen Bildmaßen konnte sonst den Speicher des Servers füllen. Dazu Speicherlimits für `app` und `gotenberg` in `deploy/docker-compose.yml` (`APP_MEM_LIMIT`, `GOTENBERG_MEM_LIMIT`).
+
 ### Geändert
 - Beispieldaten: Die Mietverträge beginnen am 1. Januar des vorletzten Jahres. Die Demo-Instanz zeigt im Mieterportal versendete Abrechnungen mit Rechenweg, Vorjahresvergleich und freigegebenen Beispielbelegen.
 

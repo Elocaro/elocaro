@@ -9,6 +9,44 @@ internal static class TestFiles
         System.Text.Encoding.ASCII.GetBytes($"%PDF-1.4\n% {content}\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
 
     /// <summary>Image with the left half red and the right half blue.</summary>
+    /// <summary>A tiny PNG that declares the given dimensions in its header; its image data is far too short for them.</summary>
+    public static byte[] PngWithDimensions(int width, int height)
+    {
+        byte[] header = new byte[13];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(header, width);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4), height);
+        header[8] = 8; // bit depth
+        header[9] = 6; // RGBA
+
+        using var png = new MemoryStream();
+        png.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        WriteChunk("IHDR", header);
+        WriteChunk("IDAT", [0x78, 0x9C, 0x63, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01]);
+        WriteChunk("IEND", []);
+        return png.ToArray();
+
+        void WriteChunk(string type, byte[] data)
+        {
+            byte[] typed = [.. System.Text.Encoding.ASCII.GetBytes(type), .. data];
+            var crc = uint.MaxValue;
+            foreach (var value in typed)
+            {
+                crc ^= value;
+                for (var bit = 0; bit < 8; bit++)
+                {
+                    crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+                }
+            }
+
+            Span<byte> number = stackalloc byte[4];
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(number, data.Length);
+            png.Write(number);
+            png.Write(typed);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(number, ~crc);
+            png.Write(number);
+        }
+    }
+
     public static byte[] TwoColorImage(int width, int height, SKEncodedImageFormat format = SKEncodedImageFormat.Jpeg)
     {
         using var bitmap = new SKBitmap(width, height);

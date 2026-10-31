@@ -1,6 +1,6 @@
 @using MudBlazor
 @using System.ComponentModel.DataAnnotations
-@inject IAccountService Accounts
+@inject IUserManagementService Users
 @inject Notifier Notify
 
 @* Dialog "invite person": creates the account and sends the invitation mail. *@
@@ -12,7 +12,7 @@
             <div class="form-grid">
                 <AppTextField @bind-Value="invitation.DisplayName" Label="Name" Required="true" />
                 <AppTextField @bind-Value="invitation.Email" Label="E-Mail-Adresse" Type="email" Required="true" />
-                <AppSelect @bind-Value="invitation.Role" Label="Rolle" Items="Roles.All" Text="@(r => Roles.DisplayName(r!))" />
+                <AppSelect @bind-Value="invitation.Role" Label="Rolle" Items="roles" Text="@(r => Roles.DisplayName(r!))" />
             </div>
         </DialogContent>
         <DialogActions>
@@ -25,15 +25,22 @@
 @code {
     private readonly InvitationInput invitation = new();
     private IReadOnlyList<string>? errors;
+    private IReadOnlyList<string> roles = [];
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync() =>
+        roles = (await Users.ActorAsync((await Authentication).User))?.AssignableRoles ?? [];
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task InviteAsync()
     {
-        var result = await Accounts.InviteAsync(invitation.Email.Trim(), invitation.DisplayName.Trim(), invitation.Role);
+        var result = await Users.InviteAsync((await Authentication).User, invitation.Email.Trim(), invitation.DisplayName.Trim(), invitation.Role);
         if (result.Succeeded)
         {
             Notify.Success($"Die Einladung an {invitation.Email} wurde verschickt.");

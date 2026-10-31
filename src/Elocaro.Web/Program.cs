@@ -62,7 +62,7 @@ app.UseTwoFactorRequirement();
 app.UseModuleGate();
 app.UseAntiforgery();
 
-app.MapStaticAssets().AllowAnonymous();
+app.MapStaticAssets().AllowAnonymous().WithMetadata(new AccountExtensions.StaticFileEndpoint());
 // Our own CSP (frame-ancestors 'none') applies; the framework header would be a second, duplicate one.
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode(o => o.ContentSecurityFrameAncestorsPolicy = null);
 app.MapAccountEndpoints();

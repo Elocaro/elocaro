@@ -15,6 +15,37 @@ public class InitialSetupAndTwoFactorTests(PostgresFixture postgres) : AccountTe
         Assert.StartsWith("https://localhost/konto/anmelden?ReturnUrl=%2F", response.RedirectLocation!.ToString(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("/verwaltung/finanzen/offene-posten.csv")]
+    [InlineData("/verwaltung/finanzen/datev/buchungen.csv?von=2026-01-01&bis=2026-12-31")]
+    [InlineData("/verwaltung/tickets/routinen.pdf")]
+    [InlineData("/verwaltung/einstellungen/import/vorlage.csv")]
+    [InlineData("/verwaltung/gibt-es-nicht.pdf")]
+    public async Task Exports_with_a_file_extension_require_two_factor_setup(string path)
+    {
+        using var browser = App.Browser();
+        await SetUpAsync(browser);
+
+        var response = await browser.GetAsync(path, followRedirects: false);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.Status);
+        Assert.Equal("/konto/sicherheit/zwei-faktor", response.RedirectLocation!.ToString());
+    }
+
+    [Theory]
+    [InlineData("/app.css")]
+    [InlineData("/manifest.webmanifest")]
+    [InlineData("/_framework/blazor.web.js")]
+    public async Task Static_files_stay_reachable_without_two_factor(string path)
+    {
+        using var browser = App.Browser();
+        await SetUpAsync(browser);
+
+        var response = await browser.GetAsync(path, followRedirects: false);
+
+        Assert.Equal(HttpStatusCode.OK, response.Status);
+    }
+
     [Fact]
     public async Task Empty_installation_leads_to_initial_setup()
     {

@@ -12,11 +12,16 @@ public interface IAccountService
     /// <summary>
     /// Invites a user. Roles with a password receive a link to set the password (valid 7 days),
     /// tenants and tradespeople a sign-in link (valid 7 days).
+    /// Does not check who triggers the invitation: for internal callers with a fixed role. Invitations with a freely
+    /// chosen role go through <see cref="IUserManagementService.InviteAsync"/>.
     /// </summary>
     Task<AccountResult> InviteAsync(string email, string displayName, string role, CancellationToken cancellationToken = default);
 
     /// <summary>As above; the mail names the landlord on whose behalf the invitation is sent, so that tenants recognize the sender.</summary>
     Task<AccountResult> InviteAsync(string email, string displayName, string role, string? invitedBy, CancellationToken cancellationToken = default);
+
+    /// <summary>As above; a manager receives <paramref name="managerPermissions"/> instead of the default permissions.</summary>
+    Task<AccountResult> InviteAsync(string email, string displayName, string role, string? invitedBy, IReadOnlyCollection<AccessRight> managerPermissions, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends the invitation of an account again (new link). Only for accounts that have not signed in yet.

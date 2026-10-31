@@ -13,6 +13,7 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
 {
     protected const string AdminEmail = "vermieter@example.de";
     protected const string AdminPassword = "Sehr-sicheres-Passwort-2026";
+    private const string TestPassword = "Test-Passwort-2026-lang";
 
     protected ElocaroWebFactory App { get; private set; } = null!;
 
@@ -34,12 +35,11 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
     protected async Task<(TestBrowser Browser, Guid Id)> SignedInAsAsync(string role, IReadOnlyCollection<AccessRight>? permissions = null, string? email = null)
     {
         email ??= $"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@example.de";
-        const string password = "Test-Passwort-2026-lang";
         var (id, key) = await App.WithScopeAsync(async sp =>
         {
             var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
             var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, DisplayName = role + " Test" };
-            Assert.True((await manager.CreateAsync(user, password)).Succeeded);
+            Assert.True((await manager.CreateAsync(user, TestPassword)).Succeeded);
             await manager.AddToRoleAsync(user, role);
             if (role == Roles.Manager)
             {
@@ -57,16 +57,36 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
             return (user.Id, key);
         });
 
+        return (await SignInWithPasswordAsync(email, key), id);
+    }
+
+    /// <summary>Signs an account created with <see cref="SignedInAsAsync"/> in again, in a new browser.</summary>
+    protected async Task<TestBrowser> SignedInAgainAsync(Guid id)
+    {
+        var (email, key) = await App.WithScopeAsync(async sp =>
+        {
+            var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = (await manager.FindByIdAsync(id.ToString()))!;
+            return (user.Email!, await manager.GetAuthenticatorKeyAsync(user));
+        });
+        return await SignInWithPasswordAsync(email, key);
+    }
+
+    private async Task<TestBrowser> SignInWithPasswordAsync(string email, string? key)
+    {
         var browser = App.Browser();
-        var page = await SignInAsync(browser, email, password);
+        var page = await SignInAsync(browser, email, TestPassword);
         if (key is not null)
         {
             page = await browser.SubmitAsync(page, "two-factor", new Dictionary<string, string> { ["Input.Code"] = Code(key) });
         }
 
         Assert.DoesNotContain("/konto/", page.Path, StringComparison.Ordinal);
-        return (browser, id);
+        return browser;
     }
+
+    protected static System.Security.Claims.ClaimsPrincipal Principal(Guid id) =>
+        new(new System.Security.Claims.ClaimsIdentity([new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, id.ToString())], "Test"));
 
     public virtual async ValueTask DisposeAsync() => await App.DisposeAsync();
 

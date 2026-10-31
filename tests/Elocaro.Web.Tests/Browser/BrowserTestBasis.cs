@@ -121,15 +121,20 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
     }
 
     /// <summary>Creates an admin with active 2FA and signs in via the UI.</summary>
-    protected async Task<IPage> SignedInAsAdminAsync(bool mobile = true)
+    protected Task<IPage> SignedInAsAdminAsync(bool mobile = true) => SignedInAsync("admin@example.de", Roles.Admin, [], mobile);
+
+    protected Task<IPage> SignedInAsManagerAsync(IReadOnlyCollection<AccessRight> permissions, bool mobile = false) =>
+        SignedInAsync("verwaltung@example.de", Roles.Manager, permissions, mobile);
+
+    private async Task<IPage> SignedInAsync(string email, string role, IReadOnlyCollection<AccessRight> permissions, bool mobile)
     {
-        const string email = "admin@example.de";
         var key = await App.WithScopeAsync(async sp =>
         {
             var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
             var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, DisplayName = "Max Mustermann" };
             await manager.CreateAsync(user, Password);
-            await manager.AddToRoleAsync(user, Roles.Admin);
+            await manager.AddToRoleAsync(user, role);
+            await manager.AddClaimsAsync(user, permissions.Select(r => new System.Security.Claims.Claim(Permissions.ClaimType, r.ToString())));
             await manager.ResetAuthenticatorKeyAsync(user);
             await manager.SetTwoFactorEnabledAsync(user, true);
             return await manager.GetAuthenticatorKeyAsync(user);

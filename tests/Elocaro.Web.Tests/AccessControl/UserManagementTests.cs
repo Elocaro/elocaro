@@ -31,40 +31,44 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
     [Fact]
     public async Task Locked_account_is_signed_out_immediately()
     {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        var (admin, adminId) = await SignedInAsAsync(Roles.Admin);
         var (tenant, tenantId) = await SignedInAsAsync(Roles.Tenant);
         using var a = admin;
         using var m = tenant;
         Assert.Equal(HttpStatusCode.OK, (await tenant.GetAsync("/portal")).Status);
 
-        Assert.True((await UsersAsync((users, ct) => users.LockAsync(tenantId, ct))).Succeeded);
+        Assert.True((await UsersAsync((users, ct) => users.LockAsync(Principal(adminId), tenantId, ct))).Succeeded);
 
         var after = await tenant.GetAsync("/portal", followRedirects: false);
         Assert.Equal("/konto/anmelden", after.RedirectLocation!.AbsolutePath);
         Assert.Contains("gesperrt", (await admin.GetAsync($"/verwaltung/benutzer/{tenantId}")).Text, StringComparison.Ordinal);
 
-        Assert.True((await UsersAsync((users, ct) => users.UnlockAsync(tenantId, ct))).Succeeded);
+        Assert.True((await UsersAsync((users, ct) => users.UnlockAsync(Principal(adminId), tenantId, ct))).Succeeded);
     }
 
     [Fact]
-    public async Task Changing_role_and_permissions_takes_effect_immediately_and_is_logged()
+    public async Task Changing_role_and_permissions_ends_the_session_applies_on_next_sign_in_and_is_logged()
     {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        var (admin, adminId) = await SignedInAsAsync(Roles.Admin);
         var (manager, managerId) = await SignedInAsAsync(Roles.Manager);
         using var a = admin;
         using var v = manager;
         Assert.Equal(HttpStatusCode.Redirect, (await manager.GetAsync("/verwaltung/benutzer", followRedirects: false)).Status);
 
-        Assert.True((await UsersAsync((users, ct) => users.SetPermissionsAsync(managerId, [AccessRight.MasterData, AccessRight.UserManagement], ct))).Succeeded);
+        Assert.True((await UsersAsync((users, ct) => users.SetPermissionsAsync(Principal(adminId), managerId, [AccessRight.MasterData, AccessRight.UserManagement], ct))).Succeeded);
 
-        Assert.Equal(HttpStatusCode.OK, (await manager.GetAsync("/verwaltung/benutzer", followRedirects: false)).Status);
+        Assert.Equal("/konto/anmelden", (await manager.GetAsync("/verwaltung/benutzer", followRedirects: false)).RedirectLocation!.AbsolutePath);
+        using var withNewRights = await SignedInAgainAsync(managerId);
+        Assert.Equal(HttpStatusCode.OK, (await withNewRights.GetAsync("/verwaltung/benutzer", followRedirects: false)).Status);
 
         var history = await App.WithScopeAsync(sp => sp.GetRequiredService<IChangeHistory>().GetAsync("ApplicationUser", managerId, TestContext.Current.CancellationToken));
         Assert.Contains(history.SelectMany(h => h.Changes), f => f is { Field: "Permissions", Old: "MasterData, Finance", New: "MasterData, UserManagement" });
 
         // Role change to tenant: no more access to the administration.
-        Assert.True((await UsersAsync((users, ct) => users.ChangeRoleAsync(managerId, Roles.Tenant, ct))).Succeeded);
-        Assert.Equal("/konto/zugriff-verweigert", (await manager.GetAsync("/verwaltung", followRedirects: false)).RedirectLocation!.AbsolutePath);
+        Assert.True((await UsersAsync((users, ct) => users.ChangeRoleAsync(Principal(adminId), managerId, Roles.Tenant, ct))).Succeeded);
+        Assert.Equal("/konto/anmelden", (await withNewRights.GetAsync("/verwaltung", followRedirects: false)).RedirectLocation!.AbsolutePath);
+        using var asTenant = await SignedInAgainAsync(managerId);
+        Assert.Equal("/konto/zugriff-verweigert", (await asTenant.GetAsync("/verwaltung", followRedirects: false)).RedirectLocation!.AbsolutePath);
     }
 
     [Fact]
@@ -73,19 +77,19 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
         var (admin, adminId) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
-        var demote = await UsersAsync((users, ct) => users.ChangeRoleAsync(adminId, Roles.Manager, ct));
+        var demote = await UsersAsync((users, ct) => users.ChangeRoleAsync(Principal(adminId), adminId, Roles.Manager, ct));
         Assert.False(demote.Succeeded);
         Assert.Contains("Der letzte aktive Administrator kann seine Rolle nicht abgeben.", string.Join(" ", demote.Errors), StringComparison.Ordinal);
-        Assert.False((await UsersAsync((users, ct) => users.LockAsync(adminId, ct))).Succeeded);
+        Assert.False((await UsersAsync((users, ct) => users.LockAsync(Principal(adminId), adminId, ct))).Succeeded);
     }
 
     [Fact]
     public async Task Second_admin_may_lock_the_first()
     {
         var (_, firstId) = await SignedInAsAsync(Roles.Admin);
-        var (second, _) = await SignedInAsAsync(Roles.Admin);
+        var (second, secondId) = await SignedInAsAsync(Roles.Admin);
         using var _ = second;
 
-        Assert.True((await UsersAsync((users, ct) => users.LockAsync(firstId, ct))).Succeeded);
+        Assert.True((await UsersAsync((users, ct) => users.LockAsync(Principal(secondId), firstId, ct))).Succeeded);
     }
 }

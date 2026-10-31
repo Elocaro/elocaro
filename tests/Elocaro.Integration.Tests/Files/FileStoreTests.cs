@@ -115,6 +115,34 @@ public class FileStoreTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Image_with_huge_dimensions_is_rejected_before_decoding()
+    {
+        var bomb = TestFiles.PngWithDimensions(12000, 12000);
+
+        var error = await Assert.ThrowsAsync<FileRejectedException>(() => SaveAsync(bomb, "bombe.png"));
+
+        Assert.True(bomb.Length < 100);
+        Assert.Contains("höchstens 50 Megapixel", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Megapixel_limit_is_configurable_and_includes_the_limit_itself()
+    {
+        await using var limited = await InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?> { ["FileStore:MaxImageMegapixels"] = "1" });
+        await using var scope = limited.Services.CreateAsyncScope();
+        var store = scope.ServiceProvider.GetRequiredService<IFileStore>();
+
+        var allowed = TestFiles.TwoColorImage(1000, 1000, SKEncodedImageFormat.Png);
+        await using (var content = new MemoryStream(allowed))
+        {
+            Assert.Equal("image/png", (await store.SaveAsync(content, "erlaubt.png", Ct)).MimeType);
+        }
+
+        await using var tooLarge = new MemoryStream(TestFiles.TwoColorImage(1001, 1000, SKEncodedImageFormat.Png));
+        await Assert.ThrowsAsync<FileRejectedException>(() => store.SaveAsync(tooLarge, "zu-gross.png", Ct));
+    }
+
+    [Fact]
     public async Task Png_stays_Png()
     {
         var png = TestFiles.TwoColorImage(40, 20, SKEncodedImageFormat.Png);

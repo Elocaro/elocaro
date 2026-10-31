@@ -9,7 +9,7 @@ namespace Elocaro.Infrastructure.Files;
 /// </summary>
 internal static class ImageProcessing
 {
-    public static byte[]? Prepare(byte[] content, string mimeType, int maxEdge, int jpegQuality)
+    public static byte[]? Prepare(byte[] content, string mimeType, int maxEdge, int maxMegapixels, int jpegQuality)
     {
         var format = mimeType switch
         {
@@ -25,6 +25,11 @@ internal static class ImageProcessing
         using var data = SKData.CreateCopy(content);
         using var codec = SKCodec.Create(data)
             ?? throw new Application.Files.FileRejectedException("Das Bild ist beschädigt oder kann nicht gelesen werden.");
+        if ((long)codec.Info.Width * codec.Info.Height > maxMegapixels * 1_000_000L)
+        {
+            throw new Application.Files.FileRejectedException($"Das Bild ist zu groß. Erlaubt sind höchstens {maxMegapixels} Megapixel.");
+        }
+
         using var original = SKBitmap.Decode(codec)
             ?? throw new Application.Files.FileRejectedException("Das Bild ist beschädigt oder kann nicht gelesen werden.");
 
