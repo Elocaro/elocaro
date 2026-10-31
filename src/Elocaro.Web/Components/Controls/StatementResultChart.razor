@@ -1,7 +1,7 @@
 @* The result of a statement: the tenant's share against the prepayments on one scale, with the difference named in words. *@
 @if (Visible)
 {
-    <figure class="cost-chart statement-chart" id="result-chart" aria-label="@($"Ihr Anteil {Format.Money(Share)}, Vorauszahlungen {Format.Money(Prepayments)}. {Outcome}.")">
+    <figure class="cost-chart statement-chart" id="result-chart">
         <figcaption class="small">@Caption</figcaption>
         <div class="cost-chart-row" data-row="share">
             <span class="cost-chart-label">Ihr Anteil</span>
@@ -68,8 +68,6 @@
         < 0m => "Ihre Vorauszahlungen minus Ihr Anteil ergeben das Guthaben.",
         _ => "Ihr Anteil und Ihre Vorauszahlungen sind gleich hoch.",
     };
-
-    private string Outcome => Balance == 0m ? "Ausgeglichen: keine Nachzahlung und kein Guthaben" : $"Ergebnis: {Format.Money(Math.Abs(Balance))} {ResultName}";
 
     private decimal Position(decimal amount) => ChartScale.Percent(amount, Scale);
 }

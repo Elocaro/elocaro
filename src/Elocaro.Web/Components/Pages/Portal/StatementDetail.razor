@@ -29,13 +29,14 @@ else
         <Notice Level="NoticeLevel.Info" id="correction">Korrigierte Abrechnung (Fassung @header.Revision). Grund der Korrektur: @statement.Reason</Notice>
     }
 
+    <p class="statement-result" id="statement-result"><span class="small">Ergebnis</span> <strong>@OverallResult(statement.Balance)</strong></p>
+
+    <StatementResultChart Share="@statement.Balances.Sum(b => b.Share)" Prepayments="@statement.Balances.Sum(b => b.PrepaymentsPaid)" Balance="@statement.Balance" />
+
     <dl class="summary">
-        <dt>Ergebnis</dt><dd><strong>@Format.Money(Math.Abs(statement.Balance)) @(statement.Balance >= 0 ? "Nachzahlung" : "Guthaben")</strong></dd>
         <dt>Ihre Mietzeit im Zeitraum</dt><dd>@Format.Period(statement.Tenancy) (@statement.Days Tage)</dd>
         <dt>Versendet am</dt><dd>@Format.Date(header.SentOn)</dd>
     </dl>
-
-    <StatementResultChart Share="@statement.Balances.Sum(b => b.Share)" Prepayments="@statement.Balances.Sum(b => b.PrepaymentsPaid)" Balance="@statement.Balance" />
 
     <section id="calculation">
         <h2>So wurde gerechnet</h2>
@@ -108,12 +109,12 @@ else
                                 <td>@row.Name</td>
                                 <td class="number" data-label="Vorjahr">@Format.Money(row.Previous)</td>
                                 <td class="number" data-label="Aktuell">@Format.Money(row.Current)</td>
-                                <td class="number" data-label="Unterschied">@Signed(row.Difference)</td>
+                                <td class="number" data-label="Unterschied">@(row.Previous is null ? "neu" : row.Current is null ? "entfallen" : Format.SignedMoney(row.Difference))</td>
                             </tr>
                         }
                     </tbody>
                     <tfoot>
-                        <tr><th>Summe</th><th class="number" data-label="Vorjahr">@Format.Money(previous.PreviousShare)</th><th class="number" data-label="Aktuell">@Format.Money(previous.Share)</th><th class="number" data-label="Unterschied">@Signed(previous.Difference)</th></tr>
+                        <tr><th>Summe</th><th class="number" data-label="Vorjahr">@Format.Money(previous.PreviousShare)</th><th class="number" data-label="Aktuell">@Format.Money(previous.Share)</th><th class="number" data-label="Unterschied">@Format.SignedMoney(previous.Difference)</th></tr>
                     </tfoot>
                 </table>
             </div>
@@ -180,5 +181,6 @@ else
         loaded = true;
     }
 
-    private static string Signed(decimal difference) => difference == 0 ? Format.Money(0m) : (difference > 0 ? "+" : "−") + Format.Money(Math.Abs(difference));
+    private static string OverallResult(decimal balance) =>
+        balance == 0m ? "Ausgeglichen" : $"{Format.Money(Math.Abs(balance))} {(balance > 0m ? "Nachzahlung" : "Guthaben")}";
 }

@@ -22,6 +22,10 @@ public static class Format
 
     public static string Money(decimal? value) => value?.ToString("#,##0.00 €", German) ?? "–";
 
+    /// <summary>A difference with its sign, e.g. "+27,29 €" or "−3,00 €"; no difference has no sign.</summary>
+    public static string SignedMoney(decimal difference) =>
+        difference == 0 ? Money(0m) : (difference > 0 ? "+" : "−") + Money(Math.Abs(difference));
+
     /// <summary>Working time as "2 h 05 min"; no time = a dash.</summary>
     public static string Hours(int minutes) => minutes == 0 ? "–" : $"{minutes / 60} h {minutes % 60:00} min";
 

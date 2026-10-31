@@ -8,6 +8,9 @@ public static class ChartScale
     /// <summary>Largest positive amount, or 0 if there is nothing a bar could show.</summary>
     public static decimal Max(IEnumerable<decimal> amounts) => amounts.Where(a => a > 0m).DefaultIfEmpty(0m).Max();
 
+    /// <summary>Sum of the positive amounts, or 0 if there is nothing a bar could show. Credits have no bar, so they do not shrink the scale.</summary>
+    public static decimal Total(IEnumerable<decimal> amounts) => amounts.Where(a => a > 0m).Sum();
+
     /// <summary>Position of the amount in percent, between 0 and 100. A scale without a positive maximum yields 0.</summary>
     public static decimal Percent(decimal amount, decimal max) => max <= 0m ? 0m : Math.Clamp(amount / max * 100m, 0m, 100m);
 

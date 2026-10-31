@@ -1,25 +1,38 @@
 @using Elocaro.Domain.Common
 @using Elocaro.Domain.Statements
-@* Current share per cost type as a bar, the previous year as a marker line. A side without a value draws nothing and is named as missing. *@
+@* Current share per cost type as a bar, the previous year as a marker line, all amounts as visible text. A side without a value draws nothing and is named as missing. *@
 @if (Scale > 0m)
 {
-    <figure class="cost-chart statement-chart" id="comparison-chart" aria-label="@($"Ihr Anteil je Kostenart im Vergleich mit dem Vorjahr: {string.Join("; ", Lines.Select(Describe))}")">
-        <figcaption class="small">Ihr Anteil je Kostenart: <span class="swatch tenant"></span> dieser Zeitraum | Strich = @Format.Period(PreviousPeriod)</figcaption>
-        @foreach (var row in Lines)
+    <figure class="cost-chart statement-chart" id="comparison-chart">
+        <figcaption class="small">
+            Ihr Anteil je Kostenart, rechts der Unterschied zum Vorjahr
+            <ul class="chart-legend">
+                <li><span class="swatch tenant"></span> Aktuell</li>
+                <li><span class="swatch-marker"></span> Vorjahr (@Format.Period(PreviousPeriod))</li>
+                <li>Kein Strich: kein Vorjahreswert.</li>
+            </ul>
+        </figcaption>
+        @foreach (var row in Rows)
         {
             <div class="cost-chart-row" data-cost-type="@row.CostType">
-                <span class="cost-chart-label">@row.Name</span>
-                <span class="cost-chart-track" title="@Describe(row)">
+                <span class="cost-chart-label">
+                    @($"{row.Name} ")
+                    @if (row.Current is not null)
+                    {
+                        <span class="small cost-chart-detail"><span>Aktuell @Format.Money(row.Current)</span>@if (row.Previous is not null) { <text> · </text><span>Vorjahr @Format.Money(row.Previous)</span> }</span>
+                    }
+                </span>
+                <span class="cost-chart-track">
                     @if (row.Current is > 0m)
                     {
                         <span class="cost-chart-bar tenant" style="width:@ChartScale.Css(ChartScale.Percent(row.Current.Value, Scale))%"></span>
                     }
                     @if (row.Previous is { } before)
                     {
-                        <span class="cost-chart-prev" style="left:@ChartScale.Css(ChartScale.Percent(before, Scale))%"></span>
+                        <span class="cost-chart-prev" style="--at:@ChartScale.Css(ChartScale.Percent(before, Scale))%"></span>
                     }
                 </span>
-                <span class="cost-chart-value">@Format.Money(row.Current)</span>
+                <span class="cost-chart-value">@Outcome(row)</span>
             </div>
         }
     </figure>
@@ -34,10 +47,15 @@
 
     private decimal Scale => ChartScale.Max(Lines.SelectMany(l => new[] { l.Current ?? 0m, l.Previous ?? 0m }));
 
-    private static string Describe(LineComparison row)
+    private IEnumerable<LineComparison> Rows => Lines
+        .Where(l => l.Current is not null || l.Previous is not null)
+        .OrderByDescending(l => Math.Max(l.Current ?? 0m, l.Previous ?? 0m))
+        .ThenBy(l => l.Name, StringComparer.CurrentCulture);
+
+    private static string Outcome(LineComparison row) => (row.Current, row.Previous) switch
     {
-        var current = row.Current is { } now ? $"dieser Zeitraum {Format.Money(now)}" : "in diesem Zeitraum kein Wert";
-        var previous = row.Previous is { } before ? $"Vorjahr {Format.Money(before)}" : "im Vorjahr kein Wert";
-        return $"{row.Name}: {current}, {previous}";
-    }
+        (null, { } before) => $"entfallen (Vorjahr {Format.Money(before)})",
+        (not null, null) => "neu",
+        _ => Format.SignedMoney(row.Difference),
+    };
 }

@@ -1,13 +1,19 @@
 @using Elocaro.Application.Statements
-@* The tenant's share per cost type, largest first. Several lines of one cost type (e.g. of a split period) count as one bar. *@
+@* The tenant's share per cost type, largest first. Several lines of one cost type (e.g. of a split period) count as one bar. A full track is the whole share. *@
 @if (Scale > 0m)
 {
-    <figure class="cost-chart statement-chart" id="cost-type-chart" aria-label="@($"Ihr Anteil je Kostenart: {string.Join("; ", Rows.Select(r => $"{r.Name} {Format.Money(r.Share)}"))}")">
-        <figcaption class="small">Ihr Anteil je Kostenart, größter zuerst</figcaption>
+    <figure class="cost-chart statement-chart" id="cost-type-chart">
+        <figcaption class="small">Ihr Anteil je Kostenart, größter zuerst. Der volle Balken entspricht der Summe von @Format.Money(Scale).</figcaption>
         @foreach (var row in Rows)
         {
             <div class="cost-chart-row" data-cost-type="@row.CostType">
-                <span class="cost-chart-label">@row.Name</span>
+                <span class="cost-chart-label">
+                    @($"{row.Name} ")
+                    @if (row.Share >= 0m)
+                    {
+                        <span class="small cost-chart-share">@PercentText(row.Share)</span>
+                    }
+                </span>
                 <span class="cost-chart-track">
                     @if (row.Share > 0m)
                     {
@@ -33,8 +39,15 @@
         Rows = [.. Lines
             .GroupBy(l => l.CostType)
             .Select(g => new CostRow(g.Key, g.First().Name, g.Sum(l => l.Share)))
-            .OrderByDescending(r => r.Share)];
-        Scale = ChartScale.Max(Rows.Select(r => r.Share));
+            .OrderByDescending(r => r.Share)
+            .ThenBy(r => r.Name, StringComparer.CurrentCulture)];
+        Scale = ChartScale.Total(Rows.Select(r => r.Share));
+    }
+
+    private string PercentText(decimal share)
+    {
+        var percent = ChartScale.Percent(share, Scale);
+        return percent is > 0m and < 1m ? "unter 1 %" : $"{Math.Round(percent, MidpointRounding.AwayFromZero):0} %";
     }
 
     private sealed record CostRow(string CostType, string Name, decimal Share);

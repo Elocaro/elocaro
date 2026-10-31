@@ -1035,12 +1035,32 @@ main p a, main .help a, main .small a, .message a { text-decoration: underline; 
 /* Charts on the tenant's statement page: all rows share one scale, so the value column has a fixed width that holds five-digit amounts */
 .statement-chart { margin-block: var(--spacing); }
 .statement-chart .cost-chart-row { grid-template-columns: minmax(7rem, 14rem) minmax(0, 1fr) 6.5rem; }
-.statement-chart .cost-chart-value { white-space: nowrap; }
-.statement-chart .cost-chart-bar { min-width: 2px; }
-.statement-chart .cost-chart-prev { width: 3px; box-shadow: 0 0 0 1px var(--md-surface); }
+.statement-chart .cost-chart-value { overflow-wrap: anywhere; }
+.statement-chart .cost-chart-bar { min-width: 2px; border-radius: var(--shape-xs); }
+/* The marker is centred on its value (--at) and stays inside the track at both ends */
+.statement-chart .cost-chart-prev { left: clamp(1.5px, var(--at), calc(100% - 1.5px)); width: 3px; transform: translateX(-50%); box-shadow: 0 0 0 1px var(--md-surface); }
+.cost-chart-share { white-space: nowrap; }
+.cost-chart-detail { display: block; }
+.cost-chart-detail span { white-space: nowrap; }
 .cost-chart-bar.prepayment { background: var(--md-tertiary); }
-.cost-chart-gap { position: absolute; top: 0; bottom: 0; min-width: 2px; background: repeating-linear-gradient(135deg, var(--md-on-surface-variant) 0 3px, transparent 3px 6px); border-inline: 2px solid var(--md-on-surface-variant); box-sizing: border-box; }
-@media (max-width: 600px) { .statement-chart .cost-chart-row { grid-template-columns: minmax(0, 1fr) 6.5rem; } }
+.cost-chart-gap { position: absolute; top: 0; bottom: 0; min-width: 2px; box-sizing: border-box; background: var(--md-secondary-container); border: 1px solid var(--md-outline); border-radius: var(--shape-xs); }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 0.125rem 1rem; margin: 0.25rem 0 0.5rem; padding: 0; list-style: none; }
+.swatch-marker { display: inline-block; width: 3px; height: 0.875rem; margin-inline: 0.35rem; background: var(--md-on-surface); vertical-align: middle; }
+.statement-result { margin: 1rem 0 0; }
+.statement-result .small { display: block; }
+.statement-result strong { font: var(--type-title); font-size: 1.375rem; }
+@media (max-width: 600px) {
+    .statement-chart .cost-chart-row { grid-template-columns: minmax(0, 1fr) 6.5rem; row-gap: 0.125rem; margin-block: 0.75rem; }
+    .chart-legend { flex-direction: column; }
+}
+/* Without printed or forced backgrounds the bars would vanish; the amounts are text and stay readable either way */
+@media print { .statement-chart, .statement-chart * { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+@media (forced-colors: active) {
+    .statement-chart .cost-chart-track { border: 1px solid CanvasText; }
+    .statement-chart .cost-chart-bar, .statement-chart .swatch, .swatch-marker { forced-color-adjust: none; background: CanvasText; }
+    .statement-chart .cost-chart-prev { forced-color-adjust: none; background: Highlight; box-shadow: 0 0 0 1px Canvas; }
+    .cost-chart-gap { border-color: CanvasText; }
+}
 
 .trend-chart { margin: 0 0 var(--spacing); }
 .trend-chart svg { width: 100%; height: 7rem; display: block; }
@@ -1182,6 +1202,7 @@ details[open] > :not(summary) { animation: reveal var(--motion-duration) var(--m
     table.card-rows.statement-lines tbody td.derivation[data-label]::before { display: block; max-width: none; }
     /* Year comparison: the total row has three labelled amounts, which do not fit side by side at 360 px */
     table#comparison.card-rows tfoot tr { flex-wrap: wrap; }
+    table#comparison.card-rows tfoot th { background: transparent; }
     table.card-rows tfoot tr { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: 0.5rem 0.9rem; }
     table.card-rows tfoot th, table.card-rows tfoot td { display: block; padding: 0; border: 0; text-align: right; }
     table.card-rows tfoot th[colspan], table.card-rows tfoot td[colspan] { flex: 1 1 auto; text-align: left; }

@@ -155,6 +155,7 @@ public class StatementPortalPagesTests(PostgresFixture postgres) : AccountTestBa
     [Fact]
     public async Task Result_chart_agrees_with_the_balance_and_names_an_additional_payment()
     {
+        MoveClockBehindTheBillingYear();
         var setup = await SetUpAsync((sp, _, lease) => PayMonthsAsync(sp, lease, 3)); // 600.00 € share, 3 × 100.00 € prepayments
         using var _ = setup.Tenant;
 
@@ -163,7 +164,7 @@ public class StatementPortalPagesTests(PostgresFixture postgres) : AccountTestBa
         var chart = Chart(page, "result-chart");
         Assert.Contains("300,00 € Nachzahlung", page.TextWithStreaming, StringComparison.Ordinal); // the summary above the chart says the same
         Assert.Equal(["Ihr Anteil 600,00 €", "Vorauszahlungen 300,00 €", "Nachzahlung 300,00 €"], RowTexts(chart));
-        Assert.Contains("Ergebnis: 300,00 € Nachzahlung", chart.GetAttribute("aria-label"), StringComparison.Ordinal);
+        Assert.Null(chart.GetAttribute("aria-label")); // caption and visible text say it all, nothing is read twice
         Assert.Contains("ergibt die Nachzahlung", chart.QuerySelector("figcaption")!.TextContent, StringComparison.Ordinal);
         Assert.Equal("width:100%", chart.QuerySelector("[data-row=share] .cost-chart-bar")!.GetAttribute("style"));
         Assert.Equal("width:50%", chart.QuerySelector("[data-row=prepayments] .cost-chart-bar")!.GetAttribute("style"));
@@ -174,6 +175,7 @@ public class StatementPortalPagesTests(PostgresFixture postgres) : AccountTestBa
     [Fact]
     public async Task Result_chart_names_a_credit()
     {
+        MoveClockBehindTheBillingYear();
         var setup = await SetUpAsync((sp, _, lease) => PayMonthsAsync(sp, lease, 8)); // 600.00 € share, 8 × 100.00 € prepayments
         using var _ = setup.Tenant;
 
@@ -182,8 +184,25 @@ public class StatementPortalPagesTests(PostgresFixture postgres) : AccountTestBa
         var chart = Chart(page, "result-chart");
         Assert.Contains("200,00 € Guthaben", page.TextWithStreaming, StringComparison.Ordinal);
         Assert.Equal(["Ihr Anteil 600,00 €", "Vorauszahlungen 800,00 €", "Guthaben 200,00 €"], RowTexts(chart));
-        Assert.Contains("Ergebnis: 200,00 € Guthaben", chart.GetAttribute("aria-label"), StringComparison.Ordinal);
+        Assert.Contains("ergeben das Guthaben", chart.QuerySelector("figcaption")!.TextContent, StringComparison.Ordinal);
         Assert.Equal("left:75%;width:25%", chart.QuerySelector("[data-row=result] .cost-chart-gap")!.GetAttribute("style"));
+    }
+
+    [Fact]
+    public async Task A_zero_balance_reads_as_balanced_on_top_while_the_balances_table_stays_as_it_is()
+    {
+        MoveClockBehindTheBillingYear();
+        var setup = await SetUpAsync((sp, _, lease) => PayMonthsAsync(sp, lease, 6)); // 600.00 € share, 6 × 100.00 € prepayments
+        using var _ = setup.Tenant;
+
+        var page = await setup.Tenant.GetAsync($"/portal/abrechnungen/{setup.OwnDispatch}");
+
+        Assert.Contains("Ausgeglichen", Chart(page, "statement-result").TextContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nachzahlung", Chart(page, "statement-result").TextContent, StringComparison.Ordinal);
+        Assert.Equal("Ausgeglichen 0,00 €", RowTexts(Chart(page, "result-chart"))[^1]);
+        Assert.All(
+            Chart(page, "balances").QuerySelectorAll("tbody td[data-label=Ergebnis]"),
+            c => Assert.Equal("0,00 € Nachzahlung", c.TextContent));
     }
 
     [Fact]
@@ -201,24 +220,36 @@ public class StatementPortalPagesTests(PostgresFixture postgres) : AccountTestBa
         var page = await setup.Tenant.GetAsync($"/portal/abrechnungen/{setup.OwnDispatch}");
 
         var costs = Chart(page, "cost-type-chart");
-        Assert.Equal(["Laufende öffentliche Lasten (Grundsteuer) 600,00 €", "Sach- und Haftpflichtversicherung 150,00 €"], RowTexts(costs));
-        Assert.Equal("width:25%", costs.QuerySelector("[data-cost-type=betrkv-13] .cost-chart-bar")!.GetAttribute("style"));
+        Assert.Equal(["Laufende öffentliche Lasten (Grundsteuer) 80 % 600,00 €", "Sach- und Haftpflichtversicherung 20 % 150,00 €"], RowTexts(costs));
+        Assert.Equal("width:80%", costs.QuerySelector("[data-cost-type=betrkv-01] .cost-chart-bar")!.GetAttribute("style")); // a full track is the whole share
+        Assert.Equal("width:20%", costs.QuerySelector("[data-cost-type=betrkv-13] .cost-chart-bar")!.GetAttribute("style"));
 
         var comparison = Chart(page, "comparison-chart");
         var both = comparison.QuerySelector("[data-cost-type=betrkv-01]")!;
         Assert.Equal("width:100%", both.QuerySelector(".cost-chart-bar")!.GetAttribute("style"));
-        Assert.Equal("left:50%", both.QuerySelector(".cost-chart-prev")!.GetAttribute("style"));
+        Assert.Equal("--at:50%", both.QuerySelector(".cost-chart-prev")!.GetAttribute("style"));
+        Assert.Equal("+300,00 €", both.QuerySelector(".cost-chart-value")!.TextContent);
+        Assert.Equal("Aktuell 600,00 € · Vorjahr 300,00 €", both.QuerySelector(".cost-chart-detail")!.TextContent);
+        Assert.Equal(["betrkv-01", "betrkv-13", "betrkv-10"], comparison.QuerySelectorAll(".cost-chart-row").Select(r => r.GetAttribute("data-cost-type")));
+        Assert.Empty(comparison.QuerySelectorAll("[title]"));
 
         var newType = comparison.QuerySelector("[data-cost-type=betrkv-13]")!;
         Assert.NotNull(newType.QuerySelector(".cost-chart-bar"));
         Assert.Null(newType.QuerySelector(".cost-chart-prev"));
-        Assert.Contains("dieser Zeitraum 150,00 €, im Vorjahr kein Wert", comparison.GetAttribute("aria-label"), StringComparison.Ordinal);
+        Assert.Equal("neu", newType.QuerySelector(".cost-chart-value")!.TextContent);
+        Assert.Equal("Aktuell 150,00 €", newType.QuerySelector(".cost-chart-detail")!.TextContent);
 
         var droppedType = comparison.QuerySelector("[data-cost-type=betrkv-10]")!;
         Assert.Null(droppedType.QuerySelector(".cost-chart-bar"));
-        Assert.Equal("left:10%", droppedType.QuerySelector(".cost-chart-prev")!.GetAttribute("style"));
-        Assert.Equal("–", droppedType.QuerySelector(".cost-chart-value")!.TextContent);
-        Assert.Contains("in diesem Zeitraum kein Wert, Vorjahr 60,00 €", comparison.GetAttribute("aria-label"), StringComparison.Ordinal);
+        Assert.Equal("--at:10%", droppedType.QuerySelector(".cost-chart-prev")!.GetAttribute("style"));
+        Assert.Equal("entfallen (Vorjahr 60,00 €)", droppedType.QuerySelector(".cost-chart-value")!.TextContent);
+
+        // The table keeps its order and names a missing side; the sum stays a signed amount.
+        var table = Chart(page, "comparison");
+        Assert.Equal(
+            ["+300,00 €", "neu", "entfallen"],
+            table.QuerySelectorAll("tbody td[data-label=Unterschied]").Select(c => c.TextContent));
+        Assert.Equal("+390,00 €", table.QuerySelector("tfoot th[data-label=Unterschied]")!.TextContent);
 
         Assert.NotNull(Element(page, "comparison")); // the tables stay
         foreach (var chart in new[] { Chart(page, "result-chart"), costs, comparison })
@@ -282,9 +313,9 @@ public class StatementPortalPagesTests(PostgresFixture postgres) : AccountTestBa
         var html = await RenderAsync<StatementCostChart>(new() { ["Lines"] = new[] { Line("a", "Klein", 10m), Line("b", "Gutschrift", -20m), Line("c", "Groß", 30m), Line("a", "Klein", 30m) } });
 
         var chart = Parse(html).QuerySelector("#cost-type-chart")!;
-        Assert.Equal(["Klein 40,00 €", "Groß 30,00 €", "Gutschrift -20,00 €"], RowTexts(chart));
-        Assert.Equal("width:100%", chart.QuerySelector("[data-cost-type=a] .cost-chart-bar")!.GetAttribute("style"));
-        Assert.Equal("width:75%", chart.QuerySelector("[data-cost-type=c] .cost-chart-bar")!.GetAttribute("style"));
+        Assert.Equal(["Klein 57 % 40,00 €", "Groß 43 % 30,00 €", "Gutschrift -20,00 €"], RowTexts(chart));
+        Assert.Equal("width:57.14%", chart.QuerySelector("[data-cost-type=a] .cost-chart-bar")!.GetAttribute("style"));
+        Assert.Equal("width:42.86%", chart.QuerySelector("[data-cost-type=c] .cost-chart-bar")!.GetAttribute("style"));
         Assert.Null(chart.QuerySelector("[data-cost-type=b] .cost-chart-bar"));
 
         Assert.Equal("", (await RenderAsync<StatementCostChart>(new() { ["Lines"] = Array.Empty<PortalStatementLine>() })).Trim());
@@ -301,9 +332,10 @@ public class StatementPortalPagesTests(PostgresFixture postgres) : AccountTestBa
         var html = await RenderAsync<StatementComparisonChart>(new() { ["Lines"] = new[] { new LineComparison("a", "Wert", 50m, 0m), new LineComparison("b", "Gutschrift", 100m, -5m) }, ["PreviousPeriod"] = period });
 
         var chart = Parse(html).QuerySelector("#comparison-chart")!;
-        Assert.Equal("left:0%", chart.QuerySelector("[data-cost-type=a] .cost-chart-prev")!.GetAttribute("style"));
-        Assert.Equal("left:0%", chart.QuerySelector("[data-cost-type=b] .cost-chart-prev")!.GetAttribute("style"));
-        Assert.Contains("Vorjahr -5,00 €", chart.GetAttribute("aria-label"), StringComparison.Ordinal);
+        Assert.Equal("--at:0%", chart.QuerySelector("[data-cost-type=a] .cost-chart-prev")!.GetAttribute("style"));
+        Assert.Equal("+50,00 €", chart.QuerySelector("[data-cost-type=a] .cost-chart-value")!.TextContent); // 0 is a real value, not "neu"
+        Assert.Equal("--at:0%", chart.QuerySelector("[data-cost-type=b] .cost-chart-prev")!.GetAttribute("style"));
+        Assert.Equal("Aktuell 100,00 € · Vorjahr -5,00 €", chart.QuerySelector("[data-cost-type=b] .cost-chart-detail")!.TextContent);
     }
 
     private static PortalStatementLine Line(string costType, string name, decimal share) => new(costType, name, false, "Wohnfläche", 1000m, share, "Rechenweg", []);
@@ -327,7 +359,17 @@ public class StatementPortalPagesTests(PostgresFixture postgres) : AccountTestBa
 
     /// <summary>The label and amount of each chart row as one text.</summary>
     private static string[] RowTexts(AngleSharp.Dom.IElement chart) =>
-        [.. chart.QuerySelectorAll(".cost-chart-row").Select(r => $"{r.QuerySelector(".cost-chart-label")!.TextContent} {r.QuerySelector(".cost-chart-value")!.TextContent}")];
+        [.. chart.QuerySelectorAll(".cost-chart-row").Select(r => string.Join(' ', $"{r.QuerySelector(".cost-chart-label")!.TextContent} {r.QuerySelector(".cost-chart-value")!.TextContent}".Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)))];
+
+    /// <summary>Every month of 2026 has its charge, whenever the test runs. Sign in after this: the one-time codes follow the clock.</summary>
+    private void MoveClockBehindTheBillingYear()
+    {
+        var end = new DateTimeOffset(2027, 2, 1, 12, 0, 0, TimeSpan.Zero);
+        if (App.Clock.GetUtcNow() < end)
+        {
+            App.Clock.SetUtcNow(end);
+        }
+    }
 
     /// <summary>The tenant pays rent and prepayment for the first months of 2026 (600.00 € each, of which 100.00 € prepayment).</summary>
     private static async Task PayMonthsAsync(IServiceProvider sp, Guid lease, int months)
