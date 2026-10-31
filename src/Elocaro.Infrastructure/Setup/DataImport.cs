@@ -293,7 +293,12 @@ internal sealed class DataImport(
 
             if (plan.SetArea)
             {
-                var from = new DateOnly(Math.Min(firstStartOfUnit.TryGetValue(unitKey, out var first) ? first.Year : today.Year, today.Year) - 1, 1, 1);
+                // A vacant flat counts in the statements of its house as well, so it takes the earliest start of the property.
+                var propertyPrefix = Key(line.Property) + "|";
+                var firstYear = firstStartOfUnit.TryGetValue(unitKey, out var first)
+                    ? first.Year
+                    : firstStartOfUnit.Where(s => s.Key.StartsWith(propertyPrefix, StringComparison.Ordinal)).Select(s => s.Value.Year).DefaultIfEmpty(today.Year).Min();
+                var from = new DateOnly(Math.Min(firstYear, today.Year) - 1, 1, 1);
                 Require(await properties.SetUnitAreaAsync(unitId, new AreaInput { From = from, Area = line.Area }, cancellationToken), Where("Wohnfläche"));
             }
 

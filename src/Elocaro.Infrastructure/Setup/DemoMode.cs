@@ -51,6 +51,7 @@ public static partial class DemoMode
         // Show everything and skip the setup wizard: visitors want to see the whole range of functions.
         await scope.ServiceProvider.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>(), true, Enum.GetValues<AppOption>(), cancellationToken);
         await CreateUsersAsync(scope.ServiceProvider, options.AdminPassword, cancellationToken);
+        await DemoStatements.CreateAsync(scope.ServiceProvider, logger, cancellationToken);
         DemoIsReady(logger, loaded.Succeeded);
     }
 

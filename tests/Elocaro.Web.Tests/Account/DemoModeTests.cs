@@ -1,4 +1,8 @@
+using System.Globalization;
 using System.Net;
+using System.Text.RegularExpressions;
+using Elocaro.Application.Documents;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Elocaro.Web.Tests.Account;
 
@@ -13,6 +17,31 @@ public class DemoModeTests(PostgresFixture postgres) : AccountTestBase(postgres)
         ["Demo:AdminEmail"] = DemoEmail,
         ["Demo:AdminPassword"] = DemoPassword,
     };
+
+    protected override void ConfigureServices(IServiceCollection services) => services.AddScoped<IPdfGenerator, FakePdfGenerator>();
+
+    [Fact]
+    public async Task Demo_tenant_sees_two_sent_statements_with_comparison_and_released_receipts()
+    {
+        using var browser = App.Browser();
+        await SignInAsync(browser, "mieter@elocaro.de", DemoPassword);
+        var year = DateTime.UtcNow.Year - 1;
+
+        var list = await browser.GetAsync("/portal/abrechnungen");
+
+        Assert.Contains(year.ToString(CultureInfo.InvariantCulture), list.TextWithStreaming, StringComparison.Ordinal);
+        Assert.Contains((year - 1).ToString(CultureInfo.InvariantCulture), list.TextWithStreaming, StringComparison.Ordinal);
+
+        var link = Regex.Match(list.Html, "portal/abrechnungen/[0-9a-f-]{36}", RegexOptions.None, TimeSpan.FromSeconds(1)).Value;
+        var detail = await browser.GetAsync("/" + link);
+
+        Assert.Equal(HttpStatusCode.OK, detail.Status);
+        Assert.Contains("Stadt Köln, Steueramt", detail.TextWithStreaming, StringComparison.Ordinal);
+        Assert.Contains("Vergleich mit dem Vorjahr", detail.TextWithStreaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("Für das Vorjahr liegt keine", detail.TextWithStreaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("noch keine Belege freigegeben", detail.TextWithStreaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("Mustermann", detail.TextWithStreaming, StringComparison.Ordinal);
+    }
 
     [Fact]
     public async Task Sign_in_page_offers_a_button_per_role_and_the_password_for_manual_sign_in()

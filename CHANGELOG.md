@@ -4,7 +4,11 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Geändert
+- Beispieldaten: Die Mietverträge beginnen am 1. Januar des vorletzten Jahres. Die Demo-Instanz zeigt im Mieterportal versendete Abrechnungen mit Rechenweg, Vorjahresvergleich und freigegebenen Beispielbelegen.
+
 ### Behoben
+- Datenimport: Eine leerstehende Wohnung bekommt ihre Fläche ab dem frühesten Mietbeginn des Hauses. Bisher ließ sich eine Abrechnung für frühere Jahre wegen der fehlenden Fläche nicht freigeben.
 - Handy: Die Reiter auf Detailseiten (z. B. Vertrag) springen beim Wischen nicht mehr auf den gewählten Reiter zurück.
 - Belegung auf dem Handy: Beim Wechsel des Jahres springt die Seite nicht mehr nach oben, sondern bleibt an der Jahresleiste.
 - Dokumentenliste auf dem Handy: Schlagworte brachen den Titel buchstabenweise um; Titel und Schlagworte stehen jetzt in einer Zelle und umbrechen sauber.

@@ -34,11 +34,17 @@ internal sealed class DemoData(
         }
 
         var today = GermanTime.Today(clock.GetUtcNow());
-        var start = new DateOnly(today.Year, today.Month, 1).AddMonths(-6);
+        var currentMonth = new DateOnly(today.Year, today.Month, 1);
+
+        // Two full calendar years back, so that statements with a previous year can be released for these leases.
+        var start = new DateOnly(today.Year - 2, 1, 1);
+        var recent = currentMonth.AddMonths(-6);
         var rows = new StringBuilder("Objekt;Straße;PLZ;Ort;Einheit;Lage;Wohnfläche;Vorname;Nachname;E-Mail;Mietbeginn;Kaltmiete;Betriebskosten;Heizkosten;Kaution;Saldo\r\n");
-        rows.Append(Row(start, "Beispielhaus (Demo);Lindenweg 3;50667;Köln;Wohnung 1;EG links;54,5;Anna;Musterfrau;anna@beispiel.invalid;{0};640;140;75;1920;0"));
-        rows.Append(Row(start, "Beispielhaus (Demo);;;;Wohnung 2;EG rechts;61;Ben;Mustermann;ben@beispiel.invalid;{0};720;160;85;2160;0"));
-        rows.Append(Row(start, "Beispielhaus (Demo);;;;Wohnung 3;1. OG;78;Clara;Beispiel;clara@beispiel.invalid;{0};890;190;100;2670;0"));
+
+        // Gas heating per flat with the tenant's own supply contract: no heating prepayment and no statement under the HeizkostenV.
+        rows.Append(Row(start, "Beispielhaus (Demo);Lindenweg 3;50667;Köln;Wohnung 1;EG links;54,5;Anna;Musterfrau;anna@beispiel.invalid;{0};640;140;;1920;0"));
+        rows.Append(Row(start, "Beispielhaus (Demo);;;;Wohnung 2;EG rechts;61;Ben;Mustermann;ben@beispiel.invalid;{0};720;160;;2160;0"));
+        rows.Append(Row(start, "Beispielhaus (Demo);;;;Wohnung 3;1. OG;78;Clara;Beispiel;clara@beispiel.invalid;{0};890;190;;2670;0"));
         rows.Append("Beispielhaus (Demo);;;;Wohnung 4;DG;48;;;;;;;;;\r\n");
 
         var imported = await import.ImportAsync(Encoding.UTF8.GetBytes(rows.ToString()), cancellationToken);
@@ -58,14 +64,14 @@ internal sealed class DemoData(
         await finance.SaveAsync(settings, cancellationToken);
         await accounts.GenerateChargesAsync(null, cancellationToken);
 
-        // Anna always pays on time, Ben stopped paying after three months, Clara pays only the base rent: the dashboard has something to show.
+        // Everybody paid in full until half a year ago. Since then Anna pays on time, Ben stopped paying after three months and Clara pays only the base rent: the dashboard has something to show.
         var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Include(v => v.Components).AsSplitQuery().ToListAsync(cancellationToken);
         var names = await db.Set<Person>().AsNoTracking().ToDictionaryAsync(p => p.Id, p => p.LastName, cancellationToken);
         foreach (var lease in leases)
         {
             var tenant = names[lease.Tenant.First().PersonId];
             var rent = lease.MonthlyRentOn(today);
-            var months = Enumerable.Range(0, 7).Select(i => start.AddMonths(i)).Where(m => m <= new DateOnly(today.Year, today.Month, 1)).ToList();
+            var months = Enumerable.Range(0, 36).Select(i => start.AddMonths(i)).Where(m => m <= currentMonth).ToList();
             foreach (var month in months)
             {
                 var date = month.AddDays(2);
@@ -76,8 +82,9 @@ internal sealed class DemoData(
 
                 var amount = tenant switch
                 {
+                    _ when month < recent => rent,
                     "Musterfrau" => rent,
-                    "Mustermann" when months.IndexOf(month) < 3 => rent,
+                    "Mustermann" when month < recent.AddMonths(3) => rent,
                     "Beispiel" => lease.Components.Where(c => c.Kind == RentComponentType.BaseRent).Sum(c => c.Amount),
                     _ => 0m,
                 };
