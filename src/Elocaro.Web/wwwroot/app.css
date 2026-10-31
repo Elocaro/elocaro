@@ -580,7 +580,8 @@ canvas.signature-field { display: block; width: 100%; height: 160px; border: 1px
 body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 * { scrollbar-width: thin; scrollbar-color: var(--md-outline-variant) transparent; }
 
-.app { height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; background: var(--md-surface); }
+/* Fixed to the viewport instead of 100dvh: in the installed PWA the dvh value can be stale right after start and push the bottom bar out of view. */
+.app { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; background: var(--md-surface); }
 .app-admin { grid-template-rows: auto minmax(0, 1fr) auto; }
 .top-bar { position: static; min-height: var(--top-bar-height); padding-inline: max(1rem, env(safe-area-inset-left, 0px)) max(1rem, env(safe-area-inset-right, 0px)); }
 .workspace { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -738,7 +739,7 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 
 @media print {
     body:has(.app) { height: auto; overflow: visible; }
-    .app, .workspace, .content { display: block; height: auto; overflow: visible; }
+    .app, .workspace, .content { display: block; position: static; height: auto; overflow: visible; }
     .page-header { position: static; }
 }
 
