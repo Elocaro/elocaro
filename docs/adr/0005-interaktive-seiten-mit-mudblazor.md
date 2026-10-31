@@ -19,7 +19,7 @@ ADR 0001 sah Interactive Server nur für Einzelfälle vor. Das Frontend soll abe
 ## Folgen für die Technik
 
 - **Benutzer in der Circuit:** Es gibt keinen `HttpContext`. `CircuitUser` hält den Benutzer der Circuit, `HttpCurrentUser` liest ihn dort (sonst wären Audit-Felder „system“).
-- **Sitzung prüfen:** `RevalidatingAuthenticationStateProvider` vergleicht alle 5 Minuten den Security-Stamp; gesperrte Konten und geänderte Rollen wirken auch in offenen Seiten.
+- **Sitzung prüfen:** `RevalidatingAuthenticationStateProvider` vergleicht jede Minute den Security-Stamp; gesperrte Konten und geänderte Rollen wirken auch in offenen Seiten.
 - **URL und Zustand:** Der Router ist statisch. Query-Parameter liefern nur den Startwert einer interaktiven Seite; danach zählt ihr Zustand (kein URL-Update beim Filtern). Das ändert sich, wenn der Router später interaktiv wird.
 - **Rückmeldungen:** Statt Status-Cookie nach Weiterleitung nutzen interaktive Seiten `Notifier` (Snackbar).
 - **CSP:** `script-src 'self'` bleibt; die Import-Map bekommt ein Nonce pro Anfrage (`OperationsExtensions.CspNonceKey`). Der zusätzliche CSP-Header des Frameworks ist abgeschaltet.

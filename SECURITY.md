@@ -15,4 +15,4 @@ Sicherheitskorrekturen gibt es für die jeweils neueste Version. Aktualisieren S
 
 ## Hinweise zum Betrieb
 
-Betrieb, Updates und Datensicherung liegen bei Ihnen. Die wichtigsten Maßnahmen (Zwei-Faktor-Pflicht, Netztrennung von Datenbank und Gotenberg, TLS über Caddy, Backup mit Verschlüsselung) stehen in [docs/betrieb.md](docs/betrieb.md).
+Betrieb, Updates und Datensicherung liegen bei Ihnen. Die wichtigsten Maßnahmen (Zwei-Faktor-Pflicht, Netztrennung von Datenbank und Gotenberg, Container ohne unnötige Capabilities, TLS über Caddy, Backup mit Verschlüsselung) stehen in [docs/betrieb.md](docs/betrieb.md).

@@ -122,7 +122,7 @@ Hinweise:
 - Nach dem Start meldet Caddy `503`, bis die nächste Gesundheitsprüfung durch ist (`health_interval 30s`). Das ist normal und vergeht nach höchstens einer halben Minute.
 - Datenbankmigrationen laufen beim Start der App, deshalb vorher die Sicherung (Schritt 2).
 - Rückgängig machen: `docker tag elocaro:vorher elocaro:0.1.0 && cd ~/Elocaro.alt && $DC up -d --force-recreate`. Bei Modelländerungen mit Migration zusätzlich die Datenbank aus der Sicherung zurückspielen.
-- Prüfen: `docker ps` (alle Container `healthy`/`Up`), `docker exec elocaro-caddy-1 wget -qO- http://app:8080/health` (alle Prüfungen `Healthy`), außerhalb `https://<ihre-domain>/_framework/blazor.web.js` muss `200` liefern (fehlt die Datei, funktioniert keine interaktive Seite).
+- Prüfen: `docker ps` (alle Container `healthy`/`Up`), `docker exec elocaro-caddy-1 wget -qO- http://app:8080/health` (`{"status":"Healthy"}`; welche Prüfung abweicht, steht im App-Log), außerhalb `https://<ihre-domain>/_framework/blazor.web.js` muss `200` liefern (fehlt die Datei, funktioniert keine interaktive Seite).
 - Der genaue Stand auf dem Server steht in `~/Elocaro/.deployed-commit`.
 
 ## 5. Betrieb

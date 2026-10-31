@@ -131,12 +131,13 @@ Elocaro ist als Web-App installierbar. Jeder Benutzer kann unter *Konto & Sicher
 ## Gesundheit & Logs
 
 ```bash
-curl https://<domain>/health        # {"status":"Healthy","checks":{"database":…,"gotenberg":…,"file-store":…,"backup":…}}
+curl https://<domain>/health        # {"status":"Healthy"}
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs -f app
 ```
 
 - `/health/live` meldet, ob der Prozess antwortet. Darauf prüfen Docker (`HEALTHCHECK` per `dotnet Elocaro.Web.dll healthcheck`) und Caddy.
-- `/health` prüft Datenbank, Gotenberg und ob die Dateiablage beschreibbar ist. Antwort 503 bei Problemen, ohne Fehlerdetails.
+- `/health` prüft Datenbank, Gotenberg, ob die Dateiablage beschreibbar ist und den Zustand der Datensicherung. Öffentlich meldet es nur den Gesamtstatus: `Healthy`, `Degraded` (beide HTTP 200) oder `Unhealthy` (HTTP 503).
+- Welche Prüfung betroffen ist, sehen nur Konten mit dem Recht System: Angemeldet im Browser `/health` aufrufen, die Antwort enthält dann `checks` (`database`, `gotenberg`, `file-store`, `backup`), weiterhin ohne Fehlerdetails. Ohne Anmeldung stehen die Ursachen im App-Log (`logs -f app`).
 
 ## Update
 
@@ -249,10 +250,44 @@ Die Mail-Warteschlange (`outgoing_mails`) ist der Versandnachweis. Es gelten dre
 
 - TLS und HSTS über Caddy; die App setzt CSP, `X-Frame-Options: DENY`, `nosniff`, Referrer- und Permissions-Policy.
 - Die App übernimmt Schema und Client-IP aus `X-Forwarded-*` nur von Absendern aus privaten Netzen (Docker-Netz). Die HTTPS-Umleitung macht Caddy (`Hosting__HttpsRedirection=false` im Image).
+- **Cookies:** Anmelde-, Zwei-Faktor-, Status- und Antiforgery-Cookie sind `Secure`. In Produktion (`ASPNETCORE_ENVIRONMENT=Production`, im Image gesetzt) beantwortet die App deshalb Seiten mit Formularen über unverschlüsseltes HTTP mit einem Fehler 500. Das betrifft nur Proxys, die `X-Forwarded-Proto` nicht setzen oder nicht aus einem privaten Netz kommen.
+- **Sitzungen beenden:** *Konto & Sicherheit → Auf allen Geräten abmelden* beendet alle Anmeldungen des eigenen Kontos, offene Seiten spätestens nach einer Minute, und macht „Dieses Gerät merken“ ungültig. In der Demo ist das abgeschaltet, die Konten sind dort geteilt.
 - **Data-Protection-Schlüssel** (Cookies, Tokens) liegen in der Tabelle `data_protection_keys`. Anmeldungen überstehen so Neustarts und sind im DB-Backup enthalten. Die Schlüssel sind dort nicht zusätzlich verschlüsselt. Wer Zugriff auf die Datenbank hat, hat ohnehin Zugriff auf alle Daten; die Datenbank ist daher nur intern erreichbar. Die Warnung „No XML encryptor configured“ beim ersten Start ist erwartet.
+- **Zertifikat für die Schlüssel (optional, nicht Standard):** siehe [Data-Protection-Schlüssel verschlüsseln](#data-protection-schlüssel-verschlüsseln).
 - Uploads: Caddy begrenzt auf 30 MB, die App zusätzlich auf `FileStore__MaxSizeMb` (25). Fotos dürfen höchstens `FileStore__MaxImageMegapixels` (50) groß sein, darüber lehnt die App sie vor dem Dekodieren ab.
 - Speicherlimits: `app` höchstens `APP_MEM_LIMIT` (Standard `1536m`), `gotenberg` höchstens `GOTENBERG_MEM_LIMIT` (Standard `1g`), damit ein einzelner Container nicht den ganzen Server lahmlegt. Wird ein Limit erreicht, beendet Docker den Container und startet ihn neu; bei wiederholten Neustarts (`docker compose ps`, `docker inspect … OOMKilled`) den Wert in `deploy/.env` erhöhen.
+- Container: Alle Dienste laufen mit `no-new-privileges` und `cap_drop: ALL`. Zurück bekommen nur `postgres` (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID`: Besitzer des Datenverzeichnisses setzen, dann zum Benutzer `postgres` wechseln), `backup` (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`: Dateien des App-Benutzers lesen und wiederherstellen) und `caddy` (`NET_BIND_SERVICE`). Eigene Erweiterungen an diesen Containern brauchen womöglich mehr.
 - Geheimnisse nur in `deploy/.env` (per `.gitignore` ausgeschlossen), Dateirechte `chmod 600 deploy/.env`.
+
+### Data-Protection-Schlüssel verschlüsseln
+
+Mit einem Zertifikat außerhalb der Datenbank werden neue Schlüssel verschlüsselt gespeichert. Ein Datenbankabzug allein reicht dann nicht mehr, um Anmelde-Cookies zu fälschen oder FinTS-Benutzerkennungen zu lesen.
+
+> **Warnung:** Das Zertifikat liegt nicht im Backup. Geht es verloren oder fehlt es nach einer Wiederherstellung, sind alle mit neuen Schlüsseln geschützten Werte verloren: Sitzungen werden ungültig, gespeicherte FinTS-Benutzerkennungen und der private Push-Schlüssel sind unlesbar. Sichern Sie das Zertifikat und sein Passwort **getrennt** von `deploy/.env` und vom Backup, bevor Sie es einschalten. Es lässt sich nicht einfach austauschen und nicht folgenlos wieder entfernen.
+
+```bash
+cd deploy
+PASS=$(openssl rand -hex 32); echo "DATA_PROTECTION_CERT_PASSWORD=$PASS" >> .env
+echo "DATA_PROTECTION_CERT_PATH=/run/elocaro/dataprotection.pfx" >> .env
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout dp.key -out dp.crt -subj "/CN=Elocaro Data Protection"
+openssl pkcs12 -export -inkey dp.key -in dp.crt -out dataprotection.pfx -passout "pass:$PASS"
+rm dp.key dp.crt
+sudo chown 1654 dataprotection.pfx && sudo chmod 400 dataprotection.pfx   # 1654 ist der Benutzer der App im Container
+cat > docker-compose.dataprotection.yml <<'YAML'
+services:
+  app:
+    volumes:
+      - ./dataprotection.pfx:/run/elocaro/dataprotection.pfx:ro
+YAML
+docker compose -f docker-compose.yml -f docker-compose.dataprotection.yml --env-file .env up -d
+```
+
+Die zusätzliche Compose-Datei bei allen späteren `docker compose`-Aufrufen mit angeben.
+
+- **Vorhandene Schlüssel bleiben, wie sie sind:** Sie bleiben lesbar, aber auch unverschlüsselt in der Datenbank, und Werte damit lassen sich weiter fälschen und entschlüsseln. Verschlüsselt wird nur, was neu entsteht: spätestens beim nächsten Schlüsselwechsel nach 90 Tagen. Vollen Schutz gibt es also nur, wenn das Zertifikat schon bei der Ersteinrichtung gesetzt ist.
+- **Startfehler:** Ist `DATA_PROTECTION_CERT_PATH` gesetzt und die Datei fehlt, das Passwort falsch oder kein privater Schlüssel enthalten, startet die App nicht und nennt die Ursache im Log. Leer oder nicht gesetzt: kein Zertifikat, alles wie bisher.
+- **Wiederherstellung:** Auf einem neuen Server vor dem ersten Start `dataprotection.pfx`, die Compose-Datei und die beiden Einstellungen wieder einspielen.
+- Das Ablaufdatum des Zertifikats prüft Elocaro nicht; ein abgelaufenes Zertifikat funktioniert weiter.
 
 ## Backup
 
@@ -300,7 +335,7 @@ Nach jedem Lauf schreibt der Backup-Dienst eine Statusdatei in das Volume `backu
 
 - *Einstellungen → Datensicherung* zeigt das Ergebnis der letzten Sicherung.
 - Schlägt sie fehl, ist sie älter als 26 Stunden (`Backup__MaxAgeHours`) oder gab es noch keine, erscheint im Dashboard „Datensicherung prüfen“. Alle aktiven Admins erhalten **täglich um 8:05 Uhr eine Warnmail**, bis wieder erfolgreich gesichert wurde. Ein ausgefallener Backup-Container fällt so ebenfalls auf.
-- `/health` meldet `backup: Degraded` (HTTP 200, die App bleibt erreichbar).
+- `/health` meldet `Degraded` (HTTP 200, die App bleibt erreichbar); für Konten mit dem Recht System steht dort `backup: Degraded`.
 
 ## Wiederherstellen
 
@@ -321,7 +356,7 @@ Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP D
 1. Installation wie oben bis einschließlich `deploy/.env`. Dabei **dasselbe** `RESTIC_PASSWORD`, `RESTIC_REPOSITORY` und die Zugangsdaten eintragen. `POSTGRES_PASSWORD` darf neu sein.
 2. Nur die Datenbank starten: `$DC up -d postgres`
 3. `$DC run --rm backup restore`
-4. `$DC up -d`. Anmeldungen, Konten und Zwei-Faktor-Einstellungen sind erhalten (die Anmelde-Schlüssel liegen in der Datenbank).
+4. `$DC up -d`. Anmeldungen, Konten und Zwei-Faktor-Einstellungen sind erhalten (die Anmelde-Schlüssel liegen in der Datenbank). Wer die Schlüssel mit einem [Zertifikat](#data-protection-schlüssel-verschlüsseln) schützt, muss es vorher wieder einspielen.
 
 ### Restore-Test
 

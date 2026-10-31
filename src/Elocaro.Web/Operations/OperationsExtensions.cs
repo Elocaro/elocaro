@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
+using Elocaro.Application.Accounts;
 using Elocaro.Infrastructure.Operations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -56,19 +58,11 @@ internal static class OperationsExtensions
         // Live: the process responds (for the container health check).
         endpoints.MapHealthChecks(LivenessPath, new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 
-        // Ready: database and Gotenberg reachable. Output without error details (no internals exposed).
+        // Ready: database, Gotenberg, file store and backup. The public only gets the overall status (no internals exposed).
         endpoints.MapHealthChecks(ReadyPath, new HealthCheckOptions
         {
             Predicate = c => c.Tags.Contains(HealthTags.Ready),
-            ResponseWriter = async (context, report) =>
-            {
-                context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync(JsonSerializer.Serialize(new
-                {
-                    status = report.Status.ToString(),
-                    checks = report.Entries.ToDictionary(e => e.Key, e => e.Value.Status.ToString()),
-                }));
-            },
+            ResponseWriter = WriteReadinessAsync,
             ResultStatusCodes =
             {
                 [HealthStatus.Healthy] = StatusCodes.Status200OK,
@@ -78,6 +72,19 @@ internal static class OperationsExtensions
         }).AllowAnonymous();
 
         return endpoints;
+    }
+
+    /// <summary>Accounts with the system permission also see the status of each check, never error details.</summary>
+    private static async Task WriteReadinessAsync(HttpContext context, HealthReport report)
+    {
+        var authorization = context.RequestServices.GetRequiredService<IAuthorizationService>();
+        var status = report.Status.ToString();
+        var body = (await authorization.AuthorizeAsync(context.User, Policies.System)).Succeeded
+            ? JsonSerializer.Serialize(new { status, checks = report.Entries.ToDictionary(e => e.Key, e => e.Value.Status.ToString()) })
+            : JsonSerializer.Serialize(new { status });
+
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(body);
     }
 
     /// <summary>

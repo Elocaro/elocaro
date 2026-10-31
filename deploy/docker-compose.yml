@@ -43,6 +43,9 @@ services:
       FinTs__ProductId: ${FINTS_PRODUCT_ID:-}
       FinTs__ProductVersion: ${FINTS_PRODUCT_VERSION:-}
       Backup__StatusFile: /backup-status/backup.json
+      # Optional protection of the data protection keys by a certificate, see docs/betrieb.md (empty = off)
+      DataProtection__CertificatePath: ${DATA_PROTECTION_CERT_PATH:-}
+      DataProtection__CertificatePassword: ${DATA_PROTECTION_CERT_PASSWORD:-}
     volumes:
       - files:/data
       - backup-status:/backup-status:ro
@@ -51,6 +54,8 @@ services:
     # lets the app reach an Ollama on the Docker host (OLLAMA_URL)
     extra_hosts: ["host.docker.internal:host-gateway"]
     mem_limit: ${APP_MEM_LIMIT:-1536m}
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
 
   postgres:
     image: postgres:18-alpine
@@ -66,6 +71,10 @@ services:
       interval: 10s
       retries: 10
     networks: [intern]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    # entrypoint: fix the owner of the data directory, then switch to the postgres user
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
 
   # HTML → PDF. Reachable only on the internal network.
   gotenberg:
@@ -74,6 +83,8 @@ services:
     command: ["gotenberg", "--api-timeout=60s", "--chromium-auto-start=true"]
     networks: [intern]
     mem_limit: ${GOTENBERG_MEM_LIMIT:-1g}
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
 
   # Nightly backup (pg_dump + file storage) with restic; see docs/betrieb.md
   backup:
@@ -109,6 +120,10 @@ services:
       - ${BACKUP_SSH_PATH:-./backup-ssh}:/root/.ssh:ro
     # internal: database; external: upload to the backup target
     networks: [intern, extern]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    # runs as root: read and restore the files of the app user, write the repository
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
 
   # TLS (Let's Encrypt) and reverse proxy
   caddy:
@@ -127,6 +142,9 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     networks: [extern]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
 
 networks:
   intern:

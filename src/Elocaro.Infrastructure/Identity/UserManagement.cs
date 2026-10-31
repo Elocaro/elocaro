@@ -175,6 +175,11 @@ internal sealed class UserManagement(ElocaroDbContext db, UserManager<Applicatio
             return AccountResult.Failed(NotAllowed);
         }
 
+        if (id == current.Id)
+        {
+            return AccountResult.Failed("Das eigene Konto kann nicht gesperrt werden.");
+        }
+
         var user = await FindCurrentAsync(id, cancellationToken);
         if (user is null)
         {

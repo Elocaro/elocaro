@@ -4,6 +4,7 @@ using Elocaro.Application.Admin;
 using Elocaro.Infrastructure.Identity;
 using Elocaro.Web.AccessControl;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
@@ -14,7 +15,7 @@ internal static class AccountExtensions
     public const string AccountPath = "/konto";
     public const string TwoFactorSetupPath = "/konto/sicherheit/zwei-faktor";
 
-    public static IServiceCollection AddElocaroSignIn(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddElocaroSignIn(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         var signIn = configuration.GetSection(SignInOptions.Section).Get<SignInOptions>() ?? new SignInOptions();
         services.Configure<SignInOptions>(configuration.GetSection(SignInOptions.Section));
@@ -35,6 +36,15 @@ internal static class AccountExtensions
             o.ExpireTimeSpan = TimeSpan.FromDays(signIn.SessionDays);
             o.SlidingExpiration = true;
         });
+
+        foreach (var scheme in new[] { IdentityConstants.TwoFactorUserIdScheme, IdentityConstants.TwoFactorRememberMeScheme, IdentityConstants.ExternalScheme })
+        {
+            services.Configure<CookieAuthenticationOptions>(scheme, o => o.Cookie.SecurePolicy = CookieSecurePolicy.Always);
+        }
+
+        // Unlike the sign-in cookies, antiforgery answers plain http with an error under "Always". Production always has https
+        // (reported by the proxy); development and the browser tests also run on http://localhost.
+        services.AddAntiforgery(o => o.Cookie.SecurePolicy = environment.IsProduction() ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest);
 
         // Validate the security stamp on every request (uncritical for the small number of users): locked accounts are
         // signed out immediately, changed roles and permissions apply from the next request (the principal is rebuilt).

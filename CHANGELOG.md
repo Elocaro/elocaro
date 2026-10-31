@@ -13,6 +13,15 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Ausgehende Mails: Der Text von Einladungen, Anmelde-, Passwort- und Signatur-Links wird nach der Zustellung oder dem endgültigen Fehlschlag entfernt, auch rückwirkend; Empfänger, Betreff, Zeitpunkt und Status bleiben als Nachweis. Solche Mails lassen sich nicht erneut senden, Einladung oder Link werden neu ausgelöst.
 - Der Vollexport enthält den Text ausgehender Mails nicht mehr, denn darin standen gültige Anmeldelinks. Der Versandnachweis bleibt im Export.
 - Ausgehende Mails werden nach 3 Jahren gelöscht (`Mail__RetentionDays`), solche zu Abrechnungen und Mahnungen nur geleert. Das Anonymisieren einer Person bereinigt auch ihre Mails, die Auskunft nennt sie.
+- Container: `no-new-privileges` und `cap_drop: ALL` für alle Dienste von `deploy/docker-compose.yml`; nur Postgres, Backup und Caddy behalten die Capabilities, die sie brauchen.
+- `/health` nennt öffentlich nur noch den Gesamtstatus. Den Zustand einzelner Prüfungen (u. a. Datensicherung) sehen nur noch angemeldete Konten mit dem Recht System.
+- Antiforgery-, Zwei-Faktor- und Status-Cookie sind jetzt `Secure`.
+- Neue Aktion *Konto & Sicherheit → Auf allen Geräten abmelden*: beendet alle Sitzungen des Kontos und macht „Dieses Gerät merken“ ungültig.
+- Das eigene Konto lässt sich auch serverseitig nicht mehr sperren, bisher verhinderte das nur die Oberfläche.
+- Offene Seiten prüfen die Sitzung jede Minute statt alle 5 Minuten.
+- Optional lassen sich neue Data-Protection-Schlüssel mit einem Zertifikat außerhalb der Datenbank verschlüsseln (`DataProtection__CertificatePath`, siehe `docs/betrieb.md`). Das Zertifikat muss getrennt gesichert werden.
+- GitHub Actions sind auf Commit-Hashes festgelegt.
+- Anonymisierte Mails erscheinen im Dashboard nicht mehr als „nicht zustellbar“.
 
 ### Geändert
 - Beispieldaten: Die Mietverträge beginnen am 1. Januar des vorletzten Jahres. Die Demo-Instanz zeigt im Mieterportal versendete Abrechnungen mit Rechenweg, Vorjahresvergleich und freigegebenen Beispielbelegen.

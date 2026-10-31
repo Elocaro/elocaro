@@ -1,11 +1,17 @@
 @page "/konto/sicherheit"
 @inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> Login
+@inject Redirector Redirector
+@using Elocaro.Application.Admin
+@using Microsoft.Extensions.Options
+@inject IOptions<DemoOptions> Demo
 
 <PageTitle>Konto &amp; Sicherheit – Elocaro</PageTitle>
 
 <h1>Konto &amp; Sicherheit</h1>
 
 <StatusMessage />
+<ErrorList Errors="errors" />
 
 @if (user is not null)
 {
@@ -39,10 +45,21 @@
     <button type="submit" class="button button-primary">Abmelden</button>
 </form>
 
+@* The demo accounts are shared: one visitor would sign out all the others. *@
+@if (user is not null && !Demo.Value.Enabled)
+{
+    <DangerAction Text="Auf allen Geräten abmelden"
+                  Confirmation="Alle Anmeldungen dieses Kontos enden sofort, auch auf diesem Gerät. Gemerkte Geräte verlangen beim nächsten Mal wieder den Bestätigungscode."
+                  ConfirmText="Ja, überall abmelden"
+                  FormName="sign-out-everywhere"
+                  Confirmed="SignOutEverywhereAsync" />
+}
+
 @code {
     private ApplicationUser? user;
     private IList<string> roles = [];
     private bool hasPassword;
+    private IReadOnlyList<string>? errors;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -55,5 +72,24 @@
             roles = await UserManager.GetRolesAsync(user);
             hasPassword = await UserManager.HasPasswordAsync(user);
         }
+    }
+
+    private async Task SignOutEverywhereAsync()
+    {
+        if (Demo.Value.Enabled || user is null)
+        {
+            return;
+        }
+
+        // The new stamp invalidates all sign-in cookies and the "remember this device" cookies.
+        var result = await UserManager.UpdateSecurityStampAsync(user);
+        if (!result.Succeeded)
+        {
+            errors = [.. result.Errors.Select(e => e.Description)];
+            return;
+        }
+
+        await Login.SignOutAsync();
+        Redirector.To("/konto/anmelden?abgemeldet=true");
     }
 }

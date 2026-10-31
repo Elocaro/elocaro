@@ -15,6 +15,7 @@ internal sealed class Redirector(NavigationManager navigation)
         SameSite = SameSiteMode.Strict,
         HttpOnly = true,
         IsEssential = true,
+        SecurePolicy = CookieSecurePolicy.Always,
         MaxAge = TimeSpan.FromSeconds(10),
     };
 

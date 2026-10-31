@@ -94,7 +94,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs -f app  
 | Problem | Ursache und Abhilfe |
 |---|---|
 | Browser meldet kein Zertifikat / Zertifikatsfehler | DNS zeigt noch nicht auf den Server, oder Port 80/443 ist gesperrt. Mit `docker compose … logs caddy` prüfen. |
-| Seite lädt, reagiert aber nicht | Kurz warten: Nach dem Start meldet Caddy bis zu 30 Sekunden `503`. Bleibt es, `/health` und die App-Logs ansehen. |
+| Seite lädt, reagiert aber nicht | Kurz warten: Nach dem Start meldet Caddy bis zu 30 Sekunden `503`. Bleibt es, `/health` (nur Gesamtstatus) und die App-Logs ansehen. |
 | Keine Mails | SMTP-Werte in `deploy/.env` prüfen (`SMTP_SECURITY`: `StartTls` für Port 587, `SslOnConnect` für 465); bei manchen Anbietern ist ausgehend Port 25 gesperrt. |
 | Port 80/443 belegt | Es läuft schon ein anderer Proxy: [Traefik](betrieb.md#traefik-statt-caddy) oder die Plattform-Hinweise oben nutzen. |
 

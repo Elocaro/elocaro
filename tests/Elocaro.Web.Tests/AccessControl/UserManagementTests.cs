@@ -84,6 +84,24 @@ public class UserManagementTests(PostgresFixture postgres) : AccountTestBase(pos
     }
 
     [Fact]
+    public async Task Nobody_can_lock_their_own_account()
+    {
+        var (_, otherAdminId) = await SignedInAsAsync(Roles.Admin);
+        var (_, adminId) = await SignedInAsAsync(Roles.Admin);
+        var (_, managerId) = await SignedInAsAsync(Roles.Manager, [AccessRight.UserManagement]);
+
+        foreach (var id in new[] { adminId, managerId })
+        {
+            var result = await UsersAsync((users, ct) => users.LockAsync(Principal(id), id, ct));
+
+            Assert.False(result.Succeeded);
+            Assert.Contains("Das eigene Konto kann nicht gesperrt werden.", string.Join(" ", result.Errors), StringComparison.Ordinal);
+        }
+
+        Assert.NotEqual(otherAdminId, adminId);
+    }
+
+    [Fact]
     public async Task Second_admin_may_lock_the_first()
     {
         var (_, firstId) = await SignedInAsAsync(Roles.Admin);

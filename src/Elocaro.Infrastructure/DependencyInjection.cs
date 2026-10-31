@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Admin;
 using Elocaro.Application.Audit;
@@ -92,7 +94,7 @@ public static class DependencyInjection
         services.Configure<Application.Admin.DemoOptions>(configuration.GetSection(Application.Admin.DemoOptions.Section));
 
         AddPersistence(services, configuration);
-        AddIdentity(services);
+        AddIdentity(services, configuration);
         AddAudit(services, configuration);
         AddMail(services, configuration);
         AddFileStore(services, configuration);
@@ -124,13 +126,52 @@ public static class DependencyInjection
         });
     }
 
-    private static void AddIdentity(IServiceCollection services)
+    /// <summary>The optional certificate protecting the data protection keys; a configured but unusable one stops the start.</summary>
+    private static X509Certificate2? KeyCertificate(IConfiguration configuration)
+    {
+        var path = configuration["DataProtection:CertificatePath"];
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        if (!File.Exists(path))
+        {
+            throw new InvalidOperationException($"Zertifikat für den Schlüsselschutz fehlt: Die Datei '{path}' (DataProtection:CertificatePath) existiert nicht.");
+        }
+
+        X509Certificate2 certificate;
+        try
+        {
+            certificate = X509CertificateLoader.LoadPkcs12FromFile(path, configuration["DataProtection:CertificatePassword"]);
+        }
+        catch (CryptographicException e)
+        {
+            throw new InvalidOperationException($"Zertifikat für den Schlüsselschutz lässt sich nicht öffnen: '{path}' (Dateirechte und Passwort in DataProtection:CertificatePassword prüfen).", e);
+        }
+
+        if (!certificate.HasPrivateKey)
+        {
+            certificate.Dispose();
+            throw new InvalidOperationException($"Zertifikat für den Schlüsselschutz enthält keinen privaten Schlüssel: '{path}'.");
+        }
+
+        return certificate;
+    }
+
+    private static void AddIdentity(IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpContextAccessor();
-        services.AddDataProtection()
+        var dataProtection = services.AddDataProtection()
             // The name takes part in deriving the keys: changing it makes everything protected so far unreadable.
             .SetApplicationName("Elocaro")
             .PersistKeysToDbContext<ElocaroDbContext>();
+
+        // Encrypts new keys only; keys already stored without encryption stay as they are and stay readable.
+        if (KeyCertificate(configuration) is { } certificate)
+        {
+            dataProtection.ProtectKeysWithCertificate(certificate);
+        }
 
         services.AddIdentityCore<ApplicationUser>(o =>
             {

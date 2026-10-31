@@ -225,6 +225,11 @@ public class MailContentProtectionTests(PostgresFixture postgres, MailpitFixture
 
         var untouched = mails.Single(m => !m.To.Contains(OutgoingMail.AnonymizedAddress));
         Assert.Contains("Testnachricht", untouched.Text, StringComparison.Ordinal);
+
+        // The waiting mail now counts as failed, but says nothing about the mail server: no dashboard alert.
+        Assert.Contains(anonymized, m => m.Status == MailStatus.Failed);
+        var admin = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity([new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, Roles.Admin)], "Test"));
+        Assert.Empty(await check.ServiceProvider.GetServices<ITodoSource>().OfType<MailTodos>().Single().TodosAsync(admin, Ct));
     }
 
     private static async Task DeliverAsync(InfrastructureEnvironment target)

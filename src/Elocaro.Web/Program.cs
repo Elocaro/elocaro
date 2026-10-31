@@ -29,7 +29,7 @@ builder.Services.AddScoped<CircuitUser>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, CircuitUserHandler>();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddElocaroInfrastructure(builder.Configuration);
-builder.Services.AddElocaroSignIn(builder.Configuration);
+builder.Services.AddElocaroSignIn(builder.Configuration, builder.Environment);
 builder.Services.AddElocaroOperations();
 builder.Services.AddTemplatePreviews();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();

@@ -9,7 +9,8 @@ namespace Elocaro.Infrastructure.Mail;
 
 /// <summary>
 /// Reports permanently failed emails on the dashboard (for accounts with the system permission). A failed mail whose content was removed
-/// cannot be resent and would stay forever: it is reported for a week, long enough to notice a broken mail server.
+/// cannot be resent and would stay forever: it is reported for a week, long enough to notice a broken mail server. Mails failed
+/// by anonymizing a person are not reported: they say nothing about the mail server and need no action.
 /// </summary>
 internal sealed class MailTodos(ElocaroDbContext db, TimeProvider clock) : ITodoSource
 {
@@ -22,7 +23,9 @@ internal sealed class MailTodos(ElocaroDbContext db, TimeProvider clock) : ITodo
         }
 
         var purgedSince = clock.GetUtcNow().AddDays(-7);
-        var count = await db.Set<OutgoingMail>().CountAsync(m => m.Status == MailStatus.Failed && (m.ContentPurgedAt == null || m.ContentPurgedAt > purgedSince), cancellationToken);
+        var count = await db.Set<OutgoingMail>().CountAsync(
+            m => m.Status == MailStatus.Failed && m.Subject != OutgoingMail.AnonymizedSubject && (m.ContentPurgedAt == null || m.ContentPurgedAt > purgedSince),
+            cancellationToken);
         return count == 0
             ? []
             : [new TodoItem("System", count == 1 ? "1 E-Mail konnte nicht zugestellt werden" : $"{count} E-Mails konnten nicht zugestellt werden",

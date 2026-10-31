@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Elocaro.Application.Accounts;
 using Elocaro.Web.Tests.Account;
 
 namespace Elocaro.Web.Tests.Operations;
@@ -22,9 +23,23 @@ public class OperationsTests(PostgresFixture postgres) : AccountTestBase(postgre
     }
 
     [Fact]
-    public async Task Readiness_reports_failed_dependencies_without_details()
+    public async Task Readiness_reports_failed_dependencies_to_the_public_with_the_overall_status_only()
     {
         using var browser = App.Browser();
+
+        var response = await browser.GetAsync("/health", followRedirects: false);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.Status);
+        using var json = JsonDocument.Parse(response.Html);
+        Assert.Equal("Unhealthy", Assert.Single(json.RootElement.EnumerateObject(), p => p.Name == "status").Value.GetString());
+        Assert.Single(json.RootElement.EnumerateObject());
+    }
+
+    [Fact]
+    public async Task Readiness_shows_the_checks_without_error_details_to_accounts_with_the_system_permission()
+    {
+        var (browser, _) = await SignedInAsAsync(Roles.Admin);
+        using var _1 = browser;
 
         var response = await browser.GetAsync("/health", followRedirects: false);
 
@@ -35,6 +50,32 @@ public class OperationsTests(PostgresFixture postgres) : AccountTestBase(postgre
         Assert.Equal("Healthy", checks.GetProperty("file-store").GetString());
         Assert.Equal("Unhealthy", checks.GetProperty("gotenberg").GetString());
         Assert.DoesNotContain("127.0.0.1", response.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Readiness_hides_the_checks_from_accounts_without_the_system_permission()
+    {
+        var (browser, _) = await SignedInAsAsync(Roles.Manager);
+        using var _1 = browser;
+
+        var response = await browser.GetAsync("/health", followRedirects: false);
+
+        using var json = JsonDocument.Parse(response.Html);
+        Assert.Single(json.RootElement.EnumerateObject());
+    }
+
+    [Fact]
+    public async Task Pages_with_forms_work_behind_the_proxy_with_a_secure_antiforgery_cookie()
+    {
+        using var browser = App.Browser();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost/konto/einrichtung");
+        request.Headers.Add("X-Forwarded-Proto", "https");
+
+        using var response = await browser.Http.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith(".AspNetCore.Antiforgery", StringComparison.Ordinal));
+        Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

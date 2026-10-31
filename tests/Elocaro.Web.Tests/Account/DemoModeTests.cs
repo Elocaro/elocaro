@@ -44,6 +44,18 @@ public class DemoModeTests(PostgresFixture postgres) : AccountTestBase(postgres)
     }
 
     [Fact]
+    public async Task Demo_does_not_offer_signing_out_everywhere()
+    {
+        using var browser = App.Browser();
+        await SignInAsync(browser, DemoEmail, DemoPassword);
+
+        var page = await browser.GetAsync("/konto/sicherheit");
+
+        Assert.Equal("/konto/sicherheit", page.Path);
+        Assert.DoesNotContain("Auf allen Geräten abmelden", page.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Sign_in_page_offers_a_button_per_role_and_the_password_for_manual_sign_in()
     {
         using var browser = App.Browser();
