@@ -80,6 +80,9 @@
 
 <h2>Belegeinsicht</h2>
 <p>Sie können die der Abrechnung zugrunde liegenden Belege (Rechnungen, Verträge, Zählerprotokolle) nach Terminabsprache bei uns einsehen. Auf Wunsch senden wir Ihnen gegen Erstattung der Kosten Kopien zu. Einwendungen gegen die Abrechnung müssen Sie uns spätestens zwölf Monate nach Zugang der Abrechnung mitteilen (§ 556 Abs. 3 Satz 5 BGB).</p>
+{{~ if portal_qr ~}}
+<p class="small"><img src="{{ portal_qr }}" alt="QR-Code zum Mieterportal" width="90" height="90" style="float: right; margin: 0 0 0.3cm 0.5cm;">Diese Abrechnung können Sie auch in Ihrem Mieterportal ansehen, mit Erläuterung der einzelnen Positionen, Vergleich zum Vorjahr und, soweit freigegeben, den zugehörigen Belegen. Scannen Sie den QR-Code oder öffnen Sie {{ portal_link }}. Dafür melden Sie sich mit Ihrem Konto an. Eine Rückfrage im Portal ersetzt keine förmliche Einwendung; die Frist läuft weiter.</p>
+{{~ end ~}}
 <p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>
 
 {{~ if has_heating ~}}

@@ -4,7 +4,10 @@
 @using Elocaro.Application.Files
 @using Elocaro.Application.Notices
 @using Elocaro.Web.Components.Controls
+@using Elocaro.Application.Statements
+@using Elocaro.Domain.Statements
 @inject IMessages Messages
+@inject ITenantStatements TenantStatements
 @inject IFileStore Files
 @inject AuthenticationStateProvider Authentication
 @inject NavigationManager Navigation
@@ -12,6 +15,10 @@
 <InteractiveShell>
     <PageHeader Title="Neue Nachricht" Subtitle="Ihre Nachricht geht direkt an die Hausverwaltung." Back="/portal/nachrichten" BackText="Nachrichten" />
     <ErrorList Errors="errors" />
+    @if (aboutStatement)
+    {
+        <p class="help" id="statement-question-hint">Eine Rückfrage ersetzt keinen förmlichen Einwand. Die Frist für Einwendungen gegen die Abrechnung läuft weiter.</p>
+    }
 
     @if (targets is { Count: 0 })
     {
@@ -43,11 +50,31 @@
     private IReadOnlyList<FileSelection> selected = [];
     private IReadOnlyList<string>? errors;
     private bool busy;
+    private bool aboutStatement;
+
+    /// <summary>Question about a sent statement: the subject is built from the tenant's own statement, nothing is taken from the URL.</summary>
+    [SupplyParameterFromQuery(Name = "abrechnung")]
+    private Guid? StatementDispatchId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "position")]
+    private string? Position { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        targets = await Messages.TargetsAsync((await Authentication.GetAuthenticationStateAsync()).User);
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        targets = await Messages.TargetsAsync(user);
         input.LeaseId = targets.Count > 0 ? targets[0].LeaseId : null;
+        if (StatementDispatchId is { } dispatchId && await TenantStatements.GetAsync(user, dispatchId) is { } statement)
+        {
+            var line = statement.Lines.FirstOrDefault(l => l.CostType == Position);
+            input.Subject = StatementExplainer.QuestionSubject(statement.Header.BillingPeriod, line?.Name);
+            if (targets.Any(t => t.LeaseId == statement.Header.LeaseId))
+            {
+                input.LeaseId = statement.Header.LeaseId;
+            }
+
+            aboutStatement = true;
+        }
     }
 
     private async Task SubmitAsync()

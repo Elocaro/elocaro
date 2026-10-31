@@ -20,6 +20,7 @@ Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. W
 | Zahlung zuordnen | Geld → Bank → Zuordnen | Vorschlag bestätigen; mit Regeln geht es künftig automatisch. Barzahlungen im Mieterkonto des Vertrags |
 | Beleg erfassen | Geld → Belege → Beleg erfassen | Rechnung hochladen, Lieferant, Datum und Brutto eintragen und gleich unter „Zuordnung“ Kostenart und Objekt wählen; bei mehreren Kostenarten den Betrag aufteilen. Die Anzeige unter der Zuordnung nennt, was noch fehlt |
 | Nebenkosten abrechnen | Belege, dann Objekt → Abrechnung | Zeitraum, Kostenarten, Verteilung prüfen; Zugang beim Mieter binnen zwölf Monaten nach Ende des Zeitraums |
+| Belege für Mieter freigeben | Abrechnung (Liste der Abrechnungen → Abrechnung öffnen) → Reiter „Belege für Mieter“ | Standard: nichts ist freigegeben. Haken setzen und „Auswahl speichern“; die Freigabe lässt sich jederzeit zurücknehmen. Belege können Daten Dritter enthalten, es wird nichts geschwärzt |
 | Miete erhöhen | Vertrag → Vertrag → Mieterhöhung | Verfahren wählen; Fristen und Grenzen werden gerechnet, das Schreiben entsteht als PDF |
 | Zählerstände | Objekt → Zähler | Ablese-Runde, CSV-Import oder Meldung der Mieter im Portal prüfen und übernehmen |
 | Mieterwechsel | Vertrag → Ein- & Auszug | Mieterwechsel, Übergabe Auszug mit Protokoll, Kaution abrechnen, danach neuer Vertrag |
@@ -34,6 +35,10 @@ Umsätze zuordnen (Geld → Bank → Zuordnen): Vorschläge mit Begründung, bes
 Nebenkostenabrechnung (Bestand → Objekt → Nebenkosten → Abrechnungs-Assistent): Schritt für Schritt mit Prüfhinweisen. Wasser, Abwasser, Strom und Gas rechnet Elocaro nach Verbrauch und Tarif (Objekt → Nebenkosten → Versorgungsverträge): Preis je Einheit und Grundpreis eintragen, die Kosten ergeben sich aus den Zählerständen. Abschlagsrechnungen zählen nicht; die Jahresabrechnung des Versorgers erfassen Sie später als Beleg mit der „Art der Rechnung“ „Jahresabrechnung des Versorgers“, sie ersetzt die Berechnung.
 
 ![Abrechnungs-Assistent](bilder/abrechnungs-assistent.png)
+
+**Prüfhinweise vor der Freigabe:** Neben den Plausibilitätsprüfungen (Sprünge gegenüber dem Vorjahr, fehlende Kostenarten, Vorauszahlungen) nennt der Assistent, was Mieter erfahrungsgemäß nachfragen: Kostenpositionen ohne Belegdatei und Positionen, die als nicht umlagefähig markiert sind und in der Abrechnung fehlen. Diese Hinweise sind Anregungen zum Prüfen, keine Rechtsaussage, und sperren die Freigabe nicht.
+
+**Die Abrechnung im Mieterportal:** Sobald Sie eine Abrechnung an einen Mietvertrag versendet haben, sehen die Mieter dieses Vertrags sie im Portal unter **Abrechnungen** (auch auf der Startseite und bei den Dokumenten verlinkt). Die Seite erklärt jede Position in Klartext („1.240,00 € nach Wohnfläche: Ihr Anteil 248,00 €“), vergleicht die Anteile mit der Abrechnung des Vorjahres, die an denselben Vertrag ging, zeigt die von Ihnen freigegebenen Belege und bietet zu jeder Position „Frage zu dieser Position“ an. Die Frage öffnet eine neue Nachricht mit vorbelegtem Betreff; sie ersetzt keinen förmlichen Einwand, die Frist läuft weiter. Mieter sehen nur ihre eigene Abrechnung, nie Werte anderer Parteien. Eine neuere, noch nicht versendete Fassung bleibt verborgen. Im Abrechnungsschreiben steht ein QR-Code zum Portal, wenn unter `Application__BaseUrl` die öffentliche Adresse eingestellt ist und ein Mieter des Vertrags ein Portalkonto hat; der Code führt nur zur Anmeldeseite, er enthält keinen Zugangsschlüssel.
 
 Auf dem Handy führt die untere Leiste zu Aufgaben, Bestand, Geld und Kommunikation.
 

@@ -12,6 +12,10 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - `manifest.webmanifest`, Symbole und App-Icon wurden auf Unterseiten nicht gefunden (404, „manifest is not valid JSON“), weil `<base>` nach den Links stand.
 
 ### Hinzugefügt
+- Mieterportal: Die versendete Betriebskostenabrechnung hat eine eigene Seite (Portal → Abrechnungen) mit dem Rechenweg je Position in Klartext, dem Vergleich mit der Abrechnung des Vorjahres (Beträge und Unterschied je Kostenart), den vom Vermieter freigegebenen Belegen und „Frage zu dieser Position“ (neue Nachricht mit vorbelegtem Betreff, mit Hinweis, dass eine Rückfrage keinen förmlichen Einwand ersetzt). Mieter sehen nur die Abrechnung ihres eigenen Vertrags und nur versendete Fassungen, nie Werte anderer Mieter.
+- Belege für Mieter freigeben: Auf der Abrechnung gibt es den Reiter „Belege für Mieter“. Standard ist, dass nichts freigegeben ist; der Hinweis auf Daten Dritter steht dabei, Freigaben sind jederzeit zurücknehmbar. Der Abruf im Portal wird bei jedem Aufruf geprüft und im Zugriffsprotokoll festgehalten.
+- Abrechnungsschreiben: QR-Code und Link zum Mieterportal, wenn die öffentliche Adresse (`Application__BaseUrl`) eingestellt ist und ein Mieter des Vertrags ein Portalkonto hat. Der Code enthält nur den Portal-Link, keinen Zugangsschlüssel.
+- Abrechnungs-Assistent: Prüfhinweise zu typischen Einwänden (Kostenpositionen ohne Belegdatei, als nicht umlagefähig markierte Positionen). Sie sperren die Freigabe nicht.
 - Lizenz geklärt: AGPL-3.0-or-later mit Urheberrechtsvermerk (README, „Über Elocaro“, Projektdateien) und Beitragsvereinbarung (`CLA.md`, Pull-Request-Vorlage, Hinweis in `CONTRIBUTING.md`) mit automatischer Prüfung als Action `CLA`.
 - Abrechnungs-Assistent warnt, wenn Belege des Zeitraums noch nicht vollständig auf Kostenarten und Objekte aufgeteilt sind (mit offener Summe); sie fehlen sonst in der Abrechnung.
 - Die Offline-Seite der installierten Web-App versucht es selbst erneut und öffnet Elocaro, sobald der Server wieder antwortet.

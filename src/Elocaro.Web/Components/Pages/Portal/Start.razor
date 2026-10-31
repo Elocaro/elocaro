@@ -11,6 +11,7 @@
 @inject ITickets Tickets
 @inject INotices Notices
 @inject IMessages Messages
+@inject Elocaro.Application.Statements.ITenantStatements Statements
 
 <PageHeader Title="Willkommen" Subtitle="Hier finden Sie Ihre Dokumente und Vertragsdaten." />
 
@@ -47,6 +48,23 @@ else
             }
             <p><a href="/portal/dokumente">Alle Dokumente</a></p>
         </section>
+
+        @if (statements.Count > 0)
+        {
+            <section class="panel" id="statements">
+                <header><h2>Abrechnungen</h2></header>
+                <ul class="todos">
+                    @foreach (var statement in statements.Take(3))
+                    {
+                        <li class="todo">
+                            <a href="/portal/abrechnungen/@statement.DispatchId">Abrechnung @Format.Period(statement.BillingPeriod)</a>
+                            <span class="small">@statement.RentalUnit · @Format.Money(Math.Abs(statement.Balance)) @(statement.Balance >= 0 ? "Nachzahlung" : "Guthaben")@(statement.Superseded ? " · ersetzt" : "")</span>
+                        </li>
+                    }
+                </ul>
+                <p><a href="/portal/abrechnungen">Alle Abrechnungen mit Erläuterung</a></p>
+            </section>
+        }
 
         @if (notices.Count > 0)
         {
@@ -153,6 +171,7 @@ else
     private int unreadMessages;
     private IReadOnlyList<TenantNotice> notices = [];
     private string? emergency;
+    private IReadOnlyList<Elocaro.Application.Statements.PortalStatementRow> statements = [];
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -165,6 +184,7 @@ else
         openTickets = (await Tickets.ListAsync(user)).Count;
         notices = await Notices.CurrentAsync(user);
         unreadMessages = (await Messages.ListAsync(user)).Count(t => t.Unread);
+        statements = await Statements.ListAsync(user);
         emergency = contacts?.EmergencyInfo;
         var read = await Portal.ReadDocumentsAsync(user);
         unread = (await Documents.SharedAsync(user)).Where(d => !read.Contains(d.Id)).ToList();

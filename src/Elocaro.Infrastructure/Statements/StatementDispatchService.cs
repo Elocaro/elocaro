@@ -37,6 +37,7 @@ internal sealed class StatementDispatchService(
     IDocumentLibrary documents,
     ILeaseService leases,
     IOptions<StatementOptions> options,
+    IOptions<ApplicationOptions> application,
     TimeProvider clock) : IStatementDispatch
 {
     public async Task<DispatchOverview?> OverviewAsync(Guid statementId, CancellationToken cancellationToken = default)
@@ -305,8 +306,13 @@ internal sealed class StatementDispatchService(
         var heating = tenant.Groups.FirstOrDefault(g => g.Group == CostGroup.Heating && g.Calculated
             && (g.PrepaymentsDue != 0 || g.PrepaymentsPaid != 0 || tenant.Lines.Any(l => l.Group == CostGroup.Heating)));
         var summary = statement.Summary;
+
+        // Link and QR code to the portal only if the tenants can use it: a public address is configured and a tenant has an account.
+        var portalLink = application.Value.HasPublicBaseUrl && people.Any(p => p.UserId is not null && p.AnonymizedAt is null) ? application.Value.Link("portal/abrechnungen") : null;
         var model = new
         {
+            PortalLink = portalLink?.AbsoluteUri,
+            PortalQr = portalLink is null ? null : PortalLinkQr.DataUri(portalLink),
             Salutation = LetterParts.SalutationOf(people),
             RentalUnit = rentalUnit is null ? "" : $"{rentalUnit.Property}, {tenant.Rental}",
             PeriodFrom = period.From,

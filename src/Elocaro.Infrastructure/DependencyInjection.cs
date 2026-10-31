@@ -307,6 +307,8 @@ public static class DependencyInjection
         services.AddScoped<IHeatingSettings, HeatingSettingsService>();
         services.AddScoped<IStatements, StatementService>();
         services.AddScoped<IStatementDispatch, StatementDispatchService>();
+        services.AddScoped<IStatementReceiptShares, StatementReceiptShareService>();
+        services.AddScoped<ITenantStatements, TenantStatementService>();
         services.AddScoped<ITodoSource, StatementDeadlineTodos>();
         services.AddScoped<ITodoSource, ReceiptTodos>();
         services.AddScoped<IDeadlineSource, StatementDeadlineSource>();

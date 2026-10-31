@@ -134,8 +134,8 @@ public static class ModuleCatalog
         new(AppModule.OperatingCosts, "Nebenkostenabrechnung",
             "Betriebs- und Heizkosten auf die Mieter umlegen und die jährliche Abrechnung erstellen.",
             "Sinnvoll, wenn Sie Vorauszahlungen für Betriebskosten erheben und jährlich abrechnen müssen. Bei Pauschalen ohne Abrechnung nicht nötig.",
-            ["Versorgungsverträge (Tarife)", "Umlageschlüssel", "Heizkosten", "Vorschau und Abrechnungs-Assistent", "Vereinbarte Kostenarten je Vertrag"],
-            [AppModule.Receipts], $"{Admin}/objekte", [$"{Admin}/abrechnungen"],
+            ["Versorgungsverträge (Tarife)", "Umlageschlüssel", "Heizkosten", "Vorschau und Abrechnungs-Assistent", "Vereinbarte Kostenarten je Vertrag", "Abrechnung im Mieterportal"],
+            [AppModule.Receipts], $"{Admin}/objekte", [$"{Admin}/abrechnungen", "/portal/abrechnungen"],
             [($"{Admin}/objekte", "versorgung"), ($"{Admin}/objekte", "umlageschluessel"), ($"{Admin}/objekte", "heizung"), ($"{Admin}/objekte", "nebenkosten"),
              ($"{Admin}/objekte", "abrechnung"), ($"{Admin}/objekte", "abrechnungen"), ($"{Admin}/vertraege", "kostenarten")], []),
 

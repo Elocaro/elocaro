@@ -47,6 +47,7 @@ internal sealed class StatementService(ElocaroDbContext db, IOperatingCosts oper
         findings.AddRange(await OccupancyFindingsAsync(propertyId, billingPeriod, cancellationToken));
         findings.AddRange(await KeyFindingsAsync(propertyId, cancellationToken));
         findings.AddRange(await UnsplitReceiptFindingsAsync(billingPeriod, cancellationToken));
+        findings.AddRange(await ObjectionFindingsAsync(preview.Result, cancellationToken));
 
         var today = GermanTime.Today(clock.GetUtcNow());
         var released = (await ListAsync(propertyId, cancellationToken)).FirstOrDefault(s => s.BillingPeriod == billingPeriod && s.Current);
@@ -183,7 +184,18 @@ internal sealed class StatementService(ElocaroDbContext db, IOperatingCosts oper
     private static StatementSummary ToSummary(Domain.Statements.BillingStatement s, string? releasedBy, int newestRevision) =>
         new(s.Id, s.PropertyId, s.BillingPeriod, s.Revision, s.ReleasedAt, releasedBy, s.TotalCosts, s.LandlordTotal, s.Note, s.Revision == newestRevision);
 
+    /// <summary>Notes on typical objections: cost items without a receipt file, items marked as not allocable.</summary>
+    private async Task<IReadOnlyList<PlausibilityFinding>> ObjectionFindingsAsync(BillingResult result, CancellationToken cancellationToken)
+    {
+        var ids = result.CostTypes.SelectMany(t => t.Items.Select(i => i.Id)).Distinct().ToList();
+        var itemReceipts = await db.Set<CostItem>().AsNoTracking().Where(i => ids.Contains(i.Id)).Select(i => new { i.Id, i.ReceiptId }).ToListAsync(cancellationToken);
+        var receiptIds = itemReceipts.Select(i => i.ReceiptId).Distinct().ToList();
+        var withFile = (await db.Set<ReceiptFile>().AsNoTracking().Where(f => receiptIds.Contains(f.ReceiptId)).Select(f => f.ReceiptId).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+        return ObjectionChecker.Check(result, itemReceipts.Where(i => withFile.Contains(i.ReceiptId)).Select(i => i.Id).ToHashSet());
+    }
+
     /// <summary>Meters in use during the period need a reading at the start and at the end of their use.</summary>
+
     /// <summary>Receipts of the period without a (complete) split are missing in the statement: a warning with the open sum.</summary>
     private async Task<List<PlausibilityFinding>> UnsplitReceiptFindingsAsync(Period period, CancellationToken cancellationToken)
     {

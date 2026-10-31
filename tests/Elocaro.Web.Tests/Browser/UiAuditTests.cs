@@ -295,8 +295,8 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
             await manager.AddToRoleAsync(user, role);
             if (role == Roles.Tenant)
             {
-                await LinkTenantAsync(sp, user.Id, ct);
-                return paths;
+                var dispatch = await LinkTenantAsync(sp, user.Id, ct);
+                return [.. paths, "/portal/abrechnungen", $"/portal/abrechnungen/{dispatch}", $"/portal/nachrichten/neu?abrechnung={dispatch}&position=betrkv-01"];
             }
 
             if (role != Roles.Caretaker)
@@ -439,7 +439,8 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         }
     }
 
-    private static async Task LinkTenantAsync(IServiceProvider sp, Guid userId, CancellationToken ct)
+    /// <summary>Links the tenant account to a lease with a document and a sent statement with a released receipt; returns the dispatch.</summary>
+    private static async Task<Guid> LinkTenantAsync(IServiceProvider sp, Guid userId, CancellationToken ct)
     {
         var properties = sp.GetRequiredService<IPropertyService>();
         var property = (await properties.CreateAsync(new PropertyInput { Name = "Lindenweg 3 mit einem langen Namen", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, ct)).Id!.Value;
@@ -455,5 +456,26 @@ public class UiAuditTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
         var file = await sp.GetRequiredService<Elocaro.Application.Files.IFileStore>().SaveAsync(pdf, "vertrag.pdf", ct);
         Assert.True((await sp.GetRequiredService<Elocaro.Application.Documents.IDocumentLibrary>().CreateAsync(
             file.Id, new Elocaro.Application.Documents.DocumentInput { Title = "Mietvertrag Wohnung 1", LeaseId = lease, SharedWithTenants = true }, ct)).Succeeded);
+
+        // A sent statement with one released receipt, so that the portal statement pages have content.
+        var area = await properties.SetUnitAreaAsync(unit, new AreaInput { From = new DateOnly(2020, 1, 1), Area = 60m }, ct);
+        Assert.True(area.Succeeded);
+        Assert.True((await sp.GetRequiredService<Elocaro.Application.OperatingCosts.ICostAllocation>().SetRuleAsync(
+            property, new Elocaro.Application.OperatingCosts.CostRuleInput { CostType = "betrkv-01", From = new DateOnly(2020, 1, 1), Key = Elocaro.Domain.OperatingCosts.AllocationKey.LivingArea }, ct)).Succeeded);
+        using var invoice = new MemoryStream("%PDF-1.4\n%%EOF\n"u8.ToArray());
+        var invoiceFile = await sp.GetRequiredService<Elocaro.Application.Files.IFileStore>().SaveAsync(invoice, "grundsteuer.pdf", ct);
+        var receipt = await sp.GetRequiredService<Elocaro.Application.Receipts.IReceiptService>().CreateAsync(
+            new Elocaro.Application.Receipts.ReceiptInput { SupplierName = "Stadt Köln", InvoiceNumber = "GS-2025", InvoiceDate = new DateOnly(2025, 12, 15), Gross = 1200m },
+            [invoiceFile.Id],
+            new Elocaro.Application.Receipts.CostItemInput { CostType = "betrkv-01", PropertyId = property, From = new DateOnly(2025, 1, 1), To = new DateOnly(2025, 12, 31) },
+            ct);
+        Assert.True(receipt.Succeeded, string.Join(", ", receipt.Errors));
+        var statement = await sp.GetRequiredService<Elocaro.Application.Statements.IStatements>().ReleaseAsync(property, Elocaro.Domain.Common.Period.CalendarYear(2025), true, null, ct);
+        Assert.True(statement.Succeeded, string.Join(", ", statement.Errors));
+        Assert.True((await sp.GetRequiredService<Elocaro.Application.Statements.IStatementReceiptShares>().SetSharedAsync(statement.Id!.Value, [receipt.Id!.Value], ct)).Succeeded);
+        var dispatch = new Elocaro.Domain.Statements.StatementDispatch(statement.Id.Value, lease, Elocaro.Domain.Statements.DispatchChannel.Post, new DateOnly(2026, 2, 1), file.Id, null, null, 0m, 0m, null, null);
+        db.Add(dispatch);
+        await db.SaveChangesAsync(ct);
+        return dispatch.Id;
     }
 }
