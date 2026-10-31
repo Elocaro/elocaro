@@ -1,0 +1,41 @@
+@using Elocaro.Application.Statements
+@* The tenant's share per cost type, largest first. Several lines of one cost type (e.g. of a split period) count as one bar. *@
+@if (Scale > 0m)
+{
+    <figure class="cost-chart statement-chart" id="cost-type-chart" aria-label="@($"Ihr Anteil je Kostenart: {string.Join("; ", Rows.Select(r => $"{r.Name} {Format.Money(r.Share)}"))}")">
+        <figcaption class="small">Ihr Anteil je Kostenart, größter zuerst</figcaption>
+        @foreach (var row in Rows)
+        {
+            <div class="cost-chart-row" data-cost-type="@row.CostType">
+                <span class="cost-chart-label">@row.Name</span>
+                <span class="cost-chart-track">
+                    @if (row.Share > 0m)
+                    {
+                        <span class="cost-chart-bar tenant" style="width:@ChartScale.Css(ChartScale.Percent(row.Share, Scale))%"></span>
+                    }
+                </span>
+                <span class="cost-chart-value">@Format.Money(row.Share)</span>
+            </div>
+        }
+    </figure>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PortalStatementLine> Lines { get; set; } = [];
+
+    private List<CostRow> Rows { get; set; } = [];
+
+    private decimal Scale { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        Rows = [.. Lines
+            .GroupBy(l => l.CostType)
+            .Select(g => new CostRow(g.Key, g.First().Name, g.Sum(l => l.Share)))
+            .OrderByDescending(r => r.Share)];
+        Scale = ChartScale.Max(Rows.Select(r => r.Share));
+    }
+
+    private sealed record CostRow(string CostType, string Name, decimal Share);
+}

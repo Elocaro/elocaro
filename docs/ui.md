@@ -127,6 +127,7 @@ Zurückhaltend und nur dort, wo sie etwas erklärt; bei „reduzierte Bewegung�
 | Gruppe in langer Liste | `details.group` | Eine Liste mit vielen Zeilen wird nach einem fachlichen Merkmal gruppiert (Beispiel Offene Posten: ein Block je Mietverhältnis mit Summe in der Kopfzeile; bis drei Gruppen offen, sonst zugeklappt) |
 | Verlauf | `ChangeHistory` | Auf Detailseiten von Stammdaten |
 | Text mit Markup (Vorlagen) | `CodeEditor` | Textarea mit Syntaxfarben (HTML und `{{ … }}`), Werkzeugleiste (Fett, Absatz, Liste, Tabelle, Wenn/Je Eintrag, Baustein) und Kürzeln (Strg+B/I/U/S); gibt den Text kurz nach dem Tippen und beim Verlassen zurück (`wwwroot/js/code-editor.js`) |
+| Balkendiagramm der Mieterabrechnung | `StatementResultChart`, `StatementCostChart`, `StatementComparisonChart` (`.cost-chart.statement-chart`) | Alle Zeilen auf einer Skala, feste Wertspalte; Ergebnis in Worten, keine Fehlerfarbe für eine Nachzahlung; ohne darstellbare Werte kein Diagramm |
 | Datum, Geld, Zahl | `Format.*`, Enum-Texte `Labels.*` | Nie `ToString("dd.MM.yyyy")` o. ä. in Seiten |
 
 ### Buttons

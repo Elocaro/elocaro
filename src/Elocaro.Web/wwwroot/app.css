@@ -1032,6 +1032,15 @@ main p a, main .help a, main .small a, .message a { text-decoration: underline; 
 .cost-chart-value { text-align: right; font-variant-numeric: tabular-nums; }
 .swatch { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 2px; vertical-align: middle; }
 @media (max-width: 600px) { .cost-chart-row { grid-template-columns: 1fr 5rem; } .cost-chart-label { grid-column: 1 / -1; } }
+/* Charts on the tenant's statement page: all rows share one scale, so the value column has a fixed width that holds five-digit amounts */
+.statement-chart { margin-block: var(--spacing); }
+.statement-chart .cost-chart-row { grid-template-columns: minmax(7rem, 14rem) minmax(0, 1fr) 6.5rem; }
+.statement-chart .cost-chart-value { white-space: nowrap; }
+.statement-chart .cost-chart-bar { min-width: 2px; }
+.statement-chart .cost-chart-prev { width: 3px; box-shadow: 0 0 0 1px var(--md-surface); }
+.cost-chart-bar.prepayment { background: var(--md-tertiary); }
+.cost-chart-gap { position: absolute; top: 0; bottom: 0; min-width: 2px; background: repeating-linear-gradient(135deg, var(--md-on-surface-variant) 0 3px, transparent 3px 6px); border-inline: 2px solid var(--md-on-surface-variant); box-sizing: border-box; }
+@media (max-width: 600px) { .statement-chart .cost-chart-row { grid-template-columns: minmax(0, 1fr) 6.5rem; } }
 
 .trend-chart { margin: 0 0 var(--spacing); }
 .trend-chart svg { width: 100%; height: 7rem; display: block; }
@@ -1168,6 +1177,11 @@ details[open] > :not(summary) { animation: reveal var(--motion-duration) var(--m
     table.card-rows tbody td:first-child { justify-content: flex-start; font-weight: 600; text-align: left; }
     table.card-rows tbody td[data-label]::before { content: attr(data-label); flex: none; max-width: 45%; color: var(--md-on-surface-variant); font-size: 0.8rem; font-weight: 600; text-align: left; }
     table.card-rows tbody tr.detail-row td { display: block; text-align: left; }
+    /* Tenant statement: the derivation is running text, so it reads as a left-aligned block under its label */
+    table.card-rows.statement-lines tbody td.derivation { display: block; text-align: left; }
+    table.card-rows.statement-lines tbody td.derivation[data-label]::before { display: block; max-width: none; }
+    /* Year comparison: the total row has three labelled amounts, which do not fit side by side at 360 px */
+    table#comparison.card-rows tfoot tr { flex-wrap: wrap; }
     table.card-rows tfoot tr { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: 0.5rem 0.9rem; }
     table.card-rows tfoot th, table.card-rows tfoot td { display: block; padding: 0; border: 0; text-align: right; }
     table.card-rows tfoot th[colspan], table.card-rows tfoot td[colspan] { flex: 1 1 auto; text-align: left; }

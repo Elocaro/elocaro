@@ -8,6 +8,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Beispieldaten: Die Mietverträge beginnen am 1. Januar des vorletzten Jahres. Die Demo-Instanz zeigt im Mieterportal versendete Abrechnungen mit Rechenweg, Vorjahresvergleich und freigegebenen Beispielbelegen.
 
 ### Behoben
+- Abrechnung im Mieterportal auf dem Handy: Der Rechenweg steht als linksbündiger Block über die volle Breite der Karte, statt in schmale Spalten gequetscht zu werden. Die Summenzeile des Vorjahresvergleichs bricht um und lässt die Seite nicht mehr seitlich überstehen.
 - Datenimport: Eine leerstehende Wohnung bekommt ihre Fläche ab dem frühesten Mietbeginn des Hauses. Bisher ließ sich eine Abrechnung für frühere Jahre wegen der fehlenden Fläche nicht freigeben.
 - Handy: Die Reiter auf Detailseiten (z. B. Vertrag) springen beim Wischen nicht mehr auf den gewählten Reiter zurück.
 - Belegung auf dem Handy: Beim Wechsel des Jahres springt die Seite nicht mehr nach oben, sondern bleibt an der Jahresleiste.
@@ -16,6 +17,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - `manifest.webmanifest`, Symbole und App-Icon wurden auf Unterseiten nicht gefunden (404, „manifest is not valid JSON“), weil `<base>` nach den Links stand.
 
 ### Hinzugefügt
+- Mieterportal: Die Abrechnungsseite zeigt das Ergebnis, die Anteile je Kostenart und den Vergleich mit dem Vorjahr zusätzlich als Balkendiagramme. Eine Nachzahlung oder ein Guthaben steht mit Betrag im Text; die Tabellen bleiben.
 - Mieterportal: Die versendete Betriebskostenabrechnung hat eine eigene Seite (Portal → Abrechnungen) mit dem Rechenweg je Position in Klartext, dem Vergleich mit der Abrechnung des Vorjahres (Beträge und Unterschied je Kostenart), den vom Vermieter freigegebenen Belegen und „Frage zu dieser Position“ (neue Nachricht mit vorbelegtem Betreff, mit Hinweis, dass eine Rückfrage keinen förmlichen Einwand ersetzt). Mieter sehen nur die Abrechnung ihres eigenen Vertrags und nur versendete Fassungen, nie Werte anderer Mieter.
 - Belege für Mieter freigeben: Auf der Abrechnung gibt es den Reiter „Belege für Mieter“. Standard ist, dass nichts freigegeben ist; der Hinweis auf Daten Dritter steht dabei, Freigaben sind jederzeit zurücknehmbar. Der Abruf im Portal wird bei jedem Aufruf geprüft und im Zugriffsprotokoll festgehalten.
 - Abrechnungsschreiben: QR-Code und Link zum Mieterportal, wenn die öffentliche Adresse (`Application__BaseUrl`) eingestellt ist und ein Mieter des Vertrags ein Portalkonto hat. Der Code enthält nur den Portal-Link, keinen Zugangsschlüssel.

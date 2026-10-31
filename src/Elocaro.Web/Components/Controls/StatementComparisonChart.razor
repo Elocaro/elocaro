@@ -1,0 +1,43 @@
+@using Elocaro.Domain.Common
+@using Elocaro.Domain.Statements
+@* Current share per cost type as a bar, the previous year as a marker line. A side without a value draws nothing and is named as missing. *@
+@if (Scale > 0m)
+{
+    <figure class="cost-chart statement-chart" id="comparison-chart" aria-label="@($"Ihr Anteil je Kostenart im Vergleich mit dem Vorjahr: {string.Join("; ", Lines.Select(Describe))}")">
+        <figcaption class="small">Ihr Anteil je Kostenart: <span class="swatch tenant"></span> dieser Zeitraum | Strich = @Format.Period(PreviousPeriod)</figcaption>
+        @foreach (var row in Lines)
+        {
+            <div class="cost-chart-row" data-cost-type="@row.CostType">
+                <span class="cost-chart-label">@row.Name</span>
+                <span class="cost-chart-track" title="@Describe(row)">
+                    @if (row.Current is > 0m)
+                    {
+                        <span class="cost-chart-bar tenant" style="width:@ChartScale.Css(ChartScale.Percent(row.Current.Value, Scale))%"></span>
+                    }
+                    @if (row.Previous is { } before)
+                    {
+                        <span class="cost-chart-prev" style="left:@ChartScale.Css(ChartScale.Percent(before, Scale))%"></span>
+                    }
+                </span>
+                <span class="cost-chart-value">@Format.Money(row.Current)</span>
+            </div>
+        }
+    </figure>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LineComparison> Lines { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public Period PreviousPeriod { get; set; } = default!;
+
+    private decimal Scale => ChartScale.Max(Lines.SelectMany(l => new[] { l.Current ?? 0m, l.Previous ?? 0m }));
+
+    private static string Describe(LineComparison row)
+    {
+        var current = row.Current is { } now ? $"dieser Zeitraum {Format.Money(now)}" : "in diesem Zeitraum kein Wert";
+        var previous = row.Previous is { } before ? $"Vorjahr {Format.Money(before)}" : "im Vorjahr kein Wert";
+        return $"{row.Name}: {current}, {previous}";
+    }
+}

@@ -35,18 +35,21 @@ else
         <dt>Versendet am</dt><dd>@Format.Date(header.SentOn)</dd>
     </dl>
 
+    <StatementResultChart Share="@statement.Balances.Sum(b => b.Share)" Prepayments="@statement.Balances.Sum(b => b.PrepaymentsPaid)" Balance="@statement.Balance" />
+
     <section id="calculation">
         <h2>So wurde gerechnet</h2>
         <p class="help">Die Angaben stammen aus der Abrechnung, die Ihnen zugesendet wurde. Zu jeder Position können Sie eine Frage stellen.</p>
+        <StatementCostChart Lines="@statement.Lines" />
         <div class="table-wrapper">
-            <table class="data-table card-rows">
+            <table class="data-table card-rows statement-lines">
                 <thead><tr><th>Kostenart</th><th>Rechenweg</th><th class="number">Ihr Anteil</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var line in statement.Lines)
                     {
                         <tr>
                             <td>@line.Name</td>
-                            <td data-label="Rechenweg">
+                            <td class="derivation" data-label="Rechenweg">
                                 @line.Summary
                                 @foreach (var detail in line.Details)
                                 {
@@ -92,6 +95,8 @@ else
             {
                 <Notice Level="NoticeLevel.Info" id="term-differs">Ihre Mietzeit im Abrechnungszeitraum war nicht gleich lang (@previous.PreviousDays Tage im Vorjahr, @previous.Days Tage in diesem Zeitraum). Die Beträge sind deshalb nur eingeschränkt vergleichbar.</Notice>
             }
+
+            <StatementComparisonChart Lines="@previous.Lines" PreviousPeriod="@previous.PreviousPeriod" />
 
             <div class="table-wrapper">
                 <table class="data-table card-rows" id="comparison">
