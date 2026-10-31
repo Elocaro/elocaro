@@ -1,0 +1,103 @@
+@page "/verwaltung/system/notfallmappe"
+@using Elocaro.Application.Emergency
+@using DomainEmergencyFolder = Elocaro.Domain.Admin.EmergencyFolder
+@using Elocaro.Web.Operations
+@inject IEmergencyFolder Folder
+
+<PageHeader Title="Notfallmappe" Subtitle="Eine verschlüsselte Datei, mit der Angehörige die Vermietung weiterführen können, auch wenn Elocaro nicht mehr erreichbar ist." />
+
+<StatusMessage />
+@if (Error is not null && EmergencyFolderEndpoint.Errors.TryGetValue(Error, out var errorText))
+{
+    <Notice Level="NoticeLevel.Error" id="folder-error">@errorText</Notice>
+}
+
+@if (state is not null)
+{
+    <section>
+        <h2>Stand</h2>
+        <p id="folder-state">
+            @if (state.LastCreatedAt is { } at)
+            {
+                <text>Zuletzt erzeugt am @Format.Timestamp(at).</text>
+            }
+            else
+            {
+                <text>Noch nie erzeugt.</text>
+            }
+            Die Mappe zeigt nur den Stand beim Erzeugen. Erzeugen Sie sie mindestens einmal im Jahr neu.
+        </p>
+        <details class="explain">
+            <summary>Was steht in der Mappe, und wie wird sie geöffnet?</summary>
+            <p>Die Mappe ist eine einzelne HTML-Datei. Sie öffnet sich per Doppelklick im Browser, ohne Internet und ohne Elocaro,
+            und zeigt nach Eingabe des Passworts lesbare, druckbare Seiten:</p>
+            <ul>
+                <li>Erste Schritte: eine allgemeine Checkliste für die ersten 30 Tage (keine Rechtsberatung)</li>
+                <li>Ihre Hinweise (siehe unten), Vermieterdaten, Objekte und Einheiten</li>
+                <li>Laufende Mietverträge mit Mietern, Kontaktdaten, Miete und Kaution</li>
+                <li>Offene Posten, anstehende Fristen und Aufgaben</li>
+                <li>Konten mit IBAN und Bank (ohne Zugangsdaten, PINs und Schlüssel)</li>
+                <li>Dienstleister und Versicherungen aus den Belegen der letzten zwei Jahre</li>
+                <li>Technik: Adresse von Elocaro, Stand der Datensicherung, Hinweise zur Wiederherstellung</li>
+            </ul>
+            <p>Passwörter, Anmeldetokens und Schlüssel von Elocaro sind nie enthalten.</p>
+        </details>
+    </section>
+
+    <form method="post" action="@EmergencyFolderEndpoint.Path" id="folder-form">
+        <AntiforgeryToken />
+
+        <section>
+            <h2>Ihre Hinweise</h2>
+            <p class="help">Diese Texte erscheinen in der Mappe. Sie werden wie alle anderen Daten unverschlüsselt in der Datenbank gespeichert.</p>
+            <Notice Level="NoticeLevel.Warning">Tragen Sie hier keine Passwörter, PINs oder Zugangsdaten ein.</Notice>
+            <div class="field">
+                <label for="ImportantContacts">Wichtige Kontakte</label>
+                <textarea id="ImportantContacts" name="ImportantContacts" rows="5" maxlength="@DomainEmergencyFolder.MaxLength" aria-describedby="ImportantContacts-hint">@state.Notes.ImportantContacts</textarea>
+                <span class="field-hint" id="ImportantContacts-hint">Zum Beispiel Familie, Steuerberatung, Rechtsanwalt, Hausmeister, Bank, Versicherungsmakler.</span>
+            </div>
+            <div class="field">
+                <label for="DocumentLocation">Wo liegen die Unterlagen?</label>
+                <textarea id="DocumentLocation" name="DocumentLocation" rows="5" maxlength="@DomainEmergencyFolder.MaxLength" aria-describedby="DocumentLocation-hint">@state.Notes.DocumentLocation</textarea>
+                <span class="field-hint" id="DocumentLocation-hint">Ordner, Schränke, Schließfach, Schlüssel für Keller und Technikraum.</span>
+            </div>
+            <div class="field">
+                <label for="FurtherNotes">Weitere Hinweise</label>
+                <textarea id="FurtherNotes" name="FurtherNotes" rows="5" maxlength="@DomainEmergencyFolder.MaxLength">@state.Notes.FurtherNotes</textarea>
+            </div>
+            <button type="submit" name="Action" value="save" class="button" formnovalidate>Hinweise speichern</button>
+        </section>
+
+        <section>
+            <h2>Notfallmappe erzeugen</h2>
+            <div class="field field-checkbox">
+                <input type="checkbox" id="IncludeLeaseDocuments" name="IncludeLeaseDocuments" value="true" />
+                <label for="IncludeLeaseDocuments">Unterschriebene Mietverträge der laufenden Mietverhältnisse beilegen</label>
+            </div>
+            <p class="help">Die Dokumente machen die Datei größer. Die Mappe darf insgesamt höchstens 40 MB enthalten.</p>
+            <Notice Level="NoticeLevel.Warning" id="folder-password-notice">
+                <strong>Das Passwort wird nirgends gespeichert.</strong> Es gibt keine Wiederherstellung: Wer das Passwort verliert, kann die Mappe
+                nicht mehr öffnen, und auch Elocaro kann sie nicht öffnen. Bewahren Sie die Datei und das Passwort an getrennten Orten auf.
+            </Notice>
+            <div class="field">
+                <label for="Password">Passwort (mindestens 12 Zeichen)</label>
+                <input type="password" id="Password" name="Password" autocomplete="new-password" minlength="12" maxlength="256" required />
+            </div>
+            <div class="field">
+                <label for="PasswordConfirmation">Passwort wiederholen</label>
+                <input type="password" id="PasswordConfirmation" name="PasswordConfirmation" autocomplete="new-password" minlength="12" maxlength="256" required />
+            </div>
+            <button type="submit" name="Action" value="create" class="button button-primary">Notfallmappe erzeugen</button>
+            <p class="help">Der Download wird im Änderungsprotokoll vermerkt (ohne Passwort).</p>
+        </section>
+    </form>
+}
+
+@code {
+    private EmergencyFolderState? state;
+
+    [SupplyParameterFromQuery(Name = "fehler")]
+    private string? Error { get; set; }
+
+    protected override async Task OnInitializedAsync() => state = await Folder.StateAsync();
+}

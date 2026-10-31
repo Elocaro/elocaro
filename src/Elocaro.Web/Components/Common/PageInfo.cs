@@ -599,6 +599,14 @@ public static class PageInfoCatalog
                 "Bewahren Sie Sicherungen außerhalb des Servers auf.",
                 "Der Vollexport enthält alle Daten in lesbarer Form, etwa für einen Umzug oder die Archivierung.")]), $"{Admin}/system/datensicherung");
 
+        Add(new("Notfallmappe",
+            "Eine verschlüsselte Datei, mit der Angehörige die Vermietung weiterführen können, auch wenn Elocaro oder der Server nicht mehr erreichbar sind.",
+            [new("Gut zu wissen",
+                "Das Passwort wird nirgends gespeichert. Ohne Passwort lässt sich die Mappe nicht öffnen, und es gibt keine Wiederherstellung.",
+                "Bewahren Sie Datei und Passwort an getrennten Orten auf, etwa die Datei bei der Familie und das Passwort im Safe.",
+                "Tragen Sie in die Hinweise keine Passwörter ein. Sie stehen unverschlüsselt in der Datenbank.",
+                "Erzeugen Sie die Mappe mindestens einmal im Jahr neu, denn sie zeigt nur den Stand beim Erzeugen.")]), $"{Admin}/system/notfallmappe");
+
         Add(new("Belegauslesung",
             "Beim Erfassen von Belegen schlägt Elocaro Lieferant, Beträge, Datum und Kostenart automatisch vor.",
             [new("Gut zu wissen",

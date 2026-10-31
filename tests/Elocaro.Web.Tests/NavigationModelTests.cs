@@ -38,7 +38,7 @@ public class NavigationModelTests
         Assert.InRange(settings.Tabs.Length, 1, 7);
         var system = Assert.Single(settings.Tabs, t => t.IsGroup);
         Assert.Equal("System", system.Label);
-        Assert.Equal(["E-Mail-Versand", "Hintergrundjobs", "Datensicherung", "Belegauslesung"], system.Children!.Select(c => c.Label));
+        Assert.Equal(["E-Mail-Versand", "Hintergrundjobs", "Datensicherung", "Notfallmappe", "Belegauslesung"], system.Children!.Select(c => c.Label));
         Assert.All(system.Children!, child => Assert.True(system.Matches(child.Href)));
     }
 

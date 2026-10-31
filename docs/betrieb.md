@@ -333,6 +333,19 @@ Unabhängig vom Backup lässt sich unter *Einstellungen → Datensicherung* (Rec
 
 Nicht enthalten sind Passwort-Hashes, Tokens, Anmeldelinks und Cookie-Schlüssel. Jeder Export wird im Audit-Log vermerkt. Zum Wiederherstellen von Elocaro dient das Backup, nicht der Export.
 
+## Notfallmappe
+
+Unter *Einstellungen → System → Notfallmappe* (Recht *System*) erzeugt der Vermieter eine **verschlüsselte HTML-Datei** für Angehörige. Sie ergänzt Backup und Vollexport: Backup und Export sind für den Betrieb gedacht, die Notfallmappe ist für Menschen lesbar, ohne Server und ohne Elocaro.
+
+- **Verschlüsselung:** AES-256-GCM (.NET `AesGcm`, zufällige 12-Byte-Nonce), Schlüssel per PBKDF2-SHA256 mit 600.000 Iterationen und zufälligem 16-Byte-Salt aus dem Passwort. Die Parameter stehen unverschlüsselt in der Datei; entschlüsselt wird im Browser mit WebCrypto (`crypto.subtle`), ohne Netzwerk und ohne externe Skripte oder Schriften. Eine Content-Security-Policy in der Datei erlaubt genau ein Skript (per Hash), der Inhalt erscheint in einem `iframe` mit `sandbox` ohne Skriptrecht.
+- **Passwort:** mindestens 12 Zeichen, zweimal einzugeben, nur im Request-Body. Es wird nicht gespeichert, geloggt, auditiert oder in einer URL übertragen. Es gibt keine Wiederherstellung und keinen Zweitschlüssel; wer es verliert, verliert die Mappe.
+- **Kein Klartext auf der Platte:** Aufbau, Verschlüsselung und Auslieferung laufen im Arbeitsspeicher. Obergrenze für den unverschlüsselten Inhalt samt beigelegten Verträgen: 40 MB (darüber meldet die Seite, dass die Mappe zu groß ist; dann ohne Dokumente erzeugen).
+- **Inhalt:** nur fachliche Daten, nie Passwort-Hashes, Tokens, Schlüssel oder Bankzugänge (FinTS). Alle Werte werden beim Erzeugen HTML-kodiert.
+- **Hinweistexte** (Tabelle `emergency_folders`) liegen unverschlüsselt in der Datenbank und sind damit auch im Backup und im Vollexport. Dort keine Passwörter eintragen.
+- **Protokoll:** Jede Erzeugung schreibt einen Audit-Eintrag (`Notfallmappe`, Aktion *Read*), unabhängig von `Audit:LogAccess`.
+- **Aufbewahrung:** Datei und Passwort getrennt aufbewahren, die Datei mindestens einmal im Jahr neu erzeugen. Die Startseite erinnert (Aufgabe „Notfallmappe erstellen/erneuern“, nur mit Recht *System*, nicht auf der Demo-Instanz).
+- **Nicht enthalten:** ein automatischer Notfallzugang mit Wartezeit, ein automatischer Versand und ein Schlüssel-Treuhänder. Das wären zusätzliche Zugänge zu allen Daten und brauchen eine eigene Sicherheitsentscheidung.
+
 ## Demo-Instanz
 
 Eine öffentliche Demo zeigt Elocaro mit erfundenen Beispieldaten (ein Haus, vier Wohnungen, drei Mieter). Sie gehört **auf einen eigenen Server**, getrennt von echten Daten: Der Demo-Benutzer ist Administrator mit veröffentlichtem Passwort, und Besucher können Dateien hochladen.
