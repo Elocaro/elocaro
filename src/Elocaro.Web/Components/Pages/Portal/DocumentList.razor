@@ -4,8 +4,14 @@
 @using Elocaro.Application.Portal
 @inject ITenantPortal Portal
 @inject IDocumentLibrary Documents
+@inject Elocaro.Application.Statements.ITenantStatements Statements
 
 <PageHeader Title="Dokumente" Subtitle="Für Sie freigegebene Dokumente: Vertrag, Abrechnungen, Protokolle und Schreiben." />
+
+@if (hasStatements)
+{
+    <Notice Level="NoticeLevel.Info" id="statements-hint">Ihre Betriebskostenabrechnungen können Sie unter <a href="/portal/abrechnungen">Abrechnungen</a> mit Erläuterung der einzelnen Positionen ansehen.</Notice>
+}
 
 @if (documents is null)
 {
@@ -53,6 +59,7 @@ else
 @code {
     private IReadOnlyList<DocumentRow>? documents;
     private IReadOnlySet<Guid>? read;
+    private bool hasStatements;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -60,6 +67,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         read = await Portal.ReadDocumentsAsync(HttpContext.User);
+        hasStatements = (await Statements.ListAsync(HttpContext.User)).Count > 0;
         documents = await Documents.SharedAsync(HttpContext.User);
     }
 }

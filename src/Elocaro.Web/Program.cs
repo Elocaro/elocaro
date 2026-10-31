@@ -83,6 +83,7 @@ app.MapAnlageVEndpoints();
 app.MapDunningPreviewEndpoint();
 app.MapTemplatePreviewEndpoint();
 app.MapStatementPreviewEndpoint();
+app.MapStatementReceiptEndpoint();
 
 await app.Services.MigrateDatabaseAsync();
 await app.Services.PrepareDemoAsync();

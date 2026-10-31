@@ -4,6 +4,7 @@
 @using Elocaro.Application.Statements
 @using Elocaro.Domain.Statements
 @inject IStatementDispatch Dispatching
+@inject IStatementReceiptShares ReceiptShares
 @inject TimeProvider Clock
 @inject Notifier Notify
 @inject Confirmations Confirm
@@ -212,6 +213,55 @@ var result = statement.Result;
 </section>
 
 </MudTabPanel>
+<MudTabPanel Text="Belege für Mieter">
+<section id="receipt-shares">
+    <h2>Belege für Mieter freigeben</h2>
+    <p class="help">Freigegebene Belege sehen die Mieter im Portal bei dieser Abrechnung, sobald sie ihnen zugesendet wurde. Vorgeschlagen sind alle Belege, aus denen Kostenpositionen dieser Abrechnung stammen. Standard: nichts ist freigegeben. Eine Freigabe lässt sich jederzeit zurücknehmen; die Rücknahme gilt ab dem nächsten Aufruf.</p>
+    <Notice Level="NoticeLevel.Warning" id="receipt-privacy">Belege können Daten Dritter enthalten, zum Beispiel Namen, Anschriften, Kontodaten oder Verbrauchswerte anderer Personen. Es wird nichts automatisch geschwärzt. Bitte prüfen Sie jeden Beleg, bevor Sie ihn freigeben.</Notice>
+    @if (shareOverview is null || shareOverview.Receipts.Count == 0)
+    {
+        <EmptyState Text="Zu dieser Abrechnung gibt es keine Belege, die sich freigeben lassen." />
+    }
+    else
+    {
+        <EditForm Model="Send" class="dialog-form">
+            <div class="table-wrapper">
+                <table class="data-table" id="receipt-share-table">
+                    <thead><tr><th>Freigabe</th><th>Lieferant</th><th>Rechnung</th><th>Kostenart</th><th class="number">Betrag</th><th>Dateien</th><th>Freigegeben</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in shareOverview.Receipts)
+                        {
+                            <tr>
+                                <td>
+                                    @if (row.FileCount == 0)
+                                    {
+                                        <span class="small">keine Datei</span>
+                                    }
+                                    else
+                                    {
+                                        <AppCheckBox Value="selectedReceipts.Contains(row.ReceiptId)" ValueChanged="@(on => ToggleReceipt(row.ReceiptId, on))" Label="@($"{row.Supplier} freigeben")" />
+                                    }
+                                </td>
+                                <td>@row.Supplier</td>
+                                <td>@(row.InvoiceNumber is null ? "" : row.InvoiceNumber + " · ")@Format.Date(row.InvoiceDate)</td>
+                                <td>@string.Join(", ", row.CostTypes)</td>
+                                <td class="number">@Format.Money(row.Amount)</td>
+                                <td>@row.FileCount</td>
+                                <td>@(row.Shared ? $"seit {Format.Date(DateOnly.FromDateTime(row.SharedAt!.Value.LocalDateTime))}{(row.SharedBy is null ? "" : " von " + row.SharedBy)}" : "–")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="form-row">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveReceiptsAsync">Auswahl speichern</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="SelectAllReceipts">Alle auswählen</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="SelectNoReceipts">Keine auswählen</MudButton>
+            </div>
+        </EditForm>
+    }
+</section>
+</MudTabPanel>
 <MudTabPanel Text="Kosten">
 <section id="cost-types">
     <h2>Kosten</h2>
@@ -314,12 +364,49 @@ var result = statement.Result;
     private SendForm Send { get; set; } = new();
     private ReceiptForm Confirmation { get; set; } = new();
     private bool loaded;
+    private ReceiptShareOverview? shareOverview;
+    private HashSet<Guid> selectedReceipts = [];
 
     protected override async Task OnInitializedAsync()
     {
         Confirmation = new() { ReceivedOn = GermanTime.Today(Clock.GetUtcNow()) };
         overview = await Dispatching.OverviewAsync(Id);
+        await LoadSharesAsync();
         loaded = true;
+    }
+
+    private async Task LoadSharesAsync()
+    {
+        shareOverview = await ReceiptShares.OverviewAsync(Id);
+        selectedReceipts = shareOverview?.Receipts.Where(r => r.Shared).Select(r => r.ReceiptId).ToHashSet() ?? [];
+    }
+
+    private void ToggleReceipt(Guid receiptId, bool on)
+    {
+        if (on)
+        {
+            selectedReceipts.Add(receiptId);
+        }
+        else
+        {
+            selectedReceipts.Remove(receiptId);
+        }
+    }
+
+    private void SelectAllReceipts() => selectedReceipts = shareOverview?.Receipts.Where(r => r.FileCount > 0).Select(r => r.ReceiptId).ToHashSet() ?? [];
+
+    private void SelectNoReceipts() => selectedReceipts = [];
+
+    private async Task SaveReceiptsAsync()
+    {
+        var result = await ReceiptShares.SetSharedAsync(Id, selectedReceipts);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Freigabe der Belege wurde gespeichert.");
+        }
+
+        await LoadSharesAsync();
     }
 
     private async Task DispatchAsync(Guid leaseId)

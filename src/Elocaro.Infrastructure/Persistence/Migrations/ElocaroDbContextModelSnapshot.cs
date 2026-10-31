@@ -6808,6 +6808,62 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                     b.ToTable("statement_dispatches", (string)null);
                 });
 
+            modelBuilder.Entity("Elocaro.Domain.Statements.StatementReceiptShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("receipt_id");
+
+                    b.Property<Guid>("StatementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("statement_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_statement_receipt_shares");
+
+                    b.HasIndex("ReceiptId")
+                        .HasDatabaseName("ix_statement_receipt_shares_receipt_id");
+
+                    b.HasIndex("StatementId", "ReceiptId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_statement_receipt_shares_statement_id_receipt_id")
+                        .HasFilter("NOT deleted");
+
+                    b.ToTable("statement_receipt_shares", (string)null);
+                });
+
             modelBuilder.Entity("Elocaro.Domain.Statements.StatementReminderDismissal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9617,6 +9673,23 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_statement_dispatches_billing_statements_statement_id");
+                });
+
+            modelBuilder.Entity("Elocaro.Domain.Statements.StatementReceiptShare", b =>
+                {
+                    b.HasOne("Elocaro.Domain.Receipts.Receipt", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_statement_receipt_shares_receipts_receipt_id");
+
+                    b.HasOne("Elocaro.Domain.Statements.BillingStatement", null)
+                        .WithMany()
+                        .HasForeignKey("StatementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_statement_receipt_shares_billing_statements_statement_id");
                 });
 
             modelBuilder.Entity("Elocaro.Domain.Statements.StatementReminderDismissal", b =>

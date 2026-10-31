@@ -1,0 +1,179 @@
+@page "/portal/abrechnungen/{Id:guid}"
+@using Elocaro.Application.Statements
+@inject ITenantStatements Statements
+
+@if (!loaded)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (statement is null)
+{
+    <PageHeader Title="Abrechnung nicht gefunden" Back="/portal/abrechnungen" BackText="Abrechnungen" />
+}
+else
+{
+    var header = statement.Header;
+    <PageHeader Title="@($"Abrechnung {Format.Period(header.BillingPeriod)}")" Subtitle="@($"{header.RentalUnit} · {header.Property} · Fassung {header.Revision}")" Back="/portal/abrechnungen" BackText="Abrechnungen">
+        <Actions>
+            <a class="button button-outlined" href="/dateien/@header.LetterFileId" target="_blank" rel="noopener">Schreiben (PDF)</a>
+        </Actions>
+    </PageHeader>
+
+    @if (header.Superseded)
+    {
+        <Notice Level="NoticeLevel.Warning" id="superseded">Diese Fassung wurde durch eine neuere Fassung ersetzt. Maßgeblich ist die neuere Fassung; Sie finden sie in der <a href="/portal/abrechnungen">Liste Ihrer Abrechnungen</a>.</Notice>
+    }
+
+    @if (statement.Reason is not null)
+    {
+        <Notice Level="NoticeLevel.Info" id="correction">Korrigierte Abrechnung (Fassung @header.Revision). Grund der Korrektur: @statement.Reason</Notice>
+    }
+
+    <dl class="summary">
+        <dt>Ergebnis</dt><dd><strong>@Format.Money(Math.Abs(statement.Balance)) @(statement.Balance >= 0 ? "Nachzahlung" : "Guthaben")</strong></dd>
+        <dt>Ihre Mietzeit im Zeitraum</dt><dd>@Format.Period(statement.Tenancy) (@statement.Days Tage)</dd>
+        <dt>Versendet am</dt><dd>@Format.Date(header.SentOn)</dd>
+    </dl>
+
+    <section id="calculation">
+        <h2>So wurde gerechnet</h2>
+        <p class="help">Die Angaben stammen aus der Abrechnung, die Ihnen zugesendet wurde. Zu jeder Position können Sie eine Frage stellen.</p>
+        <div class="table-wrapper">
+            <table class="data-table card-rows">
+                <thead><tr><th>Kostenart</th><th>Rechenweg</th><th class="number">Ihr Anteil</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var line in statement.Lines)
+                    {
+                        <tr>
+                            <td>@line.Name</td>
+                            <td data-label="Rechenweg">
+                                @line.Summary
+                                @foreach (var detail in line.Details)
+                                {
+                                    <br /><span class="small">@detail</span>
+                                }
+                            </td>
+                            <td class="number" data-label="Ihr Anteil">@Format.Money(line.Share)</td>
+                            <td><a href="/portal/nachrichten/neu?abrechnung=@Id&position=@Uri.EscapeDataString(line.CostType)" aria-label="@($"Frage zur Position {line.Name}")">Frage zu dieser Position</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="data-table card-rows" id="balances">
+                <thead><tr><th>Abschnitt</th><th class="number">Ihr Anteil</th><th class="number">Vorauszahlungen</th><th class="number">Ergebnis</th></tr></thead>
+                <tbody>
+                    @foreach (var balance in statement.Balances)
+                    {
+                        <tr>
+                            <td>@balance.Name</td>
+                            <td class="number" data-label="Ihr Anteil">@Format.Money(balance.Share)</td>
+                            <td class="number" data-label="Vorauszahlungen">@Format.Money(balance.PrepaymentsPaid)</td>
+                            <td class="number" data-label="Ergebnis">@Format.Money(Math.Abs(balance.Balance)) @(balance.Balance >= 0 ? "Nachzahlung" : "Guthaben")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="previous-year">
+        <h2>Vergleich mit dem Vorjahr</h2>
+        @if (statement.Previous is not { } previous)
+        {
+            <EmptyState Compact="true" Text="Für das Vorjahr liegt keine an Sie versendete Abrechnung vor." />
+        }
+        else
+        {
+            <p class="help">Verglichen wird Ihr Anteil je Kostenart mit der letzten Abrechnung für @Format.Period(previous.PreviousPeriod), die Ihnen zugesendet wurde. Gründe für Unterschiede nennt der Vergleich nicht.</p>
+            @if (previous.TermDiffers)
+            {
+                <Notice Level="NoticeLevel.Info" id="term-differs">Ihre Mietzeit im Abrechnungszeitraum war nicht gleich lang (@previous.PreviousDays Tage im Vorjahr, @previous.Days Tage in diesem Zeitraum). Die Beträge sind deshalb nur eingeschränkt vergleichbar.</Notice>
+            }
+
+            <div class="table-wrapper">
+                <table class="data-table card-rows" id="comparison">
+                    <thead><tr><th>Kostenart</th><th class="number">Vorjahr</th><th class="number">Aktuell</th><th class="number">Unterschied</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in previous.Lines)
+                        {
+                            <tr>
+                                <td>@row.Name</td>
+                                <td class="number" data-label="Vorjahr">@Format.Money(row.Previous)</td>
+                                <td class="number" data-label="Aktuell">@Format.Money(row.Current)</td>
+                                <td class="number" data-label="Unterschied">@Signed(row.Difference)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr><th>Summe</th><th class="number" data-label="Vorjahr">@Format.Money(previous.PreviousShare)</th><th class="number" data-label="Aktuell">@Format.Money(previous.Share)</th><th class="number" data-label="Unterschied">@Signed(previous.Difference)</th></tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section id="receipts">
+        <h2>Belege</h2>
+        @if (statement.Receipts.Count == 0)
+        {
+            <EmptyState Compact="true" Text="Zu dieser Abrechnung hat Ihr Vermieter noch keine Belege freigegeben. Sie können die Belege nach Terminabsprache einsehen." />
+        }
+        else
+        {
+            <p class="help">Diese Belege hat Ihr Vermieter für Sie freigegeben. Sie sind nur für Sie bestimmt; bitte geben Sie sie nicht weiter.</p>
+            @foreach (var group in statement.Receipts)
+            {
+                <details class="group" open="@(statement.Receipts.Count <= 3)">
+                    <summary><span>@group.Name</span><span class="small">@group.Receipts.Count @(group.Receipts.Count == 1 ? "Beleg" : "Belege")</span></summary>
+                    <ul class="todos">
+                        @foreach (var receipt in group.Receipts)
+                        {
+                            <li class="todo">
+                                <strong>@receipt.Supplier</strong>
+                                <span class="small">@(receipt.InvoiceNumber is null ? "Rechnung" : $"Rechnung {receipt.InvoiceNumber}") vom @Format.Date(receipt.InvoiceDate) · @Format.Money(receipt.Amount) in dieser Abrechnung</span>
+                                @foreach (var file in receipt.Files)
+                                {
+                                    <a href="/portal/abrechnungen/@Id/belege/@receipt.ReceiptId/@file.FileId" target="_blank" rel="noopener">@(receipt.Files.Count > 1 ? $"Seite {file.Page}: {file.Name}" : file.Name)</a>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </details>
+            }
+        }
+    </section>
+
+    <section id="question">
+        <h2>Fragen zur Abrechnung</h2>
+        <p><a class="button" href="/portal/nachrichten/neu?abrechnung=@Id">Frage zur Abrechnung stellen</a></p>
+        <p class="help">Eine Rückfrage ersetzt keinen förmlichen Einwand. Einwendungen müssen Sie Ihrem Vermieter innerhalb von zwölf Monaten nach Zugang der Abrechnung mitteilen (§ 556 Abs. 3 BGB); diese Frist läuft auch während einer Rückfrage weiter.</p>
+    </section>
+}
+
+@code {
+    private PortalStatement? statement;
+    private bool loaded;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        statement = await Statements.GetAsync(HttpContext.User, Id);
+        if (statement is null)
+        {
+            // A foreign, unsent or unknown id looks the same: not found.
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+
+        loaded = true;
+    }
+
+    private static string Signed(decimal difference) => difference == 0 ? Format.Money(0m) : (difference > 0 ? "+" : "−") + Format.Money(Math.Abs(difference));
+}

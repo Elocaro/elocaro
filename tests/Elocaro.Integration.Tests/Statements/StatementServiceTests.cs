@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Common;
+using Elocaro.Application.Files;
 using Elocaro.Application.Leases;
 using Elocaro.Application.Metering;
 using Elocaro.Application.OperatingCosts;
@@ -256,6 +257,29 @@ public class StatementServiceTests(PostgresFixture postgres) : IAsyncLifetime
     {
         await using var scope = environment.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetServices<ITodoSource>().Single(q => q.GetType().Name == "StatementDeadlineTodos").TodosAsync(Admin, Ct);
+    }
+
+    [Fact]
+    public async Task Positions_without_a_receipt_file_are_a_note_and_documented_ones_are_not()
+    {
+        await ReceiptAsync(2026, "betrkv-01", 900m); // no file
+        var fileId = await WithAsync<IFileStore, Guid>(async s => (await s.SaveAsync(new MemoryStream(TestFiles.Pdf("Beleg")), "beleg.pdf", Ct)).Id);
+        Validate(await WithAsync<IReceiptService, Result>(s => s.CreateAsync(
+            new ReceiptInput { SupplierName = "Versicherung AG", InvoiceDate = new DateOnly(2026, 12, 15), Gross = 300m },
+            [fileId],
+            new CostItemInput { CostType = "betrkv-13", PropertyId = house, From = new DateOnly(2026, 1, 1), To = new DateOnly(2026, 12, 31) },
+            Ct)));
+
+        var wizard = (await WithAsync<IStatements, StatementWizard?>(s => s.PrepareAsync(house, Year(2026), cancellationToken: Ct)))!;
+
+        var hints = wizard.Findings.Where(f => f.Text.StartsWith("Prüfhinweis", StringComparison.Ordinal)).ToList();
+        var hint = Assert.Single(hints);
+        Assert.Equal(("betrkv-01", FindingSeverity.Info, WizardStep.Costs), (hint.CostType, hint.Severity, hint.Step));
+        Assert.Contains("Keine Belegdatei", hint.Text, StringComparison.Ordinal);
+
+        // A note never blocks: the release works without any acknowledgement when nothing else is wrong.
+        Assert.False(wizard.HasErrors);
+        Assert.DoesNotContain(hints, f => f.Severity != FindingSeverity.Info);
     }
 
     private async Task ReceiptAsync(int year, string costType, decimal amount) =>

@@ -55,3 +55,15 @@ internal sealed class StatementReminderDismissalConfiguration : IEntityTypeConfi
         builder.HasIndex(d => new { d.PropertyId, d.Year }).IsUnique().HasFilter("NOT deleted");
     }
 }
+
+internal sealed class StatementReceiptShareConfiguration : IEntityTypeConfiguration<StatementReceiptShare>
+{
+    public void Configure(EntityTypeBuilder<StatementReceiptShare> builder)
+    {
+        builder.ToTable("statement_receipt_shares");
+        builder.HasOne<BillingStatement>().WithMany().HasForeignKey(s => s.StatementId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Elocaro.Domain.Receipts.Receipt>().WithMany().HasForeignKey(s => s.ReceiptId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(s => new { s.StatementId, s.ReceiptId }).IsUnique().HasFilter("NOT deleted");
+        builder.HasIndex(s => s.ReceiptId);
+    }
+}

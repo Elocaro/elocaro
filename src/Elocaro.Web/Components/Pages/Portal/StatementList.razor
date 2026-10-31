@@ -1,0 +1,56 @@
+@page "/portal/abrechnungen"
+@attribute [StreamRendering]
+@using Elocaro.Application.Statements
+@inject ITenantStatements Statements
+
+<PageHeader Title="Abrechnungen" Subtitle="Ihre Betriebskostenabrechnungen mit Erläuterung der einzelnen Positionen." />
+
+@if (rows is null)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (rows.Count == 0)
+{
+    <EmptyState Text="Ihnen wurde noch keine Abrechnung zugesendet." />
+}
+else
+{
+    <div class="table-wrapper">
+        <table class="data-table" id="statements">
+            <thead>
+                <tr><th>Abrechnungszeitraum</th><th>Wohnung</th><th>Fassung</th><th>Versendet</th><th class="number">Ergebnis</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td data-label="Abrechnungszeitraum">@Format.Period(row.BillingPeriod)</td>
+                        <td data-label="Wohnung">@row.RentalUnit<br /><span class="small">@row.Property</span></td>
+                        <td data-label="Fassung">
+                            @row.Revision
+                            @if (row.Superseded)
+                            {
+                                <StatusChip Level="StatusLevel.Warning">ersetzt</StatusChip>
+                            }
+                        </td>
+                        <td data-label="Versendet">@Format.Date(row.SentOn)</td>
+                        <td class="number" data-label="Ergebnis">@Format.Money(Math.Abs(row.Balance)) @(row.Balance >= 0 ? "Nachzahlung" : "Guthaben")</td>
+                        <td>
+                            <a href="/portal/abrechnungen/@row.DispatchId">Erläuterung</a>
+                            · <a href="/dateien/@row.LetterFileId" target="_blank" rel="noopener">Schreiben (PDF)</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<PortalStatementRow>? rows;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync() => rows = await Statements.ListAsync(HttpContext.User);
+}
