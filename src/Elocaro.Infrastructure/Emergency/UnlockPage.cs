@@ -105,12 +105,14 @@ internal static class UnlockPage
     /// <summary>The page with the placeholder <c>{{DATA}}</c> where the encrypted data block goes.</summary>
     public static string Template(DateOnly createdOn)
     {
-        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(Script)));
+        // Browsers normalise line breaks before hashing; a checkout with CRLF must not break the hash.
+        var script = Script.ReplaceLineEndings("\n");
+        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)));
         return Html
             .Replace("{{HASH}}", hash, StringComparison.Ordinal)
             .Replace("{{DATE}}", createdOn.ToString("dd.MM.yyyy", CultureInfo.GetCultureInfo("de-DE")), StringComparison.Ordinal)
             .Replace("{{DATA_ID}}", EmergencyFolderEncryption.DataElementId, StringComparison.Ordinal)
-            .Replace("{{SCRIPT}}", Script, StringComparison.Ordinal);
+            .Replace("{{SCRIPT}}", script, StringComparison.Ordinal);
     }
 
     private const string Html = """

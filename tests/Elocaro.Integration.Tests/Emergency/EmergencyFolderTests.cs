@@ -39,6 +39,16 @@ public partial class EmergencyFolderTests(PostgresFixture postgres) : IAsyncLife
     public async ValueTask DisposeAsync() => await environment.DisposeAsync();
 
     [Fact]
+    public void Content_security_policy_hash_matches_the_script_as_the_browser_reads_it()
+    {
+        var page = UnlockPage.Template(new DateOnly(2026, 3, 20));
+
+        var script = page[(page.LastIndexOf("<script>", StringComparison.Ordinal) + "<script>".Length)..page.LastIndexOf("</script>", StringComparison.Ordinal)];
+        Assert.DoesNotContain('\r', script); // browsers normalise line breaks before hashing
+        Assert.Contains($"'sha256-{Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)))}'", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Created_folder_decrypts_with_the_password_and_contains_the_business_data()
     {
         await SeedAsync();
