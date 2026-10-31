@@ -59,7 +59,7 @@ Rein deutsche Rechtsbegriffe ohne gängige Übersetzung behalten ihren Kern (z. 
 dotnet build                              # Warnungen gelten als Fehler
 dotnet test                               # alle Tests (Integrationstests brauchen Docker)
 dotnet test --project tests/Elocaro.Domain.Tests
-dotnet format                             # Formatierung anwenden (CI prüft mit --verify-no-changes)
+dotnet format                             # Formatierung anwenden (vor dem Commit mit --verify-no-changes prüfen)
 dotnet run --project src/Elocaro.Web
 dotnet tool restore                       # lokale Tools (dotnet-ef)
 ```
@@ -695,7 +695,7 @@ Testdatenbanken: Der PostgreSQL-Container läuft mit `max_connections=300`, die 
 
 Konventionen: Testnamen auf Deutsch mit Unterstrichen (`Loeschen_ist_logisch_…`), Zeit über `FakeTimeProvider`, kein `DateTime.Now` im Produktivcode (immer `TimeProvider`).
 
-Testergebnisse als TRX und Abdeckung als Cobertura (wie in der CI):
+Testergebnisse als TRX und Abdeckung als Cobertura (die CI erfasst die Abdeckung nur im manuellen Lauf mit der Option `coverage`, sie verlangsamt die Tests lokal um rund 20 bis 30 %):
 
 ```bash
 dotnet test -- --report-trx --results-directory testergebnisse --coverage --coverage-output-format cobertura
@@ -705,11 +705,11 @@ dotnet test -- --report-trx --results-directory testergebnisse --coverage --cove
 
 | Workflow | Auslöser | Inhalt |
 |---|---|---|
-| `.github/workflows/ci.yml` | Push auf `main` (und `ccr-*`-Sitzungsbranches), Pull Requests, manuell | Speicherplatz freiräumen, Restore, `dotnet format --verify-no-changes`, Release-Build (Warnungen sind Fehler), Playwright-Chromium installieren, alle Tests inkl. Testcontainers und Browser-Tests; fehlgeschlagene Tests laufen höchstens zweimal erneut (`--retry-failed-tests 2`, nur bei höchstens 10 Fehlern), weil Chromium auf dem geteilten Runner gelegentlich Seiten durch einen Netzwerkwechsel (`net::ERR_NETWORK_CHANGED`) verliert. TRX und Cobertura als Artefakt `testergebnisse` (14 Tage). Zweiter Job baut App- und Backup-Image (Layer-Cache über `type=gha`) und führt `deploy/backup/restore-test.sh` aus |
+| `.github/workflows/ci.yml` | Push auf `main` (und `ccr-*`-Sitzungsbranches), Pull Requests, manuell | Speicherplatz freiräumen, Restore, `dotnet format whitespace --verify-no-changes`, Release-Build (Warnungen sind Fehler, erzwingt auch die Codestil-Regeln), Playwright-Chromium installieren, alle Tests inkl. Testcontainers und Browser-Tests; fehlgeschlagene Tests laufen höchstens zweimal erneut (`--retry-failed-tests 2`, nur bei höchstens 10 Fehlern), weil Chromium auf dem geteilten Runner gelegentlich Seiten durch einen Netzwerkwechsel (`net::ERR_NETWORK_CHANGED`) verliert. TRX (im manuellen Lauf mit der Option `coverage` zusätzlich Cobertura) als Artefakt `testergebnisse` (14 Tage). Zweiter Job baut App- und Backup-Image (Layer-Cache über `type=gha`) und führt `deploy/backup/restore-test.sh` aus |
 | `.github/workflows/release.yml` | Tag `v*.*.*` | Multi-Arch-Images (`linux/amd64`, `linux/arm64`) `ghcr.io/elocaro/elocaro` und `…/elocaro-backup` mit Tags `1.2.3`, `1.2`, `sha-…` und `latest` |
 | `.github/dependabot.yml` | wöchentlich | NuGet (gruppiert: .NET-Plattform, Testpakete), Docker-Basisimages, Compose-Images, Actions |
 
-Vor dem Push lokal dasselbe prüfen: `dotnet format --verify-no-changes && dotnet build -c Release && dotnet test`. Workflows lassen sich mit [actionlint](https://github.com/rhysd/actionlint) prüfen. Release-Ablauf und Branch-Schutz stehen in [CONTRIBUTING.md](../CONTRIBUTING.md).
+Vor dem Push lokal prüfen: `dotnet format --verify-no-changes && dotnet build -c Release && dotnet test`. Das volle `dotnet format` prüft zusätzlich die Reihenfolge der `using`-Direktiven, die CI aus Zeitgründen nicht prüft. Workflows lassen sich mit [actionlint](https://github.com/rhysd/actionlint) prüfen. Release-Ablauf und Branch-Schutz stehen in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Neues Modul
 

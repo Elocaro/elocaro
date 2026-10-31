@@ -6,6 +6,11 @@ on:
     branches: [main, "ccr-*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      coverage:
+        description: "Testabdeckung erfassen (Cobertura im Artefakt, Tests laufen langsamer)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -46,8 +51,10 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      # Whitespace only: the build enforces the code style rules (EnforceCodeStyleInBuild, warnings are errors).
+      # The order of usings is checked only by the full dotnet format before a commit.
       - name: Formatierung prüfen
-        run: dotnet format --verify-no-changes --no-restore
+        run: dotnet format whitespace --verify-no-changes --no-restore
 
       - name: Build
         run: dotnet build --no-restore -c Release
@@ -62,7 +69,7 @@ jobs:
         run: >-
           dotnet test --no-build -c Release
           -- --report-trx --results-directory "${{ github.workspace }}/testergebnisse"
-          --coverage --coverage-output-format cobertura
+          ${{ inputs.coverage && '--coverage --coverage-output-format cobertura' || '' }}
           --retry-failed-tests 2 --retry-failed-tests-max-tests 10
 
       - name: Speicherplatz anzeigen
