@@ -139,8 +139,16 @@ internal sealed class Privacy(
             return Result.Failed("Die Person ist bereits anonymisiert.");
         }
 
+        // Read before the person loses the address.
+        var mailAddresses = await PersonMails.AddressesAsync(db, personId, cancellationToken);
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         person.Anonymize(clock.GetUtcNow());
+        foreach (var mail in await PersonMails.To(db, mailAddresses).ToListAsync(cancellationToken))
+        {
+            mail.AnonymizeRecipients(mailAddresses, clock.GetUtcNow());
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
         // Soft-deleted addresses/accounts still contained the data: remove them permanently,

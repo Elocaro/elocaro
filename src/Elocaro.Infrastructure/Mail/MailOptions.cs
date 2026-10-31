@@ -18,6 +18,9 @@ public sealed class MailOptions
     /// <summary>Maximum number of mails per job run.</summary>
     public int BatchSize { get; set; } = 20;
 
+    /// <summary>Days after which sent or failed mails are removed; 0 or less keeps them forever.</summary>
+    public int RetentionDays { get; set; } = 1095;
+
     public SmtpOptions Smtp { get; set; } = new();
 }
 

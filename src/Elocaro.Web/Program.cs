@@ -88,6 +88,7 @@ app.MapStatementReceiptEndpoint();
 
 await app.Services.MigrateDatabaseAsync();
 await app.Services.PrepareDemoAsync();
+await app.Services.AnnounceSetupCodeAsync();
 await app.RunAsync();
 return 0;
 

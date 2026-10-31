@@ -16,16 +16,29 @@ internal sealed class AccountService(
     IMailSender mail,
     TimeProvider clock,
     IOptions<ApplicationOptions> app,
-    AuditWriter audit) : IAccountService
+    AuditWriter audit,
+    ISetupCode expectedSetupCode) : IAccountService
 {
+    // Arbitrary, but unique within this application: database-wide key of the advisory lock around the initial setup.
+    private const long InitialSetupLock = 0x456C6F63617201;
+
     public static readonly TimeSpan MagicLinkValidity = TimeSpan.FromMinutes(15);
     public static readonly TimeSpan InvitationValidity = TimeSpan.FromDays(7);
 
     public async Task<bool> InitialSetupPossibleAsync(CancellationToken cancellationToken = default) =>
         !await db.Users.AnyAsync(cancellationToken);
 
-    public async Task<AccountResult> CreateFirstAdminAsync(string email, string displayName, string password, CancellationToken cancellationToken = default)
+    public async Task<AccountResult> CreateFirstAdminAsync(string setupCode, string email, string displayName, string password, CancellationToken cancellationToken = default)
     {
+        if (!expectedSetupCode.Matches(setupCode))
+        {
+            return AccountResult.Failed("Der Einrichtungscode stimmt nicht.");
+        }
+
+        // Check and creation under one lock: of several simultaneous requests, only the first finds an empty installation.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({InitialSetupLock})", cancellationToken);
+
         await EnsureRolesAsync(roleManager);
         if (!await InitialSetupPossibleAsync(cancellationToken))
         {
@@ -43,6 +56,7 @@ internal sealed class AccountService(
         await userManager.AddToRoleAsync(user, Roles.Admin);
         await audit.LogAsync(nameof(ApplicationUser), user.Id, AuditAction.Created,
             [new("Email", null, user.Email), new("Rolle", null, Roles.Admin)], cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return AccountResult.Ok(user.Id);
     }
 

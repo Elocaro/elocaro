@@ -12,7 +12,7 @@ internal sealed class MailService(ElocaroDbContext db, TimeProvider clock) : IMa
             .AsNoTracking()
             .OrderByDescending(m => m.CreatedAt)
             .Take(count)
-            .Select(m => new MailOverview(m.Id, m.To, m.Subject, m.Status, m.Attempts, m.CreatedAt, m.SentAt, m.NextAttemptAt, m.LastError))
+            .Select(m => new MailOverview(m.Id, m.To, m.Subject, m.Status, m.Attempts, m.CreatedAt, m.SentAt, m.NextAttemptAt, m.LastError, m.ContentPurgedAt != null))
             .ToListAsync(cancellationToken);
 
     public async Task RetryAsync(Guid id, CancellationToken cancellationToken = default)

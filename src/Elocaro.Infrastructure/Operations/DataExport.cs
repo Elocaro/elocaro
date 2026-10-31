@@ -378,6 +378,8 @@ internal sealed class DataExport(
         Nicht enthalten
         ---------------
         Passwort-Hashes, Sicherheits- und Anmeldetokens, Anmeldelinks und die Schlüssel für Anmelde-Cookies.
+        Der Text ausgehender E-Mails: Er kann gültige Links enthalten. Empfänger, Betreff, Status und Zeitpunkte
+        stehen als Versandnachweis in data/outgoing_mails.*, die versendeten Dokumente unter files/.
         Für eine Wiederherstellung von Elocaro ist das Backup (docs/betrieb.md) gedacht, nicht dieser Export.
         """;
 }

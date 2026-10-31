@@ -21,6 +21,22 @@ public sealed class OutgoingMail : Entity
 
     public const int MaxErrorLength = 2000;
 
+    /// <summary>Replaces the body once the content is gone; recipient, subject, time and status remain as proof.</summary>
+    public const string PurgedContent = "[Inhalt entfernt]";
+
+    /// <summary>Replaces the subject when a recipient is anonymized.</summary>
+    public const string AnonymizedSubject = "[anonymisiert]";
+
+    /// <summary>Replaces the address when a recipient is anonymized.</summary>
+    public const string AnonymizedAddress = "anonymisiert@example.invalid";
+
+    /// <summary>
+    /// Templates whose body contains a link that works as a key (sign-in, password, signature). Their content lives only as long as
+    /// it is needed for delivery. A new template with such a link belongs here.
+    /// </summary>
+    public static readonly IReadOnlyList<string> SecretTemplates =
+        ["invitation-password", "invitation-link", "magic-link", "password-reset", "signature-request"];
+
     private static readonly TimeSpan MaxDelay = TimeSpan.FromHours(6);
 
     private OutgoingMail()
@@ -70,8 +86,15 @@ public sealed class OutgoingMail : Entity
 
     public string Subject { get; private set; }
 
+    /// <remarks>
+    /// Not exported: the export works per column and must never contain a link that still works, whatever the status of the mail.
+    /// The proof of delivery (recipients, subject, status, times, template, reference) stays in the export.
+    /// </remarks>
+    [NoExport]
     public string Html { get; private set; }
 
+    /// <inheritdoc cref="Html" path="/remarks"/>
+    [NoExport]
     public string Text { get; private set; }
 
     public List<Guid> AttachmentFileIds { get; private set; } = [];
@@ -92,12 +115,18 @@ public sealed class OutgoingMail : Entity
 
     public string? LastError { get; private set; }
 
+    /// <summary>When the body was replaced with <see cref="PurgedContent"/>; such a mail can no longer be sent.</summary>
+    public DateTimeOffset? ContentPurgedAt { get; private set; }
+
+    public bool ContainsSecret => Template is not null && SecretTemplates.Contains(Template);
+
     public void MarkSent(DateTimeOffset now)
     {
         Status = MailStatus.Sent;
         SentAt = now;
         Attempts++;
         LastError = null;
+        PurgeSecretContent(now);
     }
 
     public void MarkFailedAttempt(DateTimeOffset now, string errors)
@@ -108,6 +137,7 @@ public sealed class OutgoingMail : Entity
         if (Attempts >= MaxAttempts)
         {
             Status = MailStatus.Failed;
+            PurgeSecretContent(now);
             return;
         }
 
@@ -122,9 +152,53 @@ public sealed class OutgoingMail : Entity
             throw new InvalidOperationException("Die Mail wurde bereits gesendet.");
         }
 
+        if (ContentPurgedAt is not null)
+        {
+            throw new RuleViolationException("Der Inhalt dieser Mail wurde entfernt, sie kann nicht erneut gesendet werden. Lösen Sie die Einladung oder den Link neu aus.");
+        }
+
         Status = MailStatus.Pending;
         Attempts = 0;
         NextAttemptAt = now;
+    }
+
+    /// <summary>Replaces the body with a placeholder. A mail still waiting for delivery keeps its content.</summary>
+    public void PurgeContent(DateTimeOffset now)
+    {
+        if (Status == MailStatus.Pending)
+        {
+            throw new InvalidOperationException("Eine wartende Mail braucht ihren Inhalt noch.");
+        }
+
+        Html = PurgedContent;
+        Text = PurgedContent;
+        ContentPurgedAt ??= now;
+    }
+
+    /// <summary>
+    /// Removes a person from the mail: the address, subject, body and last error (it may quote the address) are replaced.
+    /// A waiting mail is not delivered any more, not even to its other recipients, as its content is gone.
+    /// </summary>
+    public void AnonymizeRecipients(IReadOnlyCollection<string> addresses, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(addresses);
+        To = To.Select(a => addresses.Contains(a, StringComparer.OrdinalIgnoreCase) ? AnonymizedAddress : a).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        Subject = AnonymizedSubject;
+        LastError = null;
+        if (Status == MailStatus.Pending)
+        {
+            Status = MailStatus.Failed;
+        }
+
+        PurgeContent(now);
+    }
+
+    private void PurgeSecretContent(DateTimeOffset now)
+    {
+        if (ContainsSecret)
+        {
+            PurgeContent(now);
+        }
     }
 
     /// <summary>Exponential backoff: 1, 2, 4, 8 ... minutes, at most 6 hours.</summary>

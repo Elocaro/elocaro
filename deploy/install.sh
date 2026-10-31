@@ -103,6 +103,7 @@ case "${SMTP_PORT}" in ''|*[!0-9]*) fail "SMTP-Port muss eine Zahl sein." ;; esa
 umask 077
 POSTGRES_PASSWORD=$(secret)
 RESTIC_PASSWORD=$(secret)
+ELOCARO_SETUP_CODE=$(secret)
 
 cat > .env <<ENVFILE
 # Erzeugt von deploy/install.sh am $(date +%Y-%m-%d). Nicht committen.
@@ -110,6 +111,9 @@ ELOCARO_DOMAIN='$ELOCARO_DOMAIN'
 ACME_EMAIL='$ACME_EMAIL'
 
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+
+# Wird einmal gebraucht: beim Anlegen des ersten Administrators (Ersteinrichtung).
+ELOCARO_SETUP_CODE=$ELOCARO_SETUP_CODE
 
 MAIL_SENDER='$MAIL_SENDER'
 MAIL_SENDER_NAME='$MAIL_SENDER_NAME'
@@ -132,6 +136,7 @@ chmod 600 .env
 
 say ""
 say "deploy/.env geschrieben."
+say "Einrichtungscode für den ersten Aufruf: $ELOCARO_SETUP_CODE (steht auch in deploy/.env, ELOCARO_SETUP_CODE)"
 say "Wichtig: Das Sicherungspasswort (RESTIC_PASSWORD) steht in deploy/.env. Bewahren Sie es zusätzlich im Passwortmanager auf."
 if [ "$LOCAL" = 0 ]; then
   say "Die Sicherung liegt vorerst auf diesem Server (./deploy/backup-repo). Richten Sie ein externes Ziel ein (S3, SFTP, Azure Blob): docs/betrieb.md, Abschnitt Backup."
@@ -161,6 +166,7 @@ if [ "$ready" = 1 ]; then
   say ""
   say "Elocaro läuft: $url"
   say "Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, danach Zwei-Faktor-Anmeldung)."
+  say "Einrichtungscode dafür: $ELOCARO_SETUP_CODE (steht auch in deploy/.env)"
 else
   say ""
   say "Elocaro antwortet noch nicht unter $url."

@@ -20,6 +20,8 @@ services:
     environment:
       ConnectionStrings__Elocaro: "Host=postgres;Database=elocaro;Username=elocaro;Password=${POSTGRES_PASSWORD};GSS Encryption Mode=Disable"
       Application__BaseUrl: "https://${ELOCARO_DOMAIN}/"
+      # Required for the initial setup. Empty: the app writes a random code to its log at startup, see docs/installation.md
+      Setup__Code: ${ELOCARO_SETUP_CODE:-}
       Pdf__GotenbergUrl: "http://gotenberg:3000"
       Mail__SenderAddress: ${MAIL_SENDER}
       Mail__SenderName: ${MAIL_SENDER_NAME:-Elocaro}
@@ -29,6 +31,7 @@ services:
       Mail__Smtp__Security: ${SMTP_SECURITY:-StartTls}
       Mail__Smtp__UserName: ${SMTP_USER:-}
       Mail__Smtp__Password: ${SMTP_PASSWORD:-}
+      Mail__RetentionDays: ${MAIL_RETENTION_DAYS:-1095}
       # Receipt extraction: None (default) | Claude | Ollama, see docs/betrieb.md
       ReceiptExtraction__Provider: ${RECEIPT_AI_PROVIDER:-None}
       ReceiptExtraction__AcceptExternalProcessing: ${RECEIPT_AI_ACCEPT_EXTERNAL:-false}

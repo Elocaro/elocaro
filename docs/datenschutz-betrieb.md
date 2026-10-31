@@ -10,6 +10,7 @@ Arbeitsgrundlage für Betreiber von Elocaro: Wer mit Elocaro Mieterdaten verarbe
 | Zahlungsverkehr | IBAN, Kontoumsätze, Verwendungszweck | Mieter, Lieferanten | Vertragserfüllung, rechtliche Pflicht | Bank (bei FinTS-Abruf) | wie oben |
 | Mieterportal | Konto, Nachrichten, Meldungen mit Fotos, Zählerstände | Mieter | Vertragserfüllung | – | wie oben |
 | Benachrichtigungen | E-Mail-Adresse, Gerätekennung für Push | Mieter, Benutzer | berechtigtes Interesse / Einwilligung (Push) | SMTP-Anbieter, Push-Dienst des Browsers (ohne Inhalt) | bis Widerruf |
+| Ausgehende E-Mails | Empfänger, Betreff, Text, Zustellstatus | Mieter, Benutzer, Dienstleister | Vertragserfüllung, Nachweis des Versands | SMTP-Anbieter | Text von Mails mit geheimen Links (Einladung, Anmeldung, Passwort, Signatur) bis zur Zustellung; alle Mails 3 Jahre (`Mail:RetentionDays`). Mails, auf die ein Abrechnungsversand oder eine Mahnung verweist, bleiben danach ohne Text als Nachweis, siehe `docs/betrieb.md` |
 | Belege | Rechnungen, Lieferantendaten | Lieferanten | rechtliche Pflicht | optional KI-Anbieter, wenn die Belegauslesung mit einem Cloud-Anbieter aktiv ist (nur nach ausdrücklicher Einwilligung der Betreiber, siehe `docs/betrieb.md`) | Aufbewahrungsfristen |
 | Digitale Unterschrift | Name, IP-Adresse, Zeitpunkt, Prüfsumme | Mieter | Beweissicherung, Art. 6 Abs. 1 lit. f | – | mit dem Vertrag |
 | Betrieb | Zugriffs- und Änderungsprotokoll, Logs | Benutzer | IT-Sicherheit, Art. 6 Abs. 1 lit. f | – | Protokoll nach `Audit`-Einstellung, Job-Protokoll begrenzt |
@@ -35,8 +36,8 @@ Arbeitsgrundlage für Betreiber von Elocaro: Wer mit Elocaro Mieterdaten verarbe
 - Abgelegte PDFs (Schreiben, Verträge, Abrechnungen) werden nicht nachträglich verändert.
 
 **Betroffenenrechte**
-- Auskunft (Art. 15): JSON-Export je Person mit allen Daten, Protokoll und Modulabschnitten.
-- Löschung/Einschränkung (Art. 17/18): Anonymisieren entfernt Name, Kontaktdaten, Anschriften und IBANs; Buchungen bleiben für gesetzliche Aufbewahrung erhalten. Vorschläge nach Fristende auf der Seite Datenschutz.
+- Auskunft (Art. 15): JSON-Export je Person mit allen Daten, Protokoll und Modulabschnitten, auch den Mails an ihre aktuelle Adresse (ohne den Inhalt von Mails mit geheimen Links).
+- Löschung/Einschränkung (Art. 17/18): Anonymisieren entfernt Name, Kontaktdaten, Anschriften und IBANs, in ausgehenden Mails an die aktuelle Adresse der Person auch Adresse, Betreff und Text (noch wartende Mails werden nicht mehr zugestellt); Buchungen bleiben für gesetzliche Aufbewahrung erhalten. Mails an eine früher hinterlegte Adresse erfasst das nicht, sie fallen mit der Frist weg. Vorschläge nach Fristende auf der Seite Datenschutz.
 - Berichtigung: Stammdaten bearbeiten; Mieter können Kontaktänderungen im Portal beantragen.
 
 **Organisatorisch (Betreiber ergänzen)**: Verpflichtung auf Vertraulichkeit, Umgang mit Zugangsdaten, Notfallplan, regelmäßige Updates (Hinweise im Dashboard bei fehlender Sicherung).

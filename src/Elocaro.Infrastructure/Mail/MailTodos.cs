@@ -7,8 +7,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Infrastructure.Mail;
 
-/// <summary>Reports permanently failed emails on the dashboard (for accounts with the system permission).</summary>
-internal sealed class MailTodos(ElocaroDbContext db) : ITodoSource
+/// <summary>
+/// Reports permanently failed emails on the dashboard (for accounts with the system permission). A failed mail whose content was removed
+/// cannot be resent and would stay forever: it is reported for a week, long enough to notice a broken mail server.
+/// </summary>
+internal sealed class MailTodos(ElocaroDbContext db, TimeProvider clock) : ITodoSource
 {
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
@@ -18,10 +21,11 @@ internal sealed class MailTodos(ElocaroDbContext db) : ITodoSource
             return [];
         }
 
-        var count = await db.Set<OutgoingMail>().CountAsync(m => m.Status == MailStatus.Failed, cancellationToken);
+        var purgedSince = clock.GetUtcNow().AddDays(-7);
+        var count = await db.Set<OutgoingMail>().CountAsync(m => m.Status == MailStatus.Failed && (m.ContentPurgedAt == null || m.ContentPurgedAt > purgedSince), cancellationToken);
         return count == 0
             ? []
             : [new TodoItem("System", count == 1 ? "1 E-Mail konnte nicht zugestellt werden" : $"{count} E-Mails konnten nicht zugestellt werden",
-                "/verwaltung/system/mails", Urgency.Urgent, "Zugangsdaten des Mailservers prüfen und erneut senden.")];
+                "/verwaltung/system/mails", Urgency.Urgent, "Zugangsdaten des Mailservers prüfen und erneut senden. Einladungen und Anmeldelinks neu auslösen.")];
     }
 }

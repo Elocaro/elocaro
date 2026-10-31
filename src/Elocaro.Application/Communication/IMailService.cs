@@ -20,4 +20,5 @@ public sealed record MailOverview(
     DateTimeOffset CreatedAt,
     DateTimeOffset? SentAt,
     DateTimeOffset NextAttemptAt,
-    string? LastError);
+    string? LastError,
+    bool ContentPurged);

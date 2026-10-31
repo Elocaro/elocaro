@@ -165,7 +165,7 @@ public partial class EmergencyFolderTests(PostgresFixture postgres) : IAsyncLife
         await SeedAsync();
         await using (var scope = environment.Services.CreateAsyncScope())
         {
-            await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync("admin@example.de", "Admin", "Geheimes-Anmelde-Passwort-2026", Ct);
+            await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync(scope.ServiceProvider.GetRequiredService<ISetupCode>().Value, "admin@example.de", "Admin", "Geheimes-Anmelde-Passwort-2026", Ct);
             var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();
             var account = new BankAccount("Online-Konto", "DE89370400440532013000");
             account.SetFinTs("https://fints.example.de/", "12345678", "FINTS-GEHEIME-KENNUNG");

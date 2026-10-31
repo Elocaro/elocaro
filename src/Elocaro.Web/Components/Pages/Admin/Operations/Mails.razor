@@ -4,6 +4,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Elocaro.Application.Common
 @using Elocaro.Application.Communication
+@using Elocaro.Domain.Common
 @using Elocaro.Domain.Communication
 @inject IMailService MailService
 @inject IMailSender MailSender
@@ -43,7 +44,14 @@
                     <MudTd DataLabel="Versuche">@context.Attempts</MudTd>
                     <MudTd DataLabel="Gesendet / nächster Versuch">@(context.Status == MailStatus.Sent ? Format.Timestamp(context.SentAt) : Format.Timestamp(context.NextAttemptAt))</MudTd>
                     <MudTd>
-                        @if (context.Status != MailStatus.Sent)
+                        @if (context.ContentPurged)
+                        {
+                            @if (context.Status == MailStatus.Failed)
+                            {
+                                <span class="small">Inhalt entfernt, nur neu auslösbar</span>
+                            }
+                        }
+                        else if (context.Status != MailStatus.Sent)
                         {
                             <MudButton Variant="Variant.Outlined" OnClick="() => RetryAsync(context.Id)">Erneut senden</MudButton>
                         }
@@ -76,8 +84,16 @@
 
     private async Task RetryAsync(Guid id)
     {
-        await MailService.RetryAsync(id);
-        Notify.Success("Die Nachricht wird erneut versendet.");
+        try
+        {
+            await MailService.RetryAsync(id);
+            Notify.Success("Die Nachricht wird erneut versendet.");
+        }
+        catch (RuleViolationException ex)
+        {
+            Notify.Error(ex.Message);
+        }
+
         mails = await MailService.LatestAsync(100);
     }
 

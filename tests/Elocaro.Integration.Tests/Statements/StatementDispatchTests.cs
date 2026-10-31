@@ -21,11 +21,14 @@ using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
 using Elocaro.Domain.Receipts;
 using Elocaro.Domain.Statements;
+using Elocaro.Infrastructure.Mail;
+using Elocaro.Infrastructure.Operations;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Statements;
 using Elocaro.Integration.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Elocaro.Integration.Tests.Statements;
 
@@ -122,6 +125,27 @@ public class StatementDispatchTests(PostgresFixture postgres, GotenbergFixture g
 
         var twice = await WithAsync<IStatementDispatch, Result>(s => s.DispatchAsync(statementId, leaseAnna, new DispatchInput(), Ct));
         Assert.Contains("bereits versendet", twice.Errors.Single(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Retention_keeps_the_mail_of_a_statement_as_proof_without_its_content()
+    {
+        await ReceiptAsync(1200m);
+        var statementId = await ReleaseAsync();
+        Validate(await WithAsync<IStatementDispatch, Result>(s => s.DispatchAsync(statementId, leaseAnna, new DispatchInput(), Ct)));
+        await using var scope = environment.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();
+        var mailId = (await db.Set<StatementDispatch>().SingleAsync(Ct)).MailId!.Value;
+        await db.Set<OutgoingMail>().Where(m => m.Id == mailId).ExecuteUpdateAsync(s => s.SetProperty(m => m.Status, MailStatus.Sent), Ct);
+        environment.Clock.Advance(TimeSpan.FromDays(1096));
+
+        await new MailRetention(db, environment.Clock, Options.Create(new MailOptions())).CleanUpAsync(Ct);
+
+        var mail = await db.Set<OutgoingMail>().AsNoTracking().SingleAsync(m => m.Id == mailId, Ct);
+        Assert.Equal(OutgoingMail.PurgedContent, mail.Text);
+        Assert.Equal(OutgoingMail.PurgedContent, mail.Html);
+        Assert.Equal(["anna@example.de"], mail.To);
+        Assert.NotEmpty(mail.AttachmentFileIds);
     }
 
     [Fact]

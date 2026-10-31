@@ -36,7 +36,7 @@ git clone https://github.com/Elocaro/elocaro.git && cd elocaro
 ./deploy/install.sh              # echte Installation mit Domain und Let's Encrypt
 ```
 
-Der erste Aufruf führt durch die Ersteinrichtung (Administrator-Konto, Zwei-Faktor-Anmeldung, Einrichtungsassistent). Alle Wege (Server, von Hand, NAS, Raspberry Pi, Azure) stehen in der [Installationsanleitung](docs/installation.md).
+Der erste Aufruf führt durch die Ersteinrichtung (Einrichtungscode aus der Skriptausgabe, Administrator-Konto, Zwei-Faktor-Anmeldung, Einrichtungsassistent). Alle Wege (Server, von Hand, NAS, Raspberry Pi, Azure) stehen in der [Installationsanleitung](docs/installation.md).
 
 ## Grenzen
 

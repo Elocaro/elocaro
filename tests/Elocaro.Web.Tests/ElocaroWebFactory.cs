@@ -19,6 +19,8 @@ public sealed class ElocaroWebFactory(
     PostgresFixture? postgres = null)
     : WebApplicationFactory<Program>
 {
+    public const string SetupCode = "einrichtungscode-fuer-tests";
+
     public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
 
     public string FilePath { get; } = Path.Combine(Path.GetTempPath(), "elocaro-webtests", Guid.NewGuid().ToString("N"));
@@ -75,6 +77,7 @@ public sealed class ElocaroWebFactory(
         builder.UseSetting("ConnectionStrings:Elocaro", connection);
         builder.UseSetting("Database:AutoMigrate", "true");
         builder.UseSetting("Jobs:Active", "false");
+        builder.UseSetting("Setup:Code", SetupCode);
         builder.UseSetting("Application:BaseUrl", "https://localhost/");
         builder.UseSetting("SignIn:RequestsPerMinute", "1000");
         builder.UseSetting("FileStore:Path", FilePath);

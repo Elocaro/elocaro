@@ -35,7 +35,7 @@ public class UserManagementTests(PostgresFixture postgres) : IAsyncLifetime
     [Fact]
     public async Task Admins_always_have_all_permissions()
     {
-        await WithAccountsAsync(k => k.CreateFirstAdminAsync("admin@example.de", "Admin", "Langes-Passwort-2026", Ct));
+        await WithAccountsAsync(k => k.CreateFirstAdminAsync(environment.Services.GetRequiredService<ISetupCode>().Value, "admin@example.de", "Admin", "Langes-Passwort-2026", Ct));
 
         var admin = (await WithAsync(v => v.ListAsync(Ct))).Single();
 

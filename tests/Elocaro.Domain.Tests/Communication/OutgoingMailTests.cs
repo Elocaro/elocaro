@@ -1,3 +1,4 @@
+using Elocaro.Domain.Common;
 using Elocaro.Domain.Communication;
 
 namespace Elocaro.Domain.Tests.Communication;
@@ -127,5 +128,80 @@ public class OutgoingMailTests
         mail.MarkSent(Now);
 
         Assert.Throws<InvalidOperationException>(() => mail.Retry(Now));
+    }
+
+    private static OutgoingMail SecretMail(params string[] to) =>
+        new(to.Length == 0 ? ["mieter@example.de"] : to, "Ihr Anmeldelink", "<a href=\"https://x/konto/link/geheim\">Anmelden</a>", "https://x/konto/link/geheim", Now, template: "magic-link");
+
+    [Fact]
+    public void Secret_mail_keeps_its_content_while_retrying_and_loses_it_when_sent()
+    {
+        var mail = SecretMail();
+
+        mail.MarkFailedAttempt(Now, "kein Server");
+        Assert.Contains("geheim", mail.Text, StringComparison.Ordinal);
+
+        mail.MarkSent(Now);
+
+        Assert.Equal(OutgoingMail.PurgedContent, mail.Html);
+        Assert.Equal(OutgoingMail.PurgedContent, mail.Text);
+        Assert.Equal(Now, mail.ContentPurgedAt);
+        Assert.Equal("Ihr Anmeldelink", mail.Subject);
+        Assert.Equal(["mieter@example.de"], mail.To);
+    }
+
+    [Fact]
+    public void Secret_mail_loses_its_content_on_final_failure_and_cannot_be_retried()
+    {
+        var mail = SecretMail();
+
+        for (var i = 0; i < OutgoingMail.MaxAttempts; i++)
+        {
+            mail.MarkFailedAttempt(Now, "kein Server");
+        }
+
+        Assert.Equal(MailStatus.Failed, mail.Status);
+        Assert.Equal(OutgoingMail.PurgedContent, mail.Text);
+        Assert.Throws<RuleViolationException>(() => mail.Retry(Now));
+        Assert.Equal(MailStatus.Failed, mail.Status);
+    }
+
+    [Fact]
+    public void Ordinary_mail_keeps_its_content_and_can_be_retried_after_final_failure()
+    {
+        var mail = NewMail();
+
+        for (var i = 0; i < OutgoingMail.MaxAttempts; i++)
+        {
+            mail.MarkFailedAttempt(Now, "kein Server");
+        }
+
+        mail.Retry(Now);
+
+        Assert.Equal(MailStatus.Pending, mail.Status);
+        Assert.Equal("Hallo", mail.Text);
+        Assert.Null(mail.ContentPurgedAt);
+    }
+
+    [Fact]
+    public void Waiting_mail_cannot_be_purged()
+    {
+        Assert.Throws<InvalidOperationException>(() => NewMail().PurgeContent(Now));
+    }
+
+    [Fact]
+    public void Anonymizing_replaces_address_subject_and_content_and_stops_a_waiting_mail()
+    {
+        var mail = NewMail("Anna@example.de", "bert@example.de");
+        mail.MarkFailedAttempt(Now, "550 Anna@example.de unbekannt");
+
+        mail.AnonymizeRecipients(["anna@example.de"], Now);
+
+        Assert.Equal([OutgoingMail.AnonymizedAddress, "bert@example.de"], mail.To);
+        Assert.Equal(OutgoingMail.AnonymizedSubject, mail.Subject);
+        Assert.Equal(OutgoingMail.PurgedContent, mail.Text);
+        Assert.Null(mail.LastError);
+        Assert.Equal(MailStatus.Failed, mail.Status);
+        Assert.Throws<RuleViolationException>(() => mail.Retry(Now));
     }
 }

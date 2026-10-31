@@ -97,6 +97,7 @@ public abstract partial class AccountTestBase(PostgresFixture postgres) : IAsync
         var page = await browser.GetAsync("/konto/einrichtung");
         return await browser.SubmitAsync(page, "setup", new Dictionary<string, string>
         {
+            ["Input.SetupCode"] = ElocaroWebFactory.SetupCode,
             ["Input.DisplayName"] = "Max Mustermann",
             ["Input.Email"] = email,
             ["Input.Password"] = password,

@@ -36,7 +36,7 @@ public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
         var tenant = Validate(await scope.ServiceProvider.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt" }, null, Ct));
         leaseId = Validate(await scope.ServiceProvider.GetRequiredService<ILeaseService>().CreateAsync(
             new LeaseCreation { RentalUnitId = apartment, Start = Start, TenantIds = [tenant], BaseRent = 650m }, Ct));
-        await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync("admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
+        await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync(scope.ServiceProvider.GetRequiredService<ISetupCode>().Value, "admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
     }
 
     public async ValueTask DisposeAsync() => await environment.DisposeAsync();

@@ -40,7 +40,7 @@ public class DeadlineTests(PostgresFixture postgres) : IAsyncLifetime
         var tenant = Validate(await scope.ServiceProvider.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt" }, null, Ct));
         leaseId = Validate(await scope.ServiceProvider.GetRequiredService<ILeaseService>().CreateAsync(
             new LeaseCreation { RentalUnitId = apartment, Start = new DateOnly(2025, 4, 1), FixedTermUntil = new DateOnly(2026, 5, 31), TenantIds = [tenant], BaseRent = 650m }, Ct));
-        await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync("admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
+        await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync(scope.ServiceProvider.GetRequiredService<ISetupCode>().Value, "admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
     }
 
     public async ValueTask DisposeAsync() => await environment.DisposeAsync();

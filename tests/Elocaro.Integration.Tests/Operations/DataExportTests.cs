@@ -77,7 +77,7 @@ public class DataExportTests(PostgresFixture postgres) : IAsyncLifetime
     {
         await using (var scope = environment.Services.CreateAsyncScope())
         {
-            await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync("admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
+            await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync(scope.ServiceProvider.GetRequiredService<ISetupCode>().Value, "admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var admin = await userManager.FindByEmailAsync("admin@example.de");
             await userManager.ResetAuthenticatorKeyAsync(admin!);
@@ -96,6 +96,36 @@ public class DataExportTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Null(zip.GetEntry("data/data_protection_keys.json"));
         Assert.Null(zip.GetEntry("data/magic_links.json"));
         Assert.DoesNotContain(zip.Entries, e => Encoding.UTF8.GetString(Bytes(zip, e.FullName)).Contains("AQAAAA", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Mail_links_are_not_in_the_export_while_the_proof_of_delivery_is()
+    {
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            var accounts = scope.ServiceProvider.GetRequiredService<IAccountService>();
+            await accounts.InviteAsync("verwalter@example.de", "Verwalter", Roles.Manager, Ct);
+            await accounts.InviteAsync("mieter@example.de", "Mieter", Roles.Tenant, Ct);
+        }
+
+        using var zip = await ExportAsync();
+
+        var mails = Json(zip, "data/outgoing_mails.json").EnumerateArray().ToList();
+        Assert.Equal(2, mails.Count);
+        Assert.All(mails, m =>
+        {
+            Assert.False(m.TryGetProperty("html", out _));
+            Assert.False(m.TryGetProperty("text", out _));
+            Assert.True(m.TryGetProperty("subject", out _));
+            Assert.True(m.TryGetProperty("to", out _));
+            Assert.True(m.TryGetProperty("status", out _));
+        });
+        foreach (var entry in new[] { "data/outgoing_mails.json", "data/outgoing_mails.csv" })
+        {
+            var content = Encoding.UTF8.GetString(Bytes(zip, entry));
+            Assert.DoesNotContain("konto/einladung", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("konto/link", content, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

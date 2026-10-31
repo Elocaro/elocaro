@@ -40,7 +40,7 @@ public static partial class DemoMode
             return;
         }
 
-        var created = await accounts.CreateFirstAdminAsync(options.AdminEmail, "Max Mustermann", options.AdminPassword, cancellationToken);
+        var created = await accounts.CreateFirstAdminAsync(scope.ServiceProvider.GetRequiredService<ISetupCode>().Value, options.AdminEmail, "Max Mustermann", options.AdminPassword, cancellationToken);
         if (!created.Succeeded)
         {
             throw new InvalidOperationException("Der Demo-Benutzer konnte nicht angelegt werden: " + string.Join(" ", created.Errors));

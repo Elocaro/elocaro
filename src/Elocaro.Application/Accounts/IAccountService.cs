@@ -7,7 +7,7 @@ public interface IAccountService
     Task<bool> InitialSetupPossibleAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Creates the first administrator.</summary>
-    Task<AccountResult> CreateFirstAdminAsync(string email, string displayName, string password, CancellationToken cancellationToken = default);
+    Task<AccountResult> CreateFirstAdminAsync(string setupCode, string email, string displayName, string password, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Invites a user. Roles with a password receive a link to set the password (valid 7 days),

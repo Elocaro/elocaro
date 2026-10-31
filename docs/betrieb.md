@@ -49,7 +49,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env ps
 ```
 
-Nach 1–2 Minuten ist Elocaro unter `https://<domain>` erreichbar. Beim ersten Aufruf führt die Seite durch die **Ersteinrichtung** (Admin-Konto, danach Zwei-Faktor-Anmeldung).
+Nach 1–2 Minuten ist Elocaro unter `https://<domain>` erreichbar. Beim ersten Aufruf führt die Seite durch die **Ersteinrichtung** (Admin-Konto, danach Zwei-Faktor-Anmeldung). Sie verlangt den **Einrichtungscode**, damit nicht übernimmt, wer die neue Installation zuerst aufruft: `ELOCARO_SETUP_CODE` in `deploy/.env`. Ist dort keiner eingetragen (auch bei älteren Installationen), erzeugt die App bei jedem Start einen und schreibt ihn ins Protokoll, solange es noch kein Konto gibt: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs app | grep Einrichtungscode`. Sobald ein Konto existiert, hat der Code keine Wirkung mehr.
 
 Anschließend:
 1. Unter *Einstellungen → E-Mail-Versand* eine Testnachricht senden.
@@ -237,6 +237,14 @@ Auf der Startseite erinnert ab Oktober des Folgejahres eine Aufgabe an die Abrec
 
 > Die mitgelieferte Abrechnungsvorlage (`Pdf/Templates/statement.sbn`, `Mail/Templates/statement.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte vor dem produktiven Einsatz rechtlich prüfen lassen. Die CO₂- und Gradtagstabellen der Heizkostenabrechnung sind „Stand/prüfen“ (siehe Entwicklung).
 
+## Aufbewahrung ausgehender E-Mails
+
+Die Mail-Warteschlange (`outgoing_mails`) ist der Versandnachweis. Es gelten drei Regeln:
+
+- **Mails mit geheimen Links** (Einladung, Anmeldelink, Passwort zurücksetzen, Signatur-Link): Der Text bleibt nur, bis die Mail zugestellt ist oder endgültig fehlgeschlagen ist, dann ersetzt `[Inhalt entfernt]` ihn. Eine solche Mail lässt sich nicht erneut senden; Einladung oder Link werden neu ausgelöst. Auf dem Dashboard meldet sie sich danach noch eine Woche, die Seite *System → E-Mail-Versand* zeigt sie dauerhaft als fehlgeschlagen.
+- **Frist:** Der Job `mail-retention` (täglich 3:45) löscht Mails nach `Mail__RetentionDays` Tagen (Standard 1095, also 3 Jahre; `MAIL_RETENTION_DAYS` in `deploy/.env`; 0 oder weniger schaltet das Löschen ab). Mails, auf die ein Abrechnungsversand oder eine Mahnung verweist, bleiben als Nachweis mit Empfänger, Betreff, Zeitpunkt, Status und Anhang-Verweis; nur ihr Text wird geleert. Wartende Mails bleiben unberührt.
+- **Bestand:** Beim Update leert die Migration bereits versendete oder fehlgeschlagene Mails mit geheimen Links. Ältere Datensicherungen enthalten sie weiterhin, bis diese nach der Backup-Aufbewahrung wegfallen; die meisten Links sind da längst abgelaufen (Einladung 7 Tage, Signatur bis zum genannten Datum).
+
 ## Sicherheit
 
 - TLS und HSTS über Caddy; die App setzt CSP, `X-Frame-Options: DENY`, `nosniff`, Referrer- und Permissions-Policy.
@@ -333,6 +341,8 @@ Unabhängig vom Backup lässt sich unter *Einstellungen → Datensicherung* (Rec
 - `manifest.json` (Tabellen, Spalten, Datentypen, Zeilenzahlen) und `LIESMICH.txt` (Formatbeschreibung).
 
 Nicht enthalten sind Passwort-Hashes, Tokens, Anmeldelinks und Cookie-Schlüssel. Jeder Export wird im Audit-Log vermerkt. Zum Wiederherstellen von Elocaro dient das Backup, nicht der Export.
+
+Der Text ausgehender E-Mails steht nicht im Vollexport, weil er gültige Links enthalten kann. `data/outgoing_mails.*` enthält den Versandnachweis (Empfänger, Betreff, Status, Zeitpunkte, Vorlage, Bezug), die versendeten Dokumente stehen unter `files/`.
 
 ## Notfallmappe
 

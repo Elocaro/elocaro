@@ -87,6 +87,7 @@ public static class DependencyInjection
         services.TryAddScoped<ICurrentUser, SystemUser>();
 
         services.Configure<ApplicationOptions>(configuration.GetSection(ApplicationOptions.Section));
+        services.Configure<SetupOptions>(configuration.GetSection(SetupOptions.Section));
         services.Configure<FinTsOptions>(configuration.GetSection(FinTsOptions.Section));
         services.Configure<Application.Admin.DemoOptions>(configuration.GetSection(Application.Admin.DemoOptions.Section));
 
@@ -158,6 +159,7 @@ public static class DependencyInjection
         // Password reset links: 2 hours; invitations use their own provider (7 days).
         services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromHours(2));
         services.AddScoped<IAccountService, AccountService>();
+        services.AddSingleton<ISetupCode, SetupCode>();
         services.AddScoped<IUserManagementService, UserManagement>();
     }
 
@@ -173,6 +175,8 @@ public static class DependencyInjection
     private static void AddMail(IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MailOptions>(configuration.GetSection(MailOptions.Section));
+        services.AddScoped<IPersonalDataSource, MailPersonalData>();
+        services.AddScoped<MailRetention>();
         services.TryAddSingleton<ScribanRenderer>();
         services.AddScoped<MailSender>();
         services.AddScoped<IMailSender>(sp => new Notifications.PushingMailSender(sp.GetRequiredService<MailSender>(), sp.GetRequiredService<IPushNotifications>(), sp.GetRequiredService<UserManager<ApplicationUser>>()));
@@ -395,6 +399,7 @@ public static class DependencyInjection
 
             q.ScheduleInterval<MailOutboxJob>(MailOutboxJob.Key, "Versendet fällige E-Mails aus der Outbox", TimeSpan.FromSeconds(30));
             q.ScheduleDaily<JobLogCleanupJob>(JobLogCleanupJob.Key, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);
+            q.ScheduleDaily<MailRetentionJob>(MailRetentionJob.Key, "Leert geheime Mails und löscht Mails nach Ablauf der Aufbewahrungsfrist", 3, 45);
             q.ScheduleDaily<AuditCleanupJob>(AuditCleanupJob.Key, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
             q.ScheduleDaily<RentStepJob>(RentStepJob.Key, "Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins", 0, 30);
             q.ScheduleDaily<ChargeJob>(ChargeJob.Key, "Erzeugt die Monatsmieten (Sollstellungen) und gleicht sie an Vertragsänderungen an", 0, 40);

@@ -1003,6 +1003,10 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("attempts");
 
+                    b.Property<DateTimeOffset?>("ContentPurgedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("content_purged_at");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");

@@ -14,6 +14,12 @@
 <EditForm Model="Input" FormName="setup" OnValidSubmit="CreateAsync">
     <DataAnnotationsValidator />
     <div class="field">
+        <label for="setup-code">Einrichtungscode</label>
+        <InputText id="setup-code" @bind-Value="Input!.SetupCode" autocomplete="off" spellcheck="false" aria-describedby="setup-code-hint" />
+        <p class="small" id="setup-code-hint">Das Installationsskript zeigt ihn an, er steht in <code>deploy/.env</code> (<code>ELOCARO_SETUP_CODE</code>). Ist dort keiner eingetragen, steht er im Protokoll: <code>docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs app | grep Einrichtungscode</code></p>
+        <ValidationMessage For="() => Input!.SetupCode" />
+    </div>
+    <div class="field">
         <label for="display-name">Ihr Name</label>
         <InputText id="display-name" @bind-Value="Input!.DisplayName" autocomplete="name" />
         <ValidationMessage For="() => Input!.DisplayName" />
@@ -53,7 +59,7 @@
 
     private async Task CreateAsync()
     {
-        var result = await Accounts.CreateFirstAdminAsync(Input!.Email, Input.DisplayName, Input.Password);
+        var result = await Accounts.CreateFirstAdminAsync(Input!.SetupCode, Input.Email, Input.DisplayName, Input.Password);
         if (!result.Succeeded)
         {
             errors = result.Errors;
@@ -67,6 +73,9 @@
 
     private sealed class SetupInput
     {
+        [Required(ErrorMessage = "Bitte den Einrichtungscode angeben.")]
+        public string SetupCode { get; set; } = "";
+
         [Required(ErrorMessage = "Bitte Ihren Namen angeben.")]
         [StringLength(200)]
         public string DisplayName { get; set; } = "";

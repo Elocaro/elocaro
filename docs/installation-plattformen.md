@@ -11,7 +11,7 @@ Gemeinsam für alle Wege:
 1. `deploy/.env` aus [deploy/.env.example](../deploy/.env.example) erzeugen (am einfachsten `./deploy/install.sh --nur-env`).
 2. Eine **Domain** mit A/AAAA-Eintrag auf den Server und offene Ports 80 und 443, oder den Probelauf ohne Domain (`./deploy/install.sh --lokal`).
 3. **Datensicherung** einrichten: Das Passwort (`RESTIC_PASSWORD`) und ein Ziel außerhalb des Servers ([Betrieb → Backup](betrieb.md#backup)). Ohne Passwort gibt es keine Wiederherstellung.
-4. Nach dem Start die Ersteinrichtung unter `https://<domain>` durchführen.
+4. Nach dem Start die Ersteinrichtung unter `https://<domain>` durchführen. Sie verlangt den Einrichtungscode: `ELOCARO_SETUP_CODE` in der `.env` oder, wenn dort keiner steht, im Protokoll der App (Zeile mit „Einrichtungscode“).
 
 ## Eigener Server oder VPS (empfohlen)
 

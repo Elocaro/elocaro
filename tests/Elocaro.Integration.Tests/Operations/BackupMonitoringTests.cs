@@ -132,7 +132,7 @@ public class BackupMonitoringTests(PostgresFixture postgres) : IAsyncLifetime
         await using (var scope = environment.Services.CreateAsyncScope())
         {
             var accounts = scope.ServiceProvider.GetRequiredService<IAccountService>();
-            await accounts.CreateFirstAdminAsync("admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
+            await accounts.CreateFirstAdminAsync(scope.ServiceProvider.GetRequiredService<ISetupCode>().Value, "admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
             var second = await accounts.InviteAsync("admin2@example.de", "Zweiter Admin", Roles.Admin, Ct);
             var locked = await accounts.InviteAsync("gesperrt@example.de", "Gesperrt", Roles.Admin, Ct);
             await accounts.InviteAsync("verwalter@example.de", "Verwalter", Roles.Manager, Ct);
@@ -158,7 +158,7 @@ public class BackupMonitoringTests(PostgresFixture postgres) : IAsyncLifetime
     {
         await using (var scope = environment.Services.CreateAsyncScope())
         {
-            await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync("admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
+            await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateFirstAdminAsync(scope.ServiceProvider.GetRequiredService<ISetupCode>().Value, "admin@example.de", "Admin", "Langes-Passwort-2026", Ct);
         }
 
         await WriteStatusAsync(succeeded: true, InfrastructureEnvironment.StartTime.AddHours(-7));

@@ -29,7 +29,7 @@ git clone https://github.com/Elocaro/elocaro.git && cd elocaro
 ./deploy/install.sh --lokal
 ```
 
-Der Browser warnt einmal wegen des Zertifikats; die Warnung ist hier erwartet. Der erste Aufruf führt durch die Ersteinrichtung. Zum Aufräumen: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env down -v` (löscht auch die Daten).
+Der Browser warnt einmal wegen des Zertifikats; die Warnung ist hier erwartet. Der erste Aufruf führt durch die Ersteinrichtung; den Einrichtungscode dafür zeigt das Skript an, er steht auch in `deploy/.env`. Zum Aufräumen: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env down -v` (löscht auch die Daten).
 
 ## 2. Eigener Server mit dem Installationsskript
 
@@ -42,7 +42,7 @@ Der empfohlene Weg für den dauerhaften Betrieb.
    ./deploy/install.sh
    ```
    Das Skript fragt Domain, Kontakt-Mail und SMTP-Zugang ab, erzeugt die Passwörter, schreibt `deploy/.env` (Rechte 600), startet den Stack und wartet, bis die Adresse antwortet.
-3. **Ersteinrichtung:** `https://<domain>` öffnen, Administrator anlegen, Zwei-Faktor-Anmeldung einrichten und dem Einrichtungsassistenten folgen.
+3. **Ersteinrichtung:** `https://<domain>` öffnen, Einrichtungscode eingeben (`ELOCARO_SETUP_CODE` in `deploy/.env`; ist er leer, steht ein Code im Protokoll: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs app | grep Einrichtungscode`), Administrator anlegen, Zwei-Faktor-Anmeldung einrichten und dem Einrichtungsassistenten folgen.
 
 Für Automatisierung lassen sich alle Fragen vorab über Umgebungsvariablen beantworten (`ELOCARO_DOMAIN`, `ACME_EMAIL`, `MAIL_SENDER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USER`, `SMTP_PASSWORD`); mit `ELOCARO_NONINTERACTIVE=1` wird nichts gefragt. `--nur-env` schreibt nur die Datei, `--force` ersetzt eine vorhandene (die alte bleibt als `.env.bak`).
 

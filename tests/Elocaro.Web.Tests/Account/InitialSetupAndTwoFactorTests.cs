@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Web.Tests.Account;
 
@@ -90,6 +91,39 @@ public class InitialSetupAndTwoFactorTests(PostgresFixture postgres) : AccountTe
 
         Assert.Contains("Der Code ist ungültig", result.Text, StringComparison.Ordinal);
         Assert.Equal("/konto/sicherheit/zwei-faktor", (await browser.GetAsync("/", followRedirects: false)).RedirectLocation!.ToString());
+    }
+
+    [Fact]
+    public async Task Initial_setup_with_the_wrong_code_creates_no_account()
+    {
+        using var browser = App.Browser();
+        var page = await browser.GetAsync("/konto/einrichtung");
+        Assert.Contains("Einrichtungscode", page.Text, StringComparison.Ordinal);
+
+        var result = await browser.SubmitAsync(page, "setup", new Dictionary<string, string>
+        {
+            ["Input.SetupCode"] = "falsch",
+            ["Input.DisplayName"] = "Max Mustermann",
+            ["Input.Email"] = AdminEmail,
+            ["Input.Password"] = AdminPassword,
+            ["Input.PasswordConfirmation"] = AdminPassword,
+        });
+
+        Assert.Equal("/konto/einrichtung", result.Path);
+        Assert.Contains("Der Einrichtungscode stimmt nicht.", result.Text, StringComparison.Ordinal);
+        await App.WithDbAsync(async db => Assert.False(await db.Users.AnyAsync(TestContext.Current.CancellationToken)));
+
+        // The check is not the page's: without a code the form is rejected too.
+        var withoutCode = await browser.SubmitAsync(result, "setup", new Dictionary<string, string>
+        {
+            ["Input.SetupCode"] = "",
+            ["Input.DisplayName"] = "Max Mustermann",
+            ["Input.Email"] = AdminEmail,
+            ["Input.Password"] = AdminPassword,
+            ["Input.PasswordConfirmation"] = AdminPassword,
+        });
+        Assert.Equal("/konto/einrichtung", withoutCode.Path);
+        await App.WithDbAsync(async db => Assert.False(await db.Users.AnyAsync(TestContext.Current.CancellationToken)));
     }
 
     [Fact]
