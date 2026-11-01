@@ -1407,3 +1407,22 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
     .tab-bar.area-tabs, .sub-tabs.area-tabs { display: none; }
     .navigation > li:has(+ .navigation-pages-item) > a.active { background: transparent; }
 }
+
+/* Consumption in the tenant portal: one column per month, bar = consumption, marker = same month of the year before */
+.consumption-chart { margin: 0 0 var(--spacing); }
+.consumption-columns { display: flex; gap: 0.25rem; align-items: stretch; }
+.consumption-column { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.125rem; }
+.consumption-track { position: relative; width: 100%; height: 7rem; display: flex; align-items: flex-end; background: var(--md-surface-container-high); border-radius: var(--shape-xs); }
+.consumption-bar { display: block; width: 100%; min-height: 2px; background: var(--md-primary); border-radius: var(--shape-xs); }
+.consumption-prev { position: absolute; left: -1px; right: -1px; bottom: clamp(1.5px, var(--at), calc(100% - 1.5px)); height: 3px; transform: translateY(50%); background: var(--md-on-surface); box-shadow: 0 0 0 1px var(--md-surface); }
+.consumption-month { color: var(--md-on-surface-variant); }
+.consumption-adjusted { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 0.6875rem; }
+.consumption-adjusted.up { color: var(--md-error); }
+.consumption-adjusted.down { color: var(--md-success); }
+@media (max-width: 600px) { .consumption-columns { gap: 0.125rem; } .consumption-month, .consumption-adjusted { font-size: 0.625rem; } }
+@media print { .consumption-chart, .consumption-chart * { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+@media (forced-colors: active) {
+    .consumption-track { border: 1px solid CanvasText; }
+    .consumption-bar, .consumption-chart .swatch { forced-color-adjust: none; background: CanvasText; }
+    .consumption-prev { forced-color-adjust: none; background: Highlight; box-shadow: 0 0 0 1px Canvas; }
+}

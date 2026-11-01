@@ -1,0 +1,94 @@
+@using Elocaro.Application.Metering
+@using Elocaro.Domain.Metering
+@* One column per month (oldest left): consumption as a bar, the same month of the year before as a marker. For the heating the weather-adjusted change stands under the month, with an arrow so it does not rely on colour. Months without a value stay empty. *@
+@if (Scale > 0m)
+{
+    <figure class="consumption-chart" data-meter-type="@Type">
+        <figcaption class="small">
+            <strong>@Label</strong> in @UnitText, letzte @Columns.Count Monate
+            <ul class="chart-legend">
+                <li><span class="swatch tenant"></span> Verbrauch</li>
+                <li><span class="swatch-marker"></span> Vorjahresmonat</li>
+                @if (Columns.Any(c => c.Adjusted is not null))
+                {
+                    <li><span class="consumption-adjusted up">▲ +5</span> <span class="consumption-adjusted down">▼ −5</span> witterungsbereinigt gegenüber dem Vorjahresmonat, in %</li>
+                }
+            </ul>
+        </figcaption>
+        <div class="consumption-columns" role="img" aria-label="@Summary">
+            @foreach (var column in Columns)
+            {
+                <div class="consumption-column" title="@Tooltip(column)">
+                    <span class="consumption-track">
+                        @if (column.Current is > 0m)
+                        {
+                            <span class="consumption-bar" style="height:@ChartScale.Css(ChartScale.Percent(column.Current.Value, Scale))%"></span>
+                        }
+                        @if (column.LastYear is { } before)
+                        {
+                            <span class="consumption-prev" style="--at:@ChartScale.Css(ChartScale.Percent(before, Scale))%"></span>
+                        }
+                    </span>
+                    <span class="consumption-month small">@column.Name</span>
+                    @if (column.Adjusted is { } adjusted)
+                    {
+                        <span class="consumption-adjusted small @(adjusted > 0 ? "up" : adjusted < 0 ? "down" : "")">@Arrow(adjusted)</span>
+                    }
+                </div>
+            }
+        </div>
+    </figure>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+
+    private sealed record Column(DateOnly Month, string Name, decimal? Current, decimal? LastYear, decimal? Adjusted);
+
+    /// <summary>Newest first, as the information delivers them.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<MonthlyConsumption> Months { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public MeterType Type { get; set; }
+
+    private IEnumerable<ConsumptionLine> Lines => Months.SelectMany(m => m.Lines).Where(l => l.Type == Type);
+
+    private string Label => Lines.FirstOrDefault()?.Label ?? "";
+
+    private MeasurementUnit? Unit => Lines.FirstOrDefault()?.Unit;
+
+    private string UnitText => Unit switch
+    {
+        MeasurementUnit.CubicMeters => "m³",
+        MeasurementUnit.KilowattHours => "kWh",
+        MeasurementUnit.MegawattHours => "MWh",
+        _ => "l",
+    };
+
+    private IReadOnlyList<Column> Columns => Months
+        .OrderBy(m => m.Month)
+        .Select(m => (Month: m.Month, Line: m.Lines.FirstOrDefault(l => l.Type == Type)))
+        .Where(x => x.Line is not null)
+        .Select(x => new Column(x.Month, x.Month.ToString("MMM", German), x.Line!.Current, x.Line.LastYear, x.Line.WeatherAdjustedChange))
+        .ToList();
+
+    private decimal Scale => ChartScale.Max(Columns.SelectMany(c => new[] { c.Current ?? 0m, c.LastYear ?? 0m }));
+
+    private string Summary => $"{Label} in {UnitText}: {string.Join("; ", Columns.Select(Describe))}";
+
+    private string Describe(Column column) =>
+        $"{Format.Month(column.Month)} {(column.Current is { } now ? Number(now) : "kein Wert")}{(column.LastYear is { } before ? $", Vorjahresmonat {Number(before)}" : "")}";
+
+    private string Tooltip(Column column) =>
+        Describe(column) + (column.Adjusted is { } adjusted ? $", witterungsbereinigt {Arrow(adjusted)} %" : "");
+
+    private static string Number(decimal value) => value.ToString("#,##0.##", German);
+
+    private static string Arrow(decimal change) => change switch
+    {
+        > 0m => $"▲ +{change:0}",
+        < 0m => $"▼ −{Math.Abs(change):0}",
+        _ => "● 0",
+    };
+}

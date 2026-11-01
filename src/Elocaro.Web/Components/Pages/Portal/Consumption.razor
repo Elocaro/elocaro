@@ -25,6 +25,11 @@ else
                 <h2>@lease.Unit</h2>
             }
 
+            @foreach (var type in lease.Months.SelectMany(m => m.Lines).Select(l => l.Type).Distinct())
+            {
+                <ConsumptionChart Months="lease.Months" Type="type" />
+            }
+
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead>
