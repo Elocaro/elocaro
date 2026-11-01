@@ -1386,3 +1386,9 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 .allocation-footer .message { margin: 0; align-self: stretch; }
 .context-fields { margin: 1rem 0; padding: 0.75rem 1rem 1rem; border-left: 4px solid var(--md-primary); border-radius: var(--shape-md); background: var(--md-surface-container-low, var(--md-surface)); }
 .context-fields h3 { margin: 0 0 0.25rem; }
+
+/* Breathing room below framed blocks: legends, buttons, notes and further boxes must not stick to the border above. */
+:is(.house, .plan-scroll, .table-wrapper, .panel, .explain, .empty-state, .mud-paper, .mud-table-container) + :is(.button, .mud-button-root, .small, p, details, .explain, nav, .plan-legend, .house-legend) { margin-top: 0.75rem; }
+.house-legend { margin-block: 0.75rem 1.5rem; }
+.plan-legend { margin-block: 0.75rem 1rem; }
+.plan-years { margin-top: 0.5rem; }
