@@ -5,7 +5,7 @@
 @* Tab bar of the current page (see AdminNavModel.TabsFor). *@
 @if (tabs is not null)
 {
-    <TabBar Tabs="tabs.Tabs" Label="@tabs.Label" />
+    <TabBar Tabs="tabs.Tabs" Label="@tabs.Label" AreaTabs="tabs.IsArea" />
 }
 
 @code {

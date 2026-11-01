@@ -25,8 +25,8 @@ public sealed record NavTab(string Label, string Href, string? Policy = null, bo
     public static NavTab Group(string label, string? policy, params NavTab[] children) => new(label, children[0].Href, policy, Children: children);
 }
 
-/// <summary>The tab bar to show for a page.</summary>
-public sealed record NavTabSet(string Label, NavTab[] Tabs);
+/// <summary>The tab bar to show for a page. <paramref name="IsArea"/>: the siblings of an area, which the sidebar lists itself on wide screens.</summary>
+public sealed record NavTabSet(string Label, NavTab[] Tabs, bool IsArea = false);
 
 /// <summary>An entry of the main navigation. <see cref="Prefixes"/> decide which pages belong to the area.</summary>
 public sealed record NavArea(string Label, string Icon, string Href, string? Policy, string[] Prefixes, NavTab[] Tabs, string? Group = null, bool Exact = false)
@@ -156,7 +156,7 @@ public static class AdminNavModel
             return new("Mietvertrag", lease);
         }
 
-        return AreaOf(path) is { Tabs.Length: > 1 } area ? new(area.Label, area.Tabs) : null;
+        return AreaOf(path) is { Tabs.Length: > 1 } area ? new(area.Label, area.Tabs, IsArea: true) : null;
     }
 
     /// <summary>Pages that belong to a property although their path does not start with it.</summary>

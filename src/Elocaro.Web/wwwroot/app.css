@@ -1395,3 +1395,15 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 .content :is(.house, .plan-scroll, .table-wrapper, .panel, .explain, .empty-state, .mud-paper, .mud-table-container) + :is(.form-row, .row-actions) { margin-top: 0.75rem; }
 .content :is(p, .small, .form-row, .validation-message, ul, ol, dl, .row-actions) + :is(.mud-button-root, .button, button:not([class*="mud-"])) { margin-top: 0.75rem !important; }
 .page-header-title { flex: 1 1 16rem; min-width: min(100%, 14rem); }
+
+/* Sidebar: the open area lists its pages directly (desktop); the tab bars of an area are then redundant. Smartphones keep the tab bars and the plain menu. */
+.navigation-pages { list-style: none; margin: 0 0 0.5rem 1.6rem; padding: 0 0 0 0.75rem; border-left: 2px solid var(--md-outline-variant); }
+.navigation .navigation-pages a { min-height: 2.25rem; padding: 0 0.9rem; font-size: 0.9rem; font-weight: 500; color: var(--md-on-surface-variant); }
+.navigation .navigation-pages a:hover { color: var(--md-on-surface); }
+.navigation .navigation-pages a.active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight: 650; }
+.navigation-pages-group { padding: 0.65rem 0.9rem 0.15rem; font: var(--type-label); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--md-on-surface-variant); }
+.bottom-bar .navigation-pages-item { display: none; }
+@media (min-width: 900px) {
+    .tab-bar.area-tabs, .sub-tabs.area-tabs { display: none; }
+    .navigation > li:has(+ .navigation-pages-item) > a.active { background: transparent; }
+}

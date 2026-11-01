@@ -24,6 +24,35 @@
         {
             <AuthorizeView Policy="@area.Policy">
                 <li><a href="@area.Href" class="@(IsActive(area) ? "active" : null)" aria-current="@(IsActive(area) ? "page" : null)"><Icon Path="@area.Icon" /><span>@area.Label</span></a></li>
+                @if (IsActive(area) && PagesOf(area) is { Length: > 1 } pages)
+                {
+                    @* Wide screens: the pages of the open area are listed right here (the tab bar of the area is hidden); smartphones keep the tab bar. *@
+                    <li class="navigation-pages-item">
+                        <ul class="navigation-pages" aria-label="@area.Label">
+                            @foreach (var entry in pages)
+                            {
+                                @if (entry.IsGroup)
+                                {
+                                    <AuthorizeView Policy="@entry.Policy" Context="allowed">
+                                        <li class="navigation-pages-group">@entry.Label</li>
+                                        @foreach (var child in entry.Children!)
+                                        {
+                                            <AuthorizeView Policy="@child.Policy" Context="childAllowed">
+                                                <li><a href="@child.Href" class="@(child.Matches(CurrentPath) ? "active" : null)" aria-current="@(child.Matches(CurrentPath) ? "page" : null)">@child.Label</a></li>
+                                            </AuthorizeView>
+                                        }
+                                    </AuthorizeView>
+                                }
+                                else
+                                {
+                                    <AuthorizeView Policy="@entry.Policy" Context="allowed">
+                                        <li><a href="@entry.Href" class="@(entry.Matches(CurrentPath) ? "active" : null)" aria-current="@(entry.Matches(CurrentPath) ? "page" : null)">@entry.Label</a></li>
+                                    </AuthorizeView>
+                                }
+                            }
+                        </ul>
+                    </li>
+                }
             </AuthorizeView>
         }
     }
@@ -31,6 +60,10 @@
 
 @code {
     private string Path => new Uri(Navigation.Uri).AbsolutePath;
+
+    private string CurrentPath => Path.TrimEnd('/');
+
+    private NavTab[] PagesOf(NavArea area) => AdminNavModel.Visible(area.Tabs, Modules);
 
     private bool IsActive(NavArea area) => AdminNavModel.AreaOf(Path)?.Label == area.Label;
 }
