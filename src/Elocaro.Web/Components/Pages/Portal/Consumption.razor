@@ -40,7 +40,13 @@ else
                                     <td>@line.Label</td>
                                     <td class="number">@(line.Current is { } current ? Amount(current, line.Unit) : "–")</td>
                                     <td class="number">@Compare(line.Current, line.Previous, line.Unit)</td>
-                                    <td class="number">@Compare(line.Current, line.LastYear, line.Unit)</td>
+                                    <td class="number">
+                                        @Compare(line.Current, line.LastYear, line.Unit)
+                                        @if (line.WeatherAdjustedChange is { } adjusted)
+                                        {
+                                            <br /><span class="small">witterungsbereinigt @(adjusted > 0 ? "+" : "")@adjusted.ToString("0") %</span>
+                                        }
+                                    </td>
                                     <td class="number">@(line.Own is { } own ? $"{Number(own)} {Unit(line.Unit)} {line.BasisText}" : "–")</td>
                                     <td class="number">@(line.Average is { } average ? $"{Number(average)} {Unit(line.Unit)} {line.BasisText}" : "–")</td>
                                 </tr>
@@ -56,6 +62,13 @@ else
         </section>
     }
 
+    <details class="explain">
+        <summary>Was bedeutet „witterungsbereinigt“?</summary>
+        <p class="small">
+        Ein kalter Monat verbraucht mehr Wärme als ein milder. „Witterungsbereinigt“ rechnet den Verbrauch je Gradtag des Deutschen Wetterdienstes und vergleicht ihn mit dem Vorjahresmonat:
+        Steigt der Wert, ist der Verbrauch unabhängig vom Wetter gestiegen. Die Angabe erscheint nur für die Heizung und nur, wenn der Vermieter eine Wetterstation eingestellt hat; in Sommermonaten mit kaum Heizbedarf entfällt sie.
+        </p>
+    </details>
     <details class="explain">
         <summary>Wie entsteht der Durchschnitt?</summary>
         <p class="small">

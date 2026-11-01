@@ -1,10 +1,12 @@
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Common;
+using Elocaro.Application.Heating;
 using Elocaro.Application.Leases;
 using Elocaro.Application.Metering;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Domain.Communication;
+using Elocaro.Domain.Heating;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.People;
 using Elocaro.Infrastructure.Identity;
@@ -83,6 +85,26 @@ public class ConsumptionInformationTests(PostgresFixture postgres) : IAsyncLifet
         Assert.Equal((5.333m, 3), (line.Average, line.Comparisons));
         Assert.Equal("je m²", line.BasisText);
         Assert.Equal(MeasurementUnit.KilowattHours, line.Unit);
+    }
+
+    [Fact]
+    public async Task The_heating_line_is_weather_adjusted_with_the_degree_days_of_the_chosen_station()
+    {
+        var first = await ApartmentAsync(1, 50m, 300m);
+        Assert.Null(Assert.Single((await WithAsync(i => i.ForLeaseMonthAsync(first, March, Ct)))!.Lines).WeatherAdjustedChange);
+
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();
+            db.Add(new DegreeDayValue("00044", "GROSSENKNETEN", new DateOnly(2026, 3, 1), 400m, null));
+            db.Add(new DegreeDayValue("00044", "GROSSENKNETEN", new DateOnly(2025, 3, 1), 500m, null));
+            await db.SaveChangesAsync(Ct);
+            Validate(await scope.ServiceProvider.GetRequiredService<IHeatingSettings>().SaveAsync(property, new HeatingSettingsInput { DegreeDayStationId = "00044" }, Ct));
+        }
+
+        // 300 kWh / 400 degree days = 0.75 against 100 kWh / 500 = 0.2: +275 %.
+        var line = Assert.Single((await WithAsync(i => i.ForLeaseMonthAsync(first, March, Ct)))!.Lines);
+        Assert.Equal(275m, line.WeatherAdjustedChange);
     }
 
     [Fact]

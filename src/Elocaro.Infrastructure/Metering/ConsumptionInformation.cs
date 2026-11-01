@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Elocaro.Application.Metering;
 using Elocaro.Domain.Common;
+using Elocaro.Domain.Heating;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.Properties;
@@ -101,7 +102,11 @@ internal sealed class ConsumptionInformation(ElocaroDbContext db, TimeProvider c
 
         var units = await db.Set<Unit>().AsNoTracking().Include(e => e.Areas).Where(e => e.PropertyId == unit.PropertyId).ToDictionaryAsync(e => e.Id, cancellationToken);
         var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.People).Where(v => v.RoomId == null && units.Keys.Contains(v.UnitId)).ToListAsync(cancellationToken);
-        return new Context(unit, meters, units, leases);
+        var station = await db.Set<HeatingSettings>().AsNoTracking().Where(h => h.PropertyId == unit.PropertyId).Select(h => h.DegreeDayStationId).FirstOrDefaultAsync(cancellationToken);
+        var degreeDays = station is null
+            ? []
+            : await db.Set<DegreeDayValue>().AsNoTracking().Where(v => v.StationId == station).ToDictionaryAsync(v => v.Month, v => v.DegreeDays, cancellationToken);
+        return new Context(unit, meters, units, leases, degreeDays);
     }
 
     private static MonthlyConsumption Build(Context context, Lease lease, DateOnly month)
@@ -141,7 +146,10 @@ internal sealed class ConsumptionInformation(ElocaroDbContext db, TimeProvider c
             decimal? own = current is { } mine && ownBasis is > 0 ? Math.Round(mine / ownBasis.Value, 3, MidpointRounding.AwayFromZero) : null;
             var first = context.Meters.First(z => z.Type == type && z.UnitId == context.Unit.Id);
             lines.Add(new ConsumptionLine(type, type == MeterType.Heat ? "Heizung (Wärme)" : "Warmwasser", first.MeasurementUnit, current, previous, lastYear, own,
-                ConsumptionComparison.Average(shares), shares.Count, basisText, hint));
+                ConsumptionComparison.Average(shares), shares.Count, basisText, hint,
+                type == MeterType.Heat
+                    ? ConsumptionComparison.WeatherAdjustedChangePercent(current, context.DegreeDays.GetValueOrDefault(month), lastYear, context.DegreeDays.GetValueOrDefault(month.AddYears(-1)))
+                    : null));
         }
 
         return new MonthlyConsumption(month, lines);
@@ -172,5 +180,5 @@ internal sealed class ConsumptionInformation(ElocaroDbContext db, TimeProvider c
     private static decimal? Basis(MeterType type, Unit unit, Lease? lease, DateOnly day) =>
         type == MeterType.Heat ? unit.AreaOn(day)?.LivingArea : lease?.OccupantCountOn(day);
 
-    private sealed record Context(Unit Unit, List<ZaehlerEntitaet> Meters, Dictionary<Guid, Unit> Units, List<Lease> Leases);
+    private sealed record Context(Unit Unit, List<ZaehlerEntitaet> Meters, Dictionary<Guid, Unit> Units, List<Lease> Leases, Dictionary<DateOnly, decimal> DegreeDays);
 }

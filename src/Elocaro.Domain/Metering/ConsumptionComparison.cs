@@ -40,6 +40,18 @@ public static class ConsumptionComparison
         return values.Count < MinimumUnits ? null : Math.Round(values.Average(), 3, MidpointRounding.AwayFromZero);
     }
 
+    /// <summary>Months with fewer degree days than this are not weather-adjusted: the ratio of a tiny denominator says nothing.</summary>
+    public const decimal MinimumDegreeDays = 20m;
+
+    /// <summary>
+    /// Change of the consumption per degree day against the reference month in percent: whether the consumption rose independently of the
+    /// weather. <c>null</c> if a value is missing, the reference is zero or either month has fewer than <see cref="MinimumDegreeDays"/> degree days.
+    /// </summary>
+    public static decimal? WeatherAdjustedChangePercent(decimal? current, decimal? currentDegreeDays, decimal? reference, decimal? referenceDegreeDays) =>
+        current is { } value && reference is { } other && currentDegreeDays is >= MinimumDegreeDays and { } now && referenceDegreeDays is >= MinimumDegreeDays and { } before
+            ? ChangePercent(value / now, other / before)
+            : null;
+
     /// <summary>Change against a reference in percent (rounded to whole percent); <c>null</c> if either is missing or the reference is zero.</summary>
     public static decimal? ChangePercent(decimal? current, decimal? reference) =>
         current is { } value && reference is { } other && other != 0m ? Math.Round((value - other) / other * 100m, 0, MidpointRounding.AwayFromZero) : null;

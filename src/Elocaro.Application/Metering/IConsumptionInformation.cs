@@ -27,6 +27,8 @@ public sealed record MonthlyConsumption(DateOnly Month, IReadOnlyList<Consumptio
 /// <param name="Own">Own consumption per reference unit (see <paramref name="BasisText"/>).</param>
 /// <param name="Average">Average of the apartments in the house per reference unit; <c>null</c> with fewer than three comparable apartments.</param>
 /// <param name="BasisText">"je m²" or "je Person".</param>
+/// <param name="WeatherAdjustedChange">Heating only: change of the consumption per degree day against the same month of the year before in percent,
+/// i.e. whether it rose independently of the weather; <c>null</c> without a weather station or degree days.</param>
 public sealed record ConsumptionLine(
     MeterType Type,
     string Label,
@@ -38,6 +40,7 @@ public sealed record ConsumptionLine(
     decimal? Average,
     int Comparisons,
     string BasisText,
-    string? Hint);
+    string? Hint,
+    decimal? WeatherAdjustedChange = null);
 
 public sealed record TenantConsumption(Guid LeaseId, string Unit, IReadOnlyList<MonthlyConsumption> Months);

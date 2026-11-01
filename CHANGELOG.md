@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- Verbrauchsinformation (Mieterportal und Mail): Der Heizverbrauch wird zusätzlich witterungsbereinigt mit dem Vorjahresmonat verglichen (Verbrauch je Gradtag der gewählten Wetterstation). So lässt sich prüfen, ob der Verbrauch unabhängig vom Wetter gestiegen ist. Nur zur Anzeige.
 - Heizkosten beim Mieterwechsel ohne Zwischenablesung: Statt der Platzhaltertabelle verteilt Elocaro den Heizverbrauch nach den Monatsgradtagen (VDI 3807) einer Wetterstation des Deutschen Wetterdienstes. Die Werte werden automatisch abgerufen (`DegreeDays__Enabled`), die Station wählt man je Objekt in den Heizungseinstellungen. Ohne Station gilt weiter der Platzhalter.
 
 ### Sicherheit

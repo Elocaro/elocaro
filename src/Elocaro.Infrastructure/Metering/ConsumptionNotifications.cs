@@ -79,6 +79,11 @@ internal sealed class ConsumptionNotifications(ElocaroDbContext db, IConsumption
         var details = new List<string>();
         AddComparison(details, "Vormonat", line.Current, line.Previous, unit);
         AddComparison(details, "Vorjahresmonat", line.Current, line.LastYear, unit);
+        if (line.WeatherAdjustedChange is { } adjusted)
+        {
+            details.Add($"Witterungsbereinigt gegenüber dem Vorjahresmonat: {(adjusted > 0 ? "+" : "")}{adjusted:0} % (Verbrauch je Gradtag)");
+        }
+
         if (line.Average is { } average && line.Own is { } own)
         {
             details.Add($"Durchschnitt der Wohnungen im Haus: {Number(average)} {unit} {line.BasisText} (Ihre Wohnung: {Number(own)} {unit} {line.BasisText})");
