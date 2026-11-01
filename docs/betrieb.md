@@ -108,6 +108,7 @@ Voraussetzung ist ein eigenes Postfach mit IMAP-Zugang (z. B. `belege@ihre-domai
 
 | Schlüssel | Bedeutung |
 |---|---|
+| `DegreeDays__Enabled` | `false` schaltet den Abruf der Monatsgradtage vom Deutschen Wetterdienst ab (`opendata.dwd.de`, alle 12 Stunden); Standard `true`. Ohne Abruf gilt beim Mieterwechsel ohne Zwischenablesung der Platzhalter |
 | `ReceiptInbox__Enabled` | `true` schaltet den Abruf ein (alle fünf Minuten) |
 | `ReceiptInbox__Host`, `Port`, `Security` | IMAP-Server, Standard Port 993 und `SslOnConnect` |
 | `ReceiptInbox__UserName`, `Password` | Zugangsdaten des Postfachs |

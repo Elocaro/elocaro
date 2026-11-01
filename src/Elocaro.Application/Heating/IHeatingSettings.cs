@@ -46,6 +46,10 @@ public sealed class HeatingSettingsInput
 
     public Guid? OilTankMeterId { get; set; }
 
+    /// <summary>Weather station of the DWD for the degree days on a tenant change; empty = placeholder table.</summary>
+    [StringLength(10)]
+    public string? DegreeDayStationId { get; set; }
+
     public OilValuation OilValuation { get; set; }
 
     [Range(typeof(decimal), "0", "100", ErrorMessage = "Bitte einen Preis zwischen 0 und 100 €/l angeben.", ParseLimitsInInvariantCulture = true)]
@@ -79,6 +83,9 @@ public sealed class FuelEnergyYearInput
 
 public sealed record MeterOption(Guid Id, string Name);
 
+/// <summary>Weather station of the Deutscher Wetterdienst with degree days.</summary>
+public sealed record DegreeDayStationOption(string Id, string Name);
+
 /// <param name="Saved"><c>false</c> = no settings saved yet, the input shows the defaults.</param>
 public sealed record HeatingSettingsView(
     Guid PropertyId,
@@ -90,4 +97,5 @@ public sealed record HeatingSettingsView(
     string CarbonTableVersion,
     string CarbonTableStatus,
     string DegreeDayTableVersion,
-    string DegreeDayTableStatus);
+    string DegreeDayTableStatus,
+    IReadOnlyList<DegreeDayStationOption> DegreeDayStations);

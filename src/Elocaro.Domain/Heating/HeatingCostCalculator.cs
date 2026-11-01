@@ -33,6 +33,9 @@ public sealed record HeatingParameters
     /// <summary>kWh per unit of fuel for receipts that do not state kWh.</summary>
     public decimal? FuelKwhPerUnit { get; init; }
 
+    /// <summary>Degree days for the apportionment on a tenant change without an interim reading; <c>null</c> = the shipped placeholder table.</summary>
+    public DegreeDayTable? DegreeDays { get; init; }
+
     public OilStock? Oil { get; init; }
 
     public OilValuation OilValuation { get; init; }

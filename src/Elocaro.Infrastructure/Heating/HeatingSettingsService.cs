@@ -32,8 +32,21 @@ internal sealed class HeatingSettingsService(ElocaroDbContext db) : IHeatingSett
         await AddSelectedAsync(oilMeters, input.OilTankMeterId, cancellationToken);
 
         var carbon = CarbonCostTables.All.OrderByDescending(t => t.ValidFromYear).First();
+        var stations = (await db.Set<DegreeDayValue>().AsNoTracking().GroupBy(v => v.StationId).Select(g => new { Id = g.Key, Name = g.OrderByDescending(v => v.Month).First().StationName }).ToListAsync(cancellationToken))
+            .OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase).Select(s => new DegreeDayStationOption(s.Id, s.Name)).ToList();
         var degreeDays = DegreeDayTables.All.OrderByDescending(t => t.ValidFromYear).First();
-        return new HeatingSettingsView(property.Id, property.Name, settings is not null, input, heatMeters, oilMeters, carbon.Version, carbon.Status, degreeDays.Version, degreeDays.Status);
+        var version = degreeDays.Version;
+        var status = degreeDays.Status;
+        if (input.DegreeDayStationId is { } stationId)
+        {
+            var values = await db.Set<DegreeDayValue>().AsNoTracking().Where(v => v.StationId == stationId).ToListAsync(cancellationToken);
+            if (DegreeDayStationTable.Build(values, Period.CalendarYear(DateTime.UtcNow.Year)) is { } table)
+            {
+                (version, status) = (table.Version, table.Status);
+            }
+        }
+
+        return new HeatingSettingsView(property.Id, property.Name, settings is not null, input, heatMeters, oilMeters, carbon.Version, carbon.Status, version, status, stations);
     }
 
     public Task<Result> SaveAsync(Guid propertyId, HeatingSettingsInput input, CancellationToken cancellationToken = default) =>
@@ -66,6 +79,12 @@ internal sealed class HeatingSettingsService(ElocaroDbContext db) : IHeatingSett
             settings.CarbonKgPerKwh = input.CarbonKgPerKwh;
             settings.EnergyYears = [.. input.EnergyYears.Where(e => e.CalorificValue is not null || e.StateNumber is not null)
                 .Select(e => new FuelEnergyYear(e.Year, e.CalorificValue ?? throw new RuleViolationException("Bitte den Brennwert angeben."), e.StateNumber ?? throw new RuleViolationException("Bitte die Zustandszahl angeben."), string.IsNullOrWhiteSpace(e.Note) ? null : e.Note.Trim(), e.CarbonPricePerTon)).OrderBy(e => e.Year)];
+            if (!string.IsNullOrEmpty(input.DegreeDayStationId) && !await db.Set<DegreeDayValue>().AnyAsync(v => v.StationId == input.DegreeDayStationId, cancellationToken))
+            {
+                throw new RuleViolationException("Die Wetterstation ist unbekannt.");
+            }
+
+            settings.DegreeDayStationId = string.IsNullOrEmpty(input.DegreeDayStationId) ? null : input.DegreeDayStationId;
             settings.OilTankMeterId = input.OilTankMeterId;
             settings.OilValuation = input.OilValuation;
             settings.OilOpeningPricePerLiter = input.OilOpeningPricePerLiter;
@@ -97,6 +116,7 @@ internal sealed class HeatingSettingsService(ElocaroDbContext db) : IHeatingSett
         CarbonKgPerKwh = s.CarbonKgPerKwh,
         EnergyYears = [.. s.EnergyYears.Select(e => new FuelEnergyYearInput { Year = e.Year, CalorificValue = e.CalorificValue, StateNumber = e.StateNumber, Note = e.Note, CarbonPricePerTon = e.CarbonPricePerTon })],
         OilTankMeterId = s.OilTankMeterId,
+        DegreeDayStationId = s.DegreeDayStationId,
         OilValuation = s.OilValuation,
         OilOpeningPricePerLiter = s.OilOpeningPricePerLiter,
         ApplyCarbonCosts = s.ApplyCarbonCosts,

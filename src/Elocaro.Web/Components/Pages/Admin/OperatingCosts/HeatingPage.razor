@@ -56,6 +56,22 @@ else
             <AppCheckBox @bind-Value="Data.JointPlant" Label="Eine Anlage für Heizung und Warmwasser" />
         </div>
         <p class="small">Bei einer gemeinsamen Anlage werden die Kosten der Kostenarten 4 und 6 nach § 9 HeizkostenV in Heizung und Warmwasser aufgeteilt.</p>
+        <h3>Mieterwechsel ohne Zwischenablesung</h3>
+        <p class="small">
+            Fehlt beim Mieterwechsel eine Zwischenablesung, wird der Heizverbrauch nach Gradtagen auf die Nutzer verteilt (§ 9b HeizkostenV). Wählen Sie dafür die
+            nächstgelegene Wetterstation des Deutschen Wetterdienstes; Elocaro holt deren Monatsgradtage (VDI 3807) automatisch. Ohne Station gilt ein
+            mitgelieferter Platzhalter.
+        </p>
+        @if (view.DegreeDayStations.Count == 0)
+        {
+            <Notice Level="NoticeLevel.Info" id="degree-day-empty">Es sind noch keine Stationsdaten abgerufen. Der Abruf läuft alle 12 Stunden; er braucht Internetzugang zu opendata.dwd.de.</Notice>
+        }
+        else
+        {
+            <div class="form-grid">
+                <AppSelect T="string" @bind-Value="Data.DegreeDayStationId" Label="Wetterstation (Gradtage)" Items="view.DegreeDayStations.Select(s => s.Id).ToList()" Text="StationName" EmptyText="Platzhalter (keine Station)" Hint="@($"Stand der Tabelle: {view.DegreeDayTableVersion}")" />
+            </div>
+        }
     </section>
 
     @if (Data.JointPlant)
@@ -157,6 +173,8 @@ else
 
 @code {
     private HeatingSettingsView? view;
+
+    private string StationName(string? id) => view?.DegreeDayStations.FirstOrDefault(s => s.Id == id)?.Name ?? "";
     private IReadOnlyList<string>? errors;
     private HeatingSettingsInput Data { get; set; } = new();
     private bool loaded;

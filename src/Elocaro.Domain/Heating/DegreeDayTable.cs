@@ -14,6 +14,12 @@ public sealed record DegreeDayTable(string Version, int ValidFromYear, string St
     /// <summary>Whether the values were checked against a published table.</summary>
     public bool Verified { get; init; }
 
+    /// <summary>
+    /// Measured degree days per month (key: first day of the month) of a weather station. If set, it covers every month the table is
+    /// asked for and replaces <see cref="PermillePerMonth"/>; the weights then are degree days instead of permille (only their ratio counts).
+    /// </summary>
+    public IReadOnlyDictionary<DateOnly, decimal>? Measured { get; init; }
+
     /// <summary>Weight (permille of the year) of a single day: the share of its month spread evenly over the days of the month.</summary>
     public decimal DayWeight(DateOnly day) => Weight(day, day);
 
@@ -31,7 +37,8 @@ public sealed record DegreeDayTable(string Version, int ValidFromYear, string St
             var first = month > from ? month : from;
             var monthEnd = new DateOnly(month.Year, month.Month, daysInMonth);
             var last = monthEnd < to ? monthEnd : to;
-            sum += (decimal)PermillePerMonth[month.Month - 1] * (last.DayNumber - first.DayNumber + 1) / daysInMonth;
+            var monthWeight = Measured is null ? PermillePerMonth[month.Month - 1] : Measured[month];
+            sum += monthWeight * (last.DayNumber - first.DayNumber + 1) / daysInMonth;
             month = month.AddMonths(1);
         }
 

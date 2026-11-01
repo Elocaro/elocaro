@@ -9,6 +9,7 @@ using Elocaro.Domain.People;
 using Elocaro.Domain.Properties;
 using Elocaro.Domain.Receipts;
 using Elocaro.Infrastructure.Finance;
+using Elocaro.Infrastructure.Heating;
 using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -114,16 +115,23 @@ internal sealed class OperatingCostService(ElocaroDbContext db) : IOperatingCost
             hints.Add($"Gas: Für {billingPeriod.To!.Value.Year} sind Brennwert und Zustandszahl nicht hinterlegt, es gilt der feste Energieinhalt von {fixedValue:0.####} kWh je m³ (Heizungseinstellungen). Die Jahresrechnung des Versorgers nennt beide Werte.");
         }
 
+        DegreeDayTable? degreeDays = null;
+        if (heating.DegreeDayStationId is { } stationId)
+        {
+            var values = await db.Set<DegreeDayValue>().AsNoTracking().Where(v => v.StationId == stationId).ToListAsync(cancellationToken);
+            degreeDays = DegreeDayStationTable.Build(values, billingPeriod);
+        }
+
         return new OperatingCostPreview(
             property.Id,
             property.Name,
-            OperatingCostCalculator.Calculate(input, [new HeatingCostCalculator(BuildHeatingParameters(heating, meters, source, billingPeriod))]),
+            OperatingCostCalculator.Calculate(input, [new HeatingCostCalculator(BuildHeatingParameters(heating, meters, source, billingPeriod, degreeDays))]),
             hints,
             supply.Checks);
     }
 
     /// <summary>Settings of the property plus the measured values of the heat meter in the hot water circuit and the oil tank stock.</summary>
-    private static HeatingParameters BuildHeatingParameters(HeatingSettings settings, IReadOnlyList<Zaehler> meters, MeterConsumptionSource source, Period period)
+    private static HeatingParameters BuildHeatingParameters(HeatingSettings settings, IReadOnlyList<Zaehler> meters, MeterConsumptionSource source, Period period, DegreeDayTable? degreeDays)
     {
         OilStock? oil = null;
         if (settings.Fuel == HeatingFuel.Oil)
@@ -156,6 +164,7 @@ internal sealed class OperatingCostService(ElocaroDbContext db) : IOperatingCost
             HotWaterFormulaFactor = settings.HotWaterFormulaFactor,
             HotWaterTemperature = settings.HotWaterTemperature,
             FuelKwhPerUnit = settings.KwhPerUnitFor(period),
+            DegreeDays = degreeDays,
             Oil = oil,
             OilValuation = settings.OilValuation,
             OilOpeningPricePerLiter = settings.OilOpeningPricePerLiter,

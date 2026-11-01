@@ -207,9 +207,15 @@ internal sealed partial class HeatingRun
         }
 
         // Tenant change without an interim reading: heating by degree days (§ 9b para. 2 HeizkostenV), hot water by days.
-        var table = DegreeDayTables.For(billingEnd.Year);
+        var table = settings.DegreeDays ?? DegreeDayTables.For(billingEnd.Year);
         var weights = blocks.Select(b => byDegreeDays ? table.Weight(b.Span.From, b.Span.To!.Value) : b.Span.Days).ToList();
         var weightSum = weights.Sum();
+        if (weightSum == 0)
+        {
+            // No degree days at all in the periods (summer): the days decide, so that no consumption is lost.
+            weights = [.. blocks.Select(b => (decimal)b.Span.Days)];
+            weightSum = weights.Sum();
+        }
         if (byDegreeDays)
         {
             Problem(

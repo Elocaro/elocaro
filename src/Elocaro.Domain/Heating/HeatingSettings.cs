@@ -117,6 +117,9 @@ public sealed class HeatingSettings : Entity
         return EnergyYears.FirstOrDefault(e => e.Year == year)?.KwhPerUnit ?? FuelKwhPerUnit;
     }
 
+    /// <summary>Weather station of the DWD whose monthly degree days divide the heating consumption on a tenant change (§ 9b HeizkostenV); empty = shipped placeholder table.</summary>
+    public string? DegreeDayStationId { get; set; }
+
     /// <summary>Tank meter (stock in liters) for oil; opening and closing stock are its readings.</summary>
     public Guid? OilTankMeterId { get; set; }
 

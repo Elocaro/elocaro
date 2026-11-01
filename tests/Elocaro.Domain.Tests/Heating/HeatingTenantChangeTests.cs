@@ -92,6 +92,39 @@ public class HeatingTenantChangeTests
     }
 
     [Fact]
+    public void Tenant_change_with_station_degree_days_uses_the_measured_months()
+    {
+        // Measured degree days 2026: January 600 + February 500 + March 400 = 1,500 of 3,200 = 46.875 % for X.
+        var months = new[] { 600m, 500m, 400m, 300m, 100m, 0m, 0m, 0m, 100m, 200m, 400m, 600m };
+        var table = new DegreeDayTable("DWD 01234", 2026, "Gradtage der Station Beispielstadt", "DWD", [.. Enumerable.Repeat(83, 12)])
+        {
+            Verified = true,
+            Measured = months.Select((v, i) => (Month: D(2026, i + 1, 1), Value: v)).ToDictionary(m => m.Month, m => m.Value),
+        };
+
+        var result = Run(House(WithoutInterimReading()), Parameters with { DegreeDays = table });
+
+        var note = HeatingLine(result, X, HeatingCostCalculator.HeatKey).Protocol.Single(e => e.Title.StartsWith("Verbrauchsanteil", StringComparison.Ordinal)).Note!;
+        Assert.Contains("Gradtagszahlen 46,88 % von 12.000 kWh (Tabelle DWD 01234)", note, StringComparison.Ordinal);
+        Assert.False(result.HasErrors);
+    }
+
+    [Fact]
+    public void Tenant_change_without_any_degree_days_in_the_periods_falls_back_to_days()
+    {
+        var table = new DegreeDayTable("DWD 01234", 2026, "Gradtage", "DWD", [.. Enumerable.Repeat(83, 12)])
+        {
+            Measured = Enumerable.Range(1, 12).ToDictionary(m => D(2026, m, 1), _ => 0m),
+        };
+
+        var result = Run(House(WithoutInterimReading()), Parameters with { DegreeDays = table });
+
+        // X 90 of 365 days = 24.66 %: the consumption is not lost.
+        var note = HeatingLine(result, X, HeatingCostCalculator.HeatKey).Protocol.Single(e => e.Title.StartsWith("Verbrauchsanteil", StringComparison.Ordinal)).Note!;
+        Assert.Contains("Gradtagszahlen 24,66 % von 12.000 kWh", note, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Tenant_change_with_interim_reading_uses_the_measured_parts()
     {
         var result = Run(House(WithInterimReading()), Parameters);

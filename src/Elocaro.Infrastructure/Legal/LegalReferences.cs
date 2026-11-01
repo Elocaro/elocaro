@@ -38,7 +38,7 @@ internal sealed class LegalReferences(ElocaroDbContext db, IModuleState modules,
         if (modules.IsEnabled(AppModule.OperatingCosts))
         {
             result.Add(Carbon(today));
-            result.Add(DegreeDays(today));
+            result.Add(await DegreeDaysAsync(today, cancellationToken));
         }
 
         var checks = await db.Set<LegalReferenceCheck>().AsNoTracking().ToDictionaryAsync(c => c.Key, cancellationToken);
@@ -145,8 +145,19 @@ internal sealed class LegalReferences(ElocaroDbContext db, IModuleState modules,
                 table.Verified ? null : $"{table.Status}. Vor dem Versand einer Heizkostenabrechnung gegen den Gesetzestext prüfen.");
     }
 
-    private static LegalReference DegreeDays(DateOnly today)
+    private async Task<LegalReference> DegreeDaysAsync(DateOnly today, CancellationToken cancellationToken)
     {
+        var newest = await db.Set<DegreeDayValue>().AsNoTracking().OrderByDescending(v => v.Month).Select(v => (DateOnly?)v.Month).FirstOrDefaultAsync(cancellationToken);
+        if (newest is { } month)
+        {
+            var stations = await db.Set<DegreeDayValue>().AsNoTracking().Where(v => v.Month == month).CountAsync(cancellationToken);
+            var expected = new DateOnly(today.Year, today.Month, 1).AddMonths(today.Day >= 10 ? -1 : -2);
+            var current = month >= expected;
+            return new("degree-days", "Gradtage (Aufteilung der Heizkosten beim Mieterwechsel)", $"{stations} Wetterstationen des DWD", $"Stand {month.ToString("MM/yyyy", CultureInfo.InvariantCulture)}",
+                "Deutscher Wetterdienst, Monatsgradtage nach VDI 3807 (Open Data)", current ? LegalReferenceStatus.Current : LegalReferenceStatus.Check, null, "/verwaltung/objekte",
+                current ? "Die Werte werden automatisch abgerufen. Je Objekt wird die Wetterstation in den Heizungseinstellungen gewählt." : $"Der neueste abgerufene Monat ist {month.ToString("MM/yyyy", CultureInfo.InvariantCulture)}; erwartet wäre {expected.ToString("MM/yyyy", CultureInfo.InvariantCulture)}. Der Abruf braucht Internetzugang zu opendata.dwd.de.");
+        }
+
         var table = DegreeDayTables.For(today.Year);
         return new("degree-days", "Gradtagszahlen (Aufteilung der Heizkosten im Jahresverlauf)", $"Version {table.Version}", $"seit {table.ValidFromYear}", table.Source,
             table.Verified ? LegalReferenceStatus.Current : LegalReferenceStatus.Check, null, "/verwaltung/objekte",

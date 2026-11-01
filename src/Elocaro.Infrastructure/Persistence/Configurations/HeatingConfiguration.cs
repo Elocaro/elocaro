@@ -24,6 +24,7 @@ internal sealed class HeatingSettingsConfiguration : IEntityTypeConfiguration<He
         builder.Property(h => h.EnergyYears)
             .HasConversion(c => System.Text.Json.JsonSerializer.Serialize(c, (System.Text.Json.JsonSerializerOptions?)null), s => System.Text.Json.JsonSerializer.Deserialize<List<FuelEnergyYear>>(s, (System.Text.Json.JsonSerializerOptions?)null)!, comparer)
             .HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
+        builder.Property(h => h.DegreeDayStationId).HasMaxLength(10);
         builder.Property(h => h.CarbonKgPerKwh).HasPrecision(8, 5);
         builder.Property(h => h.SplitBasis).HasConversion<string>().HasMaxLength(20);
         builder.Property(h => h.OilValuation).HasConversion<string>().HasMaxLength(20);

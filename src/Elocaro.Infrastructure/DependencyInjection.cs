@@ -103,6 +103,7 @@ public static class DependencyInjection
         AddOperations(services, configuration);
         AddMasterData(services);
         AddPrivacy(services, configuration);
+        services.Configure<DegreeDayOptions>(configuration.GetSection(DegreeDayOptions.Section));
         AddJobs(services, configuration);
         AddHealthChecks(services);
 
@@ -354,6 +355,7 @@ public static class DependencyInjection
         services.AddScoped<ICostSubtypes, CostSubtypeService>();
         services.AddScoped<IOperatingCosts, OperatingCostService>();
         services.AddScoped<IHeatingSettings, HeatingSettingsService>();
+        services.AddHttpClient<DegreeDayImporter>(http => http.Timeout = TimeSpan.FromSeconds(30));
         services.AddScoped<IStatements, StatementService>();
         services.AddScoped<IStatementDispatch, StatementDispatchService>();
         services.AddScoped<IStatementReceiptShares, StatementReceiptShareService>();
@@ -451,6 +453,7 @@ public static class DependencyInjection
             q.ScheduleDaily<ConsumptionNotificationJob>(ConsumptionNotificationJob.Key, "Schickt Mietern die monatliche Verbrauchsinformation (Heizung, Warmwasser) per Mail", 8, 15);
             q.ScheduleDaily<ReadingReminderJob>(ReadingReminderJob.Key, "Erinnert Mieter ab dem 15. Dezember, die Zählerstände zum Jahreswechsel im Portal zu melden", 8, 25);
             q.ScheduleInterval<ReceiptInboxJob>(ReceiptInboxJob.Key, "Holt Belege aus dem Beleg-Postfach ab (nur wenn eingerichtet)", TimeSpan.FromMinutes(5));
+            q.ScheduleInterval<DegreeDayJob>(DegreeDayJob.Key, "Holt die Monatsgradtage der Wetterstationen vom Deutschen Wetterdienst (Aufteilung der Heizkosten beim Mieterwechsel)", TimeSpan.FromHours(12));
             q.ScheduleInterval<Notifications.PushDispatchJob>(Notifications.PushDispatchJob.Key, "Schickt Hinweise an Geräte, die Benachrichtigungen eingeschaltet haben", TimeSpan.FromMinutes(1));
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });

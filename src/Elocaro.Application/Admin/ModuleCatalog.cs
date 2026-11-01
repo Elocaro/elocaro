@@ -137,7 +137,7 @@ public static class ModuleCatalog
             ["Versorgungsverträge (Tarife)", "Umlageschlüssel", "Heizkosten", "Vorschau und Abrechnungs-Assistent", "Vereinbarte Kostenarten je Vertrag", "Abrechnung im Mieterportal"],
             [AppModule.Receipts], $"{Admin}/objekte", [$"{Admin}/abrechnungen", "/portal/abrechnungen"],
             [($"{Admin}/objekte", "versorgung"), ($"{Admin}/objekte", "umlageschluessel"), ($"{Admin}/objekte", "heizung"), ($"{Admin}/objekte", "nebenkosten"),
-             ($"{Admin}/objekte", "abrechnung"), ($"{Admin}/objekte", "abrechnungen"), ($"{Admin}/vertraege", "kostenarten")], []),
+             ($"{Admin}/objekte", "abrechnung"), ($"{Admin}/objekte", "abrechnungen"), ($"{Admin}/vertraege", "kostenarten")], ["degree-days"]),
 
         new(AppModule.Metering, "Zähler & Verbrauch",
             "Zähler und Zählerstände erfassen, importieren und Mietern ihren Verbrauch im Portal zeigen.",
