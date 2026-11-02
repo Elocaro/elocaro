@@ -77,6 +77,7 @@ public sealed class ElocaroWebFactory(
         builder.UseSetting("ConnectionStrings:Elocaro", connection);
         builder.UseSetting("Database:AutoMigrate", "true");
         builder.UseSetting("Jobs:Active", "false");
+        builder.UseSetting("Documents:InstallDefaults", "false"); // tests start without templates and create what they need
         builder.UseSetting("Setup:Code", SetupCode);
         builder.UseSetting("Application:BaseUrl", "https://localhost/");
         builder.UseSetting("SignIn:RequestsPerMinute", "1000");

@@ -7,7 +7,6 @@
 <InteractiveShell>
     <PageHeader Title="Vorlagen" Subtitle="Texte für Schreiben an Mieter. Platzhalter wie {{ tenant_name }} werden beim Erzeugen ersetzt.">
         <Actions>
-            <MudButton Variant="Variant.Outlined" OnClick="InstallDefaultsAsync">Standardvorlagen anlegen</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/einstellungen/vorlagen/neu">Vorlage anlegen</MudButton>
         </Actions>
     </PageHeader>
@@ -45,13 +44,6 @@
     private IReadOnlyList<string>? errors;
 
     protected override async Task OnInitializedAsync() => rows = await Library.ListAsync();
-
-    private async Task InstallDefaultsAsync()
-    {
-        var installed = await Library.InstallDefaultsAsync();
-        rows = await Library.ListAsync();
-        Notify.Success(installed.Created == 0 ? "Alle Standardvorlagen sind schon vorhanden." : $"{installed.Created} Standardvorlagen wurden angelegt. Texte vor dem Einsatz prüfen.");
-    }
 
     private async Task ImportAsync(FileSelection file)
     {

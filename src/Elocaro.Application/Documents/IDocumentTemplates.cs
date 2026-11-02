@@ -29,6 +29,9 @@ public interface IDocumentTemplates
     /// <summary>Creates the bundled starting templates that do not exist yet (by name); existing ones stay untouched.</summary>
     Task<DefaultsInstalled> InstallDefaultsAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Like <see cref="InstallDefaultsAsync"/>, but a bundled template that was deleted on purpose stays deleted. Runs at every start, so new bundled templates arrive with an update.</summary>
+    Task<DefaultsInstalled> EnsureDefaultsAsync(CancellationToken cancellationToken = default);
+
     /// <summary>The template as a file for backup or exchange.</summary>
     Task<TemplateExport?> ExportAsync(Guid id, CancellationToken cancellationToken = default);
 

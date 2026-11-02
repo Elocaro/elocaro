@@ -1,5 +1,6 @@
 using Elocaro.Application.Common;
 using Elocaro.Infrastructure;
+using Elocaro.Infrastructure.Documents;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Setup;
 using Elocaro.Web.AccessControl;
@@ -87,6 +88,7 @@ app.MapStatementPreviewEndpoint();
 app.MapStatementReceiptEndpoint();
 
 await app.Services.MigrateDatabaseAsync();
+await app.Services.InstallDefaultTemplatesAsync();
 await app.Services.PrepareDemoAsync();
 await app.Services.AnnounceSetupCodeAsync();
 await app.RunAsync();

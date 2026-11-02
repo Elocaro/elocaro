@@ -157,9 +157,14 @@ internal sealed partial class DocumentTemplates(ElocaroDbContext db, IPdfGenerat
     public async Task<IReadOnlyList<string>> SnippetNamesAsync(CancellationToken cancellationToken = default) =>
         await db.Set<DocumentTemplate>().AsNoTracking().Where(t => t.Kind == TemplateKind.Snippet).OrderBy(t => t.Name).Select(t => t.Name).ToListAsync(cancellationToken);
 
-    public async Task<DefaultsInstalled> InstallDefaultsAsync(CancellationToken cancellationToken = default)
+    public Task<DefaultsInstalled> InstallDefaultsAsync(CancellationToken cancellationToken = default) => InstallAsync(restoreDeleted: true, cancellationToken);
+
+    public Task<DefaultsInstalled> EnsureDefaultsAsync(CancellationToken cancellationToken = default) => InstallAsync(restoreDeleted: false, cancellationToken);
+
+    private async Task<DefaultsInstalled> InstallAsync(bool restoreDeleted, CancellationToken cancellationToken)
     {
-        var existing = (await db.Set<DocumentTemplate>().Select(t => t.Name).ToListAsync(cancellationToken)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var known = restoreDeleted ? db.Set<DocumentTemplate>() : db.Set<DocumentTemplate>().IgnoreQueryFilters();
+        var existing = (await known.Select(t => t.Name).ToListAsync(cancellationToken)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var created = 0;
         // Snippets first: the bundled letters include them.
         foreach (var entry in TemplateDefaults.All.OrderBy(e => e.Kind == TemplateKind.Snippet ? 0 : 1))

@@ -172,6 +172,23 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Ensured_defaults_are_created_once_and_a_deleted_one_stays_deleted()
+    {
+        var first = await WithAsync(t => t.EnsureDefaultsAsync(Ct));
+        var rows = await WithAsync(t => t.ListAsync(Ct));
+        Validate(await WithAsync(t => t.DeleteAsync(rows.First(r => r.Name == "Mietbescheinigung").Id, Ct)));
+
+        var second = await WithAsync(t => t.EnsureDefaultsAsync(Ct));
+
+        Assert.Equal(23, first.Created);
+        Assert.Equal(0, second.Created);
+        Assert.DoesNotContain(await WithAsync(t => t.ListAsync(Ct)), r => r.Name == "Mietbescheinigung");
+
+        // The explicit action brings it back.
+        Assert.Equal(1, (await WithAsync(t => t.InstallDefaultsAsync(Ct))).Created);
+    }
+
+    [Fact]
     public async Task Export_and_import_roundtrip_with_a_suffix_for_existing_names()
     {
         var id = Validate(await WithAsync(t => t.SaveAsync(null, Input("Original"), Ct)));
