@@ -29,6 +29,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ### Geändert
 - Einstellungen → Module: Die Auswahl innerhalb der Bereiche (z. B. Staffelmiete, DATEV-Export) steht jetzt direkt in der Kachel des Moduls statt auf einem zweiten Reiter.
+- Darlehen, Wartung, Hausmeister-Aufgaben und CSV-Profile: „anlegen“ ist eine Schaltfläche im Seitenkopf mit Dialog; das Formular unter der Liste entfällt.
 - Vorlagen: Die Standardvorlagen werden beim Start automatisch angelegt (was fehlt, auch neue nach einem Update; bewusst Gelöschtes bleibt gelöscht). Die Schaltfläche „Standardvorlagen anlegen“ in der Vorlagenliste entfällt.
 - Beispieldaten: Die Mietverträge beginnen am 1. Januar des vorletzten Jahres. Die Demo-Instanz zeigt im Mieterportal versendete Abrechnungen mit Rechenweg, Vorjahresvergleich und freigegebenen Beispielbelegen.
 

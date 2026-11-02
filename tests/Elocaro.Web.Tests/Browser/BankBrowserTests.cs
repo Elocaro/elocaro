@@ -127,15 +127,17 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Das Dateiformat wurde nicht erkannt.");
 
             await GotoInteractiveAsync(page, "/verwaltung/bank/csv-profile");
-            await page.GetByLabel("Name", new() { Exact = true }).FillAsync("Hausbank");
-            await page.GetByLabel("Trennzeichen", new() { Exact = true }).FillAsync(",");
-            await SelectAsync(page, "Dezimaltrennzeichen", "Punkt (1,234.56)");
-            await page.GetByLabel("Datumsformat").FillAsync("yyyy-MM-dd");
-            await page.GetByLabel("Buchungsdatum").FillAsync("Date");
-            await page.GetByLabel("Betrag", new() { Exact = true }).FillAsync("Amount");
-            await page.GetByLabel("Name Gegenseite").FillAsync("Payee");
-            await page.GetByLabel("Verwendungszweck").FillAsync("Memo");
             await page.GetByRole(AriaRole.Button, new() { Name = "Profil anlegen" }).ClickAsync();
+            var dialog = page.Locator(".mud-dialog");
+            await dialog.GetByLabel("Name", new() { Exact = true }).FillAsync("Hausbank");
+            await dialog.GetByLabel("Trennzeichen", new() { Exact = true }).FillAsync(",");
+            await SelectAsync(page, "Dezimaltrennzeichen", "Punkt (1,234.56)", dialog);
+            await dialog.GetByLabel("Datumsformat").FillAsync("yyyy-MM-dd");
+            await dialog.GetByLabel("Spalte Buchungsdatum").FillAsync("Date");
+            await dialog.GetByLabel("Spalte Betrag", new() { Exact = true }).FillAsync("Amount");
+            await dialog.GetByLabel("Spalte Name Gegenseite").FillAsync("Payee");
+            await dialog.GetByLabel("Spalte Verwendungszweck").FillAsync("Memo");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Profil anlegen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Das Profil wurde angelegt.");
 
             await GotoInteractiveAsync(page, $"/verwaltung/bank/konten/{account}");

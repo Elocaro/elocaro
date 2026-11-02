@@ -4,9 +4,14 @@
 @inject IBankService Bank
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject IDialogService Dialogs
 
 <InteractiveShell>
-    <PageHeader Title="CSV-Profile" Subtitle="Wie CSV-Exporte der Banken gelesen werden. Spalten werden über ihre Überschrift gefunden." Back="/verwaltung/bank/konten" BackText="Bankkonten" />
+    <PageHeader Title="CSV-Profile" Subtitle="Wie CSV-Exporte der Banken gelesen werden. Spalten werden über ihre Überschrift gefunden." Back="/verwaltung/bank/konten" BackText="Bankkonten">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="() => EditAsync(null)">Profil anlegen</MudButton>
+        </Actions>
+    </PageHeader>
 
     <ErrorList Errors="errors" />
 
@@ -22,48 +27,13 @@
             <MudTd>
                 @if (context.Id is not null)
                 {
-                    <MudButton Variant="Variant.Text" OnClick="() => Edit(context)" aria-label="@($"Profil {context.Name} bearbeiten")">Bearbeiten</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="() => EditAsync(context)" aria-label="@($"Profil {context.Name} bearbeiten")">Bearbeiten</MudButton>
                     <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(context)" aria-label="@($"Profil {context.Name} löschen")">Löschen</MudButton>
                 }
             </MudTd>
         </RowTemplate>
     </MudTable>
 
-    <section>
-        <h2>@(editing is null ? "Eigenes Profil anlegen" : "Profil bearbeiten")</h2>
-        <p class="small">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>
-        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
-            <DataAnnotationsValidator />
-            <div class="form-grid">
-                <AppTextField @bind-Value="data.Name" Label="Name" Required="true" />
-                <AppTextField @bind-Value="data.Delimiter" Label="Trennzeichen" Hint="; , oder \t für Tab" />
-                <AppSelect T="string" @bind-Value="data.DecimalSeparator" Label="Dezimaltrennzeichen" Items="decimalSeparators" Text="@(v => v == "," ? "Komma (1.234,56)" : "Punkt (1,234.56)")" />
-                <AppSelect T="string" @bind-Value="data.Charset" Label="Zeichensatz" Items="charsets" Text="CharsetText" />
-                <AppTextField @bind-Value="data.DateFormat" Label="Datumsformat" Hint="z. B. dd.MM.yyyy|dd.MM.yy oder yyyy-MM-dd" />
-            </div>
-            <h3>Spaltenüberschriften</h3>
-            <div class="form-grid">
-                <AppTextField @bind-Value="data.BookingDateColumn" Label="Buchungsdatum" Required="true" />
-            <AppTextField @bind-Value="data.ValueDateColumn" Label="Valutadatum" />
-            <AppTextField @bind-Value="data.AmountColumn" Label="Betrag" />
-            <AppTextField @bind-Value="data.DebitColumn" Label="Soll (Ausgang)" />
-            <AppTextField @bind-Value="data.CreditColumn" Label="Haben (Eingang)" />
-            <AppTextField @bind-Value="data.NameColumn" Label="Name Gegenseite" />
-            <AppTextField @bind-Value="data.IbanColumn" Label="IBAN Gegenseite" />
-            <AppTextField @bind-Value="data.BicColumn" Label="BIC Gegenseite" />
-            <AppTextField @bind-Value="data.PurposeColumn" Label="Verwendungszweck" />
-            <AppTextField @bind-Value="data.BookingTextColumn" Label="Buchungstext" />
-            <AppTextField @bind-Value="data.EndToEndColumn" Label="End-to-End-Referenz" />
-            <AppTextField @bind-Value="data.MandateReferenceColumn" Label="Mandatsreferenz" />
-            <AppTextField @bind-Value="data.CreditorIdColumn" Label="Gläubiger-ID" />
-            </div>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(editing is null ? "Profil anlegen" : "Änderung speichern")</MudButton>
-            @if (editing is not null)
-            {
-                <MudButton Variant="Variant.Text" OnClick="CancelEditAsync">Abbrechen</MudButton>
-            }
-        </EditForm>
-    </section>
 </InteractiveShell>
 
 @code {
@@ -72,7 +42,6 @@
 
     private IReadOnlyList<CsvProfileInput> profiles = [];
     private IReadOnlyList<string>? errors;
-    private CsvProfileInput data = new();
 
     protected override async Task OnInitializedAsync() => profiles = await Bank.CsvProfilesAsync();
 
@@ -83,30 +52,39 @@
         _ => "automatisch",
     };
 
-    private Guid? editing;
-
-    private async Task CancelEditAsync()
+    // Create and change share one dialog; the columns are in the same place for both.
+    private async Task EditAsync(CsvProfileInput? profile)
     {
-        editing = null;
-        data = new();
-        profiles = await Bank.CsvProfilesAsync();
-    }
-
-    private void Edit(CsvProfileInput profile)
-    {
-        editing = profile.Id;
-        data = profile;
-    }
-
-    private async Task SaveAsync()
-    {
-        if (await ExecuteAsync(Bank.SaveCsvProfileAsync(editing, data), editing is null ? "Das Profil wurde angelegt." : "Das Profil wurde gespeichert."))
+        var data = profile ?? new CsvProfileInput();
+        var editing = profile?.Id;
+        RenderFragment note = @<p class="small">Mehrere mögliche Spaltennamen mit „|“ trennen. Für einen Betrag mit Vorzeichen „Betrag“ ausfüllen, sonst „Soll“ und „Haben“.</p>;
+        RenderFragment fields = @<text>
+            <AppTextField @bind-Value="data.Name" Label="Name" Required="true" />
+            <AppTextField @bind-Value="data.Delimiter" Label="Trennzeichen" Hint="; , oder \t für Tab" />
+            <AppSelect T="string" @bind-Value="data.DecimalSeparator" Label="Dezimaltrennzeichen" Items="decimalSeparators" Text="@(v => v == "," ? "Komma (1.234,56)" : "Punkt (1,234.56)")" />
+            <AppSelect T="string" @bind-Value="data.Charset" Label="Zeichensatz" Items="charsets" Text="CharsetText" />
+            <AppTextField @bind-Value="data.DateFormat" Label="Datumsformat" Hint="z. B. dd.MM.yyyy|dd.MM.yy oder yyyy-MM-dd" />
+            <AppTextField @bind-Value="data.BookingDateColumn" Label="Spalte Buchungsdatum" Required="true" />
+            <AppTextField @bind-Value="data.ValueDateColumn" Label="Spalte Valutadatum" />
+            <AppTextField @bind-Value="data.AmountColumn" Label="Spalte Betrag" />
+            <AppTextField @bind-Value="data.DebitColumn" Label="Spalte Soll (Ausgang)" />
+            <AppTextField @bind-Value="data.CreditColumn" Label="Spalte Haben (Eingang)" />
+            <AppTextField @bind-Value="data.NameColumn" Label="Spalte Name Gegenseite" />
+            <AppTextField @bind-Value="data.IbanColumn" Label="Spalte IBAN Gegenseite" />
+            <AppTextField @bind-Value="data.BicColumn" Label="Spalte BIC Gegenseite" />
+            <AppTextField @bind-Value="data.PurposeColumn" Label="Spalte Verwendungszweck" />
+            <AppTextField @bind-Value="data.BookingTextColumn" Label="Spalte Buchungstext" />
+            <AppTextField @bind-Value="data.EndToEndColumn" Label="Spalte End-to-End-Referenz" />
+            <AppTextField @bind-Value="data.MandateReferenceColumn" Label="Spalte Mandatsreferenz" />
+            <AppTextField @bind-Value="data.CreditorIdColumn" Label="Spalte Gläubiger-ID" />
+        </text>;
+        if (await Dialogs.ShowFormAsync(editing is null ? "Eigenes Profil anlegen" : "Profil bearbeiten", data, fields, () => Bank.SaveCsvProfileAsync(editing, data), editing is null ? "Profil anlegen" : "Änderung speichern", note))
         {
-            editing = null;
-            data = new();
+            Notify.Success(editing is null ? "Das Profil wurde angelegt." : "Das Profil wurde gespeichert.");
         }
-    }
 
+        profiles = await Bank.CsvProfilesAsync(); // after cancelling, too: drops the unsaved changes of the shared model
+    }
     private async Task DeleteAsync(CsvProfileInput profile)
     {
         if (profile.Id is { } id && await Confirm.AskAsync("Profil löschen", $"Soll das Profil „{profile.Name}“ gelöscht werden?", "Ja, löschen"))

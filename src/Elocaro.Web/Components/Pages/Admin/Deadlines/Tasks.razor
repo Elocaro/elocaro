@@ -4,11 +4,14 @@
 @inject IDeadlines Admin
 @inject IPropertyService Properties
 @inject NavigationManager Navigation
+@inject IDialogService Dialogs
 
 <InteractiveShell>
-    <PageHeader Title="Wartung" Subtitle="Wiederkehrende Pflichten von Hand eintragen: Rauchmelder, Heizungswartung, Schornsteinfeger, Legionellenprüfung und mehr." Back="/verwaltung/fristen" BackText="Fristen" />
-
-    <ErrorList Errors="errors" />
+    <PageHeader Title="Wartung" Subtitle="Wiederkehrende Pflichten von Hand eintragen: Rauchmelder, Heizungswartung, Schornsteinfeger, Legionellenprüfung und mehr." Back="/verwaltung/fristen" BackText="Fristen">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">Wartung eintragen</MudButton>
+        </Actions>
+    </PageHeader>
 
     @if (tasks is { Count: 0 })
     {
@@ -30,21 +33,11 @@
         </MudTable>
     }
 
-    <section>
-        <h2>Wartung eintragen</h2>
-        <EditForm Model="data" OnValidSubmit="CreateAsync" novalidate>
-            <DataAnnotationsValidator />
-            <TaskEditor Data="data" Properties="properties" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Eintragen</MudButton>
-        </EditForm>
-    </section>
 </InteractiveShell>
 
 @code {
     private IReadOnlyList<TaskListItem>? tasks;
     private IReadOnlyList<PropertyOverview> properties = [];
-    private IReadOnlyList<string>? errors;
-    private readonly TaskInput data = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,16 +45,21 @@
         properties = await Properties.ListAsync();
     }
 
+    // "Wartung eintragen" asks for the data in a dialog and then opens the new task.
     private async Task CreateAsync()
     {
-        var result = await Admin.CreateTaskAsync(data);
-        if (result.Succeeded)
+        var data = new TaskInput();
+        Guid? id = null;
+        RenderFragment fields = @<TaskEditor Data="data" Properties="properties" />;
+        var saved = await Dialogs.ShowFormAsync("Wartung eintragen", data, fields, async () =>
         {
-            Navigation.NavigateTo($"/verwaltung/fristen/wartung/{result.Id}?meldung=angelegt");
-        }
-        else
+            var result = await Admin.CreateTaskAsync(data);
+            id = result.Id;
+            return result;
+        }, "Eintragen");
+        if (saved && id is { } created)
         {
-            errors = result.Errors;
+            Navigation.NavigateTo($"/verwaltung/fristen/wartung/{created}?meldung=angelegt");
         }
     }
 }

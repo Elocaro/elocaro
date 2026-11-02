@@ -32,15 +32,17 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await SelectAsync(page, "Objekt", "Lindenweg 3");
-            await page.GetByLabel("Bank").FillAsync("Sparkasse");
-            await page.GetByLabel("Darlehensbetrag").FillAsync("200000");
-            await page.GetByLabel("Auszahlung").FillAsync("01.01.2024");
-            await page.GetByLabel("Erste Rate fällig").FillAsync("01.02.2024");
-            await page.GetByLabel("Sollzins").FillAsync("3,6");
-            await page.GetByLabel("Rate (Zins + Tilgung)").FillAsync("1000");
-            await page.GetByLabel("Anteil Vermietung").FillAsync("100");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Anlegen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Darlehen anlegen" }).ClickAsync();
+            var create = page.Locator(".mud-dialog");
+            await SelectAsync(page, "Objekt", "Lindenweg 3", create);
+            await create.GetByLabel("Bank").FillAsync("Sparkasse");
+            await create.GetByLabel("Darlehensbetrag").FillAsync("200000");
+            await create.GetByLabel("Auszahlung").FillAsync("01.01.2024");
+            await create.GetByLabel("Erste Rate fällig").FillAsync("01.02.2024");
+            await create.GetByLabel("Sollzins").FillAsync("3,6");
+            await create.GetByLabel("Rate (Zins + Tilgung)").FillAsync("1000");
+            await create.GetByLabel("Anteil Vermietung").FillAsync("100");
+            await create.GetByRole(AriaRole.Button, new() { Name = "Darlehen anlegen" }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/finanzen/darlehen/*?meldung=angelegt");
             await Assertions.Expect(page.Locator("h1")).ToContainTextAsync("Sparkasse");

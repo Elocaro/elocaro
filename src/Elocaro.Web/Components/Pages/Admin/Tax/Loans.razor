@@ -4,11 +4,14 @@
 @inject ILoanService Admin
 @inject IPropertyService Properties
 @inject NavigationManager Navigation
+@inject IDialogService Dialogs
 
 <InteractiveShell>
-    <PageHeader Title="Darlehen" Subtitle="Finanzierung der Objekte: Tilgungsplan, Zinsen als Werbungskosten." />
-
-    <ErrorList Errors="errors" />
+    <PageHeader Title="Darlehen" Subtitle="Finanzierung der Objekte: Tilgungsplan, Zinsen als Werbungskosten.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">Darlehen anlegen</MudButton>
+        </Actions>
+    </PageHeader>
 
     @if (loans is { Count: 0 })
     {
@@ -30,21 +33,11 @@
         </MudTable>
     }
 
-    <section>
-        <h2>Darlehen anlegen</h2>
-        <EditForm Model="data" OnValidSubmit="CreateAsync" novalidate>
-            <DataAnnotationsValidator />
-            <LoanEditor Data="data" Properties="properties" />
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Anlegen</MudButton>
-        </EditForm>
-    </section>
 </InteractiveShell>
 
 @code {
     private IReadOnlyList<LoanListItem>? loans;
     private IReadOnlyList<PropertyOverview> properties = [];
-    private IReadOnlyList<string>? errors;
-    private readonly LoanInput data = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,16 +45,21 @@
         properties = await Properties.ListAsync();
     }
 
+    // "Darlehen anlegen" asks for the data in a dialog and then opens the new loan.
     private async Task CreateAsync()
     {
-        var result = await Admin.CreateAsync(data);
-        if (result.Succeeded)
+        var data = new LoanInput();
+        Guid? id = null;
+        RenderFragment fields = @<LoanEditor Data="data" Properties="properties" />;
+        var saved = await Dialogs.ShowFormAsync("Darlehen anlegen", data, fields, async () =>
         {
-            Navigation.NavigateTo($"/verwaltung/finanzen/darlehen/{result.Id}?meldung=angelegt");
-        }
-        else
+            var result = await Admin.CreateAsync(data);
+            id = result.Id;
+            return result;
+        }, "Darlehen anlegen");
+        if (saved && id is { } created)
         {
-            errors = result.Errors;
+            Navigation.NavigateTo($"/verwaltung/finanzen/darlehen/{created}?meldung=angelegt");
         }
     }
 }
