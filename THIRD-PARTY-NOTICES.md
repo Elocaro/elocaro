@@ -18,6 +18,7 @@ Elocaro nutzt folgende Open-Source-Komponenten (als NuGet-Pakete bzw. Container-
 | QRCoder | MIT | QR-Code für die Zwei-Faktor-Einrichtung |
 | bUnit, AngleSharp (nur Tests) | MIT | Komponenten- und HTML-Tests |
 | Roboto Flex (Schrift, mitgeliefert unter `src/Elocaro.Web/wwwroot/fonts/`) | SIL Open Font License 1.1 | Schrift der Oberfläche; Lizenztext liegt neben den Dateien |
+| GeoNames-Postleitzahlen für Deutschland (mitgeliefert als `src/Elocaro.Infrastructure/Heating/postal-codes.csv`, je Postleitzahl der Mittelwert der Orte) | CC BY 4.0 | Position eines Objekts für die Wahl der nächsten Wetterstation, ohne Abruf im Betrieb. Quelle: <https://www.geonames.org/> (Stand 11/2026) |
 | restic (im Backup-Container) | BSD-2-Clause | verschlüsselte Datensicherung |
 | Caddy (Container) | Apache-2.0 | TLS und Reverse-Proxy |
 | PostgreSQL (Container) | PostgreSQL License | Datenbank |

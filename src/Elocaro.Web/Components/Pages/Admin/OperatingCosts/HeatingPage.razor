@@ -59,7 +59,7 @@ else
         <h3>Mieterwechsel ohne Zwischenablesung</h3>
         <p class="small">
             Fehlt beim Mieterwechsel eine Zwischenablesung, wird der Heizverbrauch nach Gradtagen auf die Nutzer verteilt (§ 9b HeizkostenV). Wählen Sie dafür die
-            nächstgelegene Wetterstation des Deutschen Wetterdienstes; Elocaro holt deren Monatsgradtage (VDI 3807) automatisch. Ohne Station gilt ein
+            nächstgelegene Wetterstation des Deutschen Wetterdienstes (die Liste beginnt mit der nächsten zur Postleitzahl des Objekts); Elocaro holt deren Monatsgradtage (VDI 3807) automatisch. Ohne Station gilt ein
             mitgelieferter Platzhalter.
         </p>
         @if (view.DegreeDayStations.Count == 0)
@@ -68,6 +68,10 @@ else
         }
         else
         {
+            @if (suggestedStation is { } suggestion && Data.DegreeDayStationId == suggestion.Id)
+            {
+                <Notice Level="NoticeLevel.Info" id="degree-day-suggestion">Vorgeschlagen: die nächstgelegene Station zur Postleitzahl des Objekts, @suggestion.Name (rund @suggestion.DistanceKm km). Sie gilt, sobald Sie die Einstellungen speichern.</Notice>
+            }
             <div class="form-grid">
                 <AppSelect T="string" @bind-Value="Data.DegreeDayStationId" Label="Wetterstation (Gradtage)" Items="view.DegreeDayStations.Select(s => s.Id).ToList()" Text="StationName" EmptyText="Platzhalter (keine Station)" Hint="@($"Stand der Tabelle: {view.DegreeDayTableVersion}")" />
             </div>
@@ -174,7 +178,12 @@ else
 @code {
     private HeatingSettingsView? view;
 
-    private string StationName(string? id) => view?.DegreeDayStations.FirstOrDefault(s => s.Id == id)?.Name ?? "";
+    private string StationName(string? id) => view?.DegreeDayStations.FirstOrDefault(s => s.Id == id) is { } station
+        ? station.Name + (station.DistanceKm is { } km ? $" ({km} km)" : "")
+        : "";
+
+    /// <summary>The nearest station was preselected because none had been chosen yet.</summary>
+    private DegreeDayStationOption? suggestedStation;
     private IReadOnlyList<string>? errors;
     private HeatingSettingsInput Data { get; set; } = new();
     private bool loaded;
@@ -188,6 +197,11 @@ else
         if (view is not null)
         {
             Data = view.Input;
+            if (string.IsNullOrEmpty(Data.DegreeDayStationId) && view.DegreeDayStations.FirstOrDefault() is { DistanceKm: not null } nearest)
+            {
+                Data.DegreeDayStationId = nearest.Id;
+                suggestedStation = nearest;
+            }
         }
 
         loaded = true;

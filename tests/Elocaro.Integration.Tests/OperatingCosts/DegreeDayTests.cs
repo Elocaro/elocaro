@@ -32,6 +32,7 @@ public class DegreeDayTests(PostgresFixture postgres)
         var row = Assert.Single(rows);
         Assert.Equal("00044", row.StationId);
         Assert.Equal("GROSSENKNETEN", row.StationName);
+        Assert.Equal((52.93m, 8.24m), (row.Latitude, row.Longitude));
         Assert.Equal(new DateOnly(2026, 1, 1), row.Month);
         Assert.Equal(458.4m, row.DegreeDays);
         Assert.Equal(504.9m, row.LongTermMean);
@@ -120,5 +121,21 @@ public class DegreeDayTests(PostgresFixture postgres)
                 ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(text) }
                 : new HttpResponseMessage(HttpStatusCode.NotFound));
         }
+    }
+}
+
+public class PostalCodesTests
+{
+    [Fact]
+    public void A_postal_code_has_a_position_and_distances_are_plausible()
+    {
+        var cologne = PostalCodes.Find("50667")!.Value;
+        var berlin = PostalCodes.Find("10115")!.Value;
+
+        Assert.InRange(cologne.Latitude, 50.8, 51.1);
+        Assert.InRange(PostalCodes.DistanceKm(cologne, berlin), 470, 490); // as the crow flies Köln–Berlin
+        Assert.Null(PostalCodes.Find("00000"));
+        Assert.Null(PostalCodes.Find(null));
+        Assert.Null(PostalCodes.Find("5066"));
     }
 }

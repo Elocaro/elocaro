@@ -29,6 +29,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ### Geändert
 - Einstellungen → Module: Die Auswahl innerhalb der Bereiche (z. B. Staffelmiete, DATEV-Export) steht jetzt direkt in der Kachel des Moduls statt auf einem zweiten Reiter.
+- Heizkosten: Die Wetterstation für die Gradtage wird nach der Postleitzahl des Objekts vorgeschlagen (nächste Station vorausgewählt, Liste nach Entfernung sortiert, mit Kilometerangabe). Die Positionen der Postleitzahlen liegen als Tabelle bei (GeoNames, CC BY 4.0), es wird nichts abgerufen.
 - Einrichtungsassistent: Die Frage nach den Standardvorlagen entfällt, sie werden ohnehin beim Start angelegt.
 - Darlehen, Wartung, Hausmeister-Aufgaben und CSV-Profile: „anlegen“ ist eine Schaltfläche im Seitenkopf mit Dialog; das Formular unter der Liste entfällt. Ebenso „Stand erfassen“ auf der Zählerseite (Dialog `ReadingEntryDialog` statt Formular auf der Seite, mit Foto und Bestätigung bei Auffälligkeiten).
 - Umlageschlüssel (Festlegen und Beenden je Zeile), AfA-Anschaffung (Button im Seitenkopf, Zusammenfassung statt Formular) und Zählerliste („Stand eintragen“ je Zähler, ohne Ablese-Runde) arbeiten mit Dialogen.

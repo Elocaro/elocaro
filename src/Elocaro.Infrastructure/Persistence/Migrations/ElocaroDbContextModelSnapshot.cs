@@ -2576,10 +2576,20 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
 
+                    b.Property<decimal?>("Latitude")
+                        .HasPrecision(8, 4)
+                        .HasColumnType("numeric(8,4)")
+                        .HasColumnName("latitude");
+
                     b.Property<decimal?>("LongTermMean")
                         .HasPrecision(8, 1)
                         .HasColumnType("numeric(8,1)")
                         .HasColumnName("long_term_mean");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasPrecision(8, 4)
+                        .HasColumnType("numeric(8,4)")
+                        .HasColumnName("longitude");
 
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")

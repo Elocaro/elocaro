@@ -15,8 +15,10 @@ public sealed class DegreeDayValue : Entity
         StationName = "";
     }
 
-    public DegreeDayValue(string stationId, string stationName, DateOnly month, decimal degreeDays, decimal? longTermMean)
+    public DegreeDayValue(string stationId, string stationName, DateOnly month, decimal degreeDays, decimal? longTermMean, decimal? latitude = null, decimal? longitude = null)
     {
+        Latitude = latitude;
+        Longitude = longitude;
         StationId = stationId;
         StationName = stationName;
         Month = new DateOnly(month.Year, month.Month, 1);
@@ -29,6 +31,11 @@ public sealed class DegreeDayValue : Entity
 
     public string StationName { get; private set; }
 
+    /// <summary>Position of the station (degrees); <c>null</c> for values imported before the position was kept.</summary>
+    public decimal? Latitude { get; private set; }
+
+    public decimal? Longitude { get; private set; }
+
     /// <summary>First day of the month.</summary>
     public DateOnly Month { get; private set; }
 
@@ -37,9 +44,11 @@ public sealed class DegreeDayValue : Entity
     /// <summary>Mean of the same month over the reference years of the DWD (2009 to 2018); <c>null</c> if the DWD gives none.</summary>
     public decimal? LongTermMean { get; private set; }
 
-    public void Update(string stationName, decimal degreeDays, decimal? longTermMean)
+    public void Update(string stationName, decimal degreeDays, decimal? longTermMean, decimal? latitude = null, decimal? longitude = null)
     {
         StationName = stationName;
+        Latitude = latitude ?? Latitude;
+        Longitude = longitude ?? Longitude;
         DegreeDays = degreeDays;
         LongTermMean = longTermMean;
     }
