@@ -202,7 +202,7 @@ Nach der Ersteinrichtung (Administrator und Zwei-Faktor-Anmeldung) führt das Da
 3. **Ihre Vermietung:** die Optionen der eingeschalteten Module (Mietmodelle, Abrechnungsarten, Steuer, Einheitenarten, Vertragsangaben, Mahnwesen), siehe Tabelle unten.
 4. **Ihre Absenderdaten** (nur, solange es kein Vermieterprofil gibt): Name und Anschrift für Briefkopf und Fußzeile.
 5. **Erstes Objekt** (nur, solange es kein Objekt gibt): Mit dem Haken „Erstes Objekt jetzt anlegen“ erscheinen Haus mit Anschrift und Wohnungen samt Wohnfläche; ohne Haken überspringt „Weiter“ den Schritt.
-6. **Buchhaltung und Vorlagen:** Beginn der automatischen Monatsmieten (nur, solange er fehlt) und die Standardvorlagen, wenn das Modul „Dokumente & Schreiben“ an ist.
+6. **Buchhaltung:** Beginn der automatischen Monatsmieten (nur, solange er fehlt). Die Standardvorlagen legt Elocaro beim Start selbst an.
 7. **Zusammenfassung:** zeigt, was gespeichert und angelegt wird.
 
 „Später“ überspringt den Assistenten ohne Änderung; die Übersicht zeigt dann die Checkliste „So geht es los“. Unter Einstellungen → Module lässt er sich jederzeit erneut starten (`/verwaltung/einrichtung`; ohne die Einstiegsfrage). Bestehende Installationen behalten beim Update alle Module und werden nicht zum Assistenten geleitet.

@@ -161,7 +161,8 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         var start = Today.AddMonths(-14);
         var id = await LeaseAsync(apartment, anna, start);
         var baseMonth = new DateOnly(start.Year, start.Month, 1);
-        var newMonth = new DateOnly(Today.Year, Today.Month, 1).AddMonths(-2);
+        var newMonth = new DateOnly(Today.Year, Today.Month, 1).AddMonths(-2); // the value entered by hand
+        var importMonth = newMonth.AddMonths(-1); // the import must not touch it, whatever today is
         await App.WithScopeAsync(async sp => (await sp.GetRequiredService<ILeaseService>().SetRentModelAsync(
             id, new RentModelInput { Model = Elocaro.Domain.Leases.RentModel.Index, IndexBaseMonth = baseMonth, IndexBaseValue = 117.4m }, TestContext.Current.CancellationToken)).Succeeded);
         var page = await OpenAsync("/verwaltung/vpi");
@@ -170,20 +171,20 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         {
             var dialog = page.Locator(".mud-dialog");
             await page.GetByRole(AriaRole.Button, new() { Name = "Wert erfassen" }).ClickAsync();
-            await dialog.GetByLabel("Monat").FillAsync("09.2026");
+            await dialog.GetByLabel("Monat").FillAsync($"{newMonth:MM.yyyy}");
             await dialog.GetByLabel("Indexwert").FillAsync("122,1");
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Indexwert wurde gespeichert.");
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("September 2026");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync(newMonth.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("de-DE")));
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("122,1");
 
             await page.GetByRole(AriaRole.Button, new() { Name = "CSV importieren" }).ClickAsync();
-            await dialog.GetByLabel("CSV-Inhalt").FillAsync($"Jahr;Monat;Index\n{baseMonth:yyyy-MM};117,4\n{newMonth:yyyy-MM};121,7\n");
+            await dialog.GetByLabel("CSV-Inhalt").FillAsync($"Jahr;Monat;Index\n{baseMonth:yyyy-MM};117,4\n{importMonth:yyyy-MM};121,7\n");
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Importieren" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Import: 2 neu");
 
             await GotoInteractiveAsync(page, $"/verwaltung/vertraege/{id}");
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("neue Kaltmiete 676,02 €"); // 650 × 122,1 / 117,4 (the September value entered by hand is the newest)
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("neue Kaltmiete 676,02 €"); // 650 × 122,1 / 117,4 (the value entered by hand is the newest)
             await page.GetByLabel("Erklärung geht zu am").FillAsync(German(Today));
             await page.GetByLabel("Erklärung geht zu am").PressAsync("Tab");
             await page.GetByRole(AriaRole.Button, new() { Name = "Anpassung übernehmen" }).ClickAsync();

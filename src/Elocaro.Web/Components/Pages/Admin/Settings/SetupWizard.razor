@@ -10,7 +10,6 @@
 @inject ITenantAccounts Accounts
 @inject ILandlordProfileService LandlordProfiles
 @inject IPropertyService Properties
-@inject IDocumentTemplates Templates
 @inject Notifier Notify
 @inject IDialogService Dialogs
 @inject NavigationManager Navigation
@@ -151,11 +150,6 @@
                             <AppMonthField @bind-Value="accountingMonth" Label="Buchhaltung ab (Monat)" Hint="z. B. 01.2026" />
                         </div>
                     }
-                    @if (installTemplates)
-                    {
-                        <h3>Vorlagen</h3>
-                        <p class="help">Für Mietvertrag, Mieterhöhung, Mahnung und Schreiben legen wir die Standardvorlagen an. Prüfen Sie die Texte vor dem Einsatz unter Einstellungen &rarr; Vorlagen.</p>
-                    }
                     break;
 
                 default:
@@ -196,15 +190,11 @@
                         {
                             <li>Objekt „@propertyInput.Name“ mit @unitRows.Count(r => !string.IsNullOrWhiteSpace(r.Name)) Wohnung(en)</li>
                         }
-                        @if (installTemplates)
-                        {
-                            <li>Standardvorlagen für Dokumente</li>
-                        }
                         @if (accountingOpen && !string.IsNullOrWhiteSpace(accountingMonth))
                         {
                             <li>Mieten buchen ab @accountingMonth</li>
                         }
-                        @if (!needsProfile && !(needsProperty && createProperty) && !installTemplates && string.IsNullOrWhiteSpace(accountingMonth))
+                        @if (!needsProfile && !(needsProperty && createProperty) && string.IsNullOrWhiteSpace(accountingMonth))
                         {
                             <li>Nur die Auswahl der Funktionen wird gespeichert.</li>
                         }
@@ -275,10 +265,6 @@
         Summary,
     }
 
-    private bool InstallTemplatesChosen => choices!.Any(c => c.On && c.Module == AppModule.Documents);
-
-    private bool installTemplates => InstallTemplatesChosen;
-
     private IReadOnlyList<StepKey> Keys
     {
         get
@@ -299,7 +285,7 @@
                 keys.Add(StepKey.Property);
             }
 
-            if (accountingOpen || installTemplates)
+            if (accountingOpen)
             {
                 keys.Add(StepKey.Books);
             }
@@ -335,7 +321,7 @@
         StepKey.Rental => new WizardStepInfo("Ihre Vermietung", Description: "Damit Formulare nur zeigen, was für Sie wichtig ist."),
         StepKey.Profile => new WizardStepInfo("Ihre Absenderdaten", Description: "Sie erscheinen auf allen Dokumenten."),
         StepKey.Property => new WizardStepInfo("Erstes Objekt", Description: "Das Haus und seine Wohnungen; Sie können es auch später anlegen."),
-        StepKey.Books => new WizardStepInfo("Buchhaltung und Vorlagen", Description: "Ab wann Mieten gebucht werden und welche Textvorlagen es gibt."),
+        StepKey.Books => new WizardStepInfo("Buchhaltung", Description: "Ab wann Mieten gebucht werden."),
         _ => new WizardStepInfo("Zusammenfassung", Description: "Das haben Sie gewählt. Mit „Einrichtung abschließen“ wird es gespeichert."),
     }).ToList();
 
@@ -444,11 +430,6 @@
         }
 
         await State.SaveAsync(choices!.Where(c => c.On).Select(c => c.Module), completeSetup: true, options!.Where(o => o.On).Select(o => o.Option));
-
-        if (installTemplates)
-        {
-            await Templates.InstallDefaultsAsync();
-        }
 
         if (accountingOpen && DateOnly.TryParseExact(accountingMonth + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var accountingStart))
         {

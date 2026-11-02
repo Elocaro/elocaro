@@ -70,7 +70,7 @@ public class SetupWizardBrowserTests(PostgresFixture postgres) : BrowserTestBasi
         await AddSetupUnitAsync(page, "Wohnung 2");
         await next.ClickAsync();
 
-        await Assertions.Expect(heading).ToHaveTextAsync("Buchhaltung und Vorlagen");
+        await Assertions.Expect(heading).ToHaveTextAsync("Buchhaltung");
         await next.ClickAsync();
 
         await Assertions.Expect(heading).ToHaveTextAsync("Zusammenfassung");
@@ -89,7 +89,6 @@ public class SetupWizardBrowserTests(PostgresFixture postgres) : BrowserTestBasi
         Assert.Equal("Lindenweg 3", house.Name);
         Assert.Equal(2, house.Units);
         Assert.Equal(55.5m, house.LivingArea);
-        Assert.NotEmpty(await App.WithScopeAsync(sp => sp.GetRequiredService<IDocumentTemplates>().ListAsync(TestContext.Current.CancellationToken)));
     }
 
     private static async Task Shot(IPage page, string name)
@@ -194,6 +193,6 @@ public class SetupWizardFirstRunBrowserTests(PostgresFixture postgres) : Browser
         await Assertions.Expect(page.Locator("#wizard-heading")).ToHaveTextAsync("Erstes Objekt");
         await next.ClickAsync();
 
-        await Assertions.Expect(page.Locator("#wizard-heading")).ToHaveTextAsync("Buchhaltung und Vorlagen");
+        await Assertions.Expect(page.Locator("#wizard-heading")).ToHaveTextAsync("Buchhaltung");
     }
 }
