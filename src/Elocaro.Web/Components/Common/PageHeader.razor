@@ -1,13 +1,13 @@
 @* Heading with page title and optional actions (buttons/links on the right, or below on smartphones). *@
 @inject NavigationManager Navigation
 <PageTitle>@Title – Elocaro</PageTitle>
-<div class="@(titleRepeatsTab && Subtitle is null ? "page-header is-compact" : "page-header")">
+<div class="@(titleRepeatsTab && Subtitle is null ? (areaTabs ? "page-header is-compact is-compact-narrow" : "page-header is-compact") : "page-header")">
     <div class="page-header-title">
         @if (Back is not null && !titleRepeatsTab) // the trail above the tabs leads back; with a repeated title there is no heading to put the arrow next to
         {
             <a class="back" href="@Back"><Icon Path="@AppIcons.Back" /><span class="back-text">@(BackText ?? "Zurück")</span></a>
         }
-        <h1 class="@(titleRepeatsTab ? "visually-hidden" : null)">@Title</h1>
+        <h1 class="@(titleRepeatsTab ? (areaTabs ? "visually-hidden-narrow" : "visually-hidden") : null)">@Title</h1>
         @if (Subtitle is not null)
         {
             <p class="small">@Subtitle</p>
@@ -29,12 +29,14 @@
     private PageInfo? info;
     private string? pageId;
     private bool titleRepeatsTab;
+    private bool areaTabs;
 
     protected override void OnParametersSet()
     {
         var path = new Uri(Navigation.Uri).AbsolutePath;
         info = ShowInfo ? PageInfoCatalog.For(path) : null;
         pageId = path.Split('/').FirstOrDefault(part => Guid.TryParse(part, out _));
+        areaTabs = AdminNavModel.TabsFor(path.TrimEnd('/'))?.IsArea == true; // wide screens list these pages in the sidebar instead of tabs, so the title is the only heading there
         titleRepeatsTab = RepeatsSelectedTab(path.TrimEnd('/'));
     }
 
