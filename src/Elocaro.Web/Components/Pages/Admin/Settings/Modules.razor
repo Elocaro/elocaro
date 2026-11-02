@@ -20,8 +20,6 @@
     @if (choices is not null)
     {
         <EditForm Model="choices" OnValidSubmit="SaveAsync" novalidate>
-            <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
-            <MudTabPanel Text="Module">
             <div class="module-list">
                 @foreach (var choice in choices)
                 {
@@ -29,6 +27,10 @@
                     <section class="module-card" id="@("module-" + choice.Module.ToString().ToLowerInvariant())">
                         <AppCheckBox Value="choice.On" ValueChanged="on => Toggle(choice, on)" ValueExpression="() => choice.On" Label="@info.Title" />
                         <p class="module-summary">@info.Summary</p>
+                        @if (choice.On)
+                        {
+                            @OptionFields(OptionsOf(choice.Module))
+                        }
                         <details class="explain">
                             <summary>Wann ist das sinnvoll, was gehört dazu?</summary>
                             <p class="help">@info.Purpose</p>
@@ -45,29 +47,15 @@
                         </details>
                     </section>
                 }
+                @if (OptionsOf(null).Any())
+                {
+                    <section class="module-card" id="module-kern">
+                        <h3>Immer dabei</h3>
+                        <p class="module-summary">Auswahl innerhalb der Grundfunktionen.</p>
+                        @OptionFields(OptionsOf(null))
+                    </section>
+                }
             </div>
-            </MudTabPanel>
-
-            <MudTabPanel Text="Auswahl innerhalb der Bereiche">
-            <p class="help">Was Sie hier abschalten, verschwindet aus den Formularen. Wird es noch von Verträgen verwendet, bleibt es dort sichtbar.</p>
-            @foreach (var group in options!.GroupBy(o => ModuleCatalog.Info(o.Option).Group))
-            {
-                <section class="module-card">
-                    <h3>@group.Key</h3>
-                    @foreach (var option in group)
-                    {
-                        var info = ModuleCatalog.Info(option.Option);
-                        <AppCheckBox @bind-Value="option.On" Label="@info.Title" />
-                        <p class="help">@info.Description</p>
-                        @if (!option.On && State.UsageCount(option.Option) is > 0 and var used)
-                        {
-                            <p class="small">Noch @used @(used == 1 ? "Vertrag verwendet" : "Verträge verwenden") das. Es bleibt dort sichtbar.</p>
-                        }
-                    }
-                </section>
-            }
-            </MudTabPanel>
-            </MudTabs>
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
         </EditForm>
     }
@@ -83,6 +71,28 @@
         choices = ModuleCatalog.All.Select(info => new ModuleChoice(info.Module) { On = selection.Enabled.Contains(info.Module) }).ToList();
         options = ModuleCatalog.Options.Select(info => new OptionChoice(info.Option) { On = selection.EnabledOptions.Contains(info.Option) }).ToList();
     }
+
+    private IEnumerable<OptionChoice> OptionsOf(AppModule? module) => options!.Where(o => ModuleCatalog.Info(o.Option).Module == module);
+
+    /// <summary>The options of one module (or of the core), grouped, inside its card: what is switched off disappears from the forms.</summary>
+    private RenderFragment OptionFields(IEnumerable<OptionChoice> list) => @<div class="module-options">
+        @foreach (var group in list.GroupBy(o => ModuleCatalog.Info(o.Option).Group))
+        {
+            <fieldset class="module-option-group">
+                <legend class="small">@group.Key</legend>
+                @foreach (var option in group)
+                {
+                    var info = ModuleCatalog.Info(option.Option);
+                    <AppCheckBox @bind-Value="option.On" Label="@info.Title" />
+                    <p class="help">@info.Description</p>
+                    @if (!option.On && State.UsageCount(option.Option) is > 0 and var used)
+                    {
+                        <p class="small">Noch @used @(used == 1 ? "Vertrag verwendet" : "Verträge verwenden") das. Es bleibt dort sichtbar.</p>
+                    }
+                }
+            </fieldset>
+        }
+    </div>;
 
     private void Toggle(ModuleChoice choice, bool on)
     {

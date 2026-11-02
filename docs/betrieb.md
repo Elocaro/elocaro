@@ -179,7 +179,7 @@ Ein abgeschaltetes Modul verschwindet aus Navigation, Suche, Tabs und Mieterport
 
 ### Auswahl innerhalb der Bereiche
 
-Zusätzlich lässt sich einstellen, was Sie innerhalb eines Bereichs überhaupt verwenden. Das steht unter Einstellungen → Module (unten) und wird im Assistenten abgefragt:
+Zusätzlich lässt sich einstellen, was Sie innerhalb eines Bereichs überhaupt verwenden. Das steht unter Einstellungen → Module direkt in der Kachel des jeweiligen Moduls (Auswahl der Grundfunktionen in der Kachel „Immer dabei“) und wird im Assistenten abgefragt:
 
 | Frage | Optionen | Wirkung |
 |---|---|---|

@@ -28,6 +28,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Anonymisierte Mails erscheinen im Dashboard nicht mehr als „nicht zustellbar“.
 
 ### Geändert
+- Einstellungen → Module: Die Auswahl innerhalb der Bereiche (z. B. Staffelmiete, DATEV-Export) steht jetzt direkt in der Kachel des Moduls statt auf einem zweiten Reiter.
 - Beispieldaten: Die Mietverträge beginnen am 1. Januar des vorletzten Jahres. Die Demo-Instanz zeigt im Mieterportal versendete Abrechnungen mit Rechenweg, Vorjahresvergleich und freigegebenen Beispielbelegen.
 
 ### Behoben

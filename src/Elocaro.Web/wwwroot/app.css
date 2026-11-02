@@ -1433,3 +1433,8 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
     .consumption-bar, .consumption-chart .swatch { forced-color-adjust: none; background: CanvasText; }
     .consumption-prev { forced-color-adjust: none; background: Highlight; box-shadow: 0 0 0 1px Canvas; }
 }
+
+/* Options of a module sit inside its card, below the summary */
+.module-options { margin: 0.25rem 0 0.5rem; }
+.module-option-group { margin: 0 0 0.5rem; padding: 0.25rem 0 0 0.75rem; border: 0; border-left: 2px solid var(--md-outline-variant); }
+.module-option-group legend { padding: 0; color: var(--md-on-surface-variant); font-weight: 600; }

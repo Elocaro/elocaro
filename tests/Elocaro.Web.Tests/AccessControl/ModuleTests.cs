@@ -51,6 +51,23 @@ public class ModuleTests(PostgresFixture postgres) : AccountTestBase(postgres)
             Assert.Contains(info.Purpose, text, StringComparison.Ordinal);
         }
     }
+
+    [Fact]
+    public async Task Options_sit_inside_the_card_of_their_module_and_core_options_in_their_own_card()
+    {
+        var (browser, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = browser;
+
+        var page = await browser.GetAsync("/verwaltung/einstellungen/module");
+
+        Assert.Empty(page.Document.QuerySelectorAll(".mud-tabs"));
+        foreach (var option in ModuleCatalog.Options)
+        {
+            var card = page.Document.QuerySelector(option.Module is { } module ? $"#module-{module.ToString().ToLowerInvariant()}" : "#module-kern");
+            Assert.True(card is not null, option.Title);
+            Assert.Contains(option.Title, card!.TextContent, StringComparison.Ordinal);
+        }
+    }
 }
 
 public class ModuleOptionPagesTests(PostgresFixture postgres) : AccountTestBase(postgres)
