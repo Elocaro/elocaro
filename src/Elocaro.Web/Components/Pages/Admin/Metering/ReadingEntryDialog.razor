@@ -1,0 +1,107 @@
+@using MudBlazor
+@inject IMeterService Meters
+@inject IFileStore Storage
+@inject TimeProvider Clock
+@inject Notifier Notify
+
+@* Dialog "record reading": date, value, kind, note and an optional photo; anomalies (backward running, outliers) are shown and confirmed with "Trotzdem speichern". *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <DataAnnotationsValidator />
+    <MudDialog>
+        <DialogContent>
+            <ErrorList Errors="errors" />
+            @if (warnings is { Count: > 0 })
+            {
+                <Notice Level="NoticeLevel.Info">
+                    <strong>Bitte prüfen:</strong>
+                    <ul>
+                        @foreach (var warning in warnings)
+                        {
+                            <li>@warning</li>
+                        }
+                    </ul>
+                </Notice>
+            }
+            <div class="form-grid">
+                <AppDateField @bind-Value="data.Date" Label="Datum" Required="true" />
+                <AppNumberField T="decimal?" @bind-Value="data.Value" Label="@($"Zählerstand ({UnitText})")" Required="true" />
+                <AppSelect @bind-Value="data.Kind" Label="Art" Items="kinds" Text="KindText" />
+                <AppTextField @bind-Value="data.Note" Label="Notiz" />
+            </div>
+            <div class="form-row">
+                <AppFileUpload Text="@(photo is null ? "Foto aufnehmen" : "Foto ersetzen")" Accept="image/*" Capture="environment" OnSelected="OnPhotoSelected" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(warnings is { Count: > 0 } ? "Trotzdem speichern" : "Stand speichern")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private static readonly ReadingType[] kinds = [ReadingType.Reading, ReadingType.InterimReading, ReadingType.Estimate];
+
+    private ReadingInput data = new();
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<string>? warnings;
+    private FileSelection? photo;
+    private Guid? photoId;
+
+    [Parameter, EditorRequired]
+    public Guid MeterId { get; set; }
+
+    /// <summary>Unit of the meter, e.g. "m³".</summary>
+    [Parameter, EditorRequired]
+    public string UnitText { get; set; } = "";
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized() => data = new ReadingInput { Date = Elocaro.Domain.Common.GermanTime.Today(Clock.GetUtcNow()) };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static string KindText(ReadingType kind) => kind switch
+    {
+        ReadingType.InterimReading => "Zwischenablesung (z. B. Mieterwechsel)",
+        ReadingType.Estimate => "Schätzung",
+        _ => "Ablesung",
+    };
+
+    private void OnPhotoSelected(FileSelection selection)
+    {
+        photo = selection;
+        photoId = null; // a new photo replaces one saved for an earlier attempt
+    }
+
+    private async Task SaveAsync()
+    {
+        if (photo is { Length: > 0 } && photoId is null)
+        {
+            try
+            {
+                await using var content = photo.Open();
+                photoId = (await Storage.SaveAsync(content, photo.Name)).Id;
+            }
+            catch (FileRejectedException ex)
+            {
+                errors = [ex.Message];
+                return;
+            }
+        }
+
+        // After warnings the second click confirms.
+        data.Confirmed = warnings is { Count: > 0 };
+        var result = await Meters.RecordReadingAsync(MeterId, data, photoId);
+        if (result.Succeeded)
+        {
+            Notify.Success("Der Zählerstand wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok(true));
+            return;
+        }
+
+        errors = result.Errors.Count > 0 ? result.Errors : null;
+        warnings = result.NeedsConfirmation ? result.Warnings : null;
+    }
+}

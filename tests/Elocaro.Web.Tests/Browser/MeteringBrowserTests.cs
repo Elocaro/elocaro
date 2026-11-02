@@ -68,23 +68,26 @@ public class MeteringBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await page.WaitForURLAsync("**/verwaltung/zaehler/*");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
-            // Without a value the form reports it; a normal reading with a photo is saved.
-            var save = page.GetByRole(AriaRole.Button, new() { Name = "Stand speichern" });
+            // Without a value the dialog reports it; a normal reading with a photo is saved.
+            await page.GetByRole(AriaRole.Button, new() { Name = "Stand erfassen" }).ClickAsync();
+            var entry = page.Locator(".mud-dialog");
+            var save = entry.GetByRole(AriaRole.Button, new() { Name = "Stand speichern" });
             await save.ClickAsync();
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte den Zählerstand angeben.");
-            await page.GetByLabel("Datum", new() { Exact = true }).FillAsync(German(Today.AddDays(-30)));
-            await page.GetByLabel("Zählerstand").FillAsync("130");
-            await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "meter.jpg", MimeType = "image/jpeg", Buffer = Jpeg() });
+            await Assertions.Expect(entry).ToContainTextAsync("Bitte den Zählerstand angeben.");
+            await entry.GetByLabel("Datum", new() { Exact = true }).FillAsync(German(Today.AddDays(-30)));
+            await entry.GetByLabel("Zählerstand").FillAsync("130");
+            await entry.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "meter.jpg", MimeType = "image/jpeg", Buffer = Jpeg() });
             await save.ClickAsync();
             await ExpectSnackbarAsync(page, "Der Zählerstand wurde gespeichert.");
             await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Foto" })).ToBeVisibleAsync();
 
             // A reading below the previous one needs confirmation.
-            await page.GetByLabel("Datum", new() { Exact = true }).FillAsync(German(Today));
-            await page.GetByLabel("Zählerstand").FillAsync("120");
+            await page.GetByRole(AriaRole.Button, new() { Name = "Stand erfassen" }).ClickAsync();
+            await entry.GetByLabel("Datum", new() { Exact = true }).FillAsync(German(Today));
+            await entry.GetByLabel("Zählerstand").FillAsync("120");
             await save.ClickAsync();
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Rückwärtslauf");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Trotzdem speichern" }).ClickAsync();
+            await Assertions.Expect(entry).ToContainTextAsync("Rückwärtslauf");
+            await entry.GetByRole(AriaRole.Button, new() { Name = "Trotzdem speichern" }).ClickAsync();
             await Assertions.Expect(page.Locator("section", new() { Has = page.Locator("h2", new() { HasText = "Stände" }) }).Locator("tbody")).ToContainTextAsync("120");
         });
         _ = apartment;

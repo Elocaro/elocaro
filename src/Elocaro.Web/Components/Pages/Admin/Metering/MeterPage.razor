@@ -3,9 +3,7 @@
 @using MudBlazor
 @inject IMeterService Admin
 @inject IPropertyService Properties
-@inject IFileStore Storage
 @inject NavigationManager Navigation
-@inject TimeProvider Clock
 @inject Notifier Notify
 @inject Confirmations Confirm
 @inject IDialogService Dialogs
@@ -25,6 +23,10 @@ else
 <PageHeader Title="@meter.Meter.Name" Subtitle="@($"{Labels.From(meter.Meter.Type)} · Nr. {meter.Meter.Number} · {meter.Meter.Assignment}")"
             Back="@($"/verwaltung/objekte/{meter.PropertyId}/zaehler")" BackText="@($"Zähler {meter.PropertyName}")">
     <Actions>
+        @if (!meter.Meter.IsDerived && meter.Meter.RemovedOn is null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="RecordReadingAsync">Stand erfassen</MudButton>
+        }
         <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
             <MudMenuItem OnClick="DeleteAsync">Zähler löschen</MudMenuItem>
         </MudMenu>
@@ -81,37 +83,6 @@ else
 @if (meter.Meter.IsDerived)
 {
     <Notice Level="NoticeLevel.Info">Rechenzähler: Er hat keine eigenen Stände. Der Verbrauch wird aus den Zählerständen der Zähler berechnet, aus denen er sich zusammensetzt (siehe oben).</Notice>
-}
-else if (meter.Meter.RemovedOn is null)
-{
-    <section>
-        <h2>Stand erfassen</h2>
-        @if (warnings is { Count: > 0 })
-        {
-            <Notice Level="NoticeLevel.Info">
-                <strong>Bitte prüfen:</strong>
-                <ul>
-                    @foreach (var w in warnings)
-                    {
-                        <li>@w</li>
-                    }
-                </ul>
-            </Notice>
-        }
-        <EditForm Model="entry" OnValidSubmit="RecordReadingAsync" novalidate>
-            <DataAnnotationsValidator />
-            <div class="form-grid">
-                <AppDateField @bind-Value="entry.Date" Label="Datum" Required="true" />
-                <AppNumberField T="decimal?" @bind-Value="entry.Value" Label="@($"Zählerstand ({Labels.From(meter.Meter.MeasurementUnit)})")" Required="true" />
-                <AppSelect @bind-Value="entry.Kind" Label="Art" Items="kinds" Text="KindText" />
-                <AppTextField @bind-Value="entry.Note" Label="Notiz" />
-            </div>
-            <div class="form-row">
-                <AppFileUpload Text="@(photo is null ? "Foto aufnehmen" : "Foto ersetzen")" Accept="image/*" Capture="environment" OnSelected="OnPhotoSelected" />
-            </div>
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">@(warnings is { Count: > 0 } ? "Trotzdem speichern" : "Stand speichern")</MudButton>
-        </EditForm>
-    </section>
 }
 
 @if (!meter.Meter.IsDerived)
@@ -247,33 +218,19 @@ else if (meter.Meter.RemovedOn is null)
         </text>
     };
 
-    private static readonly ReadingType[] kinds = [ReadingType.Reading, ReadingType.InterimReading, ReadingType.Estimate];
-
     private MeterDetails? meter;
     private IReadOnlyList<UnitRow> units = [];
     private IReadOnlyList<MeterRow> mainMeter = [];
     private IReadOnlyList<string>? errors;
-    private IReadOnlyList<string>? warnings;
-    private ReadingInput entry = new();
     private ReplacementInput replacement = new();
     private MeterInput data = new();
-    private FileSelection? photo;
-    private Guid? photoId;
     private bool loaded;
 
     [Parameter]
     public Guid Id { get; set; }
 
-    private static string KindText(ReadingType kind) => kind switch
-    {
-        ReadingType.InterimReading => "Zwischenablesung (z. B. Mieterwechsel)",
-        ReadingType.Estimate => "Schätzung",
-        _ => "Ablesung",
-    };
-
     protected override async Task OnInitializedAsync()
     {
-        entry = new ReadingInput { Date = Elocaro.Domain.Common.GermanTime.Today(Clock.GetUtcNow()) };
         await LoadAsync();
     }
 
@@ -290,53 +247,17 @@ else if (meter.Meter.RemovedOn is null)
         loaded = true;
     }
 
-    private void OnPhotoSelected(FileSelection selection)
-    {
-        photo = selection;
-        photoId = null; // a new photo replaces one saved for an earlier attempt
-    }
-
     private async Task RecordReadingAsync()
     {
-        if (photo is { Length: > 0 } && photoId is null)
+        var dialog = await Dialogs.ShowAsync<ReadingEntryDialog>(
+            "Stand erfassen",
+            new DialogParameters { ["MeterId"] = Id, ["UnitText"] = Labels.From(meter!.Meter.MeasurementUnit) },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
         {
-            try
-            {
-                await using var content = photo.Open();
-                photoId = (await Storage.SaveAsync(content, photo.Name)).Id;
-            }
-            catch (FileRejectedException ex)
-            {
-                errors = [ex.Message];
-                return;
-            }
-        }
-
-        // After warnings the second click confirms.
-        entry.Confirmed = warnings is { Count: > 0 };
-        var result = await Admin.RecordReadingAsync(Id, entry, photoId);
-        if (result.Succeeded)
-        {
-            Notify.Success("Der Zählerstand wurde gespeichert.");
-            entry = new ReadingInput { Date = Elocaro.Domain.Common.GermanTime.Today(Clock.GetUtcNow()) };
-            photo = null;
-            photoId = null;
-            warnings = null;
-            errors = null;
             await LoadAsync();
         }
-        else if (result.NeedsConfirmation)
-        {
-            warnings = result.Warnings;
-            errors = null;
-        }
-        else
-        {
-            errors = result.Errors;
-            warnings = null;
-        }
     }
-
     private async Task EditReadingAsync(ReadingView reading)
     {
         var dialog = await Dialogs.ShowAsync<ReadingDialog>(
