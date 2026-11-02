@@ -21,6 +21,7 @@ else
 {
     <PageHeader Title="Zähler" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@property.Data.Name">
         <Actions>
+            <MudButton Variant="@(meter.Count == 0 ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">Zähler hinzufügen</MudButton>
             @if (meter.Count > 0)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/ablesung")">Ablese-Runde starten</MudButton>
@@ -100,9 +101,6 @@ else
         </div>
     }
 
-    <section>
-        <MudButton Variant="@(meter.Count == 0 ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="CreateAsync">Zähler hinzufügen</MudButton>
-    </section>
 }
 </InteractiveShell>
 
