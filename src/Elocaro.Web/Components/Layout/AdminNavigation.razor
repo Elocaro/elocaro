@@ -34,7 +34,7 @@
                                 @if (entry.IsGroup)
                                 {
                                     <AuthorizeView Policy="@entry.Policy" Context="allowed">
-                                        <li class="navigation-pages-group">@entry.Label</li>
+                                        <li class="navigation-pages-divider" aria-hidden="true"></li>
                                         @foreach (var child in entry.Children!)
                                         {
                                             <AuthorizeView Policy="@child.Policy" Context="childAllowed">

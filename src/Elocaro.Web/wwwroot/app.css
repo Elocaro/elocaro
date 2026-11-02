@@ -1408,7 +1408,8 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 .navigation .navigation-pages a { min-height: 2.25rem; padding: 0 0.9rem; font-size: 0.9rem; font-weight: 500; color: var(--md-on-surface-variant); }
 .navigation .navigation-pages a:hover { color: var(--md-on-surface); }
 .navigation .navigation-pages a.active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight: 650; }
-.navigation-pages-group { padding: 0.65rem 0.9rem 0.15rem; font: var(--type-label); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--md-on-surface-variant); }
+.navigation-pages-divider { height: 1px; margin: 0.4rem 0.9rem; background: var(--md-outline-variant); }
+.navigation-pages-divider:first-child { display: none; }
 .bottom-bar .navigation-pages-item { display: none; }
 @media (min-width: 900px) {
     .tab-bar.area-tabs, .sub-tabs.area-tabs { display: none; }
