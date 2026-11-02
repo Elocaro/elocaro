@@ -59,6 +59,19 @@ public class DegreeDayTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task A_slow_server_ends_the_import_quietly_for_the_next_run()
+    {
+        await using var environment = await InfrastructureEnvironment.CreateAsync(postgres);
+        environment.Clock.SetUtcNow(new DateTimeOffset(2026, 3, 20, 10, 0, 0, TimeSpan.Zero));
+        await using var scope = environment.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();
+        var importer = new DegreeDayImporter(db, new HttpClient(new TimingOut()), environment.Clock,
+            Options.Create(new DegreeDayOptions { BaseUrl = new Uri("https://dwd.test/"), YearsBack = 1 }), NullLogger<DegreeDayImporter>.Instance);
+
+        Assert.Equal(0, await importer.ImportAsync(Ct)); // no exception: the job does not fail because the DWD is slow
+    }
+
+    [Fact]
     public async Task Import_does_nothing_when_switched_off()
     {
         await using var environment = await InfrastructureEnvironment.CreateAsync(postgres);
@@ -105,6 +118,13 @@ public class DegreeDayTests(PostgresFixture postgres)
         var onlyOneMonth = new[] { new DegreeDayValue("00044", "GROSSENKNETEN", new DateOnly(2025, 1, 1), 50m, null) };
 
         Assert.Null(DegreeDayStationTable.Build(onlyOneMonth, Period.CalendarYear(2026)));
+    }
+
+    /// <summary>Like the client timeout: the request is cancelled without the caller having asked for it.</summary>
+    private sealed class TimingOut : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new TaskCanceledException("timeout", new TimeoutException());
     }
 
     private sealed class FakeDwd(Dictionary<string, string> files) : HttpMessageHandler

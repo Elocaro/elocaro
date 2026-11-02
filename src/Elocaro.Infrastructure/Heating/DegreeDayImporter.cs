@@ -39,8 +39,9 @@ internal sealed partial class DegreeDayImporter(ElocaroDbContext db, HttpClient 
             {
                 written += await ImportMonthAsync(month, cancellationToken);
             }
-            catch (HttpRequestException exception)
+            catch (Exception exception) when (exception is HttpRequestException || (exception is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                // The server of the DWD is unreachable or too slow (client timeout): the next run tries again.
                 Failed(logger, exception, month.ToString("MM/yyyy", CultureInfo.InvariantCulture));
                 break;
             }
