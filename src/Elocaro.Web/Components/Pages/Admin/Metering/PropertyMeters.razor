@@ -70,7 +70,7 @@ else
     {
         <div class="table-wrapper">
             <table class="data-table">
-                <thead><tr><th>Zähler</th><th>Zuordnung</th><th class="number">Letzter Stand</th><th>Eichfrist</th></tr></thead>
+                <thead><tr><th>Zähler</th><th>Zuordnung</th><th class="number">Letzter Stand</th><th>Eichfrist</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var z in meter)
                     {
@@ -85,6 +85,12 @@ else
                                 @if (z.CalibrationDueDate is { } deadline)
                                 {
                                     <StatusChip Level="@(deadline < today ? StatusLevel.Error : deadline <= today.AddDays(90) ? StatusLevel.Warning : StatusLevel.Neutral)">@Format.Date(deadline)</StatusChip>
+                                }
+                            </td>
+                            <td class="row-actions">
+                                @if (!z.IsDerived && z.RemovedOn is null)
+                                {
+                                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => RecordReadingAsync(z)" aria-label="@($"Stand eintragen: {z.Name}")">Stand eintragen</MudButton>
                                 }
                             </td>
                         </tr>
@@ -132,6 +138,18 @@ else
 
     private static string TermText(int sign) => sign switch { 1 => "+ addieren", -1 => "− abziehen", _ => "– nicht verwenden –" };
 
+    // One reading without a round: the same dialog as on the page of the meter.
+    private async Task RecordReadingAsync(MeterRow row)
+    {
+        var dialog = await Dialogs.ShowAsync<ReadingEntryDialog>(
+            $"Stand erfassen: {row.Name}",
+            new DialogParameters { ["MeterId"] = row.Id, ["UnitText"] = Labels.From(row.MeasurementUnit) },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (!(await dialog.Result)!.Canceled)
+        {
+            await ReloadAsync();
+        }
+    }
     private async Task CreateAsync()
     {
         creation = new MeterCreation { InstalledOn = today };

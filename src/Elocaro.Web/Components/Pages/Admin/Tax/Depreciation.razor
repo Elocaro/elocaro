@@ -18,7 +18,11 @@ else if (overview is null)
 else
 {
 
-<PageHeader Title="AfA" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName" />
+<PageHeader Title="AfA" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName">
+    <Actions>
+        <MudButton Variant="@(overview.Acquisition is null ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="EditAcquisitionAsync">@(overview.Acquisition is null ? "Anschaffung erfassen" : "Anschaffung bearbeiten")</MudButton>
+    </Actions>
+</PageHeader>
 
 <ErrorList Errors="errors" />
 
@@ -44,25 +48,32 @@ else
         Nebenkosten werden im selben Verhältnis wie der Kaufpreis auf Gebäude und Grund und Boden verteilt.
     </p>
     </details>
-    <EditForm Model="Acquisition" OnValidSubmit="SaveAcquisitionAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppDateField @bind-Value="Acquisition.PurchaseDate" Label="Kaufdatum" Required="true" Hint="Übergang von Nutzen und Lasten" />
-            <AppNumberField T="decimal?" @bind-Value="Acquisition.PurchasePrice" Label="Kaufpreis" Suffix="€" Required="true" />
-            <AppNumberField T="decimal?" @bind-Value="Acquisition.Notary" Label="Notar" Suffix="€" />
-            <AppNumberField T="decimal?" @bind-Value="Acquisition.LandRegistry" Label="Grundbuch" Suffix="€" />
-            <AppNumberField T="decimal?" @bind-Value="Acquisition.TransferTax" Label="Grunderwerbsteuer" Suffix="€" />
-            <AppNumberField T="decimal?" @bind-Value="Acquisition.Broker" Label="Makler" Suffix="€" />
-            <AppNumberField T="decimal?" @bind-Value="Acquisition.LandSharePercent" Label="Anteil Grund und Boden (%)" Required="true" />
-            <AppNumberField T="int?" @bind-Value="Acquisition.CompletionYear" Label="Baujahr / Fertigstellung" Required="true" Min="1700" Max="2100" Hint="Bestimmt den Satz: 2,5 % vor 1925, 2 % ab 1925, 3 % ab 2023" />
-            <AppNumberField T="decimal?" @bind-Value="Acquisition.RateOverridePercent" Label="Abweichender AfA-Satz (%)" Hint="z. B. kürzere Restnutzungsdauer per Gutachten; leer = gesetzlicher Satz" />
-            <AppNumberField T="decimal?" @bind-Value="Acquisition.SpecialRatePercent" Label="Sonder-AfA (§ 7b EStG, % p. a.)" Hint="Optional; zusätzlich zur linearen AfA" />
-            <AppNumberField T="int" @bind-Value="Acquisition.SpecialYears" Label="Jahre der Sonder-AfA" Min="1" Max="20" />
-        </div>
-        <AppTextField @bind-Value="Acquisition.Notes" Label="Notiz" Lines="2" />
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
-    </EditForm>
-</section>
+    @if (overview.Acquisition is { } acquisition)
+    {
+        <dl class="details">
+            <dt>Kaufdatum</dt><dd>@Format.Date(acquisition.PurchaseDate)</dd>
+            <dt>Kaufpreis</dt><dd>@Format.Money(acquisition.PurchasePrice)</dd>
+            <dt>Nebenkosten</dt><dd>@Format.Money((acquisition.Notary ?? 0m) + (acquisition.LandRegistry ?? 0m) + (acquisition.TransferTax ?? 0m) + (acquisition.Broker ?? 0m))</dd>
+            <dt>Anteil Grund und Boden</dt><dd>@Format.Number(acquisition.LandSharePercent) %</dd>
+            <dt>Baujahr / Fertigstellung</dt><dd>@acquisition.CompletionYear</dd>
+            @if (acquisition.RateOverridePercent is { } rate)
+            {
+                <dt>Abweichender AfA-Satz</dt><dd>@Format.Number(rate) %</dd>
+            }
+            @if (acquisition.SpecialRatePercent is { } special)
+            {
+                <dt>Sonder-AfA</dt><dd>@Format.Number(special) % p. a., @acquisition.SpecialYears Jahre</dd>
+            }
+            @if (!string.IsNullOrWhiteSpace(acquisition.Notes))
+            {
+                <dt>Notiz</dt><dd>@acquisition.Notes</dd>
+            }
+        </dl>
+    }
+    else
+    {
+        <EmptyState Text="Noch keine Anschaffungsdaten erfasst." />
+    }</section>
 
 @if (overview.Plan is { } plan)
 {
@@ -163,7 +174,6 @@ else
     [Parameter]
     public Guid PropertyId { get; set; }
 
-    private AcquisitionInput Acquisition { get; set; } = new();
     private CostInput Cost { get; set; } = new();
     private AssetInput Asset { get; set; } = new();
     private bool loaded;
@@ -171,15 +181,52 @@ else
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();
-        Acquisition = overview?.Acquisition ?? new();
         loaded = true;
     }
 
     private async Task LoadAsync() => overview = await Admin.GetAsync(PropertyId);
 
-    private Task SaveAcquisitionAsync() => ExecuteAsync(Admin.SaveAcquisitionAsync(PropertyId, Acquisition), "Die Anschaffungsdaten wurden gespeichert.");
+    private async Task EditAcquisitionAsync()
+    {
+        var source = overview!.Acquisition;
+        var acquisition = new AcquisitionInput();
+        if (source is not null)
+        {
+            // A copy: cancelling must not change what the page shows.
+            acquisition.PurchaseDate = source.PurchaseDate;
+            acquisition.PurchasePrice = source.PurchasePrice;
+            acquisition.Notary = source.Notary;
+            acquisition.LandRegistry = source.LandRegistry;
+            acquisition.TransferTax = source.TransferTax;
+            acquisition.Broker = source.Broker;
+            acquisition.LandSharePercent = source.LandSharePercent;
+            acquisition.CompletionYear = source.CompletionYear;
+            acquisition.RateOverridePercent = source.RateOverridePercent;
+            acquisition.SpecialRatePercent = source.SpecialRatePercent;
+            acquisition.SpecialYears = source.SpecialYears;
+            acquisition.Notes = source.Notes;
+        }
 
-
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="acquisition.PurchaseDate" Label="Kaufdatum" Required="true" Hint="Übergang von Nutzen und Lasten" />
+            <AppNumberField T="decimal?" @bind-Value="acquisition.PurchasePrice" Label="Kaufpreis" Suffix="€" Required="true" />
+            <AppNumberField T="decimal?" @bind-Value="acquisition.Notary" Label="Notar" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="acquisition.LandRegistry" Label="Grundbuch" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="acquisition.TransferTax" Label="Grunderwerbsteuer" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="acquisition.Broker" Label="Makler" Suffix="€" />
+            <AppNumberField T="decimal?" @bind-Value="acquisition.LandSharePercent" Label="Anteil Grund und Boden (%)" Required="true" />
+            <AppNumberField T="int?" @bind-Value="acquisition.CompletionYear" Label="Baujahr / Fertigstellung" Required="true" Min="1700" Max="2100" Hint="Bestimmt den Satz: 2,5 % vor 1925, 2 % ab 1925, 3 % ab 2023" />
+            <AppNumberField T="decimal?" @bind-Value="acquisition.RateOverridePercent" Label="Abweichender AfA-Satz (%)" Hint="z. B. kürzere Restnutzungsdauer per Gutachten; leer = gesetzlicher Satz" />
+            <AppNumberField T="decimal?" @bind-Value="acquisition.SpecialRatePercent" Label="Sonder-AfA (§ 7b EStG, % p. a.)" Hint="Optional; zusätzlich zur linearen AfA" />
+            <AppNumberField T="int" @bind-Value="acquisition.SpecialYears" Label="Jahre der Sonder-AfA" Min="1" Max="20" />
+            <AppTextField @bind-Value="acquisition.Notes" Label="Notiz" Lines="2" />
+        </text>;
+        if (await Dialogs.ShowFormAsync(source is null ? "Anschaffung erfassen" : "Anschaffung bearbeiten", acquisition, fields, () => Admin.SaveAcquisitionAsync(PropertyId, acquisition), "Speichern"))
+        {
+            Notify.Success("Die Anschaffungsdaten wurden gespeichert.");
+            await LoadAsync();
+        }
+    }
     private async Task EditCostAsync(CostRow item)
     {
         Cost = new CostInput { Date = item.Date, Amount = item.Amount, Description = item.Description, IsMaintenance = item.IsMaintenance };

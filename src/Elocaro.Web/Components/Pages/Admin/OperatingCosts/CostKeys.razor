@@ -8,7 +8,6 @@
 @inject Notifier Notify
 @inject Confirmations Confirm
 @inject TimeProvider Clock
-@inject IJSRuntime JS
 
 <InteractiveShell>
 @if (!loaded)
@@ -55,12 +54,15 @@ else
                         {
                             <td>@KeyText(current) <span class="small">ab @Format.Date(current.Validity.From)@(row.History.Count > 1 ? $" · {row.History.Count} Stände" : "")</span></td>
                             <td data-label="Vorwegabzug">@PreDeduction(current)</td>
-                            <td class="row-actions"><MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => PickAsync(row.CostType)" aria-label="@($"Schlüssel ändern: {row.Name}")">Ändern</MudButton></td>
+                            <td class="row-actions">
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => SetAsync(row.CostType)" aria-label="@($"Schlüssel ändern: {row.Name}")">Ändern</MudButton>
+                                <MudButton Variant="Variant.Text" OnClick="() => EndAsync(row.CostType)" aria-label="@($"Schlüssel beenden: {row.Name}")">Beenden</MudButton>
+                            </td>
                         }
                         else
                         {
                             <td colspan="2" class="small">@(row.History.Count > 0 ? $"beendet / noch nicht gültig · {row.History.Count} Stände" : "kein Schlüssel (Standard: Wohnfläche)")</td>
-                            <td class="row-actions"><MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => PickAsync(row.CostType)" aria-label="@($"Schlüssel festlegen: {row.Name}")">Festlegen</MudButton></td>
+                            <td class="row-actions"><MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => SetAsync(row.CostType)" aria-label="@($"Schlüssel festlegen: {row.Name}")">Festlegen</MudButton></td>
                         }
                     </tr>
                 }
@@ -69,50 +71,6 @@ else
     </div>
 </section>
 
-<section id="key-form">
-    <h2>Schlüssel festlegen</h2>
-    <EditForm Model="Rule" OnValidSubmit="SetAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppSelect T="string" @bind-Value="Rule.CostType" Label="Kostenart" Required="true" Items="overview.Rows.Where(r => r.Group == CostGroup.Operating).Select(r => r.CostType).ToList()" Text="@(t => CostTypeName(t))" EmptyText="– bitte wählen –" />
-            <AppDateField @bind-Value="Rule.From" Label="Gilt ab" Required="true" Hint="Der bisherige Schlüssel endet am Vortag." />
-            <AppSelect T="AllocationKey" @bind-Value="Rule.Key" Label="Schlüssel" Items="Enum.GetValues<AllocationKey>()" Text="Labels.From" />
-            <AppSelect T="MeterType?" @bind-Value="Rule.MeterType" Label="Zählertyp (bei Verbrauch)" Items="meterTypes" Text="@(t => t is { } v ? Labels.From(v) : "")" EmptyText="–" Hint="Die Zähler dieses Typs, die den Einheiten zugeordnet sind, bestimmen den Verbrauch." />
-            <AppNumberField T="decimal?" @bind-Value="Rule.PreDeductionPercent" Label="Vorwegabzug (%)" Hint="Anteil, der vor der Umlage abgezogen wird und beim Vermieter bleibt (z. B. Gewerbe, Garten)." />
-            <AppNumberField T="decimal?" @bind-Value="Rule.PreDeductionAmount" Label="oder Vorwegabzug (€ pro Jahr)" Suffix="€" />
-            <AppTextField @bind-Value="Rule.PreDeductionNote" Label="Begründung Vorwegabzug" />
-        </div>
-        <AppCheckBox @bind-Value="Rule.ExcludeVacantRooms" Label="Leere WG-Zimmer nicht ansetzen" />
-        <details class="explain">
-            <summary>Wer trägt leere Zimmer?</summary>
-            <p class="small">Ohne Haken trägt der Vermieter den Anteil leerer Zimmer (Standard bei Flächenschlüsseln). Mit Haken tragen die vermieteten Zimmer den ganzen Anteil der WG: nur vertretbar, wenn die Kosten vom Leerstand abhängen; bei Verbrauchsschlüsseln ist es immer so.</p>
-        </details>
-        <fieldset class="field">
-            <legend>Prozentsätze je Einheit (nur bei „Fester Prozentsatz“)</legend>
-            <div class="form-grid">
-                @for (var i = 0; i < overview.Units.Count; i++)
-                {
-                    var index = i;
-                    <AppTextField @bind-Value="Rule.Shares[index].Percent" Label="@($"{overview.Units[index].Name} (%)")" />
-                }
-            </div>
-            <span class="field-hint">Die Summe darf höchstens 100 % betragen; der Rest bleibt beim Vermieter.</span>
-        </fieldset>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Schlüssel speichern</MudButton>
-    </EditForm>
-</section>
-
-<section>
-    <h2>Schlüssel beenden</h2>
-    <EditForm Model="End" OnValidSubmit="EndAsync" novalidate>
-        <DataAnnotationsValidator />
-        <div class="form-grid">
-            <AppSelect T="string" @bind-Value="End.CostType" Label="Kostenart" Required="true" Items="overview.Rows.Where(r => r.Current is not null).Select(r => r.CostType).ToList()" Text="@(t => overview.Rows.FirstOrDefault(r => r.CostType == t)?.Name ?? "")" EmptyText="– bitte wählen –" />
-            <AppDateField @bind-Value="End.LastDay" Label="Letzter Tag" Required="true" />
-        </div>
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Schlüssel beenden</MudButton>
-    </EditForm>
-</section>
 </MudTabPanel>
 
 @if (overview.SharedFlats.Count > 0)
@@ -183,7 +141,6 @@ else
     private static readonly MeterType?[] meterTypes = Enum.GetValues<MeterType>().Select(t => (MeterType?)t).ToArray();
 
     private CostRuleInput Rule { get; set; } = new();
-    private EndInput End { get; set; } = new();
     private SubtypeInput Subtype { get; set; } = new();
     private readonly Dictionary<Guid, SharedFlatBilling> flatModes = [];
     private bool loaded;
@@ -192,7 +149,6 @@ else
     {
         var today = GermanTime.Today(Clock.GetUtcNow());
         Rule = new() { From = today };
-        End = new() { LastDay = today };
         await LoadAsync();
         if (overview is not null)
         {
@@ -200,12 +156,6 @@ else
         }
 
         loaded = true;
-    }
-
-    private async Task PickAsync(string costType)
-    {
-        Rule.CostType = costType;
-        await JS.InvokeVoidAsync("elocaroScrollTo", "key-form");
     }
 
     private void ResetRule()
@@ -234,17 +184,54 @@ else
         return row is null ? "" : (row.BetrKvNumber is { } n ? $"{n}. " : "") + row.Name;
     }
 
-    private async Task SetAsync()
+    // "Festlegen"/"Ändern" of a row: the key of this cost type applies from the chosen day.
+    private async Task SetAsync(string costType)
     {
-        if (await DoneAsync(await Allocation.SetRuleAsync(PropertyId, Rule), "Der Umlageschlüssel wurde gespeichert."))
+        ResetRule();
+        Rule.CostType = costType;
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="Rule.From" Label="Gilt ab" Required="true" Hint="Der bisherige Schlüssel endet am Vortag." />
+            <AppSelect T="AllocationKey" @bind-Value="Rule.Key" Label="Schlüssel" Items="Enum.GetValues<AllocationKey>()" Text="Labels.From" />
+            <AppSelect T="MeterType?" @bind-Value="Rule.MeterType" Label="Zählertyp (bei Verbrauch)" Items="meterTypes" Text="@(t => t is { } v ? Labels.From(v) : "")" EmptyText="–" Hint="Die Zähler dieses Typs, die den Einheiten zugeordnet sind, liefern den Verbrauch." />
+            <AppNumberField T="decimal?" @bind-Value="Rule.PreDeductionPercent" Label="Vorwegabzug (%)" Hint="Anteil, der vor der Umlage abgezogen wird und beim Vermieter bleibt (z. B. Gewerbe, Garten)." />
+            <AppNumberField T="decimal?" @bind-Value="Rule.PreDeductionAmount" Label="oder Vorwegabzug (€ pro Jahr)" Suffix="€" />
+            <AppTextField @bind-Value="Rule.PreDeductionNote" Label="Begründung Vorwegabzug" />
+            <AppCheckBox @bind-Value="Rule.ExcludeVacantRooms" Label="Leere WG-Zimmer nicht ansetzen" />
+            <details class="explain">
+                <summary>Wer trägt leere Zimmer?</summary>
+                <p class="small">Ohne Haken trägt der Vermieter den Anteil leerer Zimmer (Standard bei Flächenschlüsseln). Mit Haken tragen die vermieteten Zimmer den ganzen Anteil der WG: nur vertretbar, wenn die Kosten vom Leerstand abhängen; bei Verbrauchsschlüsseln ist es immer so.</p>
+            </details>
+            <fieldset class="field">
+                <legend>Prozentsätze je Einheit (nur bei „Fester Prozentsatz“)</legend>
+                <div class="form-grid">
+                    @for (var i = 0; i < overview!.Units.Count; i++)
+                    {
+                        var index = i;
+                        <AppTextField @bind-Value="Rule.Shares[index].Percent" Label="@($"{overview.Units[index].Name} (%)")" />
+                    }
+                </div>
+                <span class="field-hint">Die Summe darf höchstens 100 % betragen; der Rest bleibt beim Vermieter.</span>
+            </fieldset>
+        </text>;
+        if (await Dialogs.ShowFormAsync($"Umlageschlüssel: {CostTypeName(costType)}", Rule, fields, () => Allocation.SetRuleAsync(PropertyId, Rule), "Schlüssel speichern"))
         {
-            ResetRule();
+            Notify.Success("Der Umlageschlüssel wurde gespeichert.");
         }
+
+        await LoadAsync(); // after cancelling, too: drops the unsaved changes
     }
 
-    private async Task EndAsync() =>
-        await DoneAsync(await Allocation.EndRuleAsync(PropertyId, End.CostType, End.LastDay!.Value), "Der Umlageschlüssel wurde beendet.");
+    private async Task EndAsync(string costType)
+    {
+        var end = new EndInput { CostType = costType, LastDay = GermanTime.Today(Clock.GetUtcNow()) };
+        RenderFragment fields = @<AppDateField @bind-Value="end.LastDay" Label="Letzter Tag" Required="true" />;
+        if (await Dialogs.ShowFormAsync($"Schlüssel beenden: {CostTypeName(costType)}", end, fields, () => Allocation.EndRuleAsync(PropertyId, end.CostType, end.LastDay!.Value), "Schlüssel beenden"))
+        {
+            Notify.Success("Der Umlageschlüssel wurde beendet.");
+        }
 
+        await LoadAsync();
+    }
     private async Task SetFlatsAsync()
     {
         foreach (var (unit, mode) in flatModes)

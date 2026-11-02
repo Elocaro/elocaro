@@ -81,13 +81,16 @@ public class TaxBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postgr
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await page.GetByLabel("Kaufdatum").FillAsync("15.07.2024");
-            await page.GetByLabel("Kaufpreis").FillAsync("300000");
-            await page.GetByLabel("Anteil Grund und Boden").FillAsync("20");
-            await page.GetByLabel("Baujahr").FillAsync("1990");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Anschaffung erfassen" }).ClickAsync();
+            var acquisition = page.Locator(".mud-dialog");
+            await acquisition.GetByLabel("Kaufdatum").FillAsync("15.07.2024");
+            await acquisition.GetByLabel("Kaufpreis").FillAsync("300000");
+            await acquisition.GetByLabel("Anteil Grund und Boden").FillAsync("20");
+            await acquisition.GetByLabel("Baujahr").FillAsync("1990");
+            await acquisition.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Anschaffungsdaten wurden gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Abschreibungsplan");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("15.07.2024");
 
             await page.GetByRole(AriaRole.Button, new() { Name = "Kosten hinzufügen" }).ClickAsync();
             var form = page.Locator(".mud-dialog");

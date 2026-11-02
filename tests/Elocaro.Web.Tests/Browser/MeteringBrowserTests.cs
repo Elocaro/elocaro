@@ -64,6 +64,14 @@ public class MeteringBrowserTests(PostgresFixture postgres) : BrowserTestBasis(p
             await ExpectSnackbarAsync(page, "Der Zähler wurde angelegt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("100,5 m³");
 
+            // A single reading straight from the list, without a round.
+            await page.GetByRole(AriaRole.Button, new() { Name = "Stand eintragen: Kaltwasser Bad" }).ClickAsync();
+            await dialog.GetByLabel("Datum", new() { Exact = true }).FillAsync(German(Today.AddDays(-45)));
+            await dialog.GetByLabel("Zählerstand").FillAsync("115");
+            await dialog.GetByRole(AriaRole.Button, new() { Name = "Stand speichern" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "Der Zählerstand wurde gespeichert.");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("115 m³");
+
             await page.GetByRole(AriaRole.Link, new() { Name = "Kaltwasser Bad" }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/zaehler/*");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);

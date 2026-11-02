@@ -16,6 +16,9 @@ public class FirstHourBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
 {
     protected override bool SetupCompleted => false;
 
+    /// <summary>Like a real start: the bundled templates are there from the beginning.</summary>
+    protected override IDictionary<string, string?>? Configuration => new Dictionary<string, string?> { ["Documents:InstallDefaults"] = "true" };
+
     protected override void ConfigureServices(IServiceCollection services) => services.AddScoped<IPdfGenerator, FakePdfGenerator>();
 
     private DateOnly Today => GermanTime.Today(App.Clock.GetUtcNow());
