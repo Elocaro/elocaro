@@ -238,6 +238,28 @@ public class HeatingCostServiceTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Weather_stations_are_listed_nearest_first_by_the_postal_code_of_the_property()
+    {
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<Elocaro.Infrastructure.Persistence.ElocaroDbContext>();
+            var month = new DateOnly(2026, 1, 1);
+            db.Add(new DegreeDayValue("00433", "BERLIN-TEMPELHOF", month, 400m, null, 52.4676m, 13.4021m));
+            db.Add(new DegreeDayValue("02667", "KOELN-STAMMHEIM", month, 380m, null, 50.9843m, 6.9775m));
+            db.Add(new DegreeDayValue("03379", "MUENCHEN-STADT", month, 360m, null, 48.1632m, 11.5429m));
+            db.Add(new DegreeDayValue("00044", "OHNE POSITION", month, 350m, null));
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var stations = (await WithAsync<IHeatingSettings, HeatingSettingsView?>(s => s.GetAsync(house, Ct)))!.DegreeDayStations;
+
+        // The house is in 50667 Köln: Köln first, the station without a position last.
+        Assert.Equal(["KOELN-STAMMHEIM", "MUENCHEN-STADT", "BERLIN-TEMPELHOF", "OHNE POSITION"], stations.Select(s => s.Name));
+        Assert.InRange(stations[0].DistanceKm!.Value, 5, 10);
+        Assert.Null(stations[^1].DistanceKm);
+    }
+
+    [Fact]
     public async Task Heating_kind_of_a_cost_item_is_stored_for_heating_cost_types_only()
     {
         var receipt = await GasReceiptAsync();

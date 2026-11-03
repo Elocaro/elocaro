@@ -14,7 +14,7 @@ internal sealed class HeatingSettingsService(ElocaroDbContext db) : IHeatingSett
 {
     public async Task<HeatingSettingsView?> GetAsync(Guid propertyId, CancellationToken cancellationToken = default)
     {
-        var property = await db.Set<Property>().AsNoTracking().Where(o => o.Id == propertyId).Select(o => new { o.Id, o.Name, o.EnergySource }).SingleOrDefaultAsync(cancellationToken);
+        var property = await db.Set<Property>().AsNoTracking().Where(o => o.Id == propertyId).Select(o => new { o.Id, o.Name, o.EnergySource, o.PostalCode }).SingleOrDefaultAsync(cancellationToken);
         if (property is null)
         {
             return null;
@@ -32,8 +32,14 @@ internal sealed class HeatingSettingsService(ElocaroDbContext db) : IHeatingSett
         await AddSelectedAsync(oilMeters, input.OilTankMeterId, cancellationToken);
 
         var carbon = CarbonCostTables.All.OrderByDescending(t => t.ValidFromYear).First();
-        var stations = (await db.Set<DegreeDayValue>().AsNoTracking().GroupBy(v => v.StationId).Select(g => new { Id = g.Key, Name = g.OrderByDescending(v => v.Month).First().StationName }).ToListAsync(cancellationToken))
-            .OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase).Select(s => new DegreeDayStationOption(s.Id, s.Name)).ToList();
+        var latest = (await db.Set<DegreeDayValue>().AsNoTracking().GroupBy(v => v.StationId)
+            .Select(g => new { Id = g.Key, Name = g.OrderByDescending(v => v.Month).First().StationName, Latitude = g.OrderByDescending(v => v.Month).First().Latitude, Longitude = g.OrderByDescending(v => v.Month).First().Longitude })
+            .ToListAsync(cancellationToken));
+        // Nearest first when the postal code of the property is known (bundled table, offline); otherwise alphabetical.
+        var home = PostalCodes.Find(property.PostalCode);
+        var stations = latest
+            .Select(s => new DegreeDayStationOption(s.Id, s.Name, home is { } at && s.Latitude is { } la && s.Longitude is { } lo ? (int)Math.Round(PostalCodes.DistanceKm(at, ((double)la, (double)lo))) : null))
+            .OrderBy(s => s.DistanceKm ?? int.MaxValue).ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
         var degreeDays = DegreeDayTables.All.OrderByDescending(t => t.ValidFromYear).First();
         var version = degreeDays.Version;
         var status = degreeDays.Status;

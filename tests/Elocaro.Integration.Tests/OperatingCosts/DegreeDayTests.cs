@@ -32,6 +32,7 @@ public class DegreeDayTests(PostgresFixture postgres)
         var row = Assert.Single(rows);
         Assert.Equal("00044", row.StationId);
         Assert.Equal("GROSSENKNETEN", row.StationName);
+        Assert.Equal((52.93m, 8.24m), (row.Latitude, row.Longitude));
         Assert.Equal(new DateOnly(2026, 1, 1), row.Month);
         Assert.Equal(458.4m, row.DegreeDays);
         Assert.Equal(504.9m, row.LongTermMean);
@@ -55,6 +56,19 @@ public class DegreeDayTests(PostgresFixture postgres)
         var value = await db.Set<DegreeDayValue>().SingleAsync(Ct);
         Assert.Equal(460.0m, value.DegreeDays);
         Assert.Equal(504.9m, value.LongTermMean);
+    }
+
+    [Fact]
+    public async Task A_slow_server_ends_the_import_quietly_for_the_next_run()
+    {
+        await using var environment = await InfrastructureEnvironment.CreateAsync(postgres);
+        environment.Clock.SetUtcNow(new DateTimeOffset(2026, 3, 20, 10, 0, 0, TimeSpan.Zero));
+        await using var scope = environment.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();
+        var importer = new DegreeDayImporter(db, new HttpClient(new TimingOut()), environment.Clock,
+            Options.Create(new DegreeDayOptions { BaseUrl = new Uri("https://dwd.test/"), YearsBack = 1 }), NullLogger<DegreeDayImporter>.Instance);
+
+        Assert.Equal(0, await importer.ImportAsync(Ct)); // no exception: the job does not fail because the DWD is slow
     }
 
     [Fact]
@@ -106,6 +120,13 @@ public class DegreeDayTests(PostgresFixture postgres)
         Assert.Null(DegreeDayStationTable.Build(onlyOneMonth, Period.CalendarYear(2026)));
     }
 
+    /// <summary>Like the client timeout: the request is cancelled without the caller having asked for it.</summary>
+    private sealed class TimingOut : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new TaskCanceledException("timeout", new TimeoutException());
+    }
+
     private sealed class FakeDwd(Dictionary<string, string> files) : HttpMessageHandler
     {
         public Dictionary<string, string> Files { get; } = files;
@@ -120,5 +141,21 @@ public class DegreeDayTests(PostgresFixture postgres)
                 ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(text) }
                 : new HttpResponseMessage(HttpStatusCode.NotFound));
         }
+    }
+}
+
+public class PostalCodesTests
+{
+    [Fact]
+    public void A_postal_code_has_a_position_and_distances_are_plausible()
+    {
+        var cologne = PostalCodes.Find("50667")!.Value;
+        var berlin = PostalCodes.Find("10115")!.Value;
+
+        Assert.InRange(cologne.Latitude, 50.8, 51.1);
+        Assert.InRange(PostalCodes.DistanceKm(cologne, berlin), 470, 490); // as the crow flies Köln–Berlin
+        Assert.Null(PostalCodes.Find("00000"));
+        Assert.Null(PostalCodes.Find(null));
+        Assert.Null(PostalCodes.Find("5066"));
     }
 }

@@ -39,8 +39,9 @@ internal sealed partial class DegreeDayImporter(ElocaroDbContext db, HttpClient 
             {
                 written += await ImportMonthAsync(month, cancellationToken);
             }
-            catch (HttpRequestException exception)
+            catch (Exception exception) when (exception is HttpRequestException || (exception is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                // The server of the DWD is unreachable or too slow (client timeout): the next run tries again.
                 Failed(logger, exception, month.ToString("MM/yyyy", CultureInfo.InvariantCulture));
                 break;
             }
@@ -70,11 +71,11 @@ internal sealed partial class DegreeDayImporter(ElocaroDbContext db, HttpClient 
         {
             if (existing.TryGetValue(row.StationId, out var value))
             {
-                value.Update(row.StationName, row.DegreeDays, row.LongTermMean);
+                value.Update(row.StationName, row.DegreeDays, row.LongTermMean, row.Latitude, row.Longitude);
             }
             else
             {
-                db.Add(new DegreeDayValue(row.StationId, row.StationName, month, row.DegreeDays, row.LongTermMean));
+                db.Add(new DegreeDayValue(row.StationId, row.StationName, month, row.DegreeDays, row.LongTermMean, row.Latitude, row.Longitude));
             }
         }
 
@@ -89,7 +90,7 @@ internal sealed partial class DegreeDayImporter(ElocaroDbContext db, HttpClient 
 /// <summary>Parser of the monthly files of the DWD (<c>gradtage_JJJJMM.csv</c>).</summary>
 internal static class DegreeDayCsv
 {
-    internal sealed record Row(string StationId, string StationName, DateOnly Month, decimal DegreeDays, decimal? LongTermMean);
+    internal sealed record Row(string StationId, string StationName, DateOnly Month, decimal DegreeDays, decimal? LongTermMean, decimal? Latitude = null, decimal? Longitude = null);
 
     /// <summary>
     /// Columns: ID; latitude; longitude; station; month (JJJJMM); days; degree days; heating days; mean 2009-2018. Comment lines start with
@@ -111,7 +112,7 @@ internal static class DegreeDayCsv
                 continue;
             }
 
-            yield return new Row(fields[0].Trim(), fields[3].Trim(), month, degreeDays, fields.Length > 8 ? Number(fields[8]) : null);
+            yield return new Row(fields[0].Trim(), fields[3].Trim(), month, degreeDays, fields.Length > 8 ? Number(fields[8]) : null, Number(fields[1]), Number(fields[2]));
         }
     }
 

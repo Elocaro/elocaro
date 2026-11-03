@@ -13,6 +13,8 @@ internal sealed class DegreeDayValueConfiguration : IEntityTypeConfiguration<Deg
         builder.Property(v => v.StationName).HasMaxLength(100);
         builder.Property(v => v.DegreeDays).HasPrecision(8, 1);
         builder.Property(v => v.LongTermMean).HasPrecision(8, 1);
+        builder.Property(v => v.Latitude).HasPrecision(8, 4);
+        builder.Property(v => v.Longitude).HasPrecision(8, 4);
         builder.HasIndex(v => new { v.StationId, v.Month }).IsUnique();
     }
 }

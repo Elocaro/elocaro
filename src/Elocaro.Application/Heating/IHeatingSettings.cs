@@ -83,8 +83,8 @@ public sealed class FuelEnergyYearInput
 
 public sealed record MeterOption(Guid Id, string Name);
 
-/// <summary>Weather station of the Deutscher Wetterdienst with degree days.</summary>
-public sealed record DegreeDayStationOption(string Id, string Name);
+/// <summary>Weather station of the Deutscher Wetterdienst with degree days; <paramref name="DistanceKm"/> from the property (by postal code), <c>null</c> if unknown.</summary>
+public sealed record DegreeDayStationOption(string Id, string Name, int? DistanceKm = null);
 
 /// <param name="Saved"><c>false</c> = no settings saved yet, the input shows the defaults.</param>
 public sealed record HeatingSettingsView(

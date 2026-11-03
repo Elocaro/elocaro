@@ -26,19 +26,22 @@ else
 @if (!view.Saved)
 {
     <Notice Level="NoticeLevel.Info" id="defaults-notice">
-        Es sind noch keine Einstellungen gespeichert. Die Vorschau rechnet mit den Standardwerten: 70 % nach Verbrauch, 30 % nach Fläche,
-        Gas mit kWh laut Beleg, gemeinsame Anlage für Heizung und Warmwasser.
+        Noch nichts gespeichert: Die Vorschau rechnet mit den Standardwerten (70 % nach Verbrauch, 30 % nach Fläche, Gas, eine gemeinsame Anlage für Heizung und Warmwasser).
+        Prüfen Sie unten, ob das zu Ihrem Haus passt, und speichern Sie.
     </Notice>
 }
 
 <details class="explain">
-    <summary>So werden die Heizkosten verteilt</summary>
-    <p>
-    Die Heizkosten werden nach der Heizkostenverordnung verteilt: 50 bis 70 % nach Verbrauch (Heizung: Wärmemengenzähler der Wohnungen in kWh,
-    Warmwasser: Warmwasserzähler in m³), der Rest nach Fläche (Heizung: Heizfläche, Warmwasser: Wohnfläche). Eine Abrechnung ausschließlich nach Verbrauch
-    ist nicht zulässig. Brennstoff, Betriebsstrom, Wartung, Abgasmessung, Reinigung und Zählermiete einer gemeinsamen Anlage buchen Sie unter der Kostenart
-    „6. Verbundene Heizungs- und Warmwasseranlagen“ (Art der Position wählen); die Kostenarten 4 und 5 gelten nur für Heizung bzw. nur für Warmwasser.
+    <summary>Kurz erklärt: Was brauche ich für die Heizkosten?</summary>
+    <p class="small">
+        Die Heizkostenverordnung schreibt vor, die Heizkosten zum größeren Teil nach dem tatsächlichen Verbrauch zu verteilen (50 bis 70 %), den Rest nach Fläche.
+        Eine Abrechnung nur nach Fläche oder nur nach Verbrauch ist nicht zulässig. Elocaro rechnet das, wenn drei Dinge vorliegen:
     </p>
+    <ol class="small">
+        <li><strong>Zähler und Ablesungen:</strong> je Wohnung ein Wärmezähler (kWh) und ein Warmwasserzähler (m³), abgelesen zum Ende des Abrechnungsjahres (Bereich „Zähler“ des Objekts).</li>
+        <li><strong>Rechnungen als Belege:</strong> Brennstoff, Wartung, Abgasmessung und Zählermiete. Bei einer gemeinsamen Anlage für Heizung und Warmwasser buchen Sie alles unter der Kostenart „6. Verbundene Heizungs- und Warmwasseranlagen“.</li>
+        <li><strong>Diese Seite:</strong> Bestätigen Sie unten, womit geheizt wird und ob die Anlage auch das Warmwasser erzeugt. Der Rest hat sinnvolle Voreinstellungen.</li>
+    </ol>
 </details>
 
 <EditForm Model="Data" OnValidSubmit="SaveAsync" novalidate>
@@ -47,34 +50,61 @@ else
     <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
     <MudTabPanel Text="Verteilung">
     <section>
-        <h2>Verteilung</h2>
+        <h2>So heizt dieses Haus</h2>
+        <Notice Level="NoticeLevel.Info" id="heating-summary">
+            Aktuell gilt: <strong>@FuelShort(Data.Fuel)</strong>, @(Data.JointPlant ? "eine Anlage für Heizung und Warmwasser" : "Heizung und Warmwasser getrennt"),
+            <strong>@Format.Number(Data.ConsumptionPercent ?? 70m) % nach Verbrauch</strong> und @Format.Number(100m - (Data.ConsumptionPercent ?? 70m)) % nach Fläche.
+            Für die meisten Häuser passt das so; ändern Sie nur, was bei Ihnen anders ist.
+        </Notice>
         <div class="form-grid">
-            <AppNumberField T="decimal?" @bind-Value="Data.ConsumptionPercent" Label="Anteil nach Verbrauch (%)" Required="true" Min="50" Max="70" Hint="50 bis 70 %, Standard 70 %. Der Rest (Grundkosten) wird nach Fläche verteilt." />
-            <AppSelect T="HeatingFuel" @bind-Value="Data.Fuel" Label="Energieträger" Items="Enum.GetValues<HeatingFuel>()" Text="Labels.From" />
-            <AppNumberField T="decimal?" @bind-Value="Data.FuelKwhPerUnit" Label="Energieinhalt je Einheit (kWh)" Hint="Nur nötig, wenn der Beleg die Menge nicht in kWh nennt (m³ Gas, l Öl: Standard Öl 10 kWh/l)." />
-            <p class="small">Zur Aufteilung der CO₂-Kosten siehe <HelpTerm Term="Emissionsfaktor" />.</p>
-            <AppNumberField T="decimal?" @bind-Value="Data.CarbonKgPerKwh" Label="Emissionsfaktor (kg CO₂/kWh)" Hint="Leer = Erdgas 0,2016 (BEHG, Stand/prüfen). Für Gas aus dem Tarif berechnet, wenn der Beleg keine CO₂-Menge nennt." />
-            <AppCheckBox @bind-Value="Data.JointPlant" Label="Eine Anlage für Heizung und Warmwasser" />
+            <AppSelect T="HeatingFuel" @bind-Value="Data.Fuel" Label="Energieträger" Items="Enum.GetValues<HeatingFuel>()" Text="Labels.From" Hint="Womit wird geheizt? Davon hängt ab, woher der Verbrauch kommt (Rechnung des Versorgers oder Tankbestand)." />
         </div>
-        <p class="small">Bei einer gemeinsamen Anlage werden die Kosten der Kostenarten 4 und 6 nach § 9 HeizkostenV in Heizung und Warmwasser aufgeteilt.</p>
-        <h3>Mieterwechsel ohne Zwischenablesung</h3>
-        <p class="small">
-            Fehlt beim Mieterwechsel eine Zwischenablesung, wird der Heizverbrauch nach Gradtagen auf die Nutzer verteilt (§ 9b HeizkostenV). Wählen Sie dafür die
-            nächstgelegene Wetterstation des Deutschen Wetterdienstes; Elocaro holt deren Monatsgradtage (VDI 3807) automatisch. Ohne Station gilt ein
-            mitgelieferter Platzhalter.
-        </p>
-        @if (view.DegreeDayStations.Count == 0)
-        {
-            <Notice Level="NoticeLevel.Info" id="degree-day-empty">Es sind noch keine Stationsdaten abgerufen. Der Abruf läuft alle 12 Stunden; er braucht Internetzugang zu opendata.dwd.de.</Notice>
-        }
-        else
-        {
-            <div class="form-grid">
-                <AppSelect T="string" @bind-Value="Data.DegreeDayStationId" Label="Wetterstation (Gradtage)" Items="view.DegreeDayStations.Select(s => s.Id).ToList()" Text="StationName" EmptyText="Platzhalter (keine Station)" Hint="@($"Stand der Tabelle: {view.DegreeDayTableVersion}")" />
-            </div>
-        }
-    </section>
+        <fieldset class="field">
+            <legend>Erzeugt dieselbe Anlage auch das Warmwasser?</legend>
+            <AppRadioGroup T="bool" @bind-Value="Data.JointPlant" Items="new[] { true, false }" Text="@(v => v ? "Ja, eine Anlage für beides (üblich bei einer Zentralheizung)" : "Nein, das Warmwasser wird getrennt erzeugt (z. B. Durchlauferhitzer)")" />
+            <span class="field-hint">Bei einer gemeinsamen Anlage teilt Elocaro die Brennstoffkosten selbst auf Heizung und Warmwasser auf (§ 9 HeizkostenV).</span>
+        </fieldset>
+        <div class="form-grid">
+            <AppNumberField T="decimal?" @bind-Value="Data.ConsumptionPercent" Label="Anteil nach Verbrauch (%)" Required="true" Min="50" Max="70" Hint="Gesetzlich 50 bis 70 %, üblich sind 70 %. Der Rest wird nach Fläche verteilt." />
+        </div>
+        <div class="form-row">
+            <MudButton Variant="Variant.Text" OnClick="() => Data.ConsumptionPercent = 70m">70 % (üblich)</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="() => Data.ConsumptionPercent = 60m">60 %</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="() => Data.ConsumptionPercent = 50m">50 %</MudButton>
+        </div>
 
+        <details class="explain" id="heating-more">
+            <summary>Weitere Angaben (meist nicht nötig)</summary>
+            <p class="small">Nur ausfüllen, wenn die Rechnung des Versorgers die Werte nicht selbst nennt.</p>
+            <div class="form-grid">
+                <AppNumberField T="decimal?" @bind-Value="Data.FuelKwhPerUnit" Label="Energieinhalt je Einheit (kWh)" Hint="Nur nötig, wenn die Rechnung die Menge nicht in kWh nennt (m³ Gas, l Öl: bei Öl gilt 10 kWh/l)." />
+                <p class="small">Zur Aufteilung der CO₂-Kosten siehe <HelpTerm Term="Emissionsfaktor" />.</p>
+                <AppNumberField T="decimal?" @bind-Value="Data.CarbonKgPerKwh" Label="Emissionsfaktor (kg CO₂/kWh)" Hint="Leer = Erdgas 0,2016. Wird aus dem Tarif berechnet, wenn die Rechnung keine CO₂-Menge nennt." />
+            </div>
+        </details>
+
+        <details class="explain" id="heating-station">
+            <summary>Mieterwechsel ohne Zwischenablesung@(string.IsNullOrEmpty(Data.DegreeDayStationId) ? "" : $": Station {StationName(Data.DegreeDayStationId)}")</summary>
+            <p class="small">
+                Fehlt beim Mieterwechsel eine Zwischenablesung, verteilt Elocaro den Heizverbrauch nach den Gradtagen (§ 9b HeizkostenV). Dafür braucht es die nächstgelegene
+                Wetterstation des Deutschen Wetterdienstes; die Liste beginnt mit der nächsten zur Postleitzahl des Objekts. Die Werte holt Elocaro automatisch. Ohne Station gilt ein mitgelieferter Platzhalter.
+            </p>
+            @if (view.DegreeDayStations.Count == 0)
+            {
+                <Notice Level="NoticeLevel.Info" id="degree-day-empty">Es sind noch keine Stationsdaten abgerufen. Der Abruf läuft alle 12 Stunden; er braucht Internetzugang zu opendata.dwd.de.</Notice>
+            }
+            else
+            {
+                @if (suggestedStation is { } suggestion && Data.DegreeDayStationId == suggestion.Id)
+                {
+                    <Notice Level="NoticeLevel.Info" id="degree-day-suggestion">Vorgeschlagen: die nächstgelegene Station zur Postleitzahl des Objekts, @suggestion.Name (rund @suggestion.DistanceKm km). Sie gilt, sobald Sie die Einstellungen speichern.</Notice>
+                }
+                <div class="form-grid">
+                    <AppSelect T="string" @bind-Value="Data.DegreeDayStationId" Label="Wetterstation (Gradtage)" Items="view.DegreeDayStations.Select(s => s.Id).ToList()" Text="StationName" EmptyText="Platzhalter (keine Station)" Hint="@($"Stand der Tabelle: {view.DegreeDayTableVersion}")" />
+                </div>
+            }
+        </details>
+    </section>
     @if (Data.JointPlant)
     {
         <section>
@@ -175,7 +205,14 @@ else
 @code {
     private HeatingSettingsView? view;
 
-    private string StationName(string? id) => view?.DegreeDayStations.FirstOrDefault(s => s.Id == id)?.Name ?? "";
+    private static string FuelShort(HeatingFuel fuel) => fuel switch { HeatingFuel.Oil => "Heizöl", HeatingFuel.Other => "Sonstiger Energieträger (kWh laut Beleg)", _ => "Gas" };
+
+    private string StationName(string? id) => view?.DegreeDayStations.FirstOrDefault(s => s.Id == id) is { } station
+        ? station.Name + (station.DistanceKm is { } km ? $" ({km} km)" : "")
+        : "";
+
+    /// <summary>The nearest station was preselected because none had been chosen yet.</summary>
+    private DegreeDayStationOption? suggestedStation;
     private IReadOnlyList<string>? errors;
     private HeatingSettingsInput Data { get; set; } = new();
     private bool loaded;
@@ -189,6 +226,11 @@ else
         if (view is not null)
         {
             Data = view.Input;
+            if (string.IsNullOrEmpty(Data.DegreeDayStationId) && view.DegreeDayStations.FirstOrDefault() is { DistanceKm: not null } nearest)
+            {
+                Data.DegreeDayStationId = nearest.Id;
+                suggestedStation = nearest;
+            }
         }
 
         loaded = true;
