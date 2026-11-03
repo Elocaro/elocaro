@@ -8,7 +8,10 @@
 <InteractiveShell>
     <PageHeader Title="Zuordnungsregeln" Subtitle="Regeln gelten vor der automatischen Bewertung, die erste passende (niedrigste Priorität zuerst) bestimmt den Vorschlag." Back="/verwaltung/bank/zuordnung" BackText="Zuordnung">
         <Actions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/bank/regeln/neu">Regel anlegen</MudButton>
+            @if (rules is not { Count: 0 })
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/bank/regeln/neu">Regel anlegen</MudButton>
+            }
         </Actions>
     </PageHeader>
 
@@ -16,7 +19,9 @@
 
     @if (rules is { Count: 0 })
     {
-        <EmptyState Text="Noch keine Regeln. Beispiel: „Gegen-IBAN der Stadtwerke → Kostenart Wasserversorgung, Objekt Lindenweg 3“." />
+        <EmptyState Text="Noch keine Regeln. Beispiel: „Gegen-IBAN der Stadtwerke → Kostenart Wasserversorgung, Objekt Lindenweg 3“.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/verwaltung/bank/regeln/neu">Regel anlegen</MudButton>
+        </EmptyState>
     }
     else if (rules is not null)
     {

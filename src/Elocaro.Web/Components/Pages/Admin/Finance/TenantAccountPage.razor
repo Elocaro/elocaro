@@ -25,7 +25,7 @@ else
 
     @if (account.AccountingStart is null)
     {
-        <Notice Level="NoticeLevel.Info">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></Notice>
+        <Notice Level="NoticeLevel.Warning">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></Notice>
     }
 
     <div class="summary-card">
@@ -36,6 +36,7 @@ else
             <dt>Verrechnung</dt><dd>@Labels.From(account.Allocation)</dd>
         </dl>
     </div>
+    <LineChart id="balance-chart" Caption="Saldo im Zeitverlauf (über null: Rückstand, unter null: Guthaben)" LabelHeading="Monatsende" ValueHeading="Saldo" Points="BalancePoints" />
     <details class="explain">
         <summary>So funktioniert das Mieterkonto</summary>
         <p>Jeden Monat entsteht je Bestandteil (Kaltmiete, Vorauszahlungen) eine Sollstellung („Soll“). Jede Zahlung („Haben“) wird nach der eingestellten Verrechnung auf offene Forderungen angerechnet. Ein positiver Saldo ist ein Rückstand, ein negativer ein Guthaben des Mieters. „Fällig“ zählt nur, was bis heute zu zahlen war.</p>
@@ -47,9 +48,9 @@ else
                 <div class="form-row search-bar">
                     <AppSelect T="int?" @bind-Value="year" Label="Jahr" Items="years" Text="@(y => y?.ToString() ?? "")" EmptyText="Alle Jahre" />
                     <AppCheckBox @bind-Value="onlyOpen" Label="Nur offene Posten" />
-                    <MudButton Variant="Variant.Outlined" OnClick="RefreshAsync">Monatsmieten aktualisieren</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="RefreshAsync">Fehlende Monatsmieten nachtragen</MudButton>
                 </div>
-                <p class="help">Die Monatsmieten werden jede Nacht automatisch angelegt, z. B. nach einer Mieterhöhung. „Monatsmieten aktualisieren“ erledigt das sofort.</p>
+                <p class="help">Die Monatsmieten werden jede Nacht automatisch angelegt, z. B. nach einer Mieterhöhung. „Fehlende Monatsmieten nachtragen“ erledigt das sofort.</p>
                 @if (account.Entries.Count == 0)
                 {
                     <EmptyState Compact="true" Text="Noch keine Buchungen." />
@@ -128,9 +129,18 @@ else
                 <p class="help">Elocaro erkennt Rückstände und schlägt eine Mahnung vor. Versendet wird erst nach Ihrer Freigabe.</p>
                 @if (dunning is not null)
                 {
+                    @if (dunning.Proposal is { } open)
+                    {
+                        <DunningLevelTrack Current="open.Level" />
+                    }
+                    else if (dunning.Issued.Count > 0)
+                    {
+                        <DunningLevelTrack Current="dunning.Issued.Max(d => d.Level)" Issued="true" />
+                    }
+
                     @if (dunning.TerminationHint is { } hint)
                     {
-                        <Notice Level="NoticeLevel.Info">
+                        <Notice Level="NoticeLevel.Warning">
                             <strong>Hinweis Kündigungsrelevanz:</strong> Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
                             (§ 543 Abs. 2 Nr. 3 BGB). Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
                         </Notice>
@@ -202,7 +212,8 @@ else
                 }
                 else
                 {
-                    <p class="help">Soll nach Leistungsmonat, davon bezahlt (für die Nebenkostenabrechnung) und im Kalenderjahr zugeflossen (Zahlungsdatum, § 11 EStG).</p>
+                    <CostBars id="inflow-years" Caption="Zahlungseingang je Kalenderjahr" Rows="InflowRows" />
+                    <p class="help">Soll nach Leistungsmonat, davon bezahlt (für die Nebenkostenabrechnung) und im Kalenderjahr <HelpTerm Term="Zufluss" Text="zugeflossen" /> (Zahlungsdatum, § 11 EStG).</p>
                     <div class="table-wrapper">
                         <table class="data-table">
                             <thead><tr><th>Jahr</th><th>Bestandteil</th><th class="number">Soll</th><th class="number">davon bezahlt</th><th class="number">Zufluss im Jahr</th></tr></thead>
@@ -228,6 +239,16 @@ else
 </InteractiveShell>
 
 @code {
+    /// <summary>The balance at the end of each of the last 24 months with bookings.</summary>
+    private List<ChartPoint> BalancePoints => [.. account!.Entries
+        .GroupBy(e => new DateOnly(e.Date.Year, e.Date.Month, 1))
+        .OrderBy(g => g.Key)
+        .TakeLast(24)
+        .Select(g => new ChartPoint(Format.Month(g.Key), g.Last().Balance))];
+
+    private List<ChartBar> InflowRows => [.. account!.AnnualValues.GroupBy(v => v.Year).OrderBy(g => g.Key)
+        .Select(g => new ChartBar(g.Key.ToString(System.Globalization.CultureInfo.InvariantCulture), g.Sum(v => v.Inflow)))];
+
     private TenantAccount? account;
     private LeaseDunning? dunning;
     private IReadOnlyList<string>? errors;

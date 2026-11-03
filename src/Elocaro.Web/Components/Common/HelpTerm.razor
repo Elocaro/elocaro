@@ -1,0 +1,18 @@
+@* A technical term with its explanation behind a click or tap. Popover: no JavaScript, works in running text, closes with Esc or a click beside it. *@
+<button type="button" class="help-term" popovertarget="@id" aria-label="@($"{Display}: Erklärung anzeigen")">@Display</button><span id="@id" class="help-term-text" popover="auto" role="note"><strong>@Term</strong> @Explanation</span>
+
+@code {
+    private readonly string id = $"term-{Guid.NewGuid():N}";
+
+    /// <summary>The term as in <see cref="Glossary"/>.</summary>
+    [Parameter, EditorRequired]
+    public string Term { get; set; } = "";
+
+    /// <summary>The wording in the sentence, if it differs from the term.</summary>
+    [Parameter]
+    public string? Text { get; set; }
+
+    private string Display => Text ?? Term;
+
+    private string Explanation => Glossary.Explain(Term);
+}

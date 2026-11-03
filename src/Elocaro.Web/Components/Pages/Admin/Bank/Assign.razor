@@ -85,7 +85,7 @@ else if (options is not null)
                 var rank = i;
                 var s = proposal.Suggestions[i];
                 <article class="suggestion">
-                    <h3>@s.Target <StatusChip Level="@(s.Score >= 70 ? StatusLevel.Success : StatusLevel.Warning)">@s.Score % (@s.Confidence)</StatusChip></h3>
+                    <h3>@s.Target <StatusChip Level="@(s.Score >= 70 ? StatusLevel.Success : StatusLevel.Warning)">@(s.Score >= 90 ? "sehr sicher" : s.Score >= 70 ? "wahrscheinlich" : "unsicher, bitte prüfen")</StatusChip></h3>
                     <ul class="small">
                         @foreach (var reason in s.Reasons)
                         {
@@ -104,10 +104,14 @@ else if (options is not null)
 
     <section>
         <h2>Manuell zuordnen oder aufteilen</h2>
+        @if (income)
+        {
+            <p class="small">Zur Anrechnung siehe <HelpTerm Term="Verrechnungsreihenfolge" />.</p>
+        }
         <p class="small">
             @(income ? "Ein Umsatz kann auf mehrere Mietverhältnisse oder Forderungen verteilt werden (z. B. Sammelzahlung für mehrere Monate)." : "Ein Umsatz kann auf mehrere Kostenarten oder Objekte verteilt werden.")
             Die Teilbeträge müssen zusammen genau den Umsatz von @Format.Money(Math.Abs(u.Amount)) ergeben; ein leerer Betrag erhält den Rest.
-            @(income ? "Ohne bestimmte Forderung werden Zahlungen nach der Verrechnungsreihenfolge angerechnet; Teilzahlungen bleiben offen, Überzahlungen werden Guthaben." : "Ohne vorhandenen Beleg wird ein neuer Beleg für den Umsatz angelegt; die Datei kann später ergänzt werden.")
+            @(income ? "Ohne bestimmte Forderung werden Zahlungen in der festgelegten Reihenfolge angerechnet; Teilzahlungen bleiben offen, Überzahlungen werden Guthaben." : "Ohne vorhandenen Beleg wird ein neuer Beleg für den Umsatz angelegt; die Datei kann später ergänzt werden.")
         </p>
         @if (parts.Count == 0)
         {
@@ -130,6 +134,21 @@ else if (options is not null)
                     </MudTd>
                 </RowTemplate>
             </MudTable>
+        }
+        @if (parts.Count > 0)
+        {
+            <p class="small" id="assignment-rest">
+                Verteilt: @Format.Money(Assigned) von @Format.Money(Math.Abs(u.Amount)) ·
+                @if (parts.Any(p => p.Amount is null))
+                {
+                    <strong>Der Rest von @Format.Money(Math.Abs(u.Amount) - Assigned) geht an den Teil ohne Betrag.</strong>
+                }
+                else
+                {
+                    <strong>Noch offen: @Format.Money(Math.Abs(u.Amount) - Assigned)</strong>
+                }
+            </p>
+            <ProgressMeter Value="Assigned" Total="Math.Abs(u.Amount)" Text="@($"{Format.Money(Assigned)} von {Format.Money(Math.Abs(u.Amount))} verteilt")" />
         }
         <div class="form-row">
             <MudButton Variant="@(parts.Count == 0 ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="AddPartAsync">Teil hinzufügen</MudButton>
@@ -155,6 +174,8 @@ else if (options is not null)
 </InteractiveShell>
 
 @code {
+    private decimal Assigned => parts.Sum(p => Math.Abs(p.Amount ?? 0m));
+
     private static readonly IReadOnlyList<bool?> allocableChoices = [true, false];
 
     private AssignmentProposal? proposal;

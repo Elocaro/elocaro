@@ -6091,6 +6091,10 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("fitted_kitchen");
 
+                    b.Property<int?>("Floor")
+                        .HasColumnType("integer")
+                        .HasColumnName("floor");
+
                     b.Property<string>("Location")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")

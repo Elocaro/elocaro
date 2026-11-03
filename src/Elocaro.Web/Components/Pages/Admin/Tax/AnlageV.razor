@@ -17,7 +17,15 @@ else if (report is null)
 }
 else
 {
-    <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@(report.OwnerName is null ? null : $"{report.OwnerName} ({report.OwnerSharePercent:0.####} %)")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName" />
+    <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@(report.OwnerName is null ? null : $"{report.OwnerName} ({report.OwnerSharePercent:0.####} %)")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.csv")">CSV exportieren</MudButton>
+            <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.pdf")">PDF</MudButton>
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+                <MudMenuItem Href="@($"/verwaltung/finanzen/anlage-v-zeilen?jahr={year}")">Zeilennummern pflegen</MudMenuItem>
+            </MudMenu>
+        </Actions>
+    </PageHeader>
 
     <div class="form-row search-bar" role="search">
         <AppYearSelect T="int" Value="year" ValueChanged="OnYearChanged" Label="Steuerjahr" />
@@ -25,18 +33,19 @@ else
         {
             <AppSelect T="Guid?" Value="ownerId" ValueChanged="OnOwnerChanged" Label="Auswertung für" EmptyText="Ganzes Objekt" Items="ownerChoices.Select(o => (Guid?)o.PersonId).ToList()" Text="@(id => ownerChoices.FirstOrDefault(o => o.PersonId == id) is { } o ? $"{o.Name} ({o.SharePercent:0.##} %)" : "")" />
         }
-        <AppCheckBox Value="forecast" ValueChanged="OnForecastChanged" Label="Totalüberschussprognose positiv" />
-        <div class="field-action">
-            <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.csv")">CSV exportieren</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.pdf")">PDF</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/finanzen/anlage-v-zeilen?jahr={year}")">Zeilennummern pflegen</MudButton>
-        </div>
     </div>
 
-    <details class="explain">
-        <summary>Was bedeutet „Totalüberschussprognose positiv“?</summary>
-        <p>Das betrifft nur verbilligte Vermietung (Miete zwischen 50 % und 66 % der ortsüblichen Miete, § 21 Abs. 2 EStG). Ist die Prognose positiv, bleiben die Werbungskosten voll abziehbar, sonst werden sie anteilig gekürzt. Bei marktüblicher Miete hat der Haken keine Wirkung.</p>
-    </details>
+    @if (report.Result.IncomeTotal > 0m && report.Result.DeductibleExpenses > 0m)
+    {
+    <SegmentBar id="anlage-v-split" Caption="@($"Einnahmen und Werbungskosten {report.Year}")" Segments="@([
+        new ChartSegment("Einnahmen", report.Result.IncomeTotal, Format.Money(report.Result.IncomeTotal), ChartTone.Primary),
+        new ChartSegment("Werbungskosten", report.Result.DeductibleExpenses, Format.Money(report.Result.DeductibleExpenses), ChartTone.Tertiary),
+    ])" />
+    }
+    @if (previous is not null && (previous.Result.IncomeTotal != 0m || previous.Result.ExpenseTotal != 0m))
+    {
+        <p class="small" id="anlage-v-previous">Überschuss @report.Year: <strong>@Format.Money(report.Result.Surplus)</strong> · @previous.Year: @Format.Money(previous.Result.Surplus)</p>
+    }
 
     @if (report.Warnings.Count > 0)
     {
@@ -80,6 +89,11 @@ else
 
     <section>
         <h2>Verbilligte Vermietung</h2>
+        <AppCheckBox Value="forecast" ValueChanged="OnForecastChanged" Label="Totalüberschussprognose positiv" />
+        <details class="explain">
+            <summary>Was bedeutet „Totalüberschussprognose positiv“?</summary>
+            <p>Das betrifft nur verbilligte Vermietung (Miete zwischen 50 % und 66 % der ortsüblichen Miete, § 21 Abs. 2 EStG). Ist die Prognose positiv, bleiben die Werbungskosten voll abziehbar, sonst werden sie anteilig gekürzt. Bei marktüblicher Miete hat der Haken keine Wirkung.</p>
+        </details>
         <details class="explain">
             <summary>Verbilligte Vermietung (66-%-Grenze)</summary>
             <p class="small">
@@ -101,6 +115,7 @@ else
 
 @code {
     private AnlageVReport? report;
+    private AnlageVReport? previous;
     private int year;
     private bool forecast;
     private decimal? localRent;
@@ -167,6 +182,9 @@ else
         report = ownerId is { } person
             ? await Admin.GetForOwnerAsync(PropertyId, year, person, forecast) ?? await Admin.GetAsync(PropertyId, year, forecast)
             : await Admin.GetAsync(PropertyId, year, forecast);
+        previous = ownerId is { } earlierOwner
+            ? await Admin.GetForOwnerAsync(PropertyId, year - 1, earlierOwner, forecast) ?? await Admin.GetAsync(PropertyId, year - 1, forecast)
+            : await Admin.GetAsync(PropertyId, year - 1, forecast);
         localRent = report?.LocalRent;
         loaded = true;
     }

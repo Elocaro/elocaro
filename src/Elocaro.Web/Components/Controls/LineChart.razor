@@ -1,0 +1,113 @@
+@* A series over time: inline SVG without JavaScript, axis labels as text, the values also as a table. Fewer than two points draw nothing. *@
+@if (Points.Count >= 2)
+{
+    <figure class="line-chart" @attributes="Attributes">
+        <figcaption class="small">@Caption</figcaption>
+        <div class="line-chart-plot">
+            <div class="line-chart-axis small" aria-hidden="true">
+                <span>@ValueText(Top)</span>
+                <span>@ValueText(Bottom)</span>
+            </div>
+            <svg viewBox="0 0 @Width @Height" role="img" aria-label="@Summary" preserveAspectRatio="none">
+                @if (Bottom < 0m && Top > 0m)
+                {
+                    <line class="line-chart-zero" x1="0" x2="@Width" y1="@F(Y(0m))" y2="@F(Y(0m))" />
+                }
+                @foreach (var (point, index) in Points.Select((p, i) => (p, i)).Where(x => x.p.Marker is not null))
+                {
+                    <line class="line-chart-marker" x1="@F(X(index))" x2="@F(X(index))" y1="0" y2="@Height" />
+                }
+                <polyline class="line-chart-line" points="@Line" fill="none" />
+            </svg>
+            <div class="trend-axis small"><span>@Points[0].Label</span><span>@Points[^1].Label</span></div>
+        </div>
+        @if (Markers.Count > 0)
+        {
+            <p class="small"><span class="swatch-marker"></span>@string.Join(" · ", Markers.Select(p => $"{p.Label}: {p.Marker}"))</p>
+        }
+        <details class="line-chart-table">
+            <summary>Als Tabelle anzeigen</summary>
+            <div class="table-wrapper">
+                <table class="data-table" data-nostack>
+                    <thead><tr><th>@LabelHeading</th><th class="number">@ValueHeading</th></tr></thead>
+                    <tbody>
+                        @foreach (var point in Points)
+                        {
+                            <tr><td>@point.Label</td><td class="number">@ValueText(point.Value)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    </figure>
+}
+
+@code {
+    private const double Width = 480;
+    private const double Height = 120;
+    private const double Pad = 4;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ChartPoint> Points { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string Caption { get; set; } = "";
+
+    [Parameter]
+    public string LabelHeading { get; set; } = "Zeitpunkt";
+
+    [Parameter]
+    public string ValueHeading { get; set; } = "Betrag";
+
+    /// <summary>Formats a value; money by default.</summary>
+    [Parameter]
+    public Func<decimal, string>? FormatValue { get; set; }
+
+    /// <summary>Holds the value until the next point instead of connecting them (rent: changes on a date).</summary>
+    [Parameter]
+    public bool Steps { get; set; }
+
+    /// <summary>Whether the scale reaches down to zero. An index around 120 would otherwise look flat, an amount misleadingly steep.</summary>
+    [Parameter]
+    public bool StartAtZero { get; set; } = true;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private List<ChartPoint> Markers => [.. Points.Where(p => p.Marker is not null)];
+
+    private decimal Top => Math.Max(Points.Max(p => p.Value), StartAtZero ? 0m : decimal.MinValue);
+
+    private decimal Bottom => Math.Min(Points.Min(p => p.Value), StartAtZero ? 0m : decimal.MaxValue);
+
+    private double X(int index) => Pad + index * (Width - 2 * Pad) / (Points.Count - 1);
+
+    private double Y(decimal value) => Top == Bottom
+        ? Height / 2
+        : Pad + (double)((Top - value) / (Top - Bottom)) * (Height - 2 * Pad);
+
+    private string Line
+    {
+        get
+        {
+            var coordinates = new List<string>();
+            for (var i = 0; i < Points.Count; i++)
+            {
+                if (Steps && i > 0)
+                {
+                    coordinates.Add($"{F(X(i))},{F(Y(Points[i - 1].Value))}");
+                }
+
+                coordinates.Add($"{F(X(i))},{F(Y(Points[i].Value))}");
+            }
+
+            return string.Join(' ', coordinates);
+        }
+    }
+
+    private string Summary => $"{Caption}: von {ValueText(Points[0].Value)} ({Points[0].Label}) bis {ValueText(Points[^1].Value)} ({Points[^1].Label})";
+
+    private string ValueText(decimal value) => FormatValue?.Invoke(value) ?? Format.Money(value);
+
+    private static string F(double value) => value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+}

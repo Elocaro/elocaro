@@ -1,5 +1,6 @@
 @page "/verwaltung/finanzen/offene-posten"
 @inject ITenantAccounts Accounts
+@inject IDunning Dunning
 
 <PageHeader Title="Offene Posten" Subtitle="Fällige, nicht vollständig bezahlte Forderungen, nach Mietverhältnis gruppiert.">
     <Actions>
@@ -15,7 +16,8 @@ else if (items is not null)
 {
     var leases = items.GroupBy(p => p.LeaseId).OrderByDescending(g => g.Sum(p => p.Open)).ToList();
     <p><strong>Summe offen: @Format.Money(items.Sum(p => p.Open))</strong> <span class="small">in @items.Count Posten bei @leases.Count @(leases.Count == 1 ? "Mietverhältnis" : "Mietverhältnissen")</span></p>
-    <p class="help">Hier steht alles, was bereits fällig war und noch nicht bezahlt ist. Im Mieterkonto (Link unter jeder Gruppe) lassen sich Zahlungen buchen und Mahnungen prüfen.</p>
+    <SegmentBar id="open-items-age" Caption="Alter der offenen Posten" Segments="Ages" />
+    <p class="help">Hier steht alles, was bereits fällig war und noch nicht bezahlt ist. Im Mieterkonto (Link in jeder Gruppe) lassen sich Zahlungen buchen und Mahnungen prüfen.</p>
     @foreach (var lease in leases)
     {
         var first = lease.First();
@@ -25,6 +27,7 @@ else if (items is not null)
                 <span class="small">@first.RentalUnit · @lease.Count() Posten, ältester seit @lease.Max(p => p.DaysOverdue) Tagen überfällig</span>
                 <span class="group-sum">@Format.Money(lease.Sum(p => p.Open))</span>
             </summary>
+            <p class="group-link"><a href="/verwaltung/vertraege/@first.LeaseId/konto">Zum Mieterkonto von @first.Tenant</a>@(levels.GetValueOrDefault(first.LeaseId) is { } level ? $" · zuletzt: {Labels.From(level)}" : "")</p>
             @{ var rows = lease.OrderBy(p => p.Due).ToList(); }
             <div class="table-wrapper">
                 <table class="data-table">
@@ -68,7 +71,6 @@ else if (items is not null)
             </div>
                 </details>
             }
-            <p class="group-link"><a href="/verwaltung/vertraege/@first.LeaseId/konto">Zum Mieterkonto von @first.Tenant</a></p>
         </details>
     }
 }
@@ -78,5 +80,26 @@ else if (items is not null)
 
     private IReadOnlyList<OpenItem>? items;
 
-    protected override async Task OnInitializedAsync() => items = await Accounts.OpenItemsAsync();
+    private Dictionary<Guid, Elocaro.Domain.Finance.DunningLevel> levels = [];
+
+    private List<ChartSegment> Ages =>
+    [
+        Age("bis 30 Tage", 0, 30, ChartTone.Tertiary),
+        Age("31 bis 60 Tage", 31, 60, ChartTone.Warning),
+        Age("über 60 Tage", 61, int.MaxValue, ChartTone.Error),
+    ];
+
+    private ChartSegment Age(string label, int from, int to, ChartTone tone)
+    {
+        var sum = items!.Where(p => p.DaysOverdue >= from && p.DaysOverdue <= to).Sum(p => p.Open);
+        return new ChartSegment(label, sum, Format.Money(sum), tone);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        items = await Accounts.OpenItemsAsync();
+        levels = (await Dunning.OverviewAsync()).Issued
+            .GroupBy(d => d.LeaseId)
+            .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
+    }
 }

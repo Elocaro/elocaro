@@ -19,7 +19,7 @@ public sealed record NavTab(string Label, string Href, string? Policy = null, bo
 
     private static bool Own(string path, string href, bool exact) => exact
         ? path.Equals(href, StringComparison.OrdinalIgnoreCase)
-        : path.Equals(href, StringComparison.OrdinalIgnoreCase) || path.StartsWith(href + "/", StringComparison.OrdinalIgnoreCase);
+        : path.Equals(href, StringComparison.OrdinalIgnoreCase) || path.StartsWith(href.EndsWith('/') ? href : href + "/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Group of related pages under one tab.</summary>
     public static NavTab Group(string label, string? policy, params NavTab[] children) => new(label, children[0].Href, policy, Children: children);
@@ -172,7 +172,7 @@ public static class AdminNavModel
         new("Zähler", $"{id}/zaehler", Also: [$"{id}/ablesung", $"{id}/zaehlerimport", $"{Root}/zaehler"]),
         NavTab.Group("Nebenkosten", Policies.Finance,
             new("Abrechnungen", $"{id}/abrechnungen", Also: [$"{id}/abrechnung", $"{Root}/abrechnungen"]),
-            new("Vorschau", $"{id}/nebenkosten"),
+            new("Vorab prüfen", $"{id}/nebenkosten"),
             new("Versorgungsverträge", $"{id}/versorgung", SeparatorBefore: true),
             new("Umlageschlüssel", $"{id}/umlageschluessel"),
             new("Heizkosten", $"{id}/heizung")),
@@ -193,9 +193,9 @@ public static class AdminNavModel
             new("Mieterhöhung", $"{id}/mieterhoehung")),
         new("Kommunikation", $"{id}/kommunikation"),
         NavTab.Group("Ein- & Auszug", null,
+            new("Mieterwechsel", $"{id}/auszug"),
             new("Übergabe Einzug", $"{id}/uebergabe/einzug"),
-            new("Übergabe Auszug", $"{id}/uebergabe/auszug"),
-            new("Mieterwechsel", $"{id}/auszug")),
+            new("Übergabe Auszug", $"{id}/uebergabe/auszug")),
     ];
 
     private static NavTab[]? EntityTabs(string path, string prefix, Func<string, NavTab[]> tabs)

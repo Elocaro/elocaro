@@ -7,7 +7,10 @@
 <InteractiveShell>
     <PageHeader Title="Vorlagen" Subtitle="Texte für Schreiben an Mieter. Platzhalter wie {{ tenant_name }} werden beim Erzeugen ersetzt.">
         <Actions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/einstellungen/vorlagen/neu">Vorlage anlegen</MudButton>
+            @if (rows is not { Count: 0 })
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/einstellungen/vorlagen/neu">Vorlage anlegen</MudButton>
+            }
         </Actions>
     </PageHeader>
 
@@ -15,7 +18,9 @@
 
     @if (rows is { Count: 0 })
     {
-        <EmptyState Text="Noch keine Vorlagen." />
+        <EmptyState Text="Noch keine Vorlagen.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/verwaltung/einstellungen/vorlagen/neu">Vorlage anlegen</MudButton>
+        </EmptyState>
     }
     else if (rows is not null)
     {

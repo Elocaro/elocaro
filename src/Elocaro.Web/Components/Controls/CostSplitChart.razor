@@ -28,11 +28,11 @@
     [Parameter]
     public IReadOnlyDictionary<string, decimal>? Previous { get; set; }
 
-    private decimal Max => Math.Max(1m, Math.Max(Types.Max(t => t.Total), Previous?.Values.DefaultIfEmpty(0).Max() ?? 0));
+    private decimal Max => ChartScale.Max(Types.Select(t => t.Total).Concat(Previous?.Values ?? []));
 
-    private decimal Share(decimal amount) => Math.Clamp(amount / Max * 100m, 0m, 100m);
+    private decimal Share(decimal amount) => ChartScale.Percent(amount, Max);
 
     private decimal? PreviousOf(string costType) => Previous is not null && Previous.TryGetValue(costType, out var value) ? value : null;
 
-    private static string Css(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    private static string Css(decimal value) => ChartScale.Css(value);
 }

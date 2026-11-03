@@ -1,0 +1,58 @@
+@* Where a process stands: done steps with a check mark, the current one emphasized, each with an optional link. Horizontal on wide screens, vertical on a phone. *@
+@if (Steps.Count > 0)
+{
+    <ol class="process-track@(Compact ? " is-compact" : "")" aria-label="@Label" @attributes="Attributes">
+        @foreach (var step in Steps)
+        {
+            <li class="process-step is-@step.State.ToString().ToLowerInvariant()" aria-current="@(step.State == ProcessState.Current ? "step" : null)">
+                <span class="process-mark" aria-hidden="true">
+                    @if (step.State == ProcessState.Done)
+                    {
+                        <Icon Path="@AppIcons.Check" />
+                    }
+                </span>
+                <span class="process-text">
+                    @if (step.Href is not null)
+                    {
+                        <a href="@step.Href">@step.Title</a>
+                    }
+                    else
+                    {
+                        <span class="process-title">@step.Title</span>
+                    }
+                    @if (StateText(step.State) is { } state)
+                    {
+                        <span class="visually-hidden"> (@state)</span>
+                    }
+                    @if (step.Detail is not null)
+                    {
+                        <span class="small">@step.Detail</span>
+                    }
+                </span>
+            </li>
+        }
+    </ol>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ProcessStep> Steps { get; set; } = [];
+
+    /// <summary>Names the process for screen readers, e.g. "Stand des Mieterwechsels".</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    /// <summary>Always vertical, for a narrow place such as a table cell.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private static string? StateText(ProcessState state) => state switch
+    {
+        ProcessState.Done => "erledigt",
+        ProcessState.Current => "aktueller Schritt",
+        _ => null,
+    };
+}

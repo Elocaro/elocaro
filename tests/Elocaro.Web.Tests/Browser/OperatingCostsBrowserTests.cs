@@ -174,8 +174,9 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
             await ExpectSnackbarAsync(page, "Die Abrechnung wurde versendet");
             await Assertions.Expect(page.Locator("#dispatches")).ToContainTextAsync("per E-Mail am");
 
-            await page.GetByLabel("Nachweis").FillAsync("Lesebestätigung");
             await page.GetByRole(AriaRole.Button, new() { Name = "Zugang bestätigen: " }).ClickAsync();
+            await page.Locator(".mud-dialog").GetByLabel("Nachweis").FillAsync("Lesebestätigung");
+            await page.Locator(".mud-dialog").GetByRole(AriaRole.Button, new() { Name = "Zugang bestätigen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Der Zugang wurde vermerkt.");
             await Assertions.Expect(page.Locator("#dispatches")).ToContainTextAsync("Lesebestätigung");
 

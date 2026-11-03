@@ -1,0 +1,37 @@
+@* A whole split into parts, with the value of each part as text in the legend. Without a positive part nothing is drawn. *@
+@if (Visible.Count > 0)
+{
+    <figure class="segment-chart" @attributes="Attributes">
+        @if (Caption is not null)
+        {
+            <figcaption class="small">@Caption</figcaption>
+        }
+        <div class="segment-bar" role="img" aria-label="@string.Join(", ", Visible.Select(s => $"{s.Label}: {s.ValueText}"))">
+            @foreach (var segment in Visible)
+            {
+                <span class="tone-@segment.Tone.ToString().ToLowerInvariant()" style="width:@ChartScale.Css(ChartScale.Percent(segment.Value, Sum))%"></span>
+            }
+        </div>
+        <ul class="chart-legend small">
+            @foreach (var segment in Visible)
+            {
+                <li><span class="swatch tone-@segment.Tone.ToString().ToLowerInvariant()"></span> @segment.Label: <strong>@segment.ValueText</strong></li>
+            }
+        </ul>
+    </figure>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ChartSegment> Segments { get; set; } = [];
+
+    [Parameter]
+    public string? Caption { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private List<ChartSegment> Visible => [.. Segments.Where(s => s.Value > 0m)];
+
+    private decimal Sum => ChartScale.Total(Segments.Select(s => s.Value));
+}

@@ -36,7 +36,11 @@ else
     <div class="form-grid">
         <div>
             <AppFileUpload Text="Datei auswählen *" Accept=".xml,.sta,.mt940,.940,.txt,.csv" OnSelected="OnFileSelected" />
-            <p class="small">camt.053 (XML), MT940 oder CSV. Das Format wird erkannt; schon vorhandene Umsätze werden übersprungen.</p>
+            <p class="small">Laden Sie die Kontoauszug-Datei aus Ihrem Online-Banking hoch. Schon vorhandene Umsätze werden übersprungen.</p>
+            <details class="explain">
+                <summary>Welche Dateien gehen?</summary>
+                <p class="small">camt.053 (XML), MT940 oder CSV. Das Format wird erkannt.</p>
+            </details>
         </div>
         <AppSelect T="string" @bind-Value="profile" Label="CSV-Profil" Items="profileNames" EmptyText="automatisch erkennen" />
     </div>

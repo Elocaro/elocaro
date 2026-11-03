@@ -121,7 +121,7 @@ public class PropertiesBrowserTests(PostgresFixture postgres) : BrowserTestBasis
             await ExpectSnackbarAsync(page, "Die Einheit wurde hinzugefügt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("55,5");
             await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("Keine Wohnfläche");
-            await page.GetByRole(AriaRole.Link, new() { Name = "Wohnung 4" }).ClickAsync();
+            await page.GetByRole(AriaRole.Link, new() { Name = "Wohnung 4", Exact = true }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/einheiten/*");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);

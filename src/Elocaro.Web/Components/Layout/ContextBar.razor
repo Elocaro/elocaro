@@ -7,7 +7,7 @@
 {
     <nav class="context-bar" aria-label="Brotkrumenpfad">
         <ol>
-            <li class="context-area"><a href="@AreaHref">Bestand</a></li>
+            <li class="context-area"><a href="@Area.Href">@Area.Label</a></li>
             @foreach (var step in Context.Trail)
             {
                 var current = step.Href is not null && step == Context.Trail[^1] && Path.Equals(step.Href, StringComparison.OrdinalIgnoreCase);
@@ -30,7 +30,7 @@
     [Parameter]
     public PageContext? Context { get; set; }
 
-    private string AreaHref => AdminNavModel.AreaOf("/verwaltung/objekte")!.Href;
+    private NavArea Area => AdminNavModel.AreaOf(Path) ?? AdminNavModel.AreaOf("/verwaltung/objekte")!;
 
     private string Path => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
 }

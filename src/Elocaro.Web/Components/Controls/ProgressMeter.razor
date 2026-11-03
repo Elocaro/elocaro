@@ -1,0 +1,20 @@
+@* Progress as a bar; the caller shows the figures as text, Text repeats them for screen readers. *@
+@if (Total > 0m)
+{
+    <span class="meter" role="img" aria-label="@Text"><span class="meter-bar @(Tone == ChartTone.Primary ? null : $"tone-{Tone.ToString().ToLowerInvariant()}")" style="width:@ChartScale.Css(ChartScale.Percent(Value, Total))%"></span></span>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public decimal Value { get; set; }
+
+    [Parameter, EditorRequired]
+    public decimal Total { get; set; }
+
+    /// <summary>The state in words, e.g. "3 von 5 zugestellt".</summary>
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    [Parameter]
+    public ChartTone Tone { get; set; } = ChartTone.Primary;
+}

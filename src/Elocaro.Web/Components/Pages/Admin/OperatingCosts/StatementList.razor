@@ -3,11 +3,15 @@
 @using MudBlazor
 @using Elocaro.Application.Statements
 @inject IStatements Statements
+@inject IStatementDispatch Dispatching
 
 <InteractiveShell>
     <PageHeader Title="Abrechnungen" Subtitle="Alle abgeschlossenen Nebenkostenabrechnungen dieses Objekts, je Abrechnungsjahr." Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="Zum Objekt">
         <Actions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung")">Neue Abrechnung</MudButton>
+            @if (statements is not { Count: 0 })
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung")">Neue Abrechnung</MudButton>
+            }
         </Actions>
     </PageHeader>
 
@@ -17,13 +21,16 @@
     }
     else if (statements.Count == 0)
     {
-        <EmptyState Text="Es ist noch keine Abrechnung freigegeben. „Neue Abrechnung“ führt Schritt für Schritt durch die Erstellung." />
+        <EmptyState Text="Es ist noch keine Abrechnung freigegeben. „Neue Abrechnung“ führt Schritt für Schritt durch die Erstellung.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/objekte/{PropertyId}/abrechnung")">Neue Abrechnung</MudButton>
+        </EmptyState>
     }
     else
     {
+        <CostBars id="statement-years" Caption="Gesamtkosten je Abrechnungsjahr" Rows="@(statements.Where(s => s.Current).OrderBy(s => s.BillingPeriod.From).Select(s => new ChartBar(Format.Period(s.BillingPeriod), s.TotalCosts)).ToList())" />
         <MudTable T="StatementSummary" Items="statements" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" id="statements">
             <HeaderContent>
-                <MudTh>Zeitraum</MudTh><MudTh>Fassung</MudTh><MudTh>Freigegeben</MudTh><MudTh Style="text-align:right">Gesamtkosten</MudTh><MudTh Style="text-align:right">Vermieteranteil</MudTh><MudTh>Bemerkung</MudTh>
+                <MudTh>Zeitraum</MudTh><MudTh>Fassung</MudTh><MudTh>Freigegeben</MudTh><MudTh Style="text-align:right">Gesamtkosten</MudTh><MudTh Style="text-align:right">Vermieteranteil</MudTh><MudTh>Versand</MudTh><MudTh>Bemerkung</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Zeitraum"><a href="/verwaltung/abrechnungen/@context.Id">@Format.Period(context.BillingPeriod)</a></MudTd>
@@ -31,6 +38,12 @@
                 <MudTd DataLabel="Freigegeben">@Format.Day(context.ReleasedAt)</MudTd>
                 <MudTd DataLabel="Gesamtkosten" Style="text-align:right">@Format.Money(context.TotalCosts)</MudTd>
                 <MudTd DataLabel="Vermieteranteil" Style="text-align:right">@Format.Money(context.LandlordTotal)</MudTd>
+                <MudTd DataLabel="Versand">
+                    @if (progress.TryGetValue(context.Id, out var state))
+                    {
+                        <StatusChip Level="@(state.Delivered == state.Total && state.Total > 0 ? StatusLevel.Success : state.Sent == 0 ? StatusLevel.Neutral : StatusLevel.Warning)">@state.Delivered von @state.Total zugestellt</StatusChip>
+                    }
+                </MudTd>
                 <MudTd DataLabel="Bemerkung">@context.Note</MudTd>
             </RowTemplate>
         </MudTable>
@@ -43,5 +56,17 @@
     [Parameter]
     public Guid PropertyId { get; set; }
 
-    protected override async Task OnInitializedAsync() => statements = await Statements.ListAsync(PropertyId);
+    private readonly Dictionary<Guid, (int Sent, int Delivered, int Total)> progress = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        statements = await Statements.ListAsync(PropertyId);
+        foreach (var statement in statements.Where(s => s.Current))
+        {
+            if (await Dispatching.OverviewAsync(statement.Id) is { } overview)
+            {
+                progress[statement.Id] = (overview.Tenancies.Count(t => t.Dispatch is not null), overview.Tenancies.Count(t => t.Dispatch is { ReceivedOn: not null }), overview.Tenancies.Count);
+            }
+        }
+    }
 }

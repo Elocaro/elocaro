@@ -63,7 +63,7 @@ public class PropertiesTests(PostgresFixture postgres) : AccountTestBase(postgre
 
         // The house overview groups the units by floor, the shared flat shows its rooms, everything is empty.
         var house = (await admin.GetAsync($"/verwaltung/objekte/{propertyId}/belegung")).Document.QuerySelector("#house-overview")!;
-        Assert.Equal(["EG", "OG"], house.QuerySelectorAll(".house-floor-name").Select(e => e.TextContent.Trim()).OrderBy(x => x, StringComparer.Ordinal));
+        Assert.Equal(["1. OG", "EG"], house.QuerySelectorAll(".house-floor-name").Select(e => e.TextContent.Trim()).OrderBy(x => x, StringComparer.Ordinal));
         Assert.Equal(4, house.QuerySelectorAll(".house-unit .house-room.state-empty[title^='Zimmer']").Length);
     }
 

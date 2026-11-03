@@ -3,23 +3,40 @@
 
 <figure class="trend-chart" id="trend-chart">
     <figcaption class="small">Mieteingang gegen Soll, letzte 12 Monate: <span class="swatch landlord"></span> Soll <span class="swatch tenant"></span> Eingang · Linie: offener Saldo am Monatsende</figcaption>
-    <svg viewBox="0 0 @Width @Height" role="img" aria-label="@Summary" preserveAspectRatio="none">
-        @for (var i = 0; i < History.Count; i++)
-        {
-            var month = History[i];
-            var x = i * Step + 4;
-            <rect class="bar-due" x="@F(x)" y="@F(Y(month.Due))" width="@F(BarWidth)" height="@F(Base - Y(month.Due))"><title>@($"{Format.Month(month.Month)}: Soll {Format.Money(month.Due)}")</title></rect>
-            <rect class="bar-paid" x="@F(x + BarWidth)" y="@F(Y(month.Paid))" width="@F(BarWidth)" height="@F(Base - Y(month.Paid))"><title>@($"{Format.Month(month.Month)}: Eingang {Format.Money(month.Paid)}")</title></rect>
-        }
-        <polyline class="line-open" points="@Points" fill="none" />
-    </svg>
-    <div class="trend-axis small"><span>@Format.Month(History[0].Month)</span><span>@Format.Month(History[^1].Month)</span></div>
+    <div class="line-chart-plot">
+        <div class="line-chart-axis small" aria-hidden="true">
+            <span>@Format.Money(Max)</span>
+            @if (Min < 0m)
+            {
+                <span>@Format.Money(Min)</span>
+            }
+            else
+            {
+                <span>@Format.Money(0m)</span>
+            }
+        </div>
+        <svg viewBox="0 0 @Width @Height" role="img" aria-label="@Summary" preserveAspectRatio="none">
+            @for (var i = 0; i < History.Count; i++)
+            {
+                var month = History[i];
+                var x = i * Step + 4;
+                <rect class="bar-due" x="@F(x)" y="@F(Y(Math.Max(0m, month.Due)))" width="@F(BarWidth)" height="@F(Y(0m) - Y(Math.Max(0m, month.Due)))"><title>@($"{Format.Month(month.Month)}: Soll {Format.Money(month.Due)}")</title></rect>
+                <rect class="bar-paid" x="@F(x + BarWidth)" y="@F(Y(Math.Max(0m, month.Paid)))" width="@F(BarWidth)" height="@F(Y(0m) - Y(Math.Max(0m, month.Paid)))"><title>@($"{Format.Month(month.Month)}: Eingang {Format.Money(month.Paid)}")</title></rect>
+            }
+            @if (Min < 0m)
+            {
+                <line class="line-chart-zero" x1="0" x2="@Width" y1="@F(Y(0m))" y2="@F(Y(0m))" />
+            }
+            <polyline class="line-open" points="@Points" fill="none" />
+        </svg>
+        <div class="trend-axis small"><span>@Format.Month(History[0].Month)</span><span>@Format.Month(History[^1].Month)</span></div>
+    </div>
 </figure>
 
 @code {
     private const double Width = 480;
     private const double Height = 110;
-    private const double Base = 100;
+    private const double Pad = 4;
 
     [Parameter, EditorRequired]
     public IReadOnlyList<MonthFigure> History { get; set; } = [];
@@ -28,9 +45,12 @@
 
     private double BarWidth => Step / 2 - 3;
 
-    private decimal Max => Math.Max(1m, History.Max(m => Math.Max(Math.Max(m.Due, m.Paid), Math.Abs(m.OpenAtEnd))));
+    private decimal Max => Math.Max(1m, History.Max(m => Math.Max(Math.Max(m.Due, m.Paid), m.OpenAtEnd)));
 
-    private double Y(decimal value) => Base - (double)(Math.Max(0m, value) / Max) * (Base - 8);
+    /// <summary>A credit (negative open balance) reaches below the bars.</summary>
+    private decimal Min => Math.Min(0m, History.Min(m => m.OpenAtEnd));
+
+    private double Y(decimal value) => Pad + (double)((Max - value) / (Max - Min)) * (Height - 2 * Pad);
 
     private string Points => string.Join(' ', History.Select((m, i) => $"{F(i * Step + Step / 2)},{F(Y(m.OpenAtEnd))}"));
 

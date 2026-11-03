@@ -17,8 +17,6 @@ namespace Elocaro.Infrastructure.Setup;
 /// </summary>
 internal sealed class SetupChecklistTodos(ElocaroDbContext db, ILandlordProfileService landlord, IModuleState modules) : ITodoSource
 {
-    private const string Area = "So geht es los";
-
     public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -73,7 +71,7 @@ internal sealed class SetupChecklistTodos(ElocaroDbContext db, ILandlordProfileS
                 continue;
             }
 
-            result.Add(new TodoItem(Area, title, link, firstOpen ? Urgency.Soon : Urgency.Info, $"{hint} ({done} von {steps.Count} Schritten erledigt)"));
+            result.Add(new TodoItem(TodoAreas.Setup, title, link, firstOpen ? Urgency.Soon : Urgency.Info, hint, Progress: new TodoProgress(done, steps.Count)));
             firstOpen = false;
         }
 

@@ -96,7 +96,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await dialog.GetByLabel("Verwendungszweck").FillAsync("Miete");
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Zahlung buchen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Zahlung wurde gebucht.");
-            await Assertions.Expect(page.Locator("tbody").First).ToContainTextAsync("100,50 €");
+            await Assertions.Expect(page.Locator("tbody", new() { HasText = "100,50 €" }).First).ToBeAttachedAsync();
 
             await OpenTabAsync(page, "Buchungen");
             // Monthly rents have no delete button, the payment does (after confirming).
@@ -216,6 +216,9 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             Assert.Empty(await MailsAsync());
 
             await page.GetByRole(AriaRole.Button, new() { Name = "Freigeben" }).ClickAsync();
+            await Assertions.Expect(page.Locator(".mud-dialog")).ToContainTextAsync(TenantEmail);
+            Assert.Empty(await MailsAsync());
+            await page.Locator(".mud-dialog").GetByRole(AriaRole.Button, new() { Name = "Ja, freigeben und senden" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Mahnung wurde freigegeben und per E-Mail versendet.");
             await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "PDF herunterladen" })).ToBeVisibleAsync();
         });
@@ -270,6 +273,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             });
 
             await page.GetByRole(AriaRole.Button, new() { Name = "Freigeben" }).ClickAsync();
+            await page.Locator(".mud-dialog").GetByRole(AriaRole.Button, new() { Name = "Ja, freigeben und senden" }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Der Rückstand besteht nicht mehr");
         });
 

@@ -79,7 +79,7 @@ public class NavigationContextTests(PostgresFixture postgres) : IAsyncLifetime
         var context = await ResolveAsync($"/verwaltung/finanzen/darlehen/{loanId}");
 
         Assert.Null(context!.PropertyId);
-        Assert.Equal(["Objekte", "Lindenweg 3", "Darlehen Sparkasse"], context.Trail.Select(s => s.Label));
+        Assert.Equal(["Darlehen", "Lindenweg 3", "Darlehen Sparkasse"], context.Trail.Select(s => s.Label));
     }
 
     [Fact]

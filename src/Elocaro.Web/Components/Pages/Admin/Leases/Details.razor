@@ -86,6 +86,7 @@ else
     @if (lease.Components.Count > lease.CurrentComponents.Count)
     {
         <h3>Verlauf</h3>
+        <LineChart id="rent-history" Caption="Monatsmiete im Zeitverlauf" LabelHeading="Ab" ValueHeading="Monatsmiete" Steps="true" Points="RentHistory" />
         <div class="table-wrapper">
             <table class="data-table">
                 <thead><tr><th>Bestandteil</th><th>Zeitraum</th><th class="number">Betrag</th><th></th></tr></thead>
@@ -162,7 +163,10 @@ else
     @if (lease.TerminationReceivedOn is not null)
     {
         <p>Das Mietverhältnis endet am <strong>@Format.Date(lease.Term.To)</strong>.</p>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RevokeTerminationAsync">Kündigung aufheben (zurückgenommen)</MudButton>
+        <div class="form-row">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/vertraege/{Id}/auszug")">Zum Mieterwechsel</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="RevokeTerminationAsync">Kündigung aufheben (zurückgenommen)</MudButton>
+        </div>
     }
     else if (lease.Status != LeaseStatus.Ended)
     {
@@ -174,6 +178,10 @@ else
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Kündigung erfassen</MudButton>
         </EditForm>
         <p class="small">Frist nach § 573c BGB: Geht die Kündigung bis zum 3. Werktag eines Monats zu, zählt dieser Monat mit. Vermieter brauchen zudem einen Kündigungsgrund (§ 573 BGB).</p>
+    }
+    else
+    {
+        <EmptyState Compact="true" Text="Es wurde keine Kündigung erfasst; das Mietverhältnis ist beendet." />
     }
 </section>
 
@@ -242,6 +250,10 @@ else
 </InteractiveShell>
 
 @code {
+    /// <summary>The total of all rent components at each date on which one of them changes.</summary>
+    private List<ChartPoint> RentHistory => [.. lease!.Components.Select(c => c.Validity.From).Distinct().Order()
+        .Select(day => new ChartPoint(Format.Date(day), lease.Components.Where(c => c.Validity.Contains(day)).Sum(c => c.Amount)))];
+
     private IReadOnlyList<PartyRole> PartyRoles => Enum.GetValues<PartyRole>()
         .Where(r => r != PartyRole.Guarantor || State.IsVisible(AppOption.LeaseGuarantor))
         .ToList();

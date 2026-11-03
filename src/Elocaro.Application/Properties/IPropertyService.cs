@@ -123,7 +123,8 @@ public sealed record UnitRow(
     UnitType Type,
     decimal? LivingArea,
     bool IsSharedFlat,
-    IReadOnlyList<RentalUnitRow> RentalUnits);
+    IReadOnlyList<RentalUnitRow> RentalUnits,
+    int? Floor = null);
 
 public sealed record PropertyDetails(
     Guid Id,

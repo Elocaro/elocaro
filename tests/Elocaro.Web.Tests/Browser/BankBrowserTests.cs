@@ -82,10 +82,17 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Miete Februar 2026 Wohnung 1 Lindenweg 3");
 
             await page.GetByRole(AriaRole.Button, new() { Name = "4 Umsätze importieren" }).ClickAsync();
-            await page.WaitForURLAsync("**/verwaltung/bank/umsaetze?konto=*");
+            await page.WaitForURLAsync("**/verwaltung/bank/zuordnung?konto=*");
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
             await ExpectSnackbarAsync(page, "Die Umsätze wurden importiert.");
+            await Assertions.Expect(page.Locator(".work-list")).ToContainTextAsync("Stadtwerke Musterstadt");
+
+            await page.Locator(".navigation-pages").GetByRole(AriaRole.Link, new() { Name = "Alle Umsätze" }).ClickAsync();
+            await page.WaitForURLAsync("**/verwaltung/bank/umsaetze");
+            await Assertions.Expect(page.Locator("h1")).ToHaveTextAsync("Umsätze");
+            await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
             await Assertions.Expect(page.Locator("tbody")).ToContainTextAsync("Stadtwerke Musterstadt");
+            await Assertions.Expect(page.Locator("a[aria-label*='05.02.2026'][aria-label$='zuordnen']")).ToBeVisibleAsync();
 
             // Ignore one transaction with a note.
             await page.Locator("button[aria-label*='05.02.2026'][aria-label$='ignorieren']").ClickAsync();

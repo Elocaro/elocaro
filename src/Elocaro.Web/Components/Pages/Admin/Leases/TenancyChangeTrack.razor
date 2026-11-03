@@ -1,0 +1,51 @@
+@using Elocaro.Application.Metering
+@using Elocaro.Application.Statements
+@using Elocaro.Domain.Deposits
+@inherits DataComponent
+
+@* The whole tenant change at a glance. Every state comes from the data, nothing is stored separately; what the data cannot tell stays a link without a check mark. *@
+<ProcessTrack Label="Stand des Mieterwechsels" Steps="steps" id="tenancy-change" />
+
+@code {
+    private IReadOnlyList<ProcessStep> steps = [];
+
+    [Parameter, EditorRequired]
+    public LeaseDetails Lease { get; set; } = default!;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var id = Lease.Id;
+        var end = Lease.Term.To;
+        var moveOut = await GetAsync<IHandovers, HandoverView?>(h => h.GetAsync(id, HandoverType.MoveOut));
+        var deposit = await GetAsync<IDeposits, DepositView?>(d => d.GetAsync(id));
+        var round = await GetAsync<IMeterService, IReadOnlyList<MeterRow>>(m => m.RoundAsync(Lease.PropertyId, Lease.UnitId));
+        var read = end is { } last && round.Count > 0 && round.All(m => m.LastReading is { } r && r.Date >= last);
+        var history = await GetAsync<ILeaseService, IReadOnlyList<LeaseHistoryEntry>>(l => l.HistoryAsync(Lease.RentalUnitId));
+        var successor = end is { } lastDay ? history.FirstOrDefault(e => !e.IsVacancy && e.Period.From > lastDay) : null;
+        var moveIn = successor?.LeaseId is { } next ? await GetAsync<IHandovers, HandoverView?>(h => h.GetAsync(next, HandoverType.MoveIn)) : null;
+        var final = end is { } endDay && (await GetAsync<IStatements, IReadOnlyList<StatementSummary>>(s => s.ListAsync(Lease.PropertyId))).Any(s => s.Current && s.BillingPeriod.Contains(endDay));
+        var depositSettled = deposit is not null && deposit.Entries.Any(e => e.Kind != DepositEntryKind.Received && e.Kind != DepositEntryKind.Interest);
+
+        var date = end?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var back = Uri.EscapeDataString($"/verwaltung/vertraege/{id}/auszug");
+        var list = new List<(string Title, bool? Done, string? Detail, string? Href)>
+        {
+            ("Kündigung", Lease.TerminationReceivedOn is not null ? true : end is not null ? null : false, Lease.TerminationReceivedOn is { } received ? $"eingegangen {Format.Date(received)}" : null, $"/verwaltung/vertraege/{id}"),
+            ("Auszug erfasst", end is not null, end is { } to ? $"letzter Tag {Format.Date(to)}" : null, null),
+            ("Zählerstände", round.Count == 0 ? null : read, round.Count == 0 ? "keine Zähler" : null, $"/verwaltung/objekte/{Lease.PropertyId}/ablesung?einheit={Lease.UnitId}&datum={date}&art=Zwischenablesung&zurueck={back}"),
+            ("Übergabe Auszug", moveOut?.Status == HandoverStatus.Completed, null, $"/verwaltung/vertraege/{id}/uebergabe/auszug"),
+            ("Kaution", deposit is null || Lease.Data.Deposit is null ? null : depositSettled, Lease.Data.Deposit is null ? "keine vereinbart" : null, $"/verwaltung/vertraege/{id}"),
+            ("Wohnungsgeberbestätigung", null, "für den Folgemieter", "/verwaltung/dokumente/schreiben"),
+            ("Folgevertrag", successor is not null, successor?.Tenant, successor?.LeaseId is { } follow ? $"/verwaltung/vertraege/{follow}" : $"/verwaltung/vertraege/neu?mietobjekt={Lease.RentalUnitId}&beginn={end?.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}"),
+            ("Übergabe Einzug", moveIn?.Status == HandoverStatus.Completed, null, successor?.LeaseId is { } nextLease ? $"/verwaltung/vertraege/{nextLease}/uebergabe/einzug" : null),
+            ("Abrechnung des Auszugsjahrs", final, null, $"/verwaltung/objekte/{Lease.PropertyId}/abrechnungen"),
+        };
+
+        var current = list.FindIndex(s => s.Done == false);
+        steps = [.. list.Select((s, i) => new ProcessStep(
+            s.Title,
+            s.Done switch { true => ProcessState.Done, null => ProcessState.Unknown, _ => i == current ? ProcessState.Current : ProcessState.Open },
+            s.Detail,
+            s.Href))];
+    }
+}

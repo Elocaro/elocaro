@@ -18,7 +18,7 @@ else if (overview is null)
 else
 {
 
-<PageHeader Title="AfA" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName">
+<PageHeader Title="Abschreibung (AfA)" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@overview.PropertyName">
     <Actions>
         <MudButton Variant="@(overview.Acquisition is null ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="EditAcquisitionAsync">@(overview.Acquisition is null ? "Anschaffung erfassen" : "Anschaffung bearbeiten")</MudButton>
     </Actions>
@@ -80,13 +80,14 @@ else
     <section>
         <h2>Abschreibungsplan</h2>
         <dl class="summary">
-            <dt>Bemessungsgrundlage Gebäude</dt><dd>@Format.Money(plan.BuildingBase)</dd>
+            <dt><HelpTerm Term="Bemessungsgrundlage" /> Gebäude</dt><dd>@Format.Money(plan.BuildingBase)</dd>
             <dt>Grund und Boden (nicht abschreibbar)</dt><dd>@Format.Money(plan.LandValue)</dd>
             <dt>AfA-Satz</dt><dd>@Format.Number(plan.RatePercent) %</dd>
         </dl>
+        <LineChart id="book-value" Caption="Restbuchwert am Jahresende" LabelHeading="Jahr" ValueHeading="Restbuchwert" Points="@(plan.Years.Select(y => new ChartPoint(y.Year.ToString(System.Globalization.CultureInfo.InvariantCulture), y.BookValue)).ToList())" />
         <div class="table-wrapper">
             <table class="data-table">
-                <thead><tr><th>Jahr</th><th class="number">Gebäude</th><th class="number">Bewegliche WG</th><th class="number">AfA gesamt</th><th class="number">Restbuchwert</th></tr></thead>
+                <thead><tr><th>Jahr</th><th class="number">Gebäude</th><th class="number">Bewegliche Wirtschaftsgüter</th><th class="number">AfA gesamt</th><th class="number">Restbuchwert</th></tr></thead>
                 <tbody>
                     @foreach (var year in plan.Years)
                     {
@@ -111,7 +112,7 @@ else
         <p class="small">
         Nachträgliche Herstellungskosten werden mit dem Gebäude abgeschrieben. Renovierungen und Modernisierungen zählen für die
         15-%-Grenze der anschaffungsnahen Herstellungskosten (drei Jahre nach dem Kauf, netto). Belege der Kostenart „Instandhaltung“ werden automatisch
-        mitgezählt – hier nur Kosten eintragen, die nicht als Beleg erfasst sind. Die Verteilung von Erhaltungsaufwand findest du unter <a href="/verwaltung/objekte/@PropertyId/erhaltungsaufwand">Erhaltungsaufwand</a>.
+        mitgezählt – hier nur Kosten eintragen, die nicht als Beleg erfasst sind. Die Verteilung von Erhaltungsaufwand finden Sie unter <a href="/verwaltung/objekte/@PropertyId/erhaltungsaufwand">Erhaltungsaufwand</a>.
     </p>
     </details>
     @if (overview.Costs.Count > 0)

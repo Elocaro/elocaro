@@ -50,16 +50,23 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         {
             await Assertions.Expect(page.GetByLabel("Mietobjekt", new() { Exact = true }).First).ToHaveValueAsync("Lindenweg 3 – Wohnung 1 (frei)");
 
-            await page.GetByRole(AriaRole.Button, new() { Name = "Vertrag anlegen", Exact = true }).ClickAsync();
+            var next = page.Locator("#wizard-next");
+            await next.ClickAsync();
+            await next.ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte den Mieter wählen.");
-            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte die Kaltmiete angeben.");
 
             await SelectAsync(page, "Mieter", "Anna Schmidt");
             await SelectAsync(page, "Weiterer Mieter", "Ben Weber");
+            await next.ClickAsync();
+            await next.ClickAsync();
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Bitte die Kaltmiete angeben.");
+
             await page.GetByLabel("Kaltmiete (€/Monat)").FillAsync("650");
             await page.GetByLabel("Betriebskosten-Vorauszahlung").FillAsync("180");
             await page.GetByLabel("Heizkosten-Vorauszahlung").FillAsync("90,5");
+            await next.ClickAsync();
             await page.GetByLabel("Kaution", new() { Exact = true }).FillAsync("1950");
+            await Assertions.Expect(page.Locator("#lease-summary")).ToContainTextAsync("920,50 €");
             await page.GetByRole(AriaRole.Button, new() { Name = "Vertrag anlegen", Exact = true }).ClickAsync();
 
             await page.WaitForURLAsync("**/verwaltung/vertraege/*?meldung=angelegt");
@@ -212,6 +219,30 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync($"endet am {German(end)}");
             var link = await page.GetByRole(AriaRole.Link, new() { Name = "Neuen Vertrag anlegen" }).GetAttributeAsync("href");
             Assert.Contains($"beginn={end.AddDays(1):yyyy-MM-dd}", link, StringComparison.Ordinal);
+
+            // The state comes from the data: coming back later shows the same progress, without any marker in the URL.
+            await GotoInteractiveAsync(page, $"/verwaltung/vertraege/{id}/auszug");
+            var track = page.Locator("#tenancy-change");
+            await Assertions.Expect(track.Locator(".process-step.is-done", new() { HasText = "Auszug erfasst" })).ToHaveCountAsync(1);
+            await Assertions.Expect(track).ToContainTextAsync($"letzter Tag {German(end)}");
+            await Assertions.Expect(track.Locator(".process-step", new() { HasText = "Folgevertrag" }).Locator("a")).ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex($"mietobjekt={apartment}"));
+            await Assertions.Expect(page.Locator("#move-out-change")).ToBeVisibleAsync();
+        });
+    }
+
+    [Fact]
+    public async Task The_reading_round_leads_back_to_the_process_it_was_started_from_but_never_outside()
+    {
+        var (apartment, anna, _) = await MasterDataAsync();
+        await LeaseAsync(apartment, anna, Today.AddMonths(-3));
+        var property = await App.WithScopeAsync(async sp => (await sp.GetRequiredService<IPropertyService>().GetUnitAsync(apartment, TestContext.Current.CancellationToken))!.PropertyId);
+        var page = await OpenAsync($"/verwaltung/objekte/{property}/ablesung?zurueck={Uri.EscapeDataString("/verwaltung/vertraege/neu")}");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Keine aktiven Zähler");
+            await GotoInteractiveAsync(page, $"/verwaltung/objekte/{property}/ablesung?zurueck={Uri.EscapeDataString("https://example.org/")}");
+            await Assertions.Expect(page.Locator("main a[href*='example.org']")).ToHaveCountAsync(0);
         });
     }
     [Fact]

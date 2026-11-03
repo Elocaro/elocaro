@@ -56,6 +56,8 @@
             </AuthorizeView>
         }
     }
+    <li class="navigation-divider" aria-hidden="true"></li>
+    <li><a href="/verwaltung/hilfe" class="@(CurrentPath == "/verwaltung/hilfe" ? "active" : null)" aria-current="@(CurrentPath == "/verwaltung/hilfe" ? "page" : null)"><Icon Path="@AppIcons.Info" /><span>Hilfe</span></a></li>
 </ul>
 
 @code {

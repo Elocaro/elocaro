@@ -1,5 +1,6 @@
 @using Elocaro.Application.Leases
 @inherits DataComponent
+@inject TimeProvider Clock
 
 @* Leases and vacancy periods of a rentable object (unit without rooms, or shared-flat room). *@
 <section>
@@ -10,6 +11,10 @@
     }
     else if (entries is not null)
     {
+        @if (entries.Count > 1)
+        {
+            <SegmentBar id="lease-timeline" Caption="Verlauf, älteste Zeit links" Segments="Timeline" />
+        }
         <div class="table-wrapper">
             <table class="data-table">
                 <thead><tr><th>Zeitraum</th><th>Mieter</th><th class="number">Kaltmiete bei Beginn</th></tr></thead>
@@ -43,6 +48,31 @@
 
     [Parameter, EditorRequired]
     public Guid RentalUnitId { get; set; }
+
+    /// <summary>The periods to scale, oldest first; an open-ended lease counts up to today. Vacancy stands out, neighbouring tenants alternate.</summary>
+    private List<ChartSegment> Timeline
+    {
+        get
+        {
+            var today = Elocaro.Domain.Common.GermanTime.Today(Clock.GetUtcNow());
+            var alternate = false;
+            var segments = new List<ChartSegment>();
+            foreach (var entry in entries!.OrderBy(e => e.Period.From))
+            {
+                var tone = ChartTone.Neutral;
+                if (!entry.IsVacancy)
+                {
+                    tone = alternate ? ChartTone.Tertiary : ChartTone.Primary;
+                    alternate = !alternate;
+                }
+
+                var days = (entry.Period.To ?? today).DayNumber - entry.Period.From.DayNumber + 1;
+                segments.Add(new ChartSegment(entry.IsVacancy ? "Leerstand" : entry.Tenant ?? "–", Math.Max(1, days), Format.Period(entry.Period), tone));
+            }
+
+            return segments;
+        }
+    }
 
     protected override async Task OnParametersSetAsync() =>
         entries = await GetAsync<ILeaseService, IReadOnlyList<LeaseHistoryEntry>>(v => v.HistoryAsync(RentalUnitId));

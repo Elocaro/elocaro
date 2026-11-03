@@ -35,7 +35,7 @@ public class SetupChecklistTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal(Urgency.Soon, todos[0].Urgency);
         Assert.All(todos.Skip(1), t => Assert.Equal(Urgency.Info, t.Urgency));
         Assert.All(todos, t => Assert.Equal("So geht es los", t.Area));
-        Assert.Contains("0 von 7", todos[0].Details, StringComparison.Ordinal);
+        Assert.Equal(new TodoProgress(0, 7), todos[0].Progress);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class SetupChecklistTests(PostgresFixture postgres) : IAsyncLifetime
         var todos = await ChecklistAsync(Administrator);
         Assert.Equal(["Wohnfläche eintragen", "Ersten Mieter anlegen", "Ersten Mietvertrag anlegen", "Bankkonto anlegen"], todos.Select(t => t.Title));
         Assert.Equal($"/verwaltung/einheiten/{unit}", todos[0].Link);
-        Assert.Contains("3 von 7", todos[0].Details, StringComparison.Ordinal);
+        Assert.Equal(new TodoProgress(3, 7), todos[0].Progress);
 
         Validate(await properties.SetUnitAreaAsync(unit, new AreaInput { From = new DateOnly(2020, 1, 1), Area = 55m }, Ct));
         var person = Validate(await sp.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { LastName = "Schmidt" }, null, Ct));
@@ -72,7 +72,7 @@ public class SetupChecklistTests(PostgresFixture postgres) : IAsyncLifetime
         var todos = await ChecklistAsync(manager);
 
         Assert.Equal(["Erstes Objekt anlegen", "Erste Einheit anlegen", "Wohnfläche eintragen", "Ersten Mieter anlegen", "Ersten Mietvertrag anlegen"], todos.Select(t => t.Title));
-        Assert.Contains("0 von 5", todos[0].Details, StringComparison.Ordinal);
+        Assert.Equal(new TodoProgress(0, 5), todos[0].Progress);
     }
 
     [Fact]

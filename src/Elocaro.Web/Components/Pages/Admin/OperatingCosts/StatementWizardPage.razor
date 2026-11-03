@@ -104,7 +104,7 @@ var result = w.Preview.Result;
                     </tbody>
                 </table>
             </div>
-            <p class="small"><a href="/verwaltung/belege?aufteilen=true">Belege ohne Kostenaufteilung</a> · <a href="/verwaltung/belege/neu">Beleg erfassen</a></p>
+            <p class="small"><a href="@($"/verwaltung/belege?objekt={PropertyId}&jahr={result.BillingPeriod.From.Year}")">Belege dieses Objekts und Jahres</a> · <a href="@($"/verwaltung/belege?objekt={PropertyId}&jahr={result.BillingPeriod.From.Year}&aufteilen=true")">Belege ohne Kostenaufteilung</a> · <a href="/verwaltung/belege/neu">Beleg erfassen</a></p>
         </section>
         break;
 
@@ -169,7 +169,7 @@ var result = w.Preview.Result;
             </div>
             @if (result.FlatRates.Count > 0)
             {
-                <h3>Ist-Kosten gegen Pauschale (intern)</h3>
+                <h3>Tatsächliche Kosten gegen Pauschale (nur für Sie, nicht für Mieter)</h3>
                 <details class="explain">
                     <summary>Erhöhung der Pauschale (§ 560 BGB)</summary>
                     <p class="small">Grundlage für eine Erhöhung der Pauschale nach § 560 Abs. 1 BGB (Erklärung in Textform, wirksam zum Beginn des übernächsten Monats; Erhöhungen sind nur für die Zukunft möglich).</p>
@@ -363,11 +363,20 @@ var result = w.Preview.Result;
                 (now ?? old)!.Name,
                 now?.Total ?? 0m,
                 old?.Total,
-                change is { } value ? $"{(value > 0 ? "+" : "")}{value:0.#} %" : "–",
+                change is { } value ? $"{(value > 0 ? "↑ +" : value < 0 ? "↓ " : "")}{value:0.#} %" : "–",
                 now is null || now.Total == 0 ? "fehlt" : old is null ? "neu" : finding ? "prüfen" : "ok",
                 (now is null || now.Total == 0) && old is { Total: > 0 });
         }
     }
+
+    /// <summary>Where a finding of the step is fixed, with the property and the year of this statement.</summary>
+    private string? FixLink(WizardStep target) => target switch
+    {
+        WizardStep.Costs => $"/verwaltung/belege?objekt={PropertyId}&jahr={wizard!.Preview.Result.BillingPeriod.From.Year}",
+        WizardStep.Meters => $"/verwaltung/objekte/{PropertyId}/zaehler",
+        WizardStep.Occupancy => $"/verwaltung/objekte/{PropertyId}/belegung?jahr={wizard!.Preview.Result.BillingPeriod.From.Year}",
+        _ => null,
+    };
 
     private RenderFragment Findings(WizardStep target) => builder =>
     {
@@ -387,6 +396,15 @@ var result = w.Preview.Result;
             builder.AddContent(5, finding.Severity switch { FindingSeverity.Error => "Fehlt: ", FindingSeverity.Warning => "Prüfen: ", _ => "Hinweis: " });
             builder.CloseElement();
             builder.AddContent(6, finding.Text);
+            if (FixLink(target) is { } fix)
+            {
+                builder.AddContent(7, " ");
+                builder.OpenElement(8, "a");
+                builder.AddAttribute(9, "href", fix);
+                builder.AddContent(10, "Beheben");
+                builder.CloseElement();
+            }
+
             builder.CloseElement();
         }
 

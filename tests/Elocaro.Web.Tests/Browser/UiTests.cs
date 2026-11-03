@@ -148,7 +148,7 @@ public class UiTests(PostgresFixture postgres) : BrowserTestBasis(postgres)
     }
 
     [Theory]
-    [InlineData("/verwaltung", "Was ist zu tun?")]
+    [InlineData("/verwaltung", "Übersicht")]
     [InlineData("/verwaltung/personen", "Personen")]
     public async Task Info_button_opens_a_dialog_that_closes_with_button_escape_and_backdrop(string path, string title)
     {

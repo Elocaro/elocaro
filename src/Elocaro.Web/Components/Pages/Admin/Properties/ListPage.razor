@@ -6,13 +6,18 @@
 <InteractiveShell>
     <PageHeader Title="Objekte" Subtitle="Häuser mit ihren Wohnungen und WG-Zimmern.">
         <Actions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/objekte/neu">Objekt anlegen</MudButton>
+            @if (properties is not { Count: 0 })
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/objekte/neu">Objekt anlegen</MudButton>
+            }
         </Actions>
     </PageHeader>
 
     @if (properties is { Count: 0 })
     {
-        <EmptyState Text="Noch keine Objekte. Legen Sie zuerst ein Haus an, danach die Wohnungen." />
+        <EmptyState Text="Noch keine Objekte. Legen Sie zuerst ein Haus an, danach die Wohnungen.">
+            <EmptyIllustration /><MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/verwaltung/objekte/neu">Objekt anlegen</MudButton>
+        </EmptyState>
     }
     else if (properties is not null)
     {
@@ -35,6 +40,7 @@
                     {
                         <StatusChip Level="StatusLevel.Warning">@context.Vacancy leer</StatusChip>
                     }
+                    <ProgressMeter Value="context.Rented" Total="context.RentalUnits" Text="@($"{context.Rented} von {context.RentalUnits} vermietet")" />
                 </MudTd>
             </RowTemplate>
             <PagerContent>

@@ -2,9 +2,12 @@ using System.Text;
 using Elocaro.Application.Admin;
 using Elocaro.Application.Documents;
 using Elocaro.Application.Finance;
+using Elocaro.Application.Metering;
 using Elocaro.Application.Setup;
+using Elocaro.Application.Tax;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Leases;
+using Elocaro.Domain.Metering;
 using Elocaro.Domain.People;
 using Elocaro.Domain.Properties;
 using Elocaro.Infrastructure.Persistence;
@@ -19,6 +22,8 @@ internal sealed class DemoData(
     IFinanceSettings finance,
     ITenantAccounts accounts,
     IDocumentTemplates templates,
+    ILoanService loans,
+    IMeterService meters,
     TimeProvider clock) : IDemoData
 {
     public async Task<bool> CanLoadAsync(CancellationToken cancellationToken = default) =>
@@ -95,7 +100,46 @@ internal sealed class DemoData(
             }
         }
 
+        await AddLoanAndMeterAsync(start, today, cancellationToken);
         return imported;
+    }
+
+    /// <summary>A loan and a meter with yearly readings, so that the demo shows repayment and consumption over time.</summary>
+    private async Task AddLoanAndMeterAsync(DateOnly start, DateOnly today, CancellationToken cancellationToken)
+    {
+        var property = await db.Set<Property>().AsNoTracking().OrderBy(p => p.CreatedAt).Select(p => p.Id).FirstAsync(cancellationToken);
+        var unit = await db.Set<Unit>().AsNoTracking().Where(u => u.PropertyId == property).OrderBy(u => u.Order).Select(u => u.Id).FirstAsync(cancellationToken);
+        await loans.CreateAsync(
+            new LoanInput
+            {
+                PropertyId = property,
+                Bank = "Beispielbank (Demo)",
+                Principal = 180_000m,
+                DisbursementDate = start,
+                FirstPaymentDate = start.AddMonths(1),
+                InterestRatePercent = 3.2m,
+                InitialRepaymentPercent = 2m,
+                FixedUntil = start.AddYears(10),
+            },
+            cancellationToken);
+        var created = await meters.CreateAsync(
+            property,
+            new MeterCreation
+            {
+                Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser Wohnung 1", Number = "DEMO-1", AssignmentId = unit },
+                InstalledOn = start,
+                InitialReading = 100m,
+            },
+            cancellationToken);
+        if (created.Id is { } meter)
+        {
+            var value = 100m;
+            for (var year = start.Year; year < today.Year; year++)
+            {
+                value += 38m + ((year % 3) * 4m);
+                await meters.RecordReadingAsync(meter, new ReadingInput { Date = new DateOnly(year, 12, 31), Value = value, Kind = ReadingType.Reading, Confirmed = true }, null, cancellationToken);
+            }
+        }
     }
 
     private static string Row(DateOnly start, string row) =>

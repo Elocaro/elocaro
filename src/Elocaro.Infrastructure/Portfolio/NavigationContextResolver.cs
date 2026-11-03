@@ -150,7 +150,8 @@ internal sealed class NavigationContextResolver(IServiceScopeFactory scopes) : I
             return null;
         }
 
-        return new([.. property.Trail, new($"Darlehen {loan.Bank}", $"{Root}/finanzen/darlehen/{id}")], null);
+        // The loan sits under "Geld": its trail starts at the list of loans, not at the list of properties.
+        return new([new("Darlehen", $"{Root}/finanzen/darlehen"), property.Trail[^1], new($"Darlehen {loan.Bank}", $"{Root}/finanzen/darlehen/{id}")], null);
     }
 
     private static async Task<PageContext?> PersonAsync(ElocaroDbContext db, Guid id, CancellationToken cancellationToken)

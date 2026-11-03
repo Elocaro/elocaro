@@ -3,7 +3,13 @@
 @using MudBlazor
 @using Elocaro.Application.Files
 @using Elocaro.Application.Admin
+@using Elocaro.Application.Portfolio
+@using Elocaro.Application.Statements
+@using Elocaro.Domain.Common
 @inject IPropertyService Admin
+@inject IPortfolioFigures Portfolio
+@inject IStatements Statements
+@inject TimeProvider Clock
 @inject IModuleState ModuleState
 @inject ILandlordProfileService LandlordProfiles
 @inject IFileStore Storage
@@ -58,6 +64,23 @@ else
     </Notice>
 }
 
+@if (property.Units.Count > 0)
+{
+    <div class="kpis" role="group" aria-label="Kennzahlen des Objekts" id="property-kpis">
+        @if (figures is not null)
+        {
+            <KpiTile Label="Monatsmieten" Value="@Format.Money(figures.MonthlyRent)" />
+            <KpiTile Label="Rückstände" Value="@Format.Money(figures.Arrears)" Href="/verwaltung/finanzen/offene-posten" Level="@(figures.Arrears > 0m ? NoticeLevel.Warning : null)" />
+        }
+        <KpiTile Label="Belegung" Value="@($"{Rented} von {Rentable} vermietet")" Note="@(Rentable == Rented ? null : $"{Rentable - Rented} leer")" Href="@($"/verwaltung/objekte/{Id}/belegung")" Level="@(Rentable > Rented ? NoticeLevel.Info : null)" />
+        @if (figures is not null && ModuleState.IsEnabled(AppModule.OperatingCosts))
+        {
+            <KpiTile Label="@($"Abrechnung {NextStatementYear}")" Value="@($"bis {Format.Date(new DateOnly(NextStatementYear + 1, 12, 31))}")" Note="@(LastStatementYear is { } last ? $"letzte: {last}" : "noch keine")" Href="@($"/verwaltung/objekte/{Id}/abrechnungen")" />
+        }
+    </div>
+    <HouseOverview @key="version" PropertyId="Id" />
+}
+
 @if (property.ImageFileId is not null || property.Data.CadastralDistrict is not null || property.Data.ParcelNumber is not null || property.Data.PropertyTaxReference is not null || property.Data.Notes is not null)
 {
 <div class="property-header">
@@ -100,7 +123,7 @@ else
                         @for (var i = 0; i < unit.RentalUnits.Count; i++)
                         {
                             var rentalUnit = unit.RentalUnits[i];
-                            <tr>
+                            <tr class="@(i > 0 ? "is-subrow" : null)">
                                 @* Repeated in every row (no merged cells) so the table can become cards on smartphones; the repeats are hidden on wide screens. *@
                                 <td class="@(i > 0 ? "repeat" : null)" aria-hidden="@(i > 0 ? "true" : null)">
                                     <a href="/verwaltung/einheiten/@unit.Id" tabindex="@(i > 0 ? -1 : null)">@unit.Name</a>
@@ -115,7 +138,10 @@ else
                                     @if (rentalUnit.IsRoom)
                                     {
                                         <a href="/verwaltung/zimmer/@rentalUnit.Id">@rentalUnit.Name</a>
-                                        <span class="small">@Format.Area(rentalUnit.Area)</span>
+                                        @if (rentalUnit.Area is not null)
+                                        {
+                                            <span class="small">@Format.Area(rentalUnit.Area)</span>
+                                        }
                                     }
                                     else
                                     {
@@ -221,10 +247,38 @@ else
         await LoadAsync();
     }
 
+    private PropertyFigures? figures;
+    private int version;
+    private int? LastStatementYear;
+
+    [CascadingParameter]
+    private Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState>? AuthenticationState { get; set; }
+
+    private int Rentable => property!.Units.Sum(u => u.RentalUnits.Count);
+
+    private int Rented => property!.Units.Sum(u => u.RentalUnits.Count(r => r.Occupancy is not null));
+
+    /// <summary>The oldest year due for a statement: last year, or this year once last year's statement is released.</summary>
+    private int NextStatementYear
+    {
+        get
+        {
+            var year = GermanTime.Today(Clock.GetUtcNow()).Year - 1;
+            return LastStatementYear >= year ? LastStatementYear.Value + 1 : year;
+        }
+    }
+
     private async Task LoadAsync()
     {
         property = await Admin.GetAsync(Id);
         data = property?.Data ?? new();
+        if (AuthenticationState is not null && property is not null)
+        {
+            figures = await Portfolio.PropertyFiguresAsync((await AuthenticationState).User, Id);
+            LastStatementYear = figures is null ? null : (await Statements.ListAsync(Id)).Where(s => s.Current).Select(s => (int?)s.BillingPeriod.From.Year).Max();
+        }
+
+        version++;
         loaded = true;
     }
 

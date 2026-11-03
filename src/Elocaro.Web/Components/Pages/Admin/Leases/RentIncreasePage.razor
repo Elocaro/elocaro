@@ -106,7 +106,7 @@ else
                 }
                 else
                 {
-                    <p class="small">Es gibt keinen VPI-Wert, der neuer ist als der Ausgangsindex, oder der Vertrag ist keine Indexmiete. Den Verbraucherpreisindex unter „Verbraucherpreisindex“ pflegen.</p>
+                    <p class="small">Es gibt keinen VPI-Wert, der neuer ist als der Ausgangsindex, oder der Vertrag ist keine Indexmiete. Den <a href="/verwaltung/vpi">Verbraucherpreisindex</a> pflegen.</p>
                 }
 
                 <p class="small">Die Anpassung braucht keine Zustimmung. Mit dem erfassten Zugang wird die neue Miete im Vertrag eingetragen.</p>
@@ -201,7 +201,7 @@ else
         {
             <div class="table-wrapper">
                 <table class="data-table">
-                    <thead><tr><th>Art</th><th class="number">Bisher</th><th class="number">Neu</th><th>Termine</th><th>Stand</th><th></th></tr></thead>
+                    <thead><tr><th>Art</th><th class="number">Bisher</th><th class="number">Neu</th><th>Ablauf</th><th>Stand</th><th></th></tr></thead>
                     <tbody>
                         @foreach (var row in overview.Increases)
                         {
@@ -209,12 +209,7 @@ else
                                 <td>@Labels.From(row.Kind)<br><span class="small">@row.Summary</span></td>
                                 <td class="number">@Format.Money(row.CurrentAmount)</td>
                                 <td class="number">@Format.Money(row.NewAmount)</td>
-                                <td>
-                                    ab @Format.Date(row.EffectiveFrom)
-                                    @if (row.DeclaredOn is { } declared) {<br><span class="small">zugegangen @Format.Date(declared)</span>}
-                                    @if (row.ConsentDeadline is { } deadline) {<br><span class="small">Zustimmung bis @Format.Date(deadline)</span>}
-                                    @if (row.ConsentOn is { } consent) {<br><span class="small">zugestimmt @Format.Date(consent)</span>}
-                                </td>
+                                <td><ProcessTrack Compact="true" Label="@($"Stand: {Labels.From(row.Kind)}")" Steps="Steps(row)" /></td>
                                 <td><StatusChip Level="Labels.Level(row.Status)">@Labels.From(row.Status)</StatusChip></td>
                                 <td>
                                     @if (row.DocumentId is not null) {<a href="/verwaltung/dokumente/@row.DocumentId">Schreiben</a>}
@@ -286,7 +281,36 @@ else
     [Parameter]
     public Guid Id { get; set; }
 
-    private IEnumerable<RentIncreaseKind> Kinds => AllKinds;
+    /// <summary>What the lease allows, and whatever is selected; comparative rent and modernisation only without an agreed rent path (§§ 557a, 557b BGB).</summary>
+    private IEnumerable<RentIncreaseKind> Kinds => AllKinds.Where(kind => kind == input.Kind || kind switch
+    {
+        RentIncreaseKind.Index => overview!.Model == RentModel.Index,
+        RentIncreaseKind.Graduated => overview!.Model == RentModel.Graduated,
+        RentIncreaseKind.FlatRate => overview!.BillingType == BillingType.FlatRate,
+        RentIncreaseKind.Comparative => overview!.Model == RentModel.Standard,
+        _ => overview!.Model != RentModel.Graduated,
+    });
+
+    private static List<ProcessStep> Steps(RentIncreaseRow row)
+    {
+        var rejected = row.Status is not (RentIncreaseStatus.Draft or RentIncreaseStatus.Declared or RentIncreaseStatus.Agreed);
+        var needsConsent = row.Kind == RentIncreaseKind.Comparative;
+        var steps = new List<ProcessStep>
+        {
+            new("Schreiben erzeugt", ProcessState.Done),
+            new("Zugegangen", row.DeclaredOn is not null ? ProcessState.Done : row.Status == RentIncreaseStatus.Draft ? ProcessState.Current : ProcessState.Open, row.DeclaredOn is { } declared ? Format.Date(declared) : null),
+        };
+        if (needsConsent)
+        {
+            steps.Add(new("Zustimmung", row.ConsentOn is not null ? ProcessState.Done : row.Status == RentIncreaseStatus.Declared ? ProcessState.Current : ProcessState.Open,
+                row.ConsentOn is { } consent ? Format.Date(consent) : row.ConsentDeadline is { } deadline ? $"bis {Format.Date(deadline)}" : null));
+        }
+
+        steps.Add(rejected
+            ? new(Labels.From(row.Status), ProcessState.Done)
+            : new("Wirksam", row.Status == RentIncreaseStatus.Agreed || (!needsConsent && row.DeclaredOn is not null) ? ProcessState.Done : ProcessState.Open, $"ab {Format.Date(row.EffectiveFrom)}"));
+        return steps;
+    }
 
     private IEnumerable<TemplateRow> KindTemplates => templates.Where(t => t.Name.Contains(Keyword(input.Kind), StringComparison.Ordinal) || !templates.Any(o => o.Name.Contains(Keyword(input.Kind), StringComparison.Ordinal)));
 
@@ -315,7 +339,6 @@ else
                 RentModel.Graduated => RentIncreaseKind.Graduated,
                 _ => overview.BillingType == BillingType.FlatRate ? RentIncreaseKind.FlatRate : RentIncreaseKind.Comparative,
             };
-            input.Comparables = [new(), new(), new()];
             SelectTemplate();
         }
 

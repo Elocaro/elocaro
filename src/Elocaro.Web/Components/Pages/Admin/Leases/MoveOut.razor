@@ -19,36 +19,21 @@
 
         <ErrorList Errors="errors" />
 
-        @if (Done)
+        <TenancyChangeTrack Lease="lease" />
+
+        @if (lease.Term.To is { } end)
         {
-            <Notice Level="NoticeLevel.Success">Das Mietverhältnis endet am @Format.Date(lease.Term.To).</Notice>
-            <ol class="steps">
-                <li class="done">Auszug erfasst</li>
-                <li><a href="/verwaltung/objekte/@lease.PropertyId/ablesung?einheit=@lease.UnitId&datum=@(lease.Term.To?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))&art=Zwischenablesung">Zählerstände zum Auszug ablesen</a> (Zwischenablesung für die Abrechnung)</li>
-                <li><MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/vertraege/neu?mietobjekt={lease.RentalUnitId}&beginn={lease.Term.To?.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}")">Neuen Vertrag anlegen</MudButton></li>
-            </ol>
+            <Notice Level="NoticeLevel.Success">Das Mietverhältnis endet am @Format.Date(end).</Notice>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/verwaltung/vertraege/neu?mietobjekt={lease.RentalUnitId}&beginn={end.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}")">Neuen Vertrag anlegen</MudButton>
             <p class="small">Bis zum nächsten Vertrag steht das Mietobjekt leer; Leerstandszeiten erscheinen automatisch in der Vertragshistorie und gehen in die Abrechnung zulasten des Vermieters.</p>
+            <details class="explain" id="move-out-change">
+                <summary>Auszugstag oder neue Anschrift ändern</summary>
+                @MoveOutForm
+            </details>
         }
         else
         {
-            <ol class="steps">
-                <li class="active">Auszug: letzter Tag und neue Anschrift</li>
-                <li>Zählerstände ablesen</li>
-                <li>Neuer Vertrag (Einzug)</li>
-            </ol>
-
-            <EditForm Model="input" OnValidSubmit="MoveOutAsync" novalidate>
-                <DataAnnotationsValidator />
-                <AppDateField @bind-Value="input.End" Label="Letzter Tag des Mietverhältnisses" Required="true" />
-                <h2>Neue Anschrift der Mieter</h2>
-                <p class="small">Für die Zustellung der Nebenkostenabrechnung und der Kautionsabrechnung. Gilt ab dem Tag nach dem Auszug.</p>
-                <div class="form-grid">
-                    <AppTextField @bind-Value="input.NewStreet" Label="Straße und Hausnummer" />
-                    <AppTextField @bind-Value="input.NewPostalCode" Label="PLZ" />
-                    <AppTextField @bind-Value="input.NewCity" Label="Ort" />
-                </div>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Auszug erfassen</MudButton>
-            </EditForm>
+            @MoveOutForm
         }
     }
 </InteractiveShell>
@@ -62,8 +47,18 @@
     [Parameter]
     public Guid Id { get; set; }
 
-    [SupplyParameterFromQuery(Name = "fertig")]
-    private bool Done { get; set; }
+    private RenderFragment MoveOutForm => @<EditForm Model="input" OnValidSubmit="MoveOutAsync" novalidate>
+        <DataAnnotationsValidator />
+        <AppDateField @bind-Value="input.End" Label="Letzter Tag des Mietverhältnisses" Required="true" />
+        <h2>Neue Anschrift der Mieter</h2>
+        <p class="small">Für die Zustellung der Nebenkostenabrechnung und der Kautionsabrechnung. Gilt ab dem Tag nach dem Auszug.</p>
+        <div class="form-grid">
+            <AppTextField @bind-Value="input.NewStreet" Label="Straße und Hausnummer" />
+            <AppTextField @bind-Value="input.NewPostalCode" Label="PLZ" />
+            <AppTextField @bind-Value="input.NewCity" Label="Ort" />
+        </div>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Auszug erfassen</MudButton>
+    </EditForm>;
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,7 +72,7 @@
         var result = await Admin.MoveOutAsync(Id, input);
         if (result.Succeeded)
         {
-            Navigation.NavigateTo($"/verwaltung/vertraege/{Id}/auszug?fertig=true&meldung=auszug-erfasst", forceLoad: true);
+            Navigation.NavigateTo($"/verwaltung/vertraege/{Id}/auszug?meldung=auszug-erfasst", forceLoad: true);
         }
         else
         {

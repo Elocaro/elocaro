@@ -56,7 +56,7 @@ public static class PageInfoCatalog
         }
 
         // ---- Overview
-        Add(new("Was ist zu tun?",
+        Add(new("Übersicht",
             "Die Übersicht sammelt Aufgaben und Fristen aus allen eingeschalteten Bereichen, die dringendsten zuerst.",
             [
                 new("Woher kommen die Einträge?",

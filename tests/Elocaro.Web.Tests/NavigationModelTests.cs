@@ -31,6 +31,19 @@ public class NavigationModelTests
     }
 
     [Fact]
+    public void Assigning_a_transaction_highlights_the_assign_tab_and_not_the_list()
+    {
+        var bank = AdminNavModel.Areas.Single(a => a.Label == "Geld").Tabs.Single(t => t.Label == "Bank").Children!;
+        var assign = bank.Single(t => t.Label == "Zuordnen");
+        var all = bank.Single(t => t.Label == "Alle Umsätze");
+
+        Assert.True(assign.Matches($"/verwaltung/bank/umsaetze/{Guid.NewGuid()}/zuordnen"));
+        Assert.False(all.Matches($"/verwaltung/bank/umsaetze/{Guid.NewGuid()}/zuordnen"));
+        Assert.False(assign.Matches("/verwaltung/bank/umsaetze"));
+        Assert.True(all.Matches("/verwaltung/bank/umsaetze"));
+    }
+
+    [Fact]
     public void The_settings_tabs_fit_into_one_row_and_the_system_pages_sit_in_a_group()
     {
         var settings = AdminNavModel.Areas.Single(a => a.Href.EndsWith("/einstellungen/vermieter", StringComparison.Ordinal));

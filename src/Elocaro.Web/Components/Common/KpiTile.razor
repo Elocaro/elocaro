@@ -1,0 +1,46 @@
+@* A figure on a tile; a link when there is a page behind it. ChildContent holds an optional progress bar. *@
+@if (Href is null)
+{
+    <div class="@Css" @attributes="Attributes">@Body</div>
+}
+else
+{
+    <a class="@Css" href="@Href" @attributes="Attributes">@Body</a>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = "";
+
+    /// <summary>Smaller text after the value, e.g. "von 5.285,00 € Soll".</summary>
+    [Parameter]
+    public string? Note { get; set; }
+
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public NoticeLevel? Level { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private string Css => Level switch
+    {
+        NoticeLevel.Warning or NoticeLevel.Error => "kpi is-warning",
+        NoticeLevel.Info => "kpi is-info",
+        _ => "kpi",
+    };
+
+    private RenderFragment Body => @<text>
+        <span class="kpi-label">@Label</span>
+        <span class="kpi-value">@Value @if (Note is not null) {<small>@Note</small>}</span>
+        @ChildContent
+    </text>;
+}

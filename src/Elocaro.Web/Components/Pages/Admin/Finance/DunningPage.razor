@@ -25,6 +25,11 @@ var row = details.Row;
 
 <ErrorList Errors="errors" />
 
+@if (row.Status != DunningStatus.Dismissed)
+{
+    <DunningLevelTrack Current="row.Level" Issued="row.Status == DunningStatus.Issued" Deadline="row.Deadline" />
+}
+
 @if (row.Status == DunningStatus.Issued)
 {
     <dl class="details">
@@ -54,7 +59,7 @@ else
 
 @if (details.TerminationHint is { } hint)
 {
-    <Notice Level="NoticeLevel.Info">
+    <Notice Level="NoticeLevel.Warning">
         <strong>Kündigungsrelevanz:</strong>
         Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
         (@(hint.Relevance.TwoMonthlyRents ? "mindestens zwei Monatsmieten" : "mehr als eine Monatsmiete in zwei aufeinanderfolgenden Terminen")),
@@ -114,6 +119,14 @@ else
     </div>
 </details>
 
+@if (!details.LandlordProfileMissing)
+{
+    <section>
+        <h2>Vorschau</h2>
+        <iframe class="document-preview is-short" src="@PreviewUrl" title="Vorschau: @Labels.From(row.Level)"></iframe>
+    </section>
+}
+
 <section>
     <h2>Freigabe</h2>
     <EditForm Model="data" OnValidSubmit="IssueAsync" novalidate>
@@ -134,14 +147,6 @@ else
         </div>
     </EditForm>
 </section>
-
-@if (!details.LandlordProfileMissing)
-{
-    <section>
-        <h2>Vorschau</h2>
-        <iframe class="document-preview" src="@PreviewUrl" title="Vorschau: @Labels.From(row.Level)"></iframe>
-    </section>
-}
 }
 }
 </InteractiveShell>
@@ -166,6 +171,11 @@ else
 
     private async Task IssueAsync()
     {
+        if (data.SendByMail && !await Confirm.AskAsync("Mahnung versenden", $"Die Mahnung wird sofort per E-Mail an {string.Join(", ", details!.Recipients)} gesendet.", "Ja, freigeben und senden"))
+        {
+            return;
+        }
+
         var result = await Dunning.IssueAsync(Id, data);
         if (result.Succeeded)
         {

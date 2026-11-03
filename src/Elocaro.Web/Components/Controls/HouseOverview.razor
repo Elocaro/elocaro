@@ -1,107 +1,144 @@
-@using Elocaro.Application.Finance
+@using Elocaro.Application.Portfolio
 @using Elocaro.Application.Properties
-@inject IPropertyService Properties
-@inject ITenantAccounts Accounts
+@using Elocaro.Domain.Properties
+@inherits DataComponent
 
+@* The building as a plan: floors from the roof down, units side by side with a width that follows the living area. Rents and arrears only for users with finance rights. *@
 @if (floors.Count > 0)
 {
-    <section id="house-overview" aria-label="Haus heute">
-        <h2>Haus heute</h2>
-        <div class="house" role="list">
+    <section id="house-overview" aria-label="Hausplan">
+        <h2>Hausplan</h2>
+        <div class="house">
             @foreach (var floor in floors)
             {
-                <div class="house-floor" role="listitem">
+                <div class="house-floor @(floor.Rank == OutsideRank ? "is-outside" : null)">
                     <div class="house-floor-name">@floor.Name</div>
                     <div class="house-units">
                         @foreach (var unit in floor.Units)
                         {
-                            <a class="house-unit" href="/verwaltung/einheiten/@unit.Id">
-                                <strong>@unit.Name</strong>
-                                @if (unit.RentalUnits.Any(r => r.IsRoom))
+                            <div class="house-unit" style="flex-grow:@Grow(unit)">
+                                <a class="house-unit-name" href="/verwaltung/einheiten/@unit.Id">
+                                    @unit.Name
+                                    @if (unit.LivingArea is { } area)
+                                    {
+                                        <span class="small">@Format.Area(area)</span>
+                                    }
+                                </a>
+                                @if (unit.IsSharedFlat)
                                 {
                                     <span class="house-rooms">
-                                        @foreach (var room in unit.RentalUnits.Where(r => r.IsRoom))
+                                        @foreach (var room in unit.RentalUnits)
                                         {
-                                            <span class="house-room @Css(room)" title="@Title(room)">@room.Name</span>
+                                            <a class="house-room @Css(room)" href="/verwaltung/zimmer/@room.Id" title="@Title(room)">@room.Name: @(room.Occupancy?.Tenant ?? "leer")</a>
                                         }
                                     </span>
                                 }
-                                else
+                                else if (unit.RentalUnits.FirstOrDefault() is { } rental)
                                 {
-                                    var rental = unit.RentalUnits.FirstOrDefault();
-                                    <span class="house-room @(rental is null ? "state-empty" : Css(rental))" title="@(rental is null ? "" : Title(rental))">@(rental?.Occupancy?.Tenant ?? "leer")</span>
+                                    <span class="house-room @Css(rental)" title="@Title(rental)">@(rental.Occupancy?.Tenant ?? "leer")</span>
                                 }
-                            </a>
+                                @foreach (var line in Facts(unit))
+                                {
+                                    <span class="small">@line</span>
+                                }
+                                @foreach (var vacant in unit.RentalUnits.Where(r => r.Occupancy is null))
+                                {
+                                    <a class="house-unit-action" href="/verwaltung/vertraege/neu?mietobjekt=@vacant.Id">@(vacant.IsRoom ? $"{vacant.Name}: Vertrag anlegen" : "Vertrag anlegen")</a>
+                                }
+                            </div>
                         }
                     </div>
                 </div>
             }
         </div>
         <p class="small house-legend"><span class="house-room state-rented">vermietet</span> <span class="house-room state-ending">Mietende absehbar</span> <span class="house-room state-arrears">Rückstand</span> <span class="house-room state-empty">leer</span></p>
+        <p class="house-total" id="house-total">
+            @if (figures is not null)
+            {
+                <span>Monatsmieten <strong>@Format.Money(figures.MonthlyRent)</strong></span>
+                <span>Rückstände <strong>@Format.Money(figures.Arrears)</strong></span>
+            }
+            <span>Leerstand <strong>@Format.Area(VacantArea)</strong></span>
+        </p>
     </section>
 }
 
 @code {
+    private const int UnknownRank = -1000;
+    private const int OutsideRank = -2000;
+
     private sealed record Floor(string Name, int Rank, List<UnitRow> Units);
 
     private List<Floor> floors = [];
-    private Dictionary<Guid, decimal> arrears = [];
+    private PropertyFigures? figures;
 
     [Parameter, EditorRequired]
     public Guid PropertyId { get; set; }
 
+    [CascadingParameter]
+    private Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState>? AuthenticationState { get; set; }
+
+    private decimal VacantArea => floors.SelectMany(f => f.Units).SelectMany(u => u.RentalUnits).Where(r => r.Occupancy is null).Sum(r => r.Area ?? 0m);
+
     protected override async Task OnInitializedAsync()
     {
-        var property = await Properties.GetAsync(PropertyId);
+        var property = await GetAsync<IPropertyService, PropertyDetails?>(p => p.GetAsync(PropertyId));
         if (property is null)
         {
             return;
         }
 
-        var open = await Accounts.OpenItemsAsync();
-        arrears = open.Where(i => i.DaysOverdue > 0).GroupBy(i => i.LeaseId).ToDictionary(g => g.Key, g => g.Sum(i => i.Open));
+        if (AuthenticationState is not null)
+        {
+            var user = (await AuthenticationState).User;
+            figures = await GetAsync<IPortfolioFigures, PropertyFigures?>(p => p.PropertyFiguresAsync(user, PropertyId));
+        }
+
         floors = [.. property.Units
-            .GroupBy(u => string.IsNullOrWhiteSpace(u.Location) ? "Ohne Geschoss" : u.Location!.Trim())
-            .Select(g => new Floor(g.Key, Rank(g.Key), [.. g.OrderBy(u => u.Name, StringComparer.CurrentCulture)]))
+            .GroupBy(RankOf)
+            .Select(g => new Floor(NameOf(g.Key), g.Key, [.. g.OrderBy(u => u.Name, StringComparer.CurrentCulture)]))
             .OrderByDescending(f => f.Rank)];
     }
 
-    /// <summary>Order of the floors from the roof down: attic, upper floors by number, ground floor, basement.</summary>
-    internal static int Rank(string name)
+    private static int RankOf(UnitRow unit) => unit.Type is UnitType.ParkingSpace or UnitType.Miscellaneous ? OutsideRank : unit.Floor ?? UnknownRank;
+
+    private static string NameOf(int rank) => rank switch
     {
-        var text = name.ToLowerInvariant();
-        var digits = new string([.. text.Where(char.IsDigit)]);
-        var number = int.TryParse(digits, out var n) ? n : 0;
-        if (text.Contains("dach", StringComparison.Ordinal) || text.StartsWith("dg", StringComparison.Ordinal))
+        OutsideRank => "Stellplätze und Sonstiges",
+        UnknownRank => "Ohne Geschoss",
+        _ => BuildingFloor.Label(rank),
+    };
+
+    /// <summary>Wider for larger flats, but no flat gets so narrow that its text no longer fits.</summary>
+    private static string Grow(UnitRow unit) => ChartScale.Css(Math.Clamp(unit.LivingArea ?? 40m, 20m, 200m));
+
+    private IEnumerable<string> Facts(UnitRow unit)
+    {
+        var rent = unit.RentalUnits.Select(r => r.Occupancy?.LeaseId).OfType<Guid>().Distinct().Sum(id => figures?.RentByLease.GetValueOrDefault(id) ?? 0m);
+        if (rent > 0m)
         {
-            return 100 + number;
+            yield return $"{Format.Money(rent)} im Monat";
         }
 
-        if (text.Contains("unter", StringComparison.Ordinal) || text.Contains("keller", StringComparison.Ordinal) || text.StartsWith("ug", StringComparison.Ordinal))
+        var due = unit.RentalUnits.Select(r => r.Occupancy?.LeaseId).OfType<Guid>().Distinct().Sum(id => figures?.ArrearsByLease.GetValueOrDefault(id) ?? 0m);
+        if (due > 0m)
         {
-            return -1 - number;
+            yield return $"Rückstand {Format.Money(due)}";
         }
 
-        if (text.Contains("erd", StringComparison.Ordinal) || text.StartsWith("eg", StringComparison.Ordinal))
+        foreach (var end in unit.RentalUnits.Where(r => r.Occupancy?.End is not null).Select(r => r.Occupancy!.End!.Value).Distinct())
         {
-            return 0;
+            yield return $"Mietende {Format.Date(end)}";
         }
-
-        if (text.Contains("ober", StringComparison.Ordinal) || text.Contains("og", StringComparison.Ordinal) || number > 0)
-        {
-            return Math.Max(1, number);
-        }
-
-        return -1000;
     }
 
     private string Css(RentalUnitRow row) =>
         row.Occupancy is not { } occupancy ? "state-empty"
-        : arrears.ContainsKey(occupancy.LeaseId) ? "state-arrears"
+        : figures?.ArrearsByLease.ContainsKey(occupancy.LeaseId) == true ? "state-arrears"
         : occupancy.End is not null ? "state-ending"
         : "state-rented";
 
     private string Title(RentalUnitRow row) =>
         row.Occupancy is not { } occupancy ? $"{row.Name}: leer"
-        : $"{row.Name}: {occupancy.Tenant}{(occupancy.End is { } end ? $", Mietende {Format.Date(end)}" : "")}{(arrears.TryGetValue(occupancy.LeaseId, out var due) ? $", Rückstand {Format.Money(due)}" : "")}";
+        : $"{row.Name}: {occupancy.Tenant}{(occupancy.End is { } end ? $", Mietende {Format.Date(end)}" : "")}{(figures?.ArrearsByLease.TryGetValue(occupancy.LeaseId, out var due) == true ? $", Rückstand {Format.Money(due)}" : "")}";
 }

@@ -40,6 +40,8 @@ else
         <section>
             <h2>Zinsen und Restschuld je Jahr</h2>
             <p class="small">Eine Jahreszinsbescheinigung der Bank ersetzt den berechneten Wert. Als Werbungskosten zählt der Anteil Vermietung (@Format.Number(detail.Input.SharePercent ?? 100m) %).</p>
+            <LineChart id="loan-balance" Caption="Restschuld am Jahresende" LabelHeading="Jahr" ValueHeading="Restschuld" Points="BalancePoints" />
+            <SegmentBar id="loan-split" Caption="Raten im gesamten Zeitraum" Segments="SplitSegments" />
             <div class="table-wrapper">
                 <table class="data-table grid-cards">
                     <thead><tr><th>Jahr</th><th class="number">Zinsen (Plan)</th><th class="number">Zinsen (Bescheinigung)</th><th class="number">Tilgung</th><th class="number">Restschuld</th></tr></thead>
@@ -244,6 +246,25 @@ else
 </InteractiveShell>
 
 @code {
+    private List<ChartPoint> BalancePoints => [.. detail!.Years.Select(y => new ChartPoint(
+        y.Year.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        y.ClosingBalance,
+        detail.Input.FixedUntil?.Year == y.Year ? "Zinsbindung endet" : null))];
+
+    private List<ChartSegment> SplitSegments
+    {
+        get
+        {
+            var interest = detail!.Years.Sum(y => y.CertificateInterest ?? y.PlanInterest);
+            var repayment = detail.Years.Sum(y => y.Repayment);
+            return
+            [
+                new("Zinsen", interest, Format.Money(interest), ChartTone.Tertiary),
+                new("Tilgung", repayment, Format.Money(repayment), ChartTone.Primary),
+            ];
+        }
+    }
+
     private LoanDetail? detail;
     private IReadOnlyList<PropertyOverview> properties = [];
     private IReadOnlyList<string>? errors;

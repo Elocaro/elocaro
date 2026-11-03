@@ -6,13 +6,18 @@
 <InteractiveShell>
     <PageHeader Title="Bankkonten" Subtitle="Konten für Mieteingänge, Darlehen und Rücklagen; Umsätze per Datei-Import.">
         <Actions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/bank/konten/neu">Konto anlegen</MudButton>
+            @if (accounts is not { Count: 0 })
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/bank/konten/neu">Konto anlegen</MudButton>
+            }
         </Actions>
     </PageHeader>
 
     @if (accounts is { Count: 0 })
     {
-        <EmptyState Text="Noch keine Bankkonten." />
+        <EmptyState Text="Noch keine Bankkonten.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/verwaltung/bank/konten/neu">Konto anlegen</MudButton>
+        </EmptyState>
     }
     else if (accounts is not null)
     {

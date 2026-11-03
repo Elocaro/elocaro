@@ -58,6 +58,9 @@ public sealed class UnitInput
     [StringLength(100)]
     public string? Location { get; set; }
 
+    /// <summary>Floor for the building plan; empty = read from the location.</summary>
+    public int? Floor { get; set; }
+
     public UnitType Type { get; set; }
 
     [Range(typeof(decimal), "0.5", "50", ErrorMessage = "Bitte eine Zimmeranzahl zwischen 0,5 und 50 angeben.", ParseLimitsInInvariantCulture = true)]

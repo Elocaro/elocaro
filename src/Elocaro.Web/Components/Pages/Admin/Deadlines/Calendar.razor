@@ -67,6 +67,13 @@
     {
         var overdue = entries.Where(e => e.Due < today).ToList();
         var upcoming = entries.Where(e => e.Due >= today).ToList();
+        var soon = upcoming.Count(e => e.Due <= today.AddDays(30));
+        var later = upcoming.Count - soon;
+        <SegmentBar id="deadline-spread" Caption="Wann etwas fällig wird" Segments="@([
+            new ChartSegment("überfällig", overdue.Count, overdue.Count.ToString(System.Globalization.CultureInfo.CurrentCulture), ChartTone.Error),
+            new ChartSegment("in den nächsten 30 Tagen", soon, soon.ToString(System.Globalization.CultureInfo.CurrentCulture), ChartTone.Warning),
+            new ChartSegment("später", later, later.ToString(System.Globalization.CultureInfo.CurrentCulture), ChartTone.Neutral),
+        ])" />
         @if (overdue.Count > 0)
         {
             @DeadlineGroup("Überfällig", overdue, overdue.Count <= 5)

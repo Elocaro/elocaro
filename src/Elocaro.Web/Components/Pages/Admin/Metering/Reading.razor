@@ -20,7 +20,7 @@ else if (property is null)
 else
 {
     <PageHeader Title="Ablese-Runde" Subtitle="@($"{Format.Date(ReferenceDate)}{(TypeValue == ReadingType.InterimReading ? " · Zwischenablesung" : "")}")"
-                Back="@($"/verwaltung/objekte/{PropertyId}/zaehler")" BackText="Alle Zähler" />
+                Back="@(ReturnPath ?? $"/verwaltung/objekte/{PropertyId}/zaehler")" BackText="@(ReturnPath is null ? "Alle Zähler" : "Zurück zum Ablauf")" />
 
     <ErrorList Errors="errors" />
 
@@ -40,7 +40,13 @@ else
                 </li>
             }
         </ul>
-        <MudButton Variant="Variant.Outlined" OnClick="() => GoTo(0)">Runde erneut durchgehen</MudButton>
+        <div class="form-row">
+            @if (ReturnPath is not null)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@ReturnPath">Zurück zum Ablauf</MudButton>
+            }
+            <MudButton Variant="Variant.Outlined" OnClick="() => GoTo(0)">Runde erneut durchgehen</MudButton>
+        </div>
     }
     else
     {
@@ -120,6 +126,12 @@ else
 
     [SupplyParameterFromQuery(Name = "datum")]
     private DateOnly? Date { get; set; }
+
+    /// <summary>Where the round was started from. Only a path inside the administration, so the query cannot lead elsewhere.</summary>
+    [SupplyParameterFromQuery(Name = "zurueck")]
+    private string? ReturnTo { get; set; }
+
+    private string? ReturnPath => ReturnTo is not null && ReturnTo.StartsWith("/verwaltung/", StringComparison.Ordinal) && !ReturnTo.Contains("//", StringComparison.Ordinal) ? ReturnTo : null;
 
     [SupplyParameterFromQuery(Name = "art")]
     private string? Kind { get; set; }

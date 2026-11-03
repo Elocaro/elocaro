@@ -23,7 +23,7 @@ Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. W
 | Belege für Mieter freigeben | Abrechnung (Liste der Abrechnungen → Abrechnung öffnen) → Reiter „Belege für Mieter“ | Standard: nichts ist freigegeben. Haken setzen und „Auswahl speichern“; die Freigabe lässt sich jederzeit zurücknehmen. Belege können Daten Dritter enthalten, es wird nichts geschwärzt |
 | Miete erhöhen | Vertrag → Vertrag → Mieterhöhung | Verfahren wählen; Fristen und Grenzen werden gerechnet, das Schreiben entsteht als PDF |
 | Zählerstände | Objekt → Zähler | Ablese-Runde, CSV-Import oder Meldung der Mieter im Portal prüfen und übernehmen |
-| Mieterwechsel | Vertrag → Ein- & Auszug | Mieterwechsel, Übergabe Auszug mit Protokoll, Kaution abrechnen, danach neuer Vertrag |
+| Mieterwechsel | Vertrag → Ein- & Auszug → Mieterwechsel | Die Leiste oben zeigt den Stand: Kündigung, Auszug, Zählerstände, Übergabe, Kaution, Bescheinigung, Folgevertrag, Abrechnung |
 | Bescheinigungen | Kommunikation → Dokumente → Schreiben an Mieter | Wohnungsgeberbestätigung, Mietbescheinigung, Mietschuldenfreiheit, Kautionsabrechnung |
 | Notfallmappe erzeugen | Einstellungen → System → Notfallmappe | Verschlüsselte Datei für Angehörige: Mieter, Konten, offene Posten, Fristen und Ihre Hinweise. Passwort zweimal wählen und getrennt von der Datei aufbewahren; es gibt keine Wiederherstellung |
 
@@ -41,7 +41,7 @@ Nebenkostenabrechnung (Bestand → Objekt → Nebenkosten → Abrechnungs-Assist
 
 **Die Abrechnung im Mieterportal:** Sobald Sie eine Abrechnung an einen Mietvertrag versendet haben, sehen die Mieter dieses Vertrags sie im Portal unter **Abrechnungen** (auch auf der Startseite und bei den Dokumenten verlinkt). Balkendiagramme zeigen das Ergebnis (Anteil gegen Vorauszahlungen, mit Nachzahlung oder Guthaben samt Betrag), die Anteile je Kostenart und den Vergleich mit dem Vorjahr (Strich = Vorjahr). Die Seite erklärt jede Position in Klartext („1.240,00 € nach Wohnfläche: Ihr Anteil 248,00 €“), vergleicht die Anteile mit der Abrechnung des Vorjahres, die an denselben Vertrag ging, zeigt die von Ihnen freigegebenen Belege und bietet zu jeder Position „Frage zu dieser Position“ an. Die Frage öffnet eine neue Nachricht mit vorbelegtem Betreff; sie ersetzt keinen förmlichen Einwand, die Frist läuft weiter. Mieter sehen nur ihre eigene Abrechnung, nie Werte anderer Parteien. Eine neuere, noch nicht versendete Fassung bleibt verborgen. Im Abrechnungsschreiben steht ein QR-Code zum Portal, wenn unter `Application__BaseUrl` die öffentliche Adresse eingestellt ist und ein Mieter des Vertrags ein Portalkonto hat; der Code führt nur zur Anmeldeseite, er enthält keinen Zugangsschlüssel.
 
-Auf dem Handy führt die untere Leiste zu Aufgaben, Bestand, Geld und Kommunikation.
+Auf dem Handy führt die untere Leiste zu Übersicht, Bestand, Geld und Kommunikation.
 
 ![Aufgaben auf dem Handy](bilder/handy-aufgaben.png)
 

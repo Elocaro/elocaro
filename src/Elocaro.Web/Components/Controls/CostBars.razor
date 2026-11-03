@@ -1,0 +1,28 @@
+@* One bar per row on a shared scale, amount as text. Without a positive amount nothing is drawn. *@
+@if (Max > 0m)
+{
+    <figure class="cost-chart" aria-label="@Caption" @attributes="Attributes">
+        <figcaption class="small">@Caption</figcaption>
+        @foreach (var row in Rows)
+        {
+            <div class="cost-chart-row">
+                <span class="cost-chart-label">@row.Label</span>
+                <span class="cost-chart-track"><span class="cost-chart-bar tenant" style="width:@ChartScale.Css(ChartScale.Percent(row.Amount, Max))%"></span></span>
+                <span class="cost-chart-value">@Format.Money(row.Amount)</span>
+            </div>
+        }
+    </figure>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ChartBar> Rows { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string Caption { get; set; } = "";
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? Attributes { get; set; }
+
+    private decimal Max => ChartScale.Max(Rows.Select(r => r.Amount));
+}

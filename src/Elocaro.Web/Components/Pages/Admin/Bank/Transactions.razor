@@ -50,7 +50,10 @@
                 <MudTd>
                     @if (context.Status == TransactionStatus.Open)
                     {
-                        <MudButton Variant="Variant.Outlined" OnClick="() => IgnoreAsync(context)" aria-label="@($"Umsatz vom {Format.Date(context.BookingDate)} ignorieren")">Ignorieren</MudButton>
+                        <div class="row-actions">
+                            <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/bank/umsaetze/{context.Id}/zuordnen")" aria-label="@($"Umsatz vom {Format.Date(context.BookingDate)} zuordnen")">Zuordnen</MudButton>
+                            <MudButton Variant="Variant.Text" OnClick="() => IgnoreAsync(context)" aria-label="@($"Umsatz vom {Format.Date(context.BookingDate)} ignorieren")">Ignorieren</MudButton>
+                        </div>
                     }
                     else if (context.Status == TransactionStatus.Assigned)
                     {

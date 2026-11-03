@@ -31,6 +31,8 @@
         }
         else if (values is not null)
         {
+            <LineChart id="cpi-chart" Caption="Verbraucherpreisindex (2020 = 100)" LabelHeading="Monat" ValueHeading="Wert" StartAtZero="false" FormatValue="@(v => Format.Number(v))"
+                       Points="@(values.OrderBy(v => v.Month).Select(v => new ChartPoint(Format.Month(v.Month), v.Value)).ToList())" />
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead><tr><th>Monat</th><th class="number">Wert</th><th>Quelle</th></tr></thead>

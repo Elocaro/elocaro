@@ -84,12 +84,15 @@ public class FirstHourBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
             // 3. Next step: the first lease, typed the way people type dates.
             await GotoInteractiveAsync(page, "/verwaltung/vertraege/neu");
             await SelectAsync(page, "Mietobjekt", "Wohnung 1", exact: false);
-            await SelectAsync(page, "Mieter", "Anna Beispiel");
             var start = page.GetByLabel("Mietbeginn");
             await start.FillAsync(firstOfLastMonth.ToString("ddMMyyyy", CultureInfo.InvariantCulture));
             await start.PressAsync("Tab");
             await Assertions.Expect(start).ToHaveValueAsync(German(firstOfLastMonth));
+            await page.Locator("#wizard-next").ClickAsync();
+            await SelectAsync(page, "Mieter", "Anna Beispiel");
+            await page.Locator("#wizard-next").ClickAsync();
             await page.GetByLabel("Kaltmiete").FillAsync("650");
+            await page.Locator("#wizard-next").ClickAsync();
             await page.GetByRole(AriaRole.Button, new() { Name = "Vertrag anlegen", Exact = true }).ClickAsync();
             await page.WaitForURLAsync("**/verwaltung/vertraege/*?meldung=angelegt");
             await NoErrorAsync(page);
@@ -97,7 +100,7 @@ public class FirstHourBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
 
             // 4. Monthly rents exist from the accounting start on.
             await GotoInteractiveAsync(page, leaseUrl + "/konto");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Monatsmieten aktualisieren" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Fehlende Monatsmieten nachtragen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Sollstellungen angelegt");
 
             // 5. Contract document: nothing missing, so the draft can be created at once.
@@ -131,11 +134,11 @@ public class FirstHourBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
             await page.GetByRole(AriaRole.Button, new() { Name = "Vorschau anzeigen" }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("650,00 €");
             await page.GetByRole(AriaRole.Button, new() { Name = "1 Umsätze importieren" }).ClickAsync();
-            await page.WaitForURLAsync("**/verwaltung/bank/umsaetze**");
+            await page.WaitForURLAsync("**/verwaltung/bank/zuordnung**");
             await NoErrorAsync(page);
 
-            // 8. The payment gets an explained suggestion; confirming it clears the inbox.
-            await GotoInteractiveAsync(page, "/verwaltung/bank/zuordnung");
+            // 8. The import leads straight to the inbox: the payment gets an explained suggestion; confirming it clears the inbox.
+            await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Betrag entspricht der offenen Forderung");
             await page.GetByRole(AriaRole.Button, new() { Name = "Bestätigen" }).ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Alle Umsätze sind zugeordnet");

@@ -86,7 +86,7 @@ else
         var result = await Bank.ImportAsync(Id);
         if (result.Succeeded)
         {
-            Navigation.NavigateTo($"/verwaltung/bank/umsaetze?konto={preview!.BankAccountId}&meldung=importiert");
+            Navigation.NavigateTo($"/verwaltung/bank/zuordnung?konto={preview!.BankAccountId}&meldung=importiert");
         }
         else
         {

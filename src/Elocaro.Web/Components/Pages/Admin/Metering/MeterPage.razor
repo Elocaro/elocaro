@@ -121,6 +121,9 @@ else
     <MudTabPanel Text="Verbrauch">
 <section>
     <h2>Verbrauch</h2>
+    <LineChart id="meter-consumption" Caption="Verbrauch je Jahr" LabelHeading="Jahr" ValueHeading="Verbrauch"
+               FormatValue="@(v => Format.Quantity(v, Labels.From(meter.Meter.MeasurementUnit)))"
+               Points="@(meter.AnnualConsumptions.Where(y => y.Consumption.Quantity is not null).OrderBy(y => y.Year).Select(y => new ChartPoint(y.Year.ToString(System.Globalization.CultureInfo.InvariantCulture), y.Consumption.Quantity!.Value)).ToList())" />
     <div class="table-wrapper">
         <table class="data-table">
             <thead><tr><th>Jahr</th><th class="number">Verbrauch</th><th>Hinweis</th></tr></thead>

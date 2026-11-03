@@ -8,6 +8,7 @@
 @inject TimeProvider Clock
 @inject Notifier Notify
 @inject Confirmations Confirm
+@inject IDialogService Dialogs
 
 <InteractiveShell>
 @if (!loaded)
@@ -85,10 +86,20 @@ var result = statement.Result;
     </section>
 }
 
+@if (summary.Current)
+{
+    <ProcessTrack Label="Stand der Abrechnung" Steps="DispatchSteps" id="statement-track" />
+}
+
 <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
 <MudTabPanel Text="Versand">
 <section id="dispatch">
     <h2>Versand an die Mieter</h2>
+    @if (overview.Tenancies.Count > 0)
+    {
+        <p class="small" id="dispatch-progress">@Delivered von @overview.Tenancies.Count zugestellt</p>
+        <ProgressMeter Value="Delivered" Total="overview.Tenancies.Count" Text="@($"{Delivered} von {overview.Tenancies.Count} zugestellt")" />
+    }
     @if (overview.LandlordProfileMissing)
     {
         <Notice Level="NoticeLevel.Error">Es ist noch kein Vermieterprofil hinterlegt (Einstellungen → Vermieter). Es wird für Briefkopf und Absender benötigt.</Notice>
@@ -104,7 +115,7 @@ var result = statement.Result;
         <div class="form-grid">
             <AppSelect T="DispatchChannel" @bind-Value="Send.Channel" Label="Versandart" Items="Enum.GetValues<DispatchChannel>()" Text="@(c => c == DispatchChannel.Email ? "E-Mail mit PDF im Anhang" : "Postversand (PDF herunterladen und ausdrucken)")" />
             <AppCheckBox @bind-Value="Send.ProposePrepayments" Label="Anpassung der Vorauszahlungen vorschlagen (§ 560 Abs. 4 BGB)" />
-            <AppNumberField T="decimal?" @bind-Value="Send.SafetyPercent" Label="Sicherheitszuschlag (%)" Min="0" Max="100" Hint="Leer = Standard aus der Konfiguration (Statements:PrepaymentSafetyPercent)." />
+            <AppNumberField T="decimal?" @bind-Value="Send.SafetyPercent" Label="Sicherheitszuschlag (%)" Min="0" Max="100" Hint="Leer = Standardwert." />
             <AppDateField @bind-Value="Send.PrepaymentFrom" Label="Neue Vorauszahlung ab" Hint="Leer = erster Tag des übernächsten Monats." />
         </div>
         <div class="table-wrapper">
@@ -129,7 +140,8 @@ var result = statement.Result;
                             <td>
                                 @if (tenancy.Dispatch is { } sent)
                                 {
-                                    <span>@(sent.Channel == DispatchChannel.Email ? "per E-Mail" : "per Post") am @Format.Date(sent.SentOn)</span>
+                                    <StatusChip Level="@(sent.ReceivedOn is null ? StatusLevel.Warning : StatusLevel.Success)">@(sent.ReceivedOn is null ? "versendet" : "zugestellt")</StatusChip>
+                                    <br /><span>@(sent.Channel == DispatchChannel.Email ? "per E-Mail" : "per Post") am @Format.Date(sent.SentOn)</span>
                                     @if (sent.MailStatus is not null)
                                     {
                                         <br /><span class="small">Mail: @sent.MailStatus@(sent.MailSentAt is { } at ? $" ({at.ToLocalTime():dd.MM.yyyy HH:mm})" : "")</span>
@@ -139,7 +151,7 @@ var result = statement.Result;
                                 }
                                 else
                                 {
-                                    <span>nicht versendet</span>
+                                    <StatusChip>nicht versendet</StatusChip>
                                 }
                             </td>
                             <td>
@@ -147,6 +159,10 @@ var result = statement.Result;
                                 @if (tenancy.Dispatch is { } done)
                                 {
                                     <br /><a href="/dateien/@done.FileId?download=true">Schreiben herunterladen</a>
+                                    @if (done.ReceivedOn is null)
+                                    {
+                                        <br /><MudButton Variant="Variant.Outlined" OnClick="() => ConfirmAsync(done.Id, tenancy.Label)" aria-label="@($"Zugang bestätigen: {tenancy.Label}")">Zugang bestätigen</MudButton>
+                                    }
                                 }
                                 else if (summary.Current)
                                 {
@@ -158,22 +174,11 @@ var result = statement.Result;
                 </tbody>
             </table>
         </div>
+        @if (summary.Current && Unsent.Count > 1)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DispatchAllAsync" id="dispatch-all">An alle @Unsent.Count versenden</MudButton>
+        }
     </EditForm>
-
-    @if (overview.Tenancies.Any(t => t.Dispatch is { ReceivedOn: null }))
-    {
-        <EditForm Model="Confirmation" class="dialog-form">
-            <h3>Zugang bestätigen</h3>
-            <div class="form-grid">
-                <AppDateField @bind-Value="Confirmation.ReceivedOn" Label="Zugangsdatum" Required="true" />
-                <AppTextField @bind-Value="Confirmation.Note" Label="Nachweis" Hint="z. B. Einwurf-Einschreiben, Lesebestätigung." />
-            </div>
-            @foreach (var tenancy in overview.Tenancies.Where(t => t.Dispatch is { ReceivedOn: null }))
-            {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ConfirmAsync(tenancy.Dispatch!.Id)">Zugang bestätigen: @tenancy.Label</MudButton>
-            }
-        </EditForm>
-    }
 
     @if (overview.Tenancies.Any(t => t.Dispatch is not null && t.Dispatch.Proposals.Count > 0))
     {
@@ -265,6 +270,7 @@ var result = statement.Result;
 <MudTabPanel Text="Kosten">
 <section id="cost-types">
     <h2>Kosten</h2>
+    <CostSplitChart Types="result.CostTypes" />
     <div class="table-wrapper">
         <table class="data-table">
             <thead><tr><th>Kostenart</th><th>Schlüssel</th><th class="number">Kosten</th><th class="number">Mieter</th><th class="number">Vermieter</th></tr></thead>
@@ -362,14 +368,12 @@ var result = statement.Result;
     public Guid Id { get; set; }
 
     private SendForm Send { get; set; } = new();
-    private ReceiptForm Confirmation { get; set; } = new();
     private bool loaded;
     private ReceiptShareOverview? shareOverview;
     private HashSet<Guid> selectedReceipts = [];
 
     protected override async Task OnInitializedAsync()
     {
-        Confirmation = new() { ReceivedOn = GermanTime.Today(Clock.GetUtcNow()) };
         overview = await Dispatching.OverviewAsync(Id);
         await LoadSharesAsync();
         loaded = true;
@@ -409,6 +413,39 @@ var result = statement.Result;
         await LoadSharesAsync();
     }
 
+    private List<Guid> Unsent => [.. overview!.Tenancies.Where(t => t.Dispatch is null).Select(t => t.LeaseId)];
+
+    /// <summary>One after the other: a tenant that fails does not hold up the others, and what was sent stays sent.</summary>
+    private async Task DispatchAllAsync()
+    {
+        var unsent = Unsent;
+        var how = Send.Channel == DispatchChannel.Email ? "sofort per E-Mail versendet" : "für den Postversand erzeugt";
+        if (!await Confirm.AskAsync("An alle versenden", $"Die Abrechnung wird für {unsent.Count} Mietverhältnisse {how}. Das lässt sich nicht zurücknehmen.", "Ja, an alle versenden"))
+        {
+            return;
+        }
+
+        var failed = new List<string>();
+        foreach (var leaseId in unsent)
+        {
+            failed.AddRange((await Dispatching.DispatchAsync(Id, leaseId, new DispatchInput
+            {
+                Channel = Send.Channel,
+                ProposePrepayments = Send.ProposePrepayments,
+                SafetyPercent = Send.SafetyPercent,
+                PrepaymentFrom = Send.PrepaymentFrom,
+            })).Errors);
+        }
+
+        errors = failed.Count == 0 ? null : failed;
+        if (failed.Count == 0)
+        {
+            Notify.Success($"Die Abrechnung wurde an {unsent.Count} Mietverhältnisse versendet.");
+        }
+
+        overview = await Dispatching.OverviewAsync(Id);
+    }
+
     private async Task DispatchAsync(Guid leaseId)
     {
         var result = await Dispatching.DispatchAsync(Id, leaseId, new DispatchInput
@@ -421,16 +458,40 @@ var result = statement.Result;
         await FinishAsync(result, "Die Abrechnung wurde versendet bzw. für den Postversand abgelegt.");
     }
 
-    private async Task ConfirmAsync(Guid dispatchId)
-    {
-        if (Confirmation.ReceivedOn is null)
-        {
-            errors = ["Bitte das Zugangsdatum angeben."];
-            return;
-        }
+    private int Delivered => overview!.Tenancies.Count(t => t.Dispatch is { ReceivedOn: not null });
 
-        var result = await Dispatching.ConfirmReceiptAsync(dispatchId, new DeliveryConfirmation { ReceivedOn = Confirmation.ReceivedOn, Note = Confirmation.Note });
-        await FinishAsync(result, "Der Zugang wurde vermerkt.");
+    private List<ProcessStep> DispatchSteps
+    {
+        get
+        {
+            var tenancies = overview!.Tenancies;
+            var sent = tenancies.Count(t => t.Dispatch is not null);
+            var proposals = tenancies.Where(t => t.Dispatch is not null).SelectMany(t => t.Dispatch!.Proposals).ToList();
+            var allSent = tenancies.Count > 0 && sent == tenancies.Count;
+            var allDelivered = tenancies.Count > 0 && Delivered == tenancies.Count;
+            return
+            [
+                new("Freigegeben", ProcessState.Done, Format.Day(overview.Statement.Summary.ReleasedAt)),
+                new("Versendet", allSent ? ProcessState.Done : ProcessState.Current, $"{sent} von {tenancies.Count}"),
+                new("Zugang bestätigt", allDelivered ? ProcessState.Done : allSent ? ProcessState.Current : ProcessState.Open, $"{Delivered} von {tenancies.Count}"),
+                new("Vorauszahlungen geprüft", proposals.Count == 0 ? ProcessState.Unknown : proposals.All(p => p.Status != ProposalStatus.Open) ? ProcessState.Done : allDelivered ? ProcessState.Current : ProcessState.Open),
+                new("Belege für Mieter", ProcessState.Unknown, "freiwillig"),
+            ];
+        }
+    }
+
+    private async Task ConfirmAsync(Guid dispatchId, string tenant)
+    {
+        var confirmation = new DeliveryConfirmation { ReceivedOn = GermanTime.Today(Clock.GetUtcNow()) };
+        RenderFragment fields = @<text>
+            <AppDateField @bind-Value="confirmation.ReceivedOn" Label="Zugangsdatum" Required="true" />
+            <AppTextField @bind-Value="confirmation.Note" Label="Nachweis" Hint="z. B. Einwurf-Einschreiben, Lesebestätigung." />
+        </text>;
+        if (await Dialogs.ShowFormAsync($"Zugang bestätigen: {tenant}", confirmation, fields, () => Dispatching.ConfirmReceiptAsync(dispatchId, confirmation), "Zugang bestätigen"))
+        {
+            Notify.Success("Der Zugang wurde vermerkt.");
+            overview = await Dispatching.OverviewAsync(Id);
+        }
     }
 
     private async Task ApplyAsync(ProposalRow proposal) =>
@@ -464,13 +525,5 @@ var result = statement.Result;
         public decimal? SafetyPercent { get; set; }
 
         public DateOnly? PrepaymentFrom { get; set; }
-    }
-
-    private sealed class ReceiptForm
-    {
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Bitte das Zugangsdatum angeben.")]
-        public DateOnly? ReceivedOn { get; set; }
-
-        public string? Note { get; set; }
     }
 }

@@ -9,7 +9,7 @@
 @inject IDialogService Dialogs
 
 <InteractiveShell>
-<PageHeader Title="Mietvertrag anlegen" Subtitle="Mietobjekt, Laufzeit, Mieter und Miete festlegen. Alles Weitere (Kaution, Kündigung, Dokumente) ergänzen Sie danach im Vertrag." Back="/verwaltung/vertraege" BackText="Alle Verträge" />
+<PageHeader Title="Mietvertrag anlegen" Subtitle="Mietobjekt, Laufzeit, Mieter und Miete festlegen. Alles Weitere (Kündigung, Dokumente) ergänzen Sie danach im Vertrag." Back="/verwaltung/vertraege" BackText="Alle Verträge" />
 
 <ErrorList Errors="errors" />
 
@@ -20,77 +20,85 @@
     </Notice>
 }
 
-<EditForm Model="form" OnValidSubmit="CreateAsync" novalidate>
-    <DataAnnotationsValidator />
-    <h2>Mietobjekt &amp; Laufzeit</h2>
-    <div class="form-grid">
-        <AppSelect T="Guid?" @bind-Value="form.RentalUnitId" Label="Mietobjekt" Required="true" Items="rentalUnits.Select(m => (Guid?)m.Id).ToList()" Text="RentalUnitText" EmptyText="– bitte wählen –" />
-        <AppDateField @bind-Value="form.Start" Label="Mietbeginn" Required="true" />
-        <AppDateField @bind-Value="form.FixedTermUntil" Label="Befristet bis" Hint="Nur bei Zeitmietverträgen (§ 575 BGB)." />
-    </div>
-
-    <h2>Mieter</h2>
-    <div class="form-grid">
-        <PersonSelect @bind-Value="form.Tenant1" Label="Mieter" Required="true" People="people" />
-        <PersonSelect @bind-Value="form.Tenant2" Label="Weiterer Mieter" Hint="Gesamtschuldnerisch; weitere später im Vertrag." People="people" />
-        @if (State.IsVisible(AppOption.LeaseGuarantor))
-        {
-            <PersonSelect @bind-Value="form.Guarantor" Label="Bürge" People="people" />
-        }
-    </div>
-    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="AddPersonAsync">Neue Person anlegen</MudButton>
-
-    <h2>Miete</h2>
-    <div class="form-grid">
-        @if (RentModels.Count > 1)
-        {
-            <AppSelect @bind-Value="form.RentModel" Label="Mietmodell" Items="RentModels" Text="@(v => Labels.From(v))" />
-        }
-        @if (BillingTypes.Count > 1)
-        {
-            <AppSelect @bind-Value="form.BillingType" Label="Nebenkosten" Items="BillingTypes" Text="@(v => Labels.From(v))" />
-        }
-        <AppNumberField T="decimal?" @bind-Value="form.BaseRent" Label="Kaltmiete (€/Monat)" Suffix="€" Required="true" />
-        @if (form.RentModel == RentModel.Index)
-        {
-            <AppMonthField @bind-Value="form.IndexBaseMonth" Label="Indexmiete: Ausgangsmonat" Hint="Monat des Ausgangsindex, z. B. Mietbeginn" />
-            <AppNumberField T="decimal?" @bind-Value="form.IndexBaseValue" Label="Indexmiete: Ausgangswert" Hint="VPI (2020 = 100), z. B. 117,4" />
-        }
-        @if (form.BillingType == BillingType.Prepayment)
-        {
-            <AppNumberField T="decimal?" @bind-Value="form.OperatingCostPrepayment" Label="Betriebskosten-Vorauszahlung" Suffix="€" />
-            <AppNumberField T="decimal?" @bind-Value="form.HeatingCostPrepayment" Label="Heizkosten-Vorauszahlung" Suffix="€" />
-        }
-        else if (form.BillingType == BillingType.FlatRate)
-        {
-            <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Betriebskostenpauschale" Suffix="€" Hint="z. B. WG-Zimmer." Required="true" />
-        }
-        else if (form.BillingType == BillingType.Inclusive)
-        {
-            <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Nebenkostenanteil der Inklusivmiete" Suffix="€" Hint="Zusätzlich zur Kaltmiete; Inklusivmiete = Kaltmiete + Anteil." Required="true" />
-        }
-        <AppNumberField T="int" @bind-Value="form.People" Label="Personen im Haushalt" Min="1" Max="20" />
-    </div>
-    @if (form.BillingType != BillingType.Prepayment)
+<Wizard Steps="WizardSteps" Current="step" CurrentChanged="OnStepChanged" Model="form" OnFinish="CreateAsync" FinishText="Vertrag anlegen" StepsLabel="Schritte des Vertrags">
+    @if (step == 0)
     {
-        <AppCheckBox @bind-Value="form.HeatingCostsConsumptionBased" Label="Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)" />
+        <div class="form-grid">
+            <AppSelect T="Guid?" @bind-Value="form.RentalUnitId" Label="Mietobjekt" Required="true" Items="rentalUnits.Select(m => (Guid?)m.Id).ToList()" Text="RentalUnitText" EmptyText="– bitte wählen –" />
+            <AppDateField @bind-Value="form.Start" Label="Mietbeginn" Required="true" />
+            <AppDateField @bind-Value="form.FixedTermUntil" Label="Befristet bis" Hint="Nur bei Zeitmietverträgen (§ 575 BGB)." />
+        </div>
     }
-
-    <h2>Weitere Angaben</h2>
-    <div class="form-grid">
-        <AppNumberField T="int" @bind-Value="form.DueOnWorkingDay" Label="Fällig am … Werktag" Min="1" Max="10" />
-        <AppSelect @bind-Value="form.PaymentMethod" Label="Zahlungsart" Items="Enum.GetValues<PaymentMethod>()" Text="@(v => Labels.From(v))" />
-        <AppNumberField T="int" @bind-Value="form.NoticePeriodMonths" Label="Kündigungsfrist Mieter (Monate)" Min="1" Max="24" />
-        @if (State.IsVisible(AppOption.LeaseDeposit))
+    else if (step == 1)
+    {
+        <div class="form-grid">
+            <PersonSelect @bind-Value="form.Tenant1" Label="Mieter" Required="true" People="people" />
+            <PersonSelect @bind-Value="form.Tenant2" Label="Weiterer Mieter" Hint="Gesamtschuldnerisch; weitere später im Vertrag." People="people" />
+            @if (State.IsVisible(AppOption.LeaseGuarantor))
+            {
+                <PersonSelect @bind-Value="form.Guarantor" Label="Bürge" People="people" />
+            }
+        </div>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="AddPersonAsync">Neue Person anlegen</MudButton>
+    }
+    else if (step == 2)
+    {
+        <div class="form-grid">
+            @if (RentModels.Count > 1)
+            {
+                <AppSelect @bind-Value="form.RentModel" Label="Mietmodell" Items="RentModels" Text="@(v => Labels.From(v))" />
+            }
+            @if (BillingTypes.Count > 1)
+            {
+                <AppSelect @bind-Value="form.BillingType" Label="Nebenkosten" Items="BillingTypes" Text="@(v => Labels.From(v))" />
+            }
+            <AppNumberField T="decimal?" @bind-Value="form.BaseRent" Label="Kaltmiete (€/Monat)" Suffix="€" Required="true" />
+            @if (form.RentModel == RentModel.Index)
+            {
+                <AppMonthField @bind-Value="form.IndexBaseMonth" Label="Indexmiete: Ausgangsmonat" Hint="Monat des Ausgangsindex, z. B. Mietbeginn" />
+                <AppNumberField T="decimal?" @bind-Value="form.IndexBaseValue" Label="Indexmiete: Ausgangswert" Hint="VPI (2020 = 100), z. B. 117,4" />
+            }
+            @if (form.BillingType == BillingType.Prepayment)
+            {
+                <AppNumberField T="decimal?" @bind-Value="form.OperatingCostPrepayment" Label="Betriebskosten-Vorauszahlung" Suffix="€" />
+                <AppNumberField T="decimal?" @bind-Value="form.HeatingCostPrepayment" Label="Heizkosten-Vorauszahlung" Suffix="€" />
+            }
+            else if (form.BillingType == BillingType.FlatRate)
+            {
+                <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Betriebskostenpauschale" Suffix="€" Hint="z. B. WG-Zimmer." Required="true" />
+            }
+            else if (form.BillingType == BillingType.Inclusive)
+            {
+                <AppNumberField T="decimal?" @bind-Value="form.OperatingCostFlatRate" Label="Nebenkostenanteil der Inklusivmiete" Suffix="€" Hint="Zusätzlich zur Kaltmiete; Inklusivmiete = Kaltmiete + Anteil." Required="true" />
+            }
+            <AppNumberField T="int" @bind-Value="form.People" Label="Personen im Haushalt" Min="1" Max="20" />
+        </div>
+        @if (form.BillingType != BillingType.Prepayment)
         {
-            <AppNumberField T="decimal?" @bind-Value="form.Deposit" Label="Kaution" Suffix="€" />
-            <AppTextField @bind-Value="form.DepositNote" Label="Kaution – Notiz" Hint="z. B. „Bürgschaft Sparkasse“" />
+            <AppCheckBox @bind-Value="form.HeatingCostsConsumptionBased" Label="Heizkosten trotz Pauschale verbrauchsabhängig abrechnen (HeizkostenV)" />
         }
-    </div>
-    <AppTextField @bind-Value="form.Notes" Label="Notizen" Lines="2" />
-
-    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Vertrag anlegen</MudButton>
-</EditForm>
+    }
+    else
+    {
+        <div class="form-grid">
+            <AppNumberField T="int" @bind-Value="form.DueOnWorkingDay" Label="Fällig am … Werktag" Min="1" Max="10" />
+            <AppSelect @bind-Value="form.PaymentMethod" Label="Zahlungsart" Items="Enum.GetValues<PaymentMethod>()" Text="@(v => Labels.From(v))" />
+            <AppNumberField T="int" @bind-Value="form.NoticePeriodMonths" Label="Kündigungsfrist Mieter (Monate)" Min="1" Max="24" />
+            @if (State.IsVisible(AppOption.LeaseDeposit))
+            {
+                <AppNumberField T="decimal?" @bind-Value="form.Deposit" Label="Kaution" Suffix="€" />
+                <AppTextField @bind-Value="form.DepositNote" Label="Kaution – Notiz" Hint="z. B. „Bürgschaft Sparkasse“" />
+            }
+        </div>
+        <AppTextField @bind-Value="form.Notes" Label="Notizen" Lines="2" />
+        <dl class="details" id="lease-summary">
+            <dt>Mietobjekt</dt><dd>@RentalUnitText(form.RentalUnitId)</dd>
+            <dt>Mietbeginn</dt><dd>@Format.Date(form.Start)</dd>
+            <dt>Mieter</dt><dd>@string.Join(", ", people.Where(p => p.Id == form.Tenant1 || p.Id == form.Tenant2).Select(p => p.DisplayName))</dd>
+            <dt>Monatsmiete</dt><dd>@Format.Money(MonthlyTotal)</dd>
+        </dl>
+    }
+</Wizard>
 </InteractiveShell>
 
 @code {
@@ -99,6 +107,26 @@
     private IReadOnlyList<string>? errors;
 
     private LeaseForm form = new();
+    private int step;
+
+    private static readonly IReadOnlyList<WizardStepInfo> WizardSteps =
+    [
+        new("Mietobjekt und Laufzeit"),
+        new("Mieter"),
+        new("Miete"),
+        new("Weitere Angaben und Prüfen"),
+    ];
+
+    private decimal MonthlyTotal => (form.BaseRent ?? 0m) + (form.BillingType == BillingType.Prepayment
+        ? (form.OperatingCostPrepayment ?? 0m) + (form.HeatingCostPrepayment ?? 0m)
+        : form.OperatingCostFlatRate ?? 0m);
+
+    /// <summary>"Weiter" checks what the step asks for; what comes later is not an error yet.</summary>
+    private void OnStepChanged(int value)
+    {
+        step = value;
+        form.Stage = value;
+    }
 
     private IReadOnlyList<RentModel> RentModels => Enum.GetValues<RentModel>()
         .Where(m => m == RentModel.Standard || State.IsVisible(ModuleCatalog.Of(m))).ToList();
@@ -112,9 +140,13 @@
     [SupplyParameterFromQuery(Name = "beginn")]
     private DateOnly? Start { get; set; }
 
+    [SupplyParameterFromQuery(Name = "schritt")]
+    private int? InitialStep { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         form = new() { RentalUnitId = RentalUnit, Start = Start };
+        OnStepChanged(Math.Clamp((InitialStep ?? 1) - 1, 0, WizardSteps.Count - 1));
         if (BillingTypes.Count > 0 && !BillingTypes.Contains(form.BillingType))
         {
             form.BillingType = BillingTypes[0];
@@ -195,17 +227,40 @@
         DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed) ? parsed : null;
 
     /// <summary>Flat form model (a single level so field names and validation stay simple).</summary>
-    private sealed class LeaseForm
+    private sealed class LeaseForm : IValidatableObject
     {
-        [Required(ErrorMessage = "Bitte das Mietobjekt wählen.")]
+        /// <summary>The wizard step being filled in: required fields of later steps are not checked yet.</summary>
+        public int Stage { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (RentalUnitId is null)
+            {
+                yield return new("Bitte das Mietobjekt wählen.", [nameof(RentalUnitId)]);
+            }
+
+            if (Start is null)
+            {
+                yield return new("Bitte den Mietbeginn angeben.", [nameof(Start)]);
+            }
+
+            if (Stage >= 1 && Tenant1 is null)
+            {
+                yield return new("Bitte den Mieter wählen.", [nameof(Tenant1)]);
+            }
+
+            if (Stage >= 2 && BaseRent is null)
+            {
+                yield return new("Bitte die Kaltmiete angeben.", [nameof(BaseRent)]);
+            }
+        }
+
         public Guid? RentalUnitId { get; set; }
 
-        [Required(ErrorMessage = "Bitte den Mietbeginn angeben.")]
         public DateOnly? Start { get; set; }
 
         public DateOnly? FixedTermUntil { get; set; }
 
-        [Required(ErrorMessage = "Bitte den Mieter wählen.")]
         public Guid? Tenant1 { get; set; }
 
         public Guid? Tenant2 { get; set; }
@@ -223,7 +278,6 @@
 
         public bool HeatingCostsConsumptionBased { get; set; }
 
-        [Required(ErrorMessage = "Bitte die Kaltmiete angeben.")]
         [Range(typeof(decimal), "0", "100000", ErrorMessage = "Bitte einen Betrag zwischen 0 und 100.000 € angeben.", ParseLimitsInInvariantCulture = true)]
         public decimal? BaseRent { get; set; }
 

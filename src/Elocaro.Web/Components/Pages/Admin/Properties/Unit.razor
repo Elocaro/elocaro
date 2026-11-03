@@ -2,6 +2,10 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @using Elocaro.Application.Admin
+@using Elocaro.Application.Portfolio
+@using Elocaro.Application.Metering
+@inject IPortfolioFigures Portfolio
+@inject IMeterService Meters
 @inject IModuleState State
 @inject IPropertyService Admin
 @inject IDialogService Dialogs
@@ -39,6 +43,30 @@ else
 {
     <Notice Level="NoticeLevel.Info">@hint</Notice>
 }
+
+<div class="kpis" role="group" aria-label="Kennzahlen der Einheit" id="unit-kpis">
+    @if (unit.Occupancy is { } occupied)
+    {
+        <KpiTile Label="Mieter" Value="@occupied.Tenant" Note="@(occupied.End is { } end ? $"bis {Format.Date(end)}" : $"seit {Format.Date(occupied.Start)}")" Href="@($"/verwaltung/vertraege/{occupied.LeaseId}")" />
+        @if (figures is not null)
+        {
+            <KpiTile Label="Monatsmiete" Value="@Format.Money(figures.RentByLease.GetValueOrDefault(occupied.LeaseId))" Href="@($"/verwaltung/vertraege/{occupied.LeaseId}/konto")" />
+            @if (figures.ArrearsByLease.TryGetValue(occupied.LeaseId, out var due))
+            {
+                <KpiTile Label="Rückstand" Value="@Format.Money(due)" Href="@($"/verwaltung/vertraege/{occupied.LeaseId}/konto")" Level="NoticeLevel.Warning" />
+            }
+        }
+    }
+    else if (!unit.IsSharedFlat)
+    {
+        <KpiTile Label="Belegung" Value="leer" Href="@($"/verwaltung/vertraege/neu?mietobjekt={Id}")" Note="Vertrag anlegen" Level="NoticeLevel.Info" />
+    }
+    <KpiTile Label="Wohnfläche" Value="@Format.Area(unit.Area?.Area)" />
+    @if (State.IsEnabled(AppModule.Metering))
+    {
+        <KpiTile Label="Zähler der Einheit" Value="@meterCount.ToString(System.Globalization.CultureInfo.CurrentCulture)" Href="@($"/verwaltung/objekte/{unit.PropertyId}/zaehler")" />
+    }
+</div>
 
 <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
     <MudTabPanel Text="@(unit.IsSharedFlat ? "Zimmer" : "Belegung")">
@@ -127,6 +155,11 @@ else
 
 @code {
     private UnitDetails? unit;
+    private PropertyFigures? figures;
+    private int meterCount;
+
+    [CascadingParameter]
+    private Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState>? AuthenticationState { get; set; }
     private UnitInput data = new();
     private IReadOnlyList<string>? errors;
     private bool loaded;
@@ -144,6 +177,15 @@ else
         if (unit is not null)
         {
             data = unit.Data;
+            if (AuthenticationState is not null)
+            {
+                figures = await Portfolio.PropertyFiguresAsync((await AuthenticationState).User, unit.PropertyId);
+            }
+
+            if (State.IsEnabled(AppModule.Metering))
+            {
+                meterCount = (await Meters.ListAsync(unit.PropertyId)).Count(m => m.UnitId == Id);
+            }
         }
 
         loaded = true;

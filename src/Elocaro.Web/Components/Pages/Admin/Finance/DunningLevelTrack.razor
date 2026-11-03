@@ -1,0 +1,35 @@
+@using Elocaro.Domain.Finance
+@* The escalation of a dunning: where the tenancy stands and what comes next. Compact: in a table row, the level in words. *@
+@if (Compact)
+{
+    <span class="dunning-level">
+        @Labels.From(Current)
+        <span class="small">Stufe @((int)Current) von 3</span>
+        <ProgressMeter Value="(int)Current" Total="3" Text="@($"Stufe {(int)Current} von 3: {Labels.From(Current)}")" Tone="Current == DunningLevel.SecondNotice ? ChartTone.Error : ChartTone.Warning" />
+    </span>
+}
+else
+{
+    <ProcessTrack Label="Stand des Mahnverfahrens" Steps="Steps" id="dunning-track" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public DunningLevel Current { get; set; }
+
+    /// <summary>The level has been issued: it counts as done, the next one is up.</summary>
+    [Parameter]
+    public bool Issued { get; set; }
+
+    /// <summary>Date until which the tenant can pay this level.</summary>
+    [Parameter]
+    public DateOnly? Deadline { get; set; }
+
+    [Parameter]
+    public bool Compact { get; set; }
+
+    private List<ProcessStep> Steps => [.. Enum.GetValues<DunningLevel>().Select(level => new ProcessStep(
+        Labels.From(level),
+        level < Current || (level == Current && Issued) ? ProcessState.Done : level == Current ? ProcessState.Current : ProcessState.Open,
+        level == Current && Deadline is { } due ? $"zahlbar bis {Format.Date(due)}" : null))];
+}

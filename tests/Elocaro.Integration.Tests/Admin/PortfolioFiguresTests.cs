@@ -81,6 +81,39 @@ public class PortfolioFiguresTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Null(await FiguresAsync(manager));
     }
 
+    [Fact]
+    public async Task Property_figures_count_only_the_leases_of_that_property_and_need_finance_rights()
+    {
+        // Clock: 1 March 2026. One let apartment in each of two houses; the first tenant owes February.
+        await using var scope = environment.Services.CreateAsyncScope();
+        var sp = scope.ServiceProvider;
+        var properties = sp.GetRequiredService<IPropertyService>();
+        var first = Validate(await properties.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, Ct));
+        var second = Validate(await properties.CreateAsync(new PropertyInput { Name = "Gartenstraße 12", Street = "Gartenstraße 12", PostalCode = "50667", City = "Köln" }, Ct));
+        var firstUnit = Validate(await properties.CreateUnitAsync(first, new UnitInput { Name = "Wohnung 1" }, Ct));
+        var secondUnit = Validate(await properties.CreateUnitAsync(second, new UnitInput { Name = "Wohnung 1" }, Ct));
+        var people = sp.GetRequiredService<IPersonService>();
+        var anna = Validate(await people.CreateAsync(new PersonInput { LastName = "Schmidt" }, null, Ct));
+        var ben = Validate(await people.CreateAsync(new PersonInput { LastName = "Weber" }, null, Ct));
+        var leases = sp.GetRequiredService<ILeaseService>();
+        var annaLease = Validate(await leases.CreateAsync(new LeaseCreation { RentalUnitId = firstUnit, Start = new DateOnly(2026, 2, 1), TenantIds = [anna], BaseRent = 650m }, Ct));
+        var benLease = Validate(await leases.CreateAsync(new LeaseCreation { RentalUnitId = secondUnit, Start = new DateOnly(2026, 2, 1), TenantIds = [ben], BaseRent = 900m }, Ct));
+        await sp.GetRequiredService<IFinanceSettings>().SaveAsync(new FinanceSettingsInput { AccountingStart = new DateOnly(2026, 2, 1) }, Ct);
+        await sp.GetRequiredService<ITenantAccounts>().GenerateChargesAsync(null, Ct);
+
+        var figures = await sp.GetRequiredService<IPortfolioFigures>().PropertyFiguresAsync(Administrator, first, Ct);
+
+        Assert.NotNull(figures);
+        Assert.Equal(650m, figures.MonthlyRent);
+        Assert.Equal(650m, figures.Arrears);
+        Assert.Equal([annaLease], figures.RentByLease.Keys);
+        Assert.Equal(650m, figures.ArrearsByLease[annaLease]);
+        Assert.False(figures.ArrearsByLease.ContainsKey(benLease));
+
+        var manager = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.Manager), new Claim(Permissions.ClaimType, nameof(AccessRight.MasterData))], "test"));
+        Assert.Null(await sp.GetRequiredService<IPortfolioFigures>().PropertyFiguresAsync(manager, first, Ct));
+    }
+
     private async Task<PortfolioFigures?> FiguresAsync(ClaimsPrincipal user)
     {
         await using var scope = environment.Services.CreateAsyncScope();

@@ -39,6 +39,9 @@ public sealed class Unit : Entity
     /// <summary>Location in the building, e.g. "EG links".</summary>
     public string? Location { get; set; }
 
+    /// <summary>Floor for the building plan (<see cref="BuildingFloor"/>); without it the floor is read from <see cref="Location"/>.</summary>
+    public int? Floor { get; set; }
+
     public UnitType Type { get; set; }
 
     /// <summary>Display order within the property.</summary>

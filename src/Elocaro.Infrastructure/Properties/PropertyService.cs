@@ -50,7 +50,8 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
             e.IsSharedFlat,
             e.IsSharedFlat
                 ? e.Room.OrderBy(z => z.Order).Select(z => new RentalUnitRow(z.Id, z.Name, true, z.AreaOn(Today)?.Area, occupied.GetValueOrDefault(z.Id))).ToList()
-                : [new RentalUnitRow(e.Id, e.Name, false, e.AreaOn(Today)?.LivingArea, occupied.GetValueOrDefault(e.Id))])).ToList();
+                : [new RentalUnitRow(e.Id, e.Name, false, e.AreaOn(Today)?.LivingArea, occupied.GetValueOrDefault(e.Id))],
+            BuildingFloor.Of(e.Floor, e.Location))).ToList();
 
         return new PropertyDetails(
             property.Id,
@@ -347,6 +348,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
     {
         Name = e.Name,
         Location = e.Location,
+        Floor = e.Floor,
         Type = e.Type,
         RoomCount = e.RoomCount,
         Bathroom = e.Bathroom,
@@ -378,6 +380,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
     {
         e.Name = d.Name.Trim();
         e.Location = TrimToNull(d.Location);
+        e.Floor = d.Floor;
         e.Type = d.Type;
         e.RoomCount = d.RoomCount;
         e.Bathroom = TrimToNull(d.Bathroom);

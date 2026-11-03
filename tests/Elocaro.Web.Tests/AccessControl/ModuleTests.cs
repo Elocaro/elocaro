@@ -85,13 +85,13 @@ public class ModuleOptionPagesTests(PostgresFixture postgres) : AccountTestBase(
         var (browser, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = browser;
 
-        var all = (await browser.GetAsync("/verwaltung/vertraege/neu")).Document.Body!.TextContent;
+        var all = (await browser.GetAsync("/verwaltung/vertraege/neu?schritt=3")).Document.Body!.TextContent;
         Assert.Contains("Mietmodell", all, StringComparison.Ordinal);
         Assert.Contains("Nebenkosten", all, StringComparison.Ordinal);
 
         await SaveAsync(AppOption.BillingPrepayment);
 
-        var reduced = (await browser.GetAsync("/verwaltung/vertraege/neu")).Document.Body!.TextContent;
+        var reduced = (await browser.GetAsync("/verwaltung/vertraege/neu?schritt=3")).Document.Body!.TextContent;
         Assert.DoesNotContain("Mietmodell", reduced, StringComparison.Ordinal);
         Assert.DoesNotContain("Nebenkosten", reduced, StringComparison.Ordinal);
         Assert.Contains("Betriebskosten-Vorauszahlung", reduced, StringComparison.Ordinal);
@@ -99,7 +99,7 @@ public class ModuleOptionPagesTests(PostgresFixture postgres) : AccountTestBase(
 
         await SaveAsync(AppOption.BillingFlatRate, AppOption.RentModelIndex);
 
-        var flat = (await browser.GetAsync("/verwaltung/vertraege/neu")).Document.Body!.TextContent;
+        var flat = (await browser.GetAsync("/verwaltung/vertraege/neu?schritt=3")).Document.Body!.TextContent;
         Assert.Contains("Mietmodell", flat, StringComparison.Ordinal);
         Assert.DoesNotContain("Betriebskosten-Vorauszahlung", flat, StringComparison.Ordinal);
     }
@@ -130,9 +130,8 @@ public class LeaseFormOptionTests(PostgresFixture postgres) : AccountTestBase(po
     {
         var (browser, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = browser;
-        var full = (await browser.GetAsync("/verwaltung/vertraege/neu")).Document.Body!.TextContent;
-        Assert.Contains("Kaution – Notiz", full, StringComparison.Ordinal);
-        Assert.Contains("Bürge", full, StringComparison.Ordinal);
+        Assert.Contains("Kaution – Notiz", (await browser.GetAsync("/verwaltung/vertraege/neu?schritt=4")).Document.Body!.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Bürge", (await browser.GetAsync("/verwaltung/vertraege/neu?schritt=2")).Document.Body!.TextContent, StringComparison.Ordinal);
         Assert.Contains("Karenzzeit", (await browser.GetAsync("/verwaltung/finanzen/einstellungen")).Document.Body!.TextContent, StringComparison.Ordinal);
 
         await App.WithScopeAsync(async sp =>
@@ -141,7 +140,7 @@ public class LeaseFormOptionTests(PostgresFixture postgres) : AccountTestBase(po
             return true;
         });
 
-        var reduced = (await browser.GetAsync("/verwaltung/vertraege/neu")).Document.Body!.TextContent;
+        var reduced = (await browser.GetAsync("/verwaltung/vertraege/neu?schritt=3")).Document.Body!.TextContent;
         Assert.DoesNotContain("Kaution – Notiz", reduced, StringComparison.Ordinal);
         Assert.DoesNotContain("Bürge", reduced, StringComparison.Ordinal);
         Assert.DoesNotContain("Karenzzeit", (await browser.GetAsync("/verwaltung/finanzen/einstellungen")).Document.Body!.TextContent, StringComparison.Ordinal);

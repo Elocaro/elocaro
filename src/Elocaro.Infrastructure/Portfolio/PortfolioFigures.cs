@@ -6,6 +6,7 @@ using Elocaro.Application.Portfolio;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Finance;
 using Elocaro.Domain.Leases;
+using Elocaro.Domain.Properties;
 using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -65,5 +66,26 @@ internal sealed class PortfolioFiguresService(ElocaroDbContext db, ITenantAccoun
             open.Select(i => i.LeaseId).Distinct().Count(),
             history,
             costs);
+    }
+
+    public async Task<PropertyFigures?> PropertyFiguresAsync(ClaimsPrincipal user, Guid propertyId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (!user.IsInRole(Roles.Admin) && !user.HasClaim(Permissions.ClaimType, nameof(AccessRight.Finance)))
+        {
+            return null;
+        }
+
+        var today = GermanTime.Today(clock.GetUtcNow());
+        var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Components).AsSplitQuery()
+            .Where(v => db.Set<Unit>().Any(u => u.Id == v.UnitId && u.PropertyId == propertyId))
+            .ToListAsync(cancellationToken);
+        var ids = leases.Select(v => v.Id).ToHashSet();
+        var rents = leases.Where(v => v.StatusAt(today) is LeaseStatus.Active or LeaseStatus.Terminated).ToDictionary(v => v.Id, v => v.MonthlyRentOn(today));
+        var arrears = (await accounts.OpenItemsAsync(cancellationToken))
+            .Where(i => i.Due <= today && ids.Contains(i.LeaseId))
+            .GroupBy(i => i.LeaseId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Open));
+        return new PropertyFigures(rents.Values.Sum(), arrears.Values.Sum(), rents, arrears);
     }
 }

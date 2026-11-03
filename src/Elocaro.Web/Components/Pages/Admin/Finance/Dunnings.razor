@@ -10,10 +10,11 @@
 
 <ErrorList Errors="errors" />
 
-<Notice Level="NoticeLevel.Info">
-    Die mitgelieferte Mahnvorlage ist eine <strong>Basisvorlage</strong> und keine Rechtsberatung. Bitte lassen Sie Text, Fristen,
-    Gebühren und Verzugszinsen vor dem produktiven Einsatz rechtlich prüfen.
-</Notice>
+<details class="explain" id="dunning-legal">
+    <summary>Hinweis zur Mahnvorlage</summary>
+    <p class="small">Die mitgelieferte Mahnvorlage ist eine <strong>Basisvorlage</strong> und keine Rechtsberatung. Bitte lassen Sie Text, Fristen,
+    Gebühren und Verzugszinsen vor dem produktiven Einsatz rechtlich prüfen.</p>
+</details>
 
 @if (overview is not null)
 {
@@ -23,16 +24,16 @@
             <h2 id="hints-heading">Hinweis Kündigungsrelevanz</h2>
             @foreach (var hint in overview.TerminationHints)
             {
-                <Notice Level="NoticeLevel.Info">
+                <Notice Level="NoticeLevel.Warning">
                     <a href="/verwaltung/vertraege/@hint.LeaseId/konto">@hint.Tenant</a> <span class="small">(@hint.RentalUnit)</span>:
                     Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent).
                     @if (hint.Relevance.TwoConsecutiveTerms)
                     {
-                        <span>Für zwei aufeinanderfolgende Termine ist mehr als eine Monatsmiete offen.</span>
+                        <span>Für zwei aufeinanderfolgende Termine ist mehr als eine Monatsmiete offen.&#32;</span>
                     }
                     @if (hint.Relevance.TwoMonthlyRents)
                     {
-                        <span>Der Rückstand erreicht zwei Monatsmieten.</span>
+                        <span>Der Rückstand erreicht zwei Monatsmieten.&#32;</span>
                     }
                     Das kann eine fristlose Kündigung nach § 543 Abs. 2 Nr. 3 BGB ermöglichen. Dies ist nur ein Hinweis, Elocaro kündigt nie automatisch; bitte rechtlich prüfen lassen.
                 </Notice>
@@ -59,10 +60,10 @@
                             <tr>
                                 <td><a href="/verwaltung/vertraege/@m.LeaseId/konto">@m.Tenant</a><span class="small">&#32;@m.RentalUnit</span></td>
                                 <td>
-                                    @Labels.From(m.Level)
+                                    <DunningLevelTrack Current="m.Level" Compact="true" />
                                     @if (m.TerminationRelevant)
                                     {
-                                        <StatusChip Level="StatusLevel.Error">Kündigungsrelevanz</StatusChip>
+                                        <StatusChip Level="StatusLevel.Warning">Kündigungsrelevanz</StatusChip>
                                     }
                                 </td>
                                 <td class="number">@Format.Money(m.Principal)</td>

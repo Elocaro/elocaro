@@ -4,6 +4,7 @@
 <div class="form-grid">
     <AppTextField @bind-Value="Data.Name" Label="Bezeichnung" Required="true" Hint="z. B. „Wohnung 1“" />
     <AppTextField @bind-Value="Data.Location" Label="Lage" Hint="z. B. „EG links“" />
+    <AppSelect T="int?" @bind-Value="Data.Floor" Label="Geschoss" Items="Floors" Text="@(f => f is { } floor ? Elocaro.Domain.Properties.BuildingFloor.Label(floor) : "")" EmptyText="Aus der Lage ermitteln" Hint="Für den Hausplan" />
     <AppSelect @bind-Value="Data.Type" Label="Art" Items="Types" Text="@(v => Labels.From(v))" />
     <AppNumberField T="decimal?" @bind-Value="Data.RoomCount" Label="Zimmeranzahl" Hint="z. B. 2,5" />
     <AppTextField @bind-Value="Data.Bathroom" Label="Bad" Hint="z. B. „Wanne und Dusche, Fenster“" />
@@ -29,6 +30,8 @@
 @code {
     [Parameter, EditorRequired]
     public UnitInput Data { get; set; } = default!;
+
+    private static readonly IReadOnlyList<int?> Floors = [.. Elocaro.Domain.Properties.BuildingFloor.Choices.Select(f => (int?)f)];
 
     /// <summary>Cost types that are typically paid by the tenants themselves.</summary>
     private static readonly string[] selfPayable = ["betrkv-02", "betrkv-03", "betrkv-08", "betrkv-11", "betrkv-15", "betrkv-16"];

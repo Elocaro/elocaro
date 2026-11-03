@@ -9,13 +9,18 @@
 <InteractiveShell>
     <PageHeader Title="Wartung" Subtitle="Wiederkehrende Pflichten von Hand eintragen: Rauchmelder, Heizungswartung, Schornsteinfeger, Legionellenprüfung und mehr." Back="/verwaltung/fristen" BackText="Fristen">
         <Actions>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">Wartung eintragen</MudButton>
+            @if (tasks is not { Count: 0 })
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">Wartung eintragen</MudButton>
+            }
         </Actions>
     </PageHeader>
 
     @if (tasks is { Count: 0 })
     {
-        <EmptyState Text="Noch keine Wartungen eingetragen." />
+        <EmptyState Text="Noch keine Wartungen eingetragen.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync">Wartung eintragen</MudButton>
+        </EmptyState>
     }
     else if (tasks is not null)
     {

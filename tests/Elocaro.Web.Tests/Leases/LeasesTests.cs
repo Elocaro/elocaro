@@ -121,7 +121,7 @@ public class LeasesTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.True(moved.Succeeded);
 
         // The move-out page links to the new lease with the day after the end prefilled.
-        var moveOut = await admin.GetAsync($"/verwaltung/vertraege/{id}/auszug?fertig=true");
+        var moveOut = await admin.GetAsync($"/verwaltung/vertraege/{id}/auszug");
         Assert.Contains($"endet am {end:dd.MM.yyyy}", moveOut.Text, StringComparison.Ordinal);
         var moveIn = moveOut.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Neuen Vertrag anlegen").GetAttribute("href")!;
         Assert.Contains($"beginn={Iso(end.AddDays(1))}", moveIn, StringComparison.Ordinal);

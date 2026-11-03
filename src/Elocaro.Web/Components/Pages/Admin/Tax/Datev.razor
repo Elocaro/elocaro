@@ -126,6 +126,7 @@
                             <AppNumberField T="int" @bind-Value="settings.ConsultantNumber" Label="Beraternummer" Required="true" />
                             <AppNumberField T="int" @bind-Value="settings.ClientNumber" Label="Mandantennummer" Required="true" />
                             <AppSelect T="DatevChart" @bind-Value="settings.Chart" Label="Kontenrahmen" Items="Enum.GetValues<DatevChart>()" Text="@(v => v == DatevChart.Skr03 ? "SKR 03" : "SKR 04")" />
+                            <p class="small">Unklar? Siehe <HelpTerm Term="Sachkontenlänge" />.</p>
                             <AppSelect T="int" @bind-Value="settings.AccountLength" Label="Sachkontenlänge" Items="AccountLengths" Text="@(v => $"{v} Stellen")" />
                             <AppSelect T="int" @bind-Value="settings.FiscalYearStartMonth" Label="Wirtschaftsjahr beginnt im" Items="Months" Text="@(m => System.Globalization.CultureInfo.GetCultureInfo("de-DE").DateTimeFormat.GetMonthName(m))" Hint="Januar = Kalenderjahr" />
                             <AppTextField @bind-Value="settings.DictationCode" Label="Diktatkürzel" Hint="optional, höchstens 2 Zeichen" />

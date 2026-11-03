@@ -52,6 +52,7 @@ else
             <AppNumberField T="decimal?" @bind-Value="Data.ConsumptionPercent" Label="Anteil nach Verbrauch (%)" Required="true" Min="50" Max="70" Hint="50 bis 70 %, Standard 70 %. Der Rest (Grundkosten) wird nach Fläche verteilt." />
             <AppSelect T="HeatingFuel" @bind-Value="Data.Fuel" Label="Energieträger" Items="Enum.GetValues<HeatingFuel>()" Text="Labels.From" />
             <AppNumberField T="decimal?" @bind-Value="Data.FuelKwhPerUnit" Label="Energieinhalt je Einheit (kWh)" Hint="Nur nötig, wenn der Beleg die Menge nicht in kWh nennt (m³ Gas, l Öl: Standard Öl 10 kWh/l)." />
+            <p class="small">Zur Aufteilung der CO₂-Kosten siehe <HelpTerm Term="Emissionsfaktor" />.</p>
             <AppNumberField T="decimal?" @bind-Value="Data.CarbonKgPerKwh" Label="Emissionsfaktor (kg CO₂/kWh)" Hint="Leer = Erdgas 0,2016 (BEHG, Stand/prüfen). Für Gas aus dem Tarif berechnet, wenn der Beleg keine CO₂-Menge nennt." />
             <AppCheckBox @bind-Value="Data.JointPlant" Label="Eine Anlage für Heizung und Warmwasser" />
         </div>
