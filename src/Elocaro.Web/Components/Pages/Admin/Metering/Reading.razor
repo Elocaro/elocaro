@@ -20,7 +20,7 @@ else if (property is null)
 else
 {
     <PageHeader Title="Ablese-Runde" Subtitle="@($"{Format.Date(ReferenceDate)}{(TypeValue == ReadingType.InterimReading ? " · Zwischenablesung" : "")}")"
-                Back="@(ReturnPath ?? $"/verwaltung/objekte/{PropertyId}/zaehler")" BackText="@(ReturnPath is null ? "Alle Zähler" : "Zurück zum Ablauf")" />
+                Back="@($"/verwaltung/objekte/{PropertyId}/zaehler")" BackText="Alle Zähler" />
 
     <ErrorList Errors="errors" />
 
@@ -128,10 +128,10 @@ else
     private DateOnly? Date { get; set; }
 
     /// <summary>Where the round was started from. Only a path inside the administration, so the query cannot lead elsewhere.</summary>
-    [SupplyParameterFromQuery(Name = "zurueck")]
+    [SupplyParameterFromQuery(Name = ReturnTarget.QueryName)]
     private string? ReturnTo { get; set; }
 
-    private string? ReturnPath => ReturnTo is not null && ReturnTo.StartsWith("/verwaltung/", StringComparison.Ordinal) && !ReturnTo.Contains("//", StringComparison.Ordinal) ? ReturnTo : null;
+    private string? ReturnPath => ReturnTarget.From(ReturnTo)?.Href;
 
     [SupplyParameterFromQuery(Name = "art")]
     private string? Kind { get; set; }

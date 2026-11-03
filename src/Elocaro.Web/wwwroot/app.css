@@ -1193,6 +1193,11 @@ a.house-room { text-decoration: none; }
 .house-legend { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 @media (max-width: 600px) { .house-floor { grid-template-columns: 1fr; } }
 
+/* Way back to the process a page was opened from */
+.return-bar { flex: none; padding: 0 var(--content-gutter); background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-size: 0.9rem; }
+.return-bar a { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 2.75rem; color: inherit; font-weight: 600; }
+.return-bar .icon { width: 1.1rem; height: 1.1rem; }
+
 /* Property header above the property tabs */
 .record-header { flex: none; margin: 0; padding: 0.25rem var(--content-gutter) 0.25rem; background: var(--md-surface); }
 .record-title { margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.3; }

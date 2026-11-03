@@ -182,6 +182,26 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
     }
 
     [Fact]
+    public async Task Inbox_confirms_all_certain_suggestions_at_once_after_asking()
+    {
+        var (_, account) = await SetupAsync();
+        var today = GermanTime.Today(App.Clock.GetUtcNow());
+        var previous = new DateOnly(today.Year, today.Month, 1).AddMonths(-1);
+        await TransactionAsync(account, previous.AddDays(2), 650m, "SCHMIDT, ANNA", TenantIban, $"Miete {previous:MM}/{previous:yy} Wohnung 1");
+        await TransactionAsync(account, today, 650m, "SCHMIDT, ANNA", TenantIban, $"Miete {today:MM}/{today:yy} Wohnung 1");
+        var page = await OpenAsync("/verwaltung/bank/zuordnung");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await page.GetByRole(AriaRole.Button, new() { Name = "sichere Vorschläge bestätigen" }).ClickAsync();
+            await Assertions.Expect(page.Locator(".mud-message-box")).ToContainTextAsync("1.300,00 €");
+            await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, alle bestätigen" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "2 Vorschläge wurden übernommen.");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Alle Umsätze sind zugeordnet.");
+        });
+    }
+
+    [Fact]
     public async Task Expense_is_split_into_two_cost_types_and_the_sum_must_match_exactly()
     {
         var (property, account) = await SetupAsync();

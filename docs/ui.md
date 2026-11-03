@@ -140,6 +140,7 @@ Zurückhaltend und nur dort, wo sie etwas erklärt; bei „reduzierte Bewegung�
 | Stand eines Ablaufs | `ProcessTrack` (`ProcessStep`, `ProcessState`) | Zustand **aus den Daten ableiten**, keine eigene Checkliste speichern; was die Daten nicht wissen, ist `Unknown` (Link ohne Haken). Waagerecht, unter 900 px senkrecht |
 | Fachbegriff erklären | `HelpTerm` (`Term`, `Text`) | Klick oder Tippen statt Überfahren (Popover, ohne JavaScript); Texte zentral in `Glossary`, auch für die Hilfe |
 | Hausplan | `HouseOverview` | Geschosse von oben nach unten, Breite folgt der Wohnfläche; Miete und Rückstand nur mit Finanz-Recht. Geschoss aus `Unit.Floor`, sonst aus der Lage (`BuildingFloor`) |
+| Rücksprung aus einem Ablauf | `ReturnBar` (im Layout), `ReturnTarget.AppendTo(link, rueckweg)` | Wer eine Seite aus einem Ablauf heraus öffnet (Abrechnungsassistent „Beheben“, Schritte des Mieterwechsels), hängt `?zurueck=<Pfad>` an; die Leiste unter den Tabs führt zurück. Angenommen werden nur Pfade unter `/verwaltung/`, alles andere ignoriert die Leiste |
 | Erstes leeres Objekt | `EmptyIllustration` | Nur beim allerersten leeren Zustand einer Installation |
 | Datum, Geld, Zahl | `Format.*`, Enum-Texte `Labels.*` | Nie `ToString("dd.MM.yyyy")` o. ä. in Seiten |
 

@@ -231,7 +231,7 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
     }
 
     [Fact]
-    public async Task The_reading_round_leads_back_to_the_process_it_was_started_from_but_never_outside()
+    public async Task A_page_opened_out_of_a_process_offers_the_way_back_but_never_outside_the_administration()
     {
         var (apartment, anna, _) = await MasterDataAsync();
         await LeaseAsync(apartment, anna, Today.AddMonths(-3));
@@ -241,8 +241,11 @@ public class LeasesBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         await WithScreenshotOnFailureAsync(page, async () =>
         {
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Keine aktiven Zähler");
+            await Assertions.Expect(page.Locator("nav.return-bar a")).ToHaveAttributeAsync("href", "/verwaltung/vertraege/neu");
+
             await GotoInteractiveAsync(page, $"/verwaltung/objekte/{property}/ablesung?zurueck={Uri.EscapeDataString("https://example.org/")}");
-            await Assertions.Expect(page.Locator("main a[href*='example.org']")).ToHaveCountAsync(0);
+            await Assertions.Expect(page.Locator("a[href*='example.org']")).ToHaveCountAsync(0);
+            await Assertions.Expect(page.Locator("nav.return-bar")).ToHaveCountAsync(0);
         });
     }
     [Fact]

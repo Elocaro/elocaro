@@ -355,6 +355,7 @@ public static class DependencyInjection
         services.AddScoped<ICostSubtypes, CostSubtypeService>();
         services.AddScoped<IOperatingCosts, OperatingCostService>();
         services.AddScoped<IHeatingSettings, HeatingSettingsService>();
+        services.AddScoped<IHeatingReferences, HeatingReferences>();
         services.AddHttpClient<DegreeDayImporter>(http => http.Timeout = TimeSpan.FromSeconds(30));
         services.AddScoped<IStatements, StatementService>();
         services.AddScoped<IStatementDispatch, StatementDispatchService>();

@@ -104,7 +104,7 @@ var result = w.Preview.Result;
                     </tbody>
                 </table>
             </div>
-            <p class="small"><a href="@($"/verwaltung/belege?objekt={PropertyId}&jahr={result.BillingPeriod.From.Year}")">Belege dieses Objekts und Jahres</a> · <a href="@($"/verwaltung/belege?objekt={PropertyId}&jahr={result.BillingPeriod.From.Year}&aufteilen=true")">Belege ohne Kostenaufteilung</a> · <a href="/verwaltung/belege/neu">Beleg erfassen</a></p>
+            <p class="small"><a href="@Back("/verwaltung/belege?objekt=" + PropertyId + "&jahr=" + result.BillingPeriod.From.Year, WizardStep.Costs)">Belege dieses Objekts und Jahres</a> · <a href="@Back("/verwaltung/belege?objekt=" + PropertyId + "&jahr=" + result.BillingPeriod.From.Year + "&aufteilen=true", WizardStep.Costs)">Belege ohne Kostenaufteilung</a> · <a href="@Back("/verwaltung/belege/neu", WizardStep.Costs)">Beleg erfassen</a></p>
         </section>
         break;
 
@@ -115,7 +115,7 @@ var result = w.Preview.Result;
             {
                 <Notice Level="NoticeLevel.Info">Für alle Zähler liegen Anfangs- und Endstand vor.</Notice>
             }
-            <p class="small"><a href="/verwaltung/objekte/@PropertyId/zaehler">Zähler und Ablesungen</a></p>
+            <p class="small"><a href="@Back($"/verwaltung/objekte/{PropertyId}/zaehler", WizardStep.Meters)">Zähler und Ablesungen</a></p>
         </section>
         break;
 
@@ -372,11 +372,15 @@ var result = w.Preview.Result;
     /// <summary>Where a finding of the step is fixed, with the property and the year of this statement.</summary>
     private string? FixLink(WizardStep target) => target switch
     {
-        WizardStep.Costs => $"/verwaltung/belege?objekt={PropertyId}&jahr={wizard!.Preview.Result.BillingPeriod.From.Year}",
-        WizardStep.Meters => $"/verwaltung/objekte/{PropertyId}/zaehler",
-        WizardStep.Occupancy => $"/verwaltung/objekte/{PropertyId}/belegung?jahr={wizard!.Preview.Result.BillingPeriod.From.Year}",
+        WizardStep.Costs => Back($"/verwaltung/belege?objekt={PropertyId}&jahr={wizard!.Preview.Result.BillingPeriod.From.Year}", target),
+        WizardStep.Meters => Back($"/verwaltung/objekte/{PropertyId}/zaehler", target),
+        WizardStep.Occupancy => Back($"/verwaltung/objekte/{PropertyId}/belegung?jahr={wizard!.Preview.Result.BillingPeriod.From.Year}", target),
         _ => null,
     };
+
+    /// <summary>A link that leads back to this step of the wizard (same property and year) once the finding is fixed.</summary>
+    private string Back(string href, WizardStep step) =>
+        ReturnTarget.AppendTo(href, $"/verwaltung/objekte/{PropertyId}/abrechnung?jahr={wizard!.Preview.Result.BillingPeriod.From.Year}&schritt={(int)step}");
 
     private RenderFragment Findings(WizardStep target) => builder =>
     {

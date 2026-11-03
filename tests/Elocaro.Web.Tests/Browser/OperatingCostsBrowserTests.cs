@@ -105,6 +105,44 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
     }
 
     [Fact]
+    public async Task One_click_sends_the_statement_to_all_tenants_after_asking_once()
+    {
+        await SeedAsync();
+        await App.WithScopeAsync<bool>(async sp =>
+        {
+            var properties = sp.GetRequiredService<IPropertyService>();
+            var second = (await properties.CreateUnitAsync(house, new UnitInput { Name = "Wohnung 2" }, Ct)).Id!.Value;
+            await properties.SetUnitAreaAsync(second, new AreaInput { From = new DateOnly(2020, 1, 1), Area = 50m }, Ct);
+            var ben = (await sp.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { FirstName = "Ben", LastName = "Weber", Email = "ben@example.de" }, null, Ct)).Id!.Value;
+            await sp.GetRequiredService<ILeaseService>().CreateAsync(new LeaseCreation { RentalUnitId = second, Start = new DateOnly(2024, 1, 1), TenantIds = [ben], BaseRent = 450m, OperatingCostPrepayment = 90m }, Ct);
+            return true;
+        });
+        var page = await OpenAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            for (var i = 0; i < 5; i++)
+            {
+                await page.GetByRole(AriaRole.Button, new() { Name = "Weiter" }).ClickAsync();
+            }
+
+            await Assertions.Expect(page.Locator("#step-6")).ToBeVisibleAsync();
+            await page.GetByLabel("Ich habe die Hinweise geprüft.").CheckAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Abrechnung freigeben" }).ClickAsync();
+            await page.WaitForURLAsync("**/verwaltung/abrechnungen/*?meldung=freigegeben");
+            await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
+
+            await Assertions.Expect(page.Locator("#dispatch-progress")).ToContainTextAsync("0 von 2 zugestellt");
+            await page.Locator("#dispatch-all").ClickAsync();
+            await Assertions.Expect(page.Locator(".mud-message-box")).ToContainTextAsync("2 Mietverhältnisse");
+            await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, an alle versenden" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "Die Abrechnung wurde an 2 Mietverhältnisse versendet.");
+            await Assertions.Expect(page.Locator("#dispatches").GetByText("versendet", new() { Exact = true })).ToHaveCountAsync(2);
+            await Assertions.Expect(page.Locator("#dispatch-all")).ToHaveCountAsync(0);
+        });
+    }
+
+    [Fact]
     public async Task Agreed_cost_type_is_unticked_and_saved()
     {
         await SeedAsync();

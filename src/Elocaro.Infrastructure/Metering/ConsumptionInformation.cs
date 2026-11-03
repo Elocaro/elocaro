@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Elocaro.Application.Metering;
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Heating;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.Properties;
@@ -13,7 +12,7 @@ using ZaehlerEntitaet = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.Metering;
 
-internal sealed class ConsumptionInformation(ElocaroDbContext db, TimeProvider clock) : IConsumptionInformation
+internal sealed class ConsumptionInformation(ElocaroDbContext db, IHeatingReferences heating, TimeProvider clock) : IConsumptionInformation
 {
     private static readonly MeterType[] Types = [MeterType.Heat, MeterType.HotWater];
 
@@ -102,10 +101,7 @@ internal sealed class ConsumptionInformation(ElocaroDbContext db, TimeProvider c
 
         var units = await db.Set<Unit>().AsNoTracking().Include(e => e.Areas).Where(e => e.PropertyId == unit.PropertyId).ToDictionaryAsync(e => e.Id, cancellationToken);
         var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.People).Where(v => v.RoomId == null && units.Keys.Contains(v.UnitId)).ToListAsync(cancellationToken);
-        var station = await db.Set<HeatingSettings>().AsNoTracking().Where(h => h.PropertyId == unit.PropertyId).Select(h => h.DegreeDayStationId).FirstOrDefaultAsync(cancellationToken);
-        var degreeDays = station is null
-            ? []
-            : await db.Set<DegreeDayValue>().AsNoTracking().Where(v => v.StationId == station).ToDictionaryAsync(v => v.Month, v => v.DegreeDays, cancellationToken);
+        var degreeDays = await heating.DegreeDaysAsync(unit.PropertyId, cancellationToken);
         return new Context(unit, meters, units, leases, degreeDays);
     }
 
@@ -180,5 +176,5 @@ internal sealed class ConsumptionInformation(ElocaroDbContext db, TimeProvider c
     private static decimal? Basis(MeterType type, Unit unit, Lease? lease, DateOnly day) =>
         type == MeterType.Heat ? unit.AreaOn(day)?.LivingArea : lease?.OccupantCountOn(day);
 
-    private sealed record Context(Unit Unit, List<ZaehlerEntitaet> Meters, Dictionary<Guid, Unit> Units, List<Lease> Leases, Dictionary<DateOnly, decimal> DegreeDays);
+    private sealed record Context(Unit Unit, List<ZaehlerEntitaet> Meters, Dictionary<Guid, Unit> Units, List<Lease> Leases, IReadOnlyDictionary<DateOnly, decimal> DegreeDays);
 }

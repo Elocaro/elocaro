@@ -28,14 +28,15 @@
 
         var date = end?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         var back = Uri.EscapeDataString($"/verwaltung/vertraege/{id}/auszug");
+        string Back(string href) => ReturnTarget.AppendTo(href, $"/verwaltung/vertraege/{id}/auszug");
         var list = new List<(string Title, bool? Done, string? Detail, string? Href)>
         {
             ("Kündigung", Lease.TerminationReceivedOn is not null ? true : end is not null ? null : false, Lease.TerminationReceivedOn is { } received ? $"eingegangen {Format.Date(received)}" : null, $"/verwaltung/vertraege/{id}"),
             ("Auszug erfasst", end is not null, end is { } to ? $"letzter Tag {Format.Date(to)}" : null, null),
             ("Zählerstände", round.Count == 0 ? null : read, round.Count == 0 ? "keine Zähler" : null, $"/verwaltung/objekte/{Lease.PropertyId}/ablesung?einheit={Lease.UnitId}&datum={date}&art=Zwischenablesung&zurueck={back}"),
-            ("Übergabe Auszug", moveOut?.Status == HandoverStatus.Completed, null, $"/verwaltung/vertraege/{id}/uebergabe/auszug"),
+            ("Übergabe Auszug", moveOut?.Status == HandoverStatus.Completed, null, Back($"/verwaltung/vertraege/{id}/uebergabe/auszug")),
             ("Kaution", deposit is null || Lease.Data.Deposit is null ? null : depositSettled, Lease.Data.Deposit is null ? "keine vereinbart" : null, $"/verwaltung/vertraege/{id}"),
-            ("Wohnungsgeberbestätigung", null, "für den Folgemieter", "/verwaltung/dokumente/schreiben"),
+            ("Wohnungsgeberbestätigung", null, "für den Folgemieter", Back("/verwaltung/dokumente/schreiben")),
             ("Folgevertrag", successor is not null, successor?.Tenant, successor?.LeaseId is { } follow ? $"/verwaltung/vertraege/{follow}" : $"/verwaltung/vertraege/neu?mietobjekt={Lease.RentalUnitId}&beginn={end?.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}"),
             ("Übergabe Einzug", moveIn?.Status == HandoverStatus.Completed, null, successor?.LeaseId is { } nextLease ? $"/verwaltung/vertraege/{nextLease}/uebergabe/einzug" : null),
             ("Abrechnung des Auszugsjahrs", final, null, $"/verwaltung/objekte/{Lease.PropertyId}/abrechnungen"),

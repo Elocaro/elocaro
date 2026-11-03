@@ -1,6 +1,6 @@
+using Elocaro.Application.Documents;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Elocaro.Application.Documents;
 
 namespace Elocaro.Infrastructure.Documents;
 

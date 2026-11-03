@@ -14,7 +14,7 @@ using ZaehlerEntitaet = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.Metering;
 
-internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, TimeProvider clock) : IMeterService
+internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeatingReferences heating, TimeProvider clock) : IMeterService
 {
     private DateOnly Today => GermanTime.Today(clock.GetUtcNow());
 
@@ -126,7 +126,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, TimeP
             var users = new List<string>();
             users.AddRange((await db.Set<ZaehlerEntitaet>().AsNoTracking()
                 .Where(z => z.MainMeterId == id || z.Terms.Any(t => t.SourceMeterId == id)).Select(z => z.Name).ToListAsync(cancellationToken)).Select(n => $"Zähler „{n}“"));
-            if (await db.Set<Domain.Heating.HeatingSettings>().AsNoTracking().AnyAsync(h => h.HotWaterHeatMeterId == id || h.OilTankMeterId == id, cancellationToken))
+            if (await heating.UsesMeterAsync(id, cancellationToken))
             {
                 users.Add("die Heizkosteneinstellungen");
             }

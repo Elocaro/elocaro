@@ -1,0 +1,16 @@
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+
+@* A way back for pages that were opened out of a process; nothing on any other page. *@
+@if (Target is { } target)
+{
+    <nav class="return-bar" aria-label="Rücksprung">
+        <a href="@target.Href"><Icon Path="@AppIcons.Back" />@target.Text</a>
+    </nav>
+}
+
+@code {
+    private ReturnTarget? Target => QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query).TryGetValue(ReturnTarget.QueryName, out var value)
+        ? ReturnTarget.From(value.ToString())
+        : null;
+}

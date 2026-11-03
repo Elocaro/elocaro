@@ -262,6 +262,9 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             var dialog = await page.GetByRole(AriaRole.Link, new() { Name = "prüfen und freigeben" }).GetAttributeAsync("href");
             await GotoInteractiveAsync(page, dialog!);
 
+            // The marker shows as soon as the circuit has rendered once, before the page has its data; paying earlier would change what it loads.
+            await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Freigeben" })).ToBeEnabledAsync();
+
             // The tenant pays everything while the dialog is open.
             await App.WithScopeAsync(async sp =>
             {
