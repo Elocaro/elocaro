@@ -21,7 +21,7 @@ public static class BuildingFloor
 
         var text = location.Trim().ToLowerInvariant();
         var digits = new string([.. text.Where(char.IsDigit)]);
-        var number = int.TryParse(digits, out var n) ? n : 0;
+        var number = int.TryParse(digits, System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : 0;
         if (text.Contains("dach", StringComparison.Ordinal) || text.StartsWith("dg", StringComparison.Ordinal))
         {
             return Attic;
