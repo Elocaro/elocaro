@@ -40,6 +40,7 @@ public static class AppIcons
     public static string Next => Icons.Material.Filled.ArrowForward;
     public static string Check => Icons.Material.Filled.Check;
     public static string Add => Icons.Material.Filled.Add;
+    public static string ChevronRight => Icons.Material.Filled.ChevronRight;
     public static string Copy => Icons.Material.Filled.ContentCopy;
     public static string Search => Icons.Material.Filled.Search;
     public static string Home => Icons.Material.Outlined.Home;

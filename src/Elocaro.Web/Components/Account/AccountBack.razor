@@ -1,0 +1,10 @@
+@* Back link at the top of an account page. *@
+<a class="back account-back" href="@Href"><Icon Path="@AppIcons.Back" /><span>@Text</span></a>
+
+@code {
+    [Parameter]
+    public string Href { get; set; } = "/konto/sicherheit";
+
+    [Parameter]
+    public string Text { get; set; } = "Konto & Sicherheit";
+}

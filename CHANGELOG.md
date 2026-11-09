@@ -9,6 +9,9 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Verbrauchsinformation (Mieterportal und Mail): Der Heizverbrauch wird zusätzlich witterungsbereinigt mit dem Vorjahresmonat verglichen (Verbrauch je Gradtag der gewählten Wetterstation). So lässt sich prüfen, ob der Verbrauch unabhängig vom Wetter gestiegen ist. Nur zur Anzeige. Im Mieterportal zeigt ein Säulendiagramm je Zählerart den Verbrauch der letzten Monate gegen den Vorjahresmonat, bei der Heizung mit der witterungsbereinigten Änderung als Pfeil.
 - Heizkosten beim Mieterwechsel ohne Zwischenablesung: Statt der Platzhaltertabelle verteilt Elocaro den Heizverbrauch nach den Monatsgradtagen (VDI 3807) einer Wetterstation des Deutschen Wetterdienstes. Die Werte werden automatisch abgerufen (`DegreeDays__Enabled`), die Station wählt man je Objekt in den Heizungseinstellungen. Ohne Station gilt weiter der Platzhalter.
 
+### Geändert
+- Konto-Seiten überarbeitet: Übersicht mit Profil und Navigationszeilen, Zurück-Link oben, Logo führt zur App. Zugriffstoken werden in einem Dialog erstellt; das neue Token lässt sich mit einer Schaltfläche kopieren, die Liste zeigt Karten statt einer Tabelle.
+
 ### Sicherheit
 - Die Zwei-Faktor-Pflicht galt nicht für Adressen mit Dateiendung: Ein Konto ohne eingerichtete Zwei-Faktor-Anmeldung konnte CSV-, DATEV-, Anlage-V- und PDF-Exporte abrufen. Ausgenommen sind jetzt nur noch echte statische Dateien.
 - Benutzerverwaltung: Wer kein Administrator ist, kann sich und anderen nicht mehr die Rolle Administrator geben, niemanden als Administrator einladen, Administratorkonten weder ändern noch sperren oder entsperren, die eigene Rolle und die eigenen Rechte nicht ändern und keine Rechte vergeben, die er selbst nicht hat. Das prüft der Server, die Oberfläche bietet es nicht mehr an.

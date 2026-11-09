@@ -1574,3 +1574,33 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 .token-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 1rem; margin: 0.5rem 0 0; font-size: 0.9rem; }
 .token-meta dt { color: var(--md-on-surface-variant); }
 .token-meta dd { margin: 0; }
+
+/* Account pages (signed in): wider card, profile block, navigation rows, spacing between text and buttons */
+.account-card-wide { max-width: 34rem; }
+.account-card > h1 { margin: 0 0 1rem; }
+.account-card > p + :is(.button, form, div, details) { margin-top: 1rem; }
+
+.account-profile { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; border-radius: var(--shape-lg); background: var(--md-surface-container); }
+.account-avatar { flex: none; display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 50%; background: var(--md-primary); color: var(--md-on-primary); font-weight: 700; font-size: 1.1rem; }
+.account-profile-text { display: flex; flex-direction: column; min-width: 0; }
+.account-profile-text span { overflow-wrap: anywhere; color: var(--md-on-surface-variant); font-size: 0.9rem; }
+.account-profile-text .account-role { margin-top: 0.15rem; }
+.account-heading { margin: 1.5rem 0 0.5rem; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--md-on-surface-variant); }
+.account-nav { list-style: none; margin: 0; padding: 0; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); background: var(--md-surface-container); overflow: hidden; }
+.account-nav li + li { border-top: 1px solid var(--md-outline-variant); }
+.account-nav a { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 3.5rem; padding: 0.6rem 1rem; color: var(--md-on-surface); text-decoration: none; }
+.account-nav a:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+.account-nav a:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.account-nav-text { display: flex; flex-direction: column; min-width: 0; }
+.account-nav-text span { color: var(--md-on-surface-variant); font-size: 0.875rem; }
+.account-nav .icon { flex: none; color: var(--md-on-surface-variant); }
+.account-nav-note { padding: 0.75rem 1rem; color: var(--md-on-surface-variant); }
+.account-session { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2rem; }
+.account-session .danger-action > summary { width: 100%; text-align: center; }
+.account-card-wide > .brand { display: flex; width: fit-content; margin-bottom: 1rem; }
+.account-card-wide > .account-back { display: flex; width: fit-content; margin: 0 0 0.5rem -0.5rem; }
+.account-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+.account-title-row > h1 { margin: 0; }
+.account-title-row > .button { width: auto; }
+#push-settings { display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem; margin: 1rem 0; }
+#push-settings > p { margin: 0; }

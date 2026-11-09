@@ -16,39 +16,47 @@
 
 @if (user is not null)
 {
-    <dl class="details">
-        <dt>Name</dt><dd>@user.DisplayName</dd>
-        <dt>E-Mail</dt><dd>@user.Email</dd>
-        <dt>Rolle</dt><dd>@string.Join(", ", roles.Select(Roles.DisplayName))</dd>
-        <dt>Zwei-Faktor-Anmeldung</dt><dd>@(user.TwoFactorEnabled ? "aktiv" : "nicht eingerichtet")</dd>
-    </dl>
+    <section class="account-profile" aria-label="Ihr Konto">
+        <div class="account-avatar" aria-hidden="true">@Initials(user.DisplayName)</div>
+        <div class="account-profile-text">
+            <strong>@user.DisplayName</strong>
+            <span>@user.Email</span>
+            <span class="account-role">@string.Join(", ", roles.Select(Roles.DisplayName))</span>
+        </div>
+    </section>
 
-    <ul class="account-actions">
-        <li><a href="/konto/benachrichtigungen">Benachrichtigungen auf diesem Gerät</a></li>
+    <h2 class="account-heading">Sicherheit</h2>
+    <ul class="account-nav">
         @if (hasPassword)
         {
-            <li><a href="/konto/sicherheit/zwei-faktor">@(user.TwoFactorEnabled ? "Zwei-Faktor-Anmeldung anzeigen" : "Zwei-Faktor-Anmeldung einrichten")</a></li>
+            <li><a href="/konto/sicherheit/passwort"><span class="account-nav-text"><strong>Passwort ändern</strong><span>Neues Passwort festlegen</span></span><Icon Path="@AppIcons.ChevronRight" /></a></li>
+            <li><a href="/konto/sicherheit/zwei-faktor"><span class="account-nav-text"><strong>Zwei-Faktor-Anmeldung</strong><span>@(user.TwoFactorEnabled ? "Aktiv" : "Nicht eingerichtet, jetzt einrichten")</span></span><Icon Path="@AppIcons.ChevronRight" /></a></li>
             @if (user.TwoFactorEnabled)
             {
-                <li><a href="/konto/sicherheit/wiederherstellungscodes">Neue Wiederherstellungscodes erzeugen</a></li>
-            }
-            <li><a href="/konto/sicherheit/passwort">Passwort ändern</a></li>
-            @if (AccessTokens.IsAvailable && (roles.Contains(Roles.Admin) || roles.Contains(Roles.Manager)))
-            {
-                <li><a href="/konto/sicherheit/zugriffstoken">Zugriffstoken für Integrationen (z. B. KI-Assistenten)</a></li>
+                <li><a href="/konto/sicherheit/wiederherstellungscodes"><span class="account-nav-text"><strong>Wiederherstellungscodes</strong><span>Neue Codes erzeugen, falls das Handy fehlt</span></span><Icon Path="@AppIcons.ChevronRight" /></a></li>
             }
         }
         else
         {
-            <li>Sie melden sich per Anmeldelink an; ein Passwort ist nicht erforderlich.</li>
+            <li class="account-nav-note">Sie melden sich per Anmeldelink an; ein Passwort ist nicht erforderlich.</li>
+        }
+    </ul>
+
+    <h2 class="account-heading">Geräte und Integrationen</h2>
+    <ul class="account-nav">
+        <li><a href="/konto/benachrichtigungen"><span class="account-nav-text"><strong>Benachrichtigungen</strong><span>Auf diesem Gerät ein- oder ausschalten</span></span><Icon Path="@AppIcons.ChevronRight" /></a></li>
+        @if (hasPassword && AccessTokens.IsAvailable && (roles.Contains(Roles.Admin) || roles.Contains(Roles.Manager)))
+        {
+            <li><a href="/konto/sicherheit/zugriffstoken"><span class="account-nav-text"><strong>Zugriffstoken</strong><span>Für KI-Assistenten und andere Integrationen</span></span><Icon Path="@AppIcons.ChevronRight" /></a></li>
         }
     </ul>
 }
 
-<form method="post" action="/konto/abmelden">
-    <AntiforgeryToken />
-    <button type="submit" class="button button-primary">Abmelden</button>
-</form>
+<div class="account-session">
+    <form method="post" action="/konto/abmelden">
+        <AntiforgeryToken />
+        <button type="submit" class="button button-primary">Abmelden</button>
+    </form>
 
 @* The demo accounts are shared: one visitor would sign out all the others. *@
 @if (user is not null && !Demo.Value.Enabled)
@@ -59,6 +67,7 @@
                   FormName="sign-out-everywhere"
                   Confirmed="SignOutEverywhereAsync" />
 }
+</div>
 
 @code {
     private ApplicationUser? user;
@@ -77,6 +86,12 @@
             roles = await UserManager.GetRolesAsync(user);
             hasPassword = await UserManager.HasPasswordAsync(user);
         }
+    }
+
+    private static string Initials(string? name)
+    {
+        var parts = (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 0 ? "?" : string.Concat(parts.Take(2).Select(p => char.ToUpperInvariant(p[0])));
     }
 
     private async Task SignOutEverywhereAsync()

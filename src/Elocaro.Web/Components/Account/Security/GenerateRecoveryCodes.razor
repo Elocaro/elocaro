@@ -3,6 +3,7 @@
 
 <PageTitle>Wiederherstellungscodes – Elocaro</PageTitle>
 
+<AccountBack />
 <h1>Wiederherstellungscodes</h1>
 
 @if (codes is not null)
@@ -22,7 +23,6 @@ else
     <p>Richten Sie zuerst die <a href="/konto/sicherheit/zwei-faktor">Zwei-Faktor-Anmeldung</a> ein.</p>
 }
 
-<div class="account-links"><a href="/konto/sicherheit">Zurück</a></div>
 
 @code {
     private bool active;
