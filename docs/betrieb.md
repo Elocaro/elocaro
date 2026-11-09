@@ -67,6 +67,10 @@ Alle Einstellungen kommen über Umgebungsvariablen in `deploy/.env` (eingetragen
 | `MAIL_*`, `SMTP_*` | Absender und SMTP-Zugang (`SMTP_SECURITY`: `StartTls` für Port 587, `SslOnConnect` für 465) |
 | `ELOCARO_IMAGE` | Image-Tag, Standard `ghcr.io/elocaro/elocaro:latest`; empfohlen: feste Version, z. B. `ghcr.io/elocaro/elocaro:0.1.0` (Änderungen siehe `CHANGELOG.md`). Die laufende Version steht unter „Über Elocaro“ (`/ueber`) |
 
+## KI-Zugriff über MCP (optional)
+
+`MCP_ENABLED=true` in `deploy/.env` schaltet die lesende MCP-Schnittstelle `/mcp` ein, mit der KI-Assistenten (Claude, GitHub Copilot, Cursor u. a.) die Daten abfragen können. Sie ist standardmäßig aus und in der Demo nie verfügbar. Weitere Schlüssel: `MCP_REQUESTS_PER_MINUTE` (je Absenderadresse, 120), `MCP_MAX_RESULTS` (Einträge je Abfrage, 50) und `ACCESS_TOKEN_MAX_DAYS` (längste Gültigkeit eines Zugriffstokens, 90). Anmeldung, Rechte, Anleitungen für die Clients und Datenschutzhinweise: [mcp.md](mcp.md). Hinter Caddy ist nichts weiter einzustellen; der Proxy muss den Header `Authorization` weiterreichen (Standard).
+
 ## Belegauslesung (optional, KI)
 
 Beim Erfassen eines Belegs kann Elocaro aus dem hochgeladenen PDF bzw. Foto einen **Vorschlag** auslesen (Lieferant, IBAN, Rechnungsnummer und -datum, Leistungszeitraum, Brutto/Netto/USt, Kostenart, § 35a, Brennstoffmenge und CO₂). Der Vorschlag füllt nur das Formular vor; gespeichert wird erst, wenn Sie bestätigen. Unsicher erkannte Felder sind gelb markiert, Unstimmigkeiten (Netto + USt ≠ Brutto, ungewöhnlicher Steuersatz, ungültige IBAN, unmögliche Daten) stehen als Warnung darüber.
@@ -259,6 +263,7 @@ Die Mail-Warteschlange (`outgoing_mails`) ist der Versandnachweis. Es gelten dre
 - Uploads: Caddy begrenzt auf 30 MB, die App zusätzlich auf `FileStore__MaxSizeMb` (25). Fotos dürfen höchstens `FileStore__MaxImageMegapixels` (50) groß sein, darüber lehnt die App sie vor dem Dekodieren ab.
 - Speicherlimits: `app` höchstens `APP_MEM_LIMIT` (Standard `1536m`), `gotenberg` höchstens `GOTENBERG_MEM_LIMIT` (Standard `1g`), damit ein einzelner Container nicht den ganzen Server lahmlegt. Wird ein Limit erreicht, beendet Docker den Container und startet ihn neu; bei wiederholten Neustarts (`docker compose ps`, `docker inspect … OOMKilled`) den Wert in `deploy/.env` erhöhen.
 - Container: Alle Dienste laufen mit `no-new-privileges` und `cap_drop: ALL`. Zurück bekommen nur `postgres` (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID`: Besitzer des Datenverzeichnisses setzen, dann zum Benutzer `postgres` wechseln), `backup` (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`: Dateien des App-Benutzers lesen und wiederherstellen) und `caddy` (`NET_BIND_SERVICE`). Eigene Erweiterungen an diesen Containern brauchen womöglich mehr.
+- **Zugriffstoken** (MCP): persönlich, nur als Hash gespeichert, mit Ablauf, wirken nie über die Rechte des Kontos hinaus und enden mit der Sperre des Kontos; siehe [mcp.md](mcp.md).
 - Geheimnisse nur in `deploy/.env` (per `.gitignore` ausgeschlossen), Dateirechte `chmod 600 deploy/.env`.
 
 ### Data-Protection-Schlüssel verschlüsseln

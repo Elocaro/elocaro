@@ -205,6 +205,22 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Monate mit `<i
 - **Grenzen der Benutzerverwaltung** (`IUserManagementService`, Regeln in `UserManagementActor`): Die ändernden Methoden erhalten den auslösenden `ClaimsPrincipal` und lesen dessen Rolle und Rechte aus der Datenbank, nicht aus dem Principal (der in einer offenen Seite veraltet sein kann). Nötig sind Admin oder das Recht Benutzerverwaltung. Wer kein Admin ist, darf die Rolle Administrator weder vergeben noch einladen, Administratorkonten weder ändern noch sperren oder entsperren, die eigene Rolle und die eigenen Rechte nicht ändern und keine Rechte vergeben, die er selbst nicht hat. Neue Verwalter erhalten dann nur die Standardrechte, die er selbst hat; vorhandene Rechte des Zielkontos dürfen bleiben oder entfallen. Die Oberfläche bietet nur Erlaubtes an (`IUserManagementService.ActorAsync`). `IAccountService.InviteAsync` prüft nicht, wer auslöst, und ist internen Aufrufern mit fester Rolle vorbehalten (`PersonService.SetUpAccessAsync`).
 - Änderungen an Konten (Anlage, Rolle, Rechte, Sperre) stehen im Audit-Log (`AuditWriter`, Typ `ApplicationUser`).
 
+## Zugriffstoken und MCP-Schnittstelle
+
+Betrieb und Anwendung: [mcp.md](mcp.md); Begründung: [ADR 0006](adr/0006-mcp-schnittstelle.md).
+
+**Zugriffstoken** (`IAccessTokens`, Entität `AccessToken` in `Infrastructure/Identity`, Handler `AccessTokenAuthenticationHandler`, Schema `ElocaroAccessToken`) sind persönlich und allgemein. Ein Token gehört einem Konto; `AuthenticateAsync` baut bei **jeder** Anfrage den Principal neu aus der Datenbank (Konto gesperrt? Rolle Administrator/Verwalter? Zwei-Faktor an? Token widerrufen oder abgelaufen?). Der Principal ist immer ein *Verwalter* mit den Rechten „Konto ∩ Bereiche des Tokens“, auch bei Administratoren; so sehen die vorhandenen Prüfungen (`IsInRole(Admin) || HasClaim(…)`) nur den begrenzten Umfang. Neue Bereiche kommen in `IAccessTokens.Scopes`.
+
+**Neue Integration** mit Token: Endpoint mit `RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = AccessTokenAuthenticationHandler.SchemeName, Policy = … })`, `DisableAntiforgery()` und eine Prüfung in `AccessTokens.IsAvailable`, ob sie eingeschaltet ist. Nutzung mit `IAccessTokens.RecordUseAsync` ins Audit-Protokoll schreiben.
+
+**MCP** (`Web/Mcp`, Paket `ModelContextProtocol.AspNetCore`, zustandslos): `AddElocaroMcp` / `MapElocaroMcp` (nur mit `Mcp:Enabled`), Werkzeuge in `Web/Mcp/Tools`.
+
+- Neues Werkzeug: Methode mit `[McpServerTool(Name = "…", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]` und `[Description]` (deutsch, für das Modell), in einer Klasse mit `[McpServerToolType]` und `[Authorize(Policy = Policies.…)]`. Die SDK-Filter (`AddAuthorizationFilters`) blenden Werkzeuge ohne Recht aus der Liste aus und weisen Aufrufe ab.
+- **Die Dienste der Verwaltung prüfen keine Rechte selbst.** Das Werkzeug ist die Schranke: Policy der Klasse passend zur Seite wählen, die dieselben Daten zeigt (Finanzdaten → `Policies.Finance`, Stammdaten → `Policies.MasterData`).
+- Nur lesende Dienstmethoden verwenden; keine Dateiinhalte, keine Bankverbindungen von Personen. Eigene Ausgabe-Records statt der DTOs, wenn diese Sensibles enthalten (Beispiel `BankTransactionView`). Listen mit `Limit(options)` kürzen.
+- `McpRulesTests` (Architektur) erzwingen Policy, `ReadOnly = true` und das Fehlen schreibender Aufrufe; Verhalten und Rechte prüfen `tests/Elocaro.Web.Tests/Mcp`.
+- Die Statusseiten (`UseStatusCodePagesWithReExecute`) sind für `/mcp` abgeschaltet (`UseMcpWithoutErrorPages`), das Rate-Limit gilt je Absenderadresse (`AccountExtensions`).
+
 ## Audit-Log
 
 - Jede Speicherung einer `Entity` schreibt in **derselben Transaktion** einen Eintrag in `audit_entries`: Zeitpunkt, Benutzer (`ICurrentUser`), Typ, Id, Aktion (`Created`, `Modified`, `Deleted`) und die geänderten Felder alt → neu als `jsonb`. Speichern ohne echte Änderung erzeugt keinen Eintrag.

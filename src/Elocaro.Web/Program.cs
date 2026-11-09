@@ -10,6 +10,7 @@ using Elocaro.Web.Components;
 using Elocaro.Web.Deadlines;
 using Elocaro.Web.Documents;
 using Elocaro.Web.Finance;
+using Elocaro.Web.Mcp;
 using Elocaro.Web.Notices;
 using Elocaro.Web.Operations;
 using Elocaro.Web.People;
@@ -32,6 +33,7 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddElocaroInfrastructure(builder.Configuration);
 builder.Services.AddElocaroSignIn(builder.Configuration, builder.Environment);
 builder.Services.AddElocaroOperations();
+builder.Services.AddElocaroMcp(builder.Configuration);
 builder.Services.AddTemplatePreviews();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, RevalidatingAuthenticationStateProvider>();
@@ -51,6 +53,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseSecurityHeaders();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.UseMcpWithoutErrorPages();
 if (app.Configuration.GetValue("Hosting:HttpsRedirection", true))
 {
     app.UseHttpsRedirection(); // in the container Caddy handles this (Hosting__HttpsRedirection=false)
@@ -86,6 +89,7 @@ app.MapDunningPreviewEndpoint();
 app.MapTemplatePreviewEndpoint();
 app.MapStatementPreviewEndpoint();
 app.MapStatementReceiptEndpoint();
+app.MapElocaroMcp();
 
 await app.Services.MigrateDatabaseAsync();
 await app.Services.InstallDefaultTemplatesAsync();

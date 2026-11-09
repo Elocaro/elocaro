@@ -65,6 +65,10 @@ Was geschieht, wenn Sie ausfallen? Die Notfallmappe (Einstellungen → System �
 
 Die Mappe zeigt den **Stand beim Erzeugen**. Erzeugen Sie sie mindestens einmal im Jahr neu; die Startseite erinnert daran, wenn sie noch nie erzeugt wurde oder älter als zwölf Monate ist. Jede Erzeugung steht im Änderungsprotokoll (ohne Passwort).
 
+## KI-Assistent nutzen (optional)
+
+Wenn Ihr Betreiber die MCP-Schnittstelle eingeschaltet hat, können Sie einem KI-Assistenten (z. B. Claude oder GitHub Copilot) **lesenden** Zugriff geben und ihn fragen: „Welche Mieter sind im Rückstand?“ oder „Was steht diese Woche an?“. Unter *Konto & Sicherheit → Zugriffstoken für Integrationen* erstellen Sie dafür ein Token, wählen die Bereiche (Stammdaten, Finanzen) und kopieren es in den Assistenten. Der Assistent sieht nie mehr als Sie selbst und kann nichts ändern; Token lassen sich dort jederzeit widerrufen. Bedenken Sie, dass die gelesenen Daten an den Anbieter des Assistenten gehen. Die Einrichtung für die einzelnen Programme steht in [mcp.md](mcp.md).
+
 ## Begriffe
 
 Sollstellung, Offener Posten, Saldovortrag, Umlageschlüssel und weitere Begriffe sind in der Hilfe der Anwendung (Abschnitt „Begriffe einfach erklärt“) beschrieben.

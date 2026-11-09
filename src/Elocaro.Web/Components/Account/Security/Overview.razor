@@ -5,6 +5,7 @@
 @using Elocaro.Application.Admin
 @using Microsoft.Extensions.Options
 @inject IOptions<DemoOptions> Demo
+@inject IAccessTokens AccessTokens
 
 <PageTitle>Konto &amp; Sicherheit – Elocaro</PageTitle>
 
@@ -32,6 +33,10 @@
                 <li><a href="/konto/sicherheit/wiederherstellungscodes">Neue Wiederherstellungscodes erzeugen</a></li>
             }
             <li><a href="/konto/sicherheit/passwort">Passwort ändern</a></li>
+            @if (AccessTokens.IsAvailable && (roles.Contains(Roles.Admin) || roles.Contains(Roles.Manager)))
+            {
+                <li><a href="/konto/sicherheit/zugriffstoken">Zugriffstoken für Integrationen (z. B. KI-Assistenten)</a></li>
+            }
         }
         else
         {

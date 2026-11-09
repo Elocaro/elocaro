@@ -1,0 +1,171 @@
+@page "/konto/sicherheit/zugriffstoken"
+@attribute [Authorize(Policy = Policies.Admin)]
+@inject IAccessTokens Tokens
+@inject Redirector Redirector
+@inject TimeProvider Clock
+@using Elocaro.Web.Display
+
+<PageTitle>Zugriffstoken – Elocaro</PageTitle>
+
+<h1>Zugriffstoken</h1>
+
+<StatusMessage />
+
+@if (!Tokens.IsAvailable)
+{
+    <Notice Level="NoticeLevel.Info">Zugriffstoken sind auf diesem Server nicht eingeschaltet. Sie werden gebraucht, sobald der Betreiber eine Integration aktiviert, z. B. die MCP-Schnittstelle für KI-Assistenten mit <code>Mcp__Enabled=true</code>; siehe <code>docs/mcp.md</code>.</Notice>
+}
+else
+{
+    <p>Mit einem Zugriffstoken handelt eine Integration in Ihrem Namen, ohne dass Sie sich anmelden, zum Beispiel ein KI-Assistent über MCP (Claude, GitHub Copilot, Cursor u. a.). Bisher können Token Ihre Daten <strong>nur lesen</strong>. Er sieht höchstens, was Sie selbst in Elocaro sehen dürfen, und nur die Bereiche, die Sie für das Token wählen. Wird Ihr Konto gesperrt oder ändern sich Ihre Rechte, gilt das sofort auch für Ihre Token.</p>
+
+    <Notice Level="NoticeLevel.Warning">Behandeln Sie ein Token wie ein Passwort. Was eine Integration liest, verlässt Elocaro: bei KI-Assistenten in Richtung des KI-Anbieters. Wählen Sie nur Bereiche, die Sie dort verarbeiten lassen wollen.</Notice>
+
+    @if (secret is not null)
+    {
+        <Notice Level="NoticeLevel.Success">
+            Das Token „@createdName“ wurde erstellt. Kopieren Sie es jetzt; es wird nicht noch einmal angezeigt.
+            <p><code id="token-secret" class="key">@secret</code></p>
+        </Notice>
+    }
+
+    <ErrorList Errors="errors" />
+
+    <h2>Neues Token</h2>
+    <EditForm Model="Input" FormName="token-create" OnValidSubmit="CreateAsync">
+        <DataAnnotationsValidator />
+        <div class="field">
+            <label for="token-name">Name (z. B. Gerät oder Programm)</label>
+            <InputText id="token-name" @bind-Value="Input!.Name" maxlength="100" autocomplete="off" />
+            <ValidationMessage For="() => Input!.Name" />
+        </div>
+        <fieldset class="field">
+            <legend>Bereiche</legend>
+            @foreach (var scope in available)
+            {
+                <label class="checkbox">
+                    <input type="checkbox" name="Input.Scopes" value="@scope.Name" checked="@Input.Scopes.Contains(scope.Name)" /> @scope.Description
+                </label>
+            }
+        </fieldset>
+        <div class="field">
+            <label for="token-days">Gültig für (Tage, höchstens @Tokens.MaxDays)</label>
+            <InputNumber id="token-days" @bind-Value="Input.ValidDays" min="1" max="@Tokens.MaxDays" />
+            <ValidationMessage For="() => Input.ValidDays" />
+        </div>
+        <button type="submit" class="button button-primary">Token erstellen</button>
+    </EditForm>
+
+    <h2>Ihre Token</h2>
+    @if (tokens.Count == 0)
+    {
+        <p>Sie haben noch kein Token erstellt.</p>
+    }
+    else
+    {
+        <form method="post" @onsubmit="RevokeAsync" @formname="token-revoke">
+            <AntiforgeryToken />
+            <table class="table">
+                <thead>
+                    <tr><th>Name</th><th>Beginnt mit</th><th>Bereiche</th><th>Gültig bis</th><th>Zuletzt benutzt</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var token in tokens)
+                    {
+                        <tr>
+                            <td>@token.Name</td>
+                            <td><code>@token.Prefix…</code></td>
+                            <td>@string.Join(", ", token.Scopes)</td>
+                            <td>@Format.Day(token.ExpiresAt)</td>
+                            <td>@(token.LastUsedAt is null ? "noch nie" : Format.Timestamp(token.LastUsedAt))</td>
+                            <td>
+                                @if (token.RevokedAt is not null)
+                                {
+                                    <span>widerrufen</span>
+                                }
+                                else if (!token.IsActive(Clock.GetUtcNow()))
+                                {
+                                    <span>abgelaufen</span>
+                                }
+                                else
+                                {
+                                    <RowConfirm Name="RevokeId" Value="@token.Id" Text="Widerrufen" ConfirmText="Ja, widerrufen"
+                                                Question="Das Token funktioniert danach sofort nicht mehr." Label="@($"Token {token.Name} widerrufen")" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </form>
+    }
+}
+
+<div class="account-links"><a href="/konto/sicherheit">Zurück zu Konto &amp; Sicherheit</a></div>
+
+@code {
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<AccessTokenInfo> tokens = [];
+    private IReadOnlyList<AccessScope> available = [];
+    private string? secret;
+    private string? createdName;
+
+    [SupplyParameterFromForm(FormName = "token-create")]
+    private CreateInput? Input { get; set; }
+
+    [SupplyParameterFromForm(Name = "RevokeId", FormName = "token-revoke")]
+    private Guid? RevokeId { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new() { ValidDays = Math.Min(30, Tokens.MaxDays) };
+        available = IAccessTokens.Scopes.Where(s => s.Right is AccessRight.MasterData or AccessRight.Finance
+            && (HttpContext.User.IsInRole(Roles.Admin) || HttpContext.User.HasClaim(Permissions.ClaimType, s.Right.ToString()))).ToList();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => tokens = await Tokens.ListAsync(HttpContext.User, HttpContext.RequestAborted);
+
+    private async Task CreateAsync()
+    {
+        var chosen = HttpContext.Request.Form["Input.Scopes"].Select(s => s!).ToList();
+        var result = await Tokens.CreateAsync(HttpContext.User, Input!.Name, chosen, Input.ValidDays, HttpContext.RequestAborted);
+        if (!result.Succeeded)
+        {
+            errors = [result.Error!];
+            return;
+        }
+
+        secret = result.Secret;
+        createdName = Input.Name.Trim();
+        Input = new() { ValidDays = Input.ValidDays };
+        await LoadAsync();
+    }
+
+    private async Task RevokeAsync()
+    {
+        if (RevokeId is { } id && await Tokens.RevokeAsync(HttpContext.User, id, HttpContext.RequestAborted))
+        {
+            Redirector.RedirectWithMessage("/konto/sicherheit/zugriffstoken", "Das Token wurde widerrufen.", HttpContext);
+            return;
+        }
+
+        errors = ["Das Token wurde nicht gefunden."];
+        await LoadAsync();
+    }
+
+    private sealed class CreateInput
+    {
+        [Required(ErrorMessage = "Bitte einen Namen angeben.")]
+        [StringLength(100, ErrorMessage = "Der Name darf höchstens 100 Zeichen haben.")]
+        public string Name { get; set; } = "";
+
+        public HashSet<string> Scopes { get; } = [];
+
+        [Range(1, 3650, ErrorMessage = "Bitte eine Gültigkeit in Tagen angeben.")]
+        public int ValidDays { get; set; } = 30;
+    }
+}

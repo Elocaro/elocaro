@@ -50,6 +50,7 @@ Elocaro ist **keine Rechts- und keine Steuerberatung**. Vorlagen und Rechenwerte
 - [Anwenderhandbuch](docs/handbuch.md): erste Schritte und die häufigsten Aufgaben für Vermieter (auch in der Anwendung unter „Hilfe“)
 - [Installation](docs/installation.md): alle Wege im Überblick (Probelauf, Server mit Skript, von Hand, NAS und Plattformen) mit Checkliste und Fehlersuche
 - [Betrieb](docs/betrieb.md): Konfiguration auf einem VPS, Update, Backup & Restore, Vollexport, Sicherheit
+- [KI-Zugriff über MCP](docs/mcp.md): Elocaro lesend in Claude, GitHub Copilot, Cursor u. a. nutzen (Rechte, Zugriffstoken, Anleitungen)
 - [Installation auf anderen Plattformen](docs/installation-plattformen.md): Portainer, Coolify, Synology, Unraid, Proxmox, ARM
 - [Fachlichkeit & Anforderungen](docs/fachlichkeit.md): Rollen, Fachmodell und Festlegungen
 - [Architektur](docs/architektur.md): Technologie und Struktur

@@ -19,11 +19,15 @@ internal static class AccountExtensions
     {
         var signIn = configuration.GetSection(SignInOptions.Section).Get<SignInOptions>() ?? new SignInOptions();
         services.Configure<SignInOptions>(configuration.GetSection(SignInOptions.Section));
+        var mcp = configuration.GetSection(Elocaro.Application.Accounts.McpOptions.Section).Get<Elocaro.Application.Accounts.McpOptions>() ?? new();
 
         services.AddCascadingAuthenticationState();
         services.AddScoped<Redirector>();
 
         services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
+
+        // Personal access tokens for integrations; only endpoints that name this scheme accept them (see docs/mcp.md).
+        services.AddAuthentication().AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AccessTokenAuthenticationHandler>(AccessTokenAuthenticationHandler.SchemeName, null);
         services.ConfigureApplicationCookie(o =>
         {
             o.Cookie.Name = "elocaro";
@@ -60,11 +64,23 @@ internal static class AccountExtensions
         {
             o.RejectionStatusCode = (int)HttpStatusCode.TooManyRequests;
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                HttpMethods.IsPost(context.Request.Method) && context.Request.Path.StartsWithSegments(AccountPath, StringComparison.OrdinalIgnoreCase)
+            {
+                var address = context.Connection.RemoteIpAddress?.ToString() ?? "unbekannt";
+
+                // Per client address, not per token: partitions per presented token could be created without limit by anyone.
+                if (context.Request.Path.StartsWithSegments(Mcp.McpExtensions.Path, StringComparison.OrdinalIgnoreCase))
+                {
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        "mcp:" + address,
+                        _ => new FixedWindowRateLimiterOptions { PermitLimit = mcp.RequestsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 });
+                }
+
+                return HttpMethods.IsPost(context.Request.Method) && context.Request.Path.StartsWithSegments(AccountPath, StringComparison.OrdinalIgnoreCase)
                     ? RateLimitPartition.GetFixedWindowLimiter(
-                        context.Connection.RemoteIpAddress?.ToString() ?? "unbekannt",
+                        address,
                         _ => new FixedWindowRateLimiterOptions { PermitLimit = signIn.RequestsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })
-                    : RateLimitPartition.GetNoLimiter("frei"));
+                    : RateLimitPartition.GetNoLimiter("frei");
+            });
         });
 
         return services;

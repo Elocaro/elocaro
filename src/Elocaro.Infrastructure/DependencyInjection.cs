@@ -203,6 +203,9 @@ public static class DependencyInjection
         services.AddScoped<IAccountService, AccountService>();
         services.AddSingleton<ISetupCode, SetupCode>();
         services.AddScoped<IUserManagementService, UserManagement>();
+        services.Configure<AccessTokenOptions>(configuration.GetSection(AccessTokenOptions.Section));
+        services.Configure<McpOptions>(configuration.GetSection(McpOptions.Section));
+        services.AddScoped<IAccessTokens, AccessTokens>();
     }
 
     private static void AddAudit(IServiceCollection services, IConfiguration configuration)

@@ -13,7 +13,7 @@ namespace Elocaro.Infrastructure.Identity;
 /// which only compare the stamp and would otherwise keep the old roles (<c>RevalidatingAuthenticationStateProvider</c>).
 /// Accounts are reloaded on every change: in an interactive page the DbContext lives as long as the circuit.
 /// </remarks>
-internal sealed class UserManagement(ElocaroDbContext db, UserManager<ApplicationUser> userManager, IAccountService accounts, AuditWriter audit) : IUserManagementService
+internal sealed class UserManagement(ElocaroDbContext db, UserManager<ApplicationUser> userManager, IAccountService accounts, AuditWriter audit, TimeProvider clock) : IUserManagementService
 {
     private const string NotAllowed = "Dafür fehlt die Berechtigung.";
     private const string AdminAccountsOnlyForAdmins = "Administratorkonten können nur Administratoren ändern.";
@@ -201,6 +201,8 @@ internal sealed class UserManagement(ElocaroDbContext db, UserManager<Applicatio
         await userManager.UpdateAsync(user);
         await userManager.UpdateSecurityStampAsync(user); // existing sessions become invalid
         await db.Set<MagicLink>().Where(l => l.UserId == id && l.RedeemedAt == null).ExecuteDeleteAsync(cancellationToken);
+        var now = clock.GetUtcNow();
+        await db.Set<AccessToken>().Where(t => t.UserId == id && t.RevokedAt == null).ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now), cancellationToken); // not revived by unlocking
         await audit.LogAsync(nameof(ApplicationUser), user.Id, AuditAction.Modified, [new FieldChange("Locked", "false", "true")], cancellationToken);
         return AccountResult.Ok(user.Id);
     }

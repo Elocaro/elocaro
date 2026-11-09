@@ -42,6 +42,11 @@ services:
       # FinTS direct retrieval: registration number of the Deutsche Kreditwirtschaft, see docs/banking-fints.md (empty = off)
       FinTs__ProductId: ${FINTS_PRODUCT_ID:-}
       FinTs__ProductVersion: ${FINTS_PRODUCT_VERSION:-}
+      # MCP interface for AI assistants (read-only, off by default), see docs/mcp.md
+      Mcp__Enabled: ${MCP_ENABLED:-false}
+      Mcp__RequestsPerMinute: ${MCP_REQUESTS_PER_MINUTE:-120}
+      Mcp__MaxResults: ${MCP_MAX_RESULTS:-50}
+      AccessTokens__MaxDays: ${ACCESS_TOKEN_MAX_DAYS:-90}
       Backup__StatusFile: /backup-status/backup.json
       # Optional protection of the data protection keys by a certificate, see docs/betrieb.md (empty = off)
       DataProtection__CertificatePath: ${DATA_PROTECTION_CERT_PATH:-}
