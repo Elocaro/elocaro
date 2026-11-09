@@ -68,7 +68,7 @@ dotnet tool restore                       # lokale Tools (dotnet-ef)
 
 - Eingebaute .NET-Analyzer (`AnalysisLevel=latest-recommended`), Codestil im Build (`EnforceCodeStyleInBuild`), Warnungen sind Fehler.
 - [Meziantou.Analyzer](https://github.com/meziantou/Meziantou.Analyzer) in allen Projekten (`Directory.Build.props`). Regeln mit zu viel Rauschen
-  sind in der `.editorconfig` begründet abgeschwächt (u. a. MA0004, MA0048, MA0051); Regex-Attribute bekommen ein Zeitlimit (MA0009).
+  sind in der `.editorconfig` begründet abgeschwächt (u. a. MA0003, MA0004, MA0048, MA0051; MA0002/MA0006/MA0076, weil Strings ordinal verglichen werden und `AppCulture` de-DE setzt); Regex-Attribute bekommen ein Zeitlimit (MA0009).
 - `Microsoft.CodeAnalysis.BannedApiAnalyzers` mit `BannedSymbols.txt` (außerhalb der Tests): `DateTime.Now/UtcNow`,
   `DateTimeOffset.Now/UtcNow` und `Thread.Sleep` sind verboten, Zeit kommt über `TimeProvider`.
 - `NuGetAudit` (alle Pakete inkl. transitiver, jede Schwere): bekannte Schwachstellen lassen Restore/Build fehlschlagen; die CI prüft zusätzlich
