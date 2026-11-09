@@ -71,7 +71,7 @@ public class CorrectionTests
 
         Assert.Equal((D(2027, 3, 1), 710m), (step.From, step.BaseRent));
         Assert.Throws<RuleViolationException>(() => lease.UpdateRentStep(step.Id, D(2026, 6, 1), 710m)); // less than a year after the start
-        lease.ApplyDueSteps(D(2027, 3, 1), DateTimeOffset.UtcNow);
+        lease.ApplyDueSteps(D(2027, 3, 1), new DateTimeOffset(2027, 3, 1, 0, 0, 0, TimeSpan.Zero));
         Assert.Throws<RuleViolationException>(() => lease.UpdateRentStep(step.Id, D(2027, 4, 1), 720m));
     }
 

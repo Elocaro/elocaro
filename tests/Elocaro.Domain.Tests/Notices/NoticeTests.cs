@@ -24,7 +24,7 @@ public class NoticeTests
         var notice = new Notice("Hausordnung", "Text", Guid.NewGuid(), Day, null, true);
         Assert.True(notice.IsCurrent(Day.AddYears(5)));
 
-        notice.Withdraw(Day.AddDays(4), DateTimeOffset.UtcNow);
+        notice.Withdraw(Day.AddDays(4), new DateTimeOffset(2026, 3, 14, 0, 0, 0, TimeSpan.Zero));
 
         Assert.True(notice.IsCurrent(Day.AddDays(4)));
         Assert.False(notice.IsCurrent(Day.AddDays(5)));

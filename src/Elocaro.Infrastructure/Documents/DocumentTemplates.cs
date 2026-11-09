@@ -304,7 +304,7 @@ internal sealed partial class DocumentTemplates(ElocaroDbContext db, IPdfGenerat
         }
     }
 
-    [GeneratedRegex("""include\s+['"]([^'"]+)['"]""")]
+    [GeneratedRegex("""include\s+['"]([^'"]+)['"]""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex IncludeCall();
 
     private sealed record ExportFile(string Format, int Version, string? Name, string? Kind, string? Description, string? Subject, string? Body);

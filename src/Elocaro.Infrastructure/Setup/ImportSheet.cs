@@ -412,9 +412,9 @@ internal static partial class ImportSheet
         }
     }
 
-    [GeneratedRegex(@"^-?\d{1,3}(\.\d{3})+$")]
+    [GeneratedRegex(@"^-?\d{1,3}(\.\d{3})+$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ThousandsOnly();
 
-    [GeneratedRegex("[^a-z0-9]")]
+    [GeneratedRegex("[^a-z0-9]", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex NonAlphanumeric();
 }

@@ -144,6 +144,6 @@ internal sealed partial class CpiService(ElocaroDbContext db) : ICpiService
         return false;
     }
 
-    [GeneratedRegex(@"^(?:(?<j1>\d{4})-(?<m1>\d{1,2})|(?<m2>\d{1,2})\.(?<j2>\d{4}))$")]
+    [GeneratedRegex(@"^(?:(?<j1>\d{4})-(?<m1>\d{1,2})|(?<m2>\d{1,2})\.(?<j2>\d{4}))$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex MonthInText();
 }

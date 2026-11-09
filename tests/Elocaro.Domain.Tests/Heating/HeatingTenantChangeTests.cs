@@ -187,7 +187,7 @@ public class HeatingTenantChangeTests
             [],
             new RuleConsumption((unit, type, period) => type != MeterType.HotWater
                 ? new ConsumptionQuantity(null, false, "Kein Zähler.")
-                : period == Year2026 ? new ConsumptionQuantity(unit == Id(Apartment1) ? 30m : 30m) : new ConsumptionQuantity(30m * period.Days / 365m, true, null, [ChangeDay])));
+                : period == Year2026 ? new ConsumptionQuantity(30m) : new ConsumptionQuantity(30m * period.Days / 365m, true, null, [ChangeDay])));
 
         var result = Run(input, Parameters);
 

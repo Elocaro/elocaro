@@ -1,0 +1,6 @@
+P:System.DateTime.Now;Zeit über TimeProvider beziehen
+P:System.DateTime.UtcNow;Zeit über TimeProvider beziehen
+P:System.DateTimeOffset.Now;Zeit über TimeProvider beziehen
+P:System.DateTimeOffset.UtcNow;Zeit über TimeProvider beziehen
+M:System.Threading.Thread.Sleep(System.Int32);Task.Delay mit TimeProvider verwenden
+M:System.Console.WriteLine(System.String);ILogger verwenden

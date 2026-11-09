@@ -46,9 +46,9 @@ internal static partial class SepaPurpose
 
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) || value == "NOTPROVIDED" ? null : value;
 
-    [GeneratedRegex(@"(EREF|KREF|MREF|CRED|DEBT|SVWZ|ABWA|ABWE|IBAN|BIC|COAM|OAMT)\+")]
+    [GeneratedRegex(@"(EREF|KREF|MREF|CRED|DEBT|SVWZ|ABWA|ABWE|IBAN|BIC|COAM|OAMT)\+", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Identifier();
 
-    [GeneratedRegex(@"\s+")]
+    [GeneratedRegex(@"\s+", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Whitespace();
 }

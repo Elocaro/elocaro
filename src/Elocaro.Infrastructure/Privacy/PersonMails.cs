@@ -21,9 +21,9 @@ internal static class PersonMails
     public static IQueryable<OutgoingMail> To(ElocaroDbContext db, IReadOnlyCollection<string> addresses)
     {
         var lowered = addresses.Select(a => a.ToLowerInvariant()).ToList();
-#pragma warning disable CA1304, CA1311 // Translated to SQL lower().
+#pragma warning disable CA1304, CA1311, MA0011 // Translated to SQL lower().
         return db.Set<OutgoingMail>().IgnoreQueryFilters().Where(m => m.To.Any(a => lowered.Contains(a.ToLower())));
-#pragma warning restore CA1304, CA1311
+#pragma warning restore CA1304, CA1311, MA0011
     }
 }
 

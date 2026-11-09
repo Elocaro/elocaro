@@ -56,18 +56,18 @@ internal sealed partial class MailSender(
         return string.Join('\n', text.Split('\n').Select(z => z.Trim())).Trim();
     }
 
-    [GeneratedRegex("^[a-z0-9-]+$")]
+    [GeneratedRegex("^[a-z0-9-]+$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex TemplateName();
 
-    [GeneratedRegex(@"<(br\s*/?|/p|/div|/h[1-6]|/li|/tr)\s*>", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"<(br\s*/?|/p|/div|/h[1-6]|/li|/tr)\s*>", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
     private static partial Regex LineBreakTags();
 
-    [GeneratedRegex("<a[^>]*href=\"([^\"]*)\"[^>]*>(.*?)</a>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    [GeneratedRegex("<a[^>]*href=\"([^\"]*)\"[^>]*>(.*?)</a>", RegexOptions.IgnoreCase | RegexOptions.Singleline, matchTimeoutMilliseconds: 1000)]
     private static partial Regex LinkTags();
 
-    [GeneratedRegex("<[^>]+>")]
+    [GeneratedRegex("<[^>]+>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex AllTags();
 
-    [GeneratedRegex(@"\n\s*\n(\s*\n)+")]
+    [GeneratedRegex(@"\n\s*\n(\s*\n)+", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex MultipleBlankLines();
 }

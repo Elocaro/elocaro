@@ -239,12 +239,12 @@ public static partial class TextMatching
         return previous[b.Length];
     }
 
-    [GeneratedRegex(@"(?<![\d.,/])(0?[1-9]|1[0-2])\s*-\s*(0?[1-9]|1[0-2])\s*[/.]\s*(20\d{2}|\d{2})(?!\d|\.\d)")]
+    [GeneratedRegex(@"(?<![\d.,/])(0?[1-9]|1[0-2])\s*-\s*(0?[1-9]|1[0-2])\s*[/.]\s*(20\d{2}|\d{2})(?!\d|\.\d)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RangeNumeric();
 
-    [GeneratedRegex(@"(?<![\d.,/-])(0?[1-9]|1[0-2])\s*[/.]\s*(20\d{2}|\d{2})(?!\d|\.\d|/\d)")]
+    [GeneratedRegex(@"(?<![\d.,/-])(0?[1-9]|1[0-2])\s*[/.]\s*(20\d{2}|\d{2})(?!\d|\.\d|/\d)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex SingleNumeric();
 
-    [GeneratedRegex(@"(?<!\d)(20\d{2})[-/](0[1-9]|1[0-2])(?!\d|-\d)")]
+    [GeneratedRegex(@"(?<!\d)(20\d{2})[-/](0[1-9]|1[0-2])(?!\d|-\d)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex IsoMonth();
 }

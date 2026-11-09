@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Infrastructure.Heating;
 
-internal sealed class HeatingSettingsService(ElocaroDbContext db) : IHeatingSettings
+internal sealed class HeatingSettingsService(ElocaroDbContext db, TimeProvider clock) : IHeatingSettings
 {
     public async Task<HeatingSettingsView?> GetAsync(Guid propertyId, CancellationToken cancellationToken = default)
     {
@@ -46,7 +46,7 @@ internal sealed class HeatingSettingsService(ElocaroDbContext db) : IHeatingSett
         if (input.DegreeDayStationId is { } stationId)
         {
             var values = await db.Set<DegreeDayValue>().AsNoTracking().Where(v => v.StationId == stationId).ToListAsync(cancellationToken);
-            if (DegreeDayStationTable.Build(values, Period.CalendarYear(DateTime.UtcNow.Year)) is { } table)
+            if (DegreeDayStationTable.Build(values, Period.CalendarYear(clock.GetUtcNow().Year)) is { } table)
             {
                 (version, status) = (table.Version, table.Status);
             }

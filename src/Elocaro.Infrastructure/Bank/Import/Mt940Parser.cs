@@ -151,9 +151,9 @@ internal static partial class Mt940Parser
         return result;
     }
 
-    [GeneratedRegex(@"^:(\d{2}[A-Z]?):")]
+    [GeneratedRegex(@"^:(\d{2}[A-Z]?):", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex FieldStart();
 
-    [GeneratedRegex(@"^(?<valuta>\d{6})(?<buchung>\d{4})?(?<dc>RC|RD|C|D)[A-Z]?(?<betrag>\d+,\d*)")]
+    [GeneratedRegex(@"^(?<valuta>\d{6})(?<buchung>\d{4})?(?<dc>RC|RD|C|D)[A-Z]?(?<betrag>\d+,\d*)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Field61();
 }

@@ -64,6 +64,14 @@ dotnet run --project src/Elocaro.Web
 dotnet tool restore                       # lokale Tools (dotnet-ef)
 ```
 
+## Statische Analyse
+
+- Eingebaute .NET-Analyzer (`AnalysisLevel=latest-recommended`), Codestil im Build (`EnforceCodeStyleInBuild`), Warnungen sind Fehler.
+- [Meziantou.Analyzer](https://github.com/meziantou/Meziantou.Analyzer) in allen Projekten (`Directory.Build.props`). Regeln mit zu viel Rauschen
+  sind in der `.editorconfig` begründet abgeschwächt (u. a. MA0004, MA0048, MA0051); Regex-Attribute bekommen ein Zeitlimit (MA0009).
+- `Microsoft.CodeAnalysis.BannedApiAnalyzers` mit `BannedSymbols.txt` (außerhalb der Tests): `DateTime.Now/UtcNow`,
+  `DateTimeOffset.Now/UtcNow` und `Thread.Sleep` sind verboten, Zeit kommt über `TimeProvider`.
+
 ## Migrationen
 
 ```bash
