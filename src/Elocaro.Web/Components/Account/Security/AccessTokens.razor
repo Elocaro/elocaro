@@ -17,7 +17,7 @@
 }
 else
 {
-    <p>Mit einem Zugriffstoken handelt eine Integration in Ihrem Namen, ohne dass Sie sich anmelden, zum Beispiel ein KI-Assistent über MCP (Claude, GitHub Copilot, Cursor u. a.). Bisher können Token Ihre Daten <strong>nur lesen</strong>. Er sieht höchstens, was Sie selbst in Elocaro sehen dürfen, und nur die Bereiche, die Sie für das Token wählen. Wird Ihr Konto gesperrt oder ändern sich Ihre Rechte, gilt das sofort auch für Ihre Token.</p>
+    <p>Mit einem Zugriffstoken handelt eine Integration in Ihrem Namen, ohne dass Sie sich anmelden, zum Beispiel ein KI-Assistent über MCP (Claude, GitHub Copilot, Cursor u. a.). Bisher können Token Ihre Daten <strong>nur lesen</strong>. Es sieht höchstens, was Sie selbst in Elocaro sehen dürfen, und nur die Bereiche, die Sie für das Token wählen. Wird Ihr Konto gesperrt oder ändern sich Ihre Rechte, gilt das sofort auch für Ihre Token.</p>
 
     <Notice Level="NoticeLevel.Warning">Behandeln Sie ein Token wie ein Passwort. Was eine Integration liest, verlässt Elocaro: bei KI-Assistenten in Richtung des KI-Anbieters. Wählen Sie nur Bereiche, die Sie dort verarbeiten lassen wollen.</Notice>
 
@@ -39,13 +39,14 @@ else
             <InputText id="token-name" @bind-Value="Input!.Name" maxlength="100" autocomplete="off" />
             <ValidationMessage For="() => Input!.Name" />
         </div>
-        <fieldset class="field">
+        <fieldset class="token-scopes">
             <legend>Bereiche</legend>
             @foreach (var scope in available)
             {
-                <label class="checkbox">
-                    <input type="checkbox" name="Input.Scopes" value="@scope.Name" checked="@Input.Scopes.Contains(scope.Name)" /> @scope.Description
-                </label>
+                <div class="field field-checkbox">
+                    <input type="checkbox" id="scope-@scope.Name" name="Input.Scopes" value="@scope.Name" checked="@Input.Scopes.Contains(scope.Name)" />
+                    <label for="scope-@scope.Name">@scope.Description</label>
+                </div>
             }
         </fieldset>
         <div class="field">

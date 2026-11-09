@@ -1555,3 +1555,8 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 .module-options { margin: 0.25rem 0 0.5rem; }
 .module-option-group { margin: 0 0 0.5rem; padding: 0.25rem 0 0 0.75rem; border: 0; border-left: 2px solid var(--md-outline-variant); }
 .module-option-group legend { padding: 0; color: var(--md-on-surface-variant); font-weight: 600; }
+
+/* Scope choice on the access-token page: legend and checkbox rows, no floating labels */
+.token-scopes { margin: 0 0 1rem; padding: 0; border: 0; }
+.token-scopes legend { padding: 0; margin-bottom: 0.25rem; color: var(--md-on-surface-variant); font-weight: 600; }
+.token-scopes .field-checkbox { margin: 0; }
