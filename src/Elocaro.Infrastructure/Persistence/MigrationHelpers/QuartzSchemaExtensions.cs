@@ -8,6 +8,7 @@ public static class QuartzSchemaExtensions
 {
     private const string Script = "Persistence/Sql/quartz_3_22_6_postgres.sql";
     private const string UpgradeScript = "Persistence/Sql/quartz_4_6_upgrade_postgres.sql";
+    private const string Upgrade47Script = "Persistence/Sql/quartz_4_7_upgrade_postgres.sql";
     private const string IndexScript = "Persistence/Sql/quartz_4_0_indexes_postgres.sql";
 
     private static readonly string[] Tables =
@@ -44,6 +45,20 @@ public static class QuartzSchemaExtensions
         migrationBuilder.Sql("ALTER TABLE qrtz_fired_triggers DROP COLUMN IF EXISTS execution_group, DROP COLUMN IF EXISTS progress, DROP COLUMN IF EXISTS progress_message, DROP COLUMN IF EXISTS interrupt_requested_time;");
         migrationBuilder.Sql("ALTER TABLE qrtz_paused_trigger_grps DROP COLUMN IF EXISTS pause_reason, DROP COLUMN IF EXISTS paused_by, DROP COLUMN IF EXISTS paused_at;");
         migrationBuilder.Sql("ALTER TABLE qrtz_scheduler_state DROP COLUMN IF EXISTS quartz_version;");
+    }
+
+    /// <summary>Adds the column Quartz.NET 4.7 reads on every trigger (<c>fixed_delay</c>); the scheduler does not start without it.</summary>
+    public static void UpgradeQuartzSchemaTo47(this MigrationBuilder migrationBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(migrationBuilder);
+        migrationBuilder.Sql(EmbeddedResource.ReadText(Upgrade47Script));
+    }
+
+    /// <summary>Removes what the 4.7 upgrade added.</summary>
+    public static void DowngradeQuartzSchemaFrom47(this MigrationBuilder migrationBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(migrationBuilder);
+        migrationBuilder.Sql("ALTER TABLE qrtz_triggers DROP COLUMN IF EXISTS fixed_delay;");
     }
 
     public static void DropQuartzSchema(this MigrationBuilder migrationBuilder)

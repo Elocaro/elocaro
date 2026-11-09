@@ -76,7 +76,7 @@ public class MigrationTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Quartz_upgrade_keeps_existing_jobs_and_triggers_and_adds_the_version_4_schema()
+    public async Task Quartz_upgrade_keeps_existing_jobs_and_triggers_and_adds_the_version_4_7_schema()
     {
         // The state of an installation that still runs Quartz 3: the migration before the upgrade.
         const string before = "20261026164501_SupplyUnitMeters";
@@ -85,6 +85,7 @@ public class MigrationTests(PostgresFixture postgres)
         var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();
         await db.GetService<IMigrator>().MigrateAsync(before, Ct);
         Assert.False(await ColumnExistsAsync(db, "qrtz_triggers", "retry_policy"));
+        Assert.False(await ColumnExistsAsync(db, "qrtz_triggers", "fixed_delay"));
         Assert.False(await TableExistsAsync(db, "qrtz_paused_job_grps"));
 
         await db.Database.ExecuteSqlRawAsync(
@@ -108,6 +109,7 @@ public class MigrationTests(PostgresFixture postgres)
         Assert.Equal(1793000000000L, await db.Database.SqlQuery<long>($"SELECT next_fire_time AS \"Value\" FROM qrtz_triggers WHERE trigger_name = 'charges-trigger'").SingleAsync(Ct));
         Assert.True(await ColumnExistsAsync(db, "qrtz_triggers", "retry_policy"));
         Assert.True(await ColumnExistsAsync(db, "qrtz_triggers", "misfire_threshold"));
+        Assert.True(await ColumnExistsAsync(db, "qrtz_triggers", "fixed_delay"));
         Assert.True(await TableExistsAsync(db, "qrtz_paused_job_grps"));
         Assert.Equal(0, await db.Database.SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM qrtz_triggers WHERE retry_policy IS NOT NULL").SingleAsync(Ct));
     }

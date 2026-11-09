@@ -28,6 +28,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Anonymisierte Mails erscheinen im Dashboard nicht mehr als „nicht zustellbar“.
 
 ### Geändert
+- Paket-Updates: Quartz.NET 4.7 (neue Migration `UpgradeQuartzSchemaTo47` ergänzt die Spalte `fixed_delay`, ohne sie startet der Planer nicht), MudBlazor 9.12, Scriban 7.6, SkiaSharp 4.155; Test-Pakete bunit 2.14 und xunit.v3 4.0.3.
 - Statische Analyse: Meziantou.Analyzer und Banned-API-Prüfung (`DateTime.Now` u. a. verboten, Zeit über `TimeProvider`), NuGetAudit für alle Pakete und ein CI-Schritt für anfällige Pakete. Details in `docs/entwicklung.md`.
 - Einstellungen → Module: Die Auswahl innerhalb der Bereiche (z. B. Staffelmiete, DATEV-Export) steht jetzt direkt in der Kachel des Moduls statt auf einem zweiten Reiter.
 - Heizkosten-Einstellungen für Laien: Oben steht eine Zusammenfassung („Aktuell gilt …“), die Fragen sind in einfacher Sprache gestellt (Energieträger, „Erzeugt dieselbe Anlage auch das Warmwasser?“, Anteil nach Verbrauch mit Schnellwahl 70/60/50 %), Selteneres (Energieinhalt, Emissionsfaktor, Wetterstation) steht aufklappbar darunter, und eine kurze Erklärung nennt, was für die Heizkosten gebraucht wird.
