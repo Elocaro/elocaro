@@ -51,6 +51,12 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      # Restore already reports advisories as warnings (= errors); this step names them per project.
+      - name: Anfällige Pakete prüfen
+        run: |
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+          ! grep -q "has the following vulnerable packages\|hat die folgenden anfälligen Paketen" vulnerable.txt
+
       # Whitespace only: the build enforces the code style rules (EnforceCodeStyleInBuild, warnings are errors).
       # The order of usings is checked only by the full dotnet format before a commit.
       - name: Formatierung prüfen

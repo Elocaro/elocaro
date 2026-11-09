@@ -71,6 +71,8 @@ dotnet tool restore                       # lokale Tools (dotnet-ef)
   sind in der `.editorconfig` begründet abgeschwächt (u. a. MA0004, MA0048, MA0051); Regex-Attribute bekommen ein Zeitlimit (MA0009).
 - `Microsoft.CodeAnalysis.BannedApiAnalyzers` mit `BannedSymbols.txt` (außerhalb der Tests): `DateTime.Now/UtcNow`,
   `DateTimeOffset.Now/UtcNow` und `Thread.Sleep` sind verboten, Zeit kommt über `TimeProvider`.
+- `NuGetAudit` (alle Pakete inkl. transitiver, jede Schwere): bekannte Schwachstellen lassen Restore/Build fehlschlagen; die CI prüft zusätzlich
+  mit `dotnet list package --vulnerable --include-transitive`. Ein anfälliges transitives Paket wird in `Directory.Packages.props` angehoben (siehe `System.Security.Cryptography.Pkcs`).
 
 ## Migrationen
 
