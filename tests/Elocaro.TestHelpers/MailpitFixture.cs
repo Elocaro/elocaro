@@ -11,7 +11,7 @@ public sealed class MailpitFixture : IAsyncLifetime
     private const int SmtpPort = 1025;
     private const int ApiPort = 8025;
 
-    private readonly IContainer container = new ContainerBuilder("axllent/mailpit:v1.32.0")
+    private readonly IContainer container = new ContainerBuilder("axllent/mailpit:v1.33.0")
         .WithPortBinding(SmtpPort, true)
         .WithPortBinding(ApiPort, true)
         .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(ApiPort).ForPath("/livez")))
