@@ -1560,3 +1560,17 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 .token-scopes { margin: 0 0 1rem; padding: 0; border: 0; }
 .token-scopes legend { padding: 0; margin-bottom: 0.25rem; color: var(--md-on-surface-variant); font-weight: 600; }
 .token-scopes .field-checkbox { margin: 0; }
+.dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+.info-dialog-body > .token-scopes:first-child, .info-dialog-body > form > .field:first-of-type { margin-top: 0.75rem; }
+
+/* Access tokens: secret with copy button, tokens as cards instead of a table */
+.token-secret { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+.token-secret .key { flex: 1 1 14rem; min-width: 0; padding: 0.5rem 0.75rem; border-radius: var(--shape-xs); background: rgb(0 0 0 / 20%); overflow-wrap: anywhere; user-select: all; }
+.token-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.token-card { padding: 0.75rem 1rem; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); background: var(--md-surface-container); }
+.token-card.is-inactive { opacity: 0.65; }
+.token-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.token-state { font-size: 0.85rem; color: var(--md-on-surface-variant); }
+.token-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 1rem; margin: 0.5rem 0 0; font-size: 0.9rem; }
+.token-meta dt { color: var(--md-on-surface-variant); }
+.token-meta dd { margin: 0; }

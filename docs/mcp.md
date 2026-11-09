@@ -38,8 +38,8 @@ Die Seite zur Verwaltung heißt *Konto & Sicherheit → Zugriffstoken für Integ
 ## Token erstellen (Anwender)
 
 1. *Konto & Sicherheit → Zugriffstoken für Integrationen* öffnen. Der Eintrag erscheint nur für Administratoren und Verwalter.
-2. Einen Namen vergeben (z. B. „Claude Code Laptop“), die **Bereiche** wählen und die Gültigkeit festlegen.
-3. Das Token **sofort kopieren**. Elocaro speichert nur einen Hash und zeigt es nicht noch einmal.
+2. Mit „Token erstellen“ den Dialog öffnen, einen Namen vergeben (z. B. „Claude Code Laptop“), die **Bereiche** wählen und die Gültigkeit festlegen.
+3. Das Token **sofort kopieren** (Schaltfläche „Kopieren“ neben dem Token). Elocaro speichert nur einen Hash und zeigt es nicht noch einmal.
 4. Nicht mehr benötigte Token dort **widerrufen**; das wirkt sofort.
 
 Das Token wie ein Passwort behandeln: nicht in Repositories, Chats oder Tickets einfügen.

@@ -90,6 +90,44 @@
         }
     });
 
+    // Copy buttons: <button data-copy="#selector"> copies the text of that element (secrets that are shown only once).
+    document.addEventListener('click', async (event) => {
+        const button = event.target instanceof Element ? event.target.closest('[data-copy]') : null;
+        const source = button ? document.querySelector(button.getAttribute('data-copy')) : null;
+        if (!button || !source) {
+            return;
+        }
+
+        const text = source.textContent.trim();
+        let done = false;
+        try {
+            await navigator.clipboard.writeText(text);
+            done = true;
+        } catch {
+            const range = document.createRange();
+            range.selectNodeContents(source);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            done = document.execCommand('copy');
+        }
+
+        const label = button.querySelector('[data-copy-label]');
+        if (label) {
+            label.textContent = done ? 'Kopiert' : 'Markiert, bitte Strg+C';
+            setTimeout(() => { label.textContent = 'Kopieren'; }, 2500);
+        }
+    });
+
+    // Static pages can ask for a dialog to open on load (e.g. a form that came back with errors): <dialog data-open-on-load>.
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('dialog[data-open-on-load]').forEach((dialog) => {
+            if (typeof dialog.showModal === 'function' && !dialog.open) {
+                dialog.showModal();
+            }
+        });
+    });
+
     // Info dialogs (Components/Common/InfoDialog.razor): native <dialog>, so focus handling and Esc come from the browser.
     document.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target : null;

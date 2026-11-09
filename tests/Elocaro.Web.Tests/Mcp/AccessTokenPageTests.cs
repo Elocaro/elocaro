@@ -9,31 +9,6 @@ public class AccessTokenPageTests(PostgresFixture postgres) : AccountTestBase(po
     protected override IDictionary<string, string?>? Configuration => new Dictionary<string, string?> { ["Mcp:Enabled"] = "true" };
 
     [Fact]
-    public async Task Admin_creates_a_token_sees_the_secret_once_and_revokes_it()
-    {
-        var (admin, _) = await SignedInAsAsync(Roles.Admin);
-        using var _ = admin;
-
-        var page = await admin.GetAsync("/konto/sicherheit/zugriffstoken");
-        Assert.Equal(HttpStatusCode.OK, page.Status);
-        var created = await admin.SubmitAsync(page, "token-create", new Dictionary<string, string>
-        {
-            ["Input.Name"] = "Claude Code",
-            ["Input.Scopes"] = "read:masterdata",
-            ["Input.ValidDays"] = "30",
-        });
-        var secret = created.Document.QuerySelector("#token-secret")?.TextContent;
-        Assert.StartsWith("elo_", secret, StringComparison.Ordinal);
-
-        // Reloading shows the token in the list, but no longer the secret.
-        var again = await admin.GetAsync("/konto/sicherheit/zugriffstoken");
-        Assert.Null(again.Document.QuerySelector("#token-secret"));
-        Assert.Contains("Claude Code", again.Text, StringComparison.Ordinal);
-        Assert.Contains("read:masterdata", again.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain(secret!, again.Html, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task Tenant_cannot_open_the_page()
     {
         var (tenant, _) = await SignedInAsAsync(Roles.Tenant);

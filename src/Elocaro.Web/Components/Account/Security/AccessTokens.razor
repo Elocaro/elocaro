@@ -7,7 +7,15 @@
 
 <PageTitle>Zugriffstoken – Elocaro</PageTitle>
 
-<h1>Zugriffstoken</h1>
+<div class="page-header">
+    <div class="page-header-title"><h1>Zugriffstoken</h1></div>
+    @if (Tokens.IsAvailable)
+    {
+        <div class="page-header-actions">
+            <button type="button" class="button button-primary" data-info-dialog="token-dialog" aria-haspopup="dialog"><Icon Path="@AppIcons.Add" /> Token erstellen</button>
+        </div>
+    }
+</div>
 
 <StatusMessage />
 
@@ -25,37 +33,51 @@ else
     {
         <Notice Level="NoticeLevel.Success">
             Das Token „@createdName“ wurde erstellt. Kopieren Sie es jetzt; es wird nicht noch einmal angezeigt.
-            <p><code id="token-secret" class="key">@secret</code></p>
+            <div class="token-secret">
+                <code id="token-secret" class="key">@secret</code>
+                <button type="button" class="button" data-copy="#token-secret"><Icon Path="@AppIcons.Copy" /> <span data-copy-label="">Kopieren</span></button>
+            </div>
         </Notice>
     }
 
-    <ErrorList Errors="errors" />
+    <ErrorList Errors="revokeErrors" />
 
-    <h2>Neues Token</h2>
-    <EditForm Model="Input" FormName="token-create" OnValidSubmit="CreateAsync">
-        <DataAnnotationsValidator />
-        <div class="field">
-            <label for="token-name">Name (z. B. Gerät oder Programm)</label>
-            <InputText id="token-name" @bind-Value="Input!.Name" maxlength="100" autocomplete="off" />
-            <ValidationMessage For="() => Input!.Name" />
+    <dialog id="token-dialog" class="info-dialog" aria-labelledby="token-dialog-title" data-open-on-load="@(reopen ? "" : null)">
+        <div class="info-dialog-header">
+            <h2 id="token-dialog-title">Neues Token</h2>
+            <button type="button" class="info-dialog-close" data-info-close="" aria-label="Schließen"><Icon Path="@AppIcons.Close" /></button>
         </div>
-        <fieldset class="token-scopes">
-            <legend>Bereiche</legend>
-            @foreach (var scope in available)
-            {
-                <div class="field field-checkbox">
-                    <input type="checkbox" id="scope-@scope.Name" name="Input.Scopes" value="@scope.Name" checked="@Input.Scopes.Contains(scope.Name)" />
-                    <label for="scope-@scope.Name">@scope.Description</label>
+        <div class="info-dialog-body">
+            <ErrorList Errors="errors" />
+            <EditForm Model="Input" FormName="token-create" OnValidSubmit="CreateAsync" OnInvalidSubmit="@(() => reopen = true)">
+                <DataAnnotationsValidator />
+                <div class="field">
+                    <label for="token-name">Name (z. B. Gerät oder Programm)</label>
+                    <InputText id="token-name" @bind-Value="Input!.Name" maxlength="100" autocomplete="off" />
+                    <ValidationMessage For="() => Input!.Name" />
                 </div>
-            }
-        </fieldset>
-        <div class="field">
-            <label for="token-days">Gültig für (Tage, höchstens @Tokens.MaxDays)</label>
-            <InputNumber id="token-days" @bind-Value="Input.ValidDays" min="1" max="@Tokens.MaxDays" />
-            <ValidationMessage For="() => Input.ValidDays" />
+                <fieldset class="token-scopes">
+                    <legend>Bereiche</legend>
+                    @foreach (var scope in available)
+                    {
+                        <div class="field field-checkbox">
+                            <input type="checkbox" id="scope-@scope.Name" name="Input.Scopes" value="@scope.Name" checked="@Input.Scopes.Contains(scope.Name)" />
+                            <label for="scope-@scope.Name">@scope.Description</label>
+                        </div>
+                    }
+                </fieldset>
+                <div class="field">
+                    <label for="token-days">Gültig für (Tage, höchstens @Tokens.MaxDays)</label>
+                    <InputNumber id="token-days" @bind-Value="Input.ValidDays" min="1" max="@Tokens.MaxDays" />
+                    <ValidationMessage For="() => Input.ValidDays" />
+                </div>
+                <div class="dialog-actions">
+                    <button type="button" class="button" data-info-close="">Abbrechen</button>
+                    <button type="submit" class="button button-primary">Token erstellen</button>
+                </div>
+            </EditForm>
         </div>
-        <button type="submit" class="button button-primary">Token erstellen</button>
-    </EditForm>
+    </dialog>
 
     <h2>Ihre Token</h2>
     @if (tokens.Count == 0)
@@ -66,38 +88,36 @@ else
     {
         <form method="post" @onsubmit="RevokeAsync" @formname="token-revoke">
             <AntiforgeryToken />
-            <table class="table">
-                <thead>
-                    <tr><th>Name</th><th>Beginnt mit</th><th>Bereiche</th><th>Gültig bis</th><th>Zuletzt benutzt</th><th></th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var token in tokens)
-                    {
-                        <tr>
-                            <td>@token.Name</td>
-                            <td><code>@token.Prefix…</code></td>
-                            <td>@string.Join(", ", token.Scopes)</td>
-                            <td>@Format.Day(token.ExpiresAt)</td>
-                            <td>@(token.LastUsedAt is null ? "noch nie" : Format.Timestamp(token.LastUsedAt))</td>
-                            <td>
-                                @if (token.RevokedAt is not null)
-                                {
-                                    <span>widerrufen</span>
-                                }
-                                else if (!token.IsActive(Clock.GetUtcNow()))
-                                {
-                                    <span>abgelaufen</span>
-                                }
-                                else
-                                {
-                                    <RowConfirm Name="RevokeId" Value="@token.Id" Text="Widerrufen" ConfirmText="Ja, widerrufen"
-                                                Question="Das Token funktioniert danach sofort nicht mehr." Label="@($"Token {token.Name} widerrufen")" />
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            <ul class="token-list">
+                @foreach (var token in tokens)
+                {
+                    var active = token.RevokedAt is null && token.IsActive(Clock.GetUtcNow());
+                    <li class="token-card@(active ? "" : " is-inactive")">
+                        <div class="token-card-head">
+                            <strong>@token.Name</strong>
+                            @if (token.RevokedAt is not null)
+                            {
+                                <span class="token-state">widerrufen</span>
+                            }
+                            else if (!active)
+                            {
+                                <span class="token-state">abgelaufen</span>
+                            }
+                            else
+                            {
+                                <RowConfirm Name="RevokeId" Value="@token.Id" Text="Widerrufen" ConfirmText="Ja, widerrufen"
+                                            Question="Das Token funktioniert danach sofort nicht mehr." Label="@($"Token {token.Name} widerrufen")" />
+                            }
+                        </div>
+                        <dl class="token-meta">
+                            <dt>Bereiche</dt><dd>@string.Join(", ", token.Scopes.Select(ScopeLabel))</dd>
+                            <dt>Gültig bis</dt><dd>@Format.Day(token.ExpiresAt)</dd>
+                            <dt>Zuletzt benutzt</dt><dd>@(token.LastUsedAt is null ? "noch nie" : Format.Timestamp(token.LastUsedAt))</dd>
+                            <dt>Beginnt mit</dt><dd><code>@token.Prefix…</code></dd>
+                        </dl>
+                    </li>
+                }
+            </ul>
         </form>
     }
 }
@@ -110,6 +130,16 @@ else
     private IReadOnlyList<AccessScope> available = [];
     private string? secret;
     private string? createdName;
+    private bool reopen;
+
+    private static string ScopeLabel(string name) => name switch
+    {
+        "read:masterdata" => "Stammdaten",
+        "read:finance" => "Finanzen",
+        _ => name,
+    };
+
+    private IReadOnlyList<string>? revokeErrors;
 
     [SupplyParameterFromForm(FormName = "token-create")]
     private CreateInput? Input { get; set; }
@@ -137,6 +167,7 @@ else
         if (!result.Succeeded)
         {
             errors = [result.Error!];
+            reopen = true;
             return;
         }
 
@@ -154,7 +185,7 @@ else
             return;
         }
 
-        errors = ["Das Token wurde nicht gefunden."];
+        revokeErrors = ["Das Token wurde nicht gefunden."];
         await LoadAsync();
     }
 
