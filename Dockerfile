@@ -6,7 +6,7 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /quelle
 
 # Copy only the project files first: the restore layer stays cached as long as no packages change.
-COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
+COPY global.json Directory.Build.props Directory.Packages.props .editorconfig BannedSymbols.txt ./
 COPY src/Elocaro.Domain/Elocaro.Domain.csproj src/Elocaro.Domain/
 COPY src/Elocaro.Application/Elocaro.Application.csproj src/Elocaro.Application/
 COPY src/Elocaro.Infrastructure/Elocaro.Infrastructure.csproj src/Elocaro.Infrastructure/
