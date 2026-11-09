@@ -166,7 +166,7 @@ public class EmergencyFolderTests(PostgresFixture postgres) : AccountTestBase(po
         Assert.Contains("Notfallmappe erstellen", before.TextWithStreaming, StringComparison.Ordinal);
 
         var page = await admin.GetAsync(Page);
-        using var _created = await PostAsync(admin, Fields(page, "create", FilePassword, FilePassword));
+        using var created = await PostAsync(admin, Fields(page, "create", FilePassword, FilePassword));
         var after = await admin.GetAsync("/verwaltung");
         Assert.DoesNotContain("Notfallmappe erstellen", after.TextWithStreaming, StringComparison.Ordinal);
     }

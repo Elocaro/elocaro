@@ -73,7 +73,7 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
     }
 
     private static readonly SemaphoreSlim BrowserLock = new(1, 1);
-    private static IBrowser? sharedBrowser;
+    private static IBrowser? s_sharedBrowser;
 
     /// <summary>One Chromium for the whole test run; every test works in its own context (cookies and storage are isolated).</summary>
     private static async Task<IBrowser> SharedBrowserAsync()
@@ -81,14 +81,14 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         await BrowserLock.WaitAsync();
         try
         {
-            if (sharedBrowser is not { IsConnected: true })
+            if (s_sharedBrowser is not { IsConnected: true })
             {
                 var playwright = await Playwright.CreateAsync();
                 // ELOCARO_HEADED=1 shows the browser window (for watching a test while developing).
-                sharedBrowser = await playwright.Chromium.LaunchAsync(new() { Headless = Environment.GetEnvironmentVariable("ELOCARO_HEADED") is null });
+                s_sharedBrowser = await playwright.Chromium.LaunchAsync(new() { Headless = Environment.GetEnvironmentVariable("ELOCARO_HEADED") is null });
             }
 
-            return sharedBrowser;
+            return s_sharedBrowser;
         }
         finally
         {

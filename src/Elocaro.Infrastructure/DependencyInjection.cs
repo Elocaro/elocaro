@@ -311,6 +311,7 @@ public static class DependencyInjection
         services.AddScoped<ITodoSource, RentModelTodos>();
         services.AddScoped<IMeterService, MeterService>();
         services.AddScoped<IReadingReports, ReadingReports>();
+        services.AddScoped<ITodoSource, ReadingReportTodos>();
         services.AddScoped<ReadingReminders>();
         services.AddScoped<IMeterImport, MeterImport>();
         services.AddScoped<IReceiptImport, ReceiptImport>();

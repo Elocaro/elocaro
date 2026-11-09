@@ -93,7 +93,7 @@ public sealed class ScribanRenderer
 
     // Rendering is synchronous per thread; the counter stops snippets that include each other in a circle.
     [ThreadStatic]
-    private static int includeDepth;
+    private static int s_includeDepth;
 
     private static void HelperFunctions(ScriptObject global)
     {
@@ -109,9 +109,9 @@ public sealed class ScribanRenderer
                 throw new TemplateErrorException($"Der Baustein „{name}“ enthält Fehler: {string.Join("; ", snippet.Messages)}");
             }
 
-            if (++includeDepth > MaxIncludeDepth)
+            if (++s_includeDepth > MaxIncludeDepth)
             {
-                includeDepth = 0;
+                s_includeDepth = 0;
                 throw new TemplateErrorException($"Der Baustein „{name}“ verweist im Kreis auf sich selbst.");
             }
 
@@ -121,7 +121,7 @@ public sealed class ScribanRenderer
             }
             finally
             {
-                includeDepth = Math.Max(0, includeDepth - 1);
+                s_includeDepth = Math.Max(0, s_includeDepth - 1);
             }
         }));
         global.Import("text_to_html", new Func<string?, RawHtml>(text =>

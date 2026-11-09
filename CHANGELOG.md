@@ -28,6 +28,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Anonymisierte Mails erscheinen im Dashboard nicht mehr als „nicht zustellbar“.
 
 ### Geändert
+- Statische Analyse: Meziantou.Analyzer und Banned-API-Prüfung (`DateTime.Now` u. a. verboten, Zeit über `TimeProvider`), NuGetAudit für alle Pakete und ein CI-Schritt für anfällige Pakete. Details in `docs/entwicklung.md`.
 - Einstellungen → Module: Die Auswahl innerhalb der Bereiche (z. B. Staffelmiete, DATEV-Export) steht jetzt direkt in der Kachel des Moduls statt auf einem zweiten Reiter.
 - Heizkosten-Einstellungen für Laien: Oben steht eine Zusammenfassung („Aktuell gilt …“), die Fragen sind in einfacher Sprache gestellt (Energieträger, „Erzeugt dieselbe Anlage auch das Warmwasser?“, Anteil nach Verbrauch mit Schnellwahl 70/60/50 %), Selteneres (Energieinhalt, Emissionsfaktor, Wetterstation) steht aufklappbar darunter, und eine kurze Erklärung nennt, was für die Heizkosten gebraucht wird.
 - Heizkosten: Die Wetterstation für die Gradtage wird nach der Postleitzahl des Objekts vorgeschlagen (nächste Station vorausgewählt, Liste nach Entfernung sortiert, mit Kilometerangabe). Die Positionen der Postleitzahlen liegen als Tabelle bei (GeoNames, CC BY 4.0), es wird nichts abgerufen.
@@ -38,6 +39,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Beispieldaten: Die Mietverträge beginnen am 1. Januar des vorletzten Jahres. Die Demo-Instanz zeigt im Mieterportal versendete Abrechnungen mit Rechenweg, Vorjahresvergleich und freigegebenen Beispielbelegen.
 
 ### Behoben
+- Dashboard: Gemeldete Zählerstände von Mietern erschienen nicht als Hinweis, weil die Quelle (`ReadingReportTodos`) nie registriert war. Ein Architekturtest prüft jetzt, dass jede `ITodoSource` registriert ist.
 - Abrechnung im Mieterportal auf dem Handy: Der Rechenweg steht als linksbündiger Block über die volle Breite der Karte, statt in schmale Spalten gequetscht zu werden. Die Summenzeile des Vorjahresvergleichs bricht um und lässt die Seite nicht mehr seitlich überstehen.
 - Datenimport: Eine leerstehende Wohnung bekommt ihre Fläche ab dem frühesten Mietbeginn des Hauses. Bisher ließ sich eine Abrechnung für frühere Jahre wegen der fehlenden Fläche nicht freigeben.
 - Handy: Die Reiter auf Detailseiten (z. B. Vertrag) springen beim Wischen nicht mehr auf den gewählten Reiter zurück.
