@@ -1,8 +1,13 @@
 @page "/verwaltung/objekte/{PropertyId:guid}/abrechnung"
+@using Elocaro.Application.Heating
+@using Elocaro.Application.OperatingCosts
 @using Elocaro.Application.Statements
 @using Elocaro.Domain.Statements
 @rendermode InteractiveServer
 @inject IStatements Statements
+@inject ICostAllocation Allocation
+@inject ISupplyContracts Supply
+@inject IHeatingSettings Heating
 @inject NavigationManager Navigation
 @inject TimeProvider Clock
 
@@ -81,6 +86,21 @@ var result = w.Preview.Result;
                 <dt>Frist für den Zugang (§ 556 Abs. 3 BGB)</dt><dd>@Format.Date(w.DeadlineDate)</dd>
                 <dt>Mietverträge im Zeitraum</dt><dd>@result.Tenants.Count mit Abrechnung, @result.FlatRates.Count mit Pauschale</dd>
             </dl>
+            @if (setup is not null)
+            {
+                <h3>Vorbereitung</h3>
+                <p class="help">Diese Angaben gehen in die Berechnung ein. Was noch nicht eingestellt ist, rechnet Elocaro mit Standardwerten.</p>
+                <ul class="setup-checks" id="setup-checks">
+                    @foreach (var item in setup.Items)
+                    {
+                        <li>
+                            <StatusChip Level="item.Level">@item.Status</StatusChip>
+                            <a href="@Back(item.Href, WizardStep.PeriodAndProperty)">@item.Title</a>
+                            <span class="small">@item.Text</span>
+                        </li>
+                    }
+                </ul>
+            }
         </section>
         break;
 
@@ -233,6 +253,10 @@ var result = w.Preview.Result;
 </InteractiveShell>
 
 @code {
+    private sealed record SetupItem(string Title, string Status, StatusLevel Level, string Text, string Href);
+
+    private sealed record SetupView(IReadOnlyList<SetupItem> Items);
+
     private sealed record CostRow(string Name, decimal Current, decimal? Previous, string Change, string Status, bool Missing);
 
     private sealed class ReleaseInput
@@ -244,6 +268,7 @@ var result = w.Preview.Result;
     }
 
     private StatementWizard? wizard;
+    private SetupView? setup;
     private IReadOnlyList<string>? errors;
     private string? errorText;
     private int year;
@@ -292,6 +317,37 @@ var result = w.Preview.Result;
         }
 
         wizard = await Statements.PrepareAsync(PropertyId, Period.CalendarYear(year), threshold is > 0 and <= 500 ? threshold : PlausibilityChecker.DefaultThresholdPercent);
+
+        await LoadSetupAsync();
+    }
+
+    /// <summary>What the statement relies on besides receipts and meters: supply contracts, allocation keys, heating settings.</summary>
+    private async Task LoadSetupAsync()
+    {
+        var supply = await Supply.GetAsync(PropertyId);
+        var keys = await Allocation.GetAsync(PropertyId, new DateOnly(year, 12, 31));
+        var heating = await Heating.GetAsync(PropertyId);
+        var items = new List<SetupItem>();
+        var contracts = supply?.Contracts.Count ?? 0;
+        items.Add(new("Versorgungsverträge", contracts > 0 ? $"{contracts} angelegt" : "keine", contracts > 0 ? StatusLevel.Success : StatusLevel.Neutral,
+            contracts > 0 ? "Wasser, Strom oder Gas werden aus Zählerstand und Tarif berechnet." : "Nur nötig, wenn Kosten aus Verbrauch und Tarif entstehen; Rechnungen als Belege genügen sonst.",
+            $"/verwaltung/objekte/{PropertyId}/versorgung"));
+        if (keys is not null)
+        {
+            var own = keys.Rows.Count(r => r.Current is not null);
+            items.Add(new("Umlageschlüssel", own > 0 ? $"{own} festgelegt" : "Standard", own > 0 ? StatusLevel.Success : StatusLevel.Warning,
+                own > 0 ? "Kostenarten ohne eigenen Schlüssel werden nach Wohnfläche umgelegt." : "Alle Kostenarten werden nach Wohnfläche umgelegt. Prüfen Sie, ob Ihr Mietvertrag etwas anderes vorsieht.",
+                $"/verwaltung/objekte/{PropertyId}/umlageschluessel"));
+        }
+
+        if (heating is not null)
+        {
+            items.Add(new("Heizkosten", heating.Saved ? "gespeichert" : "Standard", heating.Saved ? StatusLevel.Success : StatusLevel.Warning,
+                heating.Saved ? "Energieträger und Verteilung sind bestätigt." : "Es gelten Standardwerte (70 % Verbrauch, Gas). Bestätigen Sie sie, bevor Sie die Heizkosten abrechnen.",
+                $"/verwaltung/objekte/{PropertyId}/heizung"));
+        }
+
+        setup = new(items);
     }
 
     /// <summary>The six steps; findings that need attention show as a badge in the step list.</summary>

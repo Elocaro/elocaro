@@ -67,6 +67,12 @@ public class StatementPagesTests(PostgresFixture postgres) : AccountTestBase(pos
         Assert.Contains("31.12.2027", first.Document.QuerySelector("#step-1")!.TextContent, StringComparison.Ordinal);
         Assert.Equal(6, first.Document.QuerySelectorAll(".wizard-rail > ol > li").Length);
 
+        // the preparation shows what the calculation relies on, with a link to each setting page
+        var setup = first.Document.QuerySelector("#setup-checks")!.TextContent;
+        Assert.Contains("Umlageschlüssel", setup, StringComparison.Ordinal);
+        Assert.Contains("Heizkosten", setup, StringComparison.Ordinal);
+        Assert.Contains("Versorgungsverträge", setup, StringComparison.Ordinal);
+
         var costs = await admin.GetAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026&schritt=2");
         var checklist = costs.Document.QuerySelector("#cost-checklist")!.TextContent;
         Assert.Contains("+50 %", checklist, StringComparison.Ordinal); // 1,000 → 1,500
