@@ -4,7 +4,10 @@
 
 <PageHeader Title="Offene Posten" Subtitle="Fällige, nicht vollständig bezahlte Forderungen, nach Mietverhältnis gruppiert.">
     <Actions>
-        <a class="button" href="/verwaltung/finanzen/offene-posten.csv">CSV exportieren</a>
+        @if (items is not { Count: 0 })
+        {
+            <a class="button" href="/verwaltung/finanzen/offene-posten.csv">CSV exportieren</a>
+        }
     </Actions>
 </PageHeader>
 
