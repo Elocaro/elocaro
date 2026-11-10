@@ -63,6 +63,28 @@ public class UiRulesTests
         AssertNoMatch(@"style=""[^""]*#[0-9a-fA-F]{3,8}", "Use the --md-* color roles in app.css");
     }
 
+    [Fact]
+    public void Labels_are_not_set_in_capitals()
+    {
+        var violations = StyleRules(line => line.Contains("text-transform: uppercase", StringComparison.Ordinal));
+        Assert.True(violations.Count == 0, $"Labels use sentence case, no text-transform: uppercase (docs/ui.md, Schrift):\n{string.Join("\n", violations)}");
+    }
+
+    [Fact]
+    public void Font_weights_stay_between_400_and_600()
+    {
+        var heavy = new Regex(@"font-weight:\s*(6[5-9]\d|[7-9]\d\d|bold)", RegexOptions.CultureInvariant);
+        var violations = StyleRules(line => heavy.IsMatch(line) && !line.TrimStart().StartsWith(".tok-", StringComparison.Ordinal));
+        Assert.True(violations.Count == 0, $"Use font weights 400 to 600; hierarchy comes from size and colour (docs/ui.md, Schrift):\n{string.Join("\n", violations)}");
+    }
+
+    private static List<string> StyleRules(Func<string, bool> isViolation) =>
+        File.ReadLines(Path.Combine(Repository.Web, "wwwroot", "app.css"))
+            .Select((line, index) => (line, number: index + 1))
+            .Where(x => isViolation(x.line))
+            .Select(x => $"app.css:{x.number}")
+            .ToList();
+
     private static void AssertNoMatch(string pattern, string advice, string? except = null, string? exceptAlso = null)
     {
         var regex = new Regex(pattern, RegexOptions.CultureInvariant);

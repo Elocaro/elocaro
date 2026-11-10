@@ -259,7 +259,6 @@ input.invalid, select.invalid, textarea.invalid { border-color: var(--color-erro
 .navigation a { display: block; padding: 0.5rem 1rem; border-radius: var(--shape-full); color: var(--color-text); text-decoration: none; }
 .navigation a:hover { background: var(--color-surface-2); }
 .navigation a.active { background: var(--md-primary-container); color: var(--md-on-primary-container); font-weight: 600; }
-.navigation-group { padding: 1rem 0.75rem 0.25rem; font-size: 0.78rem; color: var(--color-text-muted); }
 
 /* User menu */
 .user-menu { position: relative; min-width: 0; flex: 0 1 auto; }
