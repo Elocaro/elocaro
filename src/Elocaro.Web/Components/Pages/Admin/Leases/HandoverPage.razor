@@ -71,7 +71,8 @@ else
         </section>
     }
 
-    <EditForm Model="view.Content" OnSubmit="SaveAsync" novalidate>
+    <NavigationLock OnBeforeInternalNavigation="ConfirmLeaveAsync" ConfirmExternalNavigation="@dirty" />
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync" novalidate>
         <fieldset disabled="@(view.Status == HandoverStatus.Completed)">
             <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
             <MudTabPanel Text="Zustand">
@@ -142,7 +143,7 @@ else
                             <MudTd DataLabel="Anzahl" Style="text-align:right">@key.Count</MudTd>
                             <MudTd Style="text-align:right; white-space:nowrap">
                                 <MudButton Variant="Variant.Text" OnClick="() => EditKeyAsync(key)" aria-label="@($"{key.Kind} bearbeiten")">Bearbeiten</MudButton>
-                                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => view.Content.Keys.Remove(key)" aria-label="@($"{key.Kind} entfernen")">Entfernen</MudButton>
+                                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => { view.Content.Keys.Remove(key); dirty = true; }" aria-label="@($"{key.Kind} entfernen")">Entfernen</MudButton>
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
@@ -255,6 +256,7 @@ else
         if (await dialog.Result is { Canceled: false, Data: HandoverKey added })
         {
             view!.Content.Keys.Add(added);
+            dirty = true;
         }
     }
 
@@ -264,6 +266,7 @@ else
         if (await dialog.Result is { Canceled: false, Data: HandoverKey changed })
         {
             view!.Content.Keys[view.Content.Keys.IndexOf(key)] = changed;
+            dirty = true;
         }
     }
 
@@ -275,6 +278,8 @@ else
     private ElementReference landlordCanvas;
     private bool canvasReady;
     private HandoverView? view;
+    private EditContext? editContext;
+    private bool dirty;
     private IReadOnlyList<string>? errors;
     private List<string> warnings = [];
     private DateOnly? date;
@@ -333,6 +338,19 @@ else
         {
             date = view.Date;
             signedBy ??= view.Tenants;
+            editContext = new EditContext(view.Content);
+            editContext.OnFieldChanged += (_, _) => dirty = true;
+        }
+
+        dirty = false;
+    }
+
+    /// <summary>Unsaved input is lost when the page is left: ask first (the browser asks itself for external navigation).</summary>
+    private async Task ConfirmLeaveAsync(LocationChangingContext context)
+    {
+        if (dirty && !await Confirm.AskAsync("Ungespeicherte Änderungen", "Das Protokoll enthält Änderungen, die noch nicht gespeichert sind. Die Seite trotzdem verlassen?", "Ja, verlassen"))
+        {
+            context.PreventNavigation();
         }
     }
 
@@ -379,9 +397,17 @@ else
         previewId = preview.Pdf is { } pdf ? Previews.Add(pdf) : null;
     }
 
-    private void AddDefect() => view!.Content.Defects.Add(new HandoverDefect());
+    private void AddDefect()
+    {
+        view!.Content.Defects.Add(new HandoverDefect());
+        dirty = true;
+    }
 
-    private void RemoveDefect(HandoverDefect defect) => view!.Content.Defects.Remove(defect);
+    private void RemoveDefect(HandoverDefect defect)
+    {
+        view!.Content.Defects.Remove(defect);
+        dirty = true;
+    }
 
     private async Task AddDefectPhotoAsync(HandoverDefect defect, FileSelection file)
     {
