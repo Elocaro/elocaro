@@ -510,7 +510,7 @@ public static class PageInfoCatalog
                     "Eine Kündigung wegen Zahlungsverzugs hat eigene Voraussetzungen. Elocaro weist nur darauf hin, es nimmt Ihnen die rechtliche Prüfung nicht ab."),
             ]), $"{Admin}/finanzen/mahnungen", $"{Admin}/finanzen/mahnungen/{{id}}");
 
-        Add(new("Einstellungen Finanzen",
+        Add(new("Finanzeinstellungen",
             "Buchhaltungsbeginn, Verrechnung von Zahlungen und Mahnwesen.",
             [
                 new("Buchhaltung ab",
@@ -566,7 +566,7 @@ public static class PageInfoCatalog
                 "Der Basiszinssatz ändert sich zum 1.1. und 1.7., der Verbraucherpreisindex erscheint monatlich: beide pflegen Sie selbst. Die Übersicht erinnert, wenn ein Wert fehlt oder veraltet ist.",
                 "Stufentabelle (CO₂) und Gradtagszahlen sind mitgeliefert. Steht dort „prüfen“, vergleichen Sie sie vor dem Versand einer Heizkostenabrechnung mit der amtlichen Quelle.",
                 "Elocaro ist keine Rechtsberatung: Die maßgebliche Quelle steht bei jedem Wert.")],
-            [new("Forderungen: Einstellungen", $"{Admin}/finanzen/einstellungen"), new("Verbraucherpreisindex", $"{Admin}/vpi")]), $"{Admin}/einstellungen/rechtsstaende");
+            [new("Finanzeinstellungen", $"{Admin}/finanzen/einstellungen"), new("Verbraucherpreisindex", $"{Admin}/vpi")]), $"{Admin}/einstellungen/rechtsstaende");
 
         Add(new("Module",
             "Schalten Sie ab, was Sie nicht brauchen. Die Daten bleiben erhalten.",

@@ -76,7 +76,7 @@ public static class AdminNavModel
                  new("Bankkonten", $"{Root}/bank/konten", Also: [$"{Root}/bank/importe"]),
                  new("CSV-Profile", $"{Root}/bank/csv-profile")),
              NavTab.Group("Forderungen", null,
-                 new("Offene Posten", $"{Root}/finanzen/offene-posten"), new("Mahnwesen", $"{Root}/finanzen/mahnungen"), new("Einstellungen", $"{Root}/finanzen/einstellungen")),
+                 new("Offene Posten", $"{Root}/finanzen/offene-posten"), new("Mahnwesen", $"{Root}/finanzen/mahnungen"), new("Finanzeinstellungen", $"{Root}/finanzen/einstellungen")),
              new("Belege", $"{Root}/belege"),
              NavTab.Group("Darlehen & Steuer", null,
                  new("Darlehen", $"{Root}/finanzen/darlehen"), new("Anlage-V-Zeilen", $"{Root}/finanzen/anlage-v-zeilen"), new("DATEV-Export", $"{Root}/finanzen/datev"))]),

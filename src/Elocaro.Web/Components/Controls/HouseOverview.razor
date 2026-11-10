@@ -53,7 +53,7 @@
         </div>
         <p class="small house-legend"><span class="house-room state-rented">vermietet</span> <span class="house-room state-ending">Mietende absehbar</span> <span class="house-room state-arrears">Rückstand</span> <span class="house-room state-empty">leer</span></p>
         <p class="house-total" id="house-total">
-            @if (figures is not null)
+            @if (figures is not null && !HideFigures)
             {
                 <span>Monatsmieten <strong>@Format.Money(figures.MonthlyRent)</strong></span>
                 <span>Rückstände <strong>@Format.Money(figures.Arrears)</strong></span>
@@ -64,6 +64,9 @@
 }
 
 @code {
+    /// <summary>Hides rent and arrears when the page already shows them as tiles.</summary>
+    [Parameter] public bool HideFigures { get; set; }
+
     private const int UnknownRank = -1000;
     private const int OutsideRank = -2000;
 

@@ -78,7 +78,7 @@ else
             <KpiTile Label="@($"Abrechnung {NextStatementYear}")" Value="@($"bis {Format.Date(new DateOnly(NextStatementYear + 1, 12, 31))}")" Note="@(LastStatementYear is { } last ? $"letzte: {last}" : "noch keine")" Href="@($"/verwaltung/objekte/{Id}/abrechnungen")" />
         }
     </div>
-    <HouseOverview @key="version" PropertyId="Id" />
+    <HouseOverview @key="version" PropertyId="Id" HideFigures="true" />
 }
 
 @if (property.ImageFileId is not null || property.Data.CadastralDistrict is not null || property.Data.ParcelNumber is not null || property.Data.PropertyTaxReference is not null || property.Data.Notes is not null)
