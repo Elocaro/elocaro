@@ -17,7 +17,7 @@ else if (items is not null)
     var leases = items.GroupBy(p => p.LeaseId).OrderByDescending(g => g.Sum(p => p.Open)).ToList();
     <p><strong>Summe offen: @Format.Money(items.Sum(p => p.Open))</strong> <span class="small">in @items.Count Posten bei @leases.Count @(leases.Count == 1 ? "Mietverhältnis" : "Mietverhältnissen")</span></p>
     <SegmentBar id="open-items-age" Caption="Alter der offenen Posten" Segments="Ages" />
-    <p class="help">Hier steht alles, was bereits fällig war und noch nicht bezahlt ist. Im Mieterkonto (Link in jeder Gruppe) lassen sich Zahlungen buchen und Mahnungen prüfen.</p>
+    <p class="help">Hier steht alles, was bereits fällig war und noch nicht bezahlt ist. Im Mieterkonto (Link in jeder Gruppe) lassen sich Zahlungen buchen. Mahnvorschläge für alle Mietverhältnisse stehen im <a href="/verwaltung/finanzen/mahnungen">Mahnwesen</a>.</p>
     @foreach (var lease in leases)
     {
         var first = lease.First();
