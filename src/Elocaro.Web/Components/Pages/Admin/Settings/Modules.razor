@@ -6,7 +6,7 @@
 @inject Notifier Notify
 
 <InteractiveShell>
-    <PageHeader Title="Module" Subtitle="Schalten Sie ab, was Sie nicht brauchen. Die Daten bleiben erhalten, abgeschaltete Module sind nur unsichtbar und still." />
+    <PageHeader Title="Module" Subtitle="Schalten Sie ab, was Sie nicht brauchen. Die Daten bleiben erhalten; abgeschaltete Bereiche fehlen im Menü und sind still. Hier schalten Sie sie wieder ein." />
 
     <details class="explain">
         <summary>Wie Module funktionieren</summary>
@@ -27,6 +27,10 @@
                     <section class="module-card" id="@("module-" + choice.Module.ToString().ToLowerInvariant())">
                         <AppCheckBox Value="choice.On" ValueChanged="on => Toggle(choice, on)" ValueExpression="() => choice.On" Label="@info.Title" />
                         <p class="module-summary">@info.Summary</p>
+                        @if (info.Requires.Length > 0)
+                        {
+                            <p class="small">Braucht: @string.Join(", ", info.Requires.Select(r => ModuleCatalog.Info(r).Title)). Wird automatisch mit eingeschaltet.</p>
+                        }
                         @if (choice.On)
                         {
                             @OptionFields(OptionsOf(choice.Module))
@@ -40,10 +44,6 @@
                                     <li>@item</li>
                                 }
                             </ul>
-                            @if (info.Requires.Length > 0)
-                            {
-                                <p class="small">Braucht: @string.Join(", ", info.Requires.Select(r => ModuleCatalog.Info(r).Title)). Wird automatisch mit eingeschaltet.</p>
-                            }
                         </details>
                     </section>
                 }
@@ -100,17 +100,35 @@
         if (on)
         {
             // Switching on a module also switches on what it needs.
-            foreach (var required in ModuleCatalog.WithRequirements([choice.Module]))
+            var alsoOn = new List<string>();
+            foreach (var required in ModuleCatalog.WithRequirements([choice.Module]).Where(r => r != choice.Module))
             {
-                choices!.First(c => c.Module == required).On = true;
+                var target = choices!.First(c => c.Module == required);
+                if (!target.On)
+                {
+                    alsoOn.Add(ModuleCatalog.Info(required).Title);
+                }
+
+                target.On = true;
+            }
+
+            if (alsoOn.Count > 0)
+            {
+                Notify.Info($"{ModuleCatalog.Info(choice.Module).Title} braucht {string.Join(", ", alsoOn)}. Das wurde mit eingeschaltet.");
             }
         }
         else
         {
             // Switching off a module also switches off what needs it.
-            foreach (var other in choices!.Where(c => c.On && ModuleCatalog.WithRequirements([c.Module]).Contains(choice.Module)))
+            var alsoOff = choices!.Where(c => c.On && c.Module != choice.Module && ModuleCatalog.WithRequirements([c.Module]).Contains(choice.Module)).ToList();
+            foreach (var other in alsoOff)
             {
                 other.On = false;
+            }
+
+            if (alsoOff.Count > 0)
+            {
+                Notify.Info($"{string.Join(", ", alsoOff.Select(o => ModuleCatalog.Info(o.Module).Title))} braucht {ModuleCatalog.Info(choice.Module).Title} und wurde mit ausgeschaltet.");
             }
         }
     }
