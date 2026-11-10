@@ -30,7 +30,7 @@ public static class Glossary
         ("Mahnung", "Schreiben bei Zahlungsverzug. Elocaro schlägt Mahnungen nur vor; versendet wird erst nach Ihrer Freigabe."),
         ("Zufluss", "Für die Steuer zählt das Jahr, in dem das Geld tatsächlich eingegangen ist, nicht das Jahr, für das es geschuldet war."),
         ("Bemessungsgrundlage", "Der Betrag, von dem die Abschreibung berechnet wird: die Anschaffungs- oder Herstellungskosten des Gebäudes ohne den Grundstücksanteil."),
-        ("Verrechnungsreihenfolge", "Die Regel, welche offene Forderung eine Zahlung zuerst tilgt, wenn der Mieter nichts anderes bestimmt hat. Einstellbar unter Forderungen → Einstellungen."),
+        ("Verrechnungsreihenfolge", "Die Regel, welche offene Forderung eine Zahlung zuerst tilgt, wenn der Mieter nichts anderes bestimmt hat. Einstellbar unter Forderungen → Finanzeinstellungen."),
         ("Emissionsfaktor", "Die CO₂-Menge je Kilowattstunde des Brennstoffs. Er geht in die Aufteilung der CO₂-Kosten zwischen Vermieter und Mieter ein."),
         ("Sachkontenlänge", "Die Stellenzahl der Konten in Ihrer Buchhaltung, meist vier. Ihr Steuerbüro nennt Ihnen den passenden Wert."),
     ];

@@ -366,7 +366,7 @@ else
         var count = await Accounts.GenerateChargesAsync(Id);
         if (account?.AccountingStart is null)
         {
-            Notify.Warning("Es ist noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten (Forderungen → Einstellungen).");
+            Notify.Warning("Es ist noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten (Forderungen → Finanzeinstellungen).");
         }
         else
         {

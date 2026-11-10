@@ -24,14 +24,34 @@
     else if (transactions is not null)
     {
         <p class="small">@transactions.Count Umsätze · Eingänge @Format.Money(transactions.Where(u => u.Amount > 0).Sum(u => u.Amount)) · Ausgänge @Format.Money(transactions.Where(u => u.Amount < 0).Sum(u => u.Amount))</p>
+        @if (SelectedOpen.Count > 0)
+        {
+            <div class="bulk-bar" role="group" aria-label="Auswahl" id="bulk-bar">
+                <span><strong>@SelectedOpen.Count</strong> offene Umsätze ausgewählt</span>
+                <MudButton Variant="Variant.Outlined" OnClick="IgnoreSelectedAsync">Ausgewählte ignorieren</MudButton>
+                <MudButton Variant="Variant.Text" OnClick="ClearSelection">Auswahl aufheben</MudButton>
+            </div>
+        }
         <MudTable T="TransactionRow" Items="transactions" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="50">
             <HeaderContent>
+                <MudTh class="select-cell">
+                    @if (OpenIds.Count > 0)
+                    {
+                        <input type="checkbox" class="row-select" checked="@AllOpenSelected" @onchange="e => SelectAll((bool)e.Value!)" aria-label="Alle offenen Umsätze dieser Liste auswählen" />
+                    }
+                </MudTh>
                 <MudTh><MudTableSortLabel T="TransactionRow" SortBy="@(u => u.BookingDate)" InitialDirection="SortDirection.Descending">Buchung</MudTableSortLabel></MudTh>
                 <MudTh>Gegenseite</MudTh><MudTh>Verwendungszweck</MudTh>
                 <MudTh Style="text-align:right"><MudTableSortLabel T="TransactionRow" SortBy="@(u => u.Amount)">Betrag</MudTableSortLabel></MudTh>
                 <MudTh>Status</MudTh><MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
+                <MudTd class="select-cell">
+                    @if (context.Status == TransactionStatus.Open)
+                    {
+                        <input type="checkbox" class="row-select" checked="@selected.Contains(context.Id)" @onchange="e => Select(context.Id, (bool)e.Value!)" aria-label="@($"Umsatz vom {Format.Date(context.BookingDate)} über {Format.Money(context.Amount)} auswählen")" />
+                    }
+                </MudTd>
                 <MudTd DataLabel="Buchung">@Format.Date(context.BookingDate)</MudTd>
                 <MudTd DataLabel="Gegenseite">@context.CounterpartyName<span class="small">&#32;@context.CounterpartyIban</span></MudTd>
                 <MudTd DataLabel="Verwendungszweck">
@@ -83,6 +103,69 @@
     private TransactionStatus? status;
     private string? search;
     private bool withoutReceipt;
+    private readonly HashSet<Guid> selected = [];
+
+    private List<Guid> OpenIds => transactions?.Where(t => t.Status == TransactionStatus.Open).Select(t => t.Id).ToList() ?? [];
+
+    private List<Guid> SelectedOpen => OpenIds.Where(selected.Contains).ToList();
+
+    private bool AllOpenSelected => OpenIds.Count > 0 && OpenIds.All(selected.Contains);
+
+    private void Select(Guid id, bool on) => _ = on ? selected.Add(id) : selected.Remove(id);
+
+    private void SelectAll(bool on)
+    {
+        foreach (var id in OpenIds)
+        {
+            _ = on ? selected.Add(id) : selected.Remove(id);
+        }
+    }
+
+    private void ClearSelection() => selected.Clear();
+
+    private async Task IgnoreSelectedAsync()
+    {
+        var ids = SelectedOpen;
+        var dialog = await Dialogs.ShowAsync<IgnoreDialog>($"{ids.Count} Umsätze ignorieren", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await dialog.Result is not { Canceled: false, Data: string note })
+        {
+            return;
+        }
+
+        var done = new List<Guid>();
+        foreach (var id in ids)
+        {
+            var result = await Bank.IgnoreAsync(id, note.Length == 0 ? null : note);
+            if (result.Succeeded)
+            {
+                done.Add(id);
+            }
+            else
+            {
+                errors = result.Errors;
+                break;
+            }
+        }
+
+        selected.Clear();
+        await LoadAsync();
+        if (done.Count > 0)
+        {
+            Notify.Undoable(done.Count == 1 ? "Der Umsatz wird ignoriert." : $"{done.Count} Umsätze werden ignoriert.", () => ReopenAllAsync(done));
+        }
+    }
+
+    private async Task ReopenAllAsync(IReadOnlyList<Guid> ids)
+    {
+        foreach (var id in ids)
+        {
+            _ = await Bank.ReopenAsync(id);
+        }
+
+        await LoadAsync();
+        Notify.Success(ids.Count == 1 ? "Der Umsatz ist wieder offen." : $"{ids.Count} Umsätze sind wieder offen.");
+        await InvokeAsync(StateHasChanged);
+    }
 
     // The query string only provides the start values (see ADR 0005).
     [SupplyParameterFromQuery(Name = "konto")]
@@ -141,7 +224,13 @@
         var dialog = await Dialogs.ShowAsync<IgnoreDialog>("Umsatz ignorieren", new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
         if (await dialog.Result is { Canceled: false, Data: string note })
         {
-            await ChangeAsync(await Bank.IgnoreAsync(row.Id, note.Length == 0 ? null : note), "Der Umsatz wird ignoriert.");
+            var result = await Bank.IgnoreAsync(row.Id, note.Length == 0 ? null : note);
+            errors = result.Succeeded ? null : result.Errors;
+            if (result.Succeeded)
+            {
+                await LoadAsync();
+                Notify.Undoable("Der Umsatz wird ignoriert.", () => ReopenAllAsync([row.Id]));
+            }
         }
     }
 

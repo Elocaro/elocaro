@@ -202,6 +202,34 @@ public class BankBrowserTests(PostgresFixture postgres) : BrowserTestBasis(postg
     }
 
     [Fact]
+    public async Task Several_transactions_are_ignored_at_once_and_the_snackbar_takes_it_back()
+    {
+        var (_, account) = await SetupAsync();
+        var today = GermanTime.Today(App.Clock.GetUtcNow());
+        await TransactionAsync(account, today.AddDays(-3), -12.50m, "Bäckerei Korn", null, "Einkauf");
+        await TransactionAsync(account, today.AddDays(-2), -38.90m, "Supermarkt", null, "Einkauf");
+        await TransactionAsync(account, today.AddDays(-1), -9.99m, "Streaming", null, "Abo");
+        var page = await OpenAsync("/verwaltung/bank/umsaetze");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await Assertions.Expect(page.Locator("#bulk-bar")).ToHaveCountAsync(0);
+            await page.GetByLabel("Alle offenen Umsätze dieser Liste auswählen").CheckAsync();
+            await Assertions.Expect(page.Locator("#bulk-bar")).ToContainTextAsync("3 offene Umsätze ausgewählt");
+            await page.Locator("#bulk-bar").GetByRole(AriaRole.Button, new() { Name = "Ausgewählte ignorieren" }).ClickAsync();
+            await page.Locator(".mud-dialog").GetByRole(AriaRole.Button, new() { Name = "Ignorieren" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "3 Umsätze werden ignoriert.");
+            await Assertions.Expect(page.Locator("#bulk-bar")).ToHaveCountAsync(0);
+            await SelectAsync(page, "Status", "offen");
+            await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Keine Umsätze in dieser Auswahl.");
+
+            await page.Locator(".mud-snackbar").GetByRole(AriaRole.Button, new() { Name = "Rückgängig" }).ClickAsync();
+            await ExpectSnackbarAsync(page, "3 Umsätze sind wieder offen.");
+            await Assertions.Expect(page.Locator("tbody tr")).ToHaveCountAsync(3);
+        });
+    }
+
+    [Fact]
     public async Task Expense_is_split_into_two_cost_types_and_the_sum_must_match_exactly()
     {
         var (property, account) = await SetupAsync();

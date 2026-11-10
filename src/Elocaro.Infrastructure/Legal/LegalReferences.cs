@@ -101,7 +101,7 @@ internal sealed class LegalReferences(ElocaroDbContext db, IModuleState modules,
         if (settings.BaseRate is not { } rate)
         {
             return new("base-rate", "Basiszinssatz (Verzugszinsen)", null, null, source, LegalReferenceStatus.Missing, halfYearStart, link,
-                "Verzugszinsen sind eingeschaltet, aber ohne Basiszinssatz werden keine berechnet. Den aktuellen Wert tragen Sie unter Forderungen → Einstellungen ein.");
+                "Verzugszinsen sind eingeschaltet, aber ohne Basiszinssatz werden keine berechnet. Den aktuellen Wert tragen Sie unter Forderungen → Finanzeinstellungen ein.");
         }
 
         var current = settings.BaseRateAsOf is { } asOf && asOf >= halfYearStart;

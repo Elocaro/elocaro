@@ -29,12 +29,21 @@
                     @* Wide screens: the pages of the open area are listed right here (the tab bar of the area is hidden); smartphones keep the tab bar. *@
                     <li class="navigation-pages-item">
                         <ul class="navigation-pages" aria-label="@area.Label">
-                            @foreach (var entry in pages)
+                            @for (var index = 0; index < pages.Length; index++)
                             {
+                                var entry = pages[index];
                                 @if (entry.IsGroup)
                                 {
                                     <AuthorizeView Policy="@entry.Policy" Context="allowed">
-                                        <li class="navigation-pages-divider" aria-hidden="true"></li>
+                                        @if (entry.Label != entry.Children![0].Label)
+                                        {
+                                            @* A group whose name is not already its first page gets a heading; the others are only set apart by a line. *@
+                                            <li class="navigation-pages-heading" role="presentation">@entry.Label</li>
+                                        }
+                                        else
+                                        {
+                                            <li class="navigation-pages-divider" aria-hidden="true"></li>
+                                        }
                                         @foreach (var child in entry.Children!)
                                         {
                                             <AuthorizeView Policy="@child.Policy" Context="childAllowed">
@@ -46,6 +55,10 @@
                                 else
                                 {
                                     <AuthorizeView Policy="@entry.Policy" Context="allowed">
+                                        @if (index > 0 && pages[index - 1].IsGroup)
+                                        {
+                                            <li class="navigation-pages-divider" aria-hidden="true"></li>
+                                        }
                                         <li><a href="@entry.Href" class="@(entry.Matches(CurrentPath) ? "active" : null)" aria-current="@(entry.Matches(CurrentPath) ? "page" : null)">@entry.Label</a></li>
                                     </AuthorizeView>
                                 }

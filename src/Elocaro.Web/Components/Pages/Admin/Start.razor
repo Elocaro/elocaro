@@ -48,7 +48,7 @@
                     <ul class="todos">
                         @foreach (var item in Setup)
                         {
-                            @TodoItemView(item, false)
+                            @TodoItemView(item, false, item == Setup[0])
                         }
                     </ul>
                 </section>
@@ -145,13 +145,14 @@
 
     private bool HasCharts => figures?.Costs is { Count: > 0 } || (figures?.History?.Any(m => m.Due != 0 || m.Paid != 0 || m.OpenAtEnd != 0) ?? false);
 
-    private RenderFragment TodoItemView(TodoItem todo, bool showArea) => @<li class="todo todo-@todo.Urgency.ToString().ToLowerInvariant()">
+    /// <param name="showDetails">false: only the title (the setup list explains just the next step, the rest follows when it is its turn).</param>
+    private RenderFragment TodoItemView(TodoItem todo, bool showArea, bool showDetails = true) => @<li class="todo todo-@todo.Urgency.ToString().ToLowerInvariant()">
         <a href="@todo.Link">@todo.Title</a>
         @if (todo.Due is { } due)
         {
             <span class="small todo-due">fällig am @Format.Date(due)</span>
         }
-        @if (todo.Details is not null)
+        @if (todo.Details is not null && showDetails)
         {
             <p class="small">@todo.Details</p>
         }

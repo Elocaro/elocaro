@@ -14,5 +14,15 @@ public sealed class Notifier(ISnackbar snackbar)
 
     public void Warning(string message) => snackbar.Add(message, Severity.Warning);
 
+    /// <summary>Confirmation with a "Rückgängig" action for a change that can be reversed without loss (the snackbar stays a little longer).</summary>
+    public void Undoable(string message, Func<Task> undo) => snackbar.Add(message, Severity.Success, options =>
+    {
+        options.Action = "Rückgängig";
+        options.ActionVariant = Variant.Text;
+        options.RequireInteraction = false;
+        options.VisibleStateDuration = 8000;
+        options.OnClick = async _ => await undo();
+    });
+
     public void Error(string message) => snackbar.Add(message, Severity.Error);
 }

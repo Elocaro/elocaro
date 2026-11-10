@@ -336,7 +336,7 @@ public static class PageInfoCatalog
             "Das Mieterkonto zeigt alle Forderungen und Zahlungen eines Mietverhältnisses.",
             [
                 new("Gut zu wissen",
-                    "Die Monatsmieten entstehen automatisch als Sollstellungen, sobald unter Forderungen → Einstellungen ein Buchhaltungsbeginn gesetzt ist.",
+                    "Die Monatsmieten entstehen automatisch als Sollstellungen, sobald unter Forderungen → Finanzeinstellungen ein Buchhaltungsbeginn gesetzt ist.",
                     "Zahlungen aus dem Bankabgleich werden den Forderungen zugeordnet. Teilzahlungen verrechnet Elocaro nach der gewählten Reihenfolge.",
                     "Rückstände aus der Zeit vor dem Buchhaltungsbeginn erfassen Sie als Saldovortrag.",
                     "Soll ist, was der Mieter zahlen muss, Haben, was er gezahlt hat. Ein positiver Saldo ist ein Rückstand, ein negativer ein Guthaben des Mieters; „Fällig“ zählt nur, was bis heute zu zahlen war."),
@@ -503,7 +503,7 @@ public static class PageInfoCatalog
             "Elocaro erkennt Rückstände und schlägt Mahnungen vor. Es wird nichts versendet, bevor Sie freigeben.",
             [
                 new("Die Stufen",
-                    "Zahlungserinnerung, 1. Mahnung, 2. Mahnung. Die Wartezeiten stellen Sie unter Forderungen → Einstellungen ein.",
+                    "Zahlungserinnerung, 1. Mahnung, 2. Mahnung. Die Wartezeiten stellen Sie unter Forderungen → Finanzeinstellungen ein.",
                     "Verzugszinsen betragen für Verbraucher fünf Prozentpunkte über dem Basiszinssatz (§ 288 BGB) und setzen den Verzug voraus.",
                     "Mahngebühren dürfen nur tatsächlich entstandene Kosten abdecken, etwa Porto."),
                 new("Hinweis",
