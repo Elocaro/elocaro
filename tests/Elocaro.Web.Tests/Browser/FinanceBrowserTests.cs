@@ -88,7 +88,6 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await GotoInteractiveAsync(page, $"/verwaltung/vertraege/{lease}/konto");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("(anteilig");
 
-            await OpenTabAsync(page, "Zahlung & Forderung");
             await page.GetByRole(AriaRole.Button, new() { Name = "Zahlung erfassen" }).ClickAsync();
             var dialog = page.Locator(".mud-dialog");
             await dialog.GetByLabel("Datum", new() { Exact = true }).FillAsync(German(today));
@@ -181,8 +180,8 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await OpenTabAsync(page, "Zahlung & Forderung");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Forderung oder Gutschrift buchen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Weitere Aktionen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Menuitem, new() { Name = "Forderung oder Gutschrift buchen" }).ClickAsync();
             var dialog = page.Locator(".mud-dialog");
             await SelectAsync(page, "Art", "Nachzahlung (Abrechnung)", dialog);
             await dialog.GetByLabel("Fällig am").FillAsync(German(today.AddDays(-20)));
@@ -194,6 +193,23 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Buchen", Exact = true }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Buchung wurde angelegt.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Nachzahlung Betriebskosten 2025");
+        });
+    }
+
+    [Fact]
+    public async Task Payment_dialog_opens_from_the_link_prefilled_with_today_and_the_amount_due()
+    {
+        var today = GermanTime.Today(App.Clock.GetUtcNow());
+        await SetUpAsync(monthsAgo: 3, new FinanceSettingsInput { AccountingStart = FirstOfMonth(-3) });
+        var lease = await LeaseIdAsync();
+        var page = await OpenAsync($"/verwaltung/vertraege/{lease}/konto?zahlung=erfassen");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            var dialog = page.Locator(".mud-dialog");
+            await Assertions.Expect(dialog).ToBeVisibleAsync();
+            await Assertions.Expect(dialog.GetByLabel("Datum", new() { Exact = true })).ToHaveValueAsync(German(today));
+            await Assertions.Expect(dialog.GetByLabel("Betrag", new() { Exact = true })).Not.ToHaveValueAsync("");
         });
     }
 

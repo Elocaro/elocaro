@@ -27,7 +27,7 @@ else if (items is not null)
                 <span class="small">@first.RentalUnit · @lease.Count() Posten, ältester seit @lease.Max(p => p.DaysOverdue) Tagen überfällig</span>
                 <span class="group-sum">@Format.Money(lease.Sum(p => p.Open))</span>
             </summary>
-            <p class="group-link"><a href="/verwaltung/vertraege/@first.LeaseId/konto">Zum Mieterkonto von @first.Tenant</a>@(levels.GetValueOrDefault(first.LeaseId) is { } level ? $" · zuletzt: {Labels.From(level)}" : "")</p>
+            <p class="group-link"><a class="button button-text" href="/verwaltung/vertraege/@first.LeaseId/konto?zahlung=erfassen">Zahlung erfassen</a> · <a href="/verwaltung/vertraege/@first.LeaseId/konto">Zum Mieterkonto von @first.Tenant</a>@(levels.GetValueOrDefault(first.LeaseId) is { } level ? $" · zuletzt: {Labels.From(level)}" : "")</p>
             @{ var rows = lease.OrderBy(p => p.Due).ToList(); }
             <div class="table-wrapper">
                 <table class="data-table">

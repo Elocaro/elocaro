@@ -1,12 +1,14 @@
 @page "/verwaltung/vertraege/{Id:guid}/konto"
 @rendermode InteractiveServer
 @using MudBlazor
+@using Elocaro.Domain.Common
 @using Elocaro.Domain.Leases
 @inject ITenantAccounts Accounts
 @inject IDunning Dunning
 @inject Notifier Notify
 @inject Confirmations Confirm
 @inject IDialogService Dialogs
+@inject TimeProvider Clock
 
 <InteractiveShell>
 @if (!loaded)
@@ -19,7 +21,14 @@ else if (account is null)
 }
 else
 {
-    <PageHeader Title="@($"Mieterkonto {account.Tenant}")" Subtitle="@($"{account.RentalUnit} · alle Forderungen und Zahlungen dieses Mietverhältnisses")" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag" />
+    <PageHeader Title="@($"Mieterkonto {account.Tenant}")" Subtitle="@($"{account.RentalUnit} · alle Forderungen und Zahlungen dieses Mietverhältnisses")" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="PaymentAsync">Zahlung erfassen</MudButton>
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
+                <MudMenuItem OnClick="OpenChargeDialog">Forderung oder Gutschrift buchen</MudMenuItem>
+            </MudMenu>
+        </Actions>
+    </PageHeader>
 
     <ErrorList Errors="errors" />
 
@@ -103,23 +112,6 @@ else
                         </PagerContent>
                     </MudTable>
                 }
-            </section>
-        </MudTabPanel>
-
-        <MudTabPanel Text="Zahlung &amp; Forderung">
-            <section>
-                <h2>Zahlung erfassen</h2>
-                <details class="explain">
-                    <summary>Wann erfasse ich eine Zahlung von Hand?</summary>
-                    <p class="help">Für Zahlungen, die nicht über den Bankimport kommen (Barzahlung, Überweisung auf ein anderes Konto). Ohne Auswahl bei „Zahlt auf“ wird nach der eingestellten Verrechnung gebucht.</p>
-                </details>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PaymentAsync">Zahlung erfassen</MudButton>
-            </section>
-
-            <section>
-                <h2>Sonstige Forderung oder Gutschrift</h2>
-                <p class="help">Einmalige Posten außerhalb der Monatsmiete, z. B. eine Nachzahlung aus der Nebenkostenabrechnung, Schadenersatz oder eine Erstattung.</p>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ChargeAsync">Forderung oder Gutschrift buchen</MudButton>
             </section>
         </MudTabPanel>
 
@@ -264,10 +256,26 @@ else
     [Parameter]
     public Guid Id { get; set; }
 
+    /// <summary>"erfassen" opens the payment dialog on arrival (link from the open items).</summary>
+    [SupplyParameterFromQuery(Name = "zahlung")]
+    private string? PaymentRequest { get; set; }
+
     private IEnumerable<AccountEntry> VisibleEntries => account is null ? [] : account.Entries.Reverse()
         .Where(b => (year is null || b.Date.Year == year) && (!onlyOpen || b.Open > 0));
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private bool paymentOpened;
+
+    // Not on the first render: the account is still loading then.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!paymentOpened && account is not null && PaymentRequest == "erfassen")
+        {
+            paymentOpened = true;
+            await PaymentAsync();
+        }
+    }
 
     private async Task LoadAsync()
     {
@@ -301,8 +309,11 @@ else
 
     private async Task PaymentAsync()
     {
-        payment = new();
+        // Prefilled for the common case: today, the amount that is due (the whole arrears if nothing is due yet).
+        var amount = account!.Due > 0 ? account.Due : account.Balance > 0 ? account.Balance : (decimal?)null;
+        payment = new() { Date = GermanTime.Today(Clock.GetUtcNow()), Amount = amount };
         RenderFragment fields = @<text>
+            <p class="help">Für Zahlungen, die nicht über den Bankimport kommen (Barzahlung, Überweisung auf ein anderes Konto). Ohne Auswahl bei „Zahlt auf“ wird nach der eingestellten Verrechnung gebucht.</p>
             <AppDateField @bind-Value="payment.Date" Label="Datum" Required="true" />
             <AppNumberField T="decimal?" @bind-Value="payment.Amount" Label="Betrag" Suffix="€" Required="true" />
             <AppTextField @bind-Value="payment.Purpose" Label="Verwendungszweck" />
@@ -320,6 +331,13 @@ else
             await LoadAsync();
         }
     }
+
+    /// <summary>Starts the dialog without waiting for it, so the menu closes at once instead of staying open behind the dialog.</summary>
+    private void OpenChargeDialog() => _ = InvokeAsync(async () =>
+    {
+        await ChargeAsync();
+        StateHasChanged(); // no event callback re-renders after this detached call
+    });
 
     private async Task ChargeAsync()
     {
