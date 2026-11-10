@@ -73,7 +73,7 @@ public class DunningPagesTests(PostgresFixture postgres) : AccountTestBase(postg
         Assert.Contains("E-Mail", overview.Document.QuerySelector("#issued-heading")!.ParentElement!.TextContent, StringComparison.Ordinal);
         Assert.Contains("Zahlungserinnerung vom", (await admin.GetAsync("/verwaltung/dokumente")).Text, StringComparison.Ordinal);
         var account = await admin.GetAsync($"/verwaltung/vertraege/{await LeaseIdAsync()}/konto");
-        Assert.Contains("Zahlungserinnerung", account.Document.QuerySelector("#mahnwesen")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Zahlungserinnerung", account.Document.QuerySelector("main")!.TextContent, StringComparison.Ordinal);
         var download = (await admin.GetAsync($"/verwaltung/finanzen/mahnungen/{proposal}")).Document.QuerySelectorAll("a").Single(a => a.TextContent == "PDF herunterladen").GetAttribute("href")!;
         using var file = await admin.Http.GetAsync(new Uri(download, UriKind.Relative), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, file.StatusCode);
@@ -93,7 +93,7 @@ public class DunningPagesTests(PostgresFixture postgres) : AccountTestBase(postg
         Assert.Contains("Elocaro kündigt nie automatisch", overview.Text, StringComparison.Ordinal);
         Assert.Contains("Rückstand mit Kündigungsrelevanz", (await admin.GetAsync("/verwaltung")).TextWithStreaming, StringComparison.Ordinal);
         var account = await admin.GetAsync($"/verwaltung/vertraege/{lease}/konto");
-        Assert.Contains("Hinweis Kündigungsrelevanz", account.Document.QuerySelector("#mahnwesen")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Hinweis Kündigungsrelevanz", account.Document.QuerySelector("main")!.TextContent, StringComparison.Ordinal);
         var dialog = await admin.GetAsync(overview.Document.QuerySelectorAll("a").Single(a => a.TextContent == "Prüfen und freigeben").GetAttribute("href")!);
         Assert.Contains("Kündigungsrelevanz:", dialog.Text, StringComparison.Ordinal);
         Assert.Empty(await MailsAsync());

@@ -338,7 +338,8 @@ public static class PageInfoCatalog
                 new("Gut zu wissen",
                     "Die Monatsmieten entstehen automatisch als Sollstellungen, sobald unter Forderungen → Einstellungen ein Buchhaltungsbeginn gesetzt ist.",
                     "Zahlungen aus dem Bankabgleich werden den Forderungen zugeordnet. Teilzahlungen verrechnet Elocaro nach der gewählten Reihenfolge.",
-                    "Rückstände aus der Zeit vor dem Buchhaltungsbeginn erfassen Sie als Saldovortrag."),
+                    "Rückstände aus der Zeit vor dem Buchhaltungsbeginn erfassen Sie als Saldovortrag.",
+                    "Soll ist, was der Mieter zahlen muss, Haben, was er gezahlt hat. Ein positiver Saldo ist ein Rückstand, ein negativer ein Guthaben des Mieters; „Fällig“ zählt nur, was bis heute zu zahlen war."),
             ]), $"{Admin}/vertraege/{{id}}/konto");
 
         Add(new("Vertragsdokument",

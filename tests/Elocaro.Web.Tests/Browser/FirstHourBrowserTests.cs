@@ -100,7 +100,8 @@ public class FirstHourBrowserTests(PostgresFixture postgres) : BrowserTestBasis(
 
             // 4. Monthly rents exist from the accounting start on.
             await GotoInteractiveAsync(page, leaseUrl + "/konto");
-            await page.GetByRole(AriaRole.Button, new() { Name = "Fehlende Monatsmieten nachtragen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = "Weitere Aktionen" }).ClickAsync();
+            await page.GetByRole(AriaRole.Menuitem, new() { Name = "Fehlende Monatsmieten nachtragen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Sollstellungen angelegt");
 
             // 5. Contract document: nothing missing, so the draft can be created at once.

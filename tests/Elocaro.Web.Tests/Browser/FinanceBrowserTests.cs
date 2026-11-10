@@ -98,12 +98,14 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await Assertions.Expect(page.Locator("tbody", new() { HasText = "100,50 €" }).First).ToBeAttachedAsync();
 
             await OpenTabAsync(page, "Buchungen");
-            // Monthly rents have no delete button, the payment does (after confirming).
-            await Assertions.Expect(page.Locator("button[aria-label$='löschen']")).ToHaveCountAsync(1);
-            await page.Locator("button[aria-label$='löschen']").ClickAsync();
+            // Monthly rents have no row menu, the payment does (delete after confirming).
+            var rowMenu = page.Locator("button[aria-label^='Weitere Aktionen für']");
+            await Assertions.Expect(rowMenu).ToHaveCountAsync(1);
+            await rowMenu.ClickAsync();
+            await page.GetByRole(AriaRole.Menuitem, new() { Name = "Löschen" }).ClickAsync();
             await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Ja, löschen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Buchung wurde gelöscht.");
-            await Assertions.Expect(page.Locator("button[aria-label$='löschen']")).ToHaveCountAsync(0);
+            await Assertions.Expect(rowMenu).ToHaveCountAsync(0);
         });
     }
 
@@ -310,7 +312,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
 
         await WithScreenshotOnFailureAsync(page, async () =>
         {
-            await Assertions.Expect(page.Locator("#mahnwesen")).ToContainTextAsync("Mahnvorschlag:");
+            await Assertions.Expect(page.Locator("#dunning-proposal")).ToContainTextAsync("Mahnvorschlag:");
             await OpenTabAsync(page, "Mahnwesen");
             await page.GetByRole(AriaRole.Button, new() { Name = "Mahnsperre setzen" }).ClickAsync();
             var dialog = page.Locator(".mud-dialog");
@@ -318,7 +320,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Mahnsperre setzen" }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Mahnsperre wurde gesetzt.");
             await Assertions.Expect(page.Locator("#mahnwesen")).ToContainTextAsync("Ratenvereinbarung");
-            await Assertions.Expect(page.Locator("#mahnwesen")).Not.ToContainTextAsync("Mahnvorschlag:");
+            await Assertions.Expect(page.Locator("#dunning-proposal")).ToHaveCountAsync(0);
 
             await GotoInteractiveAsync(page, "/verwaltung/finanzen/mahnungen");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Keine Mahnvorschläge");

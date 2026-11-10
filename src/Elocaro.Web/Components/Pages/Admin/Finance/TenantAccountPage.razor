@@ -21,11 +21,12 @@ else if (account is null)
 }
 else
 {
-    <PageHeader Title="@($"Mieterkonto {account.Tenant}")" Subtitle="@($"{account.RentalUnit} · alle Forderungen und Zahlungen dieses Mietverhältnisses")" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag">
+    <PageHeader Title="@($"Mieterkonto {account.Tenant}")" Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag">
         <Actions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="PaymentAsync">Zahlung erfassen</MudButton>
             <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
                 <MudMenuItem OnClick="OpenChargeDialog">Forderung oder Gutschrift buchen</MudMenuItem>
+                <MudMenuItem OnClick="RefreshAsync">Fehlende Monatsmieten nachtragen</MudMenuItem>
             </MudMenu>
         </Actions>
     </PageHeader>
@@ -37,6 +38,22 @@ else
         <Notice Level="NoticeLevel.Warning">Noch kein Buchhaltungsbeginn festgelegt, daher entstehen keine Monatsmieten. <a href="/verwaltung/finanzen/einstellungen">Jetzt festlegen</a></Notice>
     }
 
+    @if (dunning?.TerminationHint is { } hint)
+    {
+        <Notice Level="NoticeLevel.Warning">
+            <strong>Hinweis Kündigungsrelevanz:</strong> Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
+            (§ 543 Abs. 2 Nr. 3 BGB). Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
+        </Notice>
+    }
+
+    @if (dunning?.Proposal is { } proposal)
+    {
+        <Notice Level="NoticeLevel.Info" id="dunning-proposal">
+            Mahnvorschlag: <strong>@Labels.From(proposal.Level)</strong> über @Format.Money(proposal.Principal).
+            <a href="/verwaltung/finanzen/mahnungen/@proposal.Id">Prüfen und freigeben</a>
+        </Notice>
+    }
+
     <div class="summary-card">
         <dl class="details">
             <dt>Saldo</dt>
@@ -45,11 +62,6 @@ else
             <dt>Verrechnung</dt><dd>@Labels.From(account.Allocation)</dd>
         </dl>
     </div>
-    <LineChart id="balance-chart" Caption="Saldo im Zeitverlauf (über null: Rückstand, unter null: Guthaben)" LabelHeading="Monatsende" ValueHeading="Saldo" Points="BalancePoints" />
-    <details class="explain">
-        <summary>So funktioniert das Mieterkonto</summary>
-        <p>Jeden Monat entsteht je Bestandteil (Kaltmiete, Vorauszahlungen) eine <HelpTerm Term="Sollstellung" /> (<HelpTerm Term="Soll und Haben" Text="„Soll“" />). Jede Zahlung („Haben“) wird nach der eingestellten Verrechnung auf offene Forderungen angerechnet. Ein positiver Saldo ist ein Rückstand, ein negativer ein Guthaben des Mieters. „Fällig“ zählt nur, was bis heute zu zahlen war.</p>
-    </details>
 
     <MudTabs Elevation="0" Rounded="false" TabPanelsClass="mt-4" Class="detail-tabs" KeepPanelsAlive="true">
         <MudTabPanel Text="@($"Buchungen ({account.Entries.Count})")">
@@ -57,9 +69,8 @@ else
                 <div class="form-row search-bar">
                     <AppSelect T="int?" @bind-Value="year" Label="Jahr" Items="years" Text="@(y => y?.ToString() ?? "")" EmptyText="Alle Jahre" />
                     <AppCheckBox @bind-Value="onlyOpen" Label="Nur offene Posten" />
-                    <MudButton Variant="Variant.Outlined" OnClick="RefreshAsync">Fehlende Monatsmieten nachtragen</MudButton>
                 </div>
-                <p class="help">Die Monatsmieten werden jede Nacht automatisch angelegt, z. B. nach einer Mieterhöhung. „Fehlende Monatsmieten nachtragen“ erledigt das sofort.</p>
+                <p class="help"><HelpTerm Term="Soll und Haben" Text="Soll und Haben" />: Soll ist, was der Mieter zahlen muss, Haben, was er gezahlt hat. Die Monatsmieten entstehen jede Nacht automatisch.</p>
                 @if (account.Entries.Count == 0)
                 {
                     <EmptyState Compact="true" Text="Noch keine Buchungen." />
@@ -100,7 +111,9 @@ else
                                 @if (!context.Automatic && context.Origin is null or PaymentOrigin.Manual)
                                 {
                                     <MudButton Variant="Variant.Text" OnClick="() => EditAsync(context)" aria-label="@($"{context.Text} bearbeiten")">Bearbeiten</MudButton>
-                                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(context)" aria-label="@($"{context.Text} löschen")">Löschen</MudButton>
+                                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="@($"Weitere Aktionen für {context.Text}")" Dense="true">
+                                        <MudMenuItem OnClick="() => DeleteAsync(context)">Löschen</MudMenuItem>
+                                    </MudMenu>
                                 }
                             </MudTd>
                         </RowTemplate>
@@ -115,10 +128,8 @@ else
             </section>
         </MudTabPanel>
 
-        <MudTabPanel Text="Mahnwesen">
-            <section id="mahnwesen" aria-labelledby="dunning-heading">
-                <h2 id="dunning-heading">Mahnwesen</h2>
-                <p class="help">Elocaro erkennt Rückstände und schlägt eine Mahnung vor. Versendet wird erst nach Ihrer Freigabe.</p>
+        <MudTabPanel Text="@(dunning?.Proposal is null ? "Mahnwesen" : "Mahnwesen (Vorschlag)")">
+            <section id="mahnwesen" aria-label="Mahnwesen">
                 @if (dunning is not null)
                 {
                     @if (dunning.Proposal is { } open)
@@ -128,22 +139,6 @@ else
                     else if (dunning.Issued.Count > 0)
                     {
                         <DunningLevelTrack Current="dunning.Issued.Max(d => d.Level)" Issued="true" />
-                    }
-
-                    @if (dunning.TerminationHint is { } hint)
-                    {
-                        <Notice Level="NoticeLevel.Warning">
-                            <strong>Hinweis Kündigungsrelevanz:</strong> Mietrückstand @Format.Money(hint.OpenRent) bei einer Monatsmiete von @Format.Money(hint.MonthlyRent)
-                            (§ 543 Abs. 2 Nr. 3 BGB). Nur ein Hinweis, keine Automatik; bitte rechtlich prüfen lassen.
-                        </Notice>
-                    }
-
-                    @if (dunning.Proposal is { } proposal)
-                    {
-                        <Notice Level="NoticeLevel.Info">
-                            Mahnvorschlag: <strong>@Labels.From(proposal.Level)</strong> über @Format.Money(proposal.Principal).
-                            <a href="/verwaltung/finanzen/mahnungen/@proposal.Id">Prüfen und freigeben</a>
-                        </Notice>
                     }
 
                     @if (dunning.Issued.Count > 0)
@@ -195,9 +190,13 @@ else
             </section>
         </MudTabPanel>
 
-        <MudTabPanel Text="Mieten je Jahr">
+        <MudTabPanel Text="Auswertung">
             <section>
-                <h2>Mieten je Jahr</h2>
+    <LineChart id="balance-chart" Caption="Saldo im Zeitverlauf (über null: Rückstand, unter null: Guthaben)" LabelHeading="Monatsende" ValueHeading="Saldo" Points="BalancePoints" />
+    <details class="explain">
+        <summary>So funktioniert das Mieterkonto</summary>
+        <p>Jeden Monat entsteht je Bestandteil (Kaltmiete, Vorauszahlungen) eine <HelpTerm Term="Sollstellung" /> (<HelpTerm Term="Soll und Haben" Text="„Soll“" />). Jede Zahlung („Haben“) wird nach der eingestellten Verrechnung auf offene Forderungen angerechnet. Ein positiver Saldo ist ein Rückstand, ein negativer ein Guthaben des Mieters. „Fällig“ zählt nur, was bis heute zu zahlen war.</p>
+    </details>
                 @if (account.AnnualValues.Count == 0)
                 {
                     <EmptyState Compact="true" Text="Noch keine Monatsmieten." />
