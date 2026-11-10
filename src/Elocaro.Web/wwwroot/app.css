@@ -1016,6 +1016,8 @@ p.small:has(+ :is(.empty-state, .table-wrapper, .mud-table, .group, .explain)) {
 .module-choice details { margin: 0 0 0.25rem 2.5rem; }
 .module-choice summary { cursor: pointer; color: var(--md-primary); font-weight: 600; }
 .wizard-group { margin-bottom: 1rem; }
+.account-rows .account-part .mud-table-cell { color: var(--md-on-surface-variant); }
+.account-rows .account-part .mud-table-cell:nth-child(2) { padding-left: 1.5rem !important; }
 .setup-checks { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 0.5rem; }
 .setup-checks li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; }
 .setup-checks .small { flex-basis: 100%; }

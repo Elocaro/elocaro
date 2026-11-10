@@ -77,7 +77,8 @@ else
                 }
                 else
                 {
-                    <MudTable T="AccountEntry" Class="account-rows" Items="VisibleEntries" Hover="true" Breakpoint="Breakpoint.None" Elevation="0" Outlined="true" RowsPerPage="25">
+                    <MudTable T="AccountRow" Class="account-rows" Items="VisibleRows" Hover="true" Breakpoint="Breakpoint.None" Elevation="0" Outlined="true" RowsPerPage="25"
+                              RowClassFunc="@((row, _) => row.IsPart ? "account-part" : null)">
                         <HeaderContent>
                             <MudTh>Datum</MudTh>
                             <MudTh>Buchung</MudTh>
@@ -88,31 +89,37 @@ else
                             <MudTh></MudTh>
                         </HeaderContent>
                         <RowTemplate>
-                            <MudTd DataLabel="Datum">@Format.Date(context.Date)</MudTd>
-                            <MudTd DataLabel="Buchung">@context.Text</MudTd>
-                            <MudTd DataLabel="Soll" Style="text-align: right; white-space: nowrap">@(context.Debit == 0 ? "" : Format.Money(context.Debit))</MudTd>
-                            <MudTd DataLabel="Haben" Style="text-align: right; white-space: nowrap">@(context.Credit == 0 ? "" : Format.Money(context.Credit))</MudTd>
-                            <MudTd DataLabel="Saldo" Style="text-align: right; white-space: nowrap">@Format.Money(context.Balance)</MudTd>
+                            @{ var e = context.Entry; }
+                            <MudTd DataLabel="Datum">@Format.Date(e.Date)</MudTd>
+                            <MudTd DataLabel="Buchung">@e.Text</MudTd>
+                            <MudTd DataLabel="Soll" Style="text-align: right; white-space: nowrap">@(e.Debit == 0 ? "" : Format.Money(e.Debit))</MudTd>
+                            <MudTd DataLabel="Haben" Style="text-align: right; white-space: nowrap">@(e.Credit == 0 ? "" : Format.Money(e.Credit))</MudTd>
+                            <MudTd DataLabel="Saldo" Style="text-align: right; white-space: nowrap">@(context.IsPart ? "" : Format.Money(e.Balance))</MudTd>
                             <MudTd DataLabel="Offen">
-                                @if (context.Open is 0m)
+                                @if (e.Open is 0m)
                                 {
                                     <StatusChip Level="StatusLevel.Success">bezahlt</StatusChip>
                                 }
-                                else if (context.Open is { } open && open == context.Debit)
+                                else if (e.Open is { } open && open == e.Debit)
                                 {
                                     <StatusChip Level="StatusLevel.Warning">offen</StatusChip>
                                 }
-                                else if (context.Open is { } part)
+                                else if (e.Open is { } part)
                                 {
                                     <StatusChip Level="StatusLevel.Warning">@Format.Money(part) offen</StatusChip>
                                 }
                             </MudTd>
                             <MudTd>
-                                @if (!context.Automatic && context.Origin is null or PaymentOrigin.Manual)
+                                @if (context.IsGroup)
                                 {
-                                    <MudButton Variant="Variant.Text" OnClick="() => EditAsync(context)" aria-label="@($"{context.Text} bearbeiten")">Bearbeiten</MudButton>
-                                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="@($"Weitere Aktionen für {context.Text}")" Dense="true">
-                                        <MudMenuItem OnClick="() => DeleteAsync(context)">Löschen</MudMenuItem>
+                                    var isOpen = expandedMonths.Contains(e.Date);
+                                    <MudButton Variant="Variant.Text" OnClick="() => ToggleMonth(e.Date)" aria-expanded="@(isOpen ? "true" : "false")" aria-label="@($"{(isOpen ? "Weniger" : "Details")}: Bestandteile von {e.Text}")">@(isOpen ? "Weniger" : "Details")</MudButton>
+                                }
+                                else if (!context.IsPart && !e.Automatic && e.Origin is null or PaymentOrigin.Manual)
+                                {
+                                    <MudButton Variant="Variant.Text" OnClick="() => EditAsync(e)" aria-label="@($"{e.Text} bearbeiten")">Bearbeiten</MudButton>
+                                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="@($"Weitere Aktionen für {e.Text}")" Dense="true">
+                                        <MudMenuItem OnClick="() => DeleteAsync(e)">Löschen</MudMenuItem>
                                     </MudMenu>
                                 }
                             </MudTd>
@@ -259,8 +266,71 @@ else
     [SupplyParameterFromQuery(Name = "zahlung")]
     private string? PaymentRequest { get; set; }
 
-    private IEnumerable<AccountEntry> VisibleEntries => account is null ? [] : account.Entries.Reverse()
-        .Where(b => (year is null || b.Date.Year == year) && (!onlyOpen || b.Open > 0));
+    /// <summary>A row of the booking list: a booking, a month of rent (the components together) or one component below its month.</summary>
+    private sealed record AccountRow(AccountEntry Entry, IReadOnlyList<AccountEntry>? Parts = null, bool IsPart = false)
+    {
+        public bool IsGroup => Parts is not null;
+    }
+
+    private readonly HashSet<DateOnly> expandedMonths = [];
+
+    private void ToggleMonth(DateOnly month)
+    {
+        if (!expandedMonths.Remove(month))
+        {
+            expandedMonths.Add(month);
+        }
+    }
+
+    /// <summary>
+    /// Newest first. The rent components that fall due on the same day (cold rent, operating cost and heating prepayment) are one
+    /// row "Monatsmiete 11/2026" with the sum and the balance after the last component; "Details" shows the components.
+    /// </summary>
+    private IReadOnlyList<AccountRow> VisibleRows
+    {
+        get
+        {
+            if (account is null)
+            {
+                return [];
+            }
+
+            var rentByDay = account.Entries.Where(IsRentCharge).GroupBy(e => e.Date).Where(g => g.Count() > 1).ToDictionary(g => g.Key, g => g.ToList());
+            var rows = new List<AccountRow>();
+            foreach (var entry in account.Entries)
+            {
+                if (!IsRentCharge(entry) || !rentByDay.TryGetValue(entry.Date, out var parts))
+                {
+                    rows.Add(new(entry));
+                }
+                else if (entry == parts[^1])
+                {
+                    rows.Add(new(MonthOf(parts), parts));
+                }
+            }
+
+            rows = [.. rows.Where(r => (year is null || r.Entry.Date.Year == year) && (!onlyOpen || r.Entry.Open > 0))];
+            rows.Reverse();
+            return [.. rows.SelectMany(r => r.IsGroup && expandedMonths.Contains(r.Entry.Date) ? r.Parts!.Select(p => new AccountRow(p, IsPart: true)).Prepend(r) : [r])];
+        }
+    }
+
+    private static bool IsRentCharge(AccountEntry entry) => entry.EntryType == EntryType.Charge && entry.Kind == ChargeType.Rent;
+
+    private static AccountEntry MonthOf(List<AccountEntry> parts)
+    {
+        // "Kaltmiete 11/2026", "Betriebskostenvorauszahlung 11/2026" → "Monatsmiete 11/2026"; a part-month stays recognisable
+        var months = parts.Select(p => System.Text.RegularExpressions.Regex.Match(p.Text, @"\d{2}/\d{4}").Value).Distinct().ToList();
+        var label = $"Monatsmiete {(months.Count == 1 && months[0].Length > 0 ? months[0] : Format.Month(parts[0].Date))}";
+        if (parts.Any(p => p.Text.Contains("(anteilig", StringComparison.Ordinal)))
+        {
+            label += " (anteilig)";
+        }
+
+        var last = parts[^1];
+        return new AccountEntry(parts[0].Id, EntryType.Charge, parts[0].Date, label, ChargeType.Rent, parts.Sum(p => p.Debit), 0m, last.Balance,
+            parts.Sum(p => p.Open ?? 0m), true, null);
+    }
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 

@@ -36,7 +36,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
     }
 
     /// <summary>Lease from <paramref name="monthsAgo"/> months ago (unpaid), landlord profile and finance settings.</summary>
-    private async Task SetUpAsync(int monthsAgo, FinanceSettingsInput settings, string? email = TenantEmail)
+    private async Task SetUpAsync(int monthsAgo, FinanceSettingsInput settings, string? email = TenantEmail, decimal? operatingCosts = null)
     {
         await App.WithScopeAsync(async sp =>
         {
@@ -45,7 +45,7 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             var property = (await properties.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, ct)).Id!.Value;
             var apartment = (await properties.CreateUnitAsync(property, new UnitInput { Name = "Wohnung 1" }, ct)).Id!.Value;
             var tenant = (await sp.GetRequiredService<IPersonService>().CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schmidt", Email = email }, null, ct)).Id!.Value;
-            await sp.GetRequiredService<ILeaseService>().CreateAsync(new LeaseCreation { RentalUnitId = apartment, Start = FirstOfMonth(-monthsAgo), TenantIds = [tenant], BaseRent = 650m }, ct);
+            await sp.GetRequiredService<ILeaseService>().CreateAsync(new LeaseCreation { RentalUnitId = apartment, Start = FirstOfMonth(-monthsAgo), TenantIds = [tenant], BaseRent = 650m, OperatingCostPrepayment = operatingCosts }, ct);
             var db = sp.GetRequiredService<Elocaro.Infrastructure.Persistence.ElocaroDbContext>();
             db.Add(new LandlordProfile("Max Mustermann", "Musterweg 1", "12345", "Musterstadt") { Iban = "DE02 1203 0000 0000 2020 51" });
             await db.SaveChangesAsync(ct);
@@ -169,6 +169,26 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Speichern", Exact = true }).ClickAsync();
             await ExpectSnackbarAsync(page, "Die Mietzeit wurde gespeichert.");
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync(German(FirstOfMonth(-4)));
+        });
+    }
+
+    [Fact]
+    public async Task Rent_components_of_a_month_are_one_row_with_details()
+    {
+        await SetUpAsync(monthsAgo: 3, new FinanceSettingsInput { AccountingStart = FirstOfMonth(-3) }, operatingCosts: 120m);
+        var lease = await LeaseIdAsync();
+        var page = await OpenAsync($"/verwaltung/vertraege/{lease}/konto");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            var firstMonth = page.Locator("tbody tr", new() { HasText = "Monatsmiete" }).First;
+            await Assertions.Expect(firstMonth).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator(".account-rows").GetByText("Kaltmiete")).ToHaveCountAsync(0); // components stay folded
+
+            await firstMonth.GetByRole(AriaRole.Button, new() { Name = "Details" }).ClickAsync();
+            await Assertions.Expect(page.Locator("tbody tr.account-part").First).ToContainTextAsync("Kaltmiete");
+            await firstMonth.GetByRole(AriaRole.Button, new() { Name = "Weniger" }).ClickAsync();
+            await Assertions.Expect(page.Locator("tbody tr.account-part")).ToHaveCountAsync(0);
         });
     }
 
