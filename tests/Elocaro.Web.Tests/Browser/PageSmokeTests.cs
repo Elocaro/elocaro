@@ -216,7 +216,7 @@ public abstract class PageSweepBase(PostgresFixture postgres) : BrowserTestBasis
 
         foreach (var mobile in new[] { mobileView })
         {
-            await page.SetViewportSizeAsync(mobile ? 360 : 1280, mobile ? 780 : 900);
+            await page.SetViewportSizeAsync(mobile ? int.Parse(Environment.GetEnvironmentVariable("ELOCARO_TOUR_WIDTH") ?? "360", System.Globalization.CultureInfo.InvariantCulture) : 1280, mobile ? 780 : 900);
             foreach (var path in Part(part))
             {
                 current = (mobile ? "[360] " : "[Desktop] ") + path;
@@ -329,7 +329,7 @@ public class PageSmokeTests(PostgresFixture postgres) : PageSweepBase(postgres)
         var only = Environment.GetEnvironmentVariable("ELOCARO_TOUR_ONLY")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
         foreach (var mobile in new[] { false, true })
         {
-            await page.SetViewportSizeAsync(mobile ? 360 : 1280, Environment.GetEnvironmentVariable("ELOCARO_TOUR_FULL") is not null ? 2600 : mobile ? 780 : 900);
+            await page.SetViewportSizeAsync(mobile ? int.Parse(Environment.GetEnvironmentVariable("ELOCARO_TOUR_WIDTH") ?? "360", System.Globalization.CultureInfo.InvariantCulture) : 1280, Environment.GetEnvironmentVariable("ELOCARO_TOUR_FULL") is not null ? 2600 : mobile ? 780 : 900);
             var index = 0;
             foreach (var path in Routes().Concat(OptionalRoutes()))
             {

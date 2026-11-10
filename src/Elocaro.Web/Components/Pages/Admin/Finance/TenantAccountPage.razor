@@ -77,7 +77,7 @@ else
                 }
                 else
                 {
-                    <MudTable T="AccountEntry" Class="account-rows" Items="VisibleEntries" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+                    <MudTable T="AccountEntry" Class="account-rows" Items="VisibleEntries" Hover="true" Breakpoint="Breakpoint.None" Elevation="0" Outlined="true" RowsPerPage="25">
                         <HeaderContent>
                             <MudTh>Datum</MudTh>
                             <MudTh>Buchung</MudTh>
@@ -90,9 +90,9 @@ else
                         <RowTemplate>
                             <MudTd DataLabel="Datum">@Format.Date(context.Date)</MudTd>
                             <MudTd DataLabel="Buchung">@context.Text</MudTd>
-                            <MudTd DataLabel="Soll" Style="text-align: right">@(context.Debit == 0 ? "" : Format.Money(context.Debit))</MudTd>
-                            <MudTd DataLabel="Haben" Style="text-align: right">@(context.Credit == 0 ? "" : Format.Money(context.Credit))</MudTd>
-                            <MudTd DataLabel="Saldo" Style="text-align: right">@Format.Money(context.Balance)</MudTd>
+                            <MudTd DataLabel="Soll" Style="text-align: right; white-space: nowrap">@(context.Debit == 0 ? "" : Format.Money(context.Debit))</MudTd>
+                            <MudTd DataLabel="Haben" Style="text-align: right; white-space: nowrap">@(context.Credit == 0 ? "" : Format.Money(context.Credit))</MudTd>
+                            <MudTd DataLabel="Saldo" Style="text-align: right; white-space: nowrap">@Format.Money(context.Balance)</MudTd>
                             <MudTd DataLabel="Offen">
                                 @if (context.Open is 0m)
                                 {
