@@ -31,7 +31,7 @@ else
         <dt>Mietmodell</dt><dd>@Labels.From(overview.Model)</dd>
         <dt>Grundmiete heute</dt><dd>@Format.Money(overview.BaseRent)</dd>
         <dt>Letzte Erhöhung</dt><dd>@(overview.LastIncrease is { } last ? Format.Date(last) : "keine seit Mietbeginn")</dd>
-        <dt>Kappungsgrenze</dt><dd>@overview.CapPercent % in drei Jahren (am Objekt einstellbar) · Miete vor drei Jahren @Format.Money(overview.RentThreeYearsAgo)</dd>
+        <dt><HelpTerm Term="Kappungsgrenze" /></dt><dd>@overview.CapPercent % in drei Jahren (am Objekt einstellbar) · Miete vor drei Jahren @Format.Money(overview.RentThreeYearsAgo)</dd>
         <dt>Wohnfläche für den Mietspiegel</dt><dd>@(overview.LivingArea is { } area ? $"{area:N2} m²" : "nicht hinterlegt")</dd>
         <dt>Frühester Zugang eines Verlangens</dt><dd>@Format.Date(overview.EarliestDeclaration)</dd>
     </dl>

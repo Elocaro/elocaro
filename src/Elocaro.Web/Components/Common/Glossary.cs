@@ -16,6 +16,8 @@ public static class Glossary
     public static IReadOnlyList<(string Term, string Text)> Landlord { get; } =
     [
         ("Sollstellung", "Eine Forderung an den Mieter, die fällig werden soll, meist die monatliche Miete. Elocaro erzeugt sie automatisch aus dem Vertrag; Zahlungen werden ihr zugeordnet."),
+        ("Soll und Haben", "Soll ist, was der Mieter zahlen muss (Miete, Vorauszahlungen). Haben ist, was er gezahlt hat. Soll minus Haben ergibt den Saldo."),
+        ("Gesamtschuldnerisch", "Mehrere Mieter haften gemeinsam für die ganze Miete; der Vermieter darf sich an jeden von ihnen halten."),
         ("Offener Posten", "Eine Sollstellung, die noch nicht (vollständig) bezahlt ist."),
         ("Saldovortrag", "Der Stand des Mieterkontos zum Start der Buchhaltung in Elocaro, wenn Sie Verträge aus einer früheren Verwaltung übernehmen."),
         ("Umlageschlüssel", "Die Regel, nach der ein Kostenblock auf die Wohnungen verteilt wird, etwa nach Wohnfläche, Personenzahl, Verbrauch oder Einheiten."),

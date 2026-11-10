@@ -33,7 +33,7 @@
     {
         <div class="form-grid">
             <PersonSelect @bind-Value="form.Tenant1" Label="Mieter" Required="true" People="people" />
-            <PersonSelect @bind-Value="form.Tenant2" Label="Weiterer Mieter" Hint="Gesamtschuldnerisch; weitere später im Vertrag." People="people" />
+            <PersonSelect @bind-Value="form.Tenant2" Label="Weiterer Mieter" Hint="Beide haften gemeinsam für die Miete; weitere Mieter später im Vertrag." People="people" />
             @if (State.IsVisible(AppOption.LeaseGuarantor))
             {
                 <PersonSelect @bind-Value="form.Guarantor" Label="Bürge" People="people" />
