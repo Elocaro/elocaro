@@ -1,0 +1,64 @@
+name: Skill-Update
+
+# Holt wöchentlich den aktuellen Stand des Skills "unslop" (heydamir/unslop) und öffnet bei Änderungen einen PR.
+# Nichts wird direkt auf main geschrieben: Skill-Dateien sind Anweisungen für Claude und müssen vor dem Merge geprüft werden.
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UPSTREAM_REPO: heydamir/unslop
+  SKILL_SOURCE: skills/unslop
+  SKILL_TARGET: .claude/skills/unslop
+  BRANCH: chore/skill-unslop-update
+
+jobs:
+  update:
+    name: unslop aktualisieren
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Upstream holen und Skill ersetzen
+        id: sync
+        run: |
+          git clone --depth 1 "https://github.com/${UPSTREAM_REPO}" "$RUNNER_TEMP/upstream"
+          sha=$(git -C "$RUNNER_TEMP/upstream" rev-parse HEAD)
+          rm -rf "$SKILL_TARGET"
+          mkdir -p "$(dirname "$SKILL_TARGET")"
+          cp -r "$RUNNER_TEMP/upstream/$SKILL_SOURCE" "$SKILL_TARGET"
+          # Lizenz (CC BY 4.0) und Herkunft mitführen
+          cp "$RUNNER_TEMP/upstream/LICENSE" "$SKILL_TARGET/LICENSE"
+          printf '%s\n%s\n' "https://github.com/${UPSTREAM_REPO}" "$sha" > "$SKILL_TARGET/UPSTREAM"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if git diff --quiet -- "$SKILL_TARGET" && [ -z "$(git ls-files --others --exclude-standard -- "$SKILL_TARGET")" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: PR öffnen oder aktualisieren
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.sync.outputs.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add "$SKILL_TARGET"
+          git commit -m "Skill unslop aktualisiert (${UPSTREAM_REPO}@${SHA:0:7})"
+          git push --force origin "$BRANCH"
+          body="Automatisches Update des Skills unslop auf ${UPSTREAM_REPO}@${SHA}. Vor dem Merge den Diff prüfen: Skill-Dateien sind Anweisungen für Claude."
+          if [ -z "$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')" ]; then
+            gh pr create --base main --head "$BRANCH" --title "Skill unslop aktualisieren" --body "$body"
+          else
+            gh pr edit "$BRANCH" --body "$body"
+          fi
