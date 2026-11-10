@@ -442,12 +442,12 @@ public static class PageInfoCatalog
                     "Vertragsenden, Eichfristen der Zähler, Zinsbindungen von Darlehen, ablaufende Dokumente und die Abrechnungsfrist.",
                     "Eigene Wartungen, etwa Heizungswartung oder Rauchmelderprüfung, tragen Sie im Reiter Wartung ein."),
                 new("Erinnerungen",
-                    "Per Mail erinnert Elocaro vor der Fälligkeit und schickt montags eine Wochenübersicht. Das stellen Sie unter Einstellungen → Fristen ein.",
+                    "Per Mail erinnert Elocaro vor der Fälligkeit und schickt montags eine Wochenübersicht. Das stellen Sie unter Einstellungen → Erinnerungen ein.",
                     "Den Kalender können Sie als Abo in Ihren eigenen Kalender übernehmen."),
             ],
-            [new("Einstellungen Fristen", $"{Admin}/einstellungen/fristen")]), $"{Admin}/fristen", $"{Admin}/fristen/wartung", $"{Admin}/fristen/wartung/{{id}}");
+            [new("Erinnerungen", $"{Admin}/einstellungen/fristen")]), $"{Admin}/fristen", $"{Admin}/fristen/wartung", $"{Admin}/fristen/wartung/{{id}}");
 
-        Add(new("Einstellungen Fristen",
+        Add(new("Erinnerungen",
             "Hier stellen Sie ein, wann und wie Elocaro an Fristen erinnert.",
             [new("Gut zu wissen",
                 "Der Vorlauf gilt für alle Fristen ohne eigenen Vorlauf. Mails gehen an alle Administratoren.",

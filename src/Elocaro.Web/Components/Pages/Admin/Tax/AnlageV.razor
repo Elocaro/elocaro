@@ -19,8 +19,10 @@ else
 {
     <PageHeader Title="@($"Anlage V {report.Year}")" Subtitle="@(report.OwnerName is null ? null : $"{report.OwnerName} ({report.OwnerSharePercent:0.####} %)")" Back="@($"/verwaltung/objekte/{PropertyId}")" BackText="@report.PropertyName">
         <Actions>
-            <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.csv")">CSV exportieren</MudButton>
-            <MudButton Variant="Variant.Outlined" Href="@Link("anlage-v.pdf")">PDF</MudButton>
+            <MudMenu Label="Exportieren" Variant="Variant.Outlined" EndIcon="@Icons.Material.Filled.ArrowDropDown" Dense="true">
+                <MudMenuItem Href="@Link("anlage-v.pdf")">Als PDF</MudMenuItem>
+                <MudMenuItem Href="@Link("anlage-v.csv")">Als CSV</MudMenuItem>
+            </MudMenu>
             <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Weitere Aktionen" Dense="true">
                 <MudMenuItem Href="@($"/verwaltung/finanzen/anlage-v-zeilen?jahr={year}")">Zeilennummern pflegen</MudMenuItem>
             </MudMenu>

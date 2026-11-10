@@ -120,7 +120,8 @@ public class NavigationModelTests
 
         Assert.EndsWith("/abrechnungen", group.Href, StringComparison.Ordinal);
         Assert.DoesNotContain(group.Children!, child => child.Label == "Abrechnungs-Assistent");
-        Assert.True(group.Children![0].Matches($"/verwaltung/objekte/{id}/abrechnung"));
+        Assert.True(group.Children!.Single(child => child.Label == "Abrechnungen").Matches($"/verwaltung/objekte/{id}/abrechnung"));
+        Assert.Equal("Versorgungsverträge", group.Children![0].Label); // the setup comes first, the statements last
     }
 
     private sealed class OnlyFirstPage : IModuleState

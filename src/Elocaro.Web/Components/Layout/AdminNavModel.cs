@@ -60,7 +60,7 @@ public static class AdminNavModel
         new("Kommunikation", AppIcons.Messages, $"{Root}/tickets", Policies.MasterData,
             [$"{Root}/tickets", $"{Root}/nachrichten", $"{Root}/aushaenge", $"{Root}/dokumente", $"{Root}/fristen"],
             [NavTab.Group("Tickets", null,
-                 new("Tickets", $"{Root}/tickets", Exact: true), new("Anlegen", $"{Root}/tickets/neu"), new("Hausmeister-Aufgaben", $"{Root}/tickets/routinen")),
+                 new("Tickets", $"{Root}/tickets", Exact: true, Also: [$"{Root}/tickets/neu"]), new("Hausmeister-Aufgaben", $"{Root}/tickets/routinen")),
              NavTab.Group("Mitteilungen", null,
                  new("Nachrichten", $"{Root}/nachrichten"), new("Aushänge", $"{Root}/aushaenge")),
              NavTab.Group("Dokumente", null,
@@ -84,7 +84,7 @@ public static class AdminNavModel
         new("Benutzer", AppIcons.Users, $"{Root}/benutzer", Policies.UserManagement, [$"{Root}/benutzer"], [], "System"),
         new("Einstellungen", AppIcons.Finance, $"{Root}/einstellungen/vermieter", Policies.System,
             [$"{Root}/einstellungen", $"{Root}/system"],
-            [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Module", $"{Root}/einstellungen/module"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Fristen", $"{Root}/einstellungen/fristen"), new("Rechtsstände", $"{Root}/einstellungen/rechtsstaende"), new("Daten importieren", $"{Root}/einstellungen/import"),
+            [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Module", $"{Root}/einstellungen/module"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Erinnerungen", $"{Root}/einstellungen/fristen"), new("Rechtsstände", $"{Root}/einstellungen/rechtsstaende"), new("Daten importieren", $"{Root}/einstellungen/import"),
              NavTab.Group("System", null,
                  new("E-Mail-Versand", $"{Root}/system/mails"), new("Hintergrundjobs", $"{Root}/system/jobs"),
                  new("Datensicherung", $"{Root}/system/datensicherung"), new("Notfallmappe", $"{Root}/system/notfallmappe"), new("Belegauslesung", $"{Root}/system/belegauslesung"))], "System"),
@@ -116,7 +116,7 @@ public static class AdminNavModel
             .Where(tab => tab.IsGroup ? tab.Children!.Length > 0 : IsOn(tab.Href, modules))
             .Select(tab => tab.Children is [{ } only]
                 ? only with { Label = tab.Label, Policy = only.Policy ?? tab.Policy } // a group of one page is a plain tab, no second row
-                : tab.IsGroup ? tab with { Href = tab.Children![0].Href } : tab)
+                : tab.IsGroup ? tab with { Href = tab.Children!.Any(child => child.Href == tab.Href) ? tab.Href : tab.Children![0].Href } : tab)
             .ToArray();
 
     /// <summary>Whether the page at <paramref name="href"/> exists in this installation (its module and option are switched on).</summary>
@@ -170,12 +170,13 @@ public static class AdminNavModel
         new("Übersicht", id, Exact: true, Also: [$"{id}/belegimport", $"{Root}/einheiten", $"{Root}/zimmer"]),
         new("Belegung", $"{id}/belegung"),
         new("Zähler", $"{id}/zaehler", Also: [$"{id}/ablesung", $"{id}/zaehlerimport", $"{Root}/zaehler"]),
+        // Order of the work: set up (supply contracts, keys, heating), then check, then settle. The group still opens on the statements.
         NavTab.Group("Nebenkosten", Policies.Finance,
-            new("Abrechnungen", $"{id}/abrechnungen", Also: [$"{id}/abrechnung", $"{Root}/abrechnungen"]),
-            new("Vorab prüfen", $"{id}/nebenkosten"),
-            new("Versorgungsverträge", $"{id}/versorgung", SeparatorBefore: true),
+            new("Versorgungsverträge", $"{id}/versorgung"),
             new("Umlageschlüssel", $"{id}/umlageschluessel"),
-            new("Heizkosten", $"{id}/heizung")),
+            new("Heizkosten", $"{id}/heizung"),
+            new("Vorab prüfen", $"{id}/nebenkosten", SeparatorBefore: true),
+            new("Abrechnungen", $"{id}/abrechnungen", Also: [$"{id}/abrechnung", $"{Root}/abrechnungen"])) with { Href = $"{id}/abrechnungen" },
         NavTab.Group("Steuer", Policies.Finance,
             new("AfA", $"{id}/afa"),
             new("Erhaltungsaufwand", $"{id}/erhaltungsaufwand"),
@@ -191,7 +192,7 @@ public static class AdminNavModel
         NavTab.Group("Vertrag", null,
             new("Vertragsdokument", $"{id}/vertragsdokument"),
             new("Mieterhöhung", $"{id}/mieterhoehung")),
-        new("Kommunikation", $"{id}/kommunikation"),
+        new("Mitteilungen", $"{id}/kommunikation"),
         NavTab.Group("Ein- & Auszug", null,
             new("Mieterwechsel", $"{id}/auszug"),
             new("Übergabe Einzug", $"{id}/uebergabe/einzug"),

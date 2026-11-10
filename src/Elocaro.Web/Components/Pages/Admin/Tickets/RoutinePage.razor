@@ -14,10 +14,12 @@
     <PageHeader Title="Hausmeister-Aufgaben" Subtitle="Regelmäßige Aufgaben je Objekt, vom Hausmeister im Service-Bereich abgehakt.">
         <Actions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync" Disabled="options is null">Aufgabe anlegen</MudButton>
-            <a class="button" href="/verwaltung/tickets/routinen.csv?jahr=@DateTime.Today.Year">Nachweis @DateTime.Today.Year (CSV)</a>
-            <a class="button" href="/verwaltung/tickets/routinen.csv?jahr=@(DateTime.Today.Year - 1)">Nachweis @(DateTime.Today.Year - 1) (CSV)</a>
-            <a class="button" href="/verwaltung/tickets/routinen.pdf?jahr=@DateTime.Today.Year">Nachweis @DateTime.Today.Year (PDF)</a>
-            <a class="button" href="/verwaltung/tickets/routinen.pdf?jahr=@(DateTime.Today.Year - 1)">Nachweis @(DateTime.Today.Year - 1) (PDF)</a>
+            <MudMenu Label="Nachweis exportieren" Variant="Variant.Outlined" EndIcon="@Icons.Material.Filled.ArrowDropDown" Dense="true">
+                <MudMenuItem Href="@($"/verwaltung/tickets/routinen.pdf?jahr={DateTime.Today.Year}")">@DateTime.Today.Year als PDF</MudMenuItem>
+                <MudMenuItem Href="@($"/verwaltung/tickets/routinen.csv?jahr={DateTime.Today.Year}")">@DateTime.Today.Year als CSV</MudMenuItem>
+                <MudMenuItem Href="@($"/verwaltung/tickets/routinen.pdf?jahr={DateTime.Today.Year - 1}")">@(DateTime.Today.Year - 1) als PDF</MudMenuItem>
+                <MudMenuItem Href="@($"/verwaltung/tickets/routinen.csv?jahr={DateTime.Today.Year - 1}")">@(DateTime.Today.Year - 1) als CSV</MudMenuItem>
+            </MudMenu>
         </Actions>
     </PageHeader>
     <StatusMessage />

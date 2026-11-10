@@ -99,7 +99,9 @@ else
                             <td class="number">@Format.Money(b.Amount)</td>
                             <td>
                                 <MudButton Variant="Variant.Text" OnClick="() => EditComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} {Format.Period(b.Validity)} bearbeiten")">Bearbeiten</MudButton>
-                                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} {Format.Period(b.Validity)} löschen")">Löschen</MudButton>
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="@($"Weitere Aktionen für {Labels.From(b.Kind)} {Format.Period(b.Validity)}")" Dense="true">
+                                    <MudMenuItem OnClick="() => RemoveComponentAsync(b)">Löschen</MudMenuItem>
+                                </MudMenu>
                             </td>
                         </tr>
                     }
@@ -149,7 +151,9 @@ else
                 <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => EditOccupantAsync(entry)" aria-label="@($"Personenanzahl {Format.Period(entry.Validity)} bearbeiten")">Bearbeiten</MudButton>
                 @if (lease.People.Count > 1)
                 {
-                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" OnClick="() => RemoveOccupantAsync(entry)" aria-label="@($"Personenanzahl {Format.Period(entry.Validity)} löschen")">Löschen</MudButton>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" AriaLabel="@($"Weitere Aktionen für Personenanzahl {Format.Period(entry.Validity)}")" Dense="true">
+                        <MudMenuItem OnClick="() => RemoveOccupantAsync(entry)">Löschen</MudMenuItem>
+                    </MudMenu>
                 }
             </li>
         }
@@ -194,6 +198,7 @@ else
     <h2>Angaben</h2>
     <EditForm Model="data" OnValidSubmit="SaveDataAsync" novalidate>
         <DataAnnotationsValidator />
+        <h3>Zahlung</h3>
         <div class="form-grid">
             @if (BillingChoices.Count > 1)
             {
@@ -201,17 +206,24 @@ else
             }
             <AppNumberField T="int" @bind-Value="data.DueOnWorkingDay" Label="Fällig am … Werktag" Min="1" Max="10" />
             <AppSelect @bind-Value="data.PaymentMethod" Label="Zahlungsart" Items="Enum.GetValues<PaymentMethod>()" Text="@(v => Labels.From(v))" />
-            <AppNumberField T="int" @bind-Value="data.NoticePeriodMonths" Label="Kündigungsfrist Mieter (Monate)" Min="1" Max="24" />
-            @if (State.IsVisible(AppOption.LeaseDeposit) || data.Deposit is not null)
-            {
-                <AppNumberField T="decimal?" @bind-Value="data.Deposit" Label="Kaution" Suffix="€" />
-                <AppTextField @bind-Value="data.DepositNote" Label="Kaution – Notiz" />
-            }
         </div>
         @if (data.BillingType != BillingType.Prepayment)
         {
             <AppCheckBox @bind-Value="data.HeatingCostsConsumptionBased" Label="Heizkosten trotz Pauschale verbrauchsabhängig abrechnen" />
         }
+        <h3>Kündigung</h3>
+        <div class="form-grid">
+            <AppNumberField T="int" @bind-Value="data.NoticePeriodMonths" Label="Kündigungsfrist Mieter (Monate)" Min="1" Max="24" />
+        </div>
+        @if (State.IsVisible(AppOption.LeaseDeposit) || data.Deposit is not null)
+        {
+            <h3>Kaution</h3>
+            <div class="form-grid">
+                <AppNumberField T="decimal?" @bind-Value="data.Deposit" Label="Vereinbarte Kaution" Suffix="€" />
+                <AppTextField @bind-Value="data.DepositNote" Label="Notiz zur Kaution" />
+            </div>
+        }
+        <h3>Sonstiges</h3>
         <AppTextField @bind-Value="data.Notes" Label="Notizen" Lines="2" />
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Angaben speichern</MudButton>
     </EditForm>
