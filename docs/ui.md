@@ -108,6 +108,7 @@ Zurückhaltend und nur dort, wo sie etwas erklärt; bei „reduzierte Bewegung�
 ## Schrift, Icons, Felder
 
 - **Schrift:** Roboto Flex (Variable Font, OFL), lokal in `wwwroot/fonts/` mit Lizenztext; kein CDN.
+  Gewichte 400 bis 600 (nie 700); Hierarchie über Größe und Farbe. Beschriftungen in Satzschreibweise, kein `text-transform: uppercase`. Schatten über `--shadow`, `--shadow-menu`, `--shadow-fab`.
 - **Icons:** Inline-SVG über `Icon`, Pfade in `AppIcons` (aktuell die Material-Icons aus MudBlazor).
 - **Felder:** Outlined, Beschriftung im Rahmen (`FormField` und `div.field`). Der Hintergrund der Beschriftung kommt aus `--field-surface`; Container mit anderer Fläche setzen sie (siehe `.account-card`).
 
