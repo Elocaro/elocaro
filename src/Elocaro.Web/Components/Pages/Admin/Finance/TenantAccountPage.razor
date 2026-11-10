@@ -308,23 +308,42 @@ else
 
     private async Task PaymentAsync()
     {
-        // Prefilled for the common case: today, the amount that is due (the whole arrears if nothing is due yet).
+        // Prefilled for the common case: today, the amount that is due (the whole arrears if nothing is due yet) and what it is for.
+        var today = GermanTime.Today(Clock.GetUtcNow());
         var amount = account!.Due > 0 ? account.Due : account.Balance > 0 ? account.Balance : (decimal?)null;
-        payment = new() { Date = GermanTime.Today(Clock.GetUtcNow()), Amount = amount };
+        payment = new() { Date = today, Amount = amount, Purpose = PurposeOfOpenCharges(today) };
         RenderFragment fields = @<text>
-            <p class="help">Für Zahlungen, die nicht über den Bankimport kommen (Barzahlung, Überweisung auf ein anderes Konto). Ohne Auswahl bei „Zahlt auf“ wird nach der eingestellten Verrechnung gebucht.</p>
             <AppDateField @bind-Value="payment.Date" Label="Datum" Required="true" />
             <AppNumberField T="decimal?" @bind-Value="payment.Amount" Label="Betrag" Suffix="€" Required="true" />
             <AppTextField @bind-Value="payment.Purpose" Label="Verwendungszweck" />
-            <AppSelect T="Guid?" @bind-Value="payment.ChargeId" Label="Zahlt auf (optional)" Hint="Nur wenn der Mieter das bestimmt hat (z. B. „Kaution“)." Items="openChargeIds" Text="ChargeText" EmptyText="– automatisch verrechnen –" />
-            <AppCheckBox @bind-Value="payment.Payout" Label="Auszahlung an den Mieter (z. B. Guthaben überwiesen)" />
+            <AppSelect T="Guid?" @bind-Value="payment.ChargeId" Label="Zahlt auf (optional)" Hint="Nur wenn der Mieter bestimmt hat, welche Forderung er begleicht (z. B. „Kaution“)." Items="openChargeIds" Text="ChargeText" EmptyText="– automatisch verrechnen –" />
+            <AppCheckBox @bind-Value="payment.Payout" Label="Auszahlung an den Mieter" />
         </text>;
-        await ShowFormAsync("Zahlung erfassen", payment, fields, () => Accounts.RecordPaymentAsync(Id, payment), "Die Zahlung wurde gebucht.", "Zahlung buchen");
+        RenderFragment note = @<text>
+            <p class="help">Für Zahlungen, die nicht über den Bankimport kommen (Barzahlung, Überweisung auf ein anderes Konto).</p>
+            <p class="help"><strong>Zahlt auf:</strong> Ohne Auswahl verrechnet Elocaro die Zahlung nach der eingestellten Reihenfolge (@Labels.From(account!.Allocation)). Mit Auswahl wird zuerst genau diese Forderung beglichen.</p>
+            <p class="help"><strong>Auszahlung:</strong> Setzen Sie den Haken, wenn Sie dem Mieter Geld überwiesen haben, etwa ein Guthaben aus der Nebenkostenabrechnung. Der Betrag verringert dann das Guthaben, statt Forderungen zu begleichen.</p>
+        </text>;
+        await ShowFormAsync("Zahlung erfassen", payment, fields, () => Accounts.RecordPaymentAsync(Id, payment), "Die Zahlung wurde gebucht.", "Zahlung buchen", note);
     }
 
-    private async Task ShowFormAsync(string title, object model, RenderFragment fields, Func<Task<Result>> save, string success, string submit = "Buchen")
+    /// <summary>What a payment of the amount due is for: the months of the open charges that are due ("Miete November 2026").</summary>
+    private string? PurposeOfOpenCharges(DateOnly today)
     {
-        if (await Dialogs.ShowFormAsync(title, model, fields, save, submit))
+        var due = account!.Entries.Where(e => e.EntryType == EntryType.Charge && e.Open > 0 && e.Date <= today).ToList();
+        if (due.Count == 0)
+        {
+            return null;
+        }
+
+        var (first, last) = (due.Min(e => e.Date), due.Max(e => e.Date));
+        var what = due.All(e => e.Kind == ChargeType.Rent) ? "Miete" : "Zahlung";
+        return first.Year == last.Year && first.Month == last.Month ? $"{what} {Format.Month(first)}" : $"{what} {Format.Month(first)} bis {Format.Month(last)}";
+    }
+
+    private async Task ShowFormAsync(string title, object model, RenderFragment fields, Func<Task<Result>> save, string success, string submit = "Buchen", RenderFragment? note = null)
+    {
+        if (await Dialogs.ShowFormAsync(title, model, fields, save, submit, note))
         {
             Notify.Success(success);
             await LoadAsync();

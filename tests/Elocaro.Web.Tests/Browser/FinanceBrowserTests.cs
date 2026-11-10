@@ -212,6 +212,8 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await Assertions.Expect(dialog).ToBeVisibleAsync();
             await Assertions.Expect(dialog.GetByLabel("Datum", new() { Exact = true })).ToHaveValueAsync(German(today));
             await Assertions.Expect(dialog.GetByLabel("Betrag", new() { Exact = true })).Not.ToHaveValueAsync("");
+            await Assertions.Expect(dialog.GetByLabel("Verwendungszweck")).ToHaveValueAsync(new System.Text.RegularExpressions.Regex("^Miete .+"));
+            await Assertions.Expect(dialog).ToContainTextAsync("Auszahlung:");
         });
     }
 
