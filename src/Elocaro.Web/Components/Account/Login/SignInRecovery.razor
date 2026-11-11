@@ -1,5 +1,6 @@
 @page "/konto/anmelden/wiederherstellungscode"
 @inject SignInManager<ApplicationUser> Login
+@inject Elocaro.Application.Audit.ISecurityAudit SecurityLog
 @inject Redirector Redirector
 
 <PageTitle>Wiederherstellungscode – Elocaro</PageTitle>
@@ -40,17 +41,21 @@
 
     private async Task ValidateAsync()
     {
+        var pending = await Login.GetTwoFactorAuthenticationUserAsync();
         var result = await Login.TwoFactorRecoveryCodeSignInAsync(Input!.Code.Replace(" ", "", StringComparison.Ordinal));
         if (result.Succeeded)
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.RecoveryCodeUsed, pending?.Email, pending?.Id);
             Redirector.To(ReturnUrl);
         }
         else if (result.IsLockedOut)
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.LockedOut, pending?.Email, pending?.Id);
             Redirector.To("/konto/gesperrt");
         }
         else
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.RecoveryCodeFailed, pending?.Email, pending?.Id);
             errors = "Der Wiederherstellungscode ist ungültig.";
         }
     }

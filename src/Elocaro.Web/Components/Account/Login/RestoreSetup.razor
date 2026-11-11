@@ -1,0 +1,219 @@
+@page "/konto/einrichtung/wiederherstellen"
+@rendermode InteractiveServer
+@implements IDisposable
+@using Elocaro.Application.Operations
+@using Elocaro.Web.Operations
+@inject IAccountService Accounts
+@inject ISetupCode SetupCode
+@inject IBackupControl Control
+@inject IAppRestart Restart
+@inject NavigationManager Navigation
+
+<PageTitle>Aus Datensicherung wiederherstellen – Elocaro</PageTitle>
+
+<InteractiveShell>
+    <h1>Aus Datensicherung wiederherstellen</h1>
+    <p>Auf einem neuen Server holen Sie hier den Stand einer früheren Datensicherung zurück: Datenbank, Belege und Dokumente, Konten und Einstellungen.
+    Danach melden Sie sich mit Ihrem bisherigen Konto an.</p>
+
+    @if (phase == Phase.Target)
+    {
+        <EditForm Model="input" OnValidSubmit="FindAsync" novalidate>
+            <div class="form-grid">
+                <AppTextField Value="@setupCode" ValueChanged="v => setupCode = v ?? string.Empty" Label="Einrichtungscode" Required="true" Autocomplete="off"
+                              Hint="Wie bei der Ersteinrichtung: das Installationsskript zeigt ihn an, er steht in deploy/.env (ELOCARO_SETUP_CODE) oder im Protokoll." />
+                <BackupTargetFields Input="input" LocalWarning="Die Sicherung liegt im Ordner des Backup-Containers (deploy/backup-repo), z. B. aus einem kopierten Repository."
+                                    PasswordHint="Das Passwort der Sicherung (RESTIC_PASSWORD des alten Servers, steht in der Notfallmappe oder im Passwortmanager)." />
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="button button-primary" id="restore-find" disabled="@busy">Sicherungen suchen</button>
+                <a class="button button-outlined" href="/konto/einrichtung">Abbrechen</a>
+            </div>
+        </EditForm>
+        <ErrorList Errors="errors" />
+    }
+    else if (phase == Phase.Choose)
+    {
+        @if (snapshots.Count == 0)
+        {
+            <Notice Level="NoticeLevel.Warning">Am Ziel liegt keine Sicherung dieser Anwendung.</Notice>
+        }
+        else
+        {
+            <h2>Stand wählen</h2>
+            <p class="help">Meist ist der neueste Stand der richtige.</p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Zeitpunkt</th><th>Kennung</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var row in snapshots)
+                        {
+                            <tr>
+                                <td>@Format.Timestamp(row.Time)</td>
+                                <td><code>@row.ShortId</code></td>
+                                <td><button type="button" class="button button-text" @onclick="() => RestoreAsync(row)" disabled="@busy">Diesen Stand wiederherstellen</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <ErrorList Errors="errors" />
+        <button type="button" class="button button-outlined" @onclick="Back">Zurück</button>
+    }
+    else
+    {
+        @if (!progress.Available)
+        {
+            <Notice Level="NoticeLevel.Warning">Der Backup-Dienst antwortet nicht mehr. Die Wiederherstellung läuft möglicherweise noch; bitte kurz warten und die Seite neu laden.</Notice>
+        }
+        else if (progress.Running)
+        {
+            <Notice Level="NoticeLevel.Info" id="restore-running">Die Wiederherstellung läuft. Das kann je nach Datenmenge einige Minuten dauern. Bitte die Seite nicht schließen.</Notice>
+        }
+        else if (progress.Last is { Kind: "Restore", Succeeded: true })
+        {
+            <Notice Level="NoticeLevel.Success" id="restore-done">Die Wiederherstellung ist abgeschlossen. Die App startet in wenigen Sekunden neu.</Notice>
+            <p><a class="button button-primary" href="/konto/anmelden">Zur Anmeldung</a></p>
+        }
+        else
+        {
+            <Notice Level="NoticeLevel.Error" id="restore-failed">Die Wiederherstellung ist fehlgeschlagen: @progress.Last?.Message</Notice>
+            <button type="button" class="button button-outlined" @onclick="Back">Zurück</button>
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private enum Phase
+    {
+        Target,
+        Choose,
+        Running,
+    }
+
+    private readonly BackupSettingsInput input = new();
+    private Phase phase;
+    private string setupCode = string.Empty;
+    private bool busy;
+    private bool verified;
+    private bool sawRunning;
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<BackupSnapshotRow> snapshots = [];
+    private BackupProgress progress = new(false, false, null, null);
+    private CancellationTokenSource? polling;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Only for an empty installation, like the creation of the first administrator.
+        if (!await Accounts.InitialSetupPossibleAsync())
+        {
+            Navigation.NavigateTo("/konto/anmelden");
+        }
+    }
+
+    private async Task FindAsync()
+    {
+        errors = null;
+        if (!SetupCode.Matches(setupCode) || !await Accounts.InitialSetupPossibleAsync())
+        {
+            errors = ["Der Einrichtungscode stimmt nicht."];
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            verified = true;
+            var check = await Control.TestAsync(null, input);
+            if (check.State is not BackupTargetState.Ready)
+            {
+                errors = [check.State == BackupTargetState.New ? "Am Ziel gibt es noch keine Sicherung." : check.Message];
+                return;
+            }
+
+            snapshots = await Control.SnapshotsAsync(input);
+            phase = Phase.Choose;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task RestoreAsync(BackupSnapshotRow row)
+    {
+        // The code was checked in this session; the installation must still be empty.
+        if (!verified || !await Accounts.InitialSetupPossibleAsync())
+        {
+            return;
+        }
+
+        errors = null;
+        busy = true;
+        try
+        {
+            var result = await Control.StartRestoreAsync(input, row.Id);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            phase = Phase.Running;
+            // Started here: a restore that finishes between two polls (small installations) must still restart the app.
+            sawRunning = true;
+            progress = new BackupProgress(true, true, "Restore", null);
+            _ = PollAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    // The database is replaced during the restore: only the backup service is asked, never the database.
+    private async Task PollAsync()
+    {
+        polling = new CancellationTokenSource();
+        var token = polling.Token;
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                var current = await Control.ProgressAsync(token);
+                sawRunning |= current.Running;
+                await InvokeAsync(() =>
+                {
+                    progress = current;
+                    StateHasChanged();
+                });
+                if (sawRunning && !current.Running)
+                {
+                    if (current.Last is { Kind: "Restore", Succeeded: true })
+                    {
+                        Restart.Schedule();
+                    }
+
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // page closed
+        }
+    }
+
+    public void Dispose() => polling?.Cancel();
+
+    private void Back()
+    {
+        errors = null;
+        phase = Phase.Target;
+        progress = new BackupProgress(false, false, null, null);
+        sawRunning = false;
+    }
+}

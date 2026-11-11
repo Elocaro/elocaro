@@ -48,6 +48,11 @@ services:
       Mcp__MaxResults: ${MCP_MAX_RESULTS:-50}
       AccessTokens__MaxDays: ${ACCESS_TOKEN_MAX_DAYS:-90}
       Backup__StatusFile: /backup-status/backup.json
+      Backup__Url: http://backup:8080/
+      # Sign-in at Google for the backup to Google Drive ("Mit Google verbinden"): OAuth client of the application, see docs/betrieb.md
+      GoogleDrive__ClientId: ${GOOGLE_DRIVE_CLIENT_ID:-}
+      GoogleDrive__ClientSecret: ${GOOGLE_DRIVE_CLIENT_SECRET:-}
+      Backup__ApiToken: ${BACKUP_API_TOKEN:-}
       # Optional protection of the data protection keys by a certificate, see docs/betrieb.md (empty = off)
       DataProtection__CertificatePath: ${DATA_PROTECTION_CERT_PATH:-}
       DataProtection__CertificatePassword: ${DATA_PROTECTION_CERT_PASSWORD:-}
@@ -85,7 +90,8 @@ services:
   gotenberg:
     image: gotenberg/gotenberg:8.39.0
     restart: unless-stopped
-    command: ["gotenberg", "--api-timeout=60s", "--chromium-auto-start=true"]
+    # --chromium-deny-private-ips: Vorlagen-HTML darf keine Dienste im Docker-Netz (App, Datenbank) oder Loopback/Link-Local abrufen (SSRF)
+    command: ["gotenberg", "--api-timeout=60s", "--chromium-auto-start=true", "--chromium-deny-private-ips"]
     networks: [intern]
     mem_limit: ${GOTENBERG_MEM_LIMIT:-1g}
     security_opt: [no-new-privileges:true]
@@ -95,13 +101,16 @@ services:
   backup:
     image: ${ELOCARO_BACKUP_IMAGE:-ghcr.io/elocaro/elocaro-backup:latest}
     build:
-      context: ./backup
+      context: ..
+      dockerfile: deploy/backup/Dockerfile
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
+      # Internal API for the app (compose network only); empty = API off, only the target below is used
+      BACKUP_API_TOKEN: ${BACKUP_API_TOKEN:-}
       RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-/repo}
       RESTIC_PASSWORD: ${RESTIC_PASSWORD}
       BACKUP_TIME: ${BACKUP_TIME:-02:30}

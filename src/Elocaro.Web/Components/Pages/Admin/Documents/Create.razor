@@ -75,7 +75,7 @@
             data.Title = Path.GetFileNameWithoutExtension(file.Name);
         }
 
-        if (!context!.Validate())
+        if (!await context!.ValidateAsync())
         {
             return;
         }

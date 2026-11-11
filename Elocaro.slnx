@@ -1,12 +1,14 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Elocaro.Application/Elocaro.Application.csproj" />
+    <Project Path="src/Elocaro.Backup/Elocaro.Backup.csproj" />
     <Project Path="src/Elocaro.Domain/Elocaro.Domain.csproj" />
     <Project Path="src/Elocaro.Infrastructure/Elocaro.Infrastructure.csproj" />
     <Project Path="src/Elocaro.Web/Elocaro.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Elocaro.Architecture.Tests/Elocaro.Architecture.Tests.csproj" />
+    <Project Path="tests/Elocaro.Backup.Tests/Elocaro.Backup.Tests.csproj" />
     <Project Path="tests/Elocaro.Domain.Tests/Elocaro.Domain.Tests.csproj" />
     <Project Path="tests/Elocaro.Integration.Tests/Elocaro.Integration.Tests.csproj" />
     <Project Path="tests/Elocaro.TestHelpers/Elocaro.TestHelpers.csproj" />

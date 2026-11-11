@@ -3,6 +3,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> Login
 @inject Redirector Redirector
+@inject Elocaro.Application.Audit.ISecurityAudit SecurityLog
 
 <PageTitle>Anmelden – Elocaro</PageTitle>
 
@@ -40,6 +41,7 @@ else
         }
 
         await Login.SignInAsync(user, isPersistent: true);
+        await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.MagicLinkSignedIn, user.Email, user.Id);
         Redirector.To("/");
     }
 }

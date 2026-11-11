@@ -1,0 +1,219 @@
+@implements IDisposable
+@using Elocaro.Application.Operations
+@using Elocaro.Domain.Operations
+@inject IGoogleDriveAuthorization Google
+@inject TimeProvider Clock
+@* Entry of a backup target: provider, location, credentials and repository password. Shared by the settings page and the restore
+   during the initial setup. Secrets are never shown; where one is stored, an empty entry keeps it. For Google Drive the credentials
+   come from signing in at Google (device code), the manual fields are tucked away under "Erweitert". *@
+<AppSelect T="BackupProvider" Value="Input.Provider" ValueChanged="ProviderChangedAsync" Label="Ablage" Items="BackupProviders.All" Text="BackupProviders.Label" />
+@if (Input.Provider == BackupProvider.Local)
+{
+    <Notice Level="NoticeLevel.Warning">@LocalWarning</Notice>
+}
+else
+{
+    <AppTextField Value="@Input.Location" ValueChanged="v => Input.Location = v ?? string.Empty" Label="@BackupProviders.LocationLabel(Input.Provider)" Hint="@BackupProviders.LocationHint(Input.Provider)" Required="true" />
+}
+
+@if (Input.Provider == BackupProvider.GoogleDrive)
+{
+    <div class="drive-connect" id="drive-connect">
+        @if (device is not null)
+        {
+            <Notice Level="NoticeLevel.Info" id="drive-device">
+                <strong>So melden Sie sich bei Google an:</strong>
+                <ol>
+                    <li>Öffnen Sie <a href="@device.VerificationUrl" target="_blank" rel="noopener noreferrer">@device.VerificationUrl</a> (am Handy oder in einem anderen Fenster).</li>
+                    <li>Geben Sie diesen Code ein: <strong id="drive-code" class="device-code">@device.UserCode</strong></li>
+                    <li>Melden Sie sich an und erlauben Sie den Zugriff. Elocaro sieht dabei nur Dateien, die es selbst in Ihrem Drive anlegt.</li>
+                </ol>
+                <span>Warte auf die Bestätigung …</span>
+            </Notice>
+            <button type="button" class="button button-outlined" id="drive-cancel" @onclick="CancelConnect">Abbrechen</button>
+        }
+        else
+        {
+            @if (Connected)
+            {
+                <Notice Level="NoticeLevel.Success" id="drive-connected">Mit Google verbunden. @(justConnected ? "Mit „Speichern“ übernehmen." : "")</Notice>
+            }
+
+            <button type="button" class="button @(Connected ? "button-outlined" : "button-primary")" id="drive-connect-button" @onclick="ConnectAsync" disabled="@(!googleAvailable)">@(Connected ? "Neu verbinden" : "Mit Google verbinden")</button>
+            @if (!googleAvailable)
+            {
+                <p class="help" id="drive-not-configured">Die Anmeldung bei Google ist auf diesem Server noch nicht eingerichtet: auf der Seite Datensicherung unter „Anmeldung bei Google“ (oder mit <code>GoogleDrive__ClientId</code> und <code>GoogleDrive__ClientSecret</code>). Unter „Erweitert“ lässt sich ein Zugang von Hand eintragen.</p>
+            }
+
+            @if (connectError is not null)
+            {
+                <Notice Level="NoticeLevel.Error" id="drive-error">@connectError</Notice>
+            }
+        }
+    </div>
+
+    <details class="explain">
+        <summary>Erweitert: Zugang von Hand eintragen</summary>
+        @foreach (var field in BackupProviders.Fields(Input.Provider))
+        {
+            <AppTextField Value="@Credential(field.Key)" ValueChanged="v => Input.Credentials[field.Key] = v ?? string.Empty" Label="@field.Label" Type="@(field.Secret ? "password" : "text")"
+                          Hint="@(Stored(field.Key) ? "Gespeichert. Leer lassen, um den Wert zu behalten." : field.Hint)" Autocomplete="off" />
+        }
+    </details>
+}
+else
+{
+    @foreach (var field in BackupProviders.Fields(Input.Provider))
+    {
+        <AppTextField Value="@Credential(field.Key)" ValueChanged="v => Input.Credentials[field.Key] = v ?? string.Empty" Label="@field.Label" Type="@(field.Secret ? "password" : "text")"
+                      Required="@(field.Required && !Stored(field.Key))" Hint="@(Stored(field.Key) ? "Gespeichert. Leer lassen, um den Wert zu behalten." : field.Hint)" Autocomplete="off" />
+    }
+}
+
+<AppTextField Value="@Input.Password" ValueChanged="v => Input.Password = v" Label="Passwort der Sicherung" Type="password" Required="@(!HasPassword)" Autocomplete="off"
+              Hint="@(HasPassword ? "Gespeichert. Leer lassen, um es zu behalten." : PasswordHint)" />
+
+@code {
+    private bool googleAvailable;
+    private DeviceAuthorization? device;
+    private string? connectError;
+    private bool justConnected;
+    private CancellationTokenSource? polling;
+
+    [Parameter, EditorRequired]
+    public BackupSettingsInput Input { get; set; } = new();
+
+    /// <summary>Names of the credentials that are already stored (their entry may stay empty).</summary>
+    [Parameter]
+    public IReadOnlySet<string> StoredCredentials { get; set; } = new HashSet<string>(StringComparer.Ordinal);
+
+    [Parameter]
+    public bool HasPassword { get; set; }
+
+    [Parameter]
+    public string LocalWarning { get; set; } = "Die Sicherung liegt auf demselben Server wie die Daten. Bei einem Serverausfall ist beides weg: nur zum Ausprobieren, für den Alltag ein externes Ziel wählen.";
+
+    [Parameter]
+    public string PasswordHint { get; set; } = "Verschlüsselt die Sicherung. OHNE DIESES PASSWORT GIBT ES KEINE WIEDERHERSTELLUNG: zusätzlich im Passwortmanager aufbewahren.";
+
+    /// <summary>Called after the provider changed (location and credentials are already cleared).</summary>
+    [Parameter]
+    public EventCallback<BackupProvider> ProviderChanged { get; set; }
+
+    /// <summary>Signed in to Google, or a token entered/stored.</summary>
+    private bool Connected => Stored(BackupProviders.DriveTokenKey) || !string.IsNullOrWhiteSpace(Credential(BackupProviders.DriveTokenKey));
+
+    protected override async Task OnInitializedAsync() => googleAvailable = await Google.IsAvailableAsync();
+
+    protected override void OnParametersSet()
+    {
+        // The folder in Google Drive has a sensible default, so that nothing but the sign-in is left to do.
+        if (Input.Provider == BackupProvider.GoogleDrive && string.IsNullOrWhiteSpace(Input.Location))
+        {
+            Input.Location = BackupProviders.DefaultDriveFolder;
+        }
+    }
+
+    private string Credential(string key) => Input.Credentials.GetValueOrDefault(key) ?? string.Empty;
+
+    private bool Stored(string key) => StoredCredentials.Contains(key);
+
+    private async Task ProviderChangedAsync(BackupProvider provider)
+    {
+        if (provider == Input.Provider)
+        {
+            return;
+        }
+
+        CancelConnect();
+        Input.Provider = provider;
+        Input.Location = provider == BackupProvider.GoogleDrive ? BackupProviders.DefaultDriveFolder : string.Empty;
+        Input.Credentials.Clear();
+        connectError = null;
+        justConnected = false;
+        await ProviderChanged.InvokeAsync(provider);
+    }
+
+    private async Task ConnectAsync()
+    {
+        connectError = null;
+        justConnected = false;
+        var start = await Google.StartAsync();
+        if (start.Authorization is not { } authorization)
+        {
+            connectError = start.Error;
+            return;
+        }
+
+        device = authorization;
+        _ = PollAsync(authorization);
+    }
+
+    /// <summary>Asks Google at the pace it names until the person confirmed, refused or the code ran out.</summary>
+    private async Task PollAsync(DeviceAuthorization authorization)
+    {
+        polling?.Cancel();
+        polling = new CancellationTokenSource();
+        var token = polling.Token;
+        var interval = authorization.IntervalSeconds;
+        var deadline = Clock.GetUtcNow().AddSeconds(authorization.ExpiresInSeconds);
+        try
+        {
+            while (!token.IsCancellationRequested && Clock.GetUtcNow() < deadline)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(interval), token);
+                var result = await Google.PollAsync(authorization.DeviceCode, token);
+                if (result.State == DeviceAuthorizationState.Pending)
+                {
+                    continue;
+                }
+
+                if (result.State == DeviceAuthorizationState.SlowDown)
+                {
+                    interval += 5;
+                    continue;
+                }
+
+                await InvokeAsync(() =>
+                {
+                    if (result.State == DeviceAuthorizationState.Authorized && result.Credentials is not null)
+                    {
+                        foreach (var (key, value) in result.Credentials)
+                        {
+                            Input.Credentials[key] = value;
+                        }
+
+                        justConnected = true;
+                    }
+                    else
+                    {
+                        connectError = result.Message ?? "Die Anmeldung bei Google ist fehlgeschlagen.";
+                    }
+
+                    device = null;
+                    StateHasChanged();
+                });
+                return;
+            }
+
+            await InvokeAsync(() =>
+            {
+                connectError = "Der Code ist abgelaufen. Bitte erneut verbinden.";
+                device = null;
+                StateHasChanged();
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // cancelled or page closed
+        }
+    }
+
+    private void CancelConnect()
+    {
+        polling?.Cancel();
+        device = null;
+    }
+
+    public void Dispose() => polling?.Cancel();
+}

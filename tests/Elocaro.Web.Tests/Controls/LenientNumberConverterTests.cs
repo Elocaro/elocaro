@@ -17,7 +17,7 @@ public class LenientNumberConverterTests
     public void Point_and_comma_are_read_as_decimal_or_thousands_sign_where_plausible(string typed, double expected)
     {
         var converter = new LenientNumberConverter<decimal>();
-        Assert.Equal((decimal)expected, converter.ConvertBack(typed));
+        Assert.Equal(Dec.From(expected), converter.ConvertBack(typed));
     }
 
     [Fact]

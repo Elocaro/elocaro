@@ -42,6 +42,15 @@ git tag v0.1.0 && git push origin v0.1.0
 
 Vorher `CHANGELOG.md` (Abschnitt „Unveröffentlicht“ → neue Version mit Datum) abschließen. Die Version aus dem Tag landet über das Build-Argument `VERSION` in der Anwendung („Über Elocaro“).
 
+**Google-Anmeldung im Image:** Damit „Mit Google verbinden“ in den veröffentlichten Images ohne Einrichtung funktioniert, liest der
+Release-Workflow die Repository-Secrets `GOOGLE_CLIENT_ID` und `GOOGLE_CLIENT_SECRET` (OAuth-Client vom Typ „Fernsehgeräte und Geräte mit
+begrenzter Eingabe“, siehe `docs/betrieb.md`) und baut sie als BuildKit-Secret in das App-Image ein (`google-client.json`). Einmalig
+setzen: `gh secret set GOOGLE_CLIENT_ID` und `gh secret set GOOGLE_CLIENT_SECRET` (Wert wird abgefragt, nicht ins Terminal-Protokoll
+schreiben). Die Werte stehen **nicht** im Repository, aber lesbar im veröffentlichten Image: Google stuft den Schlüssel dieses Client-Typs
+als nicht vertraulich ein, und der Zugriff reicht nur auf selbst angelegte Dateien (`drive.file`). Wird der Client missbraucht, in der
+Cloud Console einen neuen Schlüssel erzeugen, die Secrets ersetzen und neu veröffentlichen. Ohne die Secrets entsteht ein Image ohne
+Client; jede Installation kann dann ihren eigenen eintragen.
+
 Neue GHCR-Pakete sind zunächst privat, und die Compose-Dateien ziehen `ghcr.io/elocaro/elocaro:latest`. Nach dem **ersten**
 Release deshalb beide Pakete (`elocaro` und `elocaro-backup`) unter *Packages → Package settings → Danger Zone* auf
 **öffentlich** stellen (die Organisation muss öffentliche Pakete erlauben: *Organization settings → Packages*) und prüfen,

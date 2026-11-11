@@ -103,6 +103,7 @@ case "${SMTP_PORT}" in ''|*[!0-9]*) fail "SMTP-Port muss eine Zahl sein." ;; esa
 umask 077
 POSTGRES_PASSWORD=$(secret)
 RESTIC_PASSWORD=$(secret)
+BACKUP_API_TOKEN=$(secret)
 ELOCARO_SETUP_CODE=$(secret)
 
 cat > .env <<ENVFILE
@@ -131,6 +132,8 @@ RESTIC_PASSWORD=$RESTIC_PASSWORD
 # Ziel: lokal nur zum Ausprobieren (liegt auf demselben Server). Besser extern, siehe docs/betrieb.md.
 RESTIC_REPOSITORY=/repo
 BACKUP_TIME=02:30
+# Zugang der App zum Backup-Dienst (nur im internen Docker-Netz).
+BACKUP_API_TOKEN=$BACKUP_API_TOKEN
 ENVFILE
 chmod 600 .env
 

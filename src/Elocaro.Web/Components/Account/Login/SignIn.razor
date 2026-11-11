@@ -1,6 +1,7 @@
 @page "/konto/anmelden"
 @inject IAccountService Accounts
 @inject SignInManager<ApplicationUser> Login
+@inject Elocaro.Application.Audit.ISecurityAudit SecurityLog
 @inject Redirector Redirector
 @using Elocaro.Application.Admin
 @using Microsoft.Extensions.Options
@@ -100,6 +101,7 @@
 
         if (result.Succeeded)
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.SignedIn, email, null);
             Redirector.To(ReturnUrl);
         }
         else if (result.RequiresTwoFactor)
@@ -112,10 +114,12 @@
         }
         else if (result.IsLockedOut)
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.LockedOut, email, null);
             Redirector.To("/konto/gesperrt");
         }
         else
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.SignInFailed, email, null);
             // Deliberately no distinction (unknown address, wrong password, locked account).
             errors = "E-Mail-Adresse oder Passwort ist falsch.";
         }

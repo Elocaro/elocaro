@@ -21,7 +21,7 @@ public class BuildingBlocksTests : BunitContext
     public void Amounts_are_parsed_in_German_format(string text, double expected)
     {
         Assert.True(InputAmount.Read(text, out var amount));
-        Assert.Equal((decimal)expected, amount);
+        Assert.Equal(Dec.From(expected), amount);
     }
 
     [Theory]

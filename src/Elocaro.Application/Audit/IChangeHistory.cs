@@ -13,6 +13,7 @@ public enum AuditAction
     Modified = 1,
     Deleted = 2,
     Read = 3,
+    SecurityEvent = 4,
 }
 
 public sealed record AuditEntryView(

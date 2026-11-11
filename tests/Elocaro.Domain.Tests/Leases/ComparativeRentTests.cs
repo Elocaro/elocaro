@@ -42,7 +42,7 @@ public class ComparativeRentTests
     [InlineData(503.33, 20, 603.99)] // rounded down, never above the limit
     [InlineData(1000, 15, 1150)]
     public void Cap_limit_is_rent_three_years_ago_plus_the_percentage(double rent, int percent, double expected) =>
-        Assert.Equal((decimal)expected, ComparativeRent.CapLimit((decimal)rent, percent));
+        Assert.Equal(Dec.From(expected), ComparativeRent.CapLimit(Dec.From(rent), percent));
 
     [Fact]
     public void Comparative_rent_is_square_metre_price_times_area()

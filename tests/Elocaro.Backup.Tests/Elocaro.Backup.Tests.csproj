@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Elocaro.Backup\Elocaro.Backup.csproj" />
+    <ProjectReference Include="..\..\src\Elocaro.Infrastructure\Elocaro.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

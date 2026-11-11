@@ -489,6 +489,9 @@ deploy/.env
 deploy/backup-repo/
 deploy/backup-ssh/
 
+# Pentest-Läufe (Befunde sind sensibel)
+.pentest/
+
 # Claude Code (lokale Arbeitsverzeichnisse und Einstellungen)
 .claude/worktrees/
 .claude/settings.local.json

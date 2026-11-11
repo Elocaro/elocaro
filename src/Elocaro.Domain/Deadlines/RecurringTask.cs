@@ -245,7 +245,7 @@ public static class ICalendarWriter
                 octets = 1;
             }
 
-            current.Append(rune.ToString());
+            current.Append(rune);
             octets += size;
         }
 

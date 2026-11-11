@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Elocaro.Backup.Tests" />
+  </ItemGroup>
+
+</Project>

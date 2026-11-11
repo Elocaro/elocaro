@@ -14,7 +14,7 @@ backup (nachts) ──▶ postgres + Volume dateien ──▶ restic-Repository 
 | `app` | `ghcr.io/elocaro/elocaro` (chiseled, Non-Root, ohne Shell) | Volume `files` → `/data` (Belege, Fotos, PDFs) |
 | `postgres` | `postgres:18-alpine` | Volume `postgres` (Daten inkl. Anmelde-Schlüssel) |
 | `gotenberg` | `gotenberg/gotenberg:8.39.0` | – |
-| `backup` | `ghcr.io/elocaro/elocaro-backup` (pg_dump + restic) | Volumes `backup-status`, `backup-cache`; Repository extern bzw. `deploy/backup-repo` |
+| `backup` | `ghcr.io/elocaro/elocaro-backup` (kleine ASP.NET-Core-API `src/Elocaro.Backup` um pg_dump, restic und rclone) | Volumes `backup-status`, `backup-cache`; Repository extern bzw. `deploy/backup-repo` |
 | `caddy` | `caddy:2.11-alpine` | Volumes `caddy-data`, `caddy-config` (Zertifikate) |
 
 PostgreSQL und Gotenberg liegen im Netz `intern` ohne Internetzugang. Die App ist zusätzlich im Netz `extern` (ausgehend für SMTP, später FinTS und KI-API). Von außen erreichbar ist nur Caddy.
@@ -147,12 +147,20 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs -f app
 
 ## Update
 
+Aktualisiert wird mit den veröffentlichten Images (`ghcr.io/elocaro/elocaro` und `…/elocaro-backup`), auf dem Server wird nichts gebaut:
+
 ```bash
-docker compose -f deploy/docker-compose.yml --env-file deploy/.env pull
-docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+deploy/update.sh 0.2.0     # auf eine bestimmte Version (empfohlen)
+deploy/update.sh latest    # auf die neueste Version
 ```
 
-Datenbank-Migrationen laufen beim Start automatisch. Vorher sichern: `docker compose … run --rm backup backup`. Für reproduzierbare Updates `ELOCARO_IMAGE` auf eine Version setzen und gezielt hochzählen.
+Das Skript sichert zuerst (`backup backup`), merkt sich die laufenden Images als `elocaro-vorher:app` und `elocaro-vorher:backup`, trägt die Version in `deploy/.env` ein (`ELOCARO_IMAGE`, `ELOCARO_BACKUP_IMAGE`; die alte Datei bleibt als `.env.bak-vor-update`), lädt die Images, startet `app` und `backup` neu und wartet, bis `https://<Domain>/health/live` antwortet. Datenbank-Migrationen laufen beim Start automatisch und nicht zurück: Geht ein Update mit Schemaänderung schief, stellt man die Sicherung von vorhin wieder her (Abschnitt Wiederherstellen). Ohne Schemaänderung genügt es, die beiden `elocaro-vorher:…`-Images in `deploy/.env` einzutragen und `up -d --no-deps app backup` auszuführen.
+
+Von Hand geht es auch: `ELOCARO_IMAGE` und `ELOCARO_BACKUP_IMAGE` setzen, dann `docker compose -f deploy/docker-compose.yml --env-file deploy/.env pull` und `up -d`.
+
+**Privates Paket:** Solange die Images in GHCR nicht öffentlich sind, einmalig auf dem Server `docker login ghcr.io` mit einem Token (nur Scope `read:packages`) ausführen.
+
+**Umstieg von selbst gebauten Images:** Frühere Installationen bauten auf dem Server (`docker compose build`, `ELOCARO_IMAGE=elocaro:0.1.0` und `ELOCARO_VERSION` in `deploy/.env`). `deploy/update.sh` ersetzt diese Zeilen; die Quellen unter dem Installationsordner werden nicht mehr gebraucht, nur `deploy/` (Compose-Datei, `Caddyfile`, Skripte) muss zum Stand passen.
 
 ### PostgreSQL-Major-Upgrade (z. B. 18 → 19)
 
@@ -263,6 +271,7 @@ Die Mail-Warteschlange (`outgoing_mails`) ist der Versandnachweis. Es gelten dre
 - Uploads: Caddy begrenzt auf 30 MB, die App zusätzlich auf `FileStore__MaxSizeMb` (25). Fotos dürfen höchstens `FileStore__MaxImageMegapixels` (50) groß sein, darüber lehnt die App sie vor dem Dekodieren ab.
 - Speicherlimits: `app` höchstens `APP_MEM_LIMIT` (Standard `1536m`), `gotenberg` höchstens `GOTENBERG_MEM_LIMIT` (Standard `1g`), damit ein einzelner Container nicht den ganzen Server lahmlegt. Wird ein Limit erreicht, beendet Docker den Container und startet ihn neu; bei wiederholten Neustarts (`docker compose ps`, `docker inspect … OOMKilled`) den Wert in `deploy/.env` erhöhen.
 - Container: Alle Dienste laufen mit `no-new-privileges` und `cap_drop: ALL`. Zurück bekommen nur `postgres` (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID`: Besitzer des Datenverzeichnisses setzen, dann zum Benutzer `postgres` wechseln), `backup` (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`: Dateien des App-Benutzers lesen und wiederherstellen) und `caddy` (`NET_BIND_SERVICE`). Eigene Erweiterungen an diesen Containern brauchen womöglich mehr.
+- **PDF-Erzeugung (SSRF-Schutz):** Gotenberg läuft mit `--chromium-deny-private-ips` und lehnt Adressen im Docker-Netz, Loopback und Link-Local ab. Zusätzlich entfernt `PdfHtmlGuard` aus Vorlagen-HTML Frames, Skripte, `link`/`meta`/`base`/Formulare und alle externen Quellen (`src`, CSS-`url()`, `@import`); nur eingebettete `data:image/`-Bilder bleiben. Eigene Gotenberg-Aufrufe in `docker-compose.override.yml` müssen das Flag übernehmen.
 - **Zugriffstoken** (MCP): persönlich, nur als Hash gespeichert, mit Ablauf, wirken nie über die Rechte des Kontos hinaus und enden mit der Sperre des Kontos; siehe [mcp.md](mcp.md).
 - Geheimnisse nur in `deploy/.env` (per `.gitignore` ausgeschlossen), Dateirechte `chmod 600 deploy/.env`.
 
@@ -298,7 +307,7 @@ Die zusätzliche Compose-Datei bei allen späteren `docker compose`-Aufrufen mit
 
 ## Backup
 
-Der Dienst `backup` (Image `ghcr.io/elocaro/elocaro-backup`, Quelle `deploy/backup/`) sichert jede Nacht um `BACKUP_TIME` (Standard 02:30):
+Der Dienst `backup` (Image `ghcr.io/elocaro/elocaro-backup`, Quelle `src/Elocaro.Backup`, Image `deploy/backup/Dockerfile`) sichert jede Nacht um `BACKUP_TIME` (Standard 02:30):
 
 1. die Datenbank per `pg_dump` (Custom-Format; passt zur PostgreSQL-Version, da das Image auf `postgres:18-alpine` basiert),
 2. das Volume `files` (Belege, Fotos, PDFs),
@@ -315,6 +324,7 @@ In `deploy/.env`:
 | `RESTIC_REPOSITORY` | Ziel, siehe unten. Standard `/repo` = Ordner `BACKUP_LOCAL_PATH` (`deploy/backup-repo`) auf demselben Server, nur zum Ausprobieren |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Zugang für S3-kompatible Ziele |
 | `BACKUP_TIME` | Uhrzeit (deutsche Zeit, `HH:MM`) |
+| `BACKUP_API_TOKEN` | Zugang der App zum Backup-Dienst (nur im internen Docker-Netz; `install.sh` erzeugt ihn, sonst z. B. `openssl rand -base64 32`). Ohne Token läuft die Sicherung wie bisher nur nach den Variablen dieser Tabelle, die App kann sie dann nicht steuern. |
 
 Beispiele für `RESTIC_REPOSITORY` (alle von restic unterstützten Ziele funktionieren):
 
@@ -336,6 +346,43 @@ $DC logs backup                  # Zeitplan und Ergebnisse
 $DC run --rm backup verify      # zusätzlich 10 % der Daten lesen und prüfen (z. B. monatlich)
 ```
 
+### In der App einrichten
+
+*Verwaltung → System → Datensicherung* (Recht *System*) richtet die Ziele der Sicherung ein, ohne `deploy/.env` zu bearbeiten. Es sind **mehrere Ziele** möglich, z. B. täglich nach Google Drive und wöchentlich auf ein NAS. Jedes Ziel hat seinen eigenen Zeitplan, seine Aufbewahrung, sein Passwort und seinen Status.
+
+- **Ablage:** S3-Speicher, Azure Blob, SFTP-Server, Google Drive oder dieser Server (nur zum Ausprobieren). Die Zugangsdaten und das Passwort der Sicherung werden verschlüsselt in der Datenbank gespeichert (Data Protection), nie angezeigt und tauchen weder im Audit-Log noch im Vollexport auf. Bei einer späteren Änderung bleibt ein leer gelassenes Feld unverändert.
+- **Verbindung testen** prüft, ob das Ziel erreichbar ist, das Passwort stimmt und schon ein Repository existiert, ohne etwas zu ändern.
+- **Zeitplan je Ziel:** täglich oder wöchentlich zu einer Uhrzeit, dazu die Aufbewahrung. Die App startet die Sicherungen zur eingestellten Zeit (Job `backup`, alle 10 Minuten geprüft), ein Ziel nach dem anderen. Wurde die Zeit verpasst, weil die App nicht lief, holt sie die Sicherung am selben Tag nach. Ein fehlgeschlagener Versuch wird erst zum nächsten Termin wiederholt; die Warnmail (siehe unten) meldet ihn.
+- **Pro Ziel:** *Jetzt sichern*, *Sicherungen* (Liste der Stände am Ziel, daraus die Wiederherstellung) und *Bearbeiten*. Ein Ziel lässt sich ausschalten oder entfernen; die Sicherungen, die dort schon liegen, bleiben erhalten.
+- Speichert man das erste Ziel, **übernimmt die App den Zeitplan**: Die tägliche Sicherung nach den Variablen in `deploy/.env` pausiert (Markierung im Volume `backup-status`), damit nicht doppelt gesichert wird. Ohne Ziele in der App gilt weiter `.env`; entfernt man das letzte Ziel, übernimmt `.env` wieder.
+- **Überwachung:** Dashboard, Health-Check und Warnmail melden, sobald **ein** eingeschaltetes Ziel fehlschlägt oder überfällig ist (wöchentliche Ziele erst nach einer Woche und zwei Stunden) und nennen das Ziel.
+
+Die App spricht dazu mit dem Backup-Dienst über eine interne API (`Backup__Url`, `Backup__ApiToken`; Port 8080 nur im Docker-Netz, Anmeldung per Token). Der Dienst speichert keine Zugangsdaten, die App schickt das Ziel bei jedem Aufruf mit; Ergebnisse führt er je Ziel (`backup-<Kennung>.json` im Volume `backup-status`). **Bestehende Installationen:** `BACKUP_API_TOKEN` in `deploy/.env` eintragen und `docker compose … up -d --build backup` ausführen; bis dahin zeigt die Seite, dass der Backup-Dienst nicht erreichbar ist.
+
+#### Google Drive
+
+Bei der Ablage *Google Drive* genügt **„Mit Google verbinden“**: Die App zeigt einen Code und die Adresse `google.com/device`, man öffnet sie (auch am Handy), gibt den Code ein, meldet sich bei Google an und erlaubt den Zugriff. Die App merkt die Bestätigung selbst. Der Ordner (Standard *Elocaro-Sicherung*, Name änderbar) wird in Drive angelegt. Elocaro bekommt nur Zugriff auf Dateien, die es selbst anlegt (Berechtigung `drive.file`), nicht auf das übrige Drive. Das Passwort der Sicherung bleibt wie bei jedem Ziel Pflicht.
+
+Der Zugang erneuert sich selbst, die Sicherung läuft danach ohne Eingriff. Widerruft man ihn im Google-Konto (*Sicherheit → Drittanbieter-Zugriff*), schlägt die Sicherung fehl, und die Warnmail meldet es; dann das Ziel bearbeiten und neu verbinden. Auf einem neuen Server braucht die Wiederherstellung das Passwort der Sicherung und eine neue Anmeldung.
+
+**Der OAuth-Client.** Die Anmeldung läuft über einen OAuth-Client von Google. In den **veröffentlichten Images** (`ghcr.io/elocaro/elocaro`) ist er eingebaut: Die Release-Pipeline setzt ihn beim Bauen aus Repository-Secrets ein, nichts muss eingerichtet werden. Er steht nicht im Quelltext, ist aber im Image lesbar, wie bei jeder App mit eingebautem Client; Google stuft den Schlüssel dieses Client-Typs als nicht vertraulich ein, und der Zugriff reicht nur auf Dateien, die Elocaro selbst anlegt. Die Sicherungen liegen im **eigenen Google-Konto** und zählen zu dessen Speicherplatz; geteilt wird nur das Anfragenlimit, das Google dem Client der App gibt, und das reicht für Sicherungen bei Weitem.
+
+Wer das Image selbst baut (wie die Produktion dieser Installation: `docker compose build`) oder einen eigenen Client möchte, trägt ihn ein. Die Reihenfolge: **Eintrag in der App**, dann **Umgebung**, dann der **eingebaute Client**.
+
+- **In der App:** Seite Datensicherung, Abschnitt *Anmeldung bei Google*: Client-ID und Client-Schlüssel eintragen. Der Schlüssel wird verschlüsselt gespeichert und nie wieder angezeigt; ein leeres Feld beim Ändern behält ihn.
+- **Über die Umgebung:** `GOOGLE_DRIVE_CLIENT_ID` und `GOOGLE_DRIVE_CLIENT_SECRET` in `deploy/.env` (landen als `GoogleDrive__ClientId` und `GoogleDrive__ClientSecret` in der App). Der Client in der App steht in der Datenbank und damit im Backup; wer ihn in der `.env` führt, muss ihn auf einem neuen Server dort wieder eintragen.
+
+Ohne irgendeinen Client ist „Mit Google verbinden“ ausgegraut und nennt den Grund. Dann bleibt unter *Erweitert* der Zugang von Hand (Token von `rclone authorize "drive" --drive-scope drive.file`).
+
+**OAuth-Client anlegen** (einmal; für die Release-Pipeline oder für eine einzelne Installation; etwa zehn Minuten, kostet nichts und braucht keine Abrechnung):
+
+1. In der [Google Cloud Console](https://console.cloud.google.com/) ein **Projekt** anlegen (z. B. „Elocaro“) und die **Google Drive API** aktivieren.
+2. *Google Auth Platform → Erste Schritte*: Anwendungsname, Support-E-Mail, Zielgruppe **Extern**, Kontakt-E-Mail.
+3. *Datenzugriff → Bereiche hinzufügen*: nur `…/auth/drive.file` („nicht vertraulich“, braucht keine Prüfung durch Google).
+4. *Branding*: Startseite, Datenschutz-Link und die zugehörige **autorisierte Domain** eintragen (Google verlangt sie zum Veröffentlichen; sie müssen erreichbar sein). Kein Logo hochladen: Das löst eine Prüfung der App aus.
+5. *Zielgruppe → App veröffentlichen* (**In Produktion**). Im Status *Test* läuft der Zugang laut Google nach 7 Tagen ab.
+6. *Clients → Client erstellen*, Anwendungstyp **Fernsehgeräte und Geräte mit begrenzter Eingabe**. Client-ID und Client-Schlüssel kopieren (der Schlüssel wird nur einmal angezeigt) und wie oben eintragen.
+
 ### Überwachung
 
 Nach jedem Lauf schreibt der Backup-Dienst eine Statusdatei in das Volume `backup-status`, die App liest sie (`Backup__StatusFile`):
@@ -348,6 +395,10 @@ Nach jedem Lauf schreibt der Backup-Dienst eine Statusdatei in das Volume `backu
 
 Die Wiederherstellung ersetzt Datenbank **und** Dateiablage vollständig durch den gewählten Stand.
 
+**In der App:** *Datensicherung → Vorhandene Sicherungen → Wiederherstellen …*, zur Bestätigung „WIEDERHERSTELLEN“ eingeben. Was seit dem Stand erfasst wurde, geht verloren. Der Backup-Dienst spielt Datenbank und Dateien ein, die App startet danach von selbst neu (die Data-Protection-Schlüssel und alles Zwischengespeicherte kommen aus dem wiederhergestellten Stand), anschließend neu anmelden. Der Neustart setzt `restart: unless-stopped` voraus (Standard in `deploy/docker-compose.yml`).
+
+**Auf der Konsole** (auch ohne laufende App):
+
 ```bash
 DC="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
 $DC stop app                                  # keine Verbindungen während des Einspielens
@@ -356,9 +407,13 @@ $DC run --rm backup restore          # neuester Stand; oder: restore <ID>
 $DC start app
 ```
 
-Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP DATABASE … WITH (FORCE)`, `pg_restore`), ersetzt den Inhalt des Volumes `files` und setzt die Dateirechte für den App-Benutzer (UID 1654). Es bricht ab, solange die App noch verbunden ist.
+Der Befehl holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP DATABASE … WITH (FORCE)`, `pg_restore`), ersetzt den Inhalt des Volumes `files` und setzt die Dateirechte für den App-Benutzer (UID 1654). Es bricht ab, solange die App noch verbunden ist.
 
 ### Auf einem neuen Server
+
+**Mit der Ersteinrichtung:** Auf dem frisch installierten Server (wie unter [Installation](installation.md)) bietet die Ersteinrichtung unter dem Formular „Aus einer Datensicherung wiederherstellen“ an. Einrichtungscode, Ablage, Zugangsdaten und Passwort der Sicherung eingeben, den Stand wählen, fertig: Die App startet neu, danach meldet man sich mit dem bisherigen Konto an. Das geht nur, solange noch kein Konto existiert. Ein [Zertifikat für die Schlüssel](#data-protection-schlüssel-verschlüsseln) muss vorher wieder eingespielt sein, sonst sind gespeicherte Zugangsdaten (Bankzugang, Ziel der Sicherung) nicht lesbar: dann das Ziel in der App neu eingeben.
+
+**Auf der Konsole:**
 
 1. Installation wie oben bis einschließlich `deploy/.env`. Dabei **dasselbe** `RESTIC_PASSWORD`, `RESTIC_REPOSITORY` und die Zugangsdaten eintragen. `POSTGRES_PASSWORD` darf neu sein.
 2. Nur die Datenbank starten: `$DC up -d postgres`
@@ -370,7 +425,7 @@ Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP D
 `deploy/backup/restore-test.sh` spielt den Ablauf vollständig durch und läuft in der CI bei jedem Push: App gegen leere Datenbank starten, Testdaten anlegen, sichern, **alle Volumes löschen**, in eine leere Datenbank wiederherstellen, dann Schema, Inhalt jeder Tabelle (Prüfsumme) sowie Dateien samt Eigentümer vergleichen. Zum Schluss muss die App auf dem wiederhergestellten Stand starten. Lokal:
 
 ```bash
-docker build -t elocaro:lokal . && docker build -t elocaro-backup:lokal deploy/backup
+docker build -t elocaro:lokal . && docker build -t elocaro-backup:lokal -f deploy/backup/Dockerfile .
 deploy/backup/restore-test.sh
 ```
 

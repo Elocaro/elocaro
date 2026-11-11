@@ -2,6 +2,7 @@ using System.Net;
 using Elocaro.Infrastructure.Identity;
 using Elocaro.Web.Account;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -43,17 +44,48 @@ public class PasswordAndProtectionTests(PostgresFixture postgres) : AccountTestB
         Assert.Equal("/konto/gesperrt", page.Path);
         Assert.Equal("/konto/gesperrt", (await SignInAsync(browser, AdminEmail, AdminPassword)).Path);
 
-        // Identity uses the system clock: check the lockout duration and simulate its expiry.
+        // Identity uses the registered TimeProvider (the fake clock of the test app since .NET 11): check the lockout duration and simulate its expiry.
         await App.WithScopeAsync(async sp =>
         {
             var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
             var user = (await manager.FindByEmailAsync(AdminEmail))!;
             var end = await manager.GetLockoutEndDateAsync(user);
-            Assert.InRange(end!.Value - DateTimeOffset.UtcNow, TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(15));
-            return await manager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddSeconds(-1));
+            Assert.InRange(end!.Value - App.Clock.GetUtcNow(), TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(15));
+            return await manager.SetLockoutEndDateAsync(user, App.Clock.GetUtcNow().AddSeconds(-1));
         });
 
         Assert.Equal("/konto/sicherheit/zwei-faktor", (await SignInAsync(browser, AdminEmail, AdminPassword)).Path);
+    }
+
+    [Fact]
+    public async Task Failed_attempts_and_the_lockout_appear_in_the_audit_log_without_secrets()
+    {
+        using (var setup = App.Browser())
+        {
+            await SetUpAsync(setup);
+        }
+
+        using var browser = App.Browser();
+        for (var i = 0; i < 5; i++)
+        {
+            await SignInAsync(browser, AdminEmail, "Falsches-Passwort-123");
+        }
+
+        await SignInAsync(browser, "niemand@example.de", "Falsches-Passwort-123");
+
+        var events = await App.WithScopeAsync(async sp =>
+        {
+            var db = sp.GetRequiredService<Elocaro.Infrastructure.Persistence.ElocaroDbContext>();
+            return await db.Set<Elocaro.Infrastructure.Audit.AuditEntry>()
+                .Where(e => e.Action == Elocaro.Application.Audit.AuditAction.SecurityEvent)
+                .Select(e => new { e.User, e.ChangesJson })
+                .ToListAsync();
+        });
+
+        Assert.Equal(4, events.Count(e => e.User == AdminEmail && e.ChangesJson.Contains("Anmeldung fehlgeschlagen", StringComparison.Ordinal)));
+        Assert.Single(events, e => e.User == AdminEmail && e.ChangesJson.Contains("gesperrt", StringComparison.Ordinal));
+        Assert.Single(events, e => e.User == "niemand@example.de");
+        Assert.DoesNotContain(events, e => e.ChangesJson.Contains("Falsches-Passwort", StringComparison.Ordinal));
     }
 
     [Fact]
