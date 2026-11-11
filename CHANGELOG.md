@@ -11,6 +11,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Heizkosten beim Mieterwechsel ohne Zwischenablesung: Statt der Platzhaltertabelle verteilt Elocaro den Heizverbrauch nach den Monatsgradtagen (VDI 3807) einer Wetterstation des Deutschen Wetterdienstes. Die Werte werden automatisch abgerufen (`DegreeDays__Enabled`), die Station wählt man je Objekt in den Heizungseinstellungen. Ohne Station gilt weiter der Platzhalter.
 
 ### Geändert
+- Updates laufen über die veröffentlichten Images: `deploy/update.sh <Version>` sichert, lädt die Images aus GHCR und startet neu, ohne Bau auf dem Server (`docs/betrieb.md`, Abschnitt Update).
 - Der Backup-Container ist jetzt eine kleine ASP.NET-Core-API (`src/Elocaro.Backup`) statt eines Shell-Skripts: gleiche Befehle auf der Konsole (`run --rm backup backup|snapshots|restore|verify`), gleiche Statusdatei, zusätzlich eine interne API mit Token für die App. **Bestehende Installationen:** `BACKUP_API_TOKEN` in `deploy/.env` eintragen; Image und Build-Kontext haben sich geändert (`docker compose … up -d --build backup`).
 - Konto-Seiten überarbeitet: Übersicht mit Profil und Navigationszeilen, Zurück-Link oben, Logo führt zur App. Zugriffstoken werden in einem Dialog erstellt; das neue Token lässt sich mit einer Schaltfläche kopieren, die Liste zeigt Karten statt einer Tabelle.
 

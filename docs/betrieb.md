@@ -147,12 +147,20 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs -f app
 
 ## Update
 
+Aktualisiert wird mit den veröffentlichten Images (`ghcr.io/elocaro/elocaro` und `…/elocaro-backup`), auf dem Server wird nichts gebaut:
+
 ```bash
-docker compose -f deploy/docker-compose.yml --env-file deploy/.env pull
-docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+deploy/update.sh 0.2.0     # auf eine bestimmte Version (empfohlen)
+deploy/update.sh latest    # auf die neueste Version
 ```
 
-Datenbank-Migrationen laufen beim Start automatisch. Vorher sichern: `docker compose … run --rm backup backup`. Für reproduzierbare Updates `ELOCARO_IMAGE` auf eine Version setzen und gezielt hochzählen.
+Das Skript sichert zuerst (`backup backup`), merkt sich die laufenden Images als `elocaro-vorher:app` und `elocaro-vorher:backup`, trägt die Version in `deploy/.env` ein (`ELOCARO_IMAGE`, `ELOCARO_BACKUP_IMAGE`; die alte Datei bleibt als `.env.bak-vor-update`), lädt die Images, startet `app` und `backup` neu und wartet, bis `https://<Domain>/health/live` antwortet. Datenbank-Migrationen laufen beim Start automatisch und nicht zurück: Geht ein Update mit Schemaänderung schief, stellt man die Sicherung von vorhin wieder her (Abschnitt Wiederherstellen). Ohne Schemaänderung genügt es, die beiden `elocaro-vorher:…`-Images in `deploy/.env` einzutragen und `up -d --no-deps app backup` auszuführen.
+
+Von Hand geht es auch: `ELOCARO_IMAGE` und `ELOCARO_BACKUP_IMAGE` setzen, dann `docker compose -f deploy/docker-compose.yml --env-file deploy/.env pull` und `up -d`.
+
+**Privates Paket:** Solange die Images in GHCR nicht öffentlich sind, einmalig auf dem Server `docker login ghcr.io` mit einem Token (nur Scope `read:packages`) ausführen.
+
+**Umstieg von selbst gebauten Images:** Frühere Installationen bauten auf dem Server (`docker compose build`, `ELOCARO_IMAGE=elocaro:0.1.0` und `ELOCARO_VERSION` in `deploy/.env`). `deploy/update.sh` ersetzt diese Zeilen; die Quellen unter dem Installationsordner werden nicht mehr gebraucht, nur `deploy/` (Compose-Datei, `Caddyfile`, Skripte) muss zum Stand passen.
 
 ### PostgreSQL-Major-Upgrade (z. B. 18 → 19)
 

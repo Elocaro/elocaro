@@ -101,6 +101,7 @@ jobs:
       - name: Installationsskript prüfen
         run: |
           bash -n deploy/install.sh
+          bash -n deploy/update.sh
           ELOCARO_NONINTERACTIVE=1 ELOCARO_DOMAIN=ci.example.de SMTP_HOST=smtp.example.de SMTP_PASSWORD='a$b"c' deploy/install.sh --nur-env
           docker compose -f deploy/docker-compose.yml --env-file deploy/.env config > /dev/null
           rm deploy/.env
