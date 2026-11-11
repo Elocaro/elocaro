@@ -1,6 +1,6 @@
 # Hilfe und Support
 
-Elocaro ist ein freies Nebenprojekt. Es gibt keine Hotline; so kommen Sie am schnellsten weiter:
+Elocaro ist ein freies Nebenprojekt. Es gibt keine Hotline; so kommst du am schnellsten weiter:
 
 1. **In der Anwendung:** Benutzermenü → *Hilfe* (Erste Schritte, Aufgaben, Fragen, Begriffe) und die Info-Schaltflächen auf den Seiten.
 2. **Dokumentation:** [Anwenderhandbuch](docs/handbuch.md), [Betrieb und Installation](docs/betrieb.md), [Installation auf weiteren Plattformen](docs/installation-plattformen.md).
@@ -10,4 +10,4 @@ Elocaro ist ein freies Nebenprojekt. Es gibt keine Hotline; so kommen Sie am sch
 
 Rechts- und Steuerfragen beantwortet Elocaro nicht; dafür sind Anwalt, Vermieterverein oder Steuerberater zuständig.
 
-Bezahlte Unterstützung (Einrichtung, Anpassung, bevorzugte Funktionen) ist unter [Unterstützen](docs/foerderung.md) beschrieben.
+Wie du das Projekt unterstützen kannst, steht unter [Unterstützen](docs/foerderung.md).
