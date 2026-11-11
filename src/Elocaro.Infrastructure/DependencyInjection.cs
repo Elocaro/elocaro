@@ -304,6 +304,11 @@ public static class DependencyInjection
             // Testing a slow target and listing its backups can take a while.
             http.Timeout = TimeSpan.FromSeconds(120);
         });
+        services.Configure<GoogleDriveOptions>(configuration.GetSection(GoogleDriveOptions.Section));
+        services.AddScoped<GoogleClientSettingsService>();
+        services.AddScoped<IGoogleClientSettings>(sp => sp.GetRequiredService<GoogleClientSettingsService>());
+        services.AddScoped<IGoogleClientSource>(sp => sp.GetRequiredService<GoogleClientSettingsService>());
+        services.AddHttpClient<IGoogleDriveAuthorization, GoogleDriveAuthorization>(http => http.Timeout = TimeSpan.FromSeconds(20));
         services.AddScoped<BackupSettingsService>();
         services.AddScoped<IBackupSettings>(sp => sp.GetRequiredService<BackupSettingsService>());
         services.AddScoped<IBackupTargets>(sp => sp.GetRequiredService<BackupSettingsService>());

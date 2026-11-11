@@ -22,8 +22,8 @@ public enum BackupProvider
 }
 
 /// <summary>
-/// Settings of the backup managed in the app (there is exactly one). Without a row, the target and schedule come from the
-/// environment of the backup container.
+/// One backup target managed in the app, with its own schedule and retention (several are possible). Without any row, the target
+/// and schedule come from the environment of the backup container.
 /// </summary>
 /// <remarks>
 /// Passwords and credentials are stored encrypted by Data Protection (the keys are in the database too, so a restore brings
@@ -33,6 +33,10 @@ public enum BackupProvider
 public sealed class BackupSetting : Entity
 {
     public const int MaxLocation = 300;
+    public const int MaxName = 100;
+
+    /// <summary>How the target is called in the app (e.g. "Google Drive", "NAS im Keller").</summary>
+    public string Name { get; set; } = string.Empty;
 
     public BackupProvider Provider { get; set; }
 
@@ -52,8 +56,11 @@ public sealed class BackupSetting : Entity
 
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Local time of the daily backup.</summary>
+    /// <summary>Local time of day of the backup.</summary>
     public TimeOnly Time { get; set; } = new(2, 30);
+
+    /// <summary>Days between two backups: 1 = daily, 7 = weekly.</summary>
+    public int IntervalDays { get; set; } = 1;
 
     public int KeepDaily { get; set; } = 7;
 
@@ -63,6 +70,17 @@ public sealed class BackupSetting : Entity
 
     public void Validate()
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(Name);
+        if (Name.Length > MaxName)
+        {
+            throw new RuleViolationException("Der Name ist zu lang.");
+        }
+
+        if (IntervalDays is < 1 or > 31)
+        {
+            throw new RuleViolationException("Der Abstand zwischen zwei Sicherungen muss zwischen 1 und 31 Tagen liegen.");
+        }
+
         if (Provider != BackupProvider.Local)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(Location);

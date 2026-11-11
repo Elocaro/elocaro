@@ -9,75 +9,91 @@
 @inject IBackupStatus BackupStatus
 @inject IBackupSettings Settings
 @inject IBackupControl Control
+@inject IGoogleClientSettings GoogleClient
 @inject Notifier Notify
+@inject Confirmations Confirm
 @inject IAppRestart Restart
 
 <InteractiveShell>
-    <PageHeader Title="Datensicherung" Subtitle="Ziel und Zeitplan der täglichen Sicherung, Wiederherstellung und Vollexport aller Daten.">
+    <PageHeader Title="Datensicherung" Subtitle="Wohin und wann gesichert wird, Wiederherstellung und Vollexport aller Daten.">
         <Actions>
-            @if (managed && progress.Available)
+            @if (editing is null)
             {
-                <button type="button" class="button button-primary" id="backup-now" @onclick="StartBackupAsync" disabled="@(progress.Running || busy)">Jetzt sichern</button>
+                <button type="button" class="button button-primary" id="backup-add" @onclick="NewTarget">Ziel hinzufügen</button>
             }
         </Actions>
     </PageHeader>
 
     <section>
-        <h2>Letzte Sicherung</h2>
+        <h2>@(targets.Count == 0 ? "Letzte Sicherung" : "Sicherungsziele")</h2>
         @if (state is not null)
         {
             <Notice Level="Level(state.State)">@state.Description</Notice>
-            @if (state.Timestamp is not null)
+            @if (targets.Count == 0)
             {
-                <dl class="details">
-                    <dt>Zeitpunkt</dt>
-                    <dd>@Format.Timestamp(state.Timestamp)</dd>
-                    <dt>Ergebnis</dt>
-                    <dd>
-                        @if (state.State == BackupState.Failed)
+                @if (state.Timestamp is not null)
+                {
+                    <dl class="details">
+                        <dt>Zeitpunkt</dt>
+                        <dd>@Format.Timestamp(state.Timestamp)</dd>
+                        <dt>Ergebnis</dt>
+                        <dd>
+                            @if (state.State == BackupState.Failed)
+                            {
+                                <StatusChip Level="StatusLevel.Error">fehlgeschlagen</StatusChip>
+                            }
+                            else
+                            {
+                                <StatusChip Level="StatusLevel.Success">erfolgreich</StatusChip>
+                            }
+                        </dd>
+                        @if (state.Snapshot is not null)
                         {
-                            <StatusChip Level="StatusLevel.Error">fehlgeschlagen</StatusChip>
+                            <dt>Snapshot</dt>
+                            <dd><code>@state.Snapshot[..Math.Min(8, state.Snapshot.Length)]</code></dd>
                         }
-                        else
+                        @if (state.DurationSeconds is not null)
                         {
-                            <StatusChip Level="StatusLevel.Success">erfolgreich</StatusChip>
+                            <dt>Dauer</dt>
+                            <dd>@state.DurationSeconds s</dd>
                         }
-                    </dd>
-                    @if (state.Snapshot is not null)
-                    {
-                        <dt>Snapshot</dt>
-                        <dd><code>@state.Snapshot[..Math.Min(8, state.Snapshot.Length)]</code></dd>
-                    }
-                    @if (state.DurationSeconds is not null)
-                    {
-                        <dt>Dauer</dt>
-                        <dd>@state.DurationSeconds s</dd>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(state.Message))
-                    {
-                        <dt>Meldung</dt>
-                        <dd>@state.Message</dd>
-                    }
-                </dl>
-            }
+                        @if (!string.IsNullOrWhiteSpace(state.Message))
+                        {
+                            <dt>Meldung</dt>
+                            <dd>@state.Message</dd>
+                        }
+                    </dl>
+                }
 
-            @if (state.State == BackupState.NotConfigured)
-            {
-                <p>Der Backup-Container aus <code>deploy/docker-compose.yml</code> meldet hier sein Ergebnis, sobald
-                <code>Backup__StatusFile</code> gesetzt ist. Einrichtung: <code>docs/betrieb.md</code>, Abschnitt „Backup“.</p>
-            }
-            else if (state.NeedsAttention)
-            {
-                <p>Logs prüfen und eine Sicherung von Hand anstoßen:</p>
-                <pre><code>docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs backup
+                @if (state.State == BackupState.NotConfigured)
+                {
+                    <p>Der Backup-Container aus <code>deploy/docker-compose.yml</code> meldet hier sein Ergebnis, sobald
+                    <code>Backup__StatusFile</code> gesetzt ist. Einrichtung: <code>docs/betrieb.md</code>, Abschnitt „Backup“.</p>
+                }
+                else if (state.NeedsAttention)
+                {
+                    <p>Logs prüfen und eine Sicherung von Hand anstoßen:</p>
+                    <pre><code>docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs backup
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm backup backup</code></pre>
-                <p>Solange das Problem besteht, erhalten Administratoren täglich um 8 Uhr eine Warnung per E-Mail.</p>
+                    <p>Solange das Problem besteht, erhalten Administratoren täglich um 8 Uhr eine Warnung per E-Mail.</p>
+                }
             }
+        }
+
+        @if (!progress.Available)
+        {
+            <Notice Level="NoticeLevel.Warning" id="backup-unavailable">Der Backup-Dienst ist von hier aus nicht erreichbar. Ziele lassen sich erst einrichten und sichern,
+            wenn der Container „backup“ läuft und <code>BACKUP_API_TOKEN</code> in <code>deploy/.env</code> gesetzt ist.</Notice>
+        }
+        else if (targets.Count == 0)
+        {
+            <Notice Level="NoticeLevel.Info" id="backup-environment">Die Sicherung läuft derzeit nach den Einstellungen in <code>deploy/.env</code> (<code>RESTIC_REPOSITORY</code>, <code>BACKUP_TIME</code>).
+            Richten Sie hier ein Ziel ein, verwaltet die App Ziele und Zeitplan, und die Angaben aus <code>.env</code> ruhen. Es sind mehrere Ziele möglich, z. B. Google Drive und ein NAS.</Notice>
         }
 
         @if (progress.Running)
         {
-            <Notice Level="NoticeLevel.Info" id="backup-running">@(progress.Kind == "Restore" ? "Die Wiederherstellung läuft …" : "Eine Sicherung läuft …")</Notice>
+            <Notice Level="NoticeLevel.Info" id="backup-running">@RunningText</Notice>
         }
         else if (progress.Last is { Kind: "Restore" } restored)
         {
@@ -85,32 +101,61 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                 @(restored.Succeeded ? (restarting ? "Die Wiederherstellung ist abgeschlossen. Die App startet in wenigen Sekunden neu, danach bitte neu anmelden." : "Die Wiederherstellung ist abgeschlossen. Bitte die App neu starten und danach neu anmelden: docker compose … restart app") : "Die Wiederherstellung ist fehlgeschlagen: " + restored.Message)
             </Notice>
         }
+
+        @if (targets.Count > 0)
+        {
+            <div class="table-wrapper">
+                <table class="data-table" id="backup-targets">
+                    <thead><tr><th>Ziel</th><th>Ablage</th><th>Zeitplan</th><th>Stand</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var target in targets)
+                        {
+                            var status = states.GetValueOrDefault(target.Id);
+                            <tr data-target="@target.Name">
+                                <td><strong>@target.Name</strong></td>
+                                <td>@BackupProviders.Label(target.Provider)</td>
+                                <td>@Schedule(target)</td>
+                                <td>
+                                    @if (!target.Enabled)
+                                    {
+                                        <StatusChip Level="StatusLevel.Neutral">ausgeschaltet</StatusChip>
+                                    }
+                                    else if (status is not null)
+                                    {
+                                        <StatusChip Level="Chip(status.Status.State)">@ChipText(status.Status.State)</StatusChip>
+                                        <span class="small">@status.Status.Description</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button type="button" class="button button-text" @onclick="() => StartBackupAsync(target)" disabled="@(progress.Running || busy || !progress.Available)">Jetzt sichern</button>
+                                    <button type="button" class="button button-text" @onclick="() => LoadSnapshotsAsync(target)" disabled="@(busy || !progress.Available)">Sicherungen</button>
+                                    <button type="button" class="button button-text" @onclick="() => EditTarget(target)" disabled="@busy">Bearbeiten</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <ErrorList Errors="listErrors" />
     </section>
 
-    <section>
-        <h2>Ziel und Zeitplan</h2>
-        @if (!progress.Available)
-        {
-            <Notice Level="NoticeLevel.Warning" id="backup-unavailable">Der Backup-Dienst ist von hier aus nicht erreichbar. Ziel und Zeitplan lassen sich erst einstellen,
-            wenn der Container „backup“ läuft und <code>BACKUP_API_TOKEN</code> in <code>deploy/.env</code> gesetzt ist.</Notice>
-        }
-        else if (!managed)
-        {
-            <Notice Level="NoticeLevel.Info" id="backup-environment">Die Sicherung läuft derzeit nach den Einstellungen in <code>deploy/.env</code> (<code>RESTIC_REPOSITORY</code>, <code>BACKUP_TIME</code>).
-            Richten Sie sie hier ein, verwaltet die App Ziel und Zeitplan, und die Angaben aus <code>.env</code> ruhen.</Notice>
-        }
-
-        @if (data is not null)
-        {
+    @if (editing is not null && data is not null)
+    {
+        <section id="backup-edit">
+            <h2>@(editing == Guid.Empty ? "Neues Ziel" : "Ziel bearbeiten")</h2>
             <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
                 <div class="form-grid">
+                    <AppTextField Value="@data.Name" ValueChanged="v => data.Name = v ?? string.Empty" Label="Name" Required="true" Hint="So heißt das Ziel in der App, z. B. „Google Drive“ oder „NAS im Keller“." />
                     <BackupTargetFields Input="data" StoredCredentials="storedCredentials" HasPassword="hasPassword" ProviderChanged="ProviderChanged" />
                 </div>
 
                 <h3>Zeitplan</h3>
                 <div class="form-grid">
-                    <AppCheckBox Value="data.Enabled" ValueChanged="v => data.Enabled = v" Label="Täglich automatisch sichern" />
-                    <AppTextField Value="timeText" ValueChanged="v => timeText = v ?? string.Empty" Label="Uhrzeit" Hint="Stunde und Minute, z. B. 02:30. Wurde die Zeit verpasst, holt die App die Sicherung nach." Placeholder="02:30" />
+                    <AppCheckBox Value="data.Enabled" ValueChanged="v => data.Enabled = v" Label="Automatisch sichern" />
+                    <AppSelect T="int" Value="data.IntervalDays" ValueChanged="v => data.IntervalDays = v" Label="Wie oft" Items="Intervals" Text="IntervalText" />
+                    <AppTextField Value="@timeText" ValueChanged="v => timeText = v ?? string.Empty" Label="Uhrzeit" Hint="Stunde und Minute, z. B. 02:30. Wurde die Zeit verpasst, holt die App die Sicherung nach." Placeholder="02:30" />
                     <AppNumberField T="int" Value="data.KeepDaily" ValueChanged="v => data.KeepDaily = v" Label="Tägliche Sicherungen behalten" />
                     <AppNumberField T="int" Value="data.KeepWeekly" ValueChanged="v => data.KeepWeekly = v" Label="Wöchentliche behalten" />
                     <AppNumberField T="int" Value="data.KeepMonthly" ValueChanged="v => data.KeepMonthly = v" Label="Monatliche behalten" />
@@ -119,6 +164,11 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                 <div class="form-actions">
                     <button type="submit" class="button button-primary" id="backup-save" disabled="@busy">Speichern</button>
                     <button type="button" class="button button-outlined" id="backup-test" @onclick="TestAsync" disabled="@busy">Verbindung testen</button>
+                    <button type="button" class="button button-outlined" id="backup-cancel" @onclick="CancelEdit" disabled="@busy">Abbrechen</button>
+                    @if (editing != Guid.Empty)
+                    {
+                        <button type="button" class="button button-text" id="backup-delete" @onclick="DeleteAsync" disabled="@busy">Ziel entfernen</button>
+                    }
                 </div>
             </EditForm>
 
@@ -128,18 +178,14 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
             }
 
             <ErrorList Errors="errors" />
-        }
-    </section>
+        </section>
+    }
 
-    @if (managed && progress.Available)
+    @if (snapshotTarget is not null && snapshots is not null)
     {
-        <section>
-            <h2>Vorhandene Sicherungen</h2>
-            @if (snapshots is null)
-            {
-                <button type="button" class="button button-outlined" id="backup-load" @onclick="LoadSnapshotsAsync" disabled="@busy">Sicherungen anzeigen</button>
-            }
-            else if (snapshots.Count == 0)
+        <section id="backup-snapshots">
+            <h2>Sicherungen von „@snapshotTarget.Name“</h2>
+            @if (snapshots.Count == 0)
             {
                 <EmptyState Text="Am Ziel liegt noch keine Sicherung." />
             }
@@ -167,7 +213,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                 <div class="danger-action-content" role="alertdialog" aria-label="Wiederherstellen" id="restore-confirm">
                     <p><strong>Alle aktuellen Daten und Dateien werden durch den Stand vom @Format.Timestamp(selected.Time) ersetzt.</strong>
                     Was seitdem erfasst wurde, geht verloren. Die App ist währenddessen nicht nutzbar und startet danach von selbst neu.</p>
-                    <AppTextField Value="confirmation" ValueChanged="v => confirmation = v ?? string.Empty" Label="Zur Bestätigung „WIEDERHERSTELLEN“ eingeben" Immediate="true" />
+                    <AppTextField Value="@confirmation" ValueChanged="v => confirmation = v ?? string.Empty" Label="Zur Bestätigung „WIEDERHERSTELLEN“ eingeben" Immediate="true" />
                     <div class="form-actions">
                         <button type="button" class="button button-primary" id="restore-start" @onclick="RestoreAsync"
                                 disabled="@(busy || !string.Equals(confirmation.Trim(), "WIEDERHERSTELLEN", StringComparison.Ordinal))">Ja, jetzt wiederherstellen</button>
@@ -175,8 +221,50 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                     </div>
                 </div>
             }
+
+            <button type="button" class="button button-outlined" @onclick="CloseSnapshots">Schließen</button>
         </section>
     }
+
+    <section id="google-client">
+        <h2>Anmeldung bei Google</h2>
+        <p class="help">Für Ziele in Google Drive („Mit Google verbinden“) braucht diese Installation einen OAuth-Client von Google. Er wird einmal eingerichtet und gilt für alle Ziele.</p>
+        @if (googleClient.Source == GoogleClientSource.None)
+        {
+            <Notice Level="NoticeLevel.Info" id="google-none">Noch nicht eingerichtet. Ohne Client lässt sich Google Drive nur mit einem von Hand erzeugten Zugang einrichten.</Notice>
+        }
+        else
+        {
+            <Notice Level="NoticeLevel.Success" id="google-configured">Eingerichtet (@(googleClient.Source == GoogleClientSource.App ? "in der App" : "über die Umgebung")). Client-ID: <code>@googleClient.ClientId</code></Notice>
+        }
+
+        @if (googleClient.Source != GoogleClientSource.Environment)
+        {
+            <details class="explain" open="@(googleClient.Source == GoogleClientSource.None)">
+                <summary>@(googleClient.Source == GoogleClientSource.None ? "Client einrichten" : "Client ändern")</summary>
+                <p class="small">In der <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer">Google Cloud Console</a> ein Projekt anlegen, die <em>Google Drive API</em> aktivieren, unter <em>Google Auth Platform</em> den
+                Zustimmungsbildschirm einrichten (Zielgruppe <em>Extern</em>, Bereich <code>…/auth/drive.file</code>, Status <em>In Produktion</em>) und einen OAuth-Client vom Typ
+                <em>Fernsehgeräte und Geräte mit begrenzter Eingabe</em> erstellen. Die Schritt-für-Schritt-Anleitung steht in <code>docs/betrieb.md</code>, Abschnitt „Google Drive“.</p>
+                <div class="form-grid">
+                    <AppTextField Value="@googleId" ValueChanged="v => googleId = v ?? string.Empty" Label="Client-ID" Hint="z. B. 123456-abc.apps.googleusercontent.com" Autocomplete="off" />
+                    <AppTextField Value="@googleSecret" ValueChanged="v => googleSecret = v ?? string.Empty" Label="Client-Schlüssel" Type="password" Autocomplete="off"
+                                  Hint="@(googleClient.Source == GoogleClientSource.App ? "Gespeichert. Leer lassen, um ihn zu behalten." : "Beginnt meist mit GOCSPX-. Wird verschlüsselt gespeichert und nie wieder angezeigt.")" />
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="button button-primary" id="google-save" @onclick="SaveGoogleClientAsync" disabled="@busy">Speichern</button>
+                    @if (googleClient.Source == GoogleClientSource.App)
+                    {
+                        <button type="button" class="button button-text" id="google-remove" @onclick="RemoveGoogleClientAsync" disabled="@busy">Entfernen</button>
+                    }
+                </div>
+                <ErrorList Errors="googleErrors" />
+            </details>
+        }
+        else
+        {
+            <p class="help">Der Client kommt aus der Umgebung (<code>GoogleDrive__ClientId</code>, <code>GoogleDrive__ClientSecret</code> in <code>deploy/.env</code>) und lässt sich hier nicht ändern.</p>
+        }
+    </section>
 
     <section>
         <h2>Vollexport</h2>
@@ -198,18 +286,31 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 </InteractiveShell>
 
 @code {
+    private static readonly int[] Intervals = [1, 7];
+
     private BackupSnapshot? state;
     private BackupProgress progress = new(false, false, null, null);
+    private IReadOnlyList<BackupSettingsView> targets = [];
+    private Dictionary<Guid, BackupTargetStatus> states = [];
+
+    /// <summary><c>null</c>: no form; <see cref="Guid.Empty"/>: a new target; otherwise the target that is edited.</summary>
+    private GoogleClientView googleClient = new(GoogleClientSource.None, null);
+    private string googleId = string.Empty;
+    private string googleSecret = string.Empty;
+    private IReadOnlyList<string>? googleErrors;
+
+    private Guid? editing;
     private BackupSettingsInput? data;
-    private bool managed;
     private bool hasPassword;
     private IReadOnlySet<string> storedCredentials = new HashSet<string>(StringComparer.Ordinal);
-    private IReadOnlySet<string> savedCredentials = new HashSet<string>(StringComparer.Ordinal);
     private BackupProvider savedProvider;
     private string timeText = "02:30";
     private bool busy;
     private BackupTargetCheck? check;
     private IReadOnlyList<string>? errors;
+    private IReadOnlyList<string>? listErrors;
+
+    private BackupSettingsView? snapshotTarget;
     private IReadOnlyList<BackupSnapshotRow>? snapshots;
     private BackupSnapshotRow? selected;
     private string confirmation = string.Empty;
@@ -217,27 +318,16 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
     private bool sawRestore;
     private bool restarting;
 
-    protected override async Task OnInitializedAsync()
+    private string RunningText
     {
-        await RefreshAsync();
-        var saved = await Settings.GetAsync();
-        managed = saved is not null;
-        data = new BackupSettingsInput();
-        if (saved is not null)
+        get
         {
-            data.Provider = saved.Provider;
-            data.Location = saved.Location;
-            data.Enabled = saved.Enabled;
-            data.KeepDaily = saved.KeepDaily;
-            data.KeepWeekly = saved.KeepWeekly;
-            data.KeepMonthly = saved.KeepMonthly;
-            timeText = saved.Time.ToString("HH:mm", CultureInfo.InvariantCulture);
-            hasPassword = saved.HasPassword;
-            storedCredentials = saved.StoredCredentials;
-            savedCredentials = saved.StoredCredentials;
-            savedProvider = saved.Provider;
+            var name = targets.FirstOrDefault(t => t.Id.ToString("N") == progress.RunningTargetId)?.Name;
+            return progress.Kind == "Restore" ? "Die Wiederherstellung läuft …" : name is null ? "Eine Sicherung läuft …" : $"Eine Sicherung läuft: {name} …";
         }
     }
+
+    protected override async Task OnInitializedAsync() => await RefreshAsync();
 
     protected override void OnAfterRender(bool firstRender)
     {
@@ -249,7 +339,11 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
     private async Task RefreshAsync()
     {
+        targets = await Settings.ListAsync();
         state = await BackupStatus.QueryAsync();
+        states = (await BackupStatus.QueryTargetsAsync()).ToDictionary(s => s.Id);
+        googleClient = await GoogleClient.GetAsync();
+        googleId = googleClient.Source == GoogleClientSource.App ? googleClient.ClientId ?? string.Empty : googleId;
         progress = await Control.ProgressAsync();
         sawRestore |= progress is { Running: true, Kind: "Restore" };
         // Only a restore that ran while this page was open restarts the app (a result from earlier must not do it again).
@@ -292,11 +386,78 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         }
     }
 
+    private static string IntervalText(int days) => days == 1 ? "Täglich" : "Wöchentlich";
+
+    private static string Schedule(BackupSettingsView target) =>
+        $"{(target.IntervalDays == 1 ? "täglich" : target.IntervalDays == 7 ? "wöchentlich" : $"alle {target.IntervalDays} Tage")} um {target.Time.ToString("HH:mm", CultureInfo.InvariantCulture)}";
+
+    private static StatusLevel Chip(BackupState state) => state switch
+    {
+        BackupState.Ok => StatusLevel.Success,
+        BackupState.Failed => StatusLevel.Error,
+        BackupState.Outdated => StatusLevel.Warning,
+        _ => StatusLevel.Neutral,
+    };
+
+    private static string ChipText(BackupState state) => state switch
+    {
+        BackupState.Ok => "aktuell",
+        BackupState.Failed => "fehlgeschlagen",
+        BackupState.Outdated => "überfällig",
+        _ => "noch keine Sicherung",
+    };
+
+    private void NewTarget()
+    {
+        CloseSnapshots();
+        editing = Guid.Empty;
+        data = new BackupSettingsInput();
+        timeText = "02:30";
+        hasPassword = false;
+        storedCredentials = new HashSet<string>(StringComparer.Ordinal);
+        savedProvider = data.Provider;
+        check = null;
+        errors = null;
+    }
+
+    private void EditTarget(BackupSettingsView target)
+    {
+        CloseSnapshots();
+        editing = target.Id;
+        data = new BackupSettingsInput
+        {
+            Name = target.Name,
+            Provider = target.Provider,
+            Location = target.Location,
+            Enabled = target.Enabled,
+            Time = target.Time,
+            IntervalDays = target.IntervalDays,
+            KeepDaily = target.KeepDaily,
+            KeepWeekly = target.KeepWeekly,
+            KeepMonthly = target.KeepMonthly,
+        };
+        timeText = target.Time.ToString("HH:mm", CultureInfo.InvariantCulture);
+        hasPassword = target.HasPassword;
+        storedCredentials = target.StoredCredentials;
+        savedProvider = target.Provider;
+        check = null;
+        errors = null;
+    }
+
+    private void CancelEdit()
+    {
+        editing = null;
+        data = null;
+        check = null;
+        errors = null;
+    }
+
     private void ProviderChanged(BackupProvider provider)
     {
         check = null;
         // Credentials of the saved provider do not carry over to another one.
-        storedCredentials = managed && provider == savedProvider ? savedCredentials : new HashSet<string>(StringComparer.Ordinal);
+        var saved = editing is { } id && id != Guid.Empty ? targets.FirstOrDefault(t => t.Id == id) : null;
+        storedCredentials = saved is not null && provider == savedProvider ? saved.StoredCredentials : new HashSet<string>(StringComparer.Ordinal);
     }
 
     private bool ReadTime(out TimeOnly time)
@@ -314,7 +475,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
     {
         errors = null;
         check = null;
-        if (data is null || !ReadTime(out var time))
+        if (data is null || editing is not { } id || !ReadTime(out var time))
         {
             return;
         }
@@ -323,22 +484,47 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         try
         {
             data.Time = time;
-            var result = await Settings.SaveAsync(data);
+            var result = await Settings.SaveAsync(id == Guid.Empty ? null : id, data);
             if (!result.Succeeded)
             {
                 errors = result.Errors;
                 return;
             }
 
-            Notify.Success("Die Einstellungen der Datensicherung wurden gespeichert.");
-            var saved = await Settings.GetAsync();
-            managed = true;
-            hasPassword = saved?.HasPassword ?? false;
-            storedCredentials = saved?.StoredCredentials ?? storedCredentials;
-            savedCredentials = storedCredentials;
-            savedProvider = data.Provider;
-            data.Password = null;
-            data.Credentials.Clear();
+            Notify.Success("Das Ziel wurde gespeichert.");
+            CancelEdit();
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (editing is not { } id || id == Guid.Empty || targets.FirstOrDefault(t => t.Id == id) is not { } target)
+        {
+            return;
+        }
+
+        if (!await Confirm.AskAsync("Ziel entfernen", $"Soll das Ziel „{target.Name}“ aus der App entfernt werden? Die Sicherungen, die dort schon liegen, bleiben erhalten.", "Ja, entfernen"))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Settings.DeleteAsync(id);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            Notify.Success("Das Ziel wurde entfernt.");
+            CancelEdit();
             await RefreshAsync();
         }
         finally
@@ -350,7 +536,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
     private async Task TestAsync()
     {
         errors = null;
-        if (data is null || !ReadTime(out var time))
+        if (data is null || editing is not { } id || !ReadTime(out var time))
         {
             return;
         }
@@ -359,7 +545,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         try
         {
             data.Time = time;
-            check = await Control.TestAsync(data);
+            check = await Control.TestAsync(id == Guid.Empty ? null : id, data);
         }
         finally
         {
@@ -367,19 +553,20 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         }
     }
 
-    private async Task StartBackupAsync()
+    private async Task StartBackupAsync(BackupSettingsView target)
     {
+        listErrors = null;
         busy = true;
         try
         {
-            var result = await Control.StartBackupAsync();
+            var result = await Control.StartBackupAsync(target.Id);
             if (result.Succeeded)
             {
-                Notify.Success("Die Sicherung wurde gestartet.");
+                Notify.Success($"Die Sicherung von „{target.Name}“ wurde gestartet.");
             }
             else
             {
-                errors = result.Errors;
+                listErrors = result.Errors;
             }
 
             await RefreshAsync();
@@ -390,17 +577,27 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         }
     }
 
-    private async Task LoadSnapshotsAsync()
+    private async Task LoadSnapshotsAsync(BackupSettingsView target)
     {
+        CancelEdit();
+        selected = null;
         busy = true;
         try
         {
-            snapshots = await Control.SnapshotsAsync();
+            snapshotTarget = target;
+            snapshots = await Control.SnapshotsAsync(target.Id);
         }
         finally
         {
             busy = false;
         }
+    }
+
+    private void CloseSnapshots()
+    {
+        snapshotTarget = null;
+        snapshots = null;
+        selected = null;
     }
 
     private void Select(BackupSnapshotRow row)
@@ -411,7 +608,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
     private async Task RestoreAsync()
     {
-        if (selected is null || !string.Equals(confirmation.Trim(), "WIEDERHERSTELLEN", StringComparison.Ordinal))
+        if (selected is null || snapshotTarget is null || !string.Equals(confirmation.Trim(), "WIEDERHERSTELLEN", StringComparison.Ordinal))
         {
             return;
         }
@@ -419,17 +616,61 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         busy = true;
         try
         {
-            var result = await Control.StartRestoreAsync(selected.Id);
+            var result = await Control.StartRestoreAsync(snapshotTarget.Id, selected.Id);
             if (!result.Succeeded)
             {
-                errors = result.Errors;
+                listErrors = result.Errors;
                 return;
             }
 
-            selected = null;
-            snapshots = null;
+            CloseSnapshots();
             // Started here: a restore that finishes between two polls (small installations) must still restart the app.
             sawRestore = true;
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveGoogleClientAsync()
+    {
+        googleErrors = null;
+        busy = true;
+        try
+        {
+            var result = await GoogleClient.SaveAsync(googleId, googleSecret);
+            if (!result.Succeeded)
+            {
+                googleErrors = result.Errors;
+                return;
+            }
+
+            googleSecret = string.Empty;
+            Notify.Success("Die Anmeldung bei Google wurde eingerichtet.");
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task RemoveGoogleClientAsync()
+    {
+        if (!await Confirm.AskAsync("Google-Client entfernen", "Soll der Client aus der App entfernt werden? Bestehende Ziele in Google Drive laufen weiter, neu verbinden geht dann erst wieder mit einem Client.", "Ja, entfernen"))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await GoogleClient.RemoveAsync();
+            googleErrors = result.Succeeded ? null : result.Errors;
+            googleId = string.Empty;
+            googleSecret = string.Empty;
             await RefreshAsync();
         }
         finally

@@ -78,4 +78,45 @@ public sealed class BackupCoordinatorTests : IDisposable
         Assert.True(coordinator.TryStartBackup(BackupTestEnvironment.Target, Ct));
         await coordinator.Running;
     }
+
+    [Fact]
+    public async Task Each_target_has_its_own_result_and_status_file()
+    {
+        environment.Runner.Script["restic backup"] = _ => new ProcessResult(0, "{\"snapshot_id\":\"aaaa1111bbbb\"}");
+        var coordinator = Coordinator();
+
+        coordinator.TryStartBackup(BackupTestEnvironment.Target, Ct, "drive");
+        await coordinator.Running;
+        environment.Runner.Script["pg_dump --format=custom"] = _ => new ProcessResult(1, "kaputt");
+        coordinator.TryStartBackup(BackupTestEnvironment.Target, Ct, "nas");
+        await coordinator.Running;
+
+        var status = coordinator.Status();
+        Assert.True(status.Results!["drive"].Succeeded);
+        Assert.False(status.Results["nas"].Succeeded);
+        Assert.Equal("nas", status.Last!.TargetId);
+        var directory = Path.GetDirectoryName(environment.Settings.StatusFile)!;
+        Assert.Contains("\"succeeded\":true", await File.ReadAllTextAsync(Path.Combine(directory, "backup-drive.json"), Ct), StringComparison.Ordinal);
+        Assert.Contains("\"succeeded\":false", await File.ReadAllTextAsync(Path.Combine(directory, "backup-nas.json"), Ct), StringComparison.Ordinal);
+        Assert.False(File.Exists(environment.Settings.StatusFile));
+    }
+
+    [Fact]
+    public async Task The_running_target_is_reported()
+    {
+        var release = new TaskCompletionSource();
+        environment.Runner.Script["restic cat"] = _ =>
+        {
+            release.Task.GetAwaiter().GetResult();
+            return new ProcessResult(0, string.Empty);
+        };
+        var coordinator = Coordinator();
+
+        coordinator.TryStartBackup(BackupTestEnvironment.Target, Ct, "drive");
+
+        Assert.Equal("drive", coordinator.Status().TargetId);
+        release.SetResult();
+        await coordinator.Running;
+        Assert.Null(coordinator.Status().TargetId);
+    }
 }

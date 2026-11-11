@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261111111635_AddBackupSettings";
+    public override string LastMigrationId => "20261111154003_GoogleClientSettings";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -5209,6 +5209,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("boolean")
                     .HasColumnName("enabled");
 
+                b.Property<int>("IntervalDays")
+                    .HasColumnType("integer")
+                    .HasColumnName("interval_days");
+
                 b.Property<int>("KeepDaily")
                     .HasColumnType("integer")
                     .HasColumnName("keep_daily");
@@ -5235,6 +5239,12 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasMaxLength(256)
                     .HasColumnType("character varying(256)")
                     .HasColumnName("modified_by");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnType("character varying(100)")
+                    .HasColumnName("name");
 
                 b.Property<string>("ProtectedCredentials")
                     .HasColumnType("text")
@@ -5265,6 +5275,57 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasName("pk_backup_settings");
 
                 b.ToTable("backup_settings");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Operations.GoogleClientSetting", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<string>("ClientId")
+                    .IsRequired()
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)")
+                    .HasColumnName("client_id");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<string>("ProtectedClientSecret")
+                    .IsRequired()
+                    .HasColumnType("text")
+                    .HasColumnName("protected_client_secret");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.HasKey("Id")
+                    .HasName("pk_google_client_settings");
+
+                b.ToTable("google_client_settings");
             });
 
         modelBuilder.Entity("Elocaro.Domain.People.BankDetails", b =>

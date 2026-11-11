@@ -85,11 +85,12 @@ internal sealed class BackupSidecar(HttpClient http, IOptions<BackupOptions> opt
     }
 
     /// <summary>Starts a backup or restore in the container (answer 202); it runs there in the background.</summary>
-    public Task<Result> StartBackupAsync(BackupRepositoryTarget target, CancellationToken cancellationToken) =>
-        StartAsync("backup", new { target }, cancellationToken);
+    /// <param name="targetId">Names the target in the container, which keeps one result and status file per ID.</param>
+    public Task<Result> StartBackupAsync(BackupRepositoryTarget target, string? targetId, CancellationToken cancellationToken) =>
+        StartAsync("backup", new { target, targetId }, cancellationToken);
 
-    public Task<Result> StartRestoreAsync(BackupRepositoryTarget target, string snapshot, CancellationToken cancellationToken) =>
-        StartAsync("restore", new { target, snapshot, force = true }, cancellationToken);
+    public Task<Result> StartRestoreAsync(BackupRepositoryTarget target, string snapshot, string? targetId, CancellationToken cancellationToken) =>
+        StartAsync("restore", new { target, snapshot, force = true, targetId }, cancellationToken);
 
     /// <summary>Takes over the schedule from the container (its daily backup from the environment pauses). Best effort.</summary>
     public async Task<bool> SetManagedAsync(bool managed, CancellationToken cancellationToken)
@@ -166,7 +167,7 @@ internal sealed class BackupSidecar(HttpClient http, IOptions<BackupOptions> opt
         return Unavailable;
     }
 
-    internal sealed record WireStatus(bool Running, string? Kind, DateTimeOffset? StartedAt, WireResult? Last);
+    internal sealed record WireStatus(bool Running, string? Kind, DateTimeOffset? StartedAt, WireResult? Last, string? TargetId = null, Dictionary<string, WireResult>? Results = null);
 
     internal sealed record WireResult(string Kind, bool Succeeded, string Message, string? Snapshot, DateTimeOffset FinishedAt, int DurationSeconds);
 

@@ -11,5 +11,6 @@ internal sealed class BackupSettingConfiguration : IEntityTypeConfiguration<Back
         builder.ToTable("backup_settings");
         builder.Property(v => v.Provider).HasConversion<string>().HasMaxLength(20);
         builder.Property(v => v.Location).HasMaxLength(BackupSetting.MaxLocation);
+        builder.Property(v => v.Name).HasMaxLength(BackupSetting.MaxName);
     }
 }

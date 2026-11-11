@@ -11,13 +11,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Infrastructure.Operations;
 
-/// <summary>The target for the backup container, built from saved settings and, if given, an entry not yet saved.</summary>
+/// <summary>The target for the backup container, built from a saved target and, if given, an entry not yet saved.</summary>
 internal sealed record ResolvedBackupTarget(BackupRepositoryTarget? Target, IReadOnlyList<string> Errors);
 
 internal interface IBackupTargets
 {
-    /// <param name="draft">Entry of the page; empty secrets are taken from the saved settings. <c>null</c>: only the saved settings.</param>
-    Task<ResolvedBackupTarget> ResolveAsync(BackupSettingsInput? draft, CancellationToken cancellationToken = default);
+    /// <param name="id">The saved target (its secrets fill the empty ones of <paramref name="draft"/>); <c>null</c> for a new one.</param>
+    /// <param name="draft">Entry of the page. <c>null</c>: use the saved target as it is.</param>
+    Task<ResolvedBackupTarget> ResolveAsync(Guid? id, BackupSettingsInput? draft, CancellationToken cancellationToken = default);
 }
 
 internal sealed class BackupSettingsService(ElocaroDbContext db, IDataProtectionProvider protection, BackupSidecar sidecar) : IBackupSettings, IBackupTargets
@@ -26,24 +27,38 @@ internal sealed class BackupSettingsService(ElocaroDbContext db, IDataProtection
 
     private IDataProtector Protector => protection.CreateProtector(ProtectionPurpose);
 
-    public async Task<BackupSettingsView?> GetAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BackupSettingsView>> ListAsync(CancellationToken cancellationToken = default)
     {
-        var row = await db.Set<BackupSetting>().AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        if (row is null)
-        {
-            return null;
-        }
-
-        var credentials = Credentials(row);
-        return new BackupSettingsView(row.Provider, row.Location, row.Enabled, row.Time, row.KeepDaily, row.KeepWeekly, row.KeepMonthly,
-            Unprotect(row.ProtectedPassword) is { Length: > 0 }, credentials.Keys.ToHashSet(StringComparer.Ordinal));
+        var rows = await db.Set<BackupSetting>().AsNoTracking().OrderBy(v => v.CreatedAt).ThenBy(v => v.Name).ToListAsync(cancellationToken);
+        return [.. rows.Select(ToView)];
     }
 
-    public Task<Result> SaveAsync(BackupSettingsInput input, CancellationToken cancellationToken = default) =>
+    public async Task<BackupSettingsView?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var row = await db.Set<BackupSetting>().AsNoTracking().SingleOrDefaultAsync(v => v.Id == id, cancellationToken);
+        return row is null ? null : ToView(row);
+    }
+
+    public Task<Result> SaveAsync(Guid? id, BackupSettingsInput input, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
             ArgumentNullException.ThrowIfNull(input);
-            var row = await db.Set<BackupSetting>().SingleOrDefaultAsync(cancellationToken);
+            var row = id is { } given
+                ? await db.Set<BackupSetting>().SingleOrDefaultAsync(v => v.Id == given, cancellationToken) ?? throw new NotFoundException()
+                : null;
+
+            var name = input.Name?.Trim() ?? string.Empty;
+            if (name.Length == 0)
+            {
+                throw new RuleViolationException("Bitte einen Namen für das Ziel angeben.");
+            }
+
+            var others = await db.Set<BackupSetting>().AsNoTracking().Where(v => row == null || v.Id != row.Id).Select(v => v.Name).ToListAsync(cancellationToken);
+            if (others.Any(other => string.Equals(other, name, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new RuleViolationException("Es gibt bereits ein Ziel mit diesem Namen.");
+            }
+
             var (password, credentials) = Merge(row, input);
             var errors = BackupProviders.Validate(input.Provider, input.Location, credentials, password);
             if (errors.Count > 0)
@@ -57,10 +72,12 @@ internal sealed class BackupSettingsService(ElocaroDbContext db, IDataProtection
                 db.Add(row);
             }
 
+            row.Name = name;
             row.Provider = input.Provider;
             row.Location = input.Location.Trim();
             row.Enabled = input.Enabled;
             row.Time = input.Time;
+            row.IntervalDays = input.IntervalDays;
             row.KeepDaily = input.KeepDaily;
             row.KeepWeekly = input.KeepWeekly;
             row.KeepMonthly = input.KeepMonthly;
@@ -75,12 +92,28 @@ internal sealed class BackupSettingsService(ElocaroDbContext db, IDataProtection
             return row.Id;
         });
 
-    public async Task<ResolvedBackupTarget> ResolveAsync(BackupSettingsInput? draft, CancellationToken cancellationToken = default)
+    public Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
+        Command.ExecuteAsync(async () =>
+        {
+            var row = await db.Set<BackupSetting>().SingleOrDefaultAsync(v => v.Id == id, cancellationToken) ?? throw new NotFoundException();
+            db.Remove(row);
+            await db.SaveChangesAsync(cancellationToken);
+
+            // Without a target of its own the app has nothing to schedule: the container's own schedule applies again.
+            if (!await db.Set<BackupSetting>().AnyAsync(cancellationToken))
+            {
+                await sidecar.SetManagedAsync(false, cancellationToken);
+            }
+
+            return id;
+        });
+
+    public async Task<ResolvedBackupTarget> ResolveAsync(Guid? id, BackupSettingsInput? draft, CancellationToken cancellationToken = default)
     {
-        var row = await db.Set<BackupSetting>().AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        var row = id is { } given ? await db.Set<BackupSetting>().AsNoTracking().SingleOrDefaultAsync(v => v.Id == given, cancellationToken) : null;
         if (draft is null && row is null)
         {
-            return new ResolvedBackupTarget(null, ["Es ist noch kein Ziel für die Sicherung eingerichtet."]);
+            return new ResolvedBackupTarget(null, ["Dieses Ziel für die Sicherung gibt es nicht (mehr)."]);
         }
 
         var input = draft ?? new BackupSettingsInput
@@ -97,6 +130,10 @@ internal sealed class BackupSettingsService(ElocaroDbContext db, IDataProtection
             ? new ResolvedBackupTarget(null, errors)
             : new ResolvedBackupTarget(BackupProviders.Build(input.Provider, input.Location, credentials, password!, new BackupRetention(input.KeepDaily, input.KeepWeekly, input.KeepMonthly)), []);
     }
+
+    private BackupSettingsView ToView(BackupSetting row) =>
+        new(row.Id, row.Name, row.Provider, row.Location, row.Enabled, row.Time, row.IntervalDays, row.KeepDaily, row.KeepWeekly, row.KeepMonthly,
+            Unprotect(row.ProtectedPassword) is { Length: > 0 }, Credentials(row).Keys.ToHashSet(StringComparer.Ordinal));
 
     /// <summary>Entered values win; empty secrets keep the saved ones (only for the same provider).</summary>
     private (string? Password, Dictionary<string, string> Credentials) Merge(BackupSetting? saved, BackupSettingsInput input)

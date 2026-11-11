@@ -77,29 +77,43 @@ public class BackupScheduleTests
 
     [Fact]
     public void Before_the_time_of_day_nothing_is_due() =>
-        Assert.False(BackupSchedule.IsDue(Utc("2026-03-01T01:00:00Z"), Time, Utc("2026-02-28T01:31:00Z"))); // 02:00 local, last backup yesterday
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-01T01:00:00Z"), Time, 1, Utc("2026-02-28T01:31:00Z"))); // 02:00 local, last backup yesterday
 
     [Fact]
     public void After_the_time_of_day_a_missing_backup_is_due() =>
-        Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T01:35:00Z"), Time, Utc("2026-02-28T01:31:00Z"))); // 02:35 local
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T01:35:00Z"), Time, 1, Utc("2026-02-28T01:31:00Z"))); // 02:35 local
 
     [Fact]
     public void Once_tried_today_it_is_not_due_again_even_if_it_failed() =>
-        Assert.False(BackupSchedule.IsDue(Utc("2026-03-01T10:00:00Z"), Time, Utc("2026-03-01T01:45:00Z")));
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-01T10:00:00Z"), Time, 1, Utc("2026-03-01T01:45:00Z")));
 
     [Fact]
     public void Never_backed_up_means_due_as_soon_as_the_time_has_passed() =>
-        Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T13:00:00Z"), Time, null));
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T13:00:00Z"), Time, 1, null));
 
     [Fact]
     public void A_missed_backup_is_caught_up_later_the_same_day() =>
-        Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T20:00:00Z"), Time, Utc("2026-02-28T01:31:00Z")));
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T20:00:00Z"), Time, 1, Utc("2026-02-28T01:31:00Z")));
 
     [Fact]
     public void The_hour_skipped_by_daylight_saving_time_is_due_an_hour_later()
     {
         // 2026-03-29: 02:30 does not exist in Berlin, so 03:30 CEST = 01:30 UTC
-        Assert.False(BackupSchedule.IsDue(Utc("2026-03-29T01:00:00Z"), Time, Utc("2026-03-28T01:31:00Z")));
-        Assert.True(BackupSchedule.IsDue(Utc("2026-03-29T01:31:00Z"), Time, Utc("2026-03-28T01:31:00Z")));
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-29T01:00:00Z"), Time, 1, Utc("2026-03-28T01:31:00Z")));
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-29T01:31:00Z"), Time, 1, Utc("2026-03-28T01:31:00Z")));
     }
+
+    [Fact]
+    public void A_weekly_target_waits_for_the_seventh_day()
+    {
+        var lastBackup = Utc("2026-03-01T01:35:00Z"); // Sunday 02:35 local
+
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-02T10:00:00Z"), Time, 7, lastBackup));
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-07T10:00:00Z"), Time, 7, lastBackup));
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-08T01:31:00Z"), Time, 7, lastBackup));
+    }
+
+    [Fact]
+    public void A_weekly_target_that_never_ran_is_due_at_once() =>
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T13:00:00Z"), Time, 7, null));
 }

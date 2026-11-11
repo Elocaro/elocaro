@@ -20,7 +20,7 @@
     {
         <EditForm Model="input" OnValidSubmit="FindAsync" novalidate>
             <div class="form-grid">
-                <AppTextField Value="code" ValueChanged="v => code = v ?? string.Empty" Label="Einrichtungscode" Required="true" Autocomplete="off"
+                <AppTextField Value="@setupCode" ValueChanged="v => setupCode = v ?? string.Empty" Label="Einrichtungscode" Required="true" Autocomplete="off"
                               Hint="Wie bei der Ersteinrichtung: das Installationsskript zeigt ihn an, er steht in deploy/.env (ELOCARO_SETUP_CODE) oder im Protokoll." />
                 <BackupTargetFields Input="input" LocalWarning="Die Sicherung liegt im Ordner des Backup-Containers (deploy/backup-repo), z. B. aus einem kopierten Repository."
                                     PasswordHint="Das Passwort der Sicherung (RESTIC_PASSWORD des alten Servers, steht in der Notfallmappe oder im Passwortmanager)." />
@@ -95,7 +95,7 @@
 
     private readonly BackupSettingsInput input = new();
     private Phase phase;
-    private string code = string.Empty;
+    private string setupCode = string.Empty;
     private bool busy;
     private bool verified;
     private bool sawRunning;
@@ -116,7 +116,7 @@
     private async Task FindAsync()
     {
         errors = null;
-        if (!SetupCode.Matches(code) || !await Accounts.InitialSetupPossibleAsync())
+        if (!SetupCode.Matches(setupCode) || !await Accounts.InitialSetupPossibleAsync())
         {
             errors = ["Der Einrichtungscode stimmt nicht."];
             return;
@@ -126,7 +126,7 @@
         try
         {
             verified = true;
-            var check = await Control.TestAsync(input);
+            var check = await Control.TestAsync(null, input);
             if (check.State is not BackupTargetState.Ready)
             {
                 errors = [check.State == BackupTargetState.New ? "Am Ziel gibt es noch keine Sicherung." : check.Message];
@@ -154,7 +154,7 @@
         busy = true;
         try
         {
-            var result = await Control.StartRestoreAsync(row.Id, input);
+            var result = await Control.StartRestoreAsync(input, row.Id);
             if (!result.Succeeded)
             {
                 errors = result.Errors;

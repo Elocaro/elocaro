@@ -49,6 +49,9 @@ services:
       AccessTokens__MaxDays: ${ACCESS_TOKEN_MAX_DAYS:-90}
       Backup__StatusFile: /backup-status/backup.json
       Backup__Url: http://backup:8080/
+      # Sign-in at Google for the backup to Google Drive ("Mit Google verbinden"): OAuth client of the application, see docs/betrieb.md
+      GoogleDrive__ClientId: ${GOOGLE_DRIVE_CLIENT_ID:-}
+      GoogleDrive__ClientSecret: ${GOOGLE_DRIVE_CLIENT_SECRET:-}
       Backup__ApiToken: ${BACKUP_API_TOKEN:-}
       # Optional protection of the data protection keys by a certificate, see docs/betrieb.md (empty = off)
       DataProtection__CertificatePath: ${DATA_PROTECTION_CERT_PATH:-}

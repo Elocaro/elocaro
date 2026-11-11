@@ -91,4 +91,16 @@ public sealed class BackupApiTests : IDisposable
         await client.PostAsJsonAsync(new Uri("/managed", UriKind.Relative), new ManagedRequest(false), Ct);
         Assert.False(File.Exists(environment.Settings.ManagedMarker));
     }
+
+    [Theory]
+    [InlineData("../etc")]
+    [InlineData("a/b")]
+    [InlineData("")]
+    public async Task A_target_id_that_is_not_safe_for_a_file_name_is_rejected(string id)
+    {
+        var response = await Client().PostAsJsonAsync(new Uri("/backup", UriKind.Relative), new TargetRequest(BackupTestEnvironment.Target, id), Ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Empty(environment.Runner.Calls);
+    }
 }

@@ -83,9 +83,12 @@ public enum OperationKind
     Restore,
 }
 
-public sealed record OperationResult(OperationKind Kind, bool Succeeded, string Message, string? Snapshot, DateTimeOffset FinishedAt, int DurationSeconds);
+public sealed record OperationResult(OperationKind Kind, bool Succeeded, string Message, string? Snapshot, DateTimeOffset FinishedAt, int DurationSeconds, string? TargetId = null);
 
-public sealed record OperationStatus(bool Running, OperationKind? Kind, DateTimeOffset? StartedAt, OperationResult? Last);
+/// <param name="Last">The most recent result of any target (backup or restore).</param>
+/// <param name="TargetId">Target of the running operation (as the app named it).</param>
+/// <param name="Results">The last backup per target, by the ID the app named; the app reads its schedule from them.</param>
+public sealed record OperationStatus(bool Running, OperationKind? Kind, DateTimeOffset? StartedAt, OperationResult? Last, string? TargetId = null, IReadOnlyDictionary<string, OperationResult>? Results = null);
 
 /// <summary>An external command failed; the message is the end of its output.</summary>
 public sealed class BackupException(string message) : Exception(message);

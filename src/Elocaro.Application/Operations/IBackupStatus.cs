@@ -6,8 +6,14 @@ namespace Elocaro.Application.Operations;
 /// </summary>
 public interface IBackupStatus
 {
+    /// <summary>The overall state: the worst of all enabled targets (or the one backup of the container environment).</summary>
     Task<BackupSnapshot> QueryAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The state of every target managed in the app (empty without any).</summary>
+    Task<IReadOnlyList<BackupTargetStatus>> QueryTargetsAsync(CancellationToken cancellationToken = default);
 }
+
+public sealed record BackupTargetStatus(Guid Id, string Name, bool Enabled, BackupSnapshot Status);
 
 public enum BackupState
 {

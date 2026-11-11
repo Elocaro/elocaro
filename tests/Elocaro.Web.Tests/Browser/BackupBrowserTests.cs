@@ -85,41 +85,45 @@ public class BackupBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await GotoInteractiveAsync(page, Page);
             var main = page.Locator("main");
 
-            // Not set up yet: the page explains that the environment decides and reaches the backup service
-            await Assertions.Expect(main).ToContainTextAsync("verwaltet die App Ziel und Zeitplan");
-            await Assertions.Expect(page.Locator("#backup-now")).ToHaveCountAsync(0);
+            // Not set up yet: the page explains that the environment decides and offers to add a target
+            await Assertions.Expect(main).ToContainTextAsync("verwaltet die App Ziele und Zeitplan");
+            await Assertions.Expect(page.Locator("#backup-targets")).ToHaveCountAsync(0);
 
-            // Set up: the local repository (default), password, time
-            await page.GetByLabel("Passwort der Sicherung").FillAsync(RepositoryPassword);
+            // Add a target: the local repository (default), name, password, time
+            await page.Locator("#backup-add").ClickAsync();
+            await page.GetByLabel("Name", new() { Exact = true }).FillAsync("Lokal");
+            await FillKeptAsync(page.GetByLabel("Passwort der Sicherung"), RepositoryPassword);
             await page.GetByLabel("Uhrzeit").FillAsync("03:15");
             await page.GetByRole(AriaRole.Button, new() { Name = "Verbindung testen" }).ClickAsync();
-            await Assertions.Expect(page.Locator("#backup-check")).ToContainTextAsync("noch kein Repository");
+            await Assertions.Expect(page.Locator("#backup-check")).ToContainTextAsync("noch kein Repository", new() { Timeout = Restic });
 
-            await page.GetByRole(AriaRole.Button, new() { Name = "Speichern" }).ClickAsync();
-            await ExpectSnackbarAsync(page, "Die Einstellungen der Datensicherung wurden gespeichert.");
-            await Assertions.Expect(page.Locator("#backup-now")).ToBeVisibleAsync();
-            await Assertions.Expect(main).ToContainTextAsync("Gespeichert. Leer lassen, um es zu behalten.");
-            await Assertions.Expect(main).Not.ToContainTextAsync("verwaltet die App Ziel und Zeitplan");
+            await page.Locator("#backup-save").ClickAsync();
+            await ExpectSnackbarAsync(page, "Das Ziel wurde gespeichert.");
+            var row = page.Locator("tr[data-target='Lokal']");
+            await Assertions.Expect(row).ToContainTextAsync("täglich um 03:15");
+            await Assertions.Expect(row).ToContainTextAsync("noch keine Sicherung");
+            await Assertions.Expect(main).Not.ToContainTextAsync("verwaltet die App Ziele und Zeitplan");
 
-            // The confirmation covers the main action of the page at the top right and does not go away in the headless browser:
-            // the click goes straight to the button.
-            // Back up now; the page follows the progress by itself
-            await page.Locator("#backup-now").DispatchEventAsync("click");
-            await Assertions.Expect(main).ToContainTextAsync("Eine Sicherung läuft", new() { Timeout = 30_000 });
-            await Assertions.Expect(main).ToContainTextAsync("erfolgreich.", new() { Timeout = 120_000 });
+            // The confirmation covers the buttons at the top right and does not go away in the headless browser:
+            // the click goes straight to the button. Back up now; the page follows the progress by itself.
+            await row.GetByRole(AriaRole.Button, new() { Name = "Jetzt sichern" }).DispatchEventAsync("click");
+            await Assertions.Expect(main).ToContainTextAsync("Eine Sicherung läuft: Lokal", new() { Timeout = 30_000 });
+            await Assertions.Expect(row).ToContainTextAsync("aktuell", new() { Timeout = 120_000 });
             await Assertions.Expect(main).Not.ToContainTextAsync("Eine Sicherung läuft");
 
-            await page.Locator("#backup-load").ClickAsync();
-            await Assertions.Expect(page.Locator("table.data-table tbody tr")).ToHaveCountAsync(1, new() { Timeout = Restic });
+            await row.GetByRole(AriaRole.Button, new() { Name = "Sicherungen" }).ClickAsync();
+            await Assertions.Expect(page.Locator("#backup-snapshots table.data-table tbody tr")).ToHaveCountAsync(1, new() { Timeout = Restic });
         });
 
         // What was saved: encrypted password, the schedule taken over from the container environment
         var setting = await App.WithScopeAsync(async sp => await sp.GetRequiredService<ElocaroDbContext>().Set<BackupSetting>().AsNoTracking().SingleAsync(Ct));
+        Assert.Equal("Lokal", setting.Name);
         Assert.Equal(BackupProvider.Local, setting.Provider);
         Assert.Equal(new TimeOnly(3, 15), setting.Time);
         Assert.DoesNotContain(RepositoryPassword, setting.ProtectedPassword, StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(work, "status", "managed-by-app")));
-        Assert.Contains("\"succeeded\":true", await File.ReadAllTextAsync(Path.Combine(work, "status", "backup.json"), Ct), StringComparison.Ordinal);
+        // One status file per target: the app reads the schedule and the monitoring from it
+        Assert.Contains("\"succeeded\":true", await File.ReadAllTextAsync(Path.Combine(work, "status", $"backup-{setting.Id:N}.json"), Ct), StringComparison.Ordinal);
 
         // Change data and files after the backup
         await WriteStateAsync("Geänderte Vermietung");
@@ -199,20 +203,20 @@ public class BackupBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
 
             // Wrong setup code: nothing happens
-            await page.GetByLabel("Einrichtungscode").FillAsync("falscher-code");
-            await page.GetByLabel("Passwort der Sicherung").FillAsync(RepositoryPassword);
+            await FillKeptAsync(page.GetByLabel("Einrichtungscode"), "falscher-code");
+            await FillKeptAsync(page.GetByLabel("Passwort der Sicherung"), RepositoryPassword);
             await page.Locator("#restore-find").ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Der Einrichtungscode stimmt nicht.");
 
             // Wrong repository password: reported, no list
-            await page.GetByLabel("Einrichtungscode").FillAsync(ElocaroWebFactory.SetupCode);
-            await page.GetByLabel("Passwort der Sicherung").FillAsync("falsches-passwort");
+            await FillKeptAsync(page.GetByLabel("Einrichtungscode"), ElocaroWebFactory.SetupCode);
+            await FillKeptAsync(page.GetByLabel("Passwort der Sicherung"), "falsches-passwort");
             await page.Locator("#restore-find").ClickAsync();
             await Assertions.Expect(page.Locator("main")).ToContainTextAsync("Passwort", new() { Timeout = Restic });
             await Assertions.Expect(page.Locator("table.data-table")).ToHaveCountAsync(0);
 
             // Right password: the backups are listed, restore the newest
-            await page.GetByLabel("Passwort der Sicherung").FillAsync(RepositoryPassword);
+            await FillKeptAsync(page.GetByLabel("Passwort der Sicherung"), RepositoryPassword);
             await page.Locator("#restore-find").ClickAsync();
             await Assertions.Expect(page.Locator("table.data-table tbody tr")).ToHaveCountAsync(1, new() { Timeout = Restic });
             await page.GetByRole(AriaRole.Button, new() { Name = "Diesen Stand wiederherstellen" }).ClickAsync();
@@ -228,6 +232,25 @@ public class BackupBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
         Assert.NotNull(await App.WithScopeAsync(async sp => await sp.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(email)));
         Assert.Equal(Original, await LandlordAsync());
         Assert.Equal("Mietvertrag Original", await File.ReadAllTextAsync(StoredFile, Ct));
+    }
+
+    /// <summary>
+    /// Fills a field of an interactive page until the value is still there a moment later. Under load the page may reconnect after
+    /// the first input and start again from its initial state; the entry is then offered again (like the file upload of the other tests).
+    /// </summary>
+    private static async Task FillKeptAsync(ILocator field, string value)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            await field.FillAsync(value);
+            await field.Page.WaitForTimeoutAsync(400);
+            if (await field.InputValueAsync() == value)
+            {
+                return;
+            }
+        }
+
+        await Assertions.Expect(field).ToHaveValueAsync(value);
     }
 
     /// <summary>A backup through the API of the container, as the old server made it.</summary>

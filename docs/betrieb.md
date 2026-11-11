@@ -340,25 +340,38 @@ $DC run --rm backup verify      # zusätzlich 10 % der Daten lesen und prüfen (
 
 ### In der App einrichten
 
-*Verwaltung → System → Datensicherung* (Recht *System*) richtet Ziel und Zeitplan ein, ohne `deploy/.env` zu bearbeiten:
+*Verwaltung → System → Datensicherung* (Recht *System*) richtet die Ziele der Sicherung ein, ohne `deploy/.env` zu bearbeiten. Es sind **mehrere Ziele** möglich, z. B. täglich nach Google Drive und wöchentlich auf ein NAS. Jedes Ziel hat seinen eigenen Zeitplan, seine Aufbewahrung, sein Passwort und seinen Status.
 
 - **Ablage:** S3-Speicher, Azure Blob, SFTP-Server, Google Drive oder dieser Server (nur zum Ausprobieren). Die Zugangsdaten und das Passwort der Sicherung werden verschlüsselt in der Datenbank gespeichert (Data Protection), nie angezeigt und tauchen weder im Audit-Log noch im Vollexport auf. Bei einer späteren Änderung bleibt ein leer gelassenes Feld unverändert.
 - **Verbindung testen** prüft, ob das Ziel erreichbar ist, das Passwort stimmt und schon ein Repository existiert, ohne etwas zu ändern.
-- **Zeitplan:** tägliche Uhrzeit und Aufbewahrung. Die App startet die Sicherung zur eingestellten Zeit (Job `backup`, alle 10 Minuten geprüft); wurde die Zeit verpasst, weil die App nicht lief, holt sie die Sicherung am selben Tag nach. Ein fehlgeschlagener Versuch wird erst am nächsten Tag wiederholt; die Warnmail (siehe unten) meldet ihn.
-- **Jetzt sichern** startet sofort eine Sicherung, **Vorhandene Sicherungen** listet die Stände am Ziel.
-- Speichert man die Einstellungen, **übernimmt die App den Zeitplan**: Die tägliche Sicherung nach den Variablen in `deploy/.env` pausiert (Markierung im Volume `backup-status`), damit nicht doppelt gesichert wird. Ohne gespeicherte Einstellungen gilt weiter `.env`.
+- **Zeitplan je Ziel:** täglich oder wöchentlich zu einer Uhrzeit, dazu die Aufbewahrung. Die App startet die Sicherungen zur eingestellten Zeit (Job `backup`, alle 10 Minuten geprüft), ein Ziel nach dem anderen. Wurde die Zeit verpasst, weil die App nicht lief, holt sie die Sicherung am selben Tag nach. Ein fehlgeschlagener Versuch wird erst zum nächsten Termin wiederholt; die Warnmail (siehe unten) meldet ihn.
+- **Pro Ziel:** *Jetzt sichern*, *Sicherungen* (Liste der Stände am Ziel, daraus die Wiederherstellung) und *Bearbeiten*. Ein Ziel lässt sich ausschalten oder entfernen; die Sicherungen, die dort schon liegen, bleiben erhalten.
+- Speichert man das erste Ziel, **übernimmt die App den Zeitplan**: Die tägliche Sicherung nach den Variablen in `deploy/.env` pausiert (Markierung im Volume `backup-status`), damit nicht doppelt gesichert wird. Ohne Ziele in der App gilt weiter `.env`; entfernt man das letzte Ziel, übernimmt `.env` wieder.
+- **Überwachung:** Dashboard, Health-Check und Warnmail melden, sobald **ein** eingeschaltetes Ziel fehlschlägt oder überfällig ist (wöchentliche Ziele erst nach einer Woche und zwei Stunden) und nennen das Ziel.
 
-Die App spricht dazu mit dem Backup-Dienst über eine interne API (`Backup__Url`, `Backup__ApiToken`; Port 8080 nur im Docker-Netz, Anmeldung per Token). Der Dienst speichert keine Zugangsdaten, die App schickt das Ziel bei jedem Aufruf mit. **Bestehende Installationen:** `BACKUP_API_TOKEN` in `deploy/.env` eintragen und `docker compose … up -d --build backup` ausführen; bis dahin zeigt die Seite, dass der Backup-Dienst nicht erreichbar ist.
+Die App spricht dazu mit dem Backup-Dienst über eine interne API (`Backup__Url`, `Backup__ApiToken`; Port 8080 nur im Docker-Netz, Anmeldung per Token). Der Dienst speichert keine Zugangsdaten, die App schickt das Ziel bei jedem Aufruf mit; Ergebnisse führt er je Ziel (`backup-<Kennung>.json` im Volume `backup-status`). **Bestehende Installationen:** `BACKUP_API_TOKEN` in `deploy/.env` eintragen und `docker compose … up -d --build backup` ausführen; bis dahin zeigt die Seite, dass der Backup-Dienst nicht erreichbar ist.
 
 #### Google Drive
 
-Die App verbindet sich über rclone mit Google Drive und sieht nur Dateien, die sie selbst angelegt hat (Berechtigung `drive.file`).
+Bei der Ablage *Google Drive* genügt **„Mit Google verbinden“**: Die App zeigt einen Code und die Adresse `google.com/device`, man öffnet sie (auch am Handy), gibt den Code ein, meldet sich bei Google an und erlaubt den Zugriff. Die App merkt die Bestätigung selbst. Der Ordner (Standard *Elocaro-Sicherung*, Name änderbar) wird in Drive angelegt. Elocaro bekommt nur Zugriff auf Dateien, die es selbst anlegt (Berechtigung `drive.file`), nicht auf das übrige Drive. Das Passwort der Sicherung bleibt wie bei jedem Ziel Pflicht.
 
-1. Empfohlen: in der [Google Cloud Console](https://console.cloud.google.com/) ein Projekt anlegen, die *Google Drive API* aktivieren und eine **OAuth-Client-ID** (Typ *Desktop-App*) erstellen. Ohne eigene Client-ID teilen sich alle Nutzer das stark begrenzte Kontingent von rclone.
-2. Auf einem Rechner mit Browser [rclone](https://rclone.org/downloads/) installieren und `rclone authorize "drive" "<Client-ID>" "<Client-Geheimnis>" --drive-scope drive.file` ausführen (ohne eigene Client-ID: `rclone authorize "drive" --drive-scope drive.file`). Nach der Anmeldung im Browser gibt rclone einen Token als JSON aus (`{"access_token": …}`).
-3. In der App *Google Drive* wählen, Ordnername (wird angelegt), den **Token (JSON)**, Client-ID samt Geheimnis und das Passwort der Sicherung eintragen, *Verbindung testen*, *Speichern*.
+Der Zugang erneuert sich selbst, die Sicherung läuft danach ohne Eingriff. Widerruft man ihn im Google-Konto (*Sicherheit → Drittanbieter-Zugriff*), schlägt die Sicherung fehl, und die Warnmail meldet es; dann das Ziel bearbeiten und neu verbinden. Auf einem neuen Server braucht die Wiederherstellung das Passwort der Sicherung und eine neue Anmeldung.
 
-Der Token enthält ein Erneuerungstoken, die Sicherung läuft danach ohne Eingriff. Widerruft man den Zugriff im Google-Konto, schlägt sie fehl, und die Warnmail meldet es. Für die Wiederherstellung auf einem neuen Server braucht man das Passwort der Sicherung **und** einen neuen Token (Schritt 2): Das Repository am Ziel enthält nur die Daten, nicht den Zugang dazu.
+**Voraussetzung: ein OAuth-Client.** Die Anmeldung läuft über einen OAuth-Client, den jede Installation selbst einrichtet. Elocaro liefert keinen mit: Ein Client-Schlüssel im öffentlichen Quelltext oder im veröffentlichten Image wäre für jeden lesbar (auch wenn Google ihn bei diesem Client-Typ nicht als geheim einstuft), und über ein Pipeline-Secret ließe er sich nicht schützen, denn er stünde im Image. Zwei Wege, ihn einzutragen:
+
+- **In der App:** Seite Datensicherung, Abschnitt *Anmeldung bei Google*: Client-ID und Client-Schlüssel eintragen. Der Schlüssel wird verschlüsselt gespeichert und nie wieder angezeigt; ein leeres Feld beim Ändern behält ihn.
+- **Über die Umgebung:** `GOOGLE_DRIVE_CLIENT_ID` und `GOOGLE_DRIVE_CLIENT_SECRET` in `deploy/.env` (landen als `GoogleDrive__ClientId` und `GoogleDrive__ClientSecret` in der App). Ein in der App eingetragener Client hat Vorrang. Der Client steht dann in der Datenbank und damit im Backup; wer ihn in der `.env` führt, muss ihn auf einem neuen Server dort wieder eintragen.
+
+Ohne Client ist „Mit Google verbinden“ ausgegraut und nennt den Grund. Dann bleibt unter *Erweitert* der Zugang von Hand (Token von `rclone authorize "drive" --drive-scope drive.file`).
+
+**Eigenen OAuth-Client anlegen** (einmal je Installation, dauert etwa zehn Minuten, kostet nichts und braucht keine Abrechnung):
+
+1. In der [Google Cloud Console](https://console.cloud.google.com/) ein **Projekt** anlegen (z. B. „Elocaro“) und die **Google Drive API** aktivieren.
+2. *Google Auth Platform → Erste Schritte*: Anwendungsname, Support-E-Mail, Zielgruppe **Extern**, Kontakt-E-Mail.
+3. *Datenzugriff → Bereiche hinzufügen*: nur `…/auth/drive.file` („nicht vertraulich“, braucht keine Prüfung durch Google).
+4. *Branding*: Startseite, Datenschutz-Link und die zugehörige **autorisierte Domain** eintragen (Google verlangt sie zum Veröffentlichen; sie müssen erreichbar sein). Kein Logo hochladen: Das löst eine Prüfung der App aus.
+5. *Zielgruppe → App veröffentlichen* (**In Produktion**). Im Status *Test* läuft der Zugang laut Google nach 7 Tagen ab.
+6. *Clients → Client erstellen*, Anwendungstyp **Fernsehgeräte und Geräte mit begrenzter Eingabe**. Client-ID und Client-Schlüssel kopieren (der Schlüssel wird nur einmal angezeigt) und wie oben eintragen.
 
 ### Überwachung
 

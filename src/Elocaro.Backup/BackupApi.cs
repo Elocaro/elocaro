@@ -1,21 +1,23 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Elocaro.Backup;
 
-public sealed record TargetRequest(BackupTarget Target);
+public sealed record TargetRequest(BackupTarget Target, string? TargetId = null);
 
 public sealed record ManagedRequest(bool Managed);
 
-public sealed record RestoreRequest(BackupTarget Target, string? Snapshot, bool Force = true);
+public sealed record RestoreRequest(BackupTarget Target, string? Snapshot, bool Force = true, string? TargetId = null);
 
 /// <summary>
 /// Internal API for the Elocaro app (compose network only, Bearer token). Every call carries the target, the sidecar stores no
 /// credentials. Long operations run in the background; <c>GET /status</c> reports the progress.
 /// </summary>
-internal static class BackupApi
+internal static partial class BackupApi
 {
     private static readonly string[] MissingTarget = ["Das Ziel fehlt."];
+    private static readonly string[] InvalidTargetId = ["Die Kennung des Ziels ist ungültig."];
 
     public static void MapBackupApi(this WebApplication app)
     {
@@ -62,17 +64,26 @@ internal static class BackupApi
         });
 
         api.MapPost("/backup", (TargetRequest request, BackupCoordinator coordinator, IHostApplicationLifetime lifetime) =>
-            Invalid(request.Target) ?? Started(coordinator.TryStartBackup(request.Target, lifetime.ApplicationStopping)));
+            Invalid(request.Target, request.TargetId) ?? Started(coordinator.TryStartBackup(request.Target, lifetime.ApplicationStopping, request.TargetId)));
 
         api.MapPost("/restore", (RestoreRequest request, BackupCoordinator coordinator, IHostApplicationLifetime lifetime) =>
-            Invalid(request.Target) ?? Started(coordinator.TryStartRestore(request.Target, request.Snapshot ?? "latest", request.Force, lifetime.ApplicationStopping)));
+            Invalid(request.Target, request.TargetId) ?? Started(coordinator.TryStartRestore(request.Target, request.Snapshot ?? "latest", request.Force, lifetime.ApplicationStopping, request.TargetId)));
     }
 
-    private static IResult? Invalid(BackupTarget? target)
+    /// <summary>The ID names a status file: only what is safe in a file name.</summary>
+    [GeneratedRegex("^[A-Za-z0-9-]{1,64}$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex SafeId();
+
+    private static IResult? Invalid(BackupTarget? target, string? targetId = null)
     {
         if (target is null)
         {
             return Results.BadRequest(new { errors = MissingTarget });
+        }
+
+        if (targetId is not null && !SafeId().IsMatch(targetId))
+        {
+            return Results.BadRequest(new { errors = InvalidTargetId });
         }
 
         var errors = target.Validate();

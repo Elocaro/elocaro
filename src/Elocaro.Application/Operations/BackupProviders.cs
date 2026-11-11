@@ -19,6 +19,13 @@ public static partial class BackupProviders
     /// <summary>Name of the rclone remote; its settings reach rclone as <c>RCLONE_CONFIG_GDRIVE_*</c> variables (no config file, nothing on disk).</summary>
     private const string DriveRemote = "gdrive";
 
+    public const string DriveTokenKey = "RCLONE_CONFIG_GDRIVE_TOKEN";
+    public const string DriveClientIdKey = "RCLONE_CONFIG_GDRIVE_CLIENT_ID";
+    public const string DriveClientSecretKey = "RCLONE_CONFIG_GDRIVE_CLIENT_SECRET";
+
+    /// <summary>Folder that the app creates in Google Drive unless told otherwise.</summary>
+    public const string DefaultDriveFolder = "Elocaro-Sicherung";
+
     [GeneratedRegex(@"^[\p{L}\p{N} _./()-]{1,200}$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex FolderName();
 
@@ -48,7 +55,7 @@ public static partial class BackupProviders
         BackupProvider.S3 => "z. B. https://s3.eu-central-1.amazonaws.com/mein-bucket/elocaro",
         BackupProvider.Azure => "Name des Containers, z. B. elocaro-backup",
         BackupProvider.Sftp => "z. B. backup@nas.example.de:/volume1/elocaro. Den SSH-Schlüssel legen Sie in deploy/backup-ssh ab.",
-        BackupProvider.GoogleDrive => "z. B. Elocaro-Sicherung. Der Ordner wird angelegt, falls er fehlt.",
+        BackupProvider.GoogleDrive => "Der Ordner wird angelegt, falls er fehlt. Elocaro sieht nur Dateien, die es dort selbst angelegt hat.",
         _ => null,
     };
 
@@ -67,9 +74,9 @@ public static partial class BackupProviders
         ],
         BackupProvider.GoogleDrive =>
         [
-            new("RCLONE_CONFIG_GDRIVE_TOKEN", "Zugangstoken (JSON)", Secret: true, Required: true, "Ausgabe von „rclone authorize drive“, siehe Anleitung"),
-            new("RCLONE_CONFIG_GDRIVE_CLIENT_ID", "Eigene Client-ID (empfohlen)", Secret: false, Required: false, "Ohne eigene Client-ID teilen sich alle Nutzer das stark begrenzte Kontingent von rclone"),
-            new("RCLONE_CONFIG_GDRIVE_CLIENT_SECRET", "Client-Geheimnis", Secret: true, Required: false),
+            new(DriveTokenKey, "Anmeldung bei Google", Secret: true, Required: true, "Entsteht durch „Mit Google verbinden“; alternativ die Ausgabe von „rclone authorize drive“ (JSON)"),
+            new(DriveClientIdKey, "Client-ID", Secret: false, Required: false, "Gehört zur Anmeldung; nur bei einer selbst angelegten Anmeldung eintragen"),
+            new(DriveClientSecretKey, "Client-Geheimnis", Secret: true, Required: false),
         ],
         _ => [],
     };

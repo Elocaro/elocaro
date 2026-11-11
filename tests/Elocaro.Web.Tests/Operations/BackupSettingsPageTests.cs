@@ -35,7 +35,7 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
         var page = await admin.GetAsync(Page);
 
         Assert.Contains("deploy/.env", page.Text, StringComparison.Ordinal);
-        Assert.Contains("verwaltet die App Ziel und Zeitplan", page.Text, StringComparison.Ordinal);
+        Assert.Contains("verwaltet die App Ziele und Zeitplan", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Jetzt sichern", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("von hier aus nicht erreichbar", page.Text, StringComparison.Ordinal);
     }
@@ -54,24 +54,25 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
     }
 
     [Fact]
-    public async Task With_saved_settings_the_page_offers_the_backup_and_never_shows_secrets()
+    public async Task With_a_saved_target_the_page_lists_it_with_its_actions_and_never_shows_secrets()
     {
-        var input = new BackupSettingsInput { Provider = BackupProvider.S3, Location = "https://s3.example.com/bucket/elocaro", Password = "super-geheimes-passwort" };
+        var input = new BackupSettingsInput { Name = "Hetzner", Provider = BackupProvider.S3, Location = "https://s3.example.com/bucket/elocaro", Password = "super-geheimes-passwort" };
         input.Credentials["AWS_ACCESS_KEY_ID"] = "AKIAZUGANG";
         input.Credentials["AWS_SECRET_ACCESS_KEY"] = "super-geheimer-schluessel";
-        var saved = await App.WithScopeAsync(sp => sp.GetRequiredService<IBackupSettings>().SaveAsync(input, Ct));
+        var saved = await App.WithScopeAsync(sp => sp.GetRequiredService<IBackupSettings>().SaveAsync(null, input, Ct));
         Assert.True(saved.Succeeded);
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
         var page = await admin.GetAsync(Page);
 
+        Assert.Contains("Hetzner", page.Text, StringComparison.Ordinal);
+        Assert.Contains("täglich um 02:30", page.Text, StringComparison.Ordinal);
         Assert.Contains("Jetzt sichern", page.Text, StringComparison.Ordinal);
-        Assert.Contains("Sicherungen anzeigen", page.Text, StringComparison.Ordinal);
-        Assert.Contains("Gespeichert. Leer lassen", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Bearbeiten", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("super-geheimes-passwort", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("super-geheimer-schluessel", page.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("verwaltet die App Ziel und Zeitplan", page.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("verwaltet die App Ziele und Zeitplan", page.Text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -54,7 +54,7 @@ public sealed class SidecarContractTests : IDisposable
     [InlineData(BackupProvider.GoogleDrive)]
     public async Task Every_target_that_the_providers_build_is_accepted_by_the_server(BackupProvider provider)
     {
-        var result = await Client().StartBackupAsync(Target(provider), Ct);
+        var result = await Client().StartBackupAsync(Target(provider), "ziel1", Ct);
         await factory.Services.GetRequiredService<BackupCoordinator>().Running;
 
         Assert.True(result.Succeeded, string.Join(' ', result.Errors));
@@ -70,7 +70,7 @@ public sealed class SidecarContractTests : IDisposable
         Assert.False(idle!.Running);
         Assert.Null(idle.Last);
 
-        await client.StartBackupAsync(Target(BackupProvider.Local), Ct);
+        await client.StartBackupAsync(Target(BackupProvider.Local), "ziel1", Ct);
         await factory.Services.GetRequiredService<BackupCoordinator>().Running;
 
         var done = await client.StatusAsync(Ct);
@@ -117,8 +117,8 @@ public sealed class SidecarContractTests : IDisposable
         };
         var client = Client();
 
-        Assert.True((await client.StartRestoreAsync(Target(BackupProvider.Local), "latest", Ct)).Succeeded);
-        var second = await client.StartBackupAsync(Target(BackupProvider.Local), Ct);
+        Assert.True((await client.StartRestoreAsync(Target(BackupProvider.Local), "latest", null, Ct)).Succeeded);
+        var second = await client.StartBackupAsync(Target(BackupProvider.Local), "ziel1", Ct);
         release.SetResult();
         await factory.Services.GetRequiredService<BackupCoordinator>().Running;
 
@@ -141,7 +141,7 @@ public sealed class SidecarContractTests : IDisposable
 
         Assert.Null(await client.StatusAsync(Ct));
         Assert.Equal(BackupTargetState.ServiceUnavailable, (await client.TestAsync(Target(BackupProvider.Local), Ct)).State);
-        Assert.False((await client.StartBackupAsync(Target(BackupProvider.Local), Ct)).Succeeded);
+        Assert.False((await client.StartBackupAsync(Target(BackupProvider.Local), "ziel1", Ct)).Succeeded);
         Assert.False(await client.SetManagedAsync(managed: true, Ct));
         Assert.Empty(environment.Runner.Calls);
     }
