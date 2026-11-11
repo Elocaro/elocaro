@@ -204,6 +204,7 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Monate mit `<i
 - **Secure-Cookies:** Anmelde-, Zwei-Faktor- und Status-Cookie sind immer `Secure`, das Antiforgery-Cookie nur in `Production`, sonst `SameAsRequest`: Mit `Always` beantwortet Antiforgery HTTP-Anfragen mit einer Ausnahme, Entwicklung und Browser-Tests laufen aber auf `http://localhost`. Chromium und Firefox nehmen `Secure`-Cookies von `localhost` auch über HTTP an.
 - **Grenzen der Benutzerverwaltung** (`IUserManagementService`, Regeln in `UserManagementActor`): Die ändernden Methoden erhalten den auslösenden `ClaimsPrincipal` und lesen dessen Rolle und Rechte aus der Datenbank, nicht aus dem Principal (der in einer offenen Seite veraltet sein kann). Nötig sind Admin oder das Recht Benutzerverwaltung. Wer kein Admin ist, darf die Rolle Administrator weder vergeben noch einladen, Administratorkonten weder ändern noch sperren oder entsperren, die eigene Rolle und die eigenen Rechte nicht ändern und keine Rechte vergeben, die er selbst nicht hat. Neue Verwalter erhalten dann nur die Standardrechte, die er selbst hat; vorhandene Rechte des Zielkontos dürfen bleiben oder entfallen. Die Oberfläche bietet nur Erlaubtes an (`IUserManagementService.ActorAsync`). `IAccountService.InviteAsync` prüft nicht, wer auslöst, und ist internen Aufrufern mit fester Rolle vorbehalten (`PersonService.SetUpAccessAsync`).
 - Änderungen an Konten (Anlage, Rolle, Rechte, Sperre) stehen im Audit-Log (`AuditWriter`, Typ `ApplicationUser`).
+- **Sicherheitsereignisse** (`ISecurityAudit`, Aktion `SecurityEvent`, Typ `ApplicationUser`): Anmeldung, fehlgeschlagene Anmeldung, falscher Zwei-Faktor- oder Wiederherstellungscode, Sperre nach Fehlversuchen, Passwort-Reset, Anmeldung per Anmeldelink. Als Benutzer steht die eingegebene bzw. bekannte E-Mail-Adresse (Steuerzeichen entfernt, auf 200 Zeichen gekürzt), bei unbekannten Adressen ohne Konto ist die Entitäts-Id leer. Nie protokolliert werden Passwörter, Codes und Tokens. Die Seiten unter `Components/Account/Login/` rufen den Dienst auf; die Rate-Limits (`SignIn:RequestsPerMinute`) begrenzen auch die Zahl dieser Einträge.
 
 ## Zugriffstoken und MCP-Schnittstelle
 
@@ -264,6 +265,7 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 - Absenderdaten kommen aus dem `LandlordProfile`. Ohne Profil schlägt die Erzeugung mit einer klaren Meldung fehl.
 - Tabellen: `<thead>` wiederholt sich auf jeder Seite, `<tfoot>` (Summen) steht nur am Ende. Rechtsbündige Beträge mit `class="zahl"`.
 - Ausgabe als **PDF/A-2b** (`Pdf:PdfA`) mit Titel und Autor in den Metadaten. Gotenberg ist nur intern erreichbar (`Pdf:GotenbergUrl`).
+- **Vorlagen-HTML ist nicht vertrauenswürdig:** `PdfGenerator` schickt den gerenderten Inhalt durch `PdfHtmlGuard.Sanitize` (entfernt `iframe`, `script`, `link`, `meta`, `base`, `object`, Formularelemente sowie jede Ressource außer `data:image/`), und Gotenberg läuft mit `--chromium-deny-private-ips`. Neue Vorlagen dürfen Bilder daher nur als `data:`-URI einbetten. Tests: `PdfHtmlGuardTests`.
 
 ### Dateiablage (`IFileStore`)
 

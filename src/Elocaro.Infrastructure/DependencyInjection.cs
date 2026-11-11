@@ -215,6 +215,7 @@ public static class DependencyInjection
         services.AddScoped<IChangeHistory, ChangeHistory>();
         services.AddScoped<AuditCleanup>();
         services.AddScoped<AuditWriter>();
+        services.AddScoped<ISecurityAudit, SecurityAudit>();
     }
 
     private static void AddMail(IServiceCollection services, IConfiguration configuration)

@@ -1,5 +1,6 @@
 @page "/konto/anmelden/zwei-faktor"
 @inject SignInManager<ApplicationUser> Login
+@inject Elocaro.Application.Audit.ISecurityAudit SecurityLog
 @inject Redirector Redirector
 
 <PageTitle>Zwei-Faktor-Anmeldung – Elocaro</PageTitle>
@@ -53,18 +54,22 @@
     private async Task ValidateAsync()
     {
         var code = Input!.Code.Replace(" ", "", StringComparison.Ordinal).Replace("-", "", StringComparison.Ordinal);
+        var pending = await Login.GetTwoFactorAuthenticationUserAsync();
         var result = await Login.TwoFactorAuthenticatorSignInAsync(code, RememberMe, Input.RememberDevice);
 
         if (result.Succeeded)
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.SignedIn, pending?.Email, pending?.Id);
             Redirector.To(ReturnUrl);
         }
         else if (result.IsLockedOut)
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.LockedOut, pending?.Email, pending?.Id);
             Redirector.To("/konto/gesperrt");
         }
         else
         {
+            await SecurityLog.LogAsync(Elocaro.Application.Audit.SecurityEvent.TwoFactorFailed, pending?.Email, pending?.Id);
             errors = "Der Code ist ungültig.";
         }
     }

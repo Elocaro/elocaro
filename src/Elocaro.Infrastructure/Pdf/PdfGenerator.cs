@@ -62,7 +62,7 @@ internal sealed class PdfGenerator(
             ["sender"] = sender,
             ["recipient"] = job.Recipient,
             ["letter_date"] = job.Date ?? GermanTime.Today(clock.GetUtcNow()),
-            ["content"] = new RawHtml(content.Html),
+            ["content"] = new RawHtml(PdfHtmlGuard.Sanitize(content.Html)),
         };
 
         var html = renderer.RenderEmbedded("Pdf/Templates/_layout.sbn", null, frame).Html;

@@ -28,6 +28,7 @@ services:
   # HTML → PDF (Chromium); API http://localhost:3000
   gotenberg:
     image: gotenberg/gotenberg:8.39.0
+    command: ["gotenberg", "--chromium-deny-private-ips"]
     ports:
       - "3000:3000"
 
