@@ -59,7 +59,7 @@ Elocaro ist **keine Rechts- und keine Steuerberatung**. Vorlagen und Rechenwerte
 
 ## Dokumentation
 
-- [Website](https://elocaro.de) (eigenes Repository: [Elocaro/website](https://github.com/Elocaro/website))
+- [Website](https://elocaro.de)
 - [Anwenderhandbuch](docs/handbuch.md): erste Schritte und die häufigsten Aufgaben für Vermieter (auch in der Anwendung unter „Hilfe“)
 - [Installation](docs/installation.md): alle Wege im Überblick (Probelauf, Server mit Skript, von Hand, NAS und Plattformen) mit Checkliste und Fehlersuche
 - [Betrieb](docs/betrieb.md): Konfiguration auf einem VPS, Update, Backup & Restore, Vollexport, Sicherheit
