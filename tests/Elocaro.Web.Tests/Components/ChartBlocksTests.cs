@@ -55,7 +55,7 @@ public class ChartBlocksTests : BunitContext
     [InlineData(-3, 10, "0")]
     public void Progress_meter_stays_on_the_scale(double value, double total, string expected)
     {
-        var meter = Render<ProgressMeter>(p => p.Add(c => c.Value, (decimal)value).Add(c => c.Total, (decimal)total).Add(c => c.Text, "Stand"));
+        var meter = Render<ProgressMeter>(p => p.Add(c => c.Value, Dec.From(value)).Add(c => c.Total, Dec.From(total)).Add(c => c.Text, "Stand"));
         Assert.Equal($"width:{expected}%", meter.Find(".meter-bar").GetAttribute("style"));
     }
 

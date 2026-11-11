@@ -44,14 +44,14 @@ public class PasswordAndProtectionTests(PostgresFixture postgres) : AccountTestB
         Assert.Equal("/konto/gesperrt", page.Path);
         Assert.Equal("/konto/gesperrt", (await SignInAsync(browser, AdminEmail, AdminPassword)).Path);
 
-        // Identity uses the system clock: check the lockout duration and simulate its expiry.
+        // Identity uses the registered TimeProvider (the fake clock of the test app since .NET 11): check the lockout duration and simulate its expiry.
         await App.WithScopeAsync(async sp =>
         {
             var manager = sp.GetRequiredService<UserManager<ApplicationUser>>();
             var user = (await manager.FindByEmailAsync(AdminEmail))!;
             var end = await manager.GetLockoutEndDateAsync(user);
-            Assert.InRange(end!.Value - DateTimeOffset.UtcNow, TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(15));
-            return await manager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddSeconds(-1));
+            Assert.InRange(end!.Value - App.Clock.GetUtcNow(), TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(15));
+            return await manager.SetLockoutEndDateAsync(user, App.Clock.GetUtcNow().AddSeconds(-1));
         });
 
         Assert.Equal("/konto/sicherheit/zwei-faktor", (await SignInAsync(browser, AdminEmail, AdminPassword)).Path);

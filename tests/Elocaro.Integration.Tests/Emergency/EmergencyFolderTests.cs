@@ -297,14 +297,14 @@ public partial class EmergencyFolderTests(PostgresFixture postgres) : IAsyncLife
         var plain = new byte[sealedData.Length - 16];
         using var aes = new AesGcm(key, 16);
         aes.Decrypt(nonce, sealedData.AsSpan(0, plain.Length), sealedData.AsSpan(plain.Length, 16), plain, Encoding.ASCII.GetBytes(parameters.GetProperty("aad").GetString()!));
-        return JsonDocument.Parse(plain).RootElement.Clone();
+        return JsonElement.Parse(plain);
     }
 
     internal static JsonElement Parameters(byte[] file)
     {
         var match = DataBlock().Match(Encoding.UTF8.GetString(file));
         Assert.True(match.Success, "Datenblock fehlt");
-        return JsonDocument.Parse(match.Groups[1].Value).RootElement.Clone();
+        return JsonElement.Parse(match.Groups[1].Value);
     }
 
     [GeneratedRegex("""<script type="application/json" id="mappe-daten">(.*?)</script>""", RegexOptions.Singleline)]

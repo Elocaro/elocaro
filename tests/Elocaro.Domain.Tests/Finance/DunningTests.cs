@@ -146,7 +146,7 @@ public class DunningTests
     {
         var due = new DateOnly(2026, 1, 10);
 
-        Assert.Equal((decimal)expected, DefaultInterest.Calculate((decimal)open, due, due.AddDays(days), (decimal)percent));
+        Assert.Equal(Dec.From(expected), DefaultInterest.Calculate(Dec.From(open), due, due.AddDays(days), Dec.From(percent)));
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public class DunningTests
     [InlineData(1000, new[] { 700, 0, 700 }, false, false)] // gap in between, together 1400
     public void Termination_relevance_after_Section_543_para_2_no_3_BGB(int rent, int[] openPerMonth, bool consecutive, bool twoRents)
     {
-        var items = openPerMonth.Select((open, i) => (Due: new DateOnly(2026, 1 + i, 3), Open: (decimal)open)).ToList();
+        var items = openPerMonth.Select((open, i) => (Due: new DateOnly(2026, 1 + i, 3), Open: Dec.From(open))).ToList();
 
         var result = TerminationRelevance.Check(rent, items);
 

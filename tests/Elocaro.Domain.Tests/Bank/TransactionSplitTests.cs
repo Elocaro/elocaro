@@ -25,7 +25,7 @@ public class TransactionSplitTests
     [InlineData(100, 60, 39.99)]
     public void Parts_that_do_not_add_up_are_rejected_with_the_difference(double total, double first, double second)
     {
-        var error = Assert.Throws<RuleViolationException>(() => TransactionSplit.Resolve((decimal)total, [(decimal)first, (decimal)second]));
+        var error = Assert.Throws<RuleViolationException>(() => TransactionSplit.Resolve(Dec.From(total), [Dec.From(first), Dec.From(second)]));
 
         Assert.Contains("Differenz 0,01 €", error.Message, StringComparison.Ordinal);
     }

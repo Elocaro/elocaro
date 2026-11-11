@@ -81,7 +81,7 @@ public class ExtractionResponseParserTests
     [InlineData("0,19", 0.19)]
     [InlineData("42", 42)]
     public void Amounts_in_german_and_english_notation_are_understood(string text, double expected) =>
-        Assert.Equal((decimal)expected, ExtractionResponseParser.ParseAmount(text));
+        Assert.Equal(Dec.From(expected), ExtractionResponseParser.ParseAmount(text));
 
     [Theory]
     [InlineData("")]

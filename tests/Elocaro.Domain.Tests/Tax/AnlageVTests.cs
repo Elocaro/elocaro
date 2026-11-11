@@ -81,7 +81,7 @@ public class AnlageVTests
     [InlineData(66, false, null)]
     [InlineData(100, false, null)]
     public void Deductible_share_depends_on_rent_percentage_and_forecast(int percent, bool forecast, double? expected) =>
-        Assert.Equal((decimal?)expected, AnlageVCalculator.DeductibleShare(percent, forecast));
+        Assert.Equal(expected is { } share ? Dec.From(share) : (decimal?)null, AnlageVCalculator.DeductibleShare(percent, forecast));
 
     [Fact]
     public void Expenses_are_reduced_proportionally_for_a_cheap_letting()

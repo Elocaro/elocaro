@@ -14,7 +14,7 @@ public class RentModelTests
     [InlineData(10, 100, 100.05, 10.01)] // 10.005 → rounded up (commercial rounding)
     [InlineData(800, 110.0, 110.0, 800)]
     public void Indexed_rent_new_rent(double rent, double old, double newItem, double expected) =>
-        Assert.Equal((decimal)expected, IndexedRent.NewRent((decimal)rent, (decimal)old, (decimal)newItem));
+        Assert.Equal(Dec.From(expected), IndexedRent.NewRent(Dec.From(rent), Dec.From(old), Dec.From(newItem)));
 
     [Fact]
     public void Index_change_in_percent() => Assert.Equal(3.7m, IndexedRent.ChangePercent(117.4m, 121.7m));

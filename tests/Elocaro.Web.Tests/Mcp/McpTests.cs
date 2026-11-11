@@ -49,7 +49,7 @@ public class McpTests(PostgresFixture postgres) : AccountTestBase(postgres)
 
         // The answer is a plain JSON document or one SSE event ("data: {...}").
         var json = text.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.StartsWith("data:", StringComparison.Ordinal))?[5..].Trim() ?? text;
-        return (response.StatusCode, response.IsSuccessStatusCode && json.StartsWith('{') ? JsonDocument.Parse(json).RootElement.Clone() : null);
+        return (response.StatusCode, response.IsSuccessStatusCode && json.StartsWith('{') ? JsonElement.Parse(json) : null);
     }
 
     private static async Task<List<string>> ToolNamesAsync(HttpClient client)

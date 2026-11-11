@@ -2,7 +2,7 @@
 
 # ---------- Build ----------
 # Runs on the build host (no emulation); dotnet publish targets amd64 or arm64 through the runtime identifier below.
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /quelle
 
 # Copy only the project files first: the restore layer stays cached as long as no packages change.
@@ -32,7 +32,7 @@ RUN mkdir -p /data/files
 # ---------- Runtime ----------
 # chiseled: no shell or package manager, runs as non-root (UID 1654); "extra" contains ICU and time zone data
 # (German formatting, Europe/Berlin).
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS laufzeit
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-resolute-chiseled-extra AS laufzeit
 WORKDIR /app
 COPY --from=build /app .
 # Owner = app user so that a new Docker volume is initialized writable.

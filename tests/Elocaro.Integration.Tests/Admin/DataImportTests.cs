@@ -260,7 +260,7 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
     public void Numbers_are_read_in_german_and_plain_form(string text, double expected)
     {
         Assert.True(ImportSheet.TryNumber(text, out var value));
-        Assert.Equal((decimal)expected, value);
+        Assert.Equal(Dec.From(expected), value);
     }
 
     private async Task<T> WithAsync<T>(Func<IDataImport, Task<T>> action) => await WithAsync<IDataImport, T>(action);

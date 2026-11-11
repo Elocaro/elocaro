@@ -128,7 +128,7 @@ public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
         var (values, errors) = CpiService.Read(line);
 
         Assert.Empty(errors);
-        Assert.Equal((new DateOnly(year, month, 1), (decimal)value), Assert.Single(values));
+        Assert.Equal((new DateOnly(year, month, 1), Dec.From(value)), Assert.Single(values));
     }
 
     private async Task<int> ApplyAsync()

@@ -122,7 +122,7 @@ public class BankFileParserTests
     [InlineData("770", ',', 770)]
     [InlineData("+12,5 €", ',', 12.5)]
     [InlineData("1,234.56", '.', 1234.56)]
-    public void Csv_amounts(string text, char decimalSeparator, double expected) => Assert.Equal((decimal)expected, CsvText.Amount(text, decimalSeparator));
+    public void Csv_amounts(string text, char decimalSeparator, double expected) => Assert.Equal(Dec.From(expected), CsvText.Amount(text, decimalSeparator));
 
     [Fact]
     public void Unknown_format_and_malformed_XML()

@@ -58,7 +58,9 @@ internal sealed class DocumentLibrary(ElocaroDbContext db, IDocumentLeaseSource 
             var pattern = "%" + search.Text.Trim().Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal) + "%";
             var files = db.Set<StoredFile>().Where(f => EF.Functions.ILike(f.Name, pattern)).Select(f => f.Id);
             query = query.Where(d => EF.Functions.ILike(d.Title, pattern)
-                || d.Tags.Any(t => EF.Functions.ILike(t, pattern))
+                // Tags joined with a line break (array_to_string): the search text is a single line, so it never spans two tags.
+                // (EF.Functions.ILike inside Tags.Any is not translatable with EF Core / Npgsql 11 RC.)
+                || EF.Functions.ILike(string.Join('\n', d.Tags), pattern)
                 || (d.Note != null && EF.Functions.ILike(d.Note, pattern))
                 || files.Contains(d.FileId));
         }

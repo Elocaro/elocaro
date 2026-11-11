@@ -9,7 +9,7 @@ public class ModernisationLevyTests
     [InlineData(12000, 80.00)]
     [InlineData(100, 0.67)]
     public void Monthly_increase_is_eight_percent_of_the_costs_a_year_divided_by_twelve(double costs, double expected) =>
-        Assert.Equal((decimal)expected, ModernisationLevy.MonthlyIncrease((decimal)costs));
+        Assert.Equal(Dec.From(expected), ModernisationLevy.MonthlyIncrease(Dec.From(costs)));
 
     [Fact]
     public void Costs_minus_maintenance_are_charged_and_the_increase_stays_below_the_cap()

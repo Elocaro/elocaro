@@ -2,7 +2,7 @@
 
 ## Voraussetzungen
 
-- .NET SDK 10.0.1xx (`global.json`)
+- .NET SDK 11.0.1xx (`global.json`)
 - Docker (für die lokale Datenbank und die Integrationstests via Testcontainers)
 
 ## Lokale Dienste
@@ -717,7 +717,7 @@ Fachliche Festlegungen und Standardwerte (70/30, Gas, Wärmezähler im Warmwasse
 | `Elocaro.Domain.Tests` | Reine Unit-Tests der Fachlogik (Rechenkerne), ohne I/O |
 | `Elocaro.Integration.Tests` | Gegen echtes PostgreSQL (Testcontainers, `postgres:18-alpine`). `PostgresFixture` startet einen Container je Testlauf, **jeder Test bekommt eine eigene Datenbank**, die beim Aufräumen wieder gelöscht wird (`DropDatabaseAsync`; sonst läuft die Platte des CI-Runners voll). `InfrastructureEnvironment` liefert die komplett registrierte Infrastruktur (migrierte DB, temporäre Dateiablage, `FakeTimeProvider`). Mailtests laufen gegen einen echten SMTP-Server (`MailpitFixture`) |
 | `Elocaro.Web.Tests` | Komponenten mit bUnit (`BunitContext`). Ende-zu-Ende über HTTP mit `ElocaroWebFactory` (echte App, eigene DB je Test) und `TestBrowser`: lädt Seiten, folgt Weiterleitungen und schickt Blazor-Formulare inklusive Antiforgery-Token ab (Formular über den `FormName`). TOTP-Codes liefert `TestHelpers.Totp` |
-| `Elocaro.Web.Tests/Browser` | Echte Browser-Tests mit Playwright (Chromium) gegen die per Kestrel gestartete App: 360-px-Breite ohne horizontales Scrollen, Navigation, Formulare mit `blazor.web.js`. `Browser/FirstHourBrowserTests` spielt „die erste Stunde“ nach (Einrichtungsassistent → Mieter → Vertrag → Vertrags-PDF → Einladung → Kontoauszug → Zuordnung, am Desktop und bei 390 px) und schlägt bei jedem Fehlerhinweis (`Notice` mit Stufe Fehler) fehl; wer einen dieser Schritte umbaut, hält ihn damit nutzbar. Ohne installierten Browser werden sie übersprungen (Trait `Category=Browser`). Browser installieren: `pwsh tests/Elocaro.Web.Tests/bin/Debug/net10.0/playwright.ps1 install chromium` |
+| `Elocaro.Web.Tests/Browser` | Echte Browser-Tests mit Playwright (Chromium) gegen die per Kestrel gestartete App: 360-px-Breite ohne horizontales Scrollen, Navigation, Formulare mit `blazor.web.js`. `Browser/FirstHourBrowserTests` spielt „die erste Stunde“ nach (Einrichtungsassistent → Mieter → Vertrag → Vertrags-PDF → Einladung → Kontoauszug → Zuordnung, am Desktop und bei 390 px) und schlägt bei jedem Fehlerhinweis (`Notice` mit Stufe Fehler) fehl; wer einen dieser Schritte umbaut, hält ihn damit nutzbar. Ohne installierten Browser werden sie übersprungen (Trait `Category=Browser`). Browser installieren: `pwsh tests/Elocaro.Web.Tests/bin/Debug/net11.0/playwright.ps1 install chromium` |
 | `Elocaro.TestHelpers` | Gemeinsame Fixtures (PostgreSQL, Mailpit, Gotenberg) und Hilfen; selbst kein Testprojekt |
 | `Elocaro.Architecture.Tests` | Schichtregeln (NetArchTest) |
 
