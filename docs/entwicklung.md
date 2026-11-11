@@ -277,7 +277,7 @@ var datei = await pdfErzeugung.ErzeugenUndAblegenAsync(auftrag, "Abrechnung 2025
 
 ### Datensicherung & Vollexport
 
-- `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusFile`, Format siehe `deploy/backup/elocaro-backup.sh`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warning` (täglich 8:05, Mail an aktive Admins).
+- `IBackupStatus` liest die Statusdatei des Backup-Containers (`Backup:StatusFile`, Format schreibt `BackupCoordinator` in `src/Elocaro.Backup`). Daraus: Dashboard-Aufgabe, Health-Check `backup` (Degraded) und der Job `backup-warning` (täglich 8:05, Mail an aktive Admins).
 - `IDataExport` erzeugt den Vollexport generisch aus dem relationalen EF-Modell: neue Tabellen sind automatisch enthalten. Geheimnisse mit `[NoExport]` (Klasse oder Eigenschaft) ausnehmen und die Liste in `DataExportTests.Every_table_is_exported_or_deliberately_excluded` ergänzen. `[Confidential]` (z. B. IBAN) bleibt im Export, denn es sind fachliche Daten.
 - Der ZIP-Export wird zuerst in eine temporäre Datei geschrieben: Die Eintrags-Streams von `ZipArchive` schreiben beim Schließen synchron, und Kestrel erlaubt kein synchrones Schreiben.
 

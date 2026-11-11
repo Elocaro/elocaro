@@ -117,7 +117,8 @@ jobs:
       - name: Backup-Image bauen
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: deploy/backup
+          context: .
+          file: deploy/backup/Dockerfile
           load: true
           tags: elocaro-backup:test
           cache-from: type=gha,scope=elocaro-backup

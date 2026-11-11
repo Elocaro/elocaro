@@ -48,6 +48,8 @@ services:
       Mcp__MaxResults: ${MCP_MAX_RESULTS:-50}
       AccessTokens__MaxDays: ${ACCESS_TOKEN_MAX_DAYS:-90}
       Backup__StatusFile: /backup-status/backup.json
+      Backup__Url: http://backup:8080/
+      Backup__ApiToken: ${BACKUP_API_TOKEN:-}
       # Optional protection of the data protection keys by a certificate, see docs/betrieb.md (empty = off)
       DataProtection__CertificatePath: ${DATA_PROTECTION_CERT_PATH:-}
       DataProtection__CertificatePassword: ${DATA_PROTECTION_CERT_PASSWORD:-}
@@ -96,13 +98,16 @@ services:
   backup:
     image: ${ELOCARO_BACKUP_IMAGE:-ghcr.io/elocaro/elocaro-backup:latest}
     build:
-      context: ./backup
+      context: ..
+      dockerfile: deploy/backup/Dockerfile
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
+      # Internal API for the app (compose network only); empty = API off, only the target below is used
+      BACKUP_API_TOKEN: ${BACKUP_API_TOKEN:-}
       RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-/repo}
       RESTIC_PASSWORD: ${RESTIC_PASSWORD}
       BACKUP_TIME: ${BACKUP_TIME:-02:30}

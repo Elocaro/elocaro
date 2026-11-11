@@ -14,7 +14,7 @@ backup (nachts) ──▶ postgres + Volume dateien ──▶ restic-Repository 
 | `app` | `ghcr.io/elocaro/elocaro` (chiseled, Non-Root, ohne Shell) | Volume `files` → `/data` (Belege, Fotos, PDFs) |
 | `postgres` | `postgres:18-alpine` | Volume `postgres` (Daten inkl. Anmelde-Schlüssel) |
 | `gotenberg` | `gotenberg/gotenberg:8.39.0` | – |
-| `backup` | `ghcr.io/elocaro/elocaro-backup` (pg_dump + restic) | Volumes `backup-status`, `backup-cache`; Repository extern bzw. `deploy/backup-repo` |
+| `backup` | `ghcr.io/elocaro/elocaro-backup` (kleine ASP.NET-Core-API `src/Elocaro.Backup` um pg_dump, restic und rclone) | Volumes `backup-status`, `backup-cache`; Repository extern bzw. `deploy/backup-repo` |
 | `caddy` | `caddy:2.11-alpine` | Volumes `caddy-data`, `caddy-config` (Zertifikate) |
 
 PostgreSQL und Gotenberg liegen im Netz `intern` ohne Internetzugang. Die App ist zusätzlich im Netz `extern` (ausgehend für SMTP, später FinTS und KI-API). Von außen erreichbar ist nur Caddy.
@@ -299,7 +299,7 @@ Die zusätzliche Compose-Datei bei allen späteren `docker compose`-Aufrufen mit
 
 ## Backup
 
-Der Dienst `backup` (Image `ghcr.io/elocaro/elocaro-backup`, Quelle `deploy/backup/`) sichert jede Nacht um `BACKUP_TIME` (Standard 02:30):
+Der Dienst `backup` (Image `ghcr.io/elocaro/elocaro-backup`, Quelle `src/Elocaro.Backup`, Image `deploy/backup/Dockerfile`) sichert jede Nacht um `BACKUP_TIME` (Standard 02:30):
 
 1. die Datenbank per `pg_dump` (Custom-Format; passt zur PostgreSQL-Version, da das Image auf `postgres:18-alpine` basiert),
 2. das Volume `files` (Belege, Fotos, PDFs),
@@ -357,7 +357,7 @@ $DC run --rm backup restore          # neuester Stand; oder: restore <ID>
 $DC start app
 ```
 
-Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP DATABASE … WITH (FORCE)`, `pg_restore`), ersetzt den Inhalt des Volumes `files` und setzt die Dateirechte für den App-Benutzer (UID 1654). Es bricht ab, solange die App noch verbunden ist.
+Der Befehl holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP DATABASE … WITH (FORCE)`, `pg_restore`), ersetzt den Inhalt des Volumes `files` und setzt die Dateirechte für den App-Benutzer (UID 1654). Es bricht ab, solange die App noch verbunden ist.
 
 ### Auf einem neuen Server
 
@@ -371,7 +371,7 @@ Das Skript holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP D
 `deploy/backup/restore-test.sh` spielt den Ablauf vollständig durch und läuft in der CI bei jedem Push: App gegen leere Datenbank starten, Testdaten anlegen, sichern, **alle Volumes löschen**, in eine leere Datenbank wiederherstellen, dann Schema, Inhalt jeder Tabelle (Prüfsumme) sowie Dateien samt Eigentümer vergleichen. Zum Schluss muss die App auf dem wiederhergestellten Stand starten. Lokal:
 
 ```bash
-docker build -t elocaro:lokal . && docker build -t elocaro-backup:lokal deploy/backup
+docker build -t elocaro:lokal . && docker build -t elocaro-backup:lokal -f deploy/backup/Dockerfile .
 deploy/backup/restore-test.sh
 ```
 
