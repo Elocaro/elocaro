@@ -138,7 +138,7 @@ public class DataExportTests(PostgresFixture postgres) : IAsyncLifetime
         var exported = DataExport.ExportTables(db.Model).Select(t => t.Name).ToHashSet();
 
         // New tables are included in the export automatically. Anyone who excludes one ([NoExport]) must list it here.
-        Assert.Equal(["access_tokens", "data_protection_keys", "magic_links", "user_tokens"], all.Except(exported).Order());
+        Assert.Equal(["access_tokens", "backup_settings", "data_protection_keys", "magic_links", "user_tokens"], all.Except(exported).Order());
     }
 
     [Fact]

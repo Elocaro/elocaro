@@ -316,6 +316,7 @@ In `deploy/.env`:
 | `RESTIC_REPOSITORY` | Ziel, siehe unten. Standard `/repo` = Ordner `BACKUP_LOCAL_PATH` (`deploy/backup-repo`) auf demselben Server, nur zum Ausprobieren |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Zugang für S3-kompatible Ziele |
 | `BACKUP_TIME` | Uhrzeit (deutsche Zeit, `HH:MM`) |
+| `BACKUP_API_TOKEN` | Zugang der App zum Backup-Dienst (nur im internen Docker-Netz; `install.sh` erzeugt ihn, sonst z. B. `openssl rand -base64 32`). Ohne Token läuft die Sicherung wie bisher nur nach den Variablen dieser Tabelle, die App kann sie dann nicht steuern. |
 
 Beispiele für `RESTIC_REPOSITORY` (alle von restic unterstützten Ziele funktionieren):
 
@@ -337,6 +338,28 @@ $DC logs backup                  # Zeitplan und Ergebnisse
 $DC run --rm backup verify      # zusätzlich 10 % der Daten lesen und prüfen (z. B. monatlich)
 ```
 
+### In der App einrichten
+
+*Verwaltung → System → Datensicherung* (Recht *System*) richtet Ziel und Zeitplan ein, ohne `deploy/.env` zu bearbeiten:
+
+- **Ablage:** S3-Speicher, Azure Blob, SFTP-Server, Google Drive oder dieser Server (nur zum Ausprobieren). Die Zugangsdaten und das Passwort der Sicherung werden verschlüsselt in der Datenbank gespeichert (Data Protection), nie angezeigt und tauchen weder im Audit-Log noch im Vollexport auf. Bei einer späteren Änderung bleibt ein leer gelassenes Feld unverändert.
+- **Verbindung testen** prüft, ob das Ziel erreichbar ist, das Passwort stimmt und schon ein Repository existiert, ohne etwas zu ändern.
+- **Zeitplan:** tägliche Uhrzeit und Aufbewahrung. Die App startet die Sicherung zur eingestellten Zeit (Job `backup`, alle 10 Minuten geprüft); wurde die Zeit verpasst, weil die App nicht lief, holt sie die Sicherung am selben Tag nach. Ein fehlgeschlagener Versuch wird erst am nächsten Tag wiederholt; die Warnmail (siehe unten) meldet ihn.
+- **Jetzt sichern** startet sofort eine Sicherung, **Vorhandene Sicherungen** listet die Stände am Ziel.
+- Speichert man die Einstellungen, **übernimmt die App den Zeitplan**: Die tägliche Sicherung nach den Variablen in `deploy/.env` pausiert (Markierung im Volume `backup-status`), damit nicht doppelt gesichert wird. Ohne gespeicherte Einstellungen gilt weiter `.env`.
+
+Die App spricht dazu mit dem Backup-Dienst über eine interne API (`Backup__Url`, `Backup__ApiToken`; Port 8080 nur im Docker-Netz, Anmeldung per Token). Der Dienst speichert keine Zugangsdaten, die App schickt das Ziel bei jedem Aufruf mit. **Bestehende Installationen:** `BACKUP_API_TOKEN` in `deploy/.env` eintragen und `docker compose … up -d --build backup` ausführen; bis dahin zeigt die Seite, dass der Backup-Dienst nicht erreichbar ist.
+
+#### Google Drive
+
+Die App verbindet sich über rclone mit Google Drive und sieht nur Dateien, die sie selbst angelegt hat (Berechtigung `drive.file`).
+
+1. Empfohlen: in der [Google Cloud Console](https://console.cloud.google.com/) ein Projekt anlegen, die *Google Drive API* aktivieren und eine **OAuth-Client-ID** (Typ *Desktop-App*) erstellen. Ohne eigene Client-ID teilen sich alle Nutzer das stark begrenzte Kontingent von rclone.
+2. Auf einem Rechner mit Browser [rclone](https://rclone.org/downloads/) installieren und `rclone authorize "drive" "<Client-ID>" "<Client-Geheimnis>" --drive-scope drive.file` ausführen (ohne eigene Client-ID: `rclone authorize "drive" --drive-scope drive.file`). Nach der Anmeldung im Browser gibt rclone einen Token als JSON aus (`{"access_token": …}`).
+3. In der App *Google Drive* wählen, Ordnername (wird angelegt), den **Token (JSON)**, Client-ID samt Geheimnis und das Passwort der Sicherung eintragen, *Verbindung testen*, *Speichern*.
+
+Der Token enthält ein Erneuerungstoken, die Sicherung läuft danach ohne Eingriff. Widerruft man den Zugriff im Google-Konto, schlägt sie fehl, und die Warnmail meldet es. Für die Wiederherstellung auf einem neuen Server braucht man das Passwort der Sicherung **und** einen neuen Token (Schritt 2): Das Repository am Ziel enthält nur die Daten, nicht den Zugang dazu.
+
 ### Überwachung
 
 Nach jedem Lauf schreibt der Backup-Dienst eine Statusdatei in das Volume `backup-status`, die App liest sie (`Backup__StatusFile`):
@@ -349,6 +372,10 @@ Nach jedem Lauf schreibt der Backup-Dienst eine Statusdatei in das Volume `backu
 
 Die Wiederherstellung ersetzt Datenbank **und** Dateiablage vollständig durch den gewählten Stand.
 
+**In der App:** *Datensicherung → Vorhandene Sicherungen → Wiederherstellen …*, zur Bestätigung „WIEDERHERSTELLEN“ eingeben. Was seit dem Stand erfasst wurde, geht verloren. Der Backup-Dienst spielt Datenbank und Dateien ein, die App startet danach von selbst neu (die Data-Protection-Schlüssel und alles Zwischengespeicherte kommen aus dem wiederhergestellten Stand), anschließend neu anmelden. Der Neustart setzt `restart: unless-stopped` voraus (Standard in `deploy/docker-compose.yml`).
+
+**Auf der Konsole** (auch ohne laufende App):
+
 ```bash
 DC="docker compose -f deploy/docker-compose.yml --env-file deploy/.env"
 $DC stop app                                  # keine Verbindungen während des Einspielens
@@ -360,6 +387,10 @@ $DC start app
 Der Befehl holt den Stand aus dem Repository, legt die Datenbank neu an (`DROP DATABASE … WITH (FORCE)`, `pg_restore`), ersetzt den Inhalt des Volumes `files` und setzt die Dateirechte für den App-Benutzer (UID 1654). Es bricht ab, solange die App noch verbunden ist.
 
 ### Auf einem neuen Server
+
+**Mit der Ersteinrichtung:** Auf dem frisch installierten Server (wie unter [Installation](installation.md)) bietet die Ersteinrichtung unter dem Formular „Aus einer Datensicherung wiederherstellen“ an. Einrichtungscode, Ablage, Zugangsdaten und Passwort der Sicherung eingeben, den Stand wählen, fertig: Die App startet neu, danach meldet man sich mit dem bisherigen Konto an. Das geht nur, solange noch kein Konto existiert. Ein [Zertifikat für die Schlüssel](#data-protection-schlüssel-verschlüsseln) muss vorher wieder eingespielt sein, sonst sind gespeicherte Zugangsdaten (Bankzugang, Ziel der Sicherung) nicht lesbar: dann das Ziel in der App neu eingeben.
+
+**Auf der Konsole:**
 
 1. Installation wie oben bis einschließlich `deploy/.env`. Dabei **dasselbe** `RESTIC_PASSWORD`, `RESTIC_REPOSITORY` und die Zugangsdaten eintragen. `POSTGRES_PASSWORD` darf neu sein.
 2. Nur die Datenbank starten: `$DC up -d postgres`

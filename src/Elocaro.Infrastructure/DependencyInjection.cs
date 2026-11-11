@@ -292,6 +292,22 @@ public static class DependencyInjection
         services.Configure<StatementOptions>(configuration.GetSection(StatementOptions.Section));
         services.Configure<BackupOptions>(configuration.GetSection(BackupOptions.Section));
         services.AddScoped<IBackupStatus, BackupStatus>();
+        services.AddHttpClient<BackupSidecar>((sp, http) =>
+        {
+            var backup = sp.GetRequiredService<IOptions<BackupOptions>>().Value;
+            if (Uri.TryCreate(backup.Url, UriKind.Absolute, out var url))
+            {
+                http.BaseAddress = url;
+            }
+
+            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", backup.ApiToken ?? string.Empty);
+            // Testing a slow target and listing its backups can take a while.
+            http.Timeout = TimeSpan.FromSeconds(120);
+        });
+        services.AddScoped<BackupSettingsService>();
+        services.AddScoped<IBackupSettings>(sp => sp.GetRequiredService<BackupSettingsService>());
+        services.AddScoped<IBackupTargets>(sp => sp.GetRequiredService<BackupSettingsService>());
+        services.AddScoped<IBackupControl, BackupControl>();
         services.AddScoped<ITodoSource, BackupTodos>();
         services.AddScoped<BackupWarning>();
         services.AddScoped<IDataExport, DataExport>();
@@ -461,6 +477,7 @@ public static class DependencyInjection
             q.ScheduleInterval<ReceiptInboxJob>(ReceiptInboxJob.Key, "Holt Belege aus dem Beleg-Postfach ab (nur wenn eingerichtet)", TimeSpan.FromMinutes(5));
             q.ScheduleInterval<DegreeDayJob>(DegreeDayJob.Key, "Holt die Monatsgradtage der Wetterstationen vom Deutschen Wetterdienst (Aufteilung der Heizkosten beim Mieterwechsel)", TimeSpan.FromHours(12));
             q.ScheduleInterval<Notifications.PushDispatchJob>(Notifications.PushDispatchJob.Key, "Schickt Hinweise an Geräte, die Benachrichtigungen eingeschaltet haben", TimeSpan.FromMinutes(1));
+            q.ScheduleInterval<BackupJob>(BackupJob.Key, "Startet die tägliche Datensicherung zur eingestellten Zeit (nur wenn die Sicherung in der App eingerichtet ist)", TimeSpan.FromMinutes(10));
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
         services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);

@@ -29,7 +29,11 @@ internal sealed class EnvironmentScheduler(BackupCoordinator coordinator, Backup
             var wait = DailySchedule.Until(clock.GetUtcNow(), time, clock.LocalTimeZone);
             BackupLog.NextRun(logger, (int)wait.TotalMinutes);
             await Task.Delay(wait, clock, stoppingToken);
-            if (coordinator.TryStartBackup(target, stoppingToken))
+            if (File.Exists(settings.ManagedMarker))
+            {
+                BackupLog.ManagedByApp(logger);
+            }
+            else if (coordinator.TryStartBackup(target, stoppingToken))
             {
                 await coordinator.Running;
             }

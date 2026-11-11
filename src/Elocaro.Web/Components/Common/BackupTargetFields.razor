@@ -1,0 +1,61 @@
+@using Elocaro.Application.Operations
+@using Elocaro.Domain.Operations
+@* Entry of a backup target: provider, location, credentials and repository password. Shared by the settings page and the restore
+   during the initial setup. Secrets are never shown; where one is stored, an empty entry keeps it. *@
+<AppSelect T="BackupProvider" Value="Input.Provider" ValueChanged="ProviderChangedAsync" Label="Ablage" Items="BackupProviders.All" Text="BackupProviders.Label" />
+@if (Input.Provider == BackupProvider.Local)
+{
+    <Notice Level="NoticeLevel.Warning">@LocalWarning</Notice>
+}
+else
+{
+    <AppTextField Value="Input.Location" ValueChanged="v => Input.Location = v ?? string.Empty" Label="@BackupProviders.LocationLabel(Input.Provider)" Hint="@BackupProviders.LocationHint(Input.Provider)" Required="true" />
+}
+
+@foreach (var field in BackupProviders.Fields(Input.Provider))
+{
+    <AppTextField Value="@Credential(field.Key)" ValueChanged="v => Input.Credentials[field.Key] = v ?? string.Empty" Label="@field.Label" Type="@(field.Secret ? "password" : "text")"
+                  Required="@(field.Required && !Stored(field.Key))" Hint="@(Stored(field.Key) ? "Gespeichert. Leer lassen, um den Wert zu behalten." : field.Hint)" Autocomplete="off" />
+}
+
+<AppTextField Value="Input.Password" ValueChanged="v => Input.Password = v" Label="Passwort der Sicherung" Type="password" Required="@(!HasPassword)" Autocomplete="off"
+              Hint="@(HasPassword ? "Gespeichert. Leer lassen, um es zu behalten." : PasswordHint)" />
+
+@code {
+    [Parameter, EditorRequired]
+    public BackupSettingsInput Input { get; set; } = new();
+
+    /// <summary>Names of the credentials that are already stored (their entry may stay empty).</summary>
+    [Parameter]
+    public IReadOnlySet<string> StoredCredentials { get; set; } = new HashSet<string>(StringComparer.Ordinal);
+
+    [Parameter]
+    public bool HasPassword { get; set; }
+
+    [Parameter]
+    public string LocalWarning { get; set; } = "Die Sicherung liegt auf demselben Server wie die Daten. Bei einem Serverausfall ist beides weg: nur zum Ausprobieren, für den Alltag ein externes Ziel wählen.";
+
+    [Parameter]
+    public string PasswordHint { get; set; } = "Verschlüsselt die Sicherung. OHNE DIESES PASSWORT GIBT ES KEINE WIEDERHERSTELLUNG: zusätzlich im Passwortmanager aufbewahren.";
+
+    /// <summary>Called after the provider changed (location and credentials are already cleared).</summary>
+    [Parameter]
+    public EventCallback<BackupProvider> ProviderChanged { get; set; }
+
+    private string Credential(string key) => Input.Credentials.GetValueOrDefault(key) ?? string.Empty;
+
+    private bool Stored(string key) => StoredCredentials.Contains(key);
+
+    private async Task ProviderChangedAsync(BackupProvider provider)
+    {
+        if (provider == Input.Provider)
+        {
+            return;
+        }
+
+        Input.Provider = provider;
+        Input.Location = string.Empty;
+        Input.Credentials.Clear();
+        await ProviderChanged.InvokeAsync(provider);
+    }
+}

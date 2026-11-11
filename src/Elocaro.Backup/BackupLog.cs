@@ -50,6 +50,9 @@ internal static partial class BackupLog
     [LoggerMessage(Level = LogLevel.Information, Message = "Tägliche Sicherung um {Time} ({Zone})")]
     public static partial void Scheduled(ILogger logger, string time, string zone);
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Die App verwaltet die Sicherung, der Zeitplan der Umgebung pausiert.")]
+    public static partial void ManagedByApp(ILogger logger);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Nächste Sicherung in {Minutes} Minuten")]
     public static partial void NextRun(ILogger logger, int minutes);
 }

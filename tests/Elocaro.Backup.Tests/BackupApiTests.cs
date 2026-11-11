@@ -79,4 +79,16 @@ public sealed class BackupApiTests : IDisposable
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         Assert.Contains("49ccbcd74357a447", await Client().GetStringAsync(new Uri("/status", UriKind.Relative), Ct), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task Managed_marker_is_set_and_removed_for_the_schedule_of_the_environment()
+    {
+        var client = Client();
+
+        await client.PostAsJsonAsync(new Uri("/managed", UriKind.Relative), new ManagedRequest(true), Ct);
+        Assert.True(File.Exists(environment.Settings.ManagedMarker));
+
+        await client.PostAsJsonAsync(new Uri("/managed", UriKind.Relative), new ManagedRequest(false), Ct);
+        Assert.False(File.Exists(environment.Settings.ManagedMarker));
+    }
 }

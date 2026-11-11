@@ -594,10 +594,12 @@ public static class PageInfoCatalog
                 "Das Laufprotokoll zeigt, wann ein Job zuletzt lief und wie es ausging.")]), $"{Admin}/system/jobs");
 
         Add(new("Datensicherung",
-            "Nächtliches Backup, Wiederherstellung und Vollexport aller Daten.",
+            "Ziel und Zeitplan der täglichen Sicherung, Wiederherstellung und Vollexport aller Daten.",
             [new("Gut zu wissen",
                 "Eine Sicherung, die nie zurückgespielt wurde, ist nicht erprobt. Testen Sie die Wiederherstellung einmal auf einem anderen Rechner.",
-                "Bewahren Sie Sicherungen außerhalb des Servers auf.",
+                "Bewahren Sie Sicherungen außerhalb des Servers auf. Liegt das Ziel auf demselben Server, ist bei einem Ausfall beides weg.",
+                "Das Passwort der Sicherung verschlüsselt sie. Ohne es gibt es keine Wiederherstellung: Bewahren Sie es zusätzlich im Passwortmanager und in der Notfallmappe auf.",
+                "Eine Wiederherstellung ersetzt alle aktuellen Daten durch den gewählten Stand; was seitdem erfasst wurde, geht verloren.",
                 "Der Vollexport enthält alle Daten in lesbarer Form, etwa für einen Umzug oder die Archivierung.")]), $"{Admin}/system/datensicherung");
 
         Add(new("Notfallmappe",

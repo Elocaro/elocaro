@@ -1,86 +1,442 @@
 @page "/verwaltung/system/datensicherung"
+@rendermode InteractiveServer
+@implements IDisposable
+@using System.Globalization
+@using MudBlazor
 @using Elocaro.Application.Operations
+@using Elocaro.Domain.Operations
 @using Elocaro.Web.Operations
 @inject IBackupStatus BackupStatus
+@inject IBackupSettings Settings
+@inject IBackupControl Control
+@inject Notifier Notify
+@inject AppRestart Restart
 
-<PageHeader Title="Datensicherung" Subtitle="Nächtliches Backup, Wiederherstellung und Vollexport aller Daten." />
+<InteractiveShell>
+    <PageHeader Title="Datensicherung" Subtitle="Ziel und Zeitplan der täglichen Sicherung, Wiederherstellung und Vollexport aller Daten.">
+        <Actions>
+            @if (managed && progress.Available)
+            {
+                <button type="button" class="button button-primary" id="backup-now" @onclick="StartBackupAsync" disabled="@(progress.Running || busy)">Jetzt sichern</button>
+            }
+        </Actions>
+    </PageHeader>
 
-<section>
-    <h2>Letzte Sicherung</h2>
-    @if (state is not null)
-    {
-        <Notice Level="Level(state.State)">@state.Description</Notice>
-        @if (state.Timestamp is not null)
+    <section>
+        <h2>Letzte Sicherung</h2>
+        @if (state is not null)
         {
-            <dl class="details">
-                <dt>Zeitpunkt</dt>
-                <dd>@Format.Timestamp(state.Timestamp)</dd>
-                <dt>Ergebnis</dt>
-                <dd>
-                    @if (state.State == BackupState.Failed)
+            <Notice Level="Level(state.State)">@state.Description</Notice>
+            @if (state.Timestamp is not null)
+            {
+                <dl class="details">
+                    <dt>Zeitpunkt</dt>
+                    <dd>@Format.Timestamp(state.Timestamp)</dd>
+                    <dt>Ergebnis</dt>
+                    <dd>
+                        @if (state.State == BackupState.Failed)
+                        {
+                            <StatusChip Level="StatusLevel.Error">fehlgeschlagen</StatusChip>
+                        }
+                        else
+                        {
+                            <StatusChip Level="StatusLevel.Success">erfolgreich</StatusChip>
+                        }
+                    </dd>
+                    @if (state.Snapshot is not null)
                     {
-                        <StatusChip Level="StatusLevel.Error">fehlgeschlagen</StatusChip>
+                        <dt>Snapshot</dt>
+                        <dd><code>@state.Snapshot[..Math.Min(8, state.Snapshot.Length)]</code></dd>
                     }
-                    else
+                    @if (state.DurationSeconds is not null)
                     {
-                        <StatusChip Level="StatusLevel.Success">erfolgreich</StatusChip>
+                        <dt>Dauer</dt>
+                        <dd>@state.DurationSeconds s</dd>
                     }
-                </dd>
-                @if (state.Snapshot is not null)
-                {
-                    <dt>Snapshot</dt>
-                    <dd><code>@state.Snapshot[..Math.Min(8, state.Snapshot.Length)]</code></dd>
-                }
-                @if (state.DurationSeconds is not null)
-                {
-                    <dt>Dauer</dt>
-                    <dd>@state.DurationSeconds s</dd>
-                }
-                @if (!string.IsNullOrWhiteSpace(state.Message))
-                {
-                    <dt>Meldung</dt>
-                    <dd>@state.Message</dd>
-                }
-            </dl>
-        }
+                    @if (!string.IsNullOrWhiteSpace(state.Message))
+                    {
+                        <dt>Meldung</dt>
+                        <dd>@state.Message</dd>
+                    }
+                </dl>
+            }
 
-        @if (state.State == BackupState.NotConfigured)
-        {
-            <p>Der Backup-Container aus <code>deploy/docker-compose.yml</code> meldet hier sein Ergebnis, sobald
-            <code>Backup__StatusFile</code> gesetzt ist. Einrichtung: <code>docs/betrieb.md</code>, Abschnitt „Backup“.</p>
-        }
-        else if (state.NeedsAttention)
-        {
-            <p>Logs prüfen und eine Sicherung von Hand anstoßen:</p>
-            <pre><code>docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs backup
+            @if (state.State == BackupState.NotConfigured)
+            {
+                <p>Der Backup-Container aus <code>deploy/docker-compose.yml</code> meldet hier sein Ergebnis, sobald
+                <code>Backup__StatusFile</code> gesetzt ist. Einrichtung: <code>docs/betrieb.md</code>, Abschnitt „Backup“.</p>
+            }
+            else if (state.NeedsAttention)
+            {
+                <p>Logs prüfen und eine Sicherung von Hand anstoßen:</p>
+                <pre><code>docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs backup
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm backup backup</code></pre>
-            <p>Solange das Problem besteht, erhalten Administratoren täglich um 8 Uhr eine Warnung per E-Mail.</p>
+                <p>Solange das Problem besteht, erhalten Administratoren täglich um 8 Uhr eine Warnung per E-Mail.</p>
+            }
         }
+
+        @if (progress.Running)
+        {
+            <Notice Level="NoticeLevel.Info" id="backup-running">@(progress.Kind == "Restore" ? "Die Wiederherstellung läuft …" : "Eine Sicherung läuft …")</Notice>
+        }
+        else if (progress.Last is { Kind: "Restore" } restored)
+        {
+            <Notice Level="@(restored.Succeeded ? NoticeLevel.Success : NoticeLevel.Error)" id="restore-result">
+                @(restored.Succeeded ? (restarting ? "Die Wiederherstellung ist abgeschlossen. Die App startet in wenigen Sekunden neu, danach bitte neu anmelden." : "Die Wiederherstellung ist abgeschlossen. Bitte die App neu starten und danach neu anmelden: docker compose … restart app") : "Die Wiederherstellung ist fehlgeschlagen: " + restored.Message)
+            </Notice>
+        }
+    </section>
+
+    <section>
+        <h2>Ziel und Zeitplan</h2>
+        @if (!progress.Available)
+        {
+            <Notice Level="NoticeLevel.Warning" id="backup-unavailable">Der Backup-Dienst ist von hier aus nicht erreichbar. Ziel und Zeitplan lassen sich erst einstellen,
+            wenn der Container „backup“ läuft und <code>BACKUP_API_TOKEN</code> in <code>deploy/.env</code> gesetzt ist.</Notice>
+        }
+        else if (!managed)
+        {
+            <Notice Level="NoticeLevel.Info" id="backup-environment">Die Sicherung läuft derzeit nach den Einstellungen in <code>deploy/.env</code> (<code>RESTIC_REPOSITORY</code>, <code>BACKUP_TIME</code>).
+            Richten Sie sie hier ein, verwaltet die App Ziel und Zeitplan, und die Angaben aus <code>.env</code> ruhen.</Notice>
+        }
+
+        @if (data is not null)
+        {
+            <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+                <div class="form-grid">
+                    <BackupTargetFields Input="data" StoredCredentials="storedCredentials" HasPassword="hasPassword" ProviderChanged="ProviderChanged" />
+                </div>
+
+                <h3>Zeitplan</h3>
+                <div class="form-grid">
+                    <AppCheckBox Value="data.Enabled" ValueChanged="v => data.Enabled = v" Label="Täglich automatisch sichern" />
+                    <AppTextField Value="timeText" ValueChanged="v => timeText = v ?? string.Empty" Label="Uhrzeit" Hint="Stunde und Minute, z. B. 02:30. Wurde die Zeit verpasst, holt die App die Sicherung nach." Placeholder="02:30" />
+                    <AppNumberField T="int" Value="data.KeepDaily" ValueChanged="v => data.KeepDaily = v" Label="Tägliche Sicherungen behalten" />
+                    <AppNumberField T="int" Value="data.KeepWeekly" ValueChanged="v => data.KeepWeekly = v" Label="Wöchentliche behalten" />
+                    <AppNumberField T="int" Value="data.KeepMonthly" ValueChanged="v => data.KeepMonthly = v" Label="Monatliche behalten" />
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="button button-primary" id="backup-save" disabled="@busy">Speichern</button>
+                    <button type="button" class="button button-outlined" id="backup-test" @onclick="TestAsync" disabled="@busy">Verbindung testen</button>
+                </div>
+            </EditForm>
+
+            @if (check is not null)
+            {
+                <Notice Level="@(check.Succeeded ? NoticeLevel.Success : NoticeLevel.Error)" id="backup-check">@check.Message</Notice>
+            }
+
+            <ErrorList Errors="errors" />
+        }
+    </section>
+
+    @if (managed && progress.Available)
+    {
+        <section>
+            <h2>Vorhandene Sicherungen</h2>
+            @if (snapshots is null)
+            {
+                <button type="button" class="button button-outlined" id="backup-load" @onclick="LoadSnapshotsAsync" disabled="@busy">Sicherungen anzeigen</button>
+            }
+            else if (snapshots.Count == 0)
+            {
+                <EmptyState Text="Am Ziel liegt noch keine Sicherung." />
+            }
+            else
+            {
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Zeitpunkt</th><th>Kennung</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var row in snapshots)
+                            {
+                                <tr>
+                                    <td>@Format.Timestamp(row.Time)</td>
+                                    <td><code>@row.ShortId</code></td>
+                                    <td><button type="button" class="button button-text" @onclick="() => Select(row)" disabled="@(progress.Running || busy)">Wiederherstellen …</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            @if (selected is not null)
+            {
+                <div class="danger-action-content" role="alertdialog" aria-label="Wiederherstellen" id="restore-confirm">
+                    <p><strong>Alle aktuellen Daten und Dateien werden durch den Stand vom @Format.Timestamp(selected.Time) ersetzt.</strong>
+                    Was seitdem erfasst wurde, geht verloren. Die App ist währenddessen nicht nutzbar und startet danach von selbst neu.</p>
+                    <AppTextField Value="confirmation" ValueChanged="v => confirmation = v ?? string.Empty" Label="Zur Bestätigung „WIEDERHERSTELLEN“ eingeben" Immediate="true" />
+                    <div class="form-actions">
+                        <button type="button" class="button button-primary" id="restore-start" @onclick="RestoreAsync"
+                                disabled="@(busy || !string.Equals(confirmation.Trim(), "WIEDERHERSTELLEN", StringComparison.Ordinal))">Ja, jetzt wiederherstellen</button>
+                        <button type="button" class="button button-outlined" @onclick="() => selected = null">Abbrechen</button>
+                    </div>
+                </div>
+            }
+        </section>
     }
-</section>
 
-<section>
-    <h2>Vollexport</h2>
-    <p>Alle Daten als ZIP: jede Tabelle als JSON und CSV (für Excel), dazu alle hochgeladenen Dateien und eine
-    Beschreibung des Formats. Der Export ist ohne Elocaro lesbar, enthält aber keine Passwörter oder Anmeldetokens.
-    Er enthält alle personenbezogenen Daten: sicher aufbewahren. Der Export wird im Audit-Log vermerkt.</p>
-    <form method="post" action="@ExportEndpoint.Path">
-        <AntiforgeryToken />
-        <button type="submit" class="button button-primary">Vollexport herunterladen</button>
-    </form>
-</section>
+    <section>
+        <h2>Vollexport</h2>
+        <p>Alle Daten als ZIP: jede Tabelle als JSON und CSV (für Excel), dazu alle hochgeladenen Dateien und eine
+        Beschreibung des Formats. Der Export ist ohne Elocaro lesbar, enthält aber keine Passwörter oder Anmeldetokens.
+        Er enthält alle personenbezogenen Daten: sicher aufbewahren. Der Export wird im Audit-Log vermerkt.</p>
+        <form method="post" action="@ExportEndpoint.Path" data-enhance="false">
+            <AntiforgeryToken />
+            <button type="submit" class="button">Vollexport herunterladen</button>
+        </form>
+    </section>
 
-<section>
-    <h2>Wiederherstellen</h2>
-    <p>Eine Sicherung wird auf dem Server eingespielt, nicht hier in der Oberfläche: App stoppen, dann
-    <code>run --rm backup wiederherstellen</code>. Die Schritt-für-Schritt-Anleitung (auch für einen neuen Server)
-    steht in <code>docs/betrieb.md</code>.</p>
-</section>
+    <section>
+        <h2>Wiederherstellen auf einem neuen Server</h2>
+        <p>Auf einem frisch installierten Server fragt die Ersteinrichtung nach einer Datensicherung: Ziel und Passwort eingeben, Stand wählen,
+        fertig. Ohne App geht es auch auf der Konsole: <code>run --rm backup restore</code>. Die Schritt-für-Schritt-Anleitung steht in
+        <code>docs/betrieb.md</code>.</p>
+    </section>
+</InteractiveShell>
 
 @code {
     private BackupSnapshot? state;
+    private BackupProgress progress = new(false, false, null, null);
+    private BackupSettingsInput? data;
+    private bool managed;
+    private bool hasPassword;
+    private IReadOnlySet<string> storedCredentials = new HashSet<string>(StringComparer.Ordinal);
+    private IReadOnlySet<string> savedCredentials = new HashSet<string>(StringComparer.Ordinal);
+    private BackupProvider savedProvider;
+    private string timeText = "02:30";
+    private bool busy;
+    private BackupTargetCheck? check;
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<BackupSnapshotRow>? snapshots;
+    private BackupSnapshotRow? selected;
+    private string confirmation = string.Empty;
+    private CancellationTokenSource? polling;
+    private bool sawRestore;
+    private bool restarting;
 
-    protected override async Task OnInitializedAsync() => state = await BackupStatus.QueryAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        var saved = await Settings.GetAsync();
+        managed = saved is not null;
+        data = new BackupSettingsInput();
+        if (saved is not null)
+        {
+            data.Provider = saved.Provider;
+            data.Location = saved.Location;
+            data.Enabled = saved.Enabled;
+            data.KeepDaily = saved.KeepDaily;
+            data.KeepWeekly = saved.KeepWeekly;
+            data.KeepMonthly = saved.KeepMonthly;
+            timeText = saved.Time.ToString("HH:mm", CultureInfo.InvariantCulture);
+            hasPassword = saved.HasPassword;
+            storedCredentials = saved.StoredCredentials;
+            savedCredentials = saved.StoredCredentials;
+            savedProvider = saved.Provider;
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (progress.Running && polling is null)
+        {
+            _ = PollAsync();
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        state = await BackupStatus.QueryAsync();
+        progress = await Control.ProgressAsync();
+        sawRestore |= progress is { Running: true, Kind: "Restore" };
+        // Only a restore that ran while this page was open restarts the app (a result from earlier must not do it again).
+        if (sawRestore && !progress.Running && progress.Last is { Kind: "Restore", Succeeded: true })
+        {
+            restarting = true;
+            Restart.Schedule();
+        }
+    }
+
+    /// <summary>While an operation runs, the status is refreshed every few seconds.</summary>
+    private async Task PollAsync()
+    {
+        polling = new CancellationTokenSource();
+        var token = polling.Token;
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                await InvokeAsync(async () =>
+                {
+                    await RefreshAsync();
+                    StateHasChanged();
+                });
+                if (!progress.Running)
+                {
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // page closed
+        }
+        finally
+        {
+            polling?.Dispose();
+            polling = null;
+        }
+    }
+
+    private void ProviderChanged(BackupProvider provider)
+    {
+        check = null;
+        // Credentials of the saved provider do not carry over to another one.
+        storedCredentials = managed && provider == savedProvider ? savedCredentials : new HashSet<string>(StringComparer.Ordinal);
+    }
+
+    private bool ReadTime(out TimeOnly time)
+    {
+        if (TimeOnly.TryParseExact(timeText.Trim(), ["HH:mm", "H:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out time))
+        {
+            return true;
+        }
+
+        errors = ["Die Uhrzeit muss Stunde und Minute enthalten, z. B. 02:30."];
+        return false;
+    }
+
+    private async Task SaveAsync()
+    {
+        errors = null;
+        check = null;
+        if (data is null || !ReadTime(out var time))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            data.Time = time;
+            var result = await Settings.SaveAsync(data);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            Notify.Success("Die Einstellungen der Datensicherung wurden gespeichert.");
+            var saved = await Settings.GetAsync();
+            managed = true;
+            hasPassword = saved?.HasPassword ?? false;
+            storedCredentials = saved?.StoredCredentials ?? storedCredentials;
+            savedCredentials = storedCredentials;
+            savedProvider = data.Provider;
+            data.Password = null;
+            data.Credentials.Clear();
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task TestAsync()
+    {
+        errors = null;
+        if (data is null || !ReadTime(out var time))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            data.Time = time;
+            check = await Control.TestAsync(data);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task StartBackupAsync()
+    {
+        busy = true;
+        try
+        {
+            var result = await Control.StartBackupAsync();
+            if (result.Succeeded)
+            {
+                Notify.Success("Die Sicherung wurde gestartet.");
+            }
+            else
+            {
+                errors = result.Errors;
+            }
+
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task LoadSnapshotsAsync()
+    {
+        busy = true;
+        try
+        {
+            snapshots = await Control.SnapshotsAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void Select(BackupSnapshotRow row)
+    {
+        selected = row;
+        confirmation = string.Empty;
+    }
+
+    private async Task RestoreAsync()
+    {
+        if (selected is null || !string.Equals(confirmation.Trim(), "WIEDERHERSTELLEN", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Control.StartRestoreAsync(selected.Id);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            selected = null;
+            snapshots = null;
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    public void Dispose() => polling?.Cancel();
 
     private static NoticeLevel Level(BackupState level) => level switch
     {

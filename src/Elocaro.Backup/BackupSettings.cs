@@ -18,6 +18,11 @@ public sealed record BackupSettings(
 {
     public const string Tag = "elocaro";
 
+    /// <summary>
+    /// Marker file next to the status file: the app manages target and schedule itself, the schedule of the environment pauses.
+    /// </summary>
+    public string ManagedMarker => Path.Combine(Path.GetDirectoryName(StatusFile) ?? ".", "managed-by-app");
+
     public static BackupSettings Load(Func<string, string?> get)
     {
         string Get(string name, string fallback) => get(name) is { Length: > 0 } value ? value : fallback;

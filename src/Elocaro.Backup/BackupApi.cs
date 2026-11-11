@@ -5,6 +5,8 @@ namespace Elocaro.Backup;
 
 public sealed record TargetRequest(BackupTarget Target);
 
+public sealed record ManagedRequest(bool Managed);
+
 public sealed record RestoreRequest(BackupTarget Target, string? Snapshot, bool Force = true);
 
 /// <summary>
@@ -22,6 +24,22 @@ internal static class BackupApi
         var api = app.MapGroup(string.Empty).AddEndpointFilter(Authorize);
 
         api.MapGet("/status", (BackupCoordinator coordinator) => Results.Ok(coordinator.Status()));
+
+        // The app takes over target and schedule (or gives them back): pauses the daily backup configured through the environment.
+        api.MapPost("/managed", (ManagedRequest request, BackupSettings settings) =>
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(settings.ManagedMarker)!);
+            if (request.Managed)
+            {
+                File.WriteAllText(settings.ManagedMarker, string.Empty);
+            }
+            else if (File.Exists(settings.ManagedMarker))
+            {
+                File.Delete(settings.ManagedMarker);
+            }
+
+            return Results.NoContent();
+        });
 
         api.MapPost("/test", async (TargetRequest request, BackupEngine engine, CancellationToken cancellationToken) =>
             Invalid(request.Target) ?? Results.Ok(await engine.TestAsync(request.Target, cancellationToken)));
