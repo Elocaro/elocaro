@@ -1,6 +1,12 @@
 # Elocaro
 
-**Die Vermieterverwaltung, die Ihnen gehört.** Elocaro ist eine selbst betriebene Verwaltung für private Vermieter: Objekte, Mieter und Verträge, Mieteingänge, Nebenkosten- und Heizkostenabrechnung, Steuerunterlagen und ein Mieterportal. Alle Daten liegen bei Ihnen, jederzeit vollständig exportierbar, ohne Abo und ohne Module hinter einer Bezahlschranke.
+[![CI](https://github.com/Elocaro/elocaro/actions/workflows/ci.yml/badge.svg)](https://github.com/Elocaro/elocaro/actions/workflows/ci.yml)
+[![Lizenz: AGPL-3.0](https://img.shields.io/github/license/Elocaro/elocaro)](LICENSE)
+[![Version](https://img.shields.io/github/v/tag/Elocaro/elocaro?label=Version)](CHANGELOG.md)
+
+**Die Vermieterverwaltung, die dir gehört.** Elocaro ist eine selbst betriebene Verwaltung für private Vermieter: Objekte, Mieter und Verträge, Mieteingänge, Nebenkosten- und Heizkostenabrechnung, Steuerunterlagen und ein Mieterportal. Alle Daten liegen bei dir, jederzeit vollständig exportierbar, ohne Abo und ohne Module hinter einer Bezahlschranke.
+
+*In English: Elocaro is a free, self-hosted property management system for private landlords (leases, rent collection, German utility and heating cost statements, tax documents, tenant portal). The interface and documentation are currently German only and tailored to German rental law; see [#165](https://github.com/Elocaro/elocaro/issues/165) for internationalization.*
 
 ![Haus heute: Wohnungen, WG-Zimmer und Belegung auf einen Blick](docs/bilder/haus-belegung.png)
 
@@ -17,6 +23,15 @@
 | Objekt mit Einheiten | Umsätze zuordnen | Handy |
 |---|---|---|
 | ![Objekt mit Wohnungen, WG-Zimmern und Mietern](docs/bilder/objekt-uebersicht.png) | ![Umsätze zuordnen](docs/bilder/umsaetze-zuordnen.png) | ![Belegung auf dem Handy](docs/bilder/handy-belegung.png) |
+
+## Technik
+
+**Stack:** .NET 10 · Blazor Static SSR · PostgreSQL (EF Core) · Quartz · Gotenberg · Docker Compose
+
+- **Architektur:** Modularer Monolith in vier Projekten (`Domain`, `Application`, `Infrastructure`, `Web`) mit klarer Abhängigkeitsrichtung, die ein Architekturtest absichert.
+- **Tests:** Rechenkerne mit Golden-Master-Fällen (Nebenkosten, Heizkosten, CO₂, AfA, Index), Integrationstests mit Testcontainers, Web-Tests mit bUnit und Playwright, Architekturtests.
+- **Entscheidungen:** nachvollziehbar in [Architektur](docs/architektur.md) und in den [Architekturentscheidungen (ADR)](docs/adr/).
+- **Betrieb:** Docker Compose mit Caddy (TLS), nächtlichem Backup (restic) und CI mit GitHub Actions.
 
 ## Für wen ist das?
 
@@ -41,8 +56,6 @@ Der erste Aufruf führt durch die Ersteinrichtung (Einrichtungscode aus der Skri
 ## Grenzen
 
 Elocaro ist **keine Rechts- und keine Steuerberatung**. Vorlagen und Rechenwerte sind Arbeitshilfen; bitte vor dem Einsatz prüfen. Hilfe gibt es über die [Issues](https://github.com/Elocaro/elocaro/issues).
-
-**Stack:** .NET 10 · Blazor Static SSR · PostgreSQL · Docker Compose
 
 ## Dokumentation
 
@@ -71,7 +84,7 @@ Details zu lokaler Datenbank, Migrationen und Konventionen stehen in [docs/entwi
 
 ## Unterstützen
 
-Elocaro ist ein Nebenprojekt und bleibt frei nutzbar. Fehlerberichte und Erfahrungen helfen am meisten; wer das Projekt außerdem tragen möchte, findet die Wege in [docs/foerderung.md](docs/foerderung.md): regelmäßige Unterstützung und [Feature-Sponsoring](docs/feature-sponsoring.md).
+Elocaro bleibt frei nutzbar. Fehlerberichte und Erfahrungen helfen am meisten, weitere Wege stehen in [docs/foerderung.md](docs/foerderung.md).
 
 ## Lizenz
 
