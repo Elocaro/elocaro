@@ -26,6 +26,18 @@ COPY src/ src/
 RUN dotnet publish src/Elocaro.Web/Elocaro.Web.csproj -c Release -o /app \
       -r "$(cat /tmp/rid)" --self-contained false /p:UseAppHost=false /p:DebugType=none /p:Version="$VERSION" /p:InformationalVersion="$VERSION"
 
+# OAuth client for the sign-in at Google (backup to Google Drive): only in images that the release pipeline builds with the secrets
+# (BuildKit secrets, so that the values appear neither in the layers' commands nor in the build arguments). Without them the file is
+# missing and every installation sets up its own client in the app or in the environment.
+# The cache does not know the contents of a secret: the pipeline passes the commit as a build argument so that this layer is rebuilt
+# (and a rotated secret takes effect) with every release.
+ARG GOOGLE_CLIENT_REV=
+RUN --mount=type=secret,id=google_client_id --mount=type=secret,id=google_client_secret \
+    : "$GOOGLE_CLIENT_REV" && \
+    if [ -s /run/secrets/google_client_id ] && [ -s /run/secrets/google_client_secret ]; then \
+      printf '{"clientId":"%s","clientSecret":"%s"}' "$(cat /run/secrets/google_client_id)" "$(cat /run/secrets/google_client_secret)" > /app/google-client.json; \
+    fi
+
 # Prepare the data directory; the runtime image has no shell for mkdir/chown.
 RUN mkdir -p /data/files
 

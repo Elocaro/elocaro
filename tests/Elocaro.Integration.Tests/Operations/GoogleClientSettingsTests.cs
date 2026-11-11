@@ -111,4 +111,64 @@ public class GoogleClientSettingsTests(PostgresFixture postgres)
         Assert.Equal(new GoogleClientView(GoogleClientSource.Environment, "env-id"), await InScopeAsync(environment, sp => sp.GetRequiredService<IGoogleClientSettings>().GetAsync(Ct)));
         Assert.False((await InScopeAsync(environment, sp => sp.GetRequiredService<IGoogleClientSettings>().RemoveAsync(Ct))).Succeeded);
     }
+
+    private static string BuiltInFile(string content)
+    {
+        var file = Path.Combine(Path.GetTempPath(), "elocaro-tests", Guid.NewGuid().ToString("N"), "google-client.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        File.WriteAllText(file, content);
+        return file;
+    }
+
+    [Fact]
+    public async Task The_client_built_into_the_image_is_used_when_nothing_else_is_set_and_the_other_sources_win()
+    {
+        var file = BuiltInFile("""{"clientId":"image-id","clientSecret":"image-secret"}""");
+        try
+        {
+            await using var plain = await InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?> { ["GoogleDrive:BuiltInFile"] = file });
+            Assert.Equal(new GoogleClientView(GoogleClientSource.BuiltIn, "image-id"), await InScopeAsync(plain, sp => sp.GetRequiredService<IGoogleClientSettings>().GetAsync(Ct)));
+            Assert.Equal(("image-id", "image-secret"), await InScopeAsync(plain, sp => sp.GetRequiredService<IGoogleClientSource>().ResolveAsync(Ct)));
+            Assert.True(await InScopeAsync(plain, sp => sp.GetRequiredService<IGoogleDriveAuthorization>().IsAvailableAsync(Ct)));
+
+            // The environment beats the image ...
+            await using var withEnvironment = await InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?>
+            {
+                ["GoogleDrive:BuiltInFile"] = file,
+                ["GoogleDrive:ClientId"] = "env-id",
+                ["GoogleDrive:ClientSecret"] = "env-secret",
+            });
+            Assert.Equal(new GoogleClientView(GoogleClientSource.Environment, "env-id"), await InScopeAsync(withEnvironment, sp => sp.GetRequiredService<IGoogleClientSettings>().GetAsync(Ct)));
+
+            // ... and what is entered in the app beats both; removing it brings the image back
+            await InScopeAsync(plain, sp => sp.GetRequiredService<IGoogleClientSettings>().SaveAsync(Id, "GOCSPX-eigen", Ct));
+            Assert.Equal(new GoogleClientView(GoogleClientSource.App, Id), await InScopeAsync(plain, sp => sp.GetRequiredService<IGoogleClientSettings>().GetAsync(Ct)));
+            await InScopeAsync(plain, sp => sp.GetRequiredService<IGoogleClientSettings>().RemoveAsync(Ct));
+            Assert.Equal(GoogleClientSource.BuiltIn, (await InScopeAsync(plain, sp => sp.GetRequiredService<IGoogleClientSettings>().GetAsync(Ct))).Source);
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(file)!, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("kaputt")]
+    [InlineData("""{"clientId":"nur-die-id"}""")]
+    [InlineData("""{"clientId":"","clientSecret":""}""")]
+    public async Task A_broken_or_incomplete_file_in_the_image_counts_as_no_client(string content)
+    {
+        var file = BuiltInFile(content);
+        try
+        {
+            await using var environment = await InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?> { ["GoogleDrive:BuiltInFile"] = file });
+
+            Assert.Equal(GoogleClientSource.None, (await InScopeAsync(environment, sp => sp.GetRequiredService<IGoogleClientSettings>().GetAsync(Ct))).Source);
+            Assert.False(await InScopeAsync(environment, sp => sp.GetRequiredService<IGoogleDriveAuthorization>().IsAvailableAsync(Ct)));
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(file)!, recursive: true);
+        }
+    }
 }

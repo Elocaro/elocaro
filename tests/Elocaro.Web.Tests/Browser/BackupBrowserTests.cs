@@ -62,8 +62,15 @@ public class BackupBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
     private async Task<string?> LandlordAsync() =>
         await App.WithScopeAsync(async sp => (await sp.GetRequiredService<ILandlordProfileService>().GetAsync(Ct))?.Name);
 
-    /// <summary>The app restarts after a restore; the test stays in the same process, so only its connections are renewed.</summary>
-    private static void SimulateRestart() => NpgsqlConnection.ClearAllPools();
+    /// <summary>
+    /// The app restarts after a restore; the test stays in the same process, so only the connections to its own database are renewed.
+    /// (ClearAllPools would cut the connections of every test running at the same time.)
+    /// </summary>
+    private void SimulateRestart()
+    {
+        using var connection = new NpgsqlConnection(App.Services.GetRequiredService<IConfiguration>()["ConnectionStrings:Elocaro"]);
+        NpgsqlConnection.ClearPool(connection);
+    }
 
     [Fact]
     public async Task Admin_sets_up_the_backup_runs_it_and_restores_an_earlier_state()

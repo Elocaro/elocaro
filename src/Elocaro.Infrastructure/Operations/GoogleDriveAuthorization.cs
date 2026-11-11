@@ -17,6 +17,12 @@ public sealed class GoogleDriveOptions
     public string? ClientId { get; set; }
 
     public string? ClientSecret { get; set; }
+
+    /// <summary>
+    /// File with the client that the release pipeline builds into the image (<c>{"clientId":…,"clientSecret":…}</c>); by default
+    /// <c>google-client.json</c> next to the application. Missing in a build without the pipeline secrets.
+    /// </summary>
+    public string? BuiltInFile { get; set; }
 }
 
 internal sealed class GoogleDriveAuthorization(HttpClient http, IGoogleClientSource client, TimeProvider clock) : IGoogleDriveAuthorization

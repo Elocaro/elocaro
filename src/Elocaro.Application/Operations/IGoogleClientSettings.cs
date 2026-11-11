@@ -11,6 +11,9 @@ public enum GoogleClientSource
 
     /// <summary><c>GoogleDrive__ClientId</c> and <c>GoogleDrive__ClientSecret</c> in the environment.</summary>
     Environment,
+
+    /// <summary>Built into the published image when it was built (release pipeline); can be overridden by the other two.</summary>
+    BuiltIn,
 }
 
 /// <summary>The OAuth client in use: where it comes from and its ID. The secret is never part of it.</summary>

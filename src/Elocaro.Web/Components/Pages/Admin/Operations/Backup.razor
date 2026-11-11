@@ -235,13 +235,13 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         }
         else
         {
-            <Notice Level="NoticeLevel.Success" id="google-configured">Eingerichtet (@(googleClient.Source == GoogleClientSource.App ? "in der App" : "über die Umgebung")). Client-ID: <code>@googleClient.ClientId</code></Notice>
+            <Notice Level="NoticeLevel.Success" id="google-configured">Eingerichtet (@(googleClient.Source switch { GoogleClientSource.App => "in der App", GoogleClientSource.BuiltIn => "im Image eingebaut", _ => "über die Umgebung" })). Client-ID: <code>@googleClient.ClientId</code></Notice>
         }
 
         @if (googleClient.Source != GoogleClientSource.Environment)
         {
             <details class="explain" open="@(googleClient.Source == GoogleClientSource.None)">
-                <summary>@(googleClient.Source == GoogleClientSource.None ? "Client einrichten" : "Client ändern")</summary>
+                <summary>@(googleClient.Source == GoogleClientSource.None ? "Client einrichten" : googleClient.Source == GoogleClientSource.BuiltIn ? "Eigenen Client verwenden" : "Client ändern")</summary>
                 <p class="small">In der <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer">Google Cloud Console</a> ein Projekt anlegen, die <em>Google Drive API</em> aktivieren, unter <em>Google Auth Platform</em> den
                 Zustimmungsbildschirm einrichten (Zielgruppe <em>Extern</em>, Bereich <code>…/auth/drive.file</code>, Status <em>In Produktion</em>) und einen OAuth-Client vom Typ
                 <em>Fernsehgeräte und Geräte mit begrenzter Eingabe</em> erstellen. Die Schritt-für-Schritt-Anleitung steht in <code>docs/betrieb.md</code>, Abschnitt „Google Drive“.</p>

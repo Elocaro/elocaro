@@ -357,14 +357,16 @@ Bei der Ablage *Google Drive* genügt **„Mit Google verbinden“**: Die App ze
 
 Der Zugang erneuert sich selbst, die Sicherung läuft danach ohne Eingriff. Widerruft man ihn im Google-Konto (*Sicherheit → Drittanbieter-Zugriff*), schlägt die Sicherung fehl, und die Warnmail meldet es; dann das Ziel bearbeiten und neu verbinden. Auf einem neuen Server braucht die Wiederherstellung das Passwort der Sicherung und eine neue Anmeldung.
 
-**Voraussetzung: ein OAuth-Client.** Die Anmeldung läuft über einen OAuth-Client, den jede Installation selbst einrichtet. Elocaro liefert keinen mit: Ein Client-Schlüssel im öffentlichen Quelltext oder im veröffentlichten Image wäre für jeden lesbar (auch wenn Google ihn bei diesem Client-Typ nicht als geheim einstuft), und über ein Pipeline-Secret ließe er sich nicht schützen, denn er stünde im Image. Zwei Wege, ihn einzutragen:
+**Der OAuth-Client.** Die Anmeldung läuft über einen OAuth-Client von Google. In den **veröffentlichten Images** (`ghcr.io/elocaro/elocaro`) ist er eingebaut: Die Release-Pipeline setzt ihn beim Bauen aus Repository-Secrets ein, nichts muss eingerichtet werden. Er steht nicht im Quelltext, ist aber im Image lesbar, wie bei jeder App mit eingebautem Client; Google stuft den Schlüssel dieses Client-Typs als nicht vertraulich ein, und der Zugriff reicht nur auf Dateien, die Elocaro selbst anlegt. Die Sicherungen liegen im **eigenen Google-Konto** und zählen zu dessen Speicherplatz; geteilt wird nur das Anfragenlimit, das Google dem Client der App gibt, und das reicht für Sicherungen bei Weitem.
+
+Wer das Image selbst baut (wie die Produktion dieser Installation: `docker compose build`) oder einen eigenen Client möchte, trägt ihn ein. Die Reihenfolge: **Eintrag in der App**, dann **Umgebung**, dann der **eingebaute Client**.
 
 - **In der App:** Seite Datensicherung, Abschnitt *Anmeldung bei Google*: Client-ID und Client-Schlüssel eintragen. Der Schlüssel wird verschlüsselt gespeichert und nie wieder angezeigt; ein leeres Feld beim Ändern behält ihn.
-- **Über die Umgebung:** `GOOGLE_DRIVE_CLIENT_ID` und `GOOGLE_DRIVE_CLIENT_SECRET` in `deploy/.env` (landen als `GoogleDrive__ClientId` und `GoogleDrive__ClientSecret` in der App). Ein in der App eingetragener Client hat Vorrang. Der Client steht dann in der Datenbank und damit im Backup; wer ihn in der `.env` führt, muss ihn auf einem neuen Server dort wieder eintragen.
+- **Über die Umgebung:** `GOOGLE_DRIVE_CLIENT_ID` und `GOOGLE_DRIVE_CLIENT_SECRET` in `deploy/.env` (landen als `GoogleDrive__ClientId` und `GoogleDrive__ClientSecret` in der App). Der Client in der App steht in der Datenbank und damit im Backup; wer ihn in der `.env` führt, muss ihn auf einem neuen Server dort wieder eintragen.
 
-Ohne Client ist „Mit Google verbinden“ ausgegraut und nennt den Grund. Dann bleibt unter *Erweitert* der Zugang von Hand (Token von `rclone authorize "drive" --drive-scope drive.file`).
+Ohne irgendeinen Client ist „Mit Google verbinden“ ausgegraut und nennt den Grund. Dann bleibt unter *Erweitert* der Zugang von Hand (Token von `rclone authorize "drive" --drive-scope drive.file`).
 
-**Eigenen OAuth-Client anlegen** (einmal je Installation, dauert etwa zehn Minuten, kostet nichts und braucht keine Abrechnung):
+**OAuth-Client anlegen** (einmal; für die Release-Pipeline oder für eine einzelne Installation; etwa zehn Minuten, kostet nichts und braucht keine Abrechnung):
 
 1. In der [Google Cloud Console](https://console.cloud.google.com/) ein **Projekt** anlegen (z. B. „Elocaro“) und die **Google Drive API** aktivieren.
 2. *Google Auth Platform → Erste Schritte*: Anwendungsname, Support-E-Mail, Zielgruppe **Extern**, Kontakt-E-Mail.

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using Elocaro.Application.Common;
 using Elocaro.Application.Operations;
 using Elocaro.Domain.Common;
@@ -25,14 +26,8 @@ internal sealed class GoogleClientSettingsService(ElocaroDbContext db, IDataProt
 
     public async Task<GoogleClientView> GetAsync(CancellationToken cancellationToken = default)
     {
-        var (id, secret) = await ResolveAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(secret))
-        {
-            return new GoogleClientView(GoogleClientSource.None, null);
-        }
-
-        var inApp = await db.Set<GoogleClientSetting>().AsNoTracking().AnyAsync(cancellationToken);
-        return new GoogleClientView(inApp ? GoogleClientSource.App : GoogleClientSource.Environment, id);
+        var (id, _, source) = await ResolveWithSourceAsync(cancellationToken);
+        return new GoogleClientView(source, id);
     }
 
     public Task<Result> SaveAsync(string clientId, string? clientSecret, CancellationToken cancellationToken = default) =>
@@ -69,14 +64,51 @@ internal sealed class GoogleClientSettingsService(ElocaroDbContext db, IDataProt
 
     public async Task<(string? ClientId, string? ClientSecret)> ResolveAsync(CancellationToken cancellationToken = default)
     {
+        var (id, secret, _) = await ResolveWithSourceAsync(cancellationToken);
+        return (id, secret);
+    }
+
+    /// <summary>The client entered in the app, else the one of the environment, else the one built into the image.</summary>
+    private async Task<(string? ClientId, string? ClientSecret, GoogleClientSource Source)> ResolveWithSourceAsync(CancellationToken cancellationToken)
+    {
         var row = await db.Set<GoogleClientSetting>().AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         if (row is not null && Unprotect(row.ProtectedClientSecret) is { Length: > 0 } secret)
         {
-            return (row.ClientId, secret);
+            return (row.ClientId, secret, GoogleClientSource.App);
         }
 
-        return (options.Value.ClientId, options.Value.ClientSecret);
+        if (!string.IsNullOrWhiteSpace(options.Value.ClientId) && !string.IsNullOrWhiteSpace(options.Value.ClientSecret))
+        {
+            return (options.Value.ClientId, options.Value.ClientSecret, GoogleClientSource.Environment);
+        }
+
+        var builtIn = await ReadBuiltInAsync(cancellationToken);
+        return builtIn is { } found ? (found.ClientId, found.ClientSecret, GoogleClientSource.BuiltIn) : (null, null, GoogleClientSource.None);
     }
+
+    private async Task<(string ClientId, string ClientSecret)?> ReadBuiltInAsync(CancellationToken cancellationToken)
+    {
+        var file = options.Value.BuiltInFile ?? Path.Combine(AppContext.BaseDirectory, "google-client.json");
+        if (!File.Exists(file))
+        {
+            return null;
+        }
+
+        try
+        {
+            await using var stream = File.OpenRead(file);
+            var content = await JsonSerializer.DeserializeAsync<BuiltInClient>(stream, cancellationToken: cancellationToken);
+            return content is { ClientId.Length: > 0, ClientSecret.Length: > 0 } ? (content.ClientId, content.ClientSecret) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    private sealed record BuiltInClient(
+        [property: System.Text.Json.Serialization.JsonPropertyName("clientId")] string? ClientId,
+        [property: System.Text.Json.Serialization.JsonPropertyName("clientSecret")] string? ClientSecret);
 
     /// <summary>An unreadable value (keys lost) counts as missing.</summary>
     private string? Unprotect(string value)

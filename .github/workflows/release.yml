@@ -52,8 +52,15 @@ jobs:
           file: ${{ matrix.file }}
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: VERSION=${{ steps.meta.outputs.version }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            GOOGLE_CLIENT_REV=${{ github.sha }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max
+          # OAuth client for "Mit Google verbinden" (repository secrets GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET): reaches the image
+          # as a BuildKit secret (not in the build arguments or the layers' commands). Without the secrets the image has no client.
+          secrets: |
+            google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}
+            google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}
