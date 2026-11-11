@@ -156,7 +156,8 @@ wait_for_app
 fingerprint "$WORKDIR/after-api.txt"
 log "Datenstand nach API-Wiederherstellung vergleichen"
 # Die App lief weiter und hat nach dem Neustart wieder Jobs ausgeführt: Protokoll und Zustand des Schedulers ändern sich von selbst.
-volatile_rows() { grep -v -e '^public\.job_runs|' -e '^public\.qrtz_' "$1"; }
+# degree_day_values: filled by a background job (weather data download) while the app is running
+volatile_rows() { grep -v -e '^public\.job_runs|' -e '^public\.qrtz_' -e '^public\.degree_day_values|' "$1"; }
 volatile_rows "$WORKDIR/before.txt" > "$WORKDIR/before-stable.txt"
 volatile_rows "$WORKDIR/after-api.txt" > "$WORKDIR/after-api-stable.txt"
 if ! diff -u "$WORKDIR/before-stable.txt" "$WORKDIR/after-api-stable.txt"; then
