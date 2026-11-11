@@ -1,18 +1,16 @@
 # Elocaro unterstützen
 
-Elocaro ist ein Nebenprojekt unter der AGPL-3.0 und bleibt frei nutzbar. Es gibt keine gesperrten Funktionen und keinen Shop. Wer das Projekt nutzt und möchte, dass es weiterläuft und wächst, kann es auf diesen Wegen unterstützen.
+Elocaro ist ein Nebenprojekt unter der AGPL-3.0 und bleibt frei nutzbar. Es gibt keine gesperrten Funktionen und keinen Shop.
 
-> **Stand:** Die Wege sind vorbereitet, aber noch nicht eingerichtet (Sponsoring-Konto, Rechtsstände-Abo). Bis dahin sind Fehlerberichte, Testdaten und Rückmeldungen die wertvollste Unterstützung.
+## Was dem Projekt am meisten hilft
 
-## Was Sie tun können
+- **Fehler und Erfahrungen melden:** Das Projekt verbessert sich am meisten durch echte Nutzung. Schreibe ein [Issue](https://github.com/Elocaro/elocaro/issues); bitte keine Mieterdaten in Beschreibungen oder Anhänge.
+- **Mitarbeiten:** Ablauf, Codestil und Beitragsvereinbarung stehen in [CONTRIBUTING.md](../CONTRIBUTING.md).
+- **Weitersagen:** Wenn Elocaro dir hilft, freuen sich andere private Vermieter über einen Hinweis.
 
-| Weg | Wofür | Hinweis |
-|---|---|---|
-| **Fehler und Erfahrungen melden** | Das Projekt verbessert sich am meisten durch echte Nutzung | [Issues](https://github.com/Elocaro/elocaro/issues); keine Mieterdaten in Beschreibungen |
-| **Regelmäßig unterstützen** | Betrieb, Pflege, Fehlerbehebung | Über das Sponsoring-Konto, sobald es eingerichtet ist (siehe `.github/FUNDING.yml`) |
-| **Eine Funktion finanzieren** | Ihr Bedarf wird früher gebaut | [Feature-Sponsoring](feature-sponsoring.md) |
-| **Rechtsstände-Abo** (geplant) | Geprüfte Vorlagen und Tabellen als signierte Aktualisierungen | – |
-| **Einrichtung gegen Rechnung** (auf Anfrage) | Daten aus Excel oder anderer Software übernehmen | Der Datenimport macht das meist schnell; Preis nach Aufwand |
+## Finanzielle Unterstützung
+
+Aktuell gibt es keinen eingerichteten Weg für Spenden oder Sponsoring. Sobald es einen gibt, steht er hier und im Repository als „Sponsor“-Schaltfläche.
 
 ## Was Unterstützung nicht bedeutet
 

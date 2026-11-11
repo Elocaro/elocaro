@@ -173,7 +173,7 @@ Erste veröffentlichte Version.
 - Schreiben: Vorlagen „Mietbescheinigung“, „Mietschuldenfreiheitsbescheinigung“ und „Kautionsabrechnung und -rückzahlung“; das Briefmodell kennt Miete, Nebenkosten, Wohnfläche, Kaution und offene Forderungen.
 - Mieterportal: Mieter melden Zählerstände selbst (Seite „Zählerstände“), der Vermieter prüft und übernimmt sie; jährliche Erinnerung ab 15. Dezember.
 - Standardvorlagen „Wohnungsgeberbestätigung Einzug/Auszug (§ 19 BMG)“ und „Bestätigung der Kündigung“; Hinweis auf der Übergabeprotokoll-Seite.
-- Unterstützung vorbereitet: `docs/foerderung.md`, Feature-Sponsoring (Ablauf, Regeln, Issue-Vorlage, Label `sponsoring`), Konzept Rechtsstände-Abo, `.github/FUNDING.yml` (inaktiv, bis ein Konto eingetragen ist).
+- Seite „Unterstützen“ (`docs/foerderung.md`): Fehler melden, mitarbeiten, Stand zur finanziellen Unterstützung.
 - Kaution: Tab im Vertrag mit Eingängen, Zinsen, Rückzahlung und Verrechnung; Hinweise auf dem Dashboard bei offener Kaution und nach Mietende.
 - Beispieldaten (Haus, vier Wohnungen, drei Mieter mit unterschiedlichem Zahlungsverhalten) für eine leere Probe-Installation.
 - Anleitung für die Installation auf Portainer, Coolify, Synology, Unraid, Proxmox und ARM (ohne ungeprüfte Plattformvorlagen).
