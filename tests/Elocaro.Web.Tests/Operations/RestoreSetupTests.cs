@@ -35,4 +35,21 @@ public class RestoreSetupTests(PostgresFixture postgres) : AccountTestBase(postg
         Assert.Equal(System.Net.HttpStatusCode.Redirect, response.Status);
         Assert.Equal("/konto/anmelden", response.RedirectLocation!.AbsolutePath);
     }
+
+    [Fact]
+    public async Task The_connection_of_interactive_pages_is_open_only_while_there_is_no_account()
+    {
+        using var browser = App.Browser();
+
+        // Initial setup: the page can connect (otherwise the restore page would stay dead)
+        Assert.Equal(System.Net.HttpStatusCode.OK, (await browser.GetAsync("/_blazor/initializers", followRedirects: false)).Status);
+
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        admin.Dispose();
+
+        // With an account the fallback policy applies again: sign-in required
+        var closed = await browser.GetAsync("/_blazor/initializers", followRedirects: false);
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, closed.Status);
+        Assert.Equal("/konto/anmelden", closed.RedirectLocation!.AbsolutePath);
+    }
 }

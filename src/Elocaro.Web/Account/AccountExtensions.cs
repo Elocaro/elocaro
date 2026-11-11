@@ -55,8 +55,9 @@ internal static class AccountExtensions
         services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.Zero);
 
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().AddRequirements(new AuthenticatedOrSetupWindowRequirement()).Build())
             .AddElocaroPolicies();
+        services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, AuthenticatedOrSetupWindowHandler>();
         services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, FileAccessHandler>();
         services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, PropertyAccessHandler>();
 

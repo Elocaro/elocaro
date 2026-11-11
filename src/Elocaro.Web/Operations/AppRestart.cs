@@ -1,10 +1,16 @@
 namespace Elocaro.Web.Operations;
 
+/// <summary>Restart of the application after a restore (replaceable in tests, which must not stop their host).</summary>
+public interface IAppRestart
+{
+    void Schedule();
+}
+
 /// <summary>
 /// Stops the application a few seconds from now; the container restarts it (<c>restart: unless-stopped</c>). Needed after a restore:
 /// the database was replaced, so the data protection keys and everything else cached in memory must be loaded again.
 /// </summary>
-public sealed partial class AppRestart(IHostApplicationLifetime lifetime, TimeProvider clock, ILogger<AppRestart> logger)
+public sealed partial class AppRestart(IHostApplicationLifetime lifetime, TimeProvider clock, ILogger<AppRestart> logger) : IAppRestart
 {
     private int scheduled;
 

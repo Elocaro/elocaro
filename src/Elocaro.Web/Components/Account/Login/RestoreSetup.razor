@@ -6,7 +6,7 @@
 @inject IAccountService Accounts
 @inject ISetupCode SetupCode
 @inject IBackupControl Control
-@inject AppRestart Restart
+@inject IAppRestart Restart
 @inject NavigationManager Navigation
 
 <PageTitle>Aus Datensicherung wiederherstellen – Elocaro</PageTitle>
@@ -162,6 +162,8 @@
             }
 
             phase = Phase.Running;
+            // Started here: a restore that finishes between two polls (small installations) must still restart the app.
+            sawRunning = true;
             progress = new BackupProgress(true, true, "Restore", null);
             _ = PollAsync();
         }

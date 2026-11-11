@@ -39,7 +39,7 @@ builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, RevalidatingAuthenticationStateProvider>();
 builder.Services.AddCascadingAuthenticationState(); // AuthorizeView in interactive pages
 builder.Services.AddMudServices();
-builder.Services.AddSingleton<Elocaro.Web.Operations.AppRestart>();
+builder.Services.AddSingleton<Elocaro.Web.Operations.IAppRestart, Elocaro.Web.Operations.AppRestart>();
 builder.Services.AddScoped<Elocaro.Web.Components.Shell.Notifier>();
 builder.Services.AddScoped<Elocaro.Web.Components.Shell.Confirmations>();
 
