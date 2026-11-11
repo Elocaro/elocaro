@@ -35,6 +35,7 @@
     <InternalsVisibleTo Include="Elocaro.Integration.Tests" />
     <InternalsVisibleTo Include="Elocaro.Web.Tests" />
     <InternalsVisibleTo Include="Elocaro.TestHelpers" />
+    <InternalsVisibleTo Include="Elocaro.Backup.Tests" />
   </ItemGroup>
 
 </Project>

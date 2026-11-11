@@ -1,6 +1,8 @@
 using Elocaro.Backup;
 
 var builder = WebApplication.CreateBuilder(args);
+// Every request (health check every 30 s) would otherwise fill the log at Information level.
+builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
 var settings = BackupSettings.Load(Environment.GetEnvironmentVariable);
 builder.Services.AddSingleton(settings);
 builder.Services.AddSingleton(TimeProvider.System);

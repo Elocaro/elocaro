@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 export ELOCARO_IMAGE="${1:-elocaro:lokal}"
 export ELOCARO_BACKUP_IMAGE="${2:-elocaro-backup:lokal}"
 export ELOCARO_DOMAIN=localhost ACME_EMAIL=test@example.de POSTGRES_PASSWORD=restoretest
-export MAIL_SENDER=test@example.de SMTP_HOST=localhost RESTIC_PASSWORD=restoretest
+export MAIL_SENDER=test@example.de SMTP_HOST=localhost RESTIC_PASSWORD=restoretest BACKUP_API_TOKEN=restoretest-token
 WORKDIR=$(mktemp -d)
 export BACKUP_LOCAL_PATH="$WORKDIR/repo" BACKUP_SSH_PATH="$WORKDIR/ssh"
 
@@ -100,4 +100,71 @@ fi
 log "App auf wiederhergestellter Datenbank starten"
 dc up -d app
 wait_for_app
-echo "Restore-Test erfolgreich: $(grep -c '|' "$WORKDIR/before.txt") Tabellen identisch."
+echo "Restore-Test (Konsole) erfolgreich: $(grep -c '|' "$WORKDIR/before.txt") Tabellen identisch."
+
+# ---------- Phase 2: dieselbe Sicherung und Wiederherstellung über die API, wie die App sie benutzt ----------
+# Die Wiederherstellung läuft hier bei laufender App (die API erzwingt sie, die Verbindungen werden getrennt).
+api() { # GET: api /pfad   POST: api /pfad '{"json":…}'
+    path=$1; shift
+    dc exec -T backup wget -q -O - --header "Authorization: Bearer $BACKUP_API_TOKEN" --header 'Content-Type: application/json' ${1:+--post-data "$1"} "http://127.0.0.1:8080$path"
+}
+wait_idle() { # nach dem Start einer Operation warten, bis der Dienst wieder frei ist
+    for _ in $(seq 1 120); do
+        case "$(api /status)" in *'"running":false'*) return 0 ;; esac
+        sleep 2
+    done
+    echo "Backup-Dienst wurde nicht frei." >&2
+    exit 1
+}
+TARGET='{"repository":"/repo","password":"'"$RESTIC_PASSWORD"'"}'
+
+log "API: Dienst starten, Anmeldung prüfen"
+dc up -d --wait backup
+if dc exec -T backup wget -q -O - http://127.0.0.1:8080/status > /dev/null 2>&1; then
+    echo "Die API antwortet ohne Token." >&2
+    exit 1
+fi
+dc exec -T backup wget -q -O - http://127.0.0.1:8080/health > /dev/null
+api /test "{\"target\":$TARGET}" | tee "$WORKDIR/test.json"
+grep -q '"Ready"' "$WORKDIR/test.json"
+
+log "API: Sichern"
+api /backup "{\"target\":$TARGET}" > /dev/null
+wait_idle
+api /status | tee "$WORKDIR/api-status.json"
+grep -q '"kind":"Backup","succeeded":true' "$WORKDIR/api-status.json"
+api /snapshots "{\"target\":$TARGET}" | tee "$WORKDIR/api-snapshots.json"
+[ "$(grep -o '"shortId"' "$WORKDIR/api-snapshots.json" | wc -l)" -ge 2 ]
+
+log "Daten verändern (Zeile löschen, Datei entfernen)"
+sql -c "DELETE FROM stored_files"
+sh_backup 'find /data -type f -delete'
+fingerprint "$WORKDIR/changed.txt"
+if diff -q "$WORKDIR/before.txt" "$WORKDIR/changed.txt" > /dev/null; then
+    echo "Die Änderung wurde nicht erkannt, der Test wäre wirkungslos." >&2
+    exit 1
+fi
+
+log "API: Wiederherstellen bei laufender App"
+api /restore "{\"target\":$TARGET,\"snapshot\":\"latest\"}" > /dev/null
+wait_idle
+api /status | tee "$WORKDIR/api-restore.json"
+grep -q '"kind":"Restore","succeeded":true' "$WORKDIR/api-restore.json"
+dc restart app
+wait_for_app
+
+fingerprint "$WORKDIR/after-api.txt"
+log "Datenstand nach API-Wiederherstellung vergleichen"
+# Die App lief weiter und hat nach dem Neustart wieder Jobs ausgeführt: Protokoll und Zustand des Schedulers ändern sich von selbst.
+volatile_rows() { grep -v -e '^public\.job_runs|' -e '^public\.qrtz_' "$1"; }
+volatile_rows "$WORKDIR/before.txt" > "$WORKDIR/before-stable.txt"
+volatile_rows "$WORKDIR/after-api.txt" > "$WORKDIR/after-api-stable.txt"
+if ! diff -u "$WORKDIR/before-stable.txt" "$WORKDIR/after-api-stable.txt"; then
+    echo "Über die API wiederhergestellter Datenstand weicht ab." >&2
+    exit 1
+fi
+
+log "API: falsches Passwort wird erkannt"
+api /test '{"target":{"repository":"/repo","password":"falsch"}}' | grep -q '"WrongPassword"'
+
+echo "Restore-Test erfolgreich (Konsole und API): $(grep -c '|' "$WORKDIR/before.txt") Tabellen identisch."

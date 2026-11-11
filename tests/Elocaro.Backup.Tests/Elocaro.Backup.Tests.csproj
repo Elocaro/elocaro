@@ -7,5 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Elocaro.Backup\Elocaro.Backup.csproj" />
+    <ProjectReference Include="..\..\src\Elocaro.Infrastructure\Elocaro.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
