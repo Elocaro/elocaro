@@ -743,6 +743,17 @@ dotnet test -- --report-trx --results-directory testergebnisse --coverage --cove
 
 Vor dem Push lokal prüfen: `dotnet format --verify-no-changes && dotnet build -c Release && dotnet test`. Das volle `dotnet format` prüft zusätzlich die Reihenfolge der `using`-Direktiven, die CI aus Zeitgründen nicht prüft. Workflows lassen sich mit [actionlint](https://github.com/rhysd/actionlint) prüfen. Release-Ablauf und Branch-Schutz stehen in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
+## Sicherheitsaudit mit /pentest
+
+Der Projekt-Skill `/pentest` (`.claude/skills/pentest`) testet die **lokale Dev-Instanz** autonom auf Sicherheitslücken, ähnlich wie Strix, aber im Claude-Abo
+ohne API-Schlüssel. Er baut aus Routen und Prüfkatalog (`references/checklist.md`) eine Queue, arbeitet sie ab und speichert nach jedem Schritt unter
+`.pentest/<Datum>/` (in `.gitignore`): `STATE.md` (Queue und Stand), `log.md`, `findings/F-NNN.md`, `REPORT.md`.
+
+- `/pentest start [Fokus] [--max-iterations N]` startet, `/pentest resume` setzt einen abgebrochenen Lauf fort, `/pentest status` zeigt den Fortschritt
+  (auch direkt: `bash .claude/skills/pentest/scripts/status.sh`).
+- Er stoppt, wenn die Queue leer ist und kein neuer Recon-Durchgang etwas findet, das Limit erreicht ist oder abgebrochen wird.
+- Erlaubt ist nur `localhost` mit Dev-Datenbank und Mailpit, nie Produktion. Befunde sind sensibel und gehören nicht ins Repo; Meldungen laufen nach `SECURITY.md`.
+
 ## Neues Modul
 
 Ein schaltbares Fachmodul braucht drei Dinge:
