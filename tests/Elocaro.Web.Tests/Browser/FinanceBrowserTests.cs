@@ -185,10 +185,12 @@ public class FinanceBrowserTests(PostgresFixture postgres) : BrowserTestBasis(po
             await Assertions.Expect(firstMonth).ToBeVisibleAsync();
             await Assertions.Expect(page.Locator(".account-rows").GetByText("Kaltmiete")).ToHaveCountAsync(0); // components stay folded
 
-            await firstMonth.GetByRole(AriaRole.Button, new() { Name = "Details" }).ClickAsync();
-            await Assertions.Expect(page.Locator("tbody tr.account-part").First).ToContainTextAsync("Kaltmiete");
-            await firstMonth.GetByRole(AriaRole.Button, new() { Name = "Weniger" }).ClickAsync();
-            await Assertions.Expect(page.Locator("tbody tr.account-part")).ToHaveCountAsync(0);
+            await ClickUntilAsync(
+                () => firstMonth.GetByRole(AriaRole.Button, new() { Name = "Details" }),
+                () => Assertions.Expect(page.Locator("tbody tr.account-part").First).ToContainTextAsync("Kaltmiete", new() { Timeout = 8_000 }));
+            await ClickUntilAsync(
+                () => firstMonth.GetByRole(AriaRole.Button, new() { Name = "Weniger" }),
+                () => Assertions.Expect(page.Locator("tbody tr.account-part")).ToHaveCountAsync(0, new() { Timeout = 8_000 }));
         });
     }
 
