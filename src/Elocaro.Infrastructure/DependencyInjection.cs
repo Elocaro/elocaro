@@ -104,6 +104,7 @@ public static class DependencyInjection
         AddMasterData(services);
         AddPrivacy(services, configuration);
         services.Configure<DegreeDayOptions>(configuration.GetSection(DegreeDayOptions.Section));
+        services.Configure<UpdateCheckOptions>(configuration.GetSection(UpdateCheckOptions.Section));
         AddJobs(services, configuration);
         AddHealthChecks(services);
 
@@ -314,6 +315,15 @@ public static class DependencyInjection
         services.AddScoped<IBackupTargets>(sp => sp.GetRequiredService<BackupSettingsService>());
         services.AddScoped<IBackupControl, BackupControl>();
         services.AddScoped<ITodoSource, BackupTodos>();
+        services.AddSingleton<UpdateState>();
+        services.AddSingleton<IUpdateInfo, UpdateInfoService>();
+        services.AddHttpClient<UpdateChecker>(http =>
+        {
+            http.Timeout = TimeSpan.FromSeconds(20);
+            // generic client name: nothing about the installation is sent
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("Elocaro-UpdateCheck");
+        });
+        services.AddScoped<ITodoSource, UpdateTodos>();
         services.AddScoped<BackupWarning>();
         services.AddScoped<IDataExport, DataExport>();
         services.AddScoped<Emergency.EmergencyFolderContent>();
@@ -482,6 +492,7 @@ public static class DependencyInjection
             q.ScheduleInterval<ReceiptInboxJob>(ReceiptInboxJob.Key, "Holt Belege aus dem Beleg-Postfach ab (nur wenn eingerichtet)", TimeSpan.FromMinutes(5));
             q.ScheduleInterval<DegreeDayJob>(DegreeDayJob.Key, "Holt die Monatsgradtage der Wetterstationen vom Deutschen Wetterdienst (Aufteilung der Heizkosten beim Mieterwechsel)", TimeSpan.FromHours(12));
             q.ScheduleInterval<Notifications.PushDispatchJob>(Notifications.PushDispatchJob.Key, "Schickt Hinweise an Geräte, die Benachrichtigungen eingeschaltet haben", TimeSpan.FromMinutes(1));
+            q.ScheduleInterval<UpdateCheckJob>(UpdateCheckJob.Key, "Prüft, ob eine neuere Version von Elocaro veröffentlicht wurde (nur Anzeige, es wird nichts installiert)", TimeSpan.FromHours(12));
             q.ScheduleInterval<BackupJob>(BackupJob.Key, "Startet die tägliche Datensicherung zur eingestellten Zeit (nur wenn die Sicherung in der App eingerichtet ist)", TimeSpan.FromMinutes(10));
             q.ScheduleDaily<BackupWarningJob>(BackupWarningJob.Key, "Warnt Admins per Mail, wenn die Datensicherung fehlgeschlagen oder veraltet ist", 8, 5);
         });
