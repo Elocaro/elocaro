@@ -44,6 +44,7 @@ public class NewsPageTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.DoesNotContain("<script>", newer.InnerHtml, StringComparison.Ordinal);
         Assert.NotNull(page.Document.QuerySelector("[data-version='0.2.0']")); // what is new in the running version
         Assert.Equal("0.2.0", page.Document.QuerySelector("#news-current")!.TextContent);
+        Assert.NotNull(page.Document.QuerySelector("#news-link .nav-dot")); // the user menu points to the news
     }
 
     [Fact]
@@ -57,6 +58,8 @@ public class NewsPageTests(PostgresFixture postgres) : AccountTestBase(postgres)
 
         Assert.Contains("auf dem neuesten Stand", page.Document.QuerySelector("#news-status")!.TextContent, StringComparison.Ordinal);
         Assert.Null(page.Document.QuerySelector("#news-command"));
+        Assert.NotNull(page.Document.QuerySelector("#news-link"));
+        Assert.Null(page.Document.QuerySelector("#news-link .nav-dot"));
         Assert.Contains("Umgestellt auf .NET 11", page.Text, StringComparison.Ordinal);
     }
 
