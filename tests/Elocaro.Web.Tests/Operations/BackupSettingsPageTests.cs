@@ -76,6 +76,26 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
     }
 
     [Fact]
+    public async Task The_target_from_the_server_configuration_shows_where_what_is_backed_up_and_lists_the_backups()
+    {
+        sidecar.EnvironmentJson = """{"repository":"azure:elocaro-backup:/","time":"02:30","keepDaily":7,"keepWeekly":4,"keepMonthly":12,"paused":false}""";
+        sidecar.SnapshotsJson = """[{"id":"bbbbbbbb22222222","shortId":"bbbbbbbb","time":"2026-03-02T01:30:00Z"},{"id":"aaaaaaaa11111111","shortId":"aaaaaaaa","time":"2026-03-01T01:30:00Z"}]""";
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+
+        var page = await admin.GetAsync(Page);
+
+        Assert.Contains("azure:elocaro-backup:/", page.Text, StringComparison.Ordinal);
+        Assert.Contains("täglich um 02:30", page.Text, StringComparison.Ordinal);
+        Assert.Contains("7 täglich, 4 wöchentlich, 12 monatlich", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Vorhandene Sicherungen", page.Text, StringComparison.Ordinal);
+        Assert.Contains("bbbbbbbb", page.Text, StringComparison.Ordinal);
+        Assert.Contains("aaaaaaaa", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Wiederherstellen …", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Jetzt sichern", page.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_running_restore_is_shown()
     {
         sidecar.StatusJson = """{"running":true,"kind":"Restore"}""";
@@ -100,6 +120,10 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
 
         public string StatusJson { get; set; } = """{"running":false}""";
 
+        public string? EnvironmentJson { get; set; }
+
+        public string SnapshotsJson { get; set; } = "[]";
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (Offline)
@@ -107,9 +131,19 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
                 throw new HttpRequestException("connection refused");
             }
 
-            return Task.FromResult(request.RequestUri!.AbsolutePath == "/status"
-                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StatusJson, Encoding.UTF8, "application/json") }
-                : new HttpResponseMessage(HttpStatusCode.NoContent));
+            var path = request.RequestUri!.AbsolutePath;
+            var body = path switch
+            {
+                "/status" => StatusJson,
+                "/environment" => EnvironmentJson,
+                "/environment/snapshots" => SnapshotsJson,
+                _ => null,
+            };
+            return Task.FromResult(path == "/environment" && body is null
+                ? new HttpResponseMessage(HttpStatusCode.NotFound)
+                : body is null
+                    ? new HttpResponseMessage(HttpStatusCode.NoContent)
+                    : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") });
         }
     }
 }

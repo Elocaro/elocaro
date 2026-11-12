@@ -84,6 +84,53 @@ internal sealed class BackupSidecar(HttpClient http, IOptions<BackupOptions> opt
         }
     }
 
+    public async Task<BackupEnvironment?> EnvironmentAsync(CancellationToken cancellationToken)
+    {
+        if (!Configured)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await http.GetFromJsonAsync<BackupEnvironment>(new Uri("environment", UriKind.Relative), Json, cancellationToken);
+        }
+        catch (Exception ex) when (IsConnectionProblem(ex, cancellationToken))
+        {
+            return null;
+        }
+    }
+
+    public async Task<(IReadOnlyList<BackupSnapshotRow> Rows, string? Error)> EnvironmentSnapshotsAsync(CancellationToken cancellationToken)
+    {
+        if (!Configured)
+        {
+            return ([], Unavailable);
+        }
+
+        try
+        {
+            using var response = await http.PostAsync(new Uri("environment/snapshots", UriKind.Relative), null, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return ([], await Problem(response, cancellationToken));
+            }
+
+            var rows = await response.Content.ReadFromJsonAsync<List<WireSnapshot>>(Json, cancellationToken) ?? [];
+            return ([.. rows.Select(r => new BackupSnapshotRow(r.Id, r.ShortId, r.Time))], null);
+        }
+        catch (Exception ex) when (IsConnectionProblem(ex, cancellationToken))
+        {
+            return ([], Unavailable);
+        }
+    }
+
+    public Task<Result> StartEnvironmentBackupAsync(CancellationToken cancellationToken) =>
+        StartAsync("environment/backup", new { }, cancellationToken);
+
+    public Task<Result> StartEnvironmentRestoreAsync(string snapshot, CancellationToken cancellationToken) =>
+        StartAsync("environment/restore", new { snapshot, force = true }, cancellationToken);
+
     /// <summary>Starts a backup or restore in the container (answer 202); it runs there in the background.</summary>
     /// <param name="targetId">Names the target in the container, which keeps one result and status file per ID.</param>
     public Task<Result> StartBackupAsync(BackupRepositoryTarget target, string? targetId, CancellationToken cancellationToken) =>

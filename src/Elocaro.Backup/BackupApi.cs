@@ -6,7 +6,11 @@ namespace Elocaro.Backup;
 
 public sealed record TargetRequest(BackupTarget Target, string? TargetId = null);
 
+public sealed record EnvironmentInfo(string Repository, string Time, int KeepDaily, int KeepWeekly, int KeepMonthly, bool Paused);
+
 public sealed record ManagedRequest(bool Managed);
+
+public sealed record EnvironmentRestoreRequest(string? Snapshot, bool Force = true);
 
 public sealed record RestoreRequest(BackupTarget Target, string? Snapshot, bool Force = true, string? TargetId = null);
 
@@ -43,6 +47,34 @@ internal static partial class BackupApi
             return Results.NoContent();
         });
 
+        // The target configured through the environment (RESTIC_REPOSITORY in deploy/.env): the app shows it, lists its backups and restores from it.
+        api.MapGet("/environment", (BackupSettings settings) => settings.EnvironmentTarget is { } target
+            ? Results.Ok(new EnvironmentInfo(MaskCredentials(target.Repository), settings.BackupTime, settings.Retention.Daily, settings.Retention.Weekly, settings.Retention.Monthly, File.Exists(settings.ManagedMarker)))
+            : Results.NotFound());
+
+        api.MapPost("/environment/snapshots", async (BackupSettings settings, BackupEngine engine, CancellationToken cancellationToken) =>
+        {
+            if (settings.EnvironmentTarget is not { } target)
+            {
+                return Results.NotFound();
+            }
+
+            try
+            {
+                return Results.Ok(await engine.SnapshotsAsync(target, cancellationToken));
+            }
+            catch (BackupException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: StatusCodes.Status502BadGateway);
+            }
+        });
+
+        api.MapPost("/environment/backup", (BackupSettings settings, BackupCoordinator coordinator, IHostApplicationLifetime lifetime) =>
+            settings.EnvironmentTarget is { } target ? Started(coordinator.TryStartBackup(target, lifetime.ApplicationStopping)) : Results.NotFound());
+
+        api.MapPost("/environment/restore", (EnvironmentRestoreRequest request, BackupSettings settings, BackupCoordinator coordinator, IHostApplicationLifetime lifetime) =>
+            settings.EnvironmentTarget is { } target ? Started(coordinator.TryStartRestore(target, request.Snapshot ?? "latest", request.Force, lifetime.ApplicationStopping)) : Results.NotFound());
+
         api.MapPost("/test", async (TargetRequest request, BackupEngine engine, CancellationToken cancellationToken) =>
             Invalid(request.Target) ?? Results.Ok(await engine.TestAsync(request.Target, cancellationToken)));
 
@@ -69,6 +101,12 @@ internal static partial class BackupApi
         api.MapPost("/restore", (RestoreRequest request, BackupCoordinator coordinator, IHostApplicationLifetime lifetime) =>
             Invalid(request.Target, request.TargetId) ?? Started(coordinator.TryStartRestore(request.Target, request.Snapshot ?? "latest", request.Force, lifetime.ApplicationStopping, request.TargetId)));
     }
+
+    /// <summary>Repository without a password in the address (<c>rest:https://user:pass@host</c> becomes <c>rest:https://host</c>).</summary>
+    internal static string MaskCredentials(string repository) => UserInfo().Replace(repository, "://");
+
+    [GeneratedRegex("://[^/@]*@", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex UserInfo();
 
     /// <summary>The ID names a status file: only what is safe in a file name.</summary>
     [GeneratedRegex("^[A-Za-z0-9-]{1,64}$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

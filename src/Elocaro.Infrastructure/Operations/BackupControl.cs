@@ -57,6 +57,16 @@ internal sealed class BackupControl(BackupSidecar sidecar, IBackupTargets target
         return resolved.Target is { } target ? await sidecar.StartRestoreAsync(target, snapshot, null, cancellationToken) : Result.Failed([.. resolved.Errors]);
     }
 
+    public Task<BackupEnvironment?> EnvironmentAsync(CancellationToken cancellationToken = default) => sidecar.EnvironmentAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<BackupSnapshotRow>> EnvironmentSnapshotsAsync(CancellationToken cancellationToken = default) =>
+        (await sidecar.EnvironmentSnapshotsAsync(cancellationToken)).Rows;
+
+    public Task<Result> StartEnvironmentBackupAsync(CancellationToken cancellationToken = default) => sidecar.StartEnvironmentBackupAsync(cancellationToken);
+
+    public Task<Result> StartEnvironmentRestoreAsync(string snapshot, CancellationToken cancellationToken = default) =>
+        sidecar.StartEnvironmentRestoreAsync(snapshot, cancellationToken);
+
     private async Task<IReadOnlyList<BackupSnapshotRow>> LoadSnapshotsAsync(Guid? id, BackupSettingsInput? input, CancellationToken cancellationToken)
     {
         var resolved = await targets.ResolveAsync(id, input, cancellationToken);

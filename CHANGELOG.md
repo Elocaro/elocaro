@@ -4,6 +4,11 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+## [0.3.3] - 2026-11-12
+
+### Geändert
+- Datensicherung: Läuft die Sicherung noch nach der `.env` (kein Ziel in der App), zeigt die Seite jetzt das Ziel als Zeile *Server-Konfiguration* mit Ort, Zeitplan, Aufbewahrung und Stand, dazu die Liste aller Sicherungen mit *Wiederherstellen …* und *Jetzt sichern*. Die Zielliste zeigt für jedes Ziel Ort und Aufbewahrung.
+
 ## [0.3.2] - 2026-11-12
 
 ### Geändert

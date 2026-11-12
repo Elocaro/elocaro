@@ -24,8 +24,8 @@
     </PageHeader>
 
     <section>
-        <h2>@(targets.Count == 0 ? "Letzte Sicherung" : "Sicherungsziele")</h2>
-        @if (state is not null)
+        <h2>@(targets.Count == 0 && environment is null ? "Letzte Sicherung" : "Sicherungsziele")</h2>
+        @if (state is not null && environment is null)
         {
             <Notice Level="Level(state.State)">@state.Description</Notice>
             @if (targets.Count == 0)
@@ -101,19 +101,51 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
             </Notice>
         }
 
+        @if (targets.Count == 0 && environment is not null)
+        {
+            <div class="table-wrapper">
+                <table class="data-table" id="backup-environment-target">
+                    <thead><tr><th>Ziel</th><th>Ort</th><th>Zeitplan</th><th>Aufbewahrung</th><th>Stand</th><th></th></tr></thead>
+                    <tbody>
+                        <tr data-target="Server-Konfiguration">
+                            <td><strong>Server-Konfiguration</strong><br /><span class="small">aus <code>deploy/.env</code></span></td>
+                            <td><code>@environment.Repository</code></td>
+                            <td>täglich um @environment.Time</td>
+                            <td>@Retention(environment.KeepDaily, environment.KeepWeekly, environment.KeepMonthly)</td>
+                            <td>
+                                @if (state is not null)
+                                {
+                                    <StatusChip Level="Chip(state.State)">@ChipText(state.State)</StatusChip>
+                                    <span class="small">@state.Description</span>
+                                    @if (state.Snapshot is not null)
+                                    {
+                                        <span class="small">Kennung <code>@state.Snapshot[..Math.Min(8, state.Snapshot.Length)]</code>@(state.DurationSeconds is { } seconds ? $", {seconds} s" : "")</span>
+                                    }
+                                }
+                            </td>
+                            <td>
+                                <button type="button" class="button button-text" id="environment-backup" @onclick="StartEnvironmentBackupAsync" disabled="@(progress.Running || busy || !progress.Available)">Jetzt sichern</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        }
+
         @if (targets.Count > 0)
         {
             <div class="table-wrapper">
                 <table class="data-table" id="backup-targets">
-                    <thead><tr><th>Ziel</th><th>Ablage</th><th>Zeitplan</th><th>Stand</th><th></th></tr></thead>
+                    <thead><tr><th>Ziel</th><th>Ort</th><th>Zeitplan</th><th>Aufbewahrung</th><th>Stand</th><th></th></tr></thead>
                     <tbody>
                         @foreach (var target in targets)
                         {
                             var status = states.GetValueOrDefault(target.Id);
                             <tr data-target="@target.Name">
                                 <td><strong>@target.Name</strong></td>
-                                <td>@BackupProviders.Label(target.Provider)</td>
+                                <td>@BackupProviders.Label(target.Provider)@(string.IsNullOrWhiteSpace(target.Location) ? "" : ": ")<code>@target.Location</code></td>
                                 <td>@Schedule(target)</td>
+                                <td>@Retention(target.KeepDaily, target.KeepWeekly, target.KeepMonthly)</td>
                                 <td>
                                     @if (!target.Enabled)
                                     {
@@ -179,13 +211,13 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         </section>
     }
 
-    @if (targets.Count > 0 && progress.Available)
+    @if ((targets.Count > 0 || environment is not null) && progress.Available)
     {
         <section id="backup-snapshots">
             <h2>Vorhandene Sicherungen</h2>
             @foreach (var failed in snapshotErrors)
             {
-                <Notice Level="NoticeLevel.Warning">Sicherungen von „@failed.Key.Name“ konnten nicht gelesen werden: @failed.Value</Notice>
+                <Notice Level="NoticeLevel.Warning">Sicherungen von „@failed.Key“ konnten nicht gelesen werden: @failed.Value</Notice>
             }
             @if (snapshots.Count == 0 && snapshotErrors.Count == 0)
             {
@@ -201,7 +233,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                             {
                                 <tr>
                                     <td>@Format.Timestamp(entry.Row.Time)</td>
-                                    <td>@entry.Target.Name</td>
+                                    <td>@entry.TargetName</td>
                                     <td><code>@entry.Row.ShortId</code></td>
                                     <td><button type="button" class="button button-text" @onclick="() => Select(entry)" disabled="@(progress.Running || busy)">Wiederherstellen …</button></td>
                                 </tr>
@@ -268,10 +300,13 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
     private IReadOnlyList<string>? errors;
     private IReadOnlyList<string>? listErrors;
 
-    private sealed record SnapshotEntry(BackupSettingsView Target, BackupSnapshotRow Row);
+    /// <summary><see cref="TargetId"/> is <c>null</c> for the target of the server configuration.</summary>
+    private sealed record SnapshotEntry(Guid? TargetId, string TargetName, BackupSnapshotRow Row);
+
+    private BackupEnvironment? environment;
 
     private List<SnapshotEntry> snapshots = [];
-    private Dictionary<BackupSettingsView, string> snapshotErrors = [];
+    private Dictionary<string, string> snapshotErrors = [];
     private SnapshotEntry? selected;
     private string confirmation = string.Empty;
     private CancellationTokenSource? polling;
@@ -303,6 +338,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         state = await BackupStatus.QueryAsync();
         states = (await BackupStatus.QueryTargetsAsync()).ToDictionary(s => s.Id);
         progress = await Control.ProgressAsync();
+        environment = targets.Count == 0 && progress.Available ? await Control.EnvironmentAsync() : null;
         await LoadSnapshotsAsync();
         sawRestore |= progress is { Running: true, Kind: "Restore" };
         // Only a restore that ran while this page was open restarts the app (a result from earlier must not do it again).
@@ -342,6 +378,32 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         {
             polling?.Dispose();
             polling = null;
+        }
+    }
+
+    private static string Retention(int daily, int weekly, int monthly) => $"{daily} täglich, {weekly} wöchentlich, {monthly} monatlich";
+
+    private async Task StartEnvironmentBackupAsync()
+    {
+        listErrors = null;
+        busy = true;
+        try
+        {
+            var result = await Control.StartEnvironmentBackupAsync();
+            if (result.Succeeded)
+            {
+                Notify.Success("Die Sicherung wurde gestartet.");
+            }
+            else
+            {
+                listErrors = result.Errors;
+            }
+
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
         }
     }
 
@@ -545,25 +607,35 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         }
 
         var entries = new List<SnapshotEntry>();
-        var failures = new Dictionary<BackupSettingsView, string>();
+        var failures = new Dictionary<string, string>();
         if (progress.Available)
         {
+            if (environment is not null)
+            {
+                await AddSnapshotsAsync("Server-Konfiguration", () => Control.EnvironmentSnapshotsAsync(), null);
+            }
+
             foreach (var target in targets)
             {
-                try
-                {
-                    entries.AddRange((await Control.SnapshotsAsync(target.Id)).Select(row => new SnapshotEntry(target, row)));
-                }
-                catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
-                {
-                    failures[target] = ex.Message;
-                }
+                await AddSnapshotsAsync(target.Name, () => Control.SnapshotsAsync(target.Id), target.Id);
+            }
+        }
+
+        async Task AddSnapshotsAsync(string name, Func<Task<IReadOnlyList<BackupSnapshotRow>>> load, Guid? id)
+        {
+            try
+            {
+                entries.AddRange((await load()).Select(row => new SnapshotEntry(id, name, row)));
+            }
+            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+            {
+                failures[name] = ex.Message;
             }
         }
 
         snapshots = entries.OrderByDescending(e => e.Row.Time).ToList();
         snapshotErrors = failures;
-        if (selected is not null && !snapshots.Any(e => e.Target.Id == selected.Target.Id && e.Row.Id == selected.Row.Id))
+        if (selected is not null && !snapshots.Any(e => e.TargetId == selected.TargetId && e.Row.Id == selected.Row.Id))
         {
             selected = null;
         }
@@ -600,7 +672,9 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         busy = true;
         try
         {
-            var result = await Control.StartRestoreAsync(selected.Target.Id, selected.Row.Id);
+            var result = selected.TargetId is { } targetId
+                ? await Control.StartRestoreAsync(targetId, selected.Row.Id)
+                : await Control.StartEnvironmentRestoreAsync(selected.Row.Id);
             if (!result.Succeeded)
             {
                 listErrors = result.Errors;

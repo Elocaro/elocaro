@@ -87,6 +87,12 @@ public sealed record BackupOperationRow(string Kind, bool Succeeded, string Mess
 /// <param name="Results">The last backup per target ID (as <c>Guid.ToString("N")</c>).</param>
 public sealed record BackupProgress(bool Available, bool Running, string? Kind, BackupOperationRow? Last, string? RunningTargetId = null, IReadOnlyDictionary<string, BackupOperationRow>? Results = null);
 
+/// <summary>The backup target that the container is configured with through its environment (<c>RESTIC_REPOSITORY</c> in <c>deploy/.env</c>).</summary>
+/// <param name="Repository">Where the backups lie (without a password in the address).</param>
+/// <param name="Time">Time of the daily backup (HH:mm).</param>
+/// <param name="Paused">The app manages targets itself, so the schedule of the environment is paused.</param>
+public sealed record BackupEnvironment(string Repository, string Time, int KeepDaily, int KeepWeekly, int KeepMonthly, bool Paused);
+
 /// <summary>Remote control of the backup container.</summary>
 public interface IBackupControl
 {
@@ -116,4 +122,16 @@ public interface IBackupControl
 
     /// <summary>Restore from a target given directly (new installation).</summary>
     Task<Result> StartRestoreAsync(BackupSettingsInput input, string snapshot, CancellationToken cancellationToken = default);
+
+    /// <summary>The target of the container environment, or <c>null</c> if there is none (or the container is unreachable).</summary>
+    Task<BackupEnvironment?> EnvironmentAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Existing backups at the environment target, newest first.</summary>
+    Task<IReadOnlyList<BackupSnapshotRow>> EnvironmentSnapshotsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Starts a backup to the environment target now.</summary>
+    Task<Result> StartEnvironmentBackupAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Restores from a backup at the environment target (runs in the background, the app restarts afterwards).</summary>
+    Task<Result> StartEnvironmentRestoreAsync(string snapshot, CancellationToken cancellationToken = default);
 }
