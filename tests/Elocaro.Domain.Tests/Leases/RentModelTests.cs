@@ -106,6 +106,30 @@ public class RentModelTests
         Assert.Null(lease.LastBaseRentChange(new DateOnly(2027, 3, 31)));
     }
 
+    [Fact]
+    public void Increases_after_modernisation_do_not_count_as_last_increase()
+    {
+        var lease = Lease();
+        lease.SetComponent(RentComponentType.BaseRent, new DateOnly(2027, 4, 1), 700m);
+        lease.SetComponent(RentComponentType.BaseRent, new DateOnly(2028, 2, 1), 760m); // modernisation (§ 559 BGB)
+        DateOnly[] modernisation = [new DateOnly(2028, 2, 1)];
+
+        Assert.Equal(new DateOnly(2028, 2, 1), lease.LastBaseRentChange());
+        Assert.Equal(new DateOnly(2027, 4, 1), lease.LastBaseRentChange(null, modernisation));
+        Assert.Null(Lease().LastBaseRentChange(null, modernisation));
+    }
+
+    [Fact]
+    public void Index_lockout_ignores_increases_after_modernisation()
+    {
+        var lease = Lease();
+        lease.SetRentModel(RentModel.Index, new DateOnly(2026, 1, 1), 120m);
+        lease.SetComponent(RentComponentType.BaseRent, new DateOnly(2026, 11, 1), 700m); // modernisation (§ 559 BGB)
+
+        Assert.Throws<RuleViolationException>(() => lease.AdjustIndex(new DateOnly(2027, 1, 1), new DateOnly(2026, 9, 1), 121.7m));
+        Assert.True(lease.AdjustIndex(new DateOnly(2027, 1, 1), new DateOnly(2026, 9, 1), 121.7m, [new DateOnly(2026, 11, 1)]) > 700m);
+    }
+
     private static Lease Lease()
     {
         var lease = new Lease(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Start);

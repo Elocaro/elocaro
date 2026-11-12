@@ -30,7 +30,8 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
         var lease = context.Lease;
         var today = Today;
         var baseRent = lease.AmountAt(RentComponentType.BaseRent, today);
-        var lastIncrease = lease.LastBaseRentChange(today);
+        var ignored = await ModernisationDatesAsync(leaseId, cancellationToken);
+        var lastIncrease = lease.LastBaseRentChange(today, ignored);
         var effective = ComparativeRent.EffectiveFrom(today.AddDays(3));
         var rows = await db.Set<RentIncrease>().AsNoTracking().Where(r => r.LeaseId == leaseId).OrderByDescending(r => r.CreatedAt).ToListAsync(cancellationToken);
         return new RentIncreaseOverview(
@@ -38,7 +39,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
             RentThreeYearsBefore(lease, effective), context.Property.RentCapPercent, context.Area,
             ComparativeRent.EarliestDeclaration(lastIncrease ?? lease.Start, lastIncrease is not null),
             lease.AmountAt(RentComponentType.OperatingCostFlatRate, today),
-            await IndexProposalAsync(lease, baseRent, today, cancellationToken),
+            await IndexProposalAsync(lease, baseRent, today, ignored, cancellationToken),
             lease.RentSteps.Where(s => s.AppliedAt is null && s.From > today).OrderBy(s => s.From).Select(s => new RentStepView(s.Id, s.From, s.BaseRent, s.AppliedAt)).FirstOrDefault(),
             rows.Select(r => new RentIncreaseRow(r.Id, r.Kind, r.Status, r.CurrentAmount, r.NewAmount, r.PlannedDeclaration, r.EffectiveFrom, r.DeclaredOn, r.ConsentDeadline, r.ConsentOn, r.DocumentId, r.Summary)).ToList());
     }
@@ -143,6 +144,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
             var increase = await db.Set<RentIncrease>().SingleOrDefaultAsync(r => r.Id == id, cancellationToken) ?? throw new NotFoundException();
             var context = await LoadAsync(increase.LeaseId, cancellationToken) ?? throw new NotFoundException();
             var lease = context.Lease;
+            var ignored = await ModernisationDatesAsync(lease.Id, cancellationToken);
             if (increase.Status != RentIncreaseStatus.Draft)
             {
                 increase.Declare(received, increase.EffectiveFrom, increase.ConsentDeadline); // throws the matching message
@@ -151,7 +153,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
             switch (increase.Kind)
             {
                 case RentIncreaseKind.Comparative:
-                    var assessment = ComparativeRent.Assess(lease.Start, lease.LastBaseRentChange(received), increase.CurrentAmount, RentThreeYearsBefore(lease, ComparativeRent.EffectiveFrom(received)),
+                    var assessment = ComparativeRent.Assess(lease.Start, lease.LastBaseRentChange(received, ignored), increase.CurrentAmount, RentThreeYearsBefore(lease, ComparativeRent.EffectiveFrom(received)),
                         increase.CapPercent ?? context.Property.RentCapPercent, increase.ComparativeRentAmount, received, increase.NewAmount);
                     if (!assessment.IsAllowed)
                     {
@@ -163,13 +165,13 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
 
                 case RentIncreaseKind.Index:
                     var effective = IndexedRent.EffectiveFrom(received);
-                    var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange() ?? lease.Start);
+                    var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange(null, ignored) ?? lease.Start);
                     if (effective < earliest)
                     {
                         throw new RuleViolationException($"Die Miete muss mindestens ein Jahr unverändert bleiben: die Anpassung kann frühestens ab {earliest:dd.MM.yyyy} wirken.");
                     }
 
-                    var newRent = lease.AdjustIndex(effective, increase.IndexNewMonth!.Value, increase.IndexNewValue!.Value);
+                    var newRent = lease.AdjustIndex(effective, increase.IndexNewMonth!.Value, increase.IndexNewValue!.Value, ignored);
                     increase.Restate(newRent);
                     increase.Declare(received, effective, null);
                     break;
@@ -229,6 +231,15 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
 
     private DateOnly Today => GermanTime.Today(clock.GetUtcNow());
 
+    /// <summary>
+    /// Days on which increases after modernisation (§ 559 BGB) took effect. They are part of the base rent but neither restart
+    /// the 15 months and the lockout of § 558 Abs. 1 BGB nor the lockout of § 557b Abs. 2 BGB.
+    /// </summary>
+    private async Task<IReadOnlyCollection<DateOnly>> ModernisationDatesAsync(Guid leaseId, CancellationToken cancellationToken) =>
+        await db.Set<RentIncrease>().AsNoTracking()
+            .Where(r => r.LeaseId == leaseId && r.Kind == RentIncreaseKind.Modernisation && r.Status == RentIncreaseStatus.InForce)
+            .Select(r => r.EffectiveFrom).ToListAsync(cancellationToken);
+
     /// <summary>Base rent three years before the day the increase takes effect (at the start of the lease if it is younger).</summary>
     private static decimal RentThreeYearsBefore(Lease lease, DateOnly effectiveFrom)
     {
@@ -236,7 +247,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
         return lease.AmountAt(RentComponentType.BaseRent, day < lease.Start ? lease.Start : day) ?? 0m;
     }
 
-    private async Task<IndexProposal?> IndexProposalAsync(Lease lease, decimal? baseRent, DateOnly today, CancellationToken cancellationToken)
+    private async Task<IndexProposal?> IndexProposalAsync(Lease lease, decimal? baseRent, DateOnly today, IReadOnlyCollection<DateOnly> ignored, CancellationToken cancellationToken)
     {
         if (lease.RentModel != RentModel.Index || lease.IndexBaseValue is not { } baseValue || lease.IndexBaseMonth is not { } baseMonth || baseRent is not { } rent)
         {
@@ -249,7 +260,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
             return null;
         }
 
-        var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange() ?? lease.Start);
+        var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange(null, ignored) ?? lease.Start);
         return new IndexProposal(newest.Month, newest.Value, IndexedRent.ChangePercent(baseValue, newest.Value), IndexedRent.NewRent(rent, baseValue, newest.Value), earliest, IndexedRent.EffectiveFrom(today) >= earliest);
     }
 
@@ -265,7 +276,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
         switch (input.Kind)
         {
             case RentIncreaseKind.Comparative:
-                return PlanComparative(context, input, planned, current, baseModel, errors, warnings);
+                return PlanComparative(context, input, planned, current, baseModel, errors, warnings, await ModernisationDatesAsync(context.Lease.Id, cancellationToken));
             case RentIncreaseKind.Index:
                 return await PlanIndexAsync(context, planned, current, baseModel, errors, warnings, cancellationToken);
             case RentIncreaseKind.Graduated:
@@ -277,7 +288,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
         }
     }
 
-    private static Plan PlanComparative(Context context, RentIncreaseInput input, DateOnly planned, decimal current, RentIncreaseModel baseModel, List<string> errors, List<string> warnings)
+    private static Plan PlanComparative(Context context, RentIncreaseInput input, DateOnly planned, decimal current, RentIncreaseModel baseModel, List<string> errors, List<string> warnings, IReadOnlyCollection<DateOnly> ignored)
     {
         var lease = context.Lease;
         if (lease.RentModel != RentModel.Standard)
@@ -379,7 +390,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
         var cap = context.Property.RentCapPercent;
         var effective = ComparativeRent.EffectiveFrom(planned);
         var rentThreeYearsAgo = RentThreeYearsBefore(lease, effective);
-        var lastIncrease = lease.LastBaseRentChange(planned);
+        var lastIncrease = lease.LastBaseRentChange(planned, ignored);
         var capLimit = ComparativeRent.CapLimit(rentThreeYearsAgo, cap);
         var provisionalMax = comparative is { } c0 ? Math.Min(c0, capLimit) : capLimit;
         var newRent = input.NewAmount ?? provisionalMax;
@@ -437,7 +448,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
                     errors.Add("Der Index ist nicht gestiegen; eine Erhöhung ist nicht möglich (eine Senkung wäre auf Verlangen des Mieters zu beachten).");
                 }
 
-                var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange() ?? lease.Start);
+                var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange(null, await ModernisationDatesAsync(lease.Id, cancellationToken)) ?? lease.Start);
                 if (effective < earliest)
                 {
                     errors.Add($"Die Miete muss mindestens ein Jahr unverändert bleiben: die Anpassung kann frühestens ab {earliest:dd.MM.yyyy} wirken.");

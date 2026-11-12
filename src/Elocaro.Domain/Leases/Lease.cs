@@ -570,14 +570,15 @@ public sealed class Lease : Entity
     }
 
     /// <summary>Adopts an index adjustment: new base rent from its effective date and new base index.</summary>
-    public decimal AdjustIndex(DateOnly effectiveFrom, DateOnly cpiMonth, decimal cpiValue)
+    /// <param name="ignoredChanges">Days of increases after modernisation, which do not restart the lockout (see <see cref="LastBaseRentChange"/>).</param>
+    public decimal AdjustIndex(DateOnly effectiveFrom, DateOnly cpiMonth, decimal cpiValue, IReadOnlyCollection<DateOnly>? ignoredChanges = null)
     {
         if (RentModel != RentModel.Index || IndexBaseValue is not { } baseValue)
         {
             throw new RuleViolationException("Der Vertrag ist keine Indexmiete.");
         }
 
-        var lastChange = LastBaseRentChange() ?? Start;
+        var lastChange = LastBaseRentChange(null, ignoredChanges) ?? Start;
         if (effectiveFrom < IndexedRent.EarliestEffectiveDate(lastChange))
         {
             throw new RuleViolationException(
@@ -593,10 +594,16 @@ public sealed class Lease : Entity
     }
 
     /// <summary>Start of the currently valid base rent, if it was changed after the lease start.</summary>
-    public DateOnly? LastBaseRentChange(DateOnly? referenceDate = null)
+    /// <param name="referenceDate">Only changes up to this day count.</param>
+    /// <param name="ignoredChanges">
+    /// Days of changes that do not count, namely increases after modernisation (§ 559 BGB): they restart neither the
+    /// 15 months and the lockout of § 558 Abs. 1 nor the lockout of § 557b Abs. 2 BGB.
+    /// </param>
+    public DateOnly? LastBaseRentChange(DateOnly? referenceDate = null, IReadOnlyCollection<DateOnly>? ignoredChanges = null)
     {
         var day = referenceDate ?? DateOnly.MaxValue;
-        return Components.Where(b => b.Kind == RentComponentType.BaseRent && b.Validity.From > Start && b.Validity.From <= day)
+        return Components.Where(b => b.Kind == RentComponentType.BaseRent && b.Validity.From > Start && b.Validity.From <= day
+                && (ignoredChanges is null || !ignoredChanges.Contains(b.Validity.From)))
             .Select(b => (DateOnly?)b.Validity.From).Max();
     }
 
