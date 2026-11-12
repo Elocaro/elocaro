@@ -15,6 +15,7 @@ internal sealed class CalculationRun
     private readonly Period billing;
     private readonly DateOnly billingEnd;
     private readonly int billingDays;
+    private readonly int yearDays;
     private readonly List<ICostGroupCalculator> calculators;
     private readonly List<CalculationProblem> problems = [];
     private readonly HashSet<string> problemKeys = [];
@@ -38,12 +39,21 @@ internal sealed class CalculationRun
         this.calculators = calculators;
         billing = input.BillingPeriod;
         billingEnd = billing.To ?? throw new RuleViolationException("Der Abrechnungszeitraum braucht ein Ende.");
-        if (billingEnd > billing.From.AddYears(1).AddDays(-1))
+
+        // Twelve months end on the day before the day with the same number; a period from 29 February ends on 28 February (§ 188 BGB).
+        var twelveMonthsEnd = billing.From.AddYears(1).AddDays(-1);
+        if (billing.From.AddDays(-1).AddYears(1) is var leapEnd && leapEnd > twelveMonthsEnd)
+        {
+            twelveMonthsEnd = leapEnd;
+        }
+
+        if (billingEnd > twelveMonthsEnd)
         {
             throw new RuleViolationException("Der Abrechnungszeitraum darf höchstens 12 Monate umfassen (§ 556 Abs. 3 BGB).");
         }
 
         billingDays = billing.Days;
+        yearDays = Math.Max(billingDays, billing.From.AddYears(1).DayNumber - billing.From.DayNumber);
         vacancyPersons = Math.Max(0, input.Options?.VacancyPersons ?? 1);
         units = [.. input.Units.OrderBy(u => u.Name, StringComparer.Ordinal).ThenBy(u => u.Id)];
         unitsById = units.ToDictionary(u => u.Id);
@@ -684,6 +694,7 @@ internal sealed class CalculationRun
         var exactTotal = pieces.Sum(p => p.Exact);
         var total = CentDistribution.Cents(exactTotal);
         var pieceCents = CentDistribution.Distribute(total, pieces.Select(p => p.Exact).ToList());
+        var deductions = PreDeductions(pieces, pieceCents);
         var builders = new Dictionary<Guid, LineBuilder>();
         var landlordHere = new List<LandlordPosition>();
         var keyTexts = new List<string>();
@@ -694,7 +705,7 @@ internal sealed class CalculationRun
         for (var i = 0; i < pieces.Count; i++)
         {
             var piece = pieces[i];
-            ProcessPiece(type, name, total, piece, pieceCents[i], pieces.Count > 1, itemLines, builders, landlordHere);
+            ProcessPiece(type, name, total, piece, pieceCents[i], deductions[i], pieces.Count > 1, itemLines, builders, landlordHere);
             var keyText = KeyLabel(piece.Rule);
             if (!keyTexts.Contains(keyText) || slices.Count > 1)
             {
@@ -747,12 +758,44 @@ internal sealed class CalculationRun
         return new Piece(slice, rule, directUnit, parts, exact);
     }
 
+    /// <summary>
+    /// Deduction before allocation per piece. A percentage applies to the costs of each piece. A fixed amount is an amount per year:
+    /// it is prorated by the days of the key's slice (so a billing period shorter than a year gets its part only) and counts once per
+    /// slice; the pieces of one slice (direct costs of several units) share it in proportion to their costs.
+    /// </summary>
+    private decimal[] PreDeductions(List<Piece> pieces, decimal[] cents)
+    {
+        var result = new decimal[pieces.Count];
+        foreach (var group in Enumerable.Range(0, pieces.Count).GroupBy(i => pieces[i].Slice.Span))
+        {
+            var indexes = group.ToList();
+            var rule = pieces[indexes[0]].Rule;
+            if (rule.PreDeductionPercent is { } percent)
+            {
+                indexes.ForEach(i => result[i] = CentDistribution.Cents(cents[i] * percent / 100m));
+            }
+            else if (rule.PreDeductionAmount is { } fixedAmount)
+            {
+                var sliceCents = indexes.Sum(i => cents[i]);
+                var deduction = Math.Min(CentDistribution.Cents(fixedAmount * group.Key.Days / yearDays), Math.Abs(sliceCents)) * Math.Sign(sliceCents);
+                var parts = CentDistribution.Distribute(deduction, indexes.Select(i => cents[i]).ToList());
+                for (var k = 0; k < indexes.Count; k++)
+                {
+                    result[indexes[k]] = parts[k];
+                }
+            }
+        }
+
+        return result;
+    }
+
     private void ProcessPiece(
         string type,
         string name,
         decimal typeTotal,
         Piece piece,
         decimal cents,
+        decimal deduction,
         bool multiple,
         List<CostItemLine> itemLines,
         Dictionary<Guid, LineBuilder> builders,
@@ -761,17 +804,6 @@ internal sealed class CalculationRun
         var rule = piece.Rule;
         var span = piece.Slice.Span;
         var suffix = multiple ? $" ({Span(span)}{(piece.DirectUnit is { } du && unitsById.TryGetValue(du, out var duUnit) ? ", " + duUnit.Name : string.Empty)})" : string.Empty;
-
-        // Deduction before allocation
-        var deduction = 0m;
-        if (rule.PreDeductionPercent is { } percent)
-        {
-            deduction = CentDistribution.Cents(cents * percent / 100m);
-        }
-        else if (rule.PreDeductionAmount is { } fixedAmount)
-        {
-            deduction = Math.Min(CentDistribution.Cents(fixedAmount * span.Days / billingDays), Math.Abs(cents)) * Math.Sign(cents);
-        }
 
         var net = cents - deduction;
         if (deduction != 0)

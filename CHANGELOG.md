@@ -4,6 +4,12 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Behoben
+- Betriebskosten: Ein Vorwegabzug als Jahresbetrag wird bei einem Abrechnungszeitraum unter einem Jahr tagesanteilig gekürzt (bisher voll abgezogen) und bei direkt zugeordneten Kosten mehrerer Einheiten nur einmal abgezogen (bisher je Einheit).
+- Betriebskosten: Ein Abrechnungszeitraum vom 29.2. bis zum 28.2. des Folgejahres wird als 12 Monate angenommen.
+- Vorschlag für die neue Vorauszahlung: Bei einem Abrechnungszeitraum unter 12 Monaten werden die Kosten auf ein Jahr hochgerechnet (bisher fiel der Vorschlag entsprechend zu niedrig aus).
+- CO₂-Kostenaufteilung: Der Ausstoß je m² wird vor der Einstufung auf eine Nachkommastelle gerundet (§ 5 Abs. 1 Satz 3 CO2KostAufG); bei Zeiträumen unter einem Jahr werden die Stufengrenzen anteilig gekürzt. Zeiträume, die vor dem 1.1.2023 begonnen haben, erhalten keine Aufteilung mehr, auch wenn sie 2023 enden (§ 11 Abs. 2).
+
 ## [0.5.0] - 2026-11-13
 
 ### Hinzugefügt
