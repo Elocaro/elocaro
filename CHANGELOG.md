@@ -4,6 +4,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+## [0.3.0] - 2026-11-12
+
 ### Hinzugefügt
 - Hinweis auf neue Versionen: *Einstellungen → System → Neuigkeiten* zeigt die laufende Version, ob eine neuere veröffentlicht wurde, was sich geändert hat und den Befehl `deploy/update.sh <Version>`; auf der Übersicht erscheint für Administratoren eine Aufgabe. Zweimal täglich fragt die App bei GitHub nach den Releases (`UpdateCheck__Enabled=false` schaltet das ab); sie installiert nie selbst etwas. Der Release-Workflow legt dafür zu jedem Tag ein GitHub-Release mit dem Abschnitt aus dem Changelog an.
 
