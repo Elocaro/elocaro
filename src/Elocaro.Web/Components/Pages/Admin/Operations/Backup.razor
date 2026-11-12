@@ -10,16 +10,13 @@
 @inject IBackupSettings Settings
 @inject IBackupControl Control
 @inject Notifier Notify
-@inject Confirmations Confirm
+@inject IDialogService Dialogs
 @inject IAppRestart Restart
 
 <InteractiveShell>
     <PageHeader Title="Datensicherung" Subtitle="Wohin und wann gesichert wird, Wiederherstellung und Vollexport aller Daten.">
         <Actions>
-            @if (editing is null)
-            {
-                <button type="button" class="button button-primary" id="backup-add" @onclick="NewTarget">Ziel hinzufügen</button>
-            }
+            <button type="button" class="button button-primary" id="backup-add" @onclick="NewTargetAsync">Ziel hinzufügen</button>
         </Actions>
     </PageHeader>
 
@@ -125,6 +122,10 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                             </td>
                             <td>
                                 <button type="button" class="button button-text" id="environment-backup" @onclick="StartEnvironmentBackupAsync" disabled="@(progress.Running || busy || !progress.Available)">Jetzt sichern</button>
+                                @if (BackupProviders.Parse(environment.Repository) is not null)
+                                {
+                                    <button type="button" class="button button-text" id="environment-edit" @onclick="TakeOverEnvironmentAsync" disabled="@busy">Bearbeiten</button>
+                                }
                             </td>
                         </tr>
                     </tbody>
@@ -159,7 +160,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                                 </td>
                                 <td>
                                     <button type="button" class="button button-text" @onclick="() => StartBackupAsync(target)" disabled="@(progress.Running || busy || !progress.Available)">Jetzt sichern</button>
-                                    <button type="button" class="button button-text" @onclick="() => EditTarget(target)" disabled="@busy">Bearbeiten</button>
+                                    <button type="button" class="button button-text" @onclick="() => EditTargetAsync(target)" disabled="@busy">Bearbeiten</button>
                                 </td>
                             </tr>
                         }
@@ -170,46 +171,6 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
         <ErrorList Errors="listErrors" />
     </section>
-
-    @if (editing is not null && data is not null)
-    {
-        <section id="backup-edit">
-            <h2>@(editing == Guid.Empty ? "Neues Ziel" : "Ziel bearbeiten")</h2>
-            <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
-                <div class="form-grid">
-                    <AppTextField Value="@data.Name" ValueChanged="v => data.Name = v ?? string.Empty" Label="Name" Required="true" Hint="So heißt das Ziel in der App, z. B. „Google Drive“ oder „NAS im Keller“." />
-                    <BackupTargetFields Input="data" StoredCredentials="storedCredentials" HasPassword="hasPassword" ProviderChanged="ProviderChanged" />
-                </div>
-
-                <h3>Zeitplan</h3>
-                <div class="form-grid">
-                    <AppCheckBox Value="data.Enabled" ValueChanged="v => data.Enabled = v" Label="Automatisch sichern" />
-                    <AppSelect T="int" Value="data.IntervalDays" ValueChanged="v => data.IntervalDays = v" Label="Wie oft" Items="Intervals" Text="IntervalText" />
-                    <AppTextField Value="@timeText" ValueChanged="v => timeText = v ?? string.Empty" Label="Uhrzeit" Hint="Stunde und Minute, z. B. 02:30. Wurde die Zeit verpasst, holt die App die Sicherung nach." Placeholder="02:30" />
-                    <AppNumberField T="int" Value="data.KeepDaily" ValueChanged="v => data.KeepDaily = v" Label="Tägliche Sicherungen behalten" />
-                    <AppNumberField T="int" Value="data.KeepWeekly" ValueChanged="v => data.KeepWeekly = v" Label="Wöchentliche behalten" />
-                    <AppNumberField T="int" Value="data.KeepMonthly" ValueChanged="v => data.KeepMonthly = v" Label="Monatliche behalten" />
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="button button-primary" id="backup-save" disabled="@busy">Speichern</button>
-                    <button type="button" class="button button-outlined" id="backup-test" @onclick="TestAsync" disabled="@busy">Verbindung testen</button>
-                    <button type="button" class="button button-outlined" id="backup-cancel" @onclick="CancelEdit" disabled="@busy">Abbrechen</button>
-                    @if (editing != Guid.Empty)
-                    {
-                        <button type="button" class="button button-text" id="backup-delete" @onclick="DeleteAsync" disabled="@busy">Ziel entfernen</button>
-                    }
-                </div>
-            </EditForm>
-
-            @if (check is not null)
-            {
-                <Notice Level="@(check.Succeeded ? NoticeLevel.Success : NoticeLevel.Error)" id="backup-check">@check.Message</Notice>
-            }
-
-            <ErrorList Errors="errors" />
-        </section>
-    }
 
     @if ((targets.Count > 0 || environment is not null) && progress.Available)
     {
@@ -281,23 +242,12 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 </InteractiveShell>
 
 @code {
-    private static readonly int[] Intervals = [1, 7];
-
     private BackupSnapshot? state;
     private BackupProgress progress = new(false, false, null, null);
     private IReadOnlyList<BackupSettingsView> targets = [];
     private Dictionary<Guid, BackupTargetStatus> states = [];
 
-    /// <summary><c>null</c>: no form; <see cref="Guid.Empty"/>: a new target; otherwise the target that is edited.</summary>
-    private Guid? editing;
-    private BackupSettingsInput? data;
-    private bool hasPassword;
-    private IReadOnlySet<string> storedCredentials = new HashSet<string>(StringComparer.Ordinal);
-    private BackupProvider savedProvider;
-    private string timeText = "02:30";
     private bool busy;
-    private BackupTargetCheck? check;
-    private IReadOnlyList<string>? errors;
     private IReadOnlyList<string>? listErrors;
 
     /// <summary><see cref="TargetId"/> is <c>null</c> for the target of the server configuration.</summary>
@@ -407,7 +357,6 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         }
     }
 
-    private static string IntervalText(int days) => days == 1 ? "Täglich" : "Wöchentlich";
 
     private static string Schedule(BackupSettingsView target) =>
         $"{(target.IntervalDays == 1 ? "täglich" : target.IntervalDays == 7 ? "wöchentlich" : $"alle {target.IntervalDays} Tage")} um {target.Time.ToString("HH:mm", CultureInfo.InvariantCulture)}";
@@ -428,149 +377,48 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         _ => "noch keine Sicherung",
     };
 
-    private void NewTarget()
-    {
-        CloseSnapshots();
-        editing = Guid.Empty;
-        data = new BackupSettingsInput();
-        timeText = "02:30";
-        hasPassword = false;
-        storedCredentials = new HashSet<string>(StringComparer.Ordinal);
-        savedProvider = data.Provider;
-        check = null;
-        errors = null;
-    }
+    private static readonly DialogOptions TargetDialog = new() { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true };
 
-    private void EditTarget(BackupSettingsView target)
+    private Task NewTargetAsync() => ShowTargetDialogAsync("Ziel hinzufügen", null, null, null);
+
+    private Task EditTargetAsync(BackupSettingsView target) => ShowTargetDialogAsync("Ziel bearbeiten", target, null, null);
+
+    /// <summary>The target of the server configuration becomes a target of the app: provider and place are taken over, credentials and password are entered again.</summary>
+    private Task TakeOverEnvironmentAsync()
     {
-        CloseSnapshots();
-        editing = target.Id;
-        data = new BackupSettingsInput
+        if (environment is null || BackupProviders.Parse(environment.Repository) is not { } parsed)
         {
-            Name = target.Name,
-            Provider = target.Provider,
-            Location = target.Location,
-            Enabled = target.Enabled,
-            Time = target.Time,
-            IntervalDays = target.IntervalDays,
-            KeepDaily = target.KeepDaily,
-            KeepWeekly = target.KeepWeekly,
-            KeepMonthly = target.KeepMonthly,
+            return Task.CompletedTask;
+        }
+
+        var input = new BackupSettingsInput
+        {
+            Name = "Sicherung",
+            Provider = parsed.Provider,
+            Location = parsed.Location,
+            Time = TimeOnly.TryParseExact(environment.Time, ["HH:mm", "H:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var time) ? time : new TimeOnly(2, 30),
+            KeepDaily = environment.KeepDaily,
+            KeepWeekly = environment.KeepWeekly,
+            KeepMonthly = environment.KeepMonthly,
         };
-        timeText = target.Time.ToString("HH:mm", CultureInfo.InvariantCulture);
-        hasPassword = target.HasPassword;
-        storedCredentials = target.StoredCredentials;
-        savedProvider = target.Provider;
-        check = null;
-        errors = null;
+        return ShowTargetDialogAsync("Ziel in der App verwalten", null, input,
+            "Dieses Ziel kommt aus der Server-Konfiguration (deploy/.env). Mit „Speichern“ übernimmt es die App: Ziel, Zeitplan und Aufbewahrung lassen sich dann hier ändern, und die Sicherung nach .env ruht. "
+            + "Tragen Sie die Zugangsdaten und das Passwort der bestehenden Sicherung ein; „Verbindung testen“ zeigt, ob sie passen. Die vorhandenen Sicherungen bleiben erhalten.");
     }
 
-    private void CancelEdit()
+    private async Task ShowTargetDialogAsync(string title, BackupSettingsView? existing, BackupSettingsInput? prefill, string? notice)
     {
-        editing = null;
-        data = null;
-        check = null;
-        errors = null;
-    }
-
-    private void ProviderChanged(BackupProvider provider)
-    {
-        check = null;
-        // Credentials of the saved provider do not carry over to another one.
-        var saved = editing is { } id && id != Guid.Empty ? targets.FirstOrDefault(t => t.Id == id) : null;
-        storedCredentials = saved is not null && provider == savedProvider ? saved.StoredCredentials : new HashSet<string>(StringComparer.Ordinal);
-    }
-
-    private bool ReadTime(out TimeOnly time)
-    {
-        if (TimeOnly.TryParseExact(timeText.Trim(), ["HH:mm", "H:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out time))
+        listErrors = null;
+        var parameters = new DialogParameters<BackupTargetDialog>
         {
-            return true;
-        }
-
-        errors = ["Die Uhrzeit muss Stunde und Minute enthalten, z. B. 02:30."];
-        return false;
-    }
-
-    private async Task SaveAsync()
-    {
-        errors = null;
-        check = null;
-        if (data is null || editing is not { } id || !ReadTime(out var time))
+            { x => x.Existing, existing },
+            { x => x.Prefill, prefill },
+            { x => x.Notice, notice },
+        };
+        var dialog = await Dialogs.ShowAsync<BackupTargetDialog>(title, parameters, TargetDialog);
+        if (await dialog.Result is { Canceled: false })
         {
-            return;
-        }
-
-        busy = true;
-        try
-        {
-            data.Time = time;
-            var result = await Settings.SaveAsync(id == Guid.Empty ? null : id, data);
-            if (!result.Succeeded)
-            {
-                errors = result.Errors;
-                return;
-            }
-
-            Notify.Success("Das Ziel wurde gespeichert.");
-            CancelEdit();
             await RefreshAsync();
-        }
-        finally
-        {
-            busy = false;
-        }
-    }
-
-    private async Task DeleteAsync()
-    {
-        if (editing is not { } id || id == Guid.Empty || targets.FirstOrDefault(t => t.Id == id) is not { } target)
-        {
-            return;
-        }
-
-        if (!await Confirm.AskAsync("Ziel entfernen", $"Soll das Ziel „{target.Name}“ aus der App entfernt werden? Die Sicherungen, die dort schon liegen, bleiben erhalten.", "Ja, entfernen"))
-        {
-            return;
-        }
-
-        busy = true;
-        try
-        {
-            var result = await Settings.DeleteAsync(id);
-            if (!result.Succeeded)
-            {
-                errors = result.Errors;
-                return;
-            }
-
-            Notify.Success("Das Ziel wurde entfernt.");
-            CancelEdit();
-            await RefreshAsync();
-        }
-        finally
-        {
-            busy = false;
-        }
-    }
-
-    private async Task TestAsync()
-    {
-        errors = null;
-        if (data is null || editing is not { } id || !ReadTime(out var time))
-        {
-            return;
-        }
-
-        busy = true;
-        try
-        {
-            data.Time = time;
-            check = await Control.TestAsync(id == Guid.Empty ? null : id, data);
-        }
-        finally
-        {
-            busy = false;
         }
     }
 

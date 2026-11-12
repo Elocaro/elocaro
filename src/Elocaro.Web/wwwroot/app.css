@@ -286,6 +286,8 @@ section { margin-bottom: 2rem; }
 /* Form layouts */
 .form-grid { max-width: 72rem; display: grid; gap: 0 1rem; grid-template-columns: 1fr; align-items: end; }
 @media (min-width: 700px) { .form-grid { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); } }
+/* Hints and wide blocks inside a form grid take the whole row (a notice squeezed next to a field is unreadable). */
+.form-grid > .message, .form-grid > .drive-connect, .form-grid > details { grid-column: 1 / -1; }
 .form-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; }
 .form-row .field { flex: 1 1 14rem; margin-bottom: 0; }
 .field-action { justify-content: flex-end; }

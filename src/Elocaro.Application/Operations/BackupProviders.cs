@@ -107,6 +107,42 @@ public static partial class BackupProviders
         return errors;
     }
 
+    /// <summary>
+    /// Provider and location of a restic repository address, the reverse of <see cref="Build"/> (for taking over the target of the
+    /// server configuration). <c>null</c> for an address that the app has no provider for.
+    /// </summary>
+    public static (BackupProvider Provider, string Location)? Parse(string repository)
+    {
+        if (string.IsNullOrWhiteSpace(repository))
+        {
+            return null;
+        }
+
+        var value = repository.Trim();
+        if (value.StartsWith("s3:", StringComparison.Ordinal))
+        {
+            return (BackupProvider.S3, value["s3:".Length..]);
+        }
+
+        if (value.StartsWith("azure:", StringComparison.Ordinal))
+        {
+            var container = value["azure:".Length..].Split(':')[0];
+            return container.Length == 0 ? null : (BackupProvider.Azure, container);
+        }
+
+        if (value.StartsWith("sftp:", StringComparison.Ordinal))
+        {
+            return (BackupProvider.Sftp, value["sftp:".Length..]);
+        }
+
+        if (value.StartsWith($"rclone:{DriveRemote}:", StringComparison.Ordinal))
+        {
+            return (BackupProvider.GoogleDrive, value[$"rclone:{DriveRemote}:".Length..]);
+        }
+
+        return value.StartsWith('/') ? (BackupProvider.Local, string.Empty) : null;
+    }
+
     /// <summary>Builds the target for the backup container. Call <see cref="Validate"/> first.</summary>
     public static BackupRepositoryTarget Build(BackupProvider provider, string location, IReadOnlyDictionary<string, string> credentials, string password, BackupRetention retention)
     {

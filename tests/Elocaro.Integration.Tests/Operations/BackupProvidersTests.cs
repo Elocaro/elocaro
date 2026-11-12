@@ -116,4 +116,24 @@ public class BackupScheduleTests
     [Fact]
     public void A_weekly_target_that_never_ran_is_due_at_once() =>
         Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T13:00:00Z"), Time, 7, null));
+
+    [Theory]
+    [InlineData("azure:elocaro-backup:/", BackupProvider.Azure, "elocaro-backup")]
+    [InlineData("s3:https://s3.example.de/bucket/elocaro", BackupProvider.S3, "https://s3.example.de/bucket/elocaro")]
+    [InlineData("sftp:backup@nas.example.de:/volume1/elocaro", BackupProvider.Sftp, "backup@nas.example.de:/volume1/elocaro")]
+    [InlineData("rclone:gdrive:Elocaro-Sicherung", BackupProvider.GoogleDrive, "Elocaro-Sicherung")]
+    [InlineData("/repo", BackupProvider.Local, "")]
+    public void The_repository_address_of_the_server_configuration_is_split_into_provider_and_place(string repository, BackupProvider provider, string location)
+    {
+        Assert.Equal((provider, location), BackupProviders.Parse(repository));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("rest:https://host/repo")]
+    [InlineData("b2:bucket:path")]
+    public void An_address_without_a_provider_in_the_app_is_not_taken_over(string repository)
+    {
+        Assert.Null(BackupProviders.Parse(repository));
+    }
 }

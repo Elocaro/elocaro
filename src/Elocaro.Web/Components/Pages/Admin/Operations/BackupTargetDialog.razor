@@ -1,0 +1,217 @@
+@using System.Globalization
+@using MudBlazor
+@using Elocaro.Application.Operations
+@using Elocaro.Domain.Operations
+@using Elocaro.Web.Components.Shell
+@inject IBackupSettings Settings
+@inject IBackupControl Control
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+@* Dialog "backup target": create, edit (and remove) a target, or take over the target of the server configuration (.env) into the app.
+   Result: the text "saved" or "deleted" if something changed. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <MudDialog>
+        <DialogContent>
+            <div id="backup-edit">
+                @if (Notice is not null)
+                {
+                    <Notice Level="NoticeLevel.Info" id="backup-takeover">@Notice</Notice>
+                }
+
+                <div class="form-grid">
+                    <AppTextField Value="@data.Name" ValueChanged="v => data.Name = v ?? string.Empty" Label="Name" Required="true" Hint="So heißt das Ziel in der App, z. B. „Google Drive“ oder „NAS im Keller“." />
+                    <BackupTargetFields Input="data" StoredCredentials="storedCredentials" HasPassword="hasPassword" ProviderChanged="ProviderChanged" />
+                </div>
+
+                <h3>Zeitplan</h3>
+                <div class="form-grid">
+                    <AppCheckBox Value="data.Enabled" ValueChanged="v => data.Enabled = v" Label="Automatisch sichern" />
+                    <AppSelect T="int" Value="data.IntervalDays" ValueChanged="v => data.IntervalDays = v" Label="Wie oft" Items="Intervals" Text="IntervalText" />
+                    <AppTextField Value="@timeText" ValueChanged="v => timeText = v ?? string.Empty" Label="Uhrzeit" Hint="Stunde und Minute, z. B. 02:30. Wurde die Zeit verpasst, holt die App die Sicherung nach." Placeholder="02:30" />
+                    <AppNumberField T="int" Value="data.KeepDaily" ValueChanged="v => data.KeepDaily = v" Label="Tägliche Sicherungen behalten" />
+                    <AppNumberField T="int" Value="data.KeepWeekly" ValueChanged="v => data.KeepWeekly = v" Label="Wöchentliche behalten" />
+                    <AppNumberField T="int" Value="data.KeepMonthly" ValueChanged="v => data.KeepMonthly = v" Label="Monatliche behalten" />
+                </div>
+
+                @if (check is not null)
+                {
+                    <Notice Level="@(check.Succeeded ? NoticeLevel.Success : NoticeLevel.Error)" id="backup-check">@check.Message</Notice>
+                }
+
+                <ErrorList Errors="errors" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            @if (Existing is not null)
+            {
+                <MudButton OnClick="DeleteAsync" Disabled="busy" id="backup-delete" Color="Color.Error">Ziel entfernen</MudButton>
+            }
+            <MudButton OnClick="TestAsync" Disabled="busy" id="backup-test">Verbindung testen</MudButton>
+            <MudButton OnClick="Cancel" Disabled="busy" id="backup-cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy" id="backup-save">Speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private static readonly int[] Intervals = [1, 7];
+
+    private BackupSettingsInput data = new();
+    private bool hasPassword;
+    private IReadOnlySet<string> storedCredentials = new HashSet<string>(StringComparer.Ordinal);
+    private BackupProvider savedProvider;
+    private string timeText = "02:30";
+    private bool busy;
+    private BackupTargetCheck? check;
+    private IReadOnlyList<string>? errors;
+
+    /// <summary>The saved target that is edited; <c>null</c> for a new one.</summary>
+    [Parameter]
+    public BackupSettingsView? Existing { get; set; }
+
+    /// <summary>Starting values for a new target (taking over the target of the server configuration).</summary>
+    [Parameter]
+    public BackupSettingsInput? Prefill { get; set; }
+
+    /// <summary>Explanation above the fields.</summary>
+    [Parameter]
+    public string? Notice { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } target)
+        {
+            data = new BackupSettingsInput
+            {
+                Name = target.Name,
+                Provider = target.Provider,
+                Location = target.Location,
+                Enabled = target.Enabled,
+                Time = target.Time,
+                IntervalDays = target.IntervalDays,
+                KeepDaily = target.KeepDaily,
+                KeepWeekly = target.KeepWeekly,
+                KeepMonthly = target.KeepMonthly,
+            };
+            hasPassword = target.HasPassword;
+            storedCredentials = target.StoredCredentials;
+            savedProvider = target.Provider;
+        }
+        else if (Prefill is not null)
+        {
+            data = Prefill;
+            savedProvider = data.Provider;
+        }
+        else
+        {
+            savedProvider = data.Provider;
+        }
+
+        timeText = data.Time.ToString("HH:mm", CultureInfo.InvariantCulture);
+    }
+
+    private static string IntervalText(int days) => days == 1 ? "Täglich" : "Wöchentlich";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void ProviderChanged(BackupProvider provider)
+    {
+        check = null;
+        // Credentials of the saved provider do not carry over to another one.
+        storedCredentials = Existing is not null && provider == savedProvider ? Existing.StoredCredentials : new HashSet<string>(StringComparer.Ordinal);
+    }
+
+    private bool ReadTime()
+    {
+        if (TimeOnly.TryParseExact(timeText.Trim(), ["HH:mm", "H:mm"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+        {
+            data.Time = time;
+            return true;
+        }
+
+        errors = ["Die Uhrzeit muss Stunde und Minute enthalten, z. B. 02:30."];
+        return false;
+    }
+
+    private async Task SaveAsync()
+    {
+        errors = null;
+        check = null;
+        if (!ReadTime())
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Settings.SaveAsync(Existing?.Id, data);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            Notify.Success("Das Ziel wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok("saved"));
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task TestAsync()
+    {
+        errors = null;
+        if (!ReadTime())
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            check = await Control.TestAsync(Existing?.Id, data);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (Existing is not { } target)
+        {
+            return;
+        }
+
+        if (!await Confirm.AskAsync("Ziel entfernen", $"Soll das Ziel „{target.Name}“ aus der App entfernt werden? Die Sicherungen, die dort schon liegen, bleiben erhalten.", "Ja, entfernen"))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Settings.DeleteAsync(target.Id);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            Notify.Success("Das Ziel wurde entfernt.");
+            MudDialog.Close(DialogResult.Ok("deleted"));
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

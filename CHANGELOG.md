@@ -4,15 +4,16 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
-## [0.3.3] - 2026-11-12
+## [0.4.0] - 2026-11-12
 
 ### Geändert
-- Datensicherung: Läuft die Sicherung noch nach der `.env` (kein Ziel in der App), zeigt die Seite jetzt das Ziel als Zeile *Server-Konfiguration* mit Ort, Zeitplan, Aufbewahrung und Stand, dazu die Liste aller Sicherungen mit *Wiederherstellen …* und *Jetzt sichern*. Die Zielliste zeigt für jedes Ziel Ort und Aufbewahrung.
-
-## [0.3.2] - 2026-11-12
-
-### Geändert
-- Datensicherung einfacher: *Vorhandene Sicherungen* listet alle Stände aller Ziele ohne Klick, jeder Eintrag hat *Wiederherstellen …* (mit Bestätigung). Die Anmeldung bei Google ist ein einziger Schritt („Mit Google anmelden“, Code bestätigen); der Abschnitt mit Client-ID und „Eigenen Client verwenden“ ist aus der Oberfläche entfernt, ein eigener Client wird nur noch in der `.env` eingetragen (`docs/betrieb.md`). Die Liste liest das Repository nicht, solange eine Sicherung oder Wiederherstellung läuft.
+- Datensicherung deutlich einfacher:
+  - *Vorhandene Sicherungen* listet alle Stände aller Ziele ohne Klick; jeder Eintrag hat *Wiederherstellen …* (mit Bestätigung, die App startet danach neu).
+  - Die Zielliste zeigt je Ziel Ort, Zeitplan, Aufbewahrung und Stand.
+  - Ziele werden in einem Dialog angelegt, geändert und entfernt, nicht mehr inline auf der Seite.
+  - Läuft die Sicherung noch nach der `.env`, erscheint das Ziel als Zeile *Server-Konfiguration* (Ort ohne Passwort, Uhrzeit, Aufbewahrung, Stand) mit *Jetzt sichern*, der Liste und *Wiederherstellen …*; *Bearbeiten* übernimmt es in die App.
+  - Die Anmeldung bei Google ist ein einziger Schritt („Mit Google anmelden“, Code bestätigen). Der Abschnitt mit Client-ID und „Eigenen Client verwenden“ ist aus der Oberfläche entfernt; ein eigener Client wird nur noch in der `.env` eingetragen (`docs/betrieb.md`).
+  - Die Liste liest das Repository nicht, solange eine Sicherung oder Wiederherstellung läuft.
 
 ## [0.3.0] - 2026-11-12
 
