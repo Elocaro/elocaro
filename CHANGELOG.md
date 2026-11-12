@@ -4,6 +4,9 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Geändert
+- Neues Logo (Haus mit E) und neue App-Symbole (PWA, Apple-Touch, maskierbar, einfarbig für Android); das Zeichen im Kopf der Anwendung ist jetzt eine abgerundete Kachel statt eines Kreises.
+
 ## [0.2.0] - 2026-11-12
 
 ### Hinzugefügt

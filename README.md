@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/bilder/logo.svg" width="96" height="96" alt="Elocaro-Logo"></p>
+
 # Elocaro
 
 [![CI](https://github.com/Elocaro/elocaro/actions/workflows/ci.yml/badge.svg)](https://github.com/Elocaro/elocaro/actions/workflows/ci.yml)
@@ -26,7 +28,7 @@
 
 ## Technik
 
-**Stack:** .NET 10 · Blazor Static SSR · PostgreSQL (EF Core) · Quartz · Gotenberg · Docker Compose
+**Stack:** .NET 11 · Blazor Static SSR · PostgreSQL (EF Core) · Quartz · Gotenberg · Docker Compose
 
 - **Architektur:** Modularer Monolith in vier Projekten (`Domain`, `Application`, `Infrastructure`, `Web`) mit klarer Abhängigkeitsrichtung, die ein Architekturtest absichert.
 - **Tests:** Rechenkerne mit Golden-Master-Fällen (Nebenkosten, Heizkosten, CO₂, AfA, Index), Integrationstests mit Testcontainers, Web-Tests mit bUnit und Playwright, Architekturtests.
