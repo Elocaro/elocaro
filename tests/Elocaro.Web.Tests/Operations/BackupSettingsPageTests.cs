@@ -34,8 +34,8 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
 
         var page = await admin.GetAsync(Page);
 
-        Assert.Contains("deploy/.env", page.Text, StringComparison.Ordinal);
-        Assert.Contains("verwaltet die App Ziele und Zeitplan", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Server-Konfiguration", page.Text, StringComparison.Ordinal);
+        Assert.Contains("dann verwalten Sie Ziele und Zeitplan hier", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Jetzt sichern", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("von hier aus nicht erreichbar", page.Text, StringComparison.Ordinal);
     }
@@ -72,7 +72,7 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
         Assert.Contains("Bearbeiten", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("super-geheimes-passwort", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("super-geheimer-schluessel", page.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("verwaltet die App Ziele und Zeitplan", page.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("dann verwalten Sie Ziele und Zeitplan hier", page.Text, StringComparison.Ordinal);
     }
 
     [Fact]

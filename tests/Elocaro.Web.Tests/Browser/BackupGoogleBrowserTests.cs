@@ -35,7 +35,7 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
 
             // The folder has a default, nothing but the sign-in is left to do
             await Assertions.Expect(page.GetByLabel("Ordner in Google Drive")).ToHaveValueAsync("Elocaro-Sicherung");
-            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google verbinden");
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google anmelden");
 
             await page.Locator("#drive-connect-button").ClickAsync();
             await Assertions.Expect(page.Locator("#drive-code")).ToHaveTextAsync(Code);
@@ -43,8 +43,8 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
             await Assertions.Expect(page.Locator("#drive-device")).ToContainTextAsync("Warte auf die Bestätigung");
 
             // The person confirms at Google; the page notices by itself
-            await Assertions.Expect(page.Locator("#drive-connected")).ToContainTextAsync("Mit Google verbunden", new() { Timeout = 30_000 });
-            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Neu verbinden");
+            await Assertions.Expect(page.Locator("#drive-connected")).ToContainTextAsync("Bei Google angemeldet", new() { Timeout = 30_000 });
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Neu anmelden");
 
             await page.GetByLabel("Passwort der Sicherung").FillAsync("drive-test-passwort");
             await page.Locator("#backup-save").ClickAsync();
@@ -59,8 +59,8 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
             await Assertions.Expect(page.GetByLabel("Uhrzeit")).ToHaveValueAsync("02:30");
             await Assertions.Expect(page.GetByLabel("Passwort der Sicherung")).ToHaveValueAsync("");
             await Assertions.Expect(page.Locator("#backup-edit")).ToContainTextAsync("Gespeichert. Leer lassen, um es zu behalten.");
-            await Assertions.Expect(page.Locator("#drive-connected")).ToContainTextAsync("Mit Google verbunden");
-            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Neu verbinden");
+            await Assertions.Expect(page.Locator("#drive-connected")).ToContainTextAsync("Bei Google angemeldet");
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Neu anmelden");
         });
 
         // Token and client are stored (encrypted), nothing of it is in the page
@@ -87,7 +87,7 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
             await page.Locator("#drive-connect-button").ClickAsync();
 
             await Assertions.Expect(page.Locator("#drive-error")).ToContainTextAsync("abgelehnt", new() { Timeout = 30_000 });
-            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google verbinden");
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google anmelden");
             await Assertions.Expect(page.Locator("#drive-device")).ToHaveCountAsync(0);
         });
     }

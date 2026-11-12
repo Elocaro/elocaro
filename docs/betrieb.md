@@ -356,7 +356,7 @@ $DC run --rm backup verify      # zusätzlich 10 % der Daten lesen und prüfen (
 - **Ablage:** S3-Speicher, Azure Blob, SFTP-Server, Google Drive oder dieser Server (nur zum Ausprobieren). Die Zugangsdaten und das Passwort der Sicherung werden verschlüsselt in der Datenbank gespeichert (Data Protection), nie angezeigt und tauchen weder im Audit-Log noch im Vollexport auf. Bei einer späteren Änderung bleibt ein leer gelassenes Feld unverändert.
 - **Verbindung testen** prüft, ob das Ziel erreichbar ist, das Passwort stimmt und schon ein Repository existiert, ohne etwas zu ändern.
 - **Zeitplan je Ziel:** täglich oder wöchentlich zu einer Uhrzeit, dazu die Aufbewahrung. Die App startet die Sicherungen zur eingestellten Zeit (Job `backup`, alle 10 Minuten geprüft), ein Ziel nach dem anderen. Wurde die Zeit verpasst, weil die App nicht lief, holt sie die Sicherung am selben Tag nach. Ein fehlgeschlagener Versuch wird erst zum nächsten Termin wiederholt; die Warnmail (siehe unten) meldet ihn.
-- **Pro Ziel:** *Jetzt sichern*, *Sicherungen* (Liste der Stände am Ziel, daraus die Wiederherstellung) und *Bearbeiten*. Ein Ziel lässt sich ausschalten oder entfernen; die Sicherungen, die dort schon liegen, bleiben erhalten.
+- **Pro Ziel:** *Jetzt sichern* und *Bearbeiten*. Darunter listet *Vorhandene Sicherungen* alle Stände aller Ziele (neueste zuerst); jeder Eintrag hat *Wiederherstellen …*. Ein Ziel lässt sich ausschalten oder entfernen; die Sicherungen, die dort schon liegen, bleiben erhalten.
 - Speichert man das erste Ziel, **übernimmt die App den Zeitplan**: Die tägliche Sicherung nach den Variablen in `deploy/.env` pausiert (Markierung im Volume `backup-status`), damit nicht doppelt gesichert wird. Ohne Ziele in der App gilt weiter `.env`; entfernt man das letzte Ziel, übernimmt `.env` wieder.
 - **Überwachung:** Dashboard, Health-Check und Warnmail melden, sobald **ein** eingeschaltetes Ziel fehlschlägt oder überfällig ist (wöchentliche Ziele erst nach einer Woche und zwei Stunden) und nennen das Ziel.
 
@@ -364,18 +364,17 @@ Die App spricht dazu mit dem Backup-Dienst über eine interne API (`Backup__Url`
 
 #### Google Drive
 
-Bei der Ablage *Google Drive* genügt **„Mit Google verbinden“**: Die App zeigt einen Code und die Adresse `google.com/device`, man öffnet sie (auch am Handy), gibt den Code ein, meldet sich bei Google an und erlaubt den Zugriff. Die App merkt die Bestätigung selbst. Der Ordner (Standard *Elocaro-Sicherung*, Name änderbar) wird in Drive angelegt. Elocaro bekommt nur Zugriff auf Dateien, die es selbst anlegt (Berechtigung `drive.file`), nicht auf das übrige Drive. Das Passwort der Sicherung bleibt wie bei jedem Ziel Pflicht.
+Bei der Ablage *Google Drive* genügt **„Mit Google anmelden“**: Die App zeigt einen Code und die Adresse `google.com/device`, man öffnet sie (auch am Handy), gibt den Code ein, meldet sich bei Google an und erlaubt den Zugriff. Die App merkt die Bestätigung selbst. Der Ordner (Standard *Elocaro-Sicherung*, Name änderbar) wird in Drive angelegt. Elocaro bekommt nur Zugriff auf Dateien, die es selbst anlegt (Berechtigung `drive.file`), nicht auf das übrige Drive. Das Passwort der Sicherung bleibt wie bei jedem Ziel Pflicht.
 
-Der Zugang erneuert sich selbst, die Sicherung läuft danach ohne Eingriff. Widerruft man ihn im Google-Konto (*Sicherheit → Drittanbieter-Zugriff*), schlägt die Sicherung fehl, und die Warnmail meldet es; dann das Ziel bearbeiten und neu verbinden. Auf einem neuen Server braucht die Wiederherstellung das Passwort der Sicherung und eine neue Anmeldung.
+Der Zugang erneuert sich selbst, die Sicherung läuft danach ohne Eingriff. Widerruft man ihn im Google-Konto (*Sicherheit → Drittanbieter-Zugriff*), schlägt die Sicherung fehl, und die Warnmail meldet es; dann das Ziel bearbeiten und neu anmelden. Auf einem neuen Server braucht die Wiederherstellung das Passwort der Sicherung und eine neue Anmeldung.
 
 **Der OAuth-Client.** Die Anmeldung läuft über einen OAuth-Client von Google. In den **veröffentlichten Images** (`ghcr.io/elocaro/elocaro`) ist er eingebaut: Die Release-Pipeline setzt ihn beim Bauen aus Repository-Secrets ein, nichts muss eingerichtet werden. Er steht nicht im Quelltext, ist aber im Image lesbar, wie bei jeder App mit eingebautem Client; Google stuft den Schlüssel dieses Client-Typs als nicht vertraulich ein, und der Zugriff reicht nur auf Dateien, die Elocaro selbst anlegt. Die Sicherungen liegen im **eigenen Google-Konto** und zählen zu dessen Speicherplatz; geteilt wird nur das Anfragenlimit, das Google dem Client der App gibt, und das reicht für Sicherungen bei Weitem.
 
-Wer das Image selbst baut (wie die Produktion dieser Installation: `docker compose build`) oder einen eigenen Client möchte, trägt ihn ein. Die Reihenfolge: **Eintrag in der App**, dann **Umgebung**, dann der **eingebaute Client**.
+Wer das Image selbst baut (wie die Produktion dieser Installation: `docker compose build`) oder einen eigenen Client möchte, trägt ihn in der Umgebung ein; die Oberfläche zeigt nie eine Client-ID. Die Reihenfolge: **Umgebung**, dann der **eingebaute Client** (ein früher in der App gespeicherter Client gilt weiter und hat Vorrang).
 
-- **In der App:** Seite Datensicherung, Abschnitt *Anmeldung bei Google*: Client-ID und Client-Schlüssel eintragen. Der Schlüssel wird verschlüsselt gespeichert und nie wieder angezeigt; ein leeres Feld beim Ändern behält ihn.
-- **Über die Umgebung:** `GOOGLE_DRIVE_CLIENT_ID` und `GOOGLE_DRIVE_CLIENT_SECRET` in `deploy/.env` (landen als `GoogleDrive__ClientId` und `GoogleDrive__ClientSecret` in der App). Der Client in der App steht in der Datenbank und damit im Backup; wer ihn in der `.env` führt, muss ihn auf einem neuen Server dort wieder eintragen.
+- **Über die Umgebung:** `GOOGLE_DRIVE_CLIENT_ID` und `GOOGLE_DRIVE_CLIENT_SECRET` in `deploy/.env` (landen als `GoogleDrive__ClientId` und `GoogleDrive__ClientSecret` in der App). Wer ihn in der `.env` führt, muss ihn auf einem neuen Server dort wieder eintragen.
 
-Ohne irgendeinen Client ist „Mit Google verbinden“ ausgegraut und nennt den Grund. Dann bleibt unter *Erweitert* der Zugang von Hand (Token von `rclone authorize "drive" --drive-scope drive.file`).
+Ohne irgendeinen Client ist „Mit Google anmelden“ ausgegraut und verweist auf diesen Abschnitt.
 
 **OAuth-Client anlegen** (einmal; für die Release-Pipeline oder für eine einzelne Installation; etwa zehn Minuten, kostet nichts und braucht keine Abrechnung):
 

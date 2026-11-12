@@ -5,7 +5,7 @@
 @inject TimeProvider Clock
 @* Entry of a backup target: provider, location, credentials and repository password. Shared by the settings page and the restore
    during the initial setup. Secrets are never shown; where one is stored, an empty entry keeps it. For Google Drive the credentials
-   come from signing in at Google (device code), the manual fields are tucked away under "Erweitert". *@
+   come from signing in at Google (device code). *@
 <AppSelect T="BackupProvider" Value="Input.Provider" ValueChanged="ProviderChangedAsync" Label="Ablage" Items="BackupProviders.All" Text="BackupProviders.Label" />
 @if (Input.Provider == BackupProvider.Local)
 {
@@ -36,13 +36,13 @@ else
         {
             @if (Connected)
             {
-                <Notice Level="NoticeLevel.Success" id="drive-connected">Mit Google verbunden. @(justConnected ? "Mit „Speichern“ übernehmen." : "")</Notice>
+                <Notice Level="NoticeLevel.Success" id="drive-connected">Bei Google angemeldet. @(justConnected ? "Mit „Speichern“ übernehmen." : "")</Notice>
             }
 
-            <button type="button" class="button @(Connected ? "button-outlined" : "button-primary")" id="drive-connect-button" @onclick="ConnectAsync" disabled="@(!googleAvailable)">@(Connected ? "Neu verbinden" : "Mit Google verbinden")</button>
+            <button type="button" class="button @(Connected ? "button-outlined" : "button-primary")" id="drive-connect-button" @onclick="ConnectAsync" disabled="@(!googleAvailable)">@(Connected ? "Neu anmelden" : "Mit Google anmelden")</button>
             @if (!googleAvailable)
             {
-                <p class="help" id="drive-not-configured">Die Anmeldung bei Google ist auf diesem Server noch nicht eingerichtet: auf der Seite Datensicherung unter „Anmeldung bei Google“ (oder mit <code>GoogleDrive__ClientId</code> und <code>GoogleDrive__ClientSecret</code>). Unter „Erweitert“ lässt sich ein Zugang von Hand eintragen.</p>
+                <p class="help" id="drive-not-configured">Google Drive ist auf diesem Server nicht eingerichtet. Wie ein Administrator das nachholt, steht in <code>docs/betrieb.md</code>, Abschnitt „Google Drive“.</p>
             }
 
             @if (connectError is not null)
@@ -51,15 +51,6 @@ else
             }
         }
     </div>
-
-    <details class="explain">
-        <summary>Erweitert: Zugang von Hand eintragen</summary>
-        @foreach (var field in BackupProviders.Fields(Input.Provider))
-        {
-            <AppTextField Value="@Credential(field.Key)" ValueChanged="v => Input.Credentials[field.Key] = v ?? string.Empty" Label="@field.Label" Type="@(field.Secret ? "password" : "text")"
-                          Hint="@(Stored(field.Key) ? "Gespeichert. Leer lassen, um den Wert zu behalten." : field.Hint)" Autocomplete="off" />
-        }
-    </details>
 }
 else
 {
@@ -198,7 +189,7 @@ else
 
             await InvokeAsync(() =>
             {
-                connectError = "Der Code ist abgelaufen. Bitte erneut verbinden.";
+                connectError = "Der Code ist abgelaufen. Bitte erneut anmelden.";
                 device = null;
                 StateHasChanged();
             });

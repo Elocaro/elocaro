@@ -93,7 +93,7 @@ public class BackupBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             var main = page.Locator("main");
 
             // Not set up yet: the page explains that the environment decides and offers to add a target
-            await Assertions.Expect(main).ToContainTextAsync("verwaltet die App Ziele und Zeitplan");
+            await Assertions.Expect(main).ToContainTextAsync("dann verwalten Sie Ziele und Zeitplan hier");
             await Assertions.Expect(page.Locator("#backup-targets")).ToHaveCountAsync(0);
 
             // Add a target: the local repository (default), name, password, time
@@ -109,7 +109,7 @@ public class BackupBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             var row = page.Locator("tr[data-target='Lokal']");
             await Assertions.Expect(row).ToContainTextAsync("täglich um 03:15");
             await Assertions.Expect(row).ToContainTextAsync("noch keine Sicherung");
-            await Assertions.Expect(main).Not.ToContainTextAsync("verwaltet die App Ziele und Zeitplan");
+            await Assertions.Expect(main).Not.ToContainTextAsync("dann verwalten Sie Ziele und Zeitplan hier");
 
             // The confirmation covers the buttons at the top right and does not go away in the headless browser:
             // the click goes straight to the button. Back up now; the page follows the progress by itself.
@@ -118,7 +118,8 @@ public class BackupBrowserTests(PostgresFixture postgres) : BrowserTestBasis(pos
             await Assertions.Expect(row).ToContainTextAsync("aktuell", new() { Timeout = 120_000 });
             await Assertions.Expect(main).Not.ToContainTextAsync("Eine Sicherung läuft");
 
-            await row.GetByRole(AriaRole.Button, new() { Name = "Sicherungen" }).ClickAsync();
+            // The list of all backups needs no click: it shows up once the backup is done.
+            await page.Locator("#snapshots-refresh").ClickAsync();
             await Assertions.Expect(page.Locator("#backup-snapshots table.data-table tbody tr")).ToHaveCountAsync(1, new() { Timeout = Restic });
         });
 

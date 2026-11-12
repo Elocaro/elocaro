@@ -4,6 +4,11 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+## [0.3.2] - 2026-11-12
+
+### Geändert
+- Datensicherung einfacher: *Vorhandene Sicherungen* listet alle Stände aller Ziele ohne Klick, jeder Eintrag hat *Wiederherstellen …* (mit Bestätigung). Die Anmeldung bei Google ist ein einziger Schritt („Mit Google anmelden“, Code bestätigen); der Abschnitt mit Client-ID und „Eigenen Client verwenden“ ist aus der Oberfläche entfernt, ein eigener Client wird nur noch in der `.env` eingetragen (`docs/betrieb.md`). Die Liste liest das Repository nicht, solange eine Sicherung oder Wiederherstellung läuft.
+
 ## [0.3.0] - 2026-11-12
 
 ### Hinzugefügt
