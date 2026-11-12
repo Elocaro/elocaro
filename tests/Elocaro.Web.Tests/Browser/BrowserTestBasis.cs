@@ -192,6 +192,28 @@ public abstract class BrowserTestBasis(PostgresFixture postgres) : IAsyncLifetim
         await Assertions.Expect(page.Locator("[data-interactive=true]")).ToHaveCountAsync(1);
     }
 
+    /// <summary>
+    /// Clicks and waits for the expected effect; clicks again if it does not appear. Under load an interactive page sometimes
+    /// reconnects after the click and starts with its initial state, then the first click is lost.
+    /// </summary>
+    protected static async Task ClickUntilAsync(Func<ILocator> target, Func<Task> expectation, int attempts = 4)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(expectation);
+        for (var attempt = 1; ; attempt++)
+        {
+            await target().ClickAsync();
+            try
+            {
+                await expectation();
+                return;
+            }
+            catch (PlaywrightException) when (attempt < attempts)
+            {
+            }
+        }
+    }
+
     /// <summary>Chooses an entry in a selection field of an interactive page (opens the list, clicks the entry).</summary>
     protected static async Task SelectAsync(IPage page, string label, string option, ILocator? scope = null, bool exact = true)
     {

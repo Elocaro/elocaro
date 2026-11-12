@@ -4,8 +4,17 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+## [0.3.0] - 2026-11-12
+
 ### Hinzugefügt
 - Hinweis auf neue Versionen: *Einstellungen → System → Neuigkeiten* zeigt die laufende Version, ob eine neuere veröffentlicht wurde, was sich geändert hat und den Befehl `deploy/update.sh <Version>`; auf der Übersicht erscheint für Administratoren eine Aufgabe. Zweimal täglich fragt die App bei GitHub nach den Releases (`UpdateCheck__Enabled=false` schaltet das ab); sie installiert nie selbst etwas. Der Release-Workflow legt dafür zu jedem Tag ein GitHub-Release mit dem Abschnitt aus dem Changelog an.
+
+### Geändert
+- Neues Logo (Haus mit E) und neue App-Symbole (PWA, Apple-Touch, maskierbar, einfarbig für Android); das Zeichen im Kopf der Anwendung ist jetzt eine abgerundete Kachel statt eines Kreises.
+
+## [0.2.0] - 2026-11-12
+
+### Hinzugefügt
 
 ### Hinzugefügt
 - Datensicherung in der App (*Verwaltung → System → Datensicherung*): **mehrere Ziele** (S3, Azure Blob, SFTP, **Google Drive**, lokal), je Ziel eigener Zeitplan (täglich oder wöchentlich), Aufbewahrung und Status; Zugangsdaten und Passwort verschlüsselt in der Datenbank, Verbindungstest, „Jetzt sichern“, Liste der Sicherungen und **Wiederherstellung per Klick** (mit Bestätigung, die App startet danach neu). Google Drive wird über „Mit Google verbinden“ (Geräte-Code, nur Zugriff auf selbst angelegte Dateien) eingerichtet; den dafür nötigen OAuth-Client bringen die veröffentlichten Images mit (Release-Secrets, als BuildKit-Secret eingebaut, nicht im Quelltext); beim selbst gebauten Image trägt man ihn in der App oder der `.env` ein (Anleitung in `docs/betrieb.md`). Die Ersteinrichtung bietet „Aus einer Datensicherung wiederherstellen“ für einen neuen Server. Die Sicherung nach `deploy/.env` läuft ohne gespeicherte Einstellungen unverändert weiter (Refs #162).
@@ -14,7 +23,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Heizkosten beim Mieterwechsel ohne Zwischenablesung: Statt der Platzhaltertabelle verteilt Elocaro den Heizverbrauch nach den Monatsgradtagen (VDI 3807) einer Wetterstation des Deutschen Wetterdienstes. Die Werte werden automatisch abgerufen (`DegreeDays__Enabled`), die Station wählt man je Objekt in den Heizungseinstellungen. Ohne Station gilt weiter der Platzhalter.
 
 ### Geändert
-- Neues Logo (Haus mit E) und neue App-Symbole (PWA, Apple-Touch, maskierbar, einfarbig für Android); das Zeichen im Kopf der Anwendung ist jetzt eine abgerundete Kachel statt eines Kreises.
+- Umgestellt auf .NET 11 (EF Core und Npgsql auf RC.3, die Laufzeit kommt aus dem `aspnet:11.0`-Image).
 - Updates laufen über die veröffentlichten Images: `deploy/update.sh <Version>` sichert, lädt die Images aus GHCR und startet neu, ohne Bau auf dem Server (`docs/betrieb.md`, Abschnitt Update).
 - Der Backup-Container ist jetzt eine kleine ASP.NET-Core-API (`src/Elocaro.Backup`) statt eines Shell-Skripts: gleiche Befehle auf der Konsole (`run --rm backup backup|snapshots|restore|verify`), gleiche Statusdatei, zusätzlich eine interne API mit Token für die App. **Bestehende Installationen:** `BACKUP_API_TOKEN` in `deploy/.env` eintragen; Image und Build-Kontext haben sich geändert (`docker compose … up -d --build backup`).
 - Konto-Seiten überarbeitet: Übersicht mit Profil und Navigationszeilen, Zurück-Link oben, Logo führt zur App. Zugriffstoken werden in einem Dialog erstellt; das neue Token lässt sich mit einer Schaltfläche kopieren, die Liste zeigt Karten statt einer Tabelle.
