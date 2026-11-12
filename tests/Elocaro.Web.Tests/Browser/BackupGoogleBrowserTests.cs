@@ -25,13 +25,16 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
             await GotoInteractiveAsync(page, "/verwaltung/system/datensicherung");
             await page.Locator("#backup-add").ClickAsync();
 
-            // A new target starts with real default values (not with the names of the properties behind the fields)
-            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true })).ToHaveValueAsync("");
+            // A new target starts with real default values: Google Drive is chosen, the name follows it
+            await Assertions.Expect(page.Locator("#provider-googledrive")).ToHaveAttributeAsync("aria-checked", "true");
+            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true })).ToHaveValueAsync("Google Drive");
             await Assertions.Expect(page.GetByLabel("Passwort der Sicherung")).ToHaveValueAsync("");
             await Assertions.Expect(page.GetByLabel("Uhrzeit")).ToHaveValueAsync("02:30");
 
-            await page.GetByLabel("Name", new() { Exact = true }).FillAsync("Google Drive");
-            await SelectAsync(page, "Ablage", "Google Drive");
+            await page.Locator("#provider-s3").ClickAsync();
+            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true })).ToHaveValueAsync("S3-Speicher");
+            await page.Locator("#provider-googledrive").ClickAsync();
+            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true })).ToHaveValueAsync("Google Drive");
 
             // The folder has a default, nothing but the sign-in is left to do
             await Assertions.Expect(page.GetByLabel("Ordner in Google Drive")).ToHaveValueAsync("Elocaro-Sicherung");
@@ -83,7 +86,7 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
         {
             await GotoInteractiveAsync(page, "/verwaltung/system/datensicherung");
             await page.Locator("#backup-add").ClickAsync();
-            await SelectAsync(page, "Ablage", "Google Drive");
+            await page.Locator("#provider-googledrive").ClickAsync();
             await page.Locator("#drive-connect-button").ClickAsync();
 
             await Assertions.Expect(page.Locator("#drive-error")).ToContainTextAsync("abgelehnt", new() { Timeout = 30_000 });

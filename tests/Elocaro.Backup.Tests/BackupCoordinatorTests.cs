@@ -13,7 +13,7 @@ public sealed class BackupCoordinatorTests : IDisposable
 
     public void Dispose() => environment.Dispose();
 
-    private BackupCoordinator Coordinator() => new(environment.Engine, environment.Settings, clock, NullLogger<BackupCoordinator>.Instance);
+    private BackupCoordinator Coordinator() => new(environment.Engine, environment.Settings, new BackupTransfers(environment.Settings, clock), clock, NullLogger<BackupCoordinator>.Instance);
 
     [Fact]
     public async Task A_successful_backup_writes_the_status_file_for_the_app()

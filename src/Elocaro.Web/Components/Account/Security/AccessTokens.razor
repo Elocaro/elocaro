@@ -20,7 +20,7 @@
 
 @if (!Tokens.IsAvailable)
 {
-    <Notice Level="NoticeLevel.Info">Zugriffstoken sind auf diesem Server nicht eingeschaltet. Sie werden gebraucht, sobald der Betreiber eine Integration aktiviert, z. B. die MCP-Schnittstelle für KI-Assistenten mit <code>Mcp__Enabled=true</code>; siehe <code>docs/mcp.md</code>.</Notice>
+    <Notice Level="NoticeLevel.Info">Zugriffstoken sind auf diesem Server nicht eingeschaltet. Sie werden gebraucht, sobald der Betreiber eine Integration aktiviert, z. B. die MCP-Schnittstelle für KI-Assistenten mit <code>Mcp__Enabled=true</code>; siehe <a href="@AppInfo.Docs("mcp.md")" target="_blank" rel="noopener noreferrer">Anleitung KI-Zugriff über MCP</a>.</Notice>
 }
 else
 {

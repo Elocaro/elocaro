@@ -18,6 +18,82 @@
 
     @if (phase == Phase.Target)
     {
+        <section class="dialog-section">
+            <h3>Woher kommt die Sicherung?</h3>
+            <div class="choice-cards" role="radiogroup" aria-label="Quelle der Sicherung">
+                <button type="button" role="radio" aria-checked="@(source == Source.Target ? "true" : "false")" id="source-target" class="choice-card @(source == Source.Target ? "selected" : null)" @onclick="() => ChooseSource(Source.Target)">
+                    <Icon Path="@MudBlazor.Icons.Material.Outlined.Cloud" />
+                    <span class="choice-title">Aus einem Ziel</span>
+                    <span class="choice-text">Google Drive, S3, Azure, SFTP oder NAS: dort, wo die Sicherungen liegen</span>
+                </button>
+                <button type="button" role="radio" aria-checked="@(source == Source.File ? "true" : "false")" id="source-file" class="choice-card @(source == Source.File ? "selected" : null)" @onclick="() => ChooseSource(Source.File)">
+                    <Icon Path="@MudBlazor.Icons.Material.Outlined.UploadFile" />
+                    <span class="choice-title">Aus einer Datei</span>
+                    <span class="choice-text">Eine Sicherungsdatei, die Sie zuvor heruntergeladen haben</span>
+                </button>
+            </div>
+        </section>
+    }
+
+    @if (phase == Phase.Target && source == Source.File)
+    {
+        @if (UploadMessage is { } uploadMessage)
+        {
+            <Notice Level="@(UploadResult == "ok" ? NoticeLevel.Success : NoticeLevel.Error)" id="restore-upload-result">@uploadMessage</Notice>
+        }
+
+        @if (!progress.Available)
+        {
+            <Notice Level="NoticeLevel.Warning">Der Backup-Dienst ist nicht erreichbar. Läuft der Container „backup“?</Notice>
+        }
+        else if (progress.Upload is { } upload)
+        {
+            <p id="restore-uploaded"><strong>Hochgeladen: @upload.Name (@Format.Size(upload.Size))</strong></p>
+            <div class="form-grid">
+                <AppTextField Value="@setupCode" ValueChanged="v => setupCode = v ?? string.Empty" Label="Einrichtungscode" Required="true" Immediate="true" Autocomplete="off"
+                              Hint="Wie bei der Ersteinrichtung: das Installationsskript zeigt ihn an, er steht in deploy/.env (ELOCARO_SETUP_CODE) oder im Protokoll." />
+                <AppTextField Value="@filePassword" ValueChanged="v => filePassword = v ?? string.Empty" Label="Passwort der Sicherung" Type="password" Required="true" Immediate="true" Autocomplete="off"
+                              Hint="Das Passwort der Sicherung (RESTIC_PASSWORD des alten Servers, steht in der Notfallmappe oder im Passwortmanager)." />
+            </div>
+            <div class="form-actions">
+                <button type="button" class="button button-primary" id="restore-open" @onclick="OpenFileAsync" disabled="@(busy || setupCode.Length == 0 || filePassword.Length == 0)">Datei öffnen</button>
+                <button type="button" class="button button-text" id="restore-discard" @onclick="DiscardFileAsync" disabled="@busy">Andere Datei wählen</button>
+            </div>
+            @if (fileCheck is { Succeeded: true, Snapshots: [var held, ..] })
+            {
+                <Notice Level="NoticeLevel.Success" id="restore-file-ok">Die Datei enthält die Sicherung vom @Format.Timestamp(held.Time) (@Format.Size(held.Size)).</Notice>
+                <div class="form-actions">
+                    <button type="button" class="button button-primary" id="restore-file-start" @onclick="RestoreFileAsync" disabled="@busy">Diesen Stand wiederherstellen</button>
+                </div>
+            }
+        }
+        else
+        {
+            <p>Laden Sie die Sicherungsdatei hoch (eine .tar, die Sie auf dem alten Server mit „Herunterladen“ gespeichert haben). Danach geben Sie das Passwort der Sicherung ein.</p>
+            <form method="post" enctype="multipart/form-data" action="@BackupFileEndpoints.SetupUploadPath" data-enhance="false" id="restore-upload-form" class="upload-form">
+                <AntiforgeryToken />
+                <div class="field">
+                    <label for="restore-upload-code">Einrichtungscode</label>
+                    <input id="restore-upload-code" type="text" name="setupCode" autocomplete="off" required />
+                </div>
+                <label class="dropzone @(chosenFile is null ? null : "chosen")">
+                    <Icon Path="@MudBlazor.Icons.Material.Outlined.UploadFile" />
+                    <span class="dropzone-title">@(chosenFile ?? "Sicherungsdatei auswählen oder hierher ziehen")</span>
+                    <span class="dropzone-text">@(chosenFile is null ? "Eine .tar-Datei, die mit „Herunterladen“ entstanden ist" : "Zum Ändern erneut klicken")</span>
+                    <input id="restore-upload-file" type="file" name="file" accept=".tar,application/x-tar" aria-label="Sicherungsdatei" @onchange="OnFileChosen" />
+                </label>
+                <div class="form-actions">
+                    <button type="submit" class="button button-primary" id="restore-upload-send" disabled="@(chosenFile is null)">Datei hochladen</button>
+                    <a class="button button-outlined" href="/konto/einrichtung">Abbrechen</a>
+                </div>
+            </form>
+        }
+
+        <ErrorList Errors="errors" />
+    }
+
+    @if (phase == Phase.Target && source == Source.Target)
+    {
         <EditForm Model="input" OnValidSubmit="FindAsync" novalidate>
             <div class="form-grid">
                 <AppTextField Value="@setupCode" ValueChanged="v => setupCode = v ?? string.Empty" Label="Einrichtungscode" Required="true" Autocomplete="off"
@@ -62,7 +138,7 @@
         <ErrorList Errors="errors" />
         <button type="button" class="button button-outlined" @onclick="Back">Zurück</button>
     }
-    else
+    else if (phase == Phase.Running)
     {
         @if (!progress.Available)
         {
@@ -93,6 +169,37 @@
         Running,
     }
 
+    private enum Source
+    {
+        Target,
+        File,
+    }
+
+    private string? chosenFile;
+
+    // The browser reports the chosen file as "C:\fakepath\name.tar": the name is all that is shown
+    private void OnFileChosen(ChangeEventArgs e) =>
+        chosenFile = (e.Value as string)?.Replace('\\', '/') is { Length: > 0 } path ? Path.GetFileName(path) : null;
+
+    private Source source;
+    private string filePassword = string.Empty;
+    private BackupUploadCheck? fileCheck;
+
+    /// <summary>Result of the upload form (a fixed word in the address).</summary>
+    [SupplyParameterFromQuery(Name = "upload")]
+    public string? UploadResult { get; set; }
+
+    private string? UploadMessage => UploadResult switch
+    {
+        "ok" => "Die Datei wurde hochgeladen.",
+        "code" => "Der Einrichtungscode stimmt nicht.",
+        "abgelehnt" => "Die Datei ist keine Sicherungsdatei von Elocaro. Gültig ist eine .tar, die über „Herunterladen“ entstanden ist.",
+        "belegt" => "Es läuft gerade eine Sicherung oder Wiederherstellung. Bitte später noch einmal hochladen.",
+        "leer" => "Es wurde keine Datei gewählt.",
+        null => null,
+        _ => "Die Datei konnte nicht hochgeladen werden. Läuft der Backup-Dienst?",
+    };
+
     private readonly BackupSettingsInput input = new();
     private Phase phase;
     private string setupCode = string.Empty;
@@ -106,10 +213,93 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Back from the upload form: stay with the file. Decided before the first await, because the page is rendered then, and the
+        // fields of a target (which read the database) must not start next to the check below.
+        if (UploadResult is not null)
+        {
+            source = Source.File;
+        }
+
         // Only for an empty installation, like the creation of the first administrator.
         if (!await Accounts.InitialSetupPossibleAsync())
         {
             Navigation.NavigateTo("/konto/anmelden");
+            return;
+        }
+
+        // Know what was handed in (only the backup service is asked)
+        progress = await Control.ProgressAsync();
+    }
+
+    private void ChooseSource(Source chosen)
+    {
+        source = chosen;
+        errors = null;
+    }
+
+    private async Task OpenFileAsync()
+    {
+        errors = null;
+        fileCheck = null;
+        if (!SetupCode.Matches(setupCode) || !await Accounts.InitialSetupPossibleAsync())
+        {
+            errors = ["Der Einrichtungscode stimmt nicht."];
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            verified = true;
+            fileCheck = await Control.InspectUploadAsync(filePassword);
+            if (!fileCheck.Succeeded)
+            {
+                errors = [fileCheck.Message];
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DiscardFileAsync()
+    {
+        await Control.DiscardUploadAsync();
+        fileCheck = null;
+        filePassword = string.Empty;
+        progress = await Control.ProgressAsync();
+        Navigation.NavigateTo("/konto/einrichtung/wiederherstellen");
+    }
+
+    private async Task RestoreFileAsync()
+    {
+        // The code was checked in this session; the installation must still be empty.
+        if (!verified || fileCheck is not { Succeeded: true } || !await Accounts.InitialSetupPossibleAsync())
+        {
+            return;
+        }
+
+        errors = null;
+        busy = true;
+        try
+        {
+            var result = await Control.StartRestoreUploadAsync(filePassword);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            phase = Phase.Running;
+            // Started here: a restore that finishes between two polls (small installations) must still restart the app.
+            sawRunning = true;
+            progress = new BackupProgress(true, true, "Restore", null);
+            _ = PollAsync();
+        }
+        finally
+        {
+            busy = false;
         }
     }
 

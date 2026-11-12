@@ -34,12 +34,18 @@ public class BackupEnvironmentBrowserTests(PostgresFixture postgres) : BrowserTe
             await Assertions.Expect(row).ToContainTextAsync("azure:elocaro-backup:/");
             await Assertions.Expect(row).ToContainTextAsync("täglich um 02:30");
             await Assertions.Expect(page.Locator("#backup-snapshots tbody tr")).ToHaveCountAsync(2);
+            // The list is read after the page appeared; each backup can be downloaded, restored and deleted, and shows its size
+            var first = page.Locator("#backup-snapshots tbody tr").First;
+            await Assertions.Expect(first.GetByRole(AriaRole.Button, new() { Name = "Herunterladen", Exact = true })).ToBeVisibleAsync();
+            await Assertions.Expect(first.GetByRole(AriaRole.Button, new() { Name = "Wiederherstellen", Exact = true })).ToBeVisibleAsync();
+            await Assertions.Expect(first.GetByRole(AriaRole.Button, new() { Name = "Löschen", Exact = true })).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#snapshots-loading")).ToHaveCountAsync(0);
 
             // "Bearbeiten": the dialog starts with what the configuration says; credentials and password are entered again
             await row.GetByRole(AriaRole.Button, new() { Name = "Bearbeiten" }).ClickAsync();
             var dialog = page.GetByRole(AriaRole.Dialog);
             await Assertions.Expect(dialog).ToContainTextAsync("Dieses Ziel kommt aus der Server-Konfiguration");
-            await Assertions.Expect(dialog.GetByLabel("Ablage")).ToHaveValueAsync("Azure Blob Storage");
+            await Assertions.Expect(dialog.Locator("#provider-azure")).ToHaveAttributeAsync("aria-checked", "true");
             await Assertions.Expect(dialog.GetByLabel("Container")).ToHaveValueAsync("elocaro-backup");
             await Assertions.Expect(dialog.GetByLabel("Uhrzeit")).ToHaveValueAsync("02:30");
             await dialog.GetByLabel("Name", new() { Exact = true }).FillAsync("Azure");

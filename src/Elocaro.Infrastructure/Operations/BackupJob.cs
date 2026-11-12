@@ -9,11 +9,32 @@ internal static class BackupSchedule
     /// <summary>
     /// Due once the time of day has passed and nothing was tried since <paramref name="intervalDays"/> days before (a failed attempt counts:
     /// no retry storm, the warning mail reports it). Catches up a backup if the app was not running at the time.
+    /// A weekly target with a <paramref name="weekday"/> is due from that day and time on, if nothing was tried since.
     /// </summary>
-    public static bool IsDue(DateTimeOffset now, TimeOnly time, int intervalDays, DateTimeOffset? lastAttempt)
+    public static bool IsDue(DateTimeOffset now, TimeOnly time, int intervalDays, DateTimeOffset? lastAttempt, DayOfWeek? weekday = null)
     {
         var zone = GermanTime.Germany;
-        var local = TimeZoneInfo.ConvertTime(now, zone).Date + time.ToTimeSpan();
+        var today = TimeZoneInfo.ConvertTime(now, zone).Date;
+        if (intervalDays == 7 && weekday is { } day)
+        {
+            // The latest occurrence of the weekday (today, if it is that day and the time has passed).
+            var date = today.AddDays(-(((int)today.DayOfWeek - (int)day + 7) % 7));
+            var at = date + time.ToTimeSpan();
+            if (zone.IsInvalidTime(at))
+            {
+                at = at.AddHours(1);
+            }
+
+            var occurrence = new DateTimeOffset(at, zone.GetUtcOffset(at));
+            if (now < occurrence)
+            {
+                occurrence = occurrence.AddDays(-7);
+            }
+
+            return lastAttempt is null || lastAttempt < occurrence;
+        }
+
+        var local = today + time.ToTimeSpan();
         // The hour skipped by the switch to daylight saving time does not exist.
         if (zone.IsInvalidTime(local))
         {
@@ -59,7 +80,7 @@ internal sealed class BackupJob(IBackupSettings settings, IBackupControl control
         foreach (var target in targets.Where(t => t.Enabled))
         {
             var last = states.GetValueOrDefault(target.Id)?.Status.Timestamp;
-            if (BackupSchedule.IsDue(now, target.Time, target.IntervalDays, last))
+            if (BackupSchedule.IsDue(now, target.Time, target.IntervalDays, last, target.Weekday))
             {
                 // One at a time: the container is busy with this one, the next target follows in one of the next runs.
                 await control.StartBackupAsync(target.Id, cancellationToken);

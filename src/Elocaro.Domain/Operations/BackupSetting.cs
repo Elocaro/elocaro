@@ -62,6 +62,9 @@ public sealed class BackupSetting : Entity
     /// <summary>Days between two backups: 1 = daily, 7 = weekly.</summary>
     public int IntervalDays { get; set; } = 1;
 
+    /// <summary>Day of the week of a weekly backup; <c>null</c> for a daily one (and for weekly targets from before, which count seven days from the last backup).</summary>
+    public DayOfWeek? Weekday { get; set; }
+
     public int KeepDaily { get; set; } = 7;
 
     public int KeepWeekly { get; set; } = 4;

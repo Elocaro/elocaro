@@ -26,7 +26,7 @@
     [Parameter]
     public bool Required { get; set; }
 
-    /// <summary>"text" (default), "email", "tel", "password", "search".</summary>
+    /// <summary>"text" (default), "email", "tel", "password", "search", "time" (HH:mm).</summary>
     [Parameter]
     public string Type { get; set; } = "text";
 
@@ -69,6 +69,7 @@
         "tel" => InputType.Telephone,
         "password" => InputType.Password,
         "search" => InputType.Search,
+        "time" => InputType.Time,
         _ => InputType.Text,
     };
 

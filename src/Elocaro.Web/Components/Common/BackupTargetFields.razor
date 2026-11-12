@@ -3,68 +3,114 @@
 @using Elocaro.Domain.Operations
 @inject IGoogleDriveAuthorization Google
 @inject TimeProvider Clock
-@* Entry of a backup target: provider, location, credentials and repository password. Shared by the settings page and the restore
-   during the initial setup. Secrets are never shown; where one is stored, an empty entry keeps it. For Google Drive the credentials
-   come from signing in at Google (device code). *@
-<AppSelect T="BackupProvider" Value="Input.Provider" ValueChanged="ProviderChangedAsync" Label="Ablage" Items="BackupProviders.All" Text="BackupProviders.Label" />
-@if (Input.Provider == BackupProvider.Local)
-{
-    <Notice Level="NoticeLevel.Warning">@LocalWarning</Notice>
-}
-else
-{
-    <AppTextField Value="@Input.Location" ValueChanged="v => Input.Location = v ?? string.Empty" Label="@BackupProviders.LocationLabel(Input.Provider)" Hint="@BackupProviders.LocationHint(Input.Provider)" Required="true" />
-}
-
-@if (Input.Provider == BackupProvider.GoogleDrive)
-{
-    <div class="drive-connect" id="drive-connect">
-        @if (device is not null)
-        {
-            <Notice Level="NoticeLevel.Info" id="drive-device">
-                <strong>So melden Sie sich bei Google an:</strong>
-                <ol>
-                    <li>Öffnen Sie <a href="@device.VerificationUrl" target="_blank" rel="noopener noreferrer">@device.VerificationUrl</a> (am Handy oder in einem anderen Fenster).</li>
-                    <li>Geben Sie diesen Code ein: <strong id="drive-code" class="device-code">@device.UserCode</strong></li>
-                    <li>Melden Sie sich an und erlauben Sie den Zugriff. Elocaro sieht dabei nur Dateien, die es selbst in Ihrem Drive anlegt.</li>
-                </ol>
-                <span>Warte auf die Bestätigung …</span>
-            </Notice>
-            <button type="button" class="button button-outlined" id="drive-cancel" @onclick="CancelConnect">Abbrechen</button>
-        }
-        else
-        {
-            @if (Connected)
+@* Entry of a backup target: where it lies (cards), what it needs to get there (access), and the password of the backup. Shared by the
+   target dialog and the restore during the initial setup. Secrets are never shown; where one is stored, an empty entry keeps it.
+   For Google Drive the access comes from signing in at Google (device code). *@
+<div class="backup-fields">
+    <section class="dialog-section">
+        <h3>Wohin soll gesichert werden?</h3>
+        <div class="choice-cards" role="radiogroup" aria-label="Ablage">
+            @foreach (var option in Choices)
             {
-                <Notice Level="NoticeLevel.Success" id="drive-connected">Bei Google angemeldet. @(justConnected ? "Mit „Speichern“ übernehmen." : "")</Notice>
+                var selected = option.Provider == Input.Provider;
+                <button type="button" role="radio" aria-checked="@(selected ? "true" : "false")" id="provider-@option.Provider.ToString().ToLowerInvariant()"
+                        class="choice-card @(selected ? "selected" : null)" @onclick="() => ProviderChangedAsync(option.Provider)">
+                    <Icon Path="@option.Icon" />
+                    <span class="choice-title">@option.Title</span>
+                    <span class="choice-text">@option.Text</span>
+                </button>
             }
+        </div>
+    </section>
 
-            <button type="button" class="button @(Connected ? "button-outlined" : "button-primary")" id="drive-connect-button" @onclick="ConnectAsync" disabled="@(!googleAvailable)">@(Connected ? "Neu anmelden" : "Mit Google anmelden")</button>
-            @if (!googleAvailable)
-            {
-                <p class="help" id="drive-not-configured">Google Drive ist auf diesem Server nicht eingerichtet. Wie ein Administrator das nachholt, steht in <code>docs/betrieb.md</code>, Abschnitt „Google Drive“.</p>
-            }
-
-            @if (connectError is not null)
-            {
-                <Notice Level="NoticeLevel.Error" id="drive-error">@connectError</Notice>
-            }
-        }
-    </div>
-}
-else
-{
-    @foreach (var field in BackupProviders.Fields(Input.Provider))
+    @if (Input.Provider == BackupProvider.Local)
     {
-        <AppTextField Value="@Credential(field.Key)" ValueChanged="v => Input.Credentials[field.Key] = v ?? string.Empty" Label="@field.Label" Type="@(field.Secret ? "password" : "text")"
-                      Required="@(field.Required && !Stored(field.Key))" Hint="@(Stored(field.Key) ? "Gespeichert. Leer lassen, um den Wert zu behalten." : field.Hint)" Autocomplete="off" />
+        <Notice Level="NoticeLevel.Warning">@LocalWarning</Notice>
     }
-}
+    else
+    {
+        <section class="dialog-section">
+            <h3>@AccessTitle</h3>
+            @if (Input.Provider == BackupProvider.GoogleDrive)
+            {
+                <div class="drive-connect" id="drive-connect">
+                    @if (device is not null)
+                    {
+                        <Notice Level="NoticeLevel.Info" id="drive-device">
+                            <strong>So melden Sie sich bei Google an:</strong>
+                            <ol>
+                                <li>Öffnen Sie <a href="@device.VerificationUrl" target="_blank" rel="noopener noreferrer">@device.VerificationUrl</a> (am Handy oder in einem anderen Fenster).</li>
+                                <li>Geben Sie diesen Code ein: <strong id="drive-code" class="device-code">@device.UserCode</strong></li>
+                                <li>Melden Sie sich an und erlauben Sie den Zugriff. Elocaro sieht dabei nur Dateien, die es selbst in Ihrem Drive anlegt.</li>
+                            </ol>
+                            <span>Warte auf die Bestätigung …</span>
+                        </Notice>
+                        <button type="button" class="button button-outlined" id="drive-cancel" @onclick="CancelConnect">Abbrechen</button>
+                    }
+                    else
+                    {
+                        @if (Connected)
+                        {
+                            <Notice Level="NoticeLevel.Success" id="drive-connected">Bei Google angemeldet. @(justConnected ? "Mit „Speichern“ übernehmen." : "")</Notice>
+                        }
 
-<AppTextField Value="@Input.Password" ValueChanged="v => Input.Password = v" Label="Passwort der Sicherung" Type="password" Required="@(!HasPassword)" Autocomplete="off"
-              Hint="@(HasPassword ? "Gespeichert. Leer lassen, um es zu behalten." : PasswordHint)" />
+                        <button type="button" class="button @(Connected ? "button-outlined" : "button-primary")" id="drive-connect-button" @onclick="ConnectAsync" disabled="@(!googleAvailable)">@(Connected ? "Neu anmelden" : "Mit Google anmelden")</button>
+                        @if (!googleAvailable)
+                        {
+                            <p class="help" id="drive-not-configured">Google Drive ist auf diesem Server nicht eingerichtet. Wie ein Administrator das nachholt, steht in der <a href="@AppInfo.Docs("betrieb.md", "google-drive")" target="_blank" rel="noopener noreferrer">Betriebsanleitung (Google Drive)</a>.</p>
+                        }
+                        else if (!Connected)
+                        {
+                            <p class="help">Sie erhalten einen Code, geben ihn bei Google ein und erlauben den Zugriff. Elocaro sieht nur Dateien, die es selbst in Ihrem Drive anlegt.</p>
+                        }
+
+                        @if (connectError is not null)
+                        {
+                            <Notice Level="NoticeLevel.Error" id="drive-error">@connectError</Notice>
+                        }
+                    }
+                </div>
+
+                <details class="explain">
+                    <summary>Ordner in Google Drive: <strong>@Input.Location</strong></summary>
+                    <AppTextField Value="@Input.Location" ValueChanged="SetLocationAsync" Label="@BackupProviders.LocationLabel(Input.Provider)" Hint="@BackupProviders.LocationHint(Input.Provider)" Required="true" Immediate="true" />
+                </details>
+            }
+            else
+            {
+                <div class="form-grid">
+                    <div class="span-all">
+                        <AppTextField Value="@Input.Location" ValueChanged="SetLocationAsync" Label="@BackupProviders.LocationLabel(Input.Provider)" Hint="@BackupProviders.LocationHint(Input.Provider)" Required="true" Immediate="true" />
+                    </div>
+                    @foreach (var field in BackupProviders.Fields(Input.Provider))
+                    {
+                        <AppTextField Value="@Credential(field.Key)" ValueChanged="v => SetCredentialAsync(field.Key, v)" Immediate="true" Label="@(field.Required ? field.Label : field.Label + " (optional)")" Type="@(field.Secret ? "password" : "text")"
+                                      Required="@(field.Required && !Stored(field.Key))" Hint="@(Stored(field.Key) ? "Gespeichert. Leer lassen, um den Wert zu behalten." : field.Hint)" Autocomplete="off" />
+                    }
+                </div>
+            }
+        </section>
+    }
+
+    <section class="dialog-section">
+        <h3>Verschlüsselung</h3>
+        <AppTextField Value="@Input.Password" ValueChanged="SetPasswordAsync" Immediate="true" Label="Passwort der Sicherung" Type="password" Required="@(!HasPassword)" Autocomplete="off"
+                      Hint="@(HasPassword ? "Gespeichert. Leer lassen, um es zu behalten." : PasswordHint)" />
+    </section>
+</div>
 
 @code {
+    private sealed record ProviderChoice(BackupProvider Provider, string Icon, string Title, string Text);
+
+    private static readonly ProviderChoice[] Choices =
+    [
+        new(BackupProvider.GoogleDrive, MudBlazor.Icons.Material.Outlined.AddToDrive, "Google Drive", "Am einfachsten: mit dem Google-Konto anmelden"),
+        new(BackupProvider.S3, MudBlazor.Icons.Material.Outlined.Storage, "S3-Speicher", "AWS, Hetzner, MinIO und andere"),
+        new(BackupProvider.Azure, MudBlazor.Icons.Material.Outlined.Cloud, "Azure Blob Storage", "Cloudspeicher von Microsoft"),
+        new(BackupProvider.Sftp, MudBlazor.Icons.Material.Outlined.Dns, "SFTP oder NAS", "Eigener Server oder Gerät im Netz"),
+        new(BackupProvider.Local, MudBlazor.Icons.Material.Outlined.Computer, "Dieser Server", "Nur zum Ausprobieren"),
+    ];
+
     private bool googleAvailable;
     private DeviceAuthorization? device;
     private string? connectError;
@@ -87,9 +133,31 @@ else
     [Parameter]
     public string PasswordHint { get; set; } = "Verschlüsselt die Sicherung. OHNE DIESES PASSWORT GIBT ES KEINE WIEDERHERSTELLUNG: zusätzlich im Passwortmanager aufbewahren.";
 
+    /// <summary>Called after an entry changed (the dialog decides whether saving is possible).</summary>
+    [Parameter]
+    public EventCallback InputChanged { get; set; }
+
     /// <summary>Called after the provider changed (location and credentials are already cleared).</summary>
     [Parameter]
     public EventCallback<BackupProvider> ProviderChanged { get; set; }
+
+    /// <summary>Short name for a new target of this provider (it can be changed).</summary>
+    public static string DefaultName(BackupProvider provider) => provider switch
+    {
+        BackupProvider.GoogleDrive => "Google Drive",
+        BackupProvider.S3 => "S3-Speicher",
+        BackupProvider.Azure => "Azure",
+        BackupProvider.Sftp => "NAS",
+        _ => "Dieser Server",
+    };
+
+    private string AccessTitle => Input.Provider switch
+    {
+        BackupProvider.GoogleDrive => "Anmeldung bei Google",
+        BackupProvider.Azure => "Zugang zu Azure",
+        BackupProvider.Sftp => "Zugang zum Server",
+        _ => "Zugang zum Speicher",
+    };
 
     /// <summary>Signed in to Google, or a token entered/stored.</summary>
     private bool Connected => Stored(BackupProviders.DriveTokenKey) || !string.IsNullOrWhiteSpace(Credential(BackupProviders.DriveTokenKey));
@@ -103,6 +171,24 @@ else
         {
             Input.Location = BackupProviders.DefaultDriveFolder;
         }
+    }
+
+    private Task SetLocationAsync(string? value)
+    {
+        Input.Location = value ?? string.Empty;
+        return InputChanged.InvokeAsync();
+    }
+
+    private Task SetPasswordAsync(string? value)
+    {
+        Input.Password = value;
+        return InputChanged.InvokeAsync();
+    }
+
+    private Task SetCredentialAsync(string key, string? value)
+    {
+        Input.Credentials[key] = value ?? string.Empty;
+        return InputChanged.InvokeAsync();
     }
 
     private string Credential(string key) => Input.Credentials.GetValueOrDefault(key) ?? string.Empty;
@@ -123,6 +209,7 @@ else
         connectError = null;
         justConnected = false;
         await ProviderChanged.InvokeAsync(provider);
+        await InputChanged.InvokeAsync();
     }
 
     private async Task ConnectAsync()
@@ -175,6 +262,7 @@ else
                         }
 
                         justConnected = true;
+                        _ = InputChanged.InvokeAsync();
                     }
                     else
                     {

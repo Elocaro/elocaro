@@ -26,6 +26,26 @@ public sealed class BackupEngineTests : IDisposable
     }
 
     [Fact]
+    public async Task Backup_reports_its_steps_and_how_far_the_transfer_of_the_files_is()
+    {
+        environment.Runner.Script["restic backup"] = _ => new ProcessResult(0,
+            "{\"message_type\":\"status\",\"percent_done\":0.5,\"total_files\":2000,\"files_done\":1000,\"total_bytes\":2147483648,\"bytes_done\":1073741824}\n"
+            + "{\"message_type\":\"summary\",\"snapshot_id\":\"49ccbcd74357a447\"}\n");
+        var reports = new List<OperationProgress>();
+
+        await environment.Engine.BackupAsync(BackupTestEnvironment.Target, Ct, reports.Add);
+
+        Assert.Equal(["Repository prüfen", "Datenbank sichern", "Dateien übertragen", "Dateien übertragen", "Alte Sicherungen aufräumen", "Sicherung prüfen"], reports.Select(r => r.Step));
+        Assert.All(reports, r => Assert.Equal(5, r.StepCount));
+        Assert.Equal([1, 2, 3, 3, 4, 5], reports.Select(r => r.StepNumber));
+        // Half of the transfer (60 of 100 points, after 20) is 50 %; the whole is never reported backwards
+        var transfer = reports[3];
+        Assert.Equal(0.5, transfer.Percent!.Value, 3);
+        Assert.Equal("1,0 GB von 2,0 GB", transfer.Detail);
+        Assert.Equal(reports.Select(r => r.Percent).Order(), reports.Select(r => r.Percent));
+    }
+
+    [Fact]
     public async Task Backup_passes_the_target_to_restic_and_the_retention_to_forget()
     {
         ScriptSummary();
@@ -89,11 +109,49 @@ public sealed class BackupEngineTests : IDisposable
     }
 
     [Fact]
+    public async Task Snapshots_carry_the_size_of_the_backed_up_data_if_restic_recorded_it()
+    {
+        environment.Runner.Script["restic snapshots"] = _ => new ProcessResult(0,
+            "[{\"id\":\"aaaaaaaa11111111\",\"short_id\":\"aaaaaaaa\",\"time\":\"2026-03-01T01:30:00Z\"},"
+            + "{\"id\":\"bbbbbbbb22222222\",\"short_id\":\"bbbbbbbb\",\"time\":\"2026-03-02T01:30:00Z\",\"summary\":{\"total_files_processed\":12,\"total_bytes_processed\":3865470566}}]");
+
+        var snapshots = await environment.Engine.SnapshotsAsync(BackupTestEnvironment.Target, Ct);
+
+        Assert.Equal(3865470566, snapshots[0].Size);
+        Assert.Null(snapshots[1].Size);
+    }
+
+    [Fact]
+    public async Task Delete_removes_exactly_that_backup_and_frees_its_space()
+    {
+        await environment.Engine.DeleteSnapshotAsync(BackupTestEnvironment.Target, "bbbbbbbb22222222", Ct);
+
+        var forget = environment.Runner.Calls.Single(c => c.Arguments[0] == "forget");
+        Assert.Equal(["forget", "--prune", "bbbbbbbb22222222"], forget.Arguments);
+        Assert.Equal("/repo", forget.Environment!["RESTIC_REPOSITORY"]);
+    }
+
+    [Theory]
+    [InlineData("latest")]
+    [InlineData("--keep-last")]
+    [InlineData("xyz; rm -rf /")]
+    public async Task Delete_refuses_anything_but_a_hexadecimal_id(string snapshot)
+    {
+        await Assert.ThrowsAsync<BackupException>(() => environment.Engine.DeleteSnapshotAsync(BackupTestEnvironment.Target, snapshot, Ct));
+
+        Assert.Empty(environment.Runner.Calls);
+    }
+
+    [Fact]
     public async Task Snapshots_of_a_missing_repository_are_an_error()
     {
-        environment.Runner.Script["restic cat"] = _ => new ProcessResult(10, string.Empty);
+        environment.Runner.Script["restic snapshots"] = _ => new ProcessResult(10, string.Empty);
 
-        await Assert.ThrowsAsync<BackupException>(() => environment.Engine.SnapshotsAsync(BackupTestEnvironment.Target, Ct));
+        var error = await Assert.ThrowsAsync<BackupException>(() => environment.Engine.SnapshotsAsync(BackupTestEnvironment.Target, Ct));
+
+        Assert.Contains("kein Repository", error.Message, StringComparison.Ordinal);
+        // One call is enough: restic reports the missing repository itself
+        Assert.Equal(["restic snapshots"], environment.Runner.Commands);
     }
 
     [Theory]

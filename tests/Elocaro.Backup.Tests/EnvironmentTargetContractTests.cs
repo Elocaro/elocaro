@@ -102,4 +102,25 @@ public sealed class EnvironmentTargetContractTests : IDisposable
         await factory.Services.GetRequiredService<BackupCoordinator>().Running;
         Assert.True(restore.Succeeded, string.Join(' ', restore.Errors));
     }
+
+    [Fact]
+    public async Task A_backup_of_the_environment_target_can_be_deleted_from_the_app()
+    {
+        var (client, factory) = Start(Azure());
+
+        var deleted = await client.StartEnvironmentDeleteAsync("49ccbcd74357a447", Ct);
+        await factory.Services.GetRequiredService<BackupCoordinator>().Running;
+
+        Assert.True(deleted.Succeeded, string.Join(' ', deleted.Errors));
+        Assert.Contains("restic forget", environment.Runner.Commands);
+        Assert.Equal("Delete", (await client.StatusAsync(Ct))!.Last!.Kind);
+    }
+
+    [Fact]
+    public async Task Deleting_a_backup_without_a_target_in_the_environment_is_refused()
+    {
+        var (client, _) = Start(null);
+
+        Assert.False((await client.StartEnvironmentDeleteAsync("49ccbcd74357a447", Ct)).Succeeded);
+    }
 }
