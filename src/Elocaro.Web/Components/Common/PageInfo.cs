@@ -602,6 +602,13 @@ public static class PageInfoCatalog
                 "Eine Wiederherstellung ersetzt alle aktuellen Daten durch den gewählten Stand; was seitdem erfasst wurde, geht verloren.",
                 "Der Vollexport enthält alle Daten in lesbarer Form, etwa für einen Umzug oder die Archivierung.")]), $"{Admin}/system/datensicherung");
 
+        Add(new("Neuigkeiten und Updates",
+            "Welche Version läuft, ob eine neuere veröffentlicht wurde und was sich geändert hat.",
+            [new("Gut zu wissen",
+                "Elocaro aktualisiert sich nicht selbst: Die Seite zeigt nur, dass es eine neue Version gibt, und nennt den Befehl für den Server.",
+                "Zweimal täglich fragt Elocaro bei GitHub nach der neuesten Version; GitHub sieht dabei die Adresse des Servers. Abschalten: UpdateCheck__Enabled=false.",
+                "Vor jedem Update sichert das Update-Skript die Daten und merkt sich die bisherige Version für den Notfall.")]), $"{Admin}/system/neuigkeiten");
+
         Add(new("Notfallmappe",
             "Eine verschlüsselte Datei, mit der Angehörige die Vermietung weiterführen können, auch wenn Elocaro oder der Server nicht mehr erreichbar sind.",
             [new("Gut zu wissen",

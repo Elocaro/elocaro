@@ -113,6 +113,7 @@ Voraussetzung ist ein eigenes Postfach mit IMAP-Zugang (z. B. `belege@ihre-domai
 | Schlüssel | Bedeutung |
 |---|---|
 | `DegreeDays__Enabled` | `false` schaltet den Abruf der Monatsgradtage vom Deutschen Wetterdienst ab (`opendata.dwd.de`, alle 12 Stunden); Standard `true`. Ohne Abruf gilt beim Mieterwechsel ohne Zwischenablesung der Platzhalter |
+| `UpdateCheck__Enabled` (`UPDATE_CHECK_ENABLED`) | `false` schaltet den Hinweis auf neue Versionen ab; Standard `true`. Zweimal täglich fragt die App öffentlich bei GitHub (`api.github.com/repos/elocaro/elocaro/releases`) nach den veröffentlichten Versionen; GitHub sieht dabei die Adresse des Servers, übertragen wird nichts über die Installation. Es wird nie etwas installiert |
 | `Documents__InstallDefaults` | `false` schaltet das automatische Anlegen der Standardvorlagen beim Start ab; Standard `true` |
 | `ReceiptInbox__Enabled` | `true` schaltet den Abruf ein (alle fünf Minuten) |
 | `ReceiptInbox__Host`, `Port`, `Security` | IMAP-Server, Standard Port 993 und `SslOnConnect` |
@@ -155,6 +156,8 @@ deploy/update.sh latest    # auf die neueste Version
 ```
 
 Das Skript sichert zuerst (`backup backup`), merkt sich die laufenden Images als `elocaro-vorher:app` und `elocaro-vorher:backup`, trägt die Version in `deploy/.env` ein (`ELOCARO_IMAGE`, `ELOCARO_BACKUP_IMAGE`; die alte Datei bleibt als `.env.bak-vor-update`), lädt die Images, startet `app` und `backup` neu und wartet, bis `https://<Domain>/health/live` antwortet. Datenbank-Migrationen laufen beim Start automatisch und nicht zurück: Geht ein Update mit Schemaänderung schief, stellt man die Sicherung von vorhin wieder her (Abschnitt Wiederherstellen). Ohne Schemaänderung genügt es, die beiden `elocaro-vorher:…`-Images in `deploy/.env` einzutragen und `up -d --no-deps app backup` auszuführen.
+
+**Hinweis in der App:** Unter *Einstellungen → System → Neuigkeiten* sehen Administratoren, welche Version läuft, ob eine neuere veröffentlicht wurde und was sich geändert hat; auf der Übersicht erscheint dann die Aufgabe „Neue Version … verfügbar“. Die Seite nennt den Befehl `deploy/update.sh <Version>`; die App selbst aktualisiert nichts, denn dafür bräuchte sie Zugriff auf Docker und damit auf den ganzen Server. Die Beschreibungen stammen aus den GitHub-Releases (Abschnitt der Version im `CHANGELOG.md`, den der Release-Workflow anlegt). Abschalten: `UpdateCheck__Enabled=false`.
 
 Von Hand geht es auch: `ELOCARO_IMAGE` und `ELOCARO_BACKUP_IMAGE` setzen, dann `docker compose -f deploy/docker-compose.yml --env-file deploy/.env pull` und `up -d`.
 

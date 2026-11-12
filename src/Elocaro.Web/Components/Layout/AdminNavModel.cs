@@ -87,7 +87,7 @@ public static class AdminNavModel
             [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Module", $"{Root}/einstellungen/module"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Erinnerungen", $"{Root}/einstellungen/fristen"), new("Rechtsstände", $"{Root}/einstellungen/rechtsstaende"), new("Daten importieren", $"{Root}/einstellungen/import"),
              NavTab.Group("System", null,
                  new("E-Mail-Versand", $"{Root}/system/mails"), new("Hintergrundjobs", $"{Root}/system/jobs"),
-                 new("Datensicherung", $"{Root}/system/datensicherung"), new("Notfallmappe", $"{Root}/system/notfallmappe"), new("Belegauslesung", $"{Root}/system/belegauslesung"))], "System"),
+                 new("Datensicherung", $"{Root}/system/datensicherung"), new("Notfallmappe", $"{Root}/system/notfallmappe"), new("Belegauslesung", $"{Root}/system/belegauslesung"), new("Neuigkeiten", $"{Root}/system/neuigkeiten"))], "System"),
     ];
 
     /// <summary>The area a path belongs to, or null (e.g. account pages).</summary>

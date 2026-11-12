@@ -64,3 +64,31 @@ jobs:
           secrets: |
             google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}
             google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}
+
+  # GitHub release with the changelog section of the version: the app reads it for the hint "new version available".
+  # Only after both images are published, so that a release in the list always has images.
+  release:
+    name: GitHub-Release mit Änderungen
+    needs: image
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Release anlegen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          awk -v v="$version" '
+            /^## \[/ { printing = (index($0, "## [" v "]") == 1); next }
+            printing { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "Keine Änderungen zu ${version} im CHANGELOG.md. Siehe https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/CHANGELOG.md" > notes.md
+          fi
+          gh release create "$TAG" --title "Elocaro ${version}" --notes-file notes.md --verify-tag
