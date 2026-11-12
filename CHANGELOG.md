@@ -4,13 +4,15 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- Hinweis auf neue Versionen: *Einstellungen → System → Neuigkeiten* zeigt die laufende Version, ob eine neuere veröffentlicht wurde, was sich geändert hat und den Befehl `deploy/update.sh <Version>`; auf der Übersicht erscheint für Administratoren eine Aufgabe. Zweimal täglich fragt die App bei GitHub nach den Releases (`UpdateCheck__Enabled=false` schaltet das ab); sie installiert nie selbst etwas. Der Release-Workflow legt dafür zu jedem Tag ein GitHub-Release mit dem Abschnitt aus dem Changelog an.
+
 ### Geändert
 - Neues Logo (Haus mit E) und neue App-Symbole (PWA, Apple-Touch, maskierbar, einfarbig für Android); das Zeichen im Kopf der Anwendung ist jetzt eine abgerundete Kachel statt eines Kreises.
 
 ## [0.2.0] - 2026-11-12
 
 ### Hinzugefügt
-- Hinweis auf neue Versionen: *Einstellungen → System → Neuigkeiten* zeigt die laufende Version, ob eine neuere veröffentlicht wurde, was sich geändert hat und den Befehl `deploy/update.sh <Version>`; auf der Übersicht erscheint für Administratoren eine Aufgabe. Zweimal täglich fragt die App bei GitHub nach den Releases (`UpdateCheck__Enabled=false` schaltet das ab); sie installiert nie selbst etwas. Der Release-Workflow legt dafür zu jedem Tag ein GitHub-Release mit dem Abschnitt aus dem Changelog an.
 
 ### Hinzugefügt
 - Datensicherung in der App (*Verwaltung → System → Datensicherung*): **mehrere Ziele** (S3, Azure Blob, SFTP, **Google Drive**, lokal), je Ziel eigener Zeitplan (täglich oder wöchentlich), Aufbewahrung und Status; Zugangsdaten und Passwort verschlüsselt in der Datenbank, Verbindungstest, „Jetzt sichern“, Liste der Sicherungen und **Wiederherstellung per Klick** (mit Bestätigung, die App startet danach neu). Google Drive wird über „Mit Google verbinden“ (Geräte-Code, nur Zugriff auf selbst angelegte Dateien) eingerichtet; den dafür nötigen OAuth-Client bringen die veröffentlichten Images mit (Release-Secrets, als BuildKit-Secret eingebaut, nicht im Quelltext); beim selbst gebauten Image trägt man ihn in der App oder der `.env` ein (Anleitung in `docs/betrieb.md`). Die Ersteinrichtung bietet „Aus einer Datensicherung wiederherstellen“ für einen neuen Server. Die Sicherung nach `deploy/.env` läuft ohne gespeicherte Einstellungen unverändert weiter (Refs #162).
