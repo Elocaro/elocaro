@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/bilder/logo.svg" width="96" height="96" alt="Elocaro-Logo"></p>
+
 # Elocaro
 
 [![CI](https://github.com/Elocaro/elocaro/actions/workflows/ci.yml/badge.svg)](https://github.com/Elocaro/elocaro/actions/workflows/ci.yml)

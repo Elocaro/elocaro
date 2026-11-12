@@ -417,7 +417,7 @@ h1 { font-weight: 600; letter-spacing: -0.01em; }
 /* Top bar and brand */
 .top-bar { min-height: 4rem; background: var(--md-surface); border-bottom: 1px solid var(--md-outline-variant); }
 .brand, .account-brand { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600; letter-spacing: 0.01em; }
-.brand::before, .account-brand::before { content: ""; display: inline-block; width: 2.25rem; height: 2.25rem; border-radius: var(--shape-full); background: url("icon.svg") center / cover no-repeat; }
+.brand::before, .account-brand::before { content: ""; display: inline-block; width: 2.25rem; height: 2.25rem; border-radius: 23%; background: url("icon.svg") center / cover no-repeat; }
 .user-menu > summary { border-radius: var(--shape-full); padding: 0.5rem 1rem; }
 .user-menu > summary:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
 .user-menu-content { border-radius: var(--shape-lg); border: none; background: var(--md-surface-container-high); box-shadow: var(--shadow-menu); }
