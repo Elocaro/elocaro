@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Markdig" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" />
     <PackageReference Include="MudBlazor" />
     <PackageReference Include="QRCoder" />

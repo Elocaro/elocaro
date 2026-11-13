@@ -83,11 +83,13 @@ internal static class EmergencyFolderEncryption
         var before = Encoding.UTF8.GetBytes(template[..split] + header);
         var after = Encoding.UTF8.GetBytes("\"}" + template[(split + marker.Length)..]);
 
+        // Base64 without line breaks has an exact length, so the buffer is returned as it is (no second copy of the folder).
         var encodedLength = Base64.GetMaxEncodedToUtf8Length(sealedData.Length);
         var result = new byte[before.Length + encodedLength + after.Length];
         before.CopyTo(result, 0);
         Base64.EncodeToUtf8(sealedData, result.AsSpan(before.Length, encodedLength), out _, out var written);
+        System.Diagnostics.Debug.Assert(written == encodedLength, "Base64 length must be exact");
         after.CopyTo(result, before.Length + written);
-        return result.AsSpan(0, before.Length + written + after.Length).ToArray();
+        return result;
     }
 }

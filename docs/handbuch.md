@@ -49,7 +49,7 @@ Auf dem Handy führt die untere Leiste zu Übersicht, Bestand, Geld und Kommunik
 
 Was geschieht, wenn Sie ausfallen? Die Notfallmappe (Einstellungen → System → Notfallmappe, Recht *System*) ist **eine verschlüsselte Datei**, mit der Angehörige die Vermietung weiterführen können, auch wenn Elocaro oder der Server nicht mehr erreichbar sind.
 
-**Erzeugen.** Tragen Sie unter „Ihre Hinweise“ ein, wen man anrufen soll und wo die Unterlagen liegen (dort **keine Passwörter**: der Text steht wie alle Daten unverschlüsselt in der Datenbank). Wählen Sie ein Passwort mit mindestens 12 Zeichen, geben Sie es zweimal ein und klicken Sie auf „Notfallmappe erzeugen“. Optional legen Sie die unterschriebenen Mietverträge der laufenden Mietverhältnisse bei (die Mappe darf insgesamt höchstens 40 MB enthalten). „Hinweise speichern“ sichert nur die Texte.
+**Erzeugen.** Tragen Sie unter „Ihre Hinweise“ ein, wen man anrufen soll und wo die Unterlagen liegen (dort **keine Passwörter**: der Text steht wie alle Daten unverschlüsselt in der Datenbank). Wählen Sie ein Passwort mit mindestens 12 Zeichen, geben Sie es zweimal ein und klicken Sie auf „Notfallmappe erzeugen“. Optional legen Sie die unterschriebenen Mietverträge der laufenden Mietverhältnisse bei (die Mappe darf insgesamt höchstens 100 MB enthalten). „Hinweise speichern“ sichert nur die Texte.
 
 **Das Passwort wird nirgends gespeichert.** Wer es verliert, kann die Mappe nicht mehr öffnen; auch Elocaro kann das nicht. Bewahren Sie Datei und Passwort an **getrennten Orten** auf, etwa die Datei bei der Familie und das Passwort im Safe oder beim Notar.
 

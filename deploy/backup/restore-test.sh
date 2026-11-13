@@ -43,10 +43,12 @@ wait_for_app() {
 sql() { dc run --rm -T --no-deps --entrypoint psql backup -v ON_ERROR_STOP=1 -X -q "$@"; }
 sh_backup() { dc run --rm -T --no-deps --entrypoint sh backup -c "$1"; }
 
+# pg_attver: since PostgreSQL 18.7 every column carries this internal version number as an attribute option; pg_dump writes it
+# out and it differs after a restore (the number is not part of the data).
 fingerprint() { # output file
     {
         echo "## Schema"
-        dc run --rm -T --no-deps --entrypoint pg_dump backup --schema-only --no-owner | grep -v -e '^--' -e '^\\restrict' -e '^\\unrestrict' -e '^$'
+        dc run --rm -T --no-deps --entrypoint pg_dump backup --schema-only --no-owner | grep -v -e '^--' -e '^\\restrict' -e '^\\unrestrict' -e '^$' -e 'pg_attver'
         echo "## Daten"
         sql -tA <<'SQL'
 SELECT format('SELECT %L, count(*), md5(coalesce(string_agg(t::text, E''\n'' ORDER BY t::text), '''')) FROM %I.%I t',

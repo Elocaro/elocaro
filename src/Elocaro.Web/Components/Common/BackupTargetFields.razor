@@ -1,6 +1,7 @@
 @implements IDisposable
 @using Elocaro.Application.Operations
 @using Elocaro.Domain.Operations
+@using QRCoder
 @inject IGoogleDriveAuthorization Google
 @inject TimeProvider Clock
 @* Entry of a backup target: where it lies (cards), what it needs to get there (access), and the password of the backup. Shared by the
@@ -39,10 +40,11 @@
                         <Notice Level="NoticeLevel.Info" id="drive-device">
                             <strong>So melden Sie sich bei Google an:</strong>
                             <ol>
-                                <li>Öffnen Sie <a href="@device.VerificationUrl" target="_blank" rel="noopener noreferrer">@device.VerificationUrl</a> (am Handy oder in einem anderen Fenster).</li>
-                                <li>Geben Sie diesen Code ein: <strong id="drive-code" class="device-code">@device.UserCode</strong></li>
+                                <li>Scannen Sie den QR-Code mit dem Handy oder öffnen Sie <a id="drive-link" href="@deviceLink" target="_blank" rel="noopener noreferrer">@device.VerificationUrl</a> in einem anderen Fenster.</li>
+                                <li>Der Code wird dabei übernommen. Falls nicht, geben Sie ihn ein: <strong id="drive-code" class="device-code">@device.UserCode</strong></li>
                                 <li>Melden Sie sich an und erlauben Sie den Zugriff. Elocaro sieht dabei nur Dateien, die es selbst in Ihrem Drive anlegt.</li>
                             </ol>
+                            <div class="qr-code" id="drive-qr" role="img" aria-label="QR-Code zur Anmeldung bei Google">@((MarkupString)deviceQr)</div>
                             <span>Warte auf die Bestätigung …</span>
                         </Notice>
                         <button type="button" class="button button-outlined" id="drive-cancel" @onclick="CancelConnect">Abbrechen</button>
@@ -113,6 +115,8 @@
 
     private bool googleAvailable;
     private DeviceAuthorization? device;
+    private string deviceLink = "";
+    private string deviceQr = "";
     private string? connectError;
     private bool justConnected;
     private CancellationTokenSource? polling;
@@ -224,7 +228,19 @@
         }
 
         device = authorization;
+        deviceLink = DeviceLink(authorization);
+        using var generator = new QRCodeGenerator();
+        using var qr = generator.CreateQrCode(deviceLink, QRCodeGenerator.ECCLevel.M);
+        deviceQr = new SvgQRCode(qr).GetGraphic(4);
         _ = PollAsync(authorization);
+    }
+
+    /// <summary>Address at Google with the code already filled in (what the QR code holds).</summary>
+    public static string DeviceLink(DeviceAuthorization authorization)
+    {
+        ArgumentNullException.ThrowIfNull(authorization);
+        var separator = authorization.VerificationUrl.Contains('?', StringComparison.Ordinal) ? '&' : '?';
+        return $"{authorization.VerificationUrl}{separator}user_code={Uri.EscapeDataString(authorization.UserCode)}";
     }
 
     /// <summary>Asks Google at the pace it names until the person confirmed, refused or the code ran out.</summary>

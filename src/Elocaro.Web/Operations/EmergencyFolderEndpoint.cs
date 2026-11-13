@@ -15,7 +15,7 @@ internal static class EmergencyFolderEndpoint
     {
         ["passwort-kurz"] = "Das Passwort braucht mindestens 12 Zeichen. Die Hinweise sind trotzdem gespeichert.",
         ["passwort-ungleich"] = "Die beiden Passwörter stimmen nicht überein. Die Hinweise sind trotzdem gespeichert.",
-        ["zu-gross"] = "Die Mappe wäre zu groß (Grenze 40 MB). Bitte ohne Mietvertragsdokumente erzeugen.",
+        ["zu-gross"] = "Die Mappe wäre zu groß (Grenze 100 MB). Bitte ohne Mietvertragsdokumente erzeugen oder sehr große Verträge vorher verkleinern.",
         ["hinweise-zu-lang"] = "Ein Hinweistext ist zu lang (höchstens 4.000 Zeichen). Nichts wurde gespeichert.",
     };
 

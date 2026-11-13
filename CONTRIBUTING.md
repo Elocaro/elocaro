@@ -42,6 +42,8 @@ git tag v0.1.0 && git push origin v0.1.0
 
 Vorher `CHANGELOG.md` (Abschnitt „Unveröffentlicht“ → neue Version mit Datum) abschließen. Die Version aus dem Tag landet über das Build-Argument `VERSION` in der Anwendung („Über Elocaro“).
 
+Der Abschnitt einer Version wird als Text des GitHub-Releases veröffentlicht und unter *Neuigkeiten und Updates* als Markdown dargestellt (Fett, Kursiv, `Code`, Listen, Links mit http/https; kein HTML, keine Bilder). Ein Eintrag besteht aus einem kurzen Kopfsatz, Einzelheiten stehen als eingerückte Unterpunkte (`  - …`), nicht in einem langen Absatz.
+
 **Google-Anmeldung im Image:** Damit „Mit Google verbinden“ in den veröffentlichten Images ohne Einrichtung funktioniert, liest der
 Release-Workflow die Repository-Secrets `GOOGLE_CLIENT_ID` und `GOOGLE_CLIENT_SECRET` (OAuth-Client vom Typ „Fernsehgeräte und Geräte mit
 begrenzter Eingabe“, siehe `docs/betrieb.md`) und baut sie als BuildKit-Secret in das App-Image ein (`google-client.json`). Einmalig

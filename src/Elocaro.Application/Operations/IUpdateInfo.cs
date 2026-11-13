@@ -6,13 +6,10 @@ public interface IUpdateInfo
     Task<UpdateInfo> GetAsync(CancellationToken cancellationToken = default);
 }
 
-/// <param name="Title">Heading of the release notes section, e.g. "Hinzugefügt".</param>
-/// <param name="Items">One entry per line of the release notes (Markdown inline: <c>**bold**</c>, <c>`code`</c>).</param>
-public sealed record ReleaseSection(string Title, IReadOnlyList<string> Items);
-
 /// <param name="Version">Without the leading "v", e.g. "0.2.0".</param>
 /// <param name="Url">Page of the release on GitHub.</param>
-public sealed record ReleaseNotes(string Version, DateOnly? Date, string Url, IReadOnlyList<ReleaseSection> Sections);
+/// <param name="Body">Release notes as Markdown (the section of the changelog); empty if there is none.</param>
+public sealed record ReleaseNotes(string Version, DateOnly? Date, string Url, string Body);
 
 /// <param name="CurrentVersion">The running version; null for development builds.</param>
 /// <param name="Enabled">The check is switched on (<c>UpdateCheck__Enabled</c>).</param>

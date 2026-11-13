@@ -685,6 +685,16 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .panel > header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 1rem 1.25rem 0.5rem; }
 .panel > header h2 { margin: 0; font-size: 1.1rem; }
 .panel .todos { padding: 0 0.5rem 0.75rem; }
+/* Release notes (Markdown from GitHub): readable column, real lists, groups as small headings */
+.release-body { padding: 0 1.25rem 1.25rem; max-width: 72ch; line-height: 1.55; overflow-wrap: anywhere; }
+.release-body > :first-child { margin-top: 0; }
+.release-body h3 { margin: 1.5rem 0 0.5rem; font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--md-primary); }
+.release-body p { margin: 0 0 0.75rem; }
+.release-body ul { margin: 0 0 0.5rem; padding-left: 1.25rem; list-style: disc; }
+.release-body ul ul { margin: 0.4rem 0 0; list-style: circle; }
+.release-body li + li { margin-top: 0.6rem; }
+.release-body ul ul > li + li { margin-top: 0.3rem; }
+.release-body code { font-size: 0.875em; padding: 0.05em 0.35em; border-radius: var(--shape-sm); background: var(--md-surface-container-high); }
 .panel .todos-more { padding: 0 0.5rem 0.75rem; }
 .panel .todos-more > summary { display: flex; align-items: center; min-height: 2.75rem; padding: 0 0.75rem; cursor: pointer; font-weight: 600; color: var(--md-primary); border-radius: var(--shape-full); }
 .panel .todos-more > summary:hover { background: color-mix(in srgb, var(--md-primary) 10%, transparent); }
