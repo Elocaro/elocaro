@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- Rückgängig in der Aktivität: Änderungen an Objekten, Einheiten, Personen, Mietverträgen und Zählern lassen sich zurücknehmen (Anlegen → gelöscht, Löschen → wiederhergestellt, Ändern → frühere Werte). Das Rückgängig wird selbst protokolliert und bricht ab, wenn der Datensatz seitdem geändert wurde oder noch etwas darauf verweist. Mail-Versand, Bank, Signaturen und Finanzbuchungen sind ausgenommen (Refs #183).
 - Aktivität (*Einstellungen → System → Aktivität*): Jede Änderung an Daten gehört zu einer Operation mit Konto und Weg (Oberfläche, KI-Assistent über MCP, Hintergrundjob, Import). Mehrere Speichervorgänge einer Aktion, etwa ein Import, erscheinen als eine Zeile. Grundlage für Rückgängig und schreibenden MCP-Zugriff, siehe ADR 0007 (Refs #183).
 - Datenimport (*Einstellungen → Datenimport*) liest jetzt auch Excel-Dateien (.xlsx, erstes Tabellenblatt); Datumszellen und Zahlen werden erkannt, Spaltennamen wie in der CSV-Vorlage (Refs #180).
 - Fernablese-Check (HeizkostenV): Zähler haben das Feld „Fernablesbar“. Für Heiz- und Warmwasserzähler in Wohnungen, die es nicht sind, erscheinen eine Aufgabe, ein Eintrag im Fristenkalender (31.12.2026) und ein Hinweis in der Abrechnungsprüfung (Closes #171).

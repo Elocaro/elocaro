@@ -15,5 +15,6 @@ internal sealed class OperationConfiguration : IEntityTypeConfiguration<Operatio
         builder.Property(o => o.Channel).HasConversion<string>().HasMaxLength(20);
         builder.Property(o => o.Label).HasMaxLength(200);
         builder.HasIndex(o => o.Timestamp);
+        builder.HasIndex(o => o.UndoOf);
     }
 }

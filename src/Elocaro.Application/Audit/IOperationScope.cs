@@ -23,5 +23,6 @@ public enum ChangeChannel
 public interface IOperationScope
 {
     /// <summary>Starts the scope; disposing ends it. Scopes nest, the inner one wins.</summary>
-    IDisposable Begin(ChangeChannel channel, string label);
+    /// <param name="undoOf">The operation this one takes back (set only by the undo).</param>
+    IDisposable Begin(ChangeChannel channel, string label, Guid? undoOf = null);
 }

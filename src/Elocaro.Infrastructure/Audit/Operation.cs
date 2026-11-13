@@ -10,13 +10,14 @@ public sealed class Operation
         User = "";
     }
 
-    public Operation(Guid id, DateTimeOffset timestamp, string user, ChangeChannel channel, string? label)
+    public Operation(Guid id, DateTimeOffset timestamp, string user, ChangeChannel channel, string? label, Guid? undoOf = null)
     {
         Id = id;
         Timestamp = timestamp;
         User = user;
         Channel = channel;
         Label = label;
+        UndoOf = undoOf;
     }
 
     public Guid Id { get; private set; }
@@ -29,4 +30,7 @@ public sealed class Operation
 
     /// <summary>Tool name, import name … (empty for a plain save in the interface).</summary>
     public string? Label { get; private set; }
+
+    /// <summary>The operation this one took back.</summary>
+    public Guid? UndoOf { get; private set; }
 }

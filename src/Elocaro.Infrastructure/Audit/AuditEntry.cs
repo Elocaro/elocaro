@@ -47,5 +47,10 @@ public sealed class AuditEntry
     /// <summary>The <see cref="Operation"/> this entry belongs to (empty for entries from before operations existed).</summary>
     public Guid? OperationId { get; private set; }
 
+    /// <summary>Typed values before a change, for taking it back (never shown; read only by the undo). Null if the type is not restorable or nothing changed.</summary>
+    public string? RestoreJson { get; private set; }
+
+    public void SetRestore(string? restoreJson) => RestoreJson = restoreJson;
+
     public void AssignOperation(Guid operationId) => OperationId ??= operationId;
 }

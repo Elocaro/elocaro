@@ -216,6 +216,7 @@ public static class DependencyInjection
         services.AddScoped<IChangeHistory, ChangeHistory>();
         services.AddSingleton<IOperationScope, OperationScope>();
         services.AddScoped<IActivityLog, ActivityLog>();
+        services.AddScoped<IOperationUndo, OperationUndo>();
         services.AddScoped<AuditCleanup>();
         services.AddScoped<AuditWriter>();
         services.AddScoped<ISecurityAudit, SecurityAudit>();

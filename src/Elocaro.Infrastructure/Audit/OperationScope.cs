@@ -9,20 +9,22 @@ internal sealed class OperationScope : IOperationScope
 
     internal static State? Active => Current.Value;
 
-    public IDisposable Begin(ChangeChannel channel, string label)
+    public IDisposable Begin(ChangeChannel channel, string label, Guid? undoOf = null)
     {
         var previous = Current.Value;
-        Current.Value = new State(Guid.CreateVersion7(), channel, label);
+        Current.Value = new State(Guid.CreateVersion7(), channel, label, undoOf);
         return new Release(previous);
     }
 
-    internal sealed class State(Guid id, ChangeChannel channel, string label)
+    internal sealed class State(Guid id, ChangeChannel channel, string label, Guid? undoOf)
     {
         public Guid Id { get; } = id;
 
         public ChangeChannel Channel { get; } = channel;
 
         public string Label { get; } = label;
+
+        public Guid? UndoOf { get; } = undoOf;
 
         /// <summary>The operation row has been written (or is part of the running save).</summary>
         public bool Recorded { get; set; }

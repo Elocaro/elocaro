@@ -92,7 +92,7 @@ internal sealed class EntitySaveInterceptor(TimeProvider clock, ICurrentUser use
             id = scope.Id;
             if (!scope.Recorded)
             {
-                context.Add(new Operation(id, now, who, scope.Channel, scope.Label));
+                context.Add(new Operation(id, now, who, scope.Channel, scope.Label, scope.UndoOf));
                 scope.Recorded = true;
                 claimed = scope;
             }

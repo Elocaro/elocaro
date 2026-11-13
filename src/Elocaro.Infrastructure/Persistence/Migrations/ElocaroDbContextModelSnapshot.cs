@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261113172743_AuditOperations";
+    public override string LastMigrationId => "20261113204725_UndoOperations";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -8596,6 +8596,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("character varying(200)")
                     .HasColumnName("purpose");
 
+                b.Property<string>("RestoreJson")
+                    .HasColumnType("jsonb")
+                    .HasColumnName("restore");
+
                 b.Property<DateTimeOffset>("Timestamp")
                     .HasColumnType("timestamp with time zone")
                     .HasColumnName("timestamp");
@@ -8642,6 +8646,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("timestamp with time zone")
                     .HasColumnName("timestamp");
 
+                b.Property<Guid?>("UndoOf")
+                    .HasColumnType("uuid")
+                    .HasColumnName("undo_of");
+
                 b.Property<string>("User")
                     .IsRequired()
                     .HasMaxLength(256)
@@ -8653,6 +8661,9 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("Timestamp")
                     .HasDatabaseName("ix_operations_timestamp");
+
+                b.HasIndex("UndoOf")
+                    .HasDatabaseName("ix_operations_undo_of");
 
                 b.ToTable("operations");
             });

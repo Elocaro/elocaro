@@ -46,12 +46,50 @@ internal static class AuditCapture
                 continue;
             }
 
-            result.Add(new AuditEntry(
-                timestamp, user, entry.Metadata.ClrType.Name, entry.Entity.Id, action, JsonSerializer.Serialize(changes, Json)));
+            var audit = new AuditEntry(
+                timestamp, user, entry.Metadata.ClrType.Name, entry.Entity.Id, action, JsonSerializer.Serialize(changes, Json));
+            if (entry.State == EntityState.Modified && UndoPolicy.IsRestorable(entry.Metadata.ClrType))
+            {
+                audit.SetRestore(Snapshot(entry));
+            }
+
+            result.Add(audit);
         }
 
         return result;
     }
+
+    /// <summary>The typed values (all columns, also foreign keys, nothing masked) of the changed properties before the save, as JSON by property name.</summary>
+    private static string? Snapshot(EntityEntry<Entity> entry)
+    {
+        var before = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var property in entry.Properties)
+        {
+            if (property.IsModified && !Technical.Contains(property.Metadata.Name))
+            {
+                before[property.Metadata.Name] = JsonSerializer.SerializeToElement(property.OriginalValue, property.Metadata.ClrType, Json);
+            }
+        }
+
+        foreach (var complexProperty in entry.ComplexProperties)
+        {
+            foreach (var property in complexProperty.Properties)
+            {
+                if (property.IsModified)
+                {
+                    before[complexProperty.Metadata.Name + "." + property.Metadata.Name] = JsonSerializer.SerializeToElement(property.OriginalValue, property.Metadata.ClrType, Json);
+                }
+            }
+        }
+
+        return before.Count == 0 ? null : JsonSerializer.Serialize(before, Json);
+    }
+
+    /// <summary>Property name → typed value from <see cref="Snapshot"/>.</summary>
+    public static IReadOnlyDictionary<string, JsonElement> ReadRestore(string? json) =>
+        string.IsNullOrEmpty(json) ? new Dictionary<string, JsonElement>() : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, Json) ?? [];
+
+    public static object? Value(JsonElement element, Type type) => element.Deserialize(type, Json);
 
     public static IReadOnlyList<FieldChange> Read(string json) =>
         JsonSerializer.Deserialize<List<FieldChange>>(json, Json) ?? [];

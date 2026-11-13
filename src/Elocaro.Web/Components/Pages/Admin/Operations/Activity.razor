@@ -1,45 +1,65 @@
 @page "/verwaltung/system/aktivitaet"
+@rendermode InteractiveServer
 @using Elocaro.Application.Audit
+@using MudBlazor
 @inject IActivityLog ActivityLog
+@inject IOperationUndo Undo
+@inject IDialogService Dialogs
+@inject Notifier Notify
 
-<PageHeader Title="Aktivität" Subtitle="Alle Änderungen an Daten, mit Konto und Weg: Oberfläche, KI-Assistent (MCP), Hintergrundjob oder Import." />
+<InteractiveShell>
+    <PageHeader Title="Aktivität" Subtitle="Alle Änderungen an Daten, mit Konto und Weg: Oberfläche, KI-Assistent (MCP), Hintergrundjob oder Import." />
 
-<div class="toolbar">
-    <AppSelect T="ChangeChannel?" Value="channel" ValueChanged="ChannelChangedAsync" Label="Weg" Items="channels" Text="ChannelText" />
-</div>
+    <ErrorList Errors="errors" />
 
-@if (rows is null)
-{
-    <p class="loading" role="status">Wird geladen …</p>
-}
-else if (rows.Count == 0)
-{
-    <EmptyState Text="Noch keine Änderungen aufgezeichnet." />
-}
-else
-{
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead><tr><th>Zeit</th><th>Konto</th><th>Weg</th><th>Was</th><th>Geändert</th></tr></thead>
-            <tbody>
-                @foreach (var row in rows)
-                {
-                    <tr>
-                        <td>@Format.Timestamp(row.Timestamp)</td>
-                        <td>@row.User</td>
-                        <td><StatusChip Level="@(row.Channel == ChangeChannel.Mcp ? StatusLevel.Warning : StatusLevel.Neutral)">@ChannelText(row.Channel)</StatusChip></td>
-                        <td>@(row.Label ?? "–")</td>
-                        <td>@string.Join(", ", row.Touched.Select(t => $"{t.Count} × {t.EntityType} {ActionText(t.Action)}"))</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <div class="toolbar">
+        <AppSelect T="ChangeChannel?" Value="channel" ValueChanged="ChannelChangedAsync" Label="Weg" Items="channels" Text="ChannelText" />
     </div>
-}
+
+    @if (rows is null)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else if (rows.Count == 0)
+    {
+        <EmptyState Text="Noch keine Änderungen aufgezeichnet." />
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Zeit</th><th>Konto</th><th>Weg</th><th>Was</th><th>Geändert</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            <td>@Format.Timestamp(row.Timestamp)</td>
+                            <td>@row.User</td>
+                            <td><StatusChip Level="@(row.Channel == ChangeChannel.Mcp ? StatusLevel.Warning : StatusLevel.Neutral)">@ChannelText(row.Channel)</StatusChip></td>
+                            <td>@(row.Label ?? "–")</td>
+                            <td>@string.Join(", ", row.Touched.Select(t => $"{t.Count} × {t.EntityType} {ActionText(t.Action)}"))</td>
+                            <td class="row-actions">
+                                @if (row.Undone)
+                                {
+                                    <StatusChip>rückgängig gemacht</StatusChip>
+                                }
+                                else if (row.Restorable)
+                                {
+                                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => UndoAsync(row)" aria-label="@($"Rückgängig: {row.Label ?? "Änderung"}")">Rückgängig</MudButton>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</InteractiveShell>
 
 @code {
     private static readonly ChangeChannel?[] channels = [null, ChangeChannel.Ui, ChangeChannel.Mcp, ChangeChannel.Job, ChangeChannel.Import];
     private IReadOnlyList<ActivityRow>? rows;
+    private IReadOnlyList<string>? errors;
     private ChangeChannel? channel;
 
     protected override async Task OnInitializedAsync() => rows = await ActivityLog.RecentAsync(channel);
@@ -47,6 +67,33 @@ else
     private async Task ChannelChangedAsync(ChangeChannel? value)
     {
         channel = value;
+        rows = await ActivityLog.RecentAsync(channel);
+    }
+
+    private async Task UndoAsync(ActivityRow row)
+    {
+        errors = null;
+        var check = await Undo.CheckAsync(row.Id);
+        if (!check.CanUndo)
+        {
+            errors = [check.Reason ?? "Nicht möglich."];
+            return;
+        }
+
+        var what = string.Join(", ", row.Touched.Select(t => $"{t.Count} × {t.EntityType} {ActionText(t.Action)}"));
+        var confirmed = await Dialogs.ShowMessageBoxAsync("Rückgängig machen?", $"{row.Label ?? "Änderung"} ({what}) wird zurückgenommen. Das wird selbst in der Aktivität vermerkt.", yesText: "Rückgängig machen", cancelText: "Abbrechen");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var result = await Undo.UndoAsync(row.Id);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Änderung wurde rückgängig gemacht.");
+        }
+
         rows = await ActivityLog.RecentAsync(channel);
     }
 
