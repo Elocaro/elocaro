@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Geändert
+- Neuigkeiten besser zu finden und übersichtlicher: Das Benutzermenü hat den Eintrag *Neuigkeiten* (mit Punkt, wenn eine neue Version da ist). Die Seite zeigt Version und Status als Karte, den Update-Befehl zum Kopieren und alle veröffentlichten Versionen.
 - *Neuigkeiten und Updates* zeigt die Änderungen als gegliederten Text: Markdown (Fett, Kursiv, Code, verschachtelte Listen) wird dargestellt, Aufzählungen und Abschnitte sind abgesetzt und der Text hat eine lesbare Zeilenbreite.
 
 ### Behoben
