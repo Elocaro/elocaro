@@ -367,7 +367,7 @@ Die App spricht dazu mit dem Backup-Dienst über eine interne API (`Backup__Url`
 
 #### Google Drive
 
-Bei der Ablage *Google Drive* genügt **„Mit Google anmelden“**: Die App zeigt einen Code und die Adresse `google.com/device`, man öffnet sie (auch am Handy), gibt den Code ein, meldet sich bei Google an und erlaubt den Zugriff. Die App merkt die Bestätigung selbst. Der Ordner (Standard *Elocaro-Sicherung*, Name änderbar) wird in Drive angelegt. Elocaro bekommt nur Zugriff auf Dateien, die es selbst anlegt (Berechtigung `drive.file`), nicht auf das übrige Drive. Das Passwort der Sicherung bleibt wie bei jedem Ziel Pflicht.
+Bei der Ablage *Google Drive* genügt **„Mit Google anmelden“**: Die App zeigt einen QR-Code und die Adresse `google.com/device`; man scannt den QR-Code mit dem Handy (oder öffnet den Link in einem anderen Fenster), meldet sich bei Google an und erlaubt den Zugriff. Der Code steckt als `user_code` in der Adresse und wird bei Google vorausgefüllt; ist das Feld doch leer (Google dokumentiert den Parameter nicht), steht der Code daneben zum Eintippen. Die App merkt die Bestätigung selbst. Der Ordner (Standard *Elocaro-Sicherung*, Name änderbar) wird in Drive angelegt. Elocaro bekommt nur Zugriff auf Dateien, die es selbst anlegt (Berechtigung `drive.file`), nicht auf das übrige Drive. Das Passwort der Sicherung bleibt wie bei jedem Ziel Pflicht.
 
 Der Zugang erneuert sich selbst, die Sicherung läuft danach ohne Eingriff. Widerruft man ihn im Google-Konto (*Sicherheit → Drittanbieter-Zugriff*), schlägt die Sicherung fehl, und die Warnmail meldet es; dann das Ziel bearbeiten und neu anmelden. Auf einem neuen Server braucht die Wiederherstellung das Passwort der Sicherung und eine neue Anmeldung.
 
