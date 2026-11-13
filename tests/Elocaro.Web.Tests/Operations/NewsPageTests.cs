@@ -12,10 +12,10 @@ public class NewsPageTests(PostgresFixture postgres) : AccountTestBase(postgres)
     private const string Page = "/verwaltung/system/neuigkeiten";
 
     private static readonly ReleaseNotes V090 = new("0.9.0", new DateOnly(2026, 12, 1), "https://example.test/0.9.0",
-        [new("Hinzugefügt", ["Neue Auswertung: **Mieteingang** je Jahr", "Einstellung `X__Y` <script>alert(1)</script>"])]);
+        "### Hinzugefügt\n- Neue Auswertung: **Mieteingang** je *Jahr*\n  - Unterpunkt\n- Einstellung `X__Y` <script>alert(1)</script>");
 
     private static readonly ReleaseNotes V020 = new("0.2.0", new DateOnly(2026, 11, 12), "https://example.test/0.2.0",
-        [new("Geändert", ["Umgestellt auf .NET 11"])]);
+        "### Geändert\n- Umgestellt auf .NET 11");
 
     private UpdateInfo info = new("0.2.0", true, null, false, []);
 
@@ -41,6 +41,8 @@ public class NewsPageTests(PostgresFixture postgres) : AccountTestBase(postgres)
         Assert.Contains("Mieteingang", newer.InnerHtml, StringComparison.Ordinal);
         Assert.Contains("<strong>Mieteingang</strong>", newer.InnerHtml, StringComparison.Ordinal);
         Assert.Contains("<code>X__Y</code>", newer.InnerHtml, StringComparison.Ordinal);
+        Assert.Contains("<em>Jahr</em>", newer.InnerHtml, StringComparison.Ordinal);
+        Assert.NotNull(newer.QuerySelector(".release-body li > ul > li"));
         Assert.DoesNotContain("<script>", newer.InnerHtml, StringComparison.Ordinal);
         Assert.NotNull(page.Document.QuerySelector("[data-version='0.2.0']")); // what is new in the running version
         Assert.Equal("0.2.0", page.Document.QuerySelector("#news-current")!.TextContent);

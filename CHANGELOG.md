@@ -4,16 +4,33 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Geändert
+- *Neuigkeiten und Updates* zeigt die Änderungen als gegliederten Text: Markdown (Fett, Kursiv, Code, verschachtelte Listen) wird dargestellt, Aufzählungen und Abschnitte sind abgesetzt und der Text hat eine lesbare Zeilenbreite.
+
 ## [0.5.0] - 2026-11-13
 
 ### Hinzugefügt
-- Sicherungen als **Datei**: In *Vorhandene Sicherungen* lässt sich jeder Stand mit *Herunterladen* als `.tar` speichern (ein eigenständiges restic-Repository mit diesem einen Stand, verschlüsselt mit dem Passwort der Sicherung; im Audit-Log vermerkt). *Aus Datei wiederherstellen* nimmt so eine Datei entgegen, öffnet sie mit dem Passwort, zeigt Datum und Größe und spielt sie nach Bestätigung ein, auch auf einem anderen Server. Die Ersteinrichtung bietet auf einem neuen Server neben „Aus einem Ziel“ auch „Aus einer Datei“. Der Download startet nach dem Packen von selbst, die Datei wird nach dem Senden gelöscht. Der Vollexport steht jetzt eingeklappt unter „Weitere Optionen“. Die Seite *Datensicherung* erscheint sofort; die Liste der Sicherungen wird danach Ziel für Ziel geladen („Sicherungen werden geladen …“), und das Lesen der Liste braucht nur noch einen restic-Aufruf je Ziel. Verweise auf die Dokumentation sind echte Links.
-- Datensicherung: *Vorhandene Sicherungen* zeigen die **Größe** der gesicherten Daten (Sicherungen, die restic 0.17 oder neuer angelegt hat; ältere zeigen einen Strich) und lassen sich **löschen** (mit Bestätigung; der Speicherplatz, den nur diese Sicherung belegte, wird freigegeben). Zeilen in den Tabellen sind vertikal zentriert, die Knöpfe brechen nicht mehr um.
-- Fortschritt bei laufender Sicherung und Wiederherstellung: Die Seite *Datensicherung* zeigt einen Balken mit „Schritt 3 von 5: Dateien übertragen (2,1 GB von 3,6 GB), insgesamt 55 %“. Der Backup-Dienst meldet dazu den Schritt (Sicherung: Repository prüfen, Datenbank sichern, Dateien übertragen, Alte Sicherungen aufräumen, Sicherung prüfen; Wiederherstellung: Repository prüfen, Stand herunterladen, Datenbank ersetzen, Dateien ersetzen) und liest bei den Dateien den Fortschritt von restic. Die Seite erkennt auch Sicherungen, die von selbst oder von jemand anderem gestartet wurden (Abfrage alle 10 Sekunden, während des Laufs alle 2).
+- Sicherungen als **Datei**: In *Vorhandene Sicherungen* lässt sich jeder Stand mit *Herunterladen* als `.tar` speichern.
+  - Die Datei ist ein eigenständiges restic-Repository mit diesem einen Stand, verschlüsselt mit dem Passwort der Sicherung; der Download steht im Audit-Log. Er startet nach dem Packen von selbst, die Datei wird nach dem Senden gelöscht.
+  - *Aus Datei wiederherstellen* öffnet so eine Datei mit dem Passwort, zeigt Datum und Größe und spielt sie nach Bestätigung ein, auch auf einem anderen Server. Die Ersteinrichtung bietet auf einem neuen Server neben „Aus einem Ziel“ auch „Aus einer Datei“.
+  - Der Vollexport steht jetzt eingeklappt unter „Weitere Optionen“.
+- Die Seite *Datensicherung* erscheint sofort; die Liste der Sicherungen wird danach Ziel für Ziel geladen („Sicherungen werden geladen …“). Das Lesen der Liste braucht nur noch einen restic-Aufruf je Ziel. Verweise auf die Dokumentation sind echte Links.
+- *Vorhandene Sicherungen* zeigen die **Größe** der gesicherten Daten und lassen sich **löschen**.
+  - Die Größe gibt es für Sicherungen, die restic 0.17 oder neuer angelegt hat; ältere zeigen einen Strich.
+  - Das Löschen verlangt eine Bestätigung und gibt den Speicherplatz frei, den nur diese Sicherung belegte.
+  - Zeilen in den Tabellen sind vertikal zentriert, die Knöpfe brechen nicht mehr um.
+- **Fortschritt** bei laufender Sicherung und Wiederherstellung: ein Balken mit „Schritt 3 von 5: Dateien übertragen (2,1 GB von 3,6 GB), insgesamt 55 %“.
+  - Sicherung: Repository prüfen, Datenbank sichern, Dateien übertragen, Alte Sicherungen aufräumen, Sicherung prüfen.
+  - Wiederherstellung: Repository prüfen, Stand herunterladen, Datenbank ersetzen, Dateien ersetzen.
+  - Die Seite erkennt auch Sicherungen, die von selbst oder von jemand anderem gestartet wurden (Abfrage alle 10 Sekunden, während des Laufs alle 2).
 
 ### Geändert
 - Die Seite „Keine Verbindung“ der installierten Web-App (offline) ist im Design der App: Logo, Karte, Symbol, Hell und Dunkel, mit Hinweis „Nächster Versuch in n s“ und dem Knopf „Jetzt erneut versuchen“. Sie ist in sich geschlossen (Farben, Logo und Schrift kommen aus dem Zwischenspeicher des Service Workers, `elocaro-offline-v3`).
-- Dialog für Sicherungsziele neu gestaltet: Der Speicherort wird über Karten gewählt (Google Drive, S3, Azure, SFTP/NAS, dieser Server), darunter stehen nur die Angaben, die der gewählte Ort braucht, getrennt nach Zugang, Verschlüsselung und Name. „Automatisch sichern“ ist ein Schalter; erst wenn er an ist, erscheinen Wie oft, Uhrzeit und Aufbewahrung. Neue Ziele starten bei Google Drive, der Name folgt der Auswahl. „Speichern“ und „Verbindung testen“ bleiben ausgegraut, bis alles Nötige eingetragen ist; der Dialog nennt, was noch fehlt. Der Knopf „Mit Google anmelden“ ist ausgegraut, wenn Google Drive auf dem Server nicht eingerichtet ist. Wöchentliche Sicherungen haben einen Wochentag (Migration `BackupWeekday`; bestehende wöchentliche Ziele zählen weiter sieben Tage ab der letzten Sicherung, bis man einen Wochentag wählt). Die Uhrzeit hat die Uhr-Auswahl (neues Eingabefeld `AppTimeField`).
+- **Dialog für Sicherungsziele** neu gestaltet.
+  - Der Speicherort wird über Karten gewählt (Google Drive, S3, Azure, SFTP/NAS, dieser Server); darunter stehen nur die Angaben, die der gewählte Ort braucht, getrennt nach Zugang, Verschlüsselung und Name. Neue Ziele starten bei Google Drive, der Name folgt der Auswahl.
+  - „Automatisch sichern“ ist ein Schalter; erst wenn er an ist, erscheinen Wie oft, Uhrzeit und Aufbewahrung. Die Uhrzeit hat die Uhr-Auswahl (neues Eingabefeld `AppTimeField`).
+  - „Speichern“ und „Verbindung testen“ bleiben ausgegraut, bis alles Nötige eingetragen ist; der Dialog nennt, was noch fehlt. „Mit Google anmelden“ ist ausgegraut, wenn Google Drive auf dem Server nicht eingerichtet ist.
+  - Wöchentliche Sicherungen haben einen Wochentag (Migration `BackupWeekday`); bestehende wöchentliche Ziele zählen weiter sieben Tage ab der letzten Sicherung, bis man einen Wochentag wählt.
 - Eingabefelder (Text, Auswahl, Zahl, Uhrzeit, Datei) haben 12 px statt 4 px Rundung (`--shape-field`), passend zu Karten und Dialogen.
 - Die Seite *Datensicherung* ohne Ziel zeigt „Noch keine Sicherung eingerichtet“ mit dem Knopf *Ziel hinzufügen*, statt der Meldung zur Überwachung oder dem Hinweis auf die Server-Konfiguration. Nach einer Wiederherstellung bleibt die Seite nicht mehr stehen, wenn die Datenbank gerade ersetzt wird.
 

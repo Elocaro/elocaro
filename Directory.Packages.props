@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup Label="Analyzer">
+    <PackageVersion Include="Markdig" Version="1.6.0" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.322" />
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
   </ItemGroup>

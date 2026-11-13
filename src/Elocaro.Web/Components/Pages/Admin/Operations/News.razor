@@ -75,19 +75,13 @@ else
                 <span class="small">@Format.Date(date)</span>
             }
         </header>
-        @if (release.Sections.Count == 0)
+        @if (string.IsNullOrWhiteSpace(release.Body))
         {
             <p class="small">Zu dieser Version gibt es keine Beschreibung. <a href="@release.Url" rel="noopener">Auf GitHub ansehen</a></p>
         }
-        @foreach (var section in release.Sections)
+        else
         {
-            <h3>@section.Title</h3>
-            <ul>
-                @foreach (var item in section.Items)
-                {
-                    <li>@ReleaseText.ToMarkup(item)</li>
-                }
-            </ul>
+            <div class="release-body">@ReleaseMarkdown.ToMarkup(release.Body)</div>
         }
     </section>;
 }
