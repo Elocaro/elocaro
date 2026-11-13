@@ -4,6 +4,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+## [0.6.0] - 2026-11-13
+
 ### Geändert
 - Neuigkeiten besser zu finden und übersichtlicher: Das Benutzermenü hat den Eintrag *Neuigkeiten* (mit Punkt, wenn eine neue Version da ist). Die Seite zeigt Version und Status als Karte, den Update-Befehl zum Kopieren und alle veröffentlichten Versionen.
 - *Neuigkeiten und Updates* zeigt die Änderungen als gegliederten Text: Markdown (Fett, Kursiv, Code, verschachtelte Listen) wird dargestellt, Aufzählungen und Abschnitte sind abgesetzt und der Text hat eine lesbare Zeilenbreite.
@@ -13,6 +15,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 - Betriebskosten: Ein Abrechnungszeitraum vom 29.2. bis zum 28.2. des Folgejahres wird als 12 Monate angenommen.
 - Vorschlag für die neue Vorauszahlung: Bei einem Abrechnungszeitraum unter 12 Monaten werden die Kosten auf ein Jahr hochgerechnet (bisher fiel der Vorschlag entsprechend zu niedrig aus).
 - CO₂-Kostenaufteilung: Der Ausstoß je m² wird vor der Einstufung auf eine Nachkommastelle gerundet (§ 5 Abs. 1 Satz 3 CO2KostAufG); bei Zeiträumen unter einem Jahr werden die Stufengrenzen anteilig gekürzt. Zeiträume, die vor dem 1.1.2023 begonnen haben, erhalten keine Aufteilung mehr, auch wenn sie 2023 enden (§ 11 Abs. 2).
+- Mieterhöhung: Erhöhungen nach Modernisierung (§ 559 BGB) setzen Wartefrist und Sperrjahr (§ 558, § 557b BGB) nicht mehr zurück. Das gilt im Assistenten, bei den Vertragsdetails, bei der Indexanpassung, in der Aufgabenliste und im Fristenkalender.
+- Verzugszinsen: Bei teilweise bezahlten Posten läuft der Zins auf den bezahlten Teil bis zum Zahlungstag, danach nur auf den Rest.
 
 ## [0.5.0] - 2026-11-13
 
