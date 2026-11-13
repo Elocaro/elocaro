@@ -61,7 +61,8 @@ public sealed partial record BackupTarget(
     }
 }
 
-public sealed record SnapshotInfo(string Id, string ShortId, DateTimeOffset Time);
+/// <param name="Size">Size of the backed-up data in bytes (restic 0.17 and later record it; <c>null</c> for older snapshots).</param>
+public sealed record SnapshotInfo(string Id, string ShortId, DateTimeOffset Time, long? Size = null);
 
 public enum RepositoryState
 {
@@ -81,14 +82,19 @@ public enum OperationKind
 {
     Backup,
     Restore,
+    Delete,
+    Export,
 }
 
 public sealed record OperationResult(OperationKind Kind, bool Succeeded, string Message, string? Snapshot, DateTimeOffset FinishedAt, int DurationSeconds, string? TargetId = null);
 
+/// <summary>Where a running operation stands: step n of m and, if known, how far (0 to 1) the whole operation is.</summary>
+public sealed record OperationProgress(string Step, int StepNumber, int StepCount, double? Percent, string? Detail = null);
+
 /// <param name="Last">The most recent result of any target (backup or restore).</param>
 /// <param name="TargetId">Target of the running operation (as the app named it).</param>
 /// <param name="Results">The last backup per target, by the ID the app named; the app reads its schedule from them.</param>
-public sealed record OperationStatus(bool Running, OperationKind? Kind, DateTimeOffset? StartedAt, OperationResult? Last, string? TargetId = null, IReadOnlyDictionary<string, OperationResult>? Results = null);
+public sealed record OperationStatus(bool Running, OperationKind? Kind, DateTimeOffset? StartedAt, OperationResult? Last, string? TargetId = null, IReadOnlyDictionary<string, OperationResult>? Results = null, OperationProgress? Progress = null, TransferFile? Export = null, TransferFile? Upload = null);
 
 /// <summary>An external command failed; the message is the end of its output.</summary>
 public sealed class BackupException(string message) : Exception(message);

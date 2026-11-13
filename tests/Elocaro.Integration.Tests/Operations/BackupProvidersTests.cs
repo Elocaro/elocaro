@@ -114,6 +114,51 @@ public class BackupScheduleTests
     }
 
     [Fact]
+    public void A_weekly_target_with_a_weekday_runs_on_that_day_after_the_time()
+    {
+        var lastMonday = Utc("2026-03-02T01:35:00Z"); // Monday 02:35 local
+
+        // Before the time on Monday: the backup of last Monday is the current one
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-09T01:00:00Z"), Time, 7, lastMonday, DayOfWeek.Monday));
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-09T01:31:00Z"), Time, 7, lastMonday, DayOfWeek.Monday));
+        // On the days between, nothing is due
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-04T10:00:00Z"), Time, 7, lastMonday, DayOfWeek.Monday));
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-08T20:00:00Z"), Time, 7, lastMonday, DayOfWeek.Monday));
+    }
+
+    [Fact]
+    public void A_weekly_target_with_a_weekday_catches_up_when_the_day_was_missed()
+    {
+        var lastSunday = Utc("2026-03-01T01:35:00Z");
+
+        // Monday's backup is overdue on Wednesday, but not before its time on the day itself
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-04T10:00:00Z"), Time, 7, lastSunday, DayOfWeek.Monday));
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-02T01:00:00Z"), Time, 7, lastSunday, DayOfWeek.Monday));
+        // Never ran: due at once, whatever the day
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-04T10:00:00Z"), Time, 7, null, DayOfWeek.Friday));
+    }
+
+    [Fact]
     public void A_weekly_target_that_never_ran_is_due_at_once() =>
         Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T13:00:00Z"), Time, 7, null));
+
+    [Theory]
+    [InlineData("azure:elocaro-backup:/", BackupProvider.Azure, "elocaro-backup")]
+    [InlineData("s3:https://s3.example.de/bucket/elocaro", BackupProvider.S3, "https://s3.example.de/bucket/elocaro")]
+    [InlineData("sftp:backup@nas.example.de:/volume1/elocaro", BackupProvider.Sftp, "backup@nas.example.de:/volume1/elocaro")]
+    [InlineData("rclone:gdrive:Elocaro-Sicherung", BackupProvider.GoogleDrive, "Elocaro-Sicherung")]
+    [InlineData("/repo", BackupProvider.Local, "")]
+    public void The_repository_address_of_the_server_configuration_is_split_into_provider_and_place(string repository, BackupProvider provider, string location)
+    {
+        Assert.Equal((provider, location), BackupProviders.Parse(repository));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("rest:https://host/repo")]
+    [InlineData("b2:bucket:path")]
+    public void An_address_without_a_provider_in_the_app_is_not_taken_over(string repository)
+    {
+        Assert.Null(BackupProviders.Parse(repository));
+    }
 }

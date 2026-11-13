@@ -293,7 +293,7 @@ public static class DependencyInjection
         services.Configure<StatementOptions>(configuration.GetSection(StatementOptions.Section));
         services.Configure<BackupOptions>(configuration.GetSection(BackupOptions.Section));
         services.AddScoped<IBackupStatus, BackupStatus>();
-        services.AddHttpClient<BackupSidecar>((sp, http) =>
+        static void ConfigureSidecar(IServiceProvider sp, HttpClient http, TimeSpan timeout)
         {
             var backup = sp.GetRequiredService<IOptions<BackupOptions>>().Value;
             if (Uri.TryCreate(backup.Url, UriKind.Absolute, out var url))
@@ -302,9 +302,13 @@ public static class DependencyInjection
             }
 
             http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", backup.ApiToken ?? string.Empty);
-            // Testing a slow target and listing its backups can take a while.
-            http.Timeout = TimeSpan.FromSeconds(120);
-        });
+            http.Timeout = timeout;
+        }
+
+        // Testing a slow target and listing its backups can take a while.
+        services.AddHttpClient<BackupSidecar>((sp, http) => ConfigureSidecar(sp, http, TimeSpan.FromSeconds(120)));
+        // Handing a backup file in or fetching it takes as long as the file is big.
+        services.AddHttpClient(BackupSidecar.TransferClient, (sp, http) => ConfigureSidecar(sp, http, Timeout.InfiniteTimeSpan));
         services.Configure<GoogleDriveOptions>(configuration.GetSection(GoogleDriveOptions.Section));
         services.AddScoped<GoogleClientSettingsService>();
         services.AddScoped<IGoogleClientSettings>(sp => sp.GetRequiredService<GoogleClientSettingsService>());

@@ -25,26 +25,32 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
             await GotoInteractiveAsync(page, "/verwaltung/system/datensicherung");
             await page.Locator("#backup-add").ClickAsync();
 
-            // A new target starts with real default values (not with the names of the properties behind the fields)
-            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true })).ToHaveValueAsync("");
+            // A new target starts with real default values: Google Drive is chosen, the name follows it
+            await Assertions.Expect(page.Locator("#provider-googledrive")).ToHaveAttributeAsync("aria-checked", "true");
+            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true })).ToHaveValueAsync("Google Drive");
             await Assertions.Expect(page.GetByLabel("Passwort der Sicherung")).ToHaveValueAsync("");
             await Assertions.Expect(page.GetByLabel("Uhrzeit")).ToHaveValueAsync("02:30");
 
-            await page.GetByLabel("Name", new() { Exact = true }).FillAsync("Google Drive");
-            await SelectAsync(page, "Ablage", "Google Drive");
+            await page.Locator("#provider-s3").ClickAsync();
+            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true })).ToHaveValueAsync("S3-Speicher");
+            await page.Locator("#provider-googledrive").ClickAsync();
+            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true })).ToHaveValueAsync("Google Drive");
 
             // The folder has a default, nothing but the sign-in is left to do
             await Assertions.Expect(page.GetByLabel("Ordner in Google Drive")).ToHaveValueAsync("Elocaro-Sicherung");
-            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google verbinden");
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google anmelden");
 
             await page.Locator("#drive-connect-button").ClickAsync();
             await Assertions.Expect(page.Locator("#drive-code")).ToHaveTextAsync(Code);
-            await Assertions.Expect(page.Locator("#drive-device a")).ToHaveAttributeAsync("href", "https://www.google.com/device");
+            await Assertions.Expect(page.Locator("#drive-link")).ToHaveAttributeAsync("href", "https://www.google.com/device?user_code=" + Code);
+            await Assertions.Expect(page.Locator("#drive-link")).ToHaveTextAsync("https://www.google.com/device");
+            await Assertions.Expect(page.Locator("#drive-qr svg")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#drive-qr")).ToHaveAttributeAsync("role", "img");
             await Assertions.Expect(page.Locator("#drive-device")).ToContainTextAsync("Warte auf die Bestätigung");
 
             // The person confirms at Google; the page notices by itself
-            await Assertions.Expect(page.Locator("#drive-connected")).ToContainTextAsync("Mit Google verbunden", new() { Timeout = 30_000 });
-            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Neu verbinden");
+            await Assertions.Expect(page.Locator("#drive-connected")).ToContainTextAsync("Bei Google angemeldet", new() { Timeout = 30_000 });
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Neu anmelden");
 
             await page.GetByLabel("Passwort der Sicherung").FillAsync("drive-test-passwort");
             await page.Locator("#backup-save").ClickAsync();
@@ -59,8 +65,8 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
             await Assertions.Expect(page.GetByLabel("Uhrzeit")).ToHaveValueAsync("02:30");
             await Assertions.Expect(page.GetByLabel("Passwort der Sicherung")).ToHaveValueAsync("");
             await Assertions.Expect(page.Locator("#backup-edit")).ToContainTextAsync("Gespeichert. Leer lassen, um es zu behalten.");
-            await Assertions.Expect(page.Locator("#drive-connected")).ToContainTextAsync("Mit Google verbunden");
-            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Neu verbinden");
+            await Assertions.Expect(page.Locator("#drive-connected")).ToContainTextAsync("Bei Google angemeldet");
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Neu anmelden");
         });
 
         // Token and client are stored (encrypted), nothing of it is in the page
@@ -83,12 +89,35 @@ public class BackupGoogleBrowserTests(PostgresFixture postgres) : BrowserTestBas
         {
             await GotoInteractiveAsync(page, "/verwaltung/system/datensicherung");
             await page.Locator("#backup-add").ClickAsync();
-            await SelectAsync(page, "Ablage", "Google Drive");
+            await page.Locator("#provider-googledrive").ClickAsync();
             await page.Locator("#drive-connect-button").ClickAsync();
 
             await Assertions.Expect(page.Locator("#drive-error")).ToContainTextAsync("abgelehnt", new() { Timeout = 30_000 });
-            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google verbinden");
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google anmelden");
             await Assertions.Expect(page.Locator("#drive-device")).ToHaveCountAsync(0);
+        });
+    }
+
+    [Fact]
+    public async Task On_a_phone_the_qr_code_and_the_code_fit_the_screen_and_cancelling_removes_them()
+    {
+        var page = await SignedInAsAdminAsync(mobile: true);
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            await GotoInteractiveAsync(page, "/verwaltung/system/datensicherung");
+            await page.Locator("#backup-add").ClickAsync();
+            await page.Locator("#provider-googledrive").ClickAsync();
+            await page.Locator("#drive-connect-button").ClickAsync();
+
+            await Assertions.Expect(page.Locator("#drive-qr svg")).ToBeVisibleAsync();
+            await Assertions.Expect(page.Locator("#drive-code")).ToHaveTextAsync(Code);
+            var overflow = await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth > document.documentElement.clientWidth");
+            Assert.False(overflow, "Die Seite darf nicht horizontal scrollen.");
+
+            await page.Locator("#drive-cancel").ClickAsync();
+            await Assertions.Expect(page.Locator("#drive-qr")).ToHaveCountAsync(0);
+            await Assertions.Expect(page.Locator("#drive-connect-button")).ToHaveTextAsync("Mit Google anmelden");
         });
     }
 

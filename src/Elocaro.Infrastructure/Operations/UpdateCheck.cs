@@ -84,7 +84,7 @@ internal sealed partial class UpdateChecker(HttpClient http, UpdateState state, 
     private static partial void LogCheckFailed(ILogger logger, string reason);
 }
 
-/// <summary>Reads the answer of the GitHub releases API and the release notes (the sections of the changelog).</summary>
+/// <summary>Reads the answer of the GitHub releases API and the release notes (the Markdown of the changelog section).</summary>
 internal static class ReleaseList
 {
     /// <returns>Published releases (no drafts, no pre-releases) with a valid version, newest first.</returns>
@@ -102,43 +102,10 @@ internal static class ReleaseList
             DateOnly? date = DateTimeOffset.TryParse(Text(item, "published_at"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var published)
                 ? DateOnly.FromDateTime(published.UtcDateTime)
                 : null;
-            releases.Add(new ReleaseNotes(version.ToString(3), date, Text(item, "html_url") ?? "", Sections(Text(item, "body") ?? "")));
+            releases.Add(new ReleaseNotes(version.ToString(3), date, Text(item, "html_url") ?? "", (Text(item, "body") ?? "").Trim()));
         }
 
         return [.. releases.OrderByDescending(r => Version.Parse(r.Version))];
-    }
-
-    /// <summary>"### Title" starts a section, "- text" is an entry; everything else (e.g. a heading with the version) is ignored.</summary>
-    public static IReadOnlyList<ReleaseSection> Sections(string body)
-    {
-        var sections = new List<ReleaseSection>();
-        string? title = null;
-        List<string> items = [];
-        foreach (var raw in body.Split('\n'))
-        {
-            var line = raw.Trim();
-            if (line.StartsWith("### ", StringComparison.Ordinal))
-            {
-                Flush();
-                title = line[4..].Trim();
-                items = [];
-            }
-            else if (line.StartsWith("- ", StringComparison.Ordinal) && title is not null)
-            {
-                items.Add(line[2..].Trim());
-            }
-        }
-
-        Flush();
-        return sections;
-
-        void Flush()
-        {
-            if (title is not null && items.Count > 0)
-            {
-                sections.Add(new ReleaseSection(title, items));
-            }
-        }
     }
 
     private static string? Text(JsonElement item, string name) =>

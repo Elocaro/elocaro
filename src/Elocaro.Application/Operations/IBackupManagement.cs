@@ -16,7 +16,8 @@ public sealed record BackupSettingsView(
     int KeepWeekly,
     int KeepMonthly,
     bool HasPassword,
-    IReadOnlySet<string> StoredCredentials);
+    IReadOnlySet<string> StoredCredentials,
+    DayOfWeek? Weekday = null);
 
 /// <summary>Entry of the settings page. Empty secrets (password, credentials) keep the stored value.</summary>
 public sealed class BackupSettingsInput
@@ -33,6 +34,9 @@ public sealed class BackupSettingsInput
 
     /// <summary>Days between two backups: 1 = daily, 7 = weekly.</summary>
     public int IntervalDays { get; set; } = 1;
+
+    /// <summary>Day of the week of a weekly backup (ignored for a daily one).</summary>
+    public DayOfWeek Weekday { get; set; } = DayOfWeek.Monday;
 
     public int KeepDaily { get; set; } = 7;
 
@@ -60,7 +64,8 @@ public interface IBackupSettings
     Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
-public sealed record BackupSnapshotRow(string Id, string ShortId, DateTimeOffset Time);
+/// <param name="Size">Size of the backed-up data in bytes, if known (backups made by restic 0.17 and later).</param>
+public sealed record BackupSnapshotRow(string Id, string ShortId, DateTimeOffset Time, long? Size = null);
 
 public enum BackupTargetState
 {
@@ -85,7 +90,38 @@ public sealed record BackupOperationRow(string Kind, bool Succeeded, string Mess
 
 /// <param name="RunningTargetId">ID of the target the running operation works on.</param>
 /// <param name="Results">The last backup per target ID (as <c>Guid.ToString("N")</c>).</param>
-public sealed record BackupProgress(bool Available, bool Running, string? Kind, BackupOperationRow? Last, string? RunningTargetId = null, IReadOnlyDictionary<string, BackupOperationRow>? Results = null);
+/// <summary>Where a running backup or restore stands: step <c>StepNumber</c> of <c>StepCount</c>, and how far the whole operation is (0 to 1) if known.</summary>
+public sealed record BackupRunProgress(string Step, int StepNumber, int StepCount, double? Percent, string? Detail);
+
+/// <summary>A backup file that waits in the backup service: prepared for download, or uploaded and ready to be restored.</summary>
+public sealed record BackupFileInfo(string Name, long Size, DateTimeOffset Created, string? Snapshot);
+
+/// <summary>A backup file on its way to the browser. Dispose after sending.</summary>
+public sealed class BackupDownload(Stream content, string fileName, long? length, IDisposable? owner = null) : IAsyncDisposable
+{
+    public Stream Content { get; } = content;
+
+    public string FileName { get; } = fileName;
+
+    public long? Length { get; } = length;
+
+    public async ValueTask DisposeAsync()
+    {
+        await Content.DisposeAsync();
+        owner?.Dispose();
+    }
+}
+
+/// <summary>What an uploaded backup file holds, or why it cannot be read (wrong password).</summary>
+public sealed record BackupUploadCheck(bool Succeeded, string Message, IReadOnlyList<BackupSnapshotRow> Snapshots);
+
+public sealed record BackupProgress(bool Available, bool Running, string? Kind, BackupOperationRow? Last, string? RunningTargetId = null, BackupRunProgress? Detail = null, IReadOnlyDictionary<string, BackupOperationRow>? Results = null, BackupFileInfo? Export = null, BackupFileInfo? Upload = null);
+
+/// <summary>The backup target that the container is configured with through its environment (<c>RESTIC_REPOSITORY</c> in <c>deploy/.env</c>).</summary>
+/// <param name="Repository">Where the backups lie (without a password in the address).</param>
+/// <param name="Time">Time of the daily backup (HH:mm).</param>
+/// <param name="Paused">The app manages targets itself, so the schedule of the environment is paused.</param>
+public sealed record BackupEnvironment(string Repository, string Time, int KeepDaily, int KeepWeekly, int KeepMonthly, bool Paused);
 
 /// <summary>Remote control of the backup container.</summary>
 public interface IBackupControl
@@ -116,4 +152,46 @@ public interface IBackupControl
 
     /// <summary>Restore from a target given directly (new installation).</summary>
     Task<Result> StartRestoreAsync(BackupSettingsInput input, string snapshot, CancellationToken cancellationToken = default);
+
+    /// <summary>Packs one backup of a saved target as a file for download (runs in the background; see <see cref="BackupProgress.Export"/>).</summary>
+    Task<Result> StartExportAsync(Guid id, string snapshot, CancellationToken cancellationToken = default);
+
+    /// <summary>Packs one backup at the environment target as a file for download.</summary>
+    Task<Result> StartEnvironmentExportAsync(string snapshot, CancellationToken cancellationToken = default);
+
+    /// <summary>The prepared download, or <c>null</c> if there is none. The call is entered in the audit log.</summary>
+    Task<BackupDownload?> OpenExportAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Drops the prepared download.</summary>
+    Task DiscardExportAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Hands a backup file (the download of a backup) to the backup service. Replaces an earlier upload.</summary>
+    Task<Result> UploadAsync(Stream content, string fileName, CancellationToken cancellationToken = default);
+
+    /// <summary>Opens the uploaded file with the password of the backup and says what it holds.</summary>
+    Task<BackupUploadCheck> InspectUploadAsync(string password, CancellationToken cancellationToken = default);
+
+    /// <summary>Restores the uploaded file (runs in the background; the app restarts afterwards).</summary>
+    Task<Result> StartRestoreUploadAsync(string password, CancellationToken cancellationToken = default);
+
+    /// <summary>Drops the uploaded file.</summary>
+    Task DiscardUploadAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Removes one backup of a saved target for good (runs in the background; the space it alone used is freed).</summary>
+    Task<Result> StartDeleteSnapshotAsync(Guid id, string snapshot, CancellationToken cancellationToken = default);
+
+    /// <summary>Removes one backup at the environment target for good.</summary>
+    Task<Result> StartEnvironmentDeleteSnapshotAsync(string snapshot, CancellationToken cancellationToken = default);
+
+    /// <summary>The target of the container environment, or <c>null</c> if there is none (or the container is unreachable).</summary>
+    Task<BackupEnvironment?> EnvironmentAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Existing backups at the environment target, newest first.</summary>
+    Task<IReadOnlyList<BackupSnapshotRow>> EnvironmentSnapshotsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Starts a backup to the environment target now.</summary>
+    Task<Result> StartEnvironmentBackupAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Restores from a backup at the environment target (runs in the background, the app restarts afterwards).</summary>
+    Task<Result> StartEnvironmentRestoreAsync(string snapshot, CancellationToken cancellationToken = default);
 }

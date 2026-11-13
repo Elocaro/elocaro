@@ -86,15 +86,6 @@ else
         _ => "Prüfung auf neue Versionen",
     };
 
-    private static string SectionClass(string title) => title switch
-    {
-        "Hinzugefügt" => "is-added",
-        "Behoben" => "is-fixed",
-        "Sicherheit" => "is-security",
-        "Entfernt" or "Veraltet" => "is-removed",
-        _ => "is-changed",
-    };
-
     private RenderFragment ReleaseView(ReleaseNotes release) => @<article class="release" data-version="@release.Version">
         <header>
             <h3>Version @release.Version</h3>
@@ -112,19 +103,13 @@ else
             }
             <a class="release-link" href="@release.Url" rel="noopener">Auf GitHub</a>
         </header>
-        @if (release.Sections.Count == 0)
+        @if (string.IsNullOrWhiteSpace(release.Body))
         {
             <p class="small">Zu dieser Version gibt es keine Beschreibung.</p>
         }
-        @foreach (var section in release.Sections)
+        else
         {
-            <h4 class="release-section @SectionClass(section.Title)">@section.Title</h4>
-            <ul>
-                @foreach (var item in section.Items)
-                {
-                    <li>@ReleaseText.ToMarkup(item)</li>
-                }
-            </ul>
+            <div class="release-body">@ReleaseMarkdown.ToMarkup(release.Body)</div>
         }
     </article>;
 }

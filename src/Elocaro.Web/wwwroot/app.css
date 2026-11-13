@@ -52,6 +52,8 @@
 
     /* Shape scale (expressive: generous radii, pills for actions) */
     --shape-xs: 4px;
+    /* Input fields (text, select, number, time, file): rounder than the 4 px of the M3 baseline, closer to the cards and dialogs around them */
+    --shape-field: var(--shape-md);
     --shape-sm: 8px;
     --shape-md: 12px;
     --shape-lg: 16px;
@@ -147,7 +149,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([clas
     color: var(--color-text);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--shape-xs);
+    border-radius: var(--shape-field);
     min-height: 2.75rem; /* easy to tap on a smartphone */
 }
 
@@ -286,6 +288,54 @@ section { margin-bottom: 2rem; }
 /* Form layouts */
 .form-grid { max-width: 72rem; display: grid; gap: 0 1rem; grid-template-columns: 1fr; align-items: end; }
 @media (min-width: 700px) { .form-grid { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); } }
+/* Hints and wide blocks inside a form grid take the whole row (a notice squeezed next to a field is unreadable). */
+.form-grid > .message, .form-grid > .drive-connect, .form-grid > details { grid-column: 1 / -1; }
+
+/* Sections inside a dialog form and choice cards (one option out of a few, with icon and a line of explanation) */
+.dialog-section { margin: 0 0 1.5rem; }
+.dialog-section > h3 { margin: 0 0 0.75rem; font-size: 1rem; font-weight: 600; }
+.span-all { grid-column: 1 / -1; }
+.choice-cards { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
+.choice-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.875rem 1rem; text-align: left; cursor: pointer; font: inherit; color: var(--md-on-surface); background: transparent; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); transition: background-color 120ms, border-color 120ms; }
+.choice-card:hover { background: var(--md-surface-container-high); }
+.choice-card:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.choice-card.selected { border-color: var(--md-primary); box-shadow: inset 0 0 0 1px var(--md-primary); background: color-mix(in srgb, var(--md-primary) 12%, transparent); }
+.choice-card .icon { width: 1.5rem; height: 1.5rem; margin-bottom: 0.25rem; color: var(--md-primary); }
+.choice-title { font-weight: 600; }
+.choice-text { font-size: 0.8125rem; line-height: 1.3; color: var(--md-on-surface-variant); }
+
+/* Switch with a title and an explanation; what it reveals follows below */
+.switch-row { padding: 0.5rem 1rem 0.75rem; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); }
+.switch-row.on { border-color: var(--md-primary); }
+.switch-row .mud-switch { margin-left: 0; }
+.switch-row .mud-switch .mud-typography { font-weight: 600; }
+.switch-hint { margin: 0 0 0 0.25rem; font-size: 0.8125rem; color: var(--md-on-surface-variant); }
+.schedule { margin-top: 1rem; }
+#backup-targets td, #backup-environment-target td, #backup-snapshots td { vertical-align: middle; }
+.row-actions { white-space: nowrap; text-align: right; }
+.button.danger { color: var(--md-error); }
+/* File chooser as a drop area: the real input covers it (click and drag and drop work), the text shows the chosen file */
+.upload-form { display: grid; gap: 1rem; }
+@media (min-width: 700px) { .upload-form:has(> .dropzone):has(> .form-actions) { grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; } .upload-form > .form-actions { align-self: center; } }
+.upload-form > .field { grid-column: 1 / -1; }
+.upload-open { display: grid; gap: 0 1rem; align-items: start; }
+@media (min-width: 700px) { .upload-open { grid-template-columns: minmax(0, 1fr) auto; } .upload-open > .form-actions { padding-top: 0.5rem; } }
+.empty-setup { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem 1.25rem; margin: 0 0 1rem; padding: 1.25rem 1.5rem; background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); }
+.empty-setup .icon { width: 2.5rem; height: 2.5rem; color: var(--md-primary); }
+.empty-setup p { margin: 0.25rem 0 0; color: var(--md-on-surface-variant); }
+@media (max-width: 699px) { .empty-setup { grid-template-columns: auto minmax(0, 1fr); } .empty-setup .button { grid-column: 1 / -1; justify-self: start; } }
+.snapshots-loading { display: grid; gap: 0.5rem; margin: 0 0 1rem; }
+.dropzone { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1rem; align-items: center; justify-items: start; padding: 1.25rem 1.5rem; text-align: left; cursor: pointer; background: var(--md-surface-container-low); border: 2px dashed var(--md-outline-variant); border-radius: var(--shape-lg); transition: background-color 120ms, border-color 120ms; }
+.dropzone:hover, .dropzone:focus-within { border-color: var(--md-primary); background: color-mix(in srgb, var(--md-primary) 8%, var(--md-surface-container-low)); }
+.dropzone.chosen { border-style: solid; border-color: var(--md-primary); }
+.dropzone .icon { grid-row: span 2; width: 2.5rem; height: 2.5rem; color: var(--md-primary); }
+.dropzone-title { font-weight: 600; overflow-wrap: anywhere; }
+.dropzone-text { font-size: 0.8125rem; color: var(--md-on-surface-variant); }
+.dropzone input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.backup-progress { display: grid; gap: 0.5rem; margin: 0 0 1rem; padding: 0.875rem 1rem; border: 1px solid var(--md-outline-variant); border-radius: var(--shape-lg); background: var(--md-surface-container-low); }
+/* Disabled button (M3: content at 38 %, container at 12 %) */
+.button:disabled, .button[disabled] { cursor: not-allowed; color: color-mix(in srgb, var(--md-on-surface) 38%, transparent); background: color-mix(in srgb, var(--md-on-surface) 12%, transparent); border-color: color-mix(in srgb, var(--md-on-surface) 12%, transparent); box-shadow: none; }
+.dialog-hint { margin-right: auto; max-width: 22rem; font-size: 0.8125rem; line-height: 1.3; color: var(--md-on-surface-variant); }
 .form-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; }
 .form-row .field { flex: 1 1 14rem; margin-bottom: 0; }
 .field-action { justify-content: flex-end; }
@@ -445,7 +495,7 @@ h2 { font-size: 1.35rem; font-weight: 600; margin: 2rem 0 0.75rem; }
 .field-checkbox { margin-top: 0; }
 .field-checkbox > label { position: static; padding: 0; font-size: 1rem; background: none; pointer-events: auto; color: var(--md-on-surface); }
 input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])), select:where(:not([class*="mud-"])), textarea:where(:not([class*="mud-"])) {
-    min-height: 3.25rem; padding: 0.75rem 1rem; background: transparent; border: 1px solid var(--md-outline); border-radius: var(--shape-xs);
+    min-height: 3.25rem; padding: 0.75rem 1rem; background: transparent; border: 1px solid var(--md-outline); border-radius: var(--shape-field);
     transition: border-color var(--motion-duration) var(--motion-effects), box-shadow var(--motion-duration) var(--motion-effects);
 }
 input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])):hover, select:where(:not([class*="mud-"])):hover, textarea:where(:not([class*="mud-"])):hover { border-color: var(--md-on-surface); }
@@ -635,6 +685,16 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 .panel > header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 1rem 1.25rem 0.5rem; }
 .panel > header h2 { margin: 0; font-size: 1.1rem; }
 .panel .todos { padding: 0 0.5rem 0.75rem; }
+/* Release notes (Markdown from GitHub): readable column, real lists, groups as small headings */
+.release-body { padding: 0 1.25rem 1.25rem; max-width: 72ch; line-height: 1.55; overflow-wrap: anywhere; }
+.release-body > :first-child { margin-top: 0; }
+.release-body h3 { margin: 1.5rem 0 0.5rem; font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--md-primary); }
+.release-body p { margin: 0 0 0.75rem; }
+.release-body ul { margin: 0 0 0.5rem; padding-left: 1.25rem; list-style: disc; }
+.release-body ul ul { margin: 0.4rem 0 0; list-style: circle; }
+.release-body li + li { margin-top: 0.6rem; }
+.release-body ul ul > li + li { margin-top: 0.3rem; }
+.release-body code { font-size: 0.875em; padding: 0.05em 0.35em; border-radius: var(--shape-sm); background: var(--md-surface-container-high); }
 .panel .todos-more { padding: 0 0.5rem 0.75rem; }
 .panel .todos-more > summary { display: flex; align-items: center; min-height: 2.75rem; padding: 0 0.75rem; cursor: pointer; font-weight: 600; color: var(--md-primary); border-radius: var(--shape-full); }
 .panel .todos-more > summary:hover { background: color-mix(in srgb, var(--md-primary) 10%, transparent); }
@@ -1257,7 +1317,7 @@ dl.summary dd { margin: 0; overflow-wrap: anywhere; }
 .prose { max-width: 75ch; }
 
 /* Material 3 Expressive details: text fields have extra-small corners (4 px), sub-tabs are filter chips (8 px), bottom sheets show a drag handle */
-.mud-input-control { --mud-default-borderradius: var(--shape-xs); }
+.mud-input-control { --mud-default-borderradius: var(--shape-field); }
 @media (max-width: 599.98px) {
     .mud-dialog::before { content: ""; display: block; flex: none; width: 2rem; height: 4px; margin: 0.5rem auto 0; border-radius: 2px; background: var(--md-outline); opacity: 0.6; }
 }
@@ -1639,10 +1699,4 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 .release-badge { padding: 0.1rem 0.6rem; font-size: 0.8rem; font-weight: 600; border-radius: var(--shape-full); }
 .release-badge.is-new { background: var(--md-warning-container); color: var(--md-on-warning-container); }
 .release-badge.is-installed { background: var(--md-success-container); color: var(--md-on-success-container); }
-.release-section { display: inline-block; margin: 0.75rem 0 0.25rem; padding: 0.1rem 0.7rem; font-size: 0.85rem; font-weight: 600; border-radius: var(--shape-sm); background: var(--md-info-container); color: var(--md-on-info-container); }
-.release-section.is-added { background: var(--md-success-container); color: var(--md-on-success-container); }
-.release-section.is-fixed { background: var(--md-warning-container); color: var(--md-on-warning-container); }
-.release-section.is-security, .release-section.is-removed { background: var(--md-error-container); color: var(--md-on-error-container); }
-.release ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
-.release li { margin-bottom: 0.35rem; }
 .nav-dot { display: inline-block; width: 0.6rem; height: 0.6rem; margin-left: 0.5rem; background: var(--md-warning); border-radius: 50%; }

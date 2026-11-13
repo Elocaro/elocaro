@@ -1,0 +1,280 @@
+@using System.Globalization
+@using MudBlazor
+@using Elocaro.Application.Operations
+@using Elocaro.Domain.Operations
+@using Elocaro.Web.Components.Shell
+@inject IBackupSettings Settings
+@inject IBackupControl Control
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+@* Dialog "backup target": create, edit (and remove) a target, or take over the target of the server configuration (.env) into the app.
+   Saving and testing stay disabled until everything that is needed is entered; the dialog says what is missing.
+   Result: the text "saved" or "deleted" if something changed. *@
+<EditForm Model="data" OnValidSubmit="SaveAsync" novalidate class="dialog-form">
+    <MudDialog>
+        <DialogContent>
+            <div id="backup-edit">
+                @if (Notice is not null)
+                {
+                    <Notice Level="NoticeLevel.Info" id="backup-takeover">@Notice</Notice>
+                }
+
+                <BackupTargetFields Input="data" StoredCredentials="storedCredentials" HasPassword="hasPassword" ProviderChanged="ProviderChanged" InputChanged="OnInputChanged" />
+
+                <section class="dialog-section">
+                    <AppTextField Value="@data.Name" ValueChanged="v => data.Name = v ?? string.Empty" Label="Name" Required="true" Immediate="true" Hint="So heißt das Ziel in der Liste, z. B. „Google Drive“ oder „NAS im Keller“." />
+                </section>
+
+                <section class="dialog-section">
+                    <AppSwitch Value="data.Enabled" ValueChanged="v => data.Enabled = v" Label="Automatisch sichern"
+                               Hint="Elocaro sichert nach Zeitplan von selbst und holt eine verpasste Sicherung nach." />
+                    @if (data.Enabled)
+                    {
+                        <div class="schedule" id="backup-schedule">
+                            <div class="form-grid">
+                                <AppSelect T="int" Value="data.IntervalDays" ValueChanged="v => data.IntervalDays = v" Label="Wie oft" Items="Intervals" Text="IntervalText" />
+                                @if (data.IntervalDays == 7)
+                                {
+                                    <AppSelect T="DayOfWeek" Value="data.Weekday" ValueChanged="v => data.Weekday = v" Label="Wochentag" Items="Weekdays" Text="WeekdayName" />
+                                }
+                                <AppTimeField Value="data.Time" ValueChanged="v => data.Time = v ?? data.Time" Label="Uhrzeit" Required="true" Hint="Nachts ist meist günstig." />
+                            </div>
+                            <details class="explain">
+                                <summary>Aufbewahrung: @data.KeepDaily tägliche, @data.KeepWeekly wöchentliche, @data.KeepMonthly monatliche Stände</summary>
+                                <p class="help">Ältere Sicherungen räumt Elocaro nach jeder Sicherung automatisch auf.</p>
+                                <div class="form-grid">
+                                    <AppNumberField T="int" Value="data.KeepDaily" ValueChanged="v => data.KeepDaily = v" Label="Täglich behalten" />
+                                    <AppNumberField T="int" Value="data.KeepWeekly" ValueChanged="v => data.KeepWeekly = v" Label="Wöchentlich behalten" />
+                                    <AppNumberField T="int" Value="data.KeepMonthly" ValueChanged="v => data.KeepMonthly = v" Label="Monatlich behalten" />
+                                </div>
+                            </details>
+                        </div>
+                    }
+                </section>
+
+                @if (check is not null)
+                {
+                    <Notice Level="@(check.Succeeded ? NoticeLevel.Success : NoticeLevel.Error)" id="backup-check">@check.Message</Notice>
+                }
+
+                <ErrorList Errors="errors" />
+            </div>
+        </DialogContent>
+        <DialogActions>
+            @if (missing.Count > 0)
+            {
+                <span class="dialog-hint" id="backup-missing">Noch nötig: @string.Join(", ", missing)</span>
+            }
+            @if (Existing is not null)
+            {
+                <MudButton OnClick="DeleteAsync" Disabled="busy" id="backup-delete" Color="Color.Error">Ziel entfernen</MudButton>
+            }
+            <MudButton OnClick="TestAsync" Disabled="@(busy || missing.Count > 0)" id="backup-test">Verbindung testen</MudButton>
+            <MudButton OnClick="Cancel" Disabled="busy" id="backup-cancel">Abbrechen</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(busy || missing.Count > 0)" id="backup-save">Speichern</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    private static readonly int[] Intervals = [1, 7];
+
+    private static readonly DayOfWeek[] Weekdays =
+        [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday];
+
+    private BackupSettingsInput data = new();
+    private bool hasPassword;
+    private IReadOnlySet<string> storedCredentials = new HashSet<string>(StringComparer.Ordinal);
+    private BackupProvider savedProvider;
+    private bool busy;
+    private BackupTargetCheck? check;
+    private IReadOnlyList<string>? errors;
+
+    /// <summary>The saved target that is edited; <c>null</c> for a new one.</summary>
+    [Parameter]
+    public BackupSettingsView? Existing { get; set; }
+
+    /// <summary>Starting values for a new target (taking over the target of the server configuration).</summary>
+    [Parameter]
+    public BackupSettingsInput? Prefill { get; set; }
+
+    /// <summary>Explanation above the fields.</summary>
+    [Parameter]
+    public string? Notice { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>German name of a weekday ("Montag").</summary>
+    public static string WeekdayName(DayOfWeek day) => CultureInfo.GetCultureInfo("de-DE").DateTimeFormat.GetDayName(day);
+
+    /// <summary>"montags": for the schedule text ("wöchentlich montags um 02:30").</summary>
+    public static string WeekdayPlural(DayOfWeek day) => WeekdayName(day).ToLowerInvariant() + "s";
+
+    /// <summary>What is still missing before the target can be tested or saved (German names of the fields).</summary>
+    private List<string> missing
+    {
+        get
+        {
+            var list = new List<string>();
+            if (string.IsNullOrWhiteSpace(data.Name))
+            {
+                list.Add("Name");
+            }
+
+            // A stored secret counts as entered (an empty field keeps it).
+            var credentials = new Dictionary<string, string>(data.Credentials, StringComparer.Ordinal);
+            foreach (var key in storedCredentials.Where(k => string.IsNullOrWhiteSpace(credentials.GetValueOrDefault(k))))
+            {
+                credentials[key] = "gespeichert";
+            }
+
+            var password = string.IsNullOrEmpty(data.Password) && hasPassword ? "gespeichert" : data.Password;
+            foreach (var message in BackupProviders.Validate(data.Provider, data.Location, credentials, password))
+            {
+                var name = message.EndsWith(" fehlt.", StringComparison.Ordinal) ? message[..^" fehlt.".Length] : message;
+                list.Add(name.StartsWith("Das ", StringComparison.Ordinal) || name.StartsWith("Der ", StringComparison.Ordinal) ? name[4..] : name);
+            }
+
+            if (data.KeepDaily < 0 || data.KeepWeekly < 0 || data.KeepMonthly < 0 || data.KeepDaily + data.KeepWeekly + data.KeepMonthly == 0)
+            {
+                list.Add("Aufbewahrung (mindestens eine Frist)");
+            }
+
+            return list;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Existing is { } target)
+        {
+            data = new BackupSettingsInput
+            {
+                Name = target.Name,
+                Provider = target.Provider,
+                Location = target.Location,
+                Enabled = target.Enabled,
+                Time = target.Time,
+                IntervalDays = target.IntervalDays,
+                Weekday = target.Weekday ?? DayOfWeek.Monday,
+                KeepDaily = target.KeepDaily,
+                KeepWeekly = target.KeepWeekly,
+                KeepMonthly = target.KeepMonthly,
+            };
+            hasPassword = target.HasPassword;
+            storedCredentials = target.StoredCredentials;
+            savedProvider = target.Provider;
+        }
+        else if (Prefill is not null)
+        {
+            data = Prefill;
+            savedProvider = data.Provider;
+        }
+        else
+        {
+            // Google Drive is the simplest way: a new target starts there.
+            data.Provider = BackupProvider.GoogleDrive;
+            data.Location = BackupProviders.DefaultDriveFolder;
+            savedProvider = data.Provider;
+        }
+
+        if (string.IsNullOrWhiteSpace(data.Name))
+        {
+            data.Name = BackupTargetFields.DefaultName(data.Provider);
+        }
+    }
+
+    private static string IntervalText(int days) => days == 1 ? "Täglich" : "Wöchentlich";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void OnInputChanged() => check = null;
+
+    private void ProviderChanged(BackupProvider provider)
+    {
+        check = null;
+        // A name that was never typed follows the provider.
+        if (Existing is null && BackupProviders.All.Any(p => data.Name == BackupTargetFields.DefaultName(p)))
+        {
+            data.Name = BackupTargetFields.DefaultName(provider);
+        }
+
+        // Credentials of the saved provider do not carry over to another one.
+        storedCredentials = Existing is not null && provider == savedProvider ? Existing.StoredCredentials : new HashSet<string>(StringComparer.Ordinal);
+    }
+
+    private async Task SaveAsync()
+    {
+        errors = null;
+        check = null;
+        if (missing.Count > 0)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Settings.SaveAsync(Existing?.Id, data);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            Notify.Success("Das Ziel wurde gespeichert.");
+            MudDialog.Close(DialogResult.Ok("saved"));
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task TestAsync()
+    {
+        errors = null;
+        busy = true;
+        try
+        {
+            check = await Control.TestAsync(Existing?.Id, data);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (Existing is not { } target)
+        {
+            return;
+        }
+
+        if (!await Confirm.AskAsync("Ziel entfernen", $"Soll das Ziel „{target.Name}“ aus der App entfernt werden? Die Sicherungen, die dort schon liegen, bleiben erhalten.", "Ja, entfernen"))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Settings.DeleteAsync(target.Id);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            Notify.Success("Das Ziel wurde entfernt.");
+            MudDialog.Close(DialogResult.Ok("deleted"));
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}
