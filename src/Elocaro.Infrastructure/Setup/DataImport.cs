@@ -76,6 +76,18 @@ internal sealed class DataImport(
 
     private async Task<(IReadOnlyList<RowPlan> Plans, IReadOnlyList<string> FileErrors)> PlanAsync(byte[] content, CancellationToken cancellationToken)
     {
+        if (XlsxReader.Looks(content))
+        {
+            try
+            {
+                content = XlsxReader.ToCsv(content);
+            }
+            catch (InvalidDataException ex)
+            {
+                return ([], [ex.Message]);
+            }
+        }
+
         var (lines, fileErrors) = ImportSheet.Read(content);
         if (fileErrors.Count > 0)
         {

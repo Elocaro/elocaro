@@ -42,7 +42,7 @@
         <details class="explain">
             <summary>Aufbau der Tabelle</summary>
             <p class="help">
-            Eine Zeile je vermietete (oder leere) Einheit. Aus Excel speichern Sie die Tabelle als „CSV (Trennzeichen-getrennt)“.
+            Eine Zeile je vermietete (oder leere) Einheit. Eine Excel-Datei (.xlsx) kann direkt hochgeladen werden (gelesen wird das erste Tabellenblatt); alternativ als „CSV (Trennzeichen-getrennt)“ speichern.
             Pflicht sind nur Objekt und Einheit; Anschrift (nur beim ersten Auftreten eines neuen Objekts), Wohnfläche und die Angaben zum Mieter
             sind für einen vollständigen Bestand nötig. Der Saldo ist ein offener Betrag (positiv) oder ein Guthaben (negativ) aus der Zeit vor Elocaro. Optional und nur bei Bedarf: Mietmodell (Standard, Staffel, Index), Indexmonat (MM.JJJJ) und Indexwert, Staffeln (TT.MM.JJJJ=Betrag, mehrere mit | getrennt), Befristet bis und Personen.
         </p>
@@ -52,7 +52,7 @@
 
     <section>
         <h2>2. Datei prüfen</h2>
-        <AppFileUpload Text="Datei auswählen" Accept=".csv,.txt" OnSelected="OnFileSelected" MaxBytes="5242880" />
+        <AppFileUpload Text="Datei auswählen" Accept=".xlsx,.csv,.txt" OnSelected="OnFileSelected" MaxBytes="5242880" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PreviewAsync" Disabled="busy">Prüfen</MudButton>
         <p class="small">Es wird noch nichts gespeichert. Vorhandene Objekte, Einheiten und Personen werden erkannt und nicht doppelt angelegt.</p>
     </section>

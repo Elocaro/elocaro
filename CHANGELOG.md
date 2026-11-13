@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- Datenimport (*Einstellungen → Datenimport*) liest jetzt auch Excel-Dateien (.xlsx, erstes Tabellenblatt); Datumszellen und Zahlen werden erkannt, Spaltennamen wie in der CSV-Vorlage (Refs #180).
 - Fernablese-Check (HeizkostenV): Zähler haben das Feld „Fernablesbar“. Für Heiz- und Warmwasserzähler in Wohnungen, die es nicht sind, erscheinen eine Aufgabe, ein Eintrag im Fristenkalender (31.12.2026) und ein Hinweis in der Abrechnungsprüfung (Closes #171).
 
 ## [0.6.0] - 2026-11-13
