@@ -19,7 +19,7 @@ internal sealed class ActivityLog(ElocaroDbContext db) : IActivityLog
 
         var touched = (await db.Set<AuditEntry>()
                 .AsNoTracking()
-                .Where(a => a.OperationId != null && ids.Contains(a.OperationId.Value))
+                .Where(a => a.OperationId != null && ids.Contains(a.OperationId.Value) && a.Action != AuditAction.Read && a.Action != AuditAction.SecurityEvent)
                 .GroupBy(a => new { a.OperationId, a.EntityType, a.Action })
                 .Select(g => new { g.Key.OperationId, g.Key.EntityType, g.Key.Action, Count = g.Count() })
                 .ToListAsync(cancellationToken))

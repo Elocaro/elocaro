@@ -113,6 +113,27 @@ public class McpWriteTests(PostgresFixture postgres) : AccountTestBase(postgres)
     }
 
     [Fact]
+    public async Task A_contact_change_through_mcp_can_be_taken_back_although_the_tool_reads_the_person_first()
+    {
+        var (browser, id) = await SignedInAsAsync(Roles.Admin);
+        using var b = browser;
+        using var client = Client(await TokenAsync(id, IAccessTokens.WriteMasterData));
+        var created = Answer(await RpcAsync(client, "tools/call", new { name = "create_person", arguments = new { lastName = "Schmidt", email = "alt@example.de" } }));
+        var personId = created.GetProperty("id").GetGuid();
+
+        var changed = Answer(await RpcAsync(client, "tools/call", new { name = "update_person_contact", arguments = new { personId, email = "neu@example.de" } }));
+        Assert.True(changed.GetProperty("succeeded").GetBoolean(), changed.ToString());
+
+        var rows = await App.WithScopeAsync(sp => sp.GetRequiredService<IActivityLog>().RecentAsync(ChangeChannel.Mcp, 10, Ct));
+        Assert.Equal(2, rows.Count); // the reads and the token use made no operations of their own
+        var change = rows.Single(r => r.Label == "MCP update_person_contact");
+        var undone = await App.WithScopeAsync(sp => sp.GetRequiredService<IOperationUndo>().UndoAsync(change.Id, Ct));
+        Assert.True(undone.Succeeded, string.Join(" ", undone.Errors));
+        var person = await App.WithScopeAsync(sp => sp.GetRequiredService<Elocaro.Application.People.IPersonService>().GetAsync(personId, Ct));
+        Assert.Equal("alt@example.de", person!.Data.Email);
+    }
+
+    [Fact]
     public async Task Invalid_input_is_refused_with_the_messages_of_the_form_rules()
     {
         var (browser, id) = await SignedInAsAsync(Roles.Admin);

@@ -36,7 +36,9 @@ internal sealed class OperationUndo(ElocaroDbContext db, IOperationScope scope) 
             return UndoCheck.No("Die Aktion wurde schon rückgängig gemacht.");
         }
 
-        var entries = await db.Set<AuditEntry>().AsNoTracking().Where(a => a.OperationId == operationId).ToListAsync(cancellationToken);
+        var entries = await db.Set<AuditEntry>().AsNoTracking()
+            .Where(a => a.OperationId == operationId && a.Action != AuditAction.Read && a.Action != AuditAction.SecurityEvent)
+            .ToListAsync(cancellationToken);
         if (entries.Count == 0)
         {
             return UndoCheck.No("Die Aktion hat keine Änderungen aufgezeichnet.");
@@ -69,7 +71,7 @@ internal sealed class OperationUndo(ElocaroDbContext db, IOperationScope scope) 
         }
 
         var original = await db.Set<Operation>().AsNoTracking().SingleAsync(o => o.Id == operationId, cancellationToken);
-        var entries = (await db.Set<AuditEntry>().AsNoTracking().Where(a => a.OperationId == operationId).ToListAsync(cancellationToken))
+        var entries = (await db.Set<AuditEntry>().AsNoTracking().Where(a => a.OperationId == operationId && a.Action != AuditAction.Read && a.Action != AuditAction.SecurityEvent).ToListAsync(cancellationToken))
             .OrderByDescending(e => e.Id.ToByteArray(bigEndian: true), ByteOrder.Instance)
             .ToList();
 

@@ -49,6 +49,20 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_import_is_one_operation_with_the_channel_import()
+    {
+        var template = await WithAsync(i => Task.FromResult(i.TemplateCsv()));
+        Assert.True((await WithAsync(i => i.ImportAsync(template, Ct))).Succeeded);
+
+        var rows = await WithAsync<Elocaro.Application.Audit.IActivityLog, IReadOnlyList<Elocaro.Application.Audit.ActivityRow>>(a => a.RecentAsync(null, 20, Ct));
+
+        var row = Assert.Single(rows);
+        Assert.Equal(Elocaro.Application.Audit.ChangeChannel.Import, row.Channel);
+        // Documents what is true today: the template contains a deposit and an opening balance, which are finance types (not yet restorable).
+        Assert.False(row.Restorable, string.Join(", ", row.Touched.Select(t => t.EntityType)));
+    }
+
+    [Fact]
     public async Task Import_creates_properties_units_with_area_tenants_leases_and_deposit_and_a_second_run_creates_nothing_again()
     {
         var template = await WithAsync(i => Task.FromResult(i.TemplateCsv()));

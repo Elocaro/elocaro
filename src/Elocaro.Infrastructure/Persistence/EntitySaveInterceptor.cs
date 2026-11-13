@@ -80,7 +80,13 @@ internal sealed class EntitySaveInterceptor(TimeProvider clock, ICurrentUser use
             return;
         }
 
+        // Reads and security events are no changes: a save holding only those makes no operation (they join one that already exists).
         var scope = OperationScope.Active;
+        if (!entries.Any(e => e.Action is AuditAction.Created or AuditAction.Modified or AuditAction.Deleted) && scope is not { Recorded: true })
+        {
+            return;
+        }
+
         Guid id;
         if (scope is null)
         {

@@ -194,4 +194,82 @@ public class UndoTests(PostgresFixture postgres) : IAsyncLifetime
         var unitId = (await InScopeAsync<IPropertyService, Result>(s => s.CreateUnitAsync(propertyId, new UnitInput { Name = "Wohnung 1" }, Ct))).Id!.Value;
         return (propertyId, unitId);
     }
+
+    [Fact]
+    public async Task A_unit_with_a_later_lease_cannot_be_taken_back()
+    {
+        var (_, unit) = await PropertyWithUnitAsync("Einheit");
+        var tenant = await CreatePersonAsync("Mieter", "mieter@example.de");
+        Assert.True((await InOperationAsync<ILeaseService, Result>("Vertrag", s => s.CreateAsync(
+            new LeaseCreation { RentalUnitId = unit, Start = Today, TenantIds = [tenant], BaseRent = 650m, OperatingCostPrepayment = 180m, HeatingCostPrepayment = 90m, People = 1 }, Ct))).Succeeded);
+
+        var check = await CheckAsync("Einheit");
+
+        Assert.False(check.CanUndo);
+    }
+
+    [Fact]
+    public async Task A_unit_with_a_later_meter_cannot_be_taken_back()
+    {
+        var (propertyId, unit) = await PropertyWithUnitAsync("Einheit");
+        Assert.True((await InOperationAsync<IMeterService, Result>("Zähler", s => s.CreateAsync(
+            propertyId, new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser", Number = "K-1", AssignmentId = unit }, InstalledOn = Today, InitialReading = 10m }, Ct))).Succeeded);
+
+        Assert.False((await CheckAsync("Einheit")).CanUndo);
+    }
+
+    [Fact]
+    public async Task A_person_who_became_a_tenant_cannot_be_taken_back()
+    {
+        var (_, unit) = await PropertyWithUnitAsync("Einheit");
+        var tenant = await CreatePersonAsync("Mieter", "mieter@example.de");
+        Assert.True((await InOperationAsync<ILeaseService, Result>("Vertrag", s => s.CreateAsync(
+            new LeaseCreation { RentalUnitId = unit, Start = Today, TenantIds = [tenant], BaseRent = 650m, OperatingCostPrepayment = 180m, HeatingCostPrepayment = 90m, People = 1 }, Ct))).Succeeded);
+
+        Assert.False((await CheckAsync("Mieter")).CanUndo);
+    }
+
+    [Fact]
+    public async Task Reading_a_person_inside_a_change_does_not_stop_the_undo()
+    {
+        var id = await CreatePersonAsync("anlegen", "anna@example.de");
+        // GetAsync logs a read access (GDPR); the change below runs in one operation together with it.
+        var data = (await InScopeAsync<IPersonService, PersonDetails?>(s => s.GetAsync(id, Ct)))!.Data;
+        data.Email = "neu@example.de";
+        Assert.True((await InOperationAsync<IPersonService, Result>("ändern", async s =>
+        {
+            var result = await s.UpdateAsync(id, data, Ct);
+            environment.Clock.Advance(Elocaro.Infrastructure.Audit.AccessLog.TimeWindow + TimeSpan.FromMinutes(1));
+            await s.GetAsync(id, Ct); // the read joins the operation that has already recorded its change
+            return result;
+        })).Succeeded);
+
+        var operationId = await OperationAsync("ändern");
+        var reads = await InScopeAsync<Elocaro.Infrastructure.Persistence.ElocaroDbContext, int>(db =>
+            Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.CountAsync(db.Set<Elocaro.Infrastructure.Audit.AuditEntry>(), a => a.OperationId == operationId && a.Action == AuditAction.Read, Ct));
+        Assert.True(reads >= 1, "the read access has to be part of the operation for this test to mean anything");
+
+        var undone = await UndoAsync("ändern");
+
+        Assert.True(undone.Succeeded, string.Join(" ", undone.Errors));
+    }
+
+    [Fact]
+    public async Task Reads_alone_make_no_operation()
+    {
+        var id = await CreatePersonAsync("anlegen", "anna@example.de");
+        await InScopeAsync<IPersonService, PersonDetails?>(s => s.GetAsync(id, Ct));
+        await InScopeAsync<IPersonService, PersonDetails?>(s => s.GetAsync(id, Ct));
+
+        var rows = await InScopeAsync<IActivityLog, IReadOnlyList<ActivityRow>>(a => a.RecentAsync(null, 50, Ct));
+
+        Assert.Single(rows);
+    }
+
+    private async Task<(Guid PropertyId, Guid UnitId)> PropertyWithUnitAsync(string unitLabel)
+    {
+        var propertyId = (await InScopeAsync<IPropertyService, Result>(s => s.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, Ct))).Id!.Value;
+        var unitId = (await InOperationAsync<IPropertyService, Result>(unitLabel, s => s.CreateUnitAsync(propertyId, new UnitInput { Name = "Wohnung 1" }, Ct))).Id!.Value;
+        return (propertyId, unitId);
+    }
 }
