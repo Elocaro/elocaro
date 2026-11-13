@@ -170,6 +170,7 @@ public class DunningTests(PostgresFixture postgres, GotenbergFixture gotenberg) 
         Assert.Contains("772,50 €", text, StringComparison.Ordinal);
         Assert.Contains("DE02 1203 0000 0000 2020 51", text, StringComparison.Ordinal);
         Assert.DoesNotContain("§ 288", text, StringComparison.Ordinal); // no interest in the reminder
+        Assert.Contains("Girocode", text, StringComparison.Ordinal); // the landlord profile has an IBAN, so the payment code is printed
 
         await using var scope = environment.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();

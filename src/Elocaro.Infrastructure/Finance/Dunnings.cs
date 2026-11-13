@@ -484,6 +484,7 @@ internal sealed class DunningService(
             SenderName = landlord.Name,
             landlord.Iban,
             landlord.Bic,
+            PaymentQr = PaymentQr.DataUri(landlord.Name, landlord.Iban, landlord.Bic, amounts.Total, p.RentalUnit),
             landlord.Bank,
         };
         return new PdfRequest("dunning", level.Name(), model, p.Address, Date: today);

@@ -58,6 +58,9 @@
 {{~ else if to_book > 0 ~}}
 <p>Bitte überweisen Sie den Betrag von <strong>{{ money to_book }}</strong> bis zum <strong>{{ date due }}</strong>{{ if iban }} auf das folgende Konto:</p>
 <p>{{ if bank }}{{ bank }}<br>{{ end }}IBAN {{ iban }}{{ if bic }}<br>BIC {{ bic }}{{ end }}<br>Verwendungszweck: {{ rental_unit }}, Abrechnung {{ period_label }}</p>{{ else }}.</p>{{ end }}
+{{~ if payment_qr ~}}
+<p class="small"><img src="{{ payment_qr }}" alt="Girocode zum Bezahlen" width="100" height="100" style="float: right; margin: 0 0 0.3cm 0.5cm;">Mit der Banking-App können Sie diesen Girocode scannen; Empfänger, IBAN, Betrag und Verwendungszweck sind dann bereits eingetragen. Bitte prüfen Sie die Angaben vor dem Absenden.</p>
+{{~ end ~}}
 {{~ else if to_book < 0 ~}}
 <p>Das Guthaben von <strong>{{ money to_book_abs }}</strong> erstatten wir Ihnen bis zum <strong>{{ date due }}</strong> auf das uns bekannte Konto oder verrechnen es mit Ihrer nächsten Mietzahlung. Teilen Sie uns bitte mit, falls Sie eine andere Bankverbindung wünschen.</p>
 {{~ else ~}}

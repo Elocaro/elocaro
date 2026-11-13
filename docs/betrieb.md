@@ -230,6 +230,8 @@ Nach dem Import erscheinen offene Umsätze unter **Finanzen → Umsätze zuordne
 
 Der Job `dunning` (täglich 6:15, sichtbar unter **System → Hintergrundjobs**) vergleicht die Rückstände mit den Mahnvorschlägen. Er **versendet nichts**: Vorschläge erscheinen auf der Startseite und unter **Finanzen → Mahnwesen**; Brief und E-Mail entstehen erst nach der Freigabe dort. Für die Freigabe sind nötig:
 
+**Girocode (Zahlungs-QR):** Mahnschreiben und Betriebskostenabrechnungen mit Nachzahlung tragen einen Girocode (EPC-QR), wenn im Vermieterprofil IBAN und Name hinterlegt sind. Die Banking-App des Mieters liest Empfänger, IBAN, Betrag und Verwendungszweck daraus und füllt die Überweisung vor. Der Code enthält nur, was neben ihm im Schreiben steht. Bei Guthaben, ohne IBAN oder mit ungültiger IBAN erscheint kein Code. SEPA-Dateien (Überweisung, Lastschrift) gibt es noch nicht.
+
 - ein **Vermieterprofil** (Einstellungen → Vermieter) für Briefkopf, Absender und Bankverbindung,
 - erreichbarer **Gotenberg** (PDF) und für den E-Mail-Versand ein funktionierender Mailserver (die Mail geht über die Outbox, siehe E-Mail-Versand).
 

@@ -33,5 +33,8 @@
 
 <p>Bitte überweisen Sie den Gesamtbetrag bis zum {{ date deadline }}{{ if iban }} auf das folgende Konto:</p>
 <p>{{ if bank }}{{ bank }}<br>{{ end }}IBAN {{ iban }}{{ if bic }}<br>BIC {{ bic }}{{ end }}<br>Verwendungszweck: {{ rental_unit }}</p>{{ else }}.</p>{{ end }}
+{{~ if payment_qr ~}}
+<p class="small"><img src="{{ payment_qr }}" alt="Girocode zum Bezahlen" width="100" height="100" style="float: right; margin: 0 0 0.3cm 0.5cm;">Mit der Banking-App können Sie diesen Girocode scannen; Empfänger, IBAN, Betrag und Verwendungszweck sind dann bereits eingetragen. Bitte prüfen Sie die Angaben vor dem Absenden.</p>
+{{~ end ~}}
 <p>Sollten Sie den Betrag zwischenzeitlich bereits überwiesen haben, betrachten Sie dieses Schreiben bitte als gegenstandslos. Bei Zahlungsschwierigkeiten bitten wir Sie, sich umgehend mit uns in Verbindung zu setzen, damit wir gemeinsam eine Lösung finden können.</p>
 <p>Mit freundlichen Grüßen<br>{{ sender_name }}</p>

@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- Girocode (Zahlungs-QR) auf Mahnschreiben und auf Betriebskostenabrechnungen mit Nachzahlung: Die Banking-App füllt Empfänger, IBAN, Betrag und Verwendungszweck vor. Voraussetzung ist die IBAN im Vermieterprofil (Refs #175, Stufe 1).
 - Neue Standardvorlagen für Konfliktfälle: Abmahnung, Kündigung wegen Zahlungsverzugs (fristlos, hilfsweise ordentlich), Eigenbedarfskündigung und Erinnerung an eine Nachzahlung aus der Betriebskostenabrechnung, jeweils mit Rechtsgrundlage und Prüfliste im Editor. Ausgangspunkte, keine Rechtsberatung; die Kündigungen vor dem Versand rechtlich prüfen lassen. Neue Standardvorlagen legt Elocaro beim Start selbst an (Refs #176).
 - Aktivität: Lesezugriffe und Token-Nutzung erzeugen keine eigenen Aktionen mehr und blockieren das Rückgängig nicht mehr (Refs #183).
 - Datenimport: Erkennt Elocaro die Spalten einer Datei nicht an den Überschriften (z. B. eine Liste aus einem anderen Programm), lassen sich die Spalten im Browser selbst zuordnen; die Zeilen laufen danach durch dieselben Prüfungen (Refs #180).

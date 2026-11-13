@@ -343,6 +343,8 @@ internal sealed class StatementDispatchService(
             SenderName = landlord.Name,
             landlord.Iban,
             landlord.Bic,
+            // Only for a payment due: a refund or a zero balance needs no transfer from the tenant.
+            PaymentQr = toBook > 0 ? PaymentQr.DataUri(landlord.Name, landlord.Iban, landlord.Bic, toBook, $"{(rentalUnit is null ? "" : $"{rentalUnit.Property}, {tenant.Rental}")}, Abrechnung {Format(period)}") : null,
             landlord.Bank,
         };
         var request = new PdfRequest("statement", $"Betriebskostenabrechnung {Format(period)}", model, new PostalAddress(new PostalAddress(LetterParts.AddressRowsOf(people, rentalUnit is null ? null : tenant.Rental, property, today)).Rows), Date: today, PropertyId: property?.Id);

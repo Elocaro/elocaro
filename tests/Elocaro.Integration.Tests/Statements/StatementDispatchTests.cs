@@ -100,6 +100,7 @@ public class StatementDispatchTests(PostgresFixture postgres, GotenbergFixture g
         Assert.Contains("Ihr Anteil am Schlüssel", text, StringComparison.Ordinal);
         Assert.Contains("abzüglich geleisteter Vorauszahlungen", text, StringComparison.Ordinal);
         Assert.Contains("Nachzahlung Betriebskosten", text, StringComparison.Ordinal);
+        Assert.Contains("Girocode", text, StringComparison.Ordinal); // payment due and the landlord has an IBAN
         // Inspection of receipts, due date, payment details.
         Assert.Contains("Belegeinsicht", text, StringComparison.Ordinal);
         Assert.Contains("bis zum 12.03.2027", text, StringComparison.Ordinal);
@@ -295,6 +296,7 @@ public class StatementDispatchTests(PostgresFixture postgres, GotenbergFixture g
         Assert.Equal(-200m, refund.Amount);
         var dispatch = await check.ServiceProvider.GetRequiredService<ElocaroDbContext>().Set<StatementDispatch>().SingleAsync(Ct);
         Assert.Contains("Guthaben von 200,00 €", await PdfTextAsync(dispatch.FileId), StringComparison.Ordinal);
+        Assert.DoesNotContain("Girocode", await PdfTextAsync(dispatch.FileId), StringComparison.Ordinal); // a refund needs no transfer from the tenant
     }
 
     [Fact]
