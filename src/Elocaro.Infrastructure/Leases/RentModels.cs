@@ -91,6 +91,7 @@ internal sealed class RentModelTodos(ElocaroDbContext db, TimeProvider clock) : 
 
         var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
         var newestCpi = await db.Set<CpiValue>().AsNoTracking().OrderByDescending(v => v.Month).FirstOrDefaultAsync(cancellationToken);
+        var modernisations = await RentIncreaseHistory.ModernisationDatesAsync(db, [.. leases.Select(v => v.Id)], cancellationToken);
         var todos = new List<TodoItem>();
         foreach (var lease in leases)
         {
@@ -105,7 +106,7 @@ internal sealed class RentModelTodos(ElocaroDbContext db, TimeProvider clock) : 
             if (lease.RentModel == RentModel.Index && lease.IndexBaseValue is { } baseValue && newestCpi is not null
                 && newestCpi.Month > lease.IndexBaseMonth && newestCpi.Value > baseValue)
             {
-                var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange() ?? lease.Start);
+                var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange(null, [.. modernisations[lease.Id]]) ?? lease.Start);
                 if (IndexedRent.EffectiveFrom(today) >= earliest)
                 {
                     todos.Add(new TodoItem("Mieten", $"Indexanpassung möglich: {name} (+{IndexedRent.ChangePercent(baseValue, newestCpi.Value).ToString("0.0", CultureInfo.GetCultureInfo("de-DE"))} %)", link, Urgency.Soon,

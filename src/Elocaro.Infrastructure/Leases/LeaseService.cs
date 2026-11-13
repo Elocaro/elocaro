@@ -405,6 +405,7 @@ internal sealed class LeaseService(ElocaroDbContext db, TimeProvider clock, IMod
     {
         ArgumentNullException.ThrowIfNull(input);
         var newest = await db.Set<CpiValue>().AsNoTracking().OrderByDescending(v => v.Month).FirstOrDefaultAsync(cancellationToken);
+        var ignored = await RentIncreaseHistory.ModernisationDatesAsync(db, id, cancellationToken);
         return await WithLeaseAsync(id, lease =>
         {
             var declaration = input.DeclaredOn ?? throw new RuleViolationException("Bitte angeben, wann die Erklärung zugeht.");
@@ -413,13 +414,14 @@ internal sealed class LeaseService(ElocaroDbContext db, TimeProvider clock, IMod
                 throw new RuleViolationException("Es gibt keinen VPI-Wert, der neuer ist als der Ausgangsindex. Bitte zuerst den VPI pflegen.");
             }
 
-            lease.AdjustIndex(IndexedRent.EffectiveFrom(declaration), newest.Month, newest.Value);
+            lease.AdjustIndex(IndexedRent.EffectiveFrom(declaration), newest.Month, newest.Value, ignored);
         }, cancellationToken);
     }
 
     private async Task<RentModelView> RentModelAsync(Lease lease, DateOnly referenceDate, DateOnly today, CancellationToken cancellationToken)
     {
         var baseRent = lease.AmountAt(RentComponentType.BaseRent, referenceDate);
+        var ignored = await RentIncreaseHistory.ModernisationDatesAsync(db, lease.Id, cancellationToken);
         var threeYearsAgo = referenceDate.AddYears(-3);
         IndexProposal? suggestion = null;
         if (lease.RentModel == RentModel.Index && lease.IndexBaseValue is { } baseValue && lease.IndexBaseMonth is { } baseMonth && baseRent is { } rent)
@@ -427,7 +429,7 @@ internal sealed class LeaseService(ElocaroDbContext db, TimeProvider clock, IMod
             var newest = await db.Set<CpiValue>().AsNoTracking().Where(v => v.Month > baseMonth).OrderByDescending(v => v.Month).FirstOrDefaultAsync(cancellationToken);
             if (newest is not null)
             {
-                var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange() ?? lease.Start);
+                var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange(null, ignored) ?? lease.Start);
                 suggestion = new IndexProposal(
                     newest.Month,
                     newest.Value,
@@ -440,7 +442,7 @@ internal sealed class LeaseService(ElocaroDbContext db, TimeProvider clock, IMod
 
         return new RentModelView(
             lease.RentModel,
-            lease.LastBaseRentChange(referenceDate),
+            lease.LastBaseRentChange(referenceDate, ignored),
             threeYearsAgo >= lease.Start ? lease.AmountAt(RentComponentType.BaseRent, threeYearsAgo) : null,
             baseRent,
             lease.IndexBaseMonth,

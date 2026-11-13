@@ -174,4 +174,5 @@ public sealed record OpenItem(
     DateOnly Due,
     decimal Amount,
     decimal Open,
-    int DaysOverdue);
+    int DaysOverdue,
+    IReadOnlyList<Settlement>? Settlements = null);

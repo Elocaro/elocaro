@@ -150,6 +150,57 @@ public class DunningTests
     }
 
     [Fact]
+    public void Part_payment_stops_the_interest_on_the_paid_part_from_the_day_of_payment()
+    {
+        var due = new DateOnly(2026, 1, 10);
+        var settlements = new[] { new Settlement(due.AddDays(10), 400m) };
+
+        // (1000 € x 10 days + 600 € x 30 days) x 7.27 % / 365 = 5.58 €; on the remainder alone it would be 4.78 €
+        Assert.Equal(5.58m, DefaultInterest.Calculate(1000m, due, settlements, due.AddDays(40), 7.27m));
+        Assert.Equal(4.78m, DefaultInterest.Calculate(600m, due, due.AddDays(40), 7.27m));
+    }
+
+    [Fact]
+    public void Several_part_payments_each_end_the_interest_on_their_part()
+    {
+        var due = new DateOnly(2026, 1, 10);
+        var settlements = new[] { new Settlement(new DateOnly(2026, 2, 9), 300m), new Settlement(new DateOnly(2026, 1, 20), 300m) };
+
+        // 1000 € x 10 days + 700 € x 20 days + 400 € x 30 days = 36,000 € days
+        Assert.Equal(7.17m, DefaultInterest.Calculate(1000m, due, settlements, new DateOnly(2026, 3, 11), 7.27m));
+    }
+
+    [Fact]
+    public void Payment_on_the_due_date_or_after_the_end_does_not_change_the_interest_period()
+    {
+        var due = new DateOnly(2026, 1, 10);
+
+        // paid on the due date: nothing ran on the 400 €, the remaining 600 € run all 40 days (600 € x 40 x 7.27 % / 365 = 4.78 €)
+        Assert.Equal(4.78m, DefaultInterest.Calculate(1000m, due, [new Settlement(due, 400m)], due.AddDays(40), 7.27m));
+        Assert.Equal(DefaultInterest.Calculate(1000m, due, due.AddDays(40), 7.27m), DefaultInterest.Calculate(1000m, due, [new Settlement(due.AddDays(50), 400m)], due.AddDays(40), 7.27m));
+    }
+
+    [Fact]
+    public void A_fully_settled_claim_bears_interest_until_the_day_of_payment()
+    {
+        var due = new DateOnly(2026, 1, 10);
+
+        Assert.Equal(1.00m, DefaultInterest.Calculate(500m, due, [new Settlement(due.AddDays(10), 500m)], due.AddDays(40), 7.27m));
+    }
+
+    [Fact]
+    public void The_dunning_interest_takes_part_payments_into_account()
+    {
+        var due = Today.AddDays(-73);
+        var claim = new DunningClaim(Guid.NewGuid(), ChargeType.Rent, "Miete", due, 1000m, 600m, [new Settlement(due.AddDays(10), 400m)]);
+        var history = new[] { new DunningHistoryEntry(DunningLevel.Reminder, DunningStatus.Issued, Today.AddDays(-20)) };
+
+        // (1000 € x 10 days + 600 € x 63 days) x 7.27 % / 365 = 9.52 €
+        Assert.Equal(9.52m, DunningPlanner.Plan(Rules, Today, [claim], history)!.Interest);
+        Assert.Equal(600m, DunningPlanner.Plan(Rules, Today, [claim], history)!.Principal);
+    }
+
+    [Fact]
     public void A_strongly_negative_base_rate_never_leads_to_a_negative_interest_rate()
     {
         var rules = Rules with { BaseRate = -6m };

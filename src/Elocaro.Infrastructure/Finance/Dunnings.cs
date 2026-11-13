@@ -339,7 +339,7 @@ internal sealed class DunningService(
     /// <summary>Plan including the interest net of what earlier dunnings already demanded.</summary>
     private static (DunningPlan Plan, decimal Interest)? PlanFor(DunningRules rules, DateOnly today, IReadOnlyList<OpenItem> open, IReadOnlyList<Dunning> past)
     {
-        var claims = open.Select(o => new DunningClaim(o.ChargeId, o.Kind, o.Text, o.Due, o.Amount, o.Open)).ToList();
+        var claims = open.Select(o => new DunningClaim(o.ChargeId, o.Kind, o.Text, o.Due, o.Amount, o.Open, o.Settlements)).ToList();
         var history = past.Where(m => m.DecidedOn is not null)
             .Select(m => new DunningHistoryEntry(m.Level, m.Status, m.DecidedOn!.Value)).ToList();
         var plan = DunningPlanner.Plan(rules, today, claims, history);

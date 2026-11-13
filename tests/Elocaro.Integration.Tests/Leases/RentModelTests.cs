@@ -1,12 +1,14 @@
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Common;
+using Elocaro.Application.Deadlines;
 using Elocaro.Application.Leases;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Todos;
 using Elocaro.Domain.Communication;
 using Elocaro.Domain.Leases;
+using Elocaro.Infrastructure.Deadlines;
 using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Integration.Tests.Infrastructure;
@@ -103,6 +105,37 @@ public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Increase_after_modernisation_does_not_restart_the_index_lockout()
+    {
+        Validate(await WithAsync(v => v.SetRentModelAsync(leaseId, new RentModelInput { Model = RentModel.Index, IndexBaseMonth = new DateOnly(2026, 1, 1), IndexBaseValue = 117.4m }, Ct)));
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            await ImportCpiAsync(scope);
+
+            // Modernisation levy in force since 1 September 2026: 650 € -> 700 €
+            var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();
+            var lease = await db.Set<Lease>().Include(v => v.Components).SingleAsync(v => v.Id == leaseId, Ct);
+            lease.SetComponent(RentComponentType.BaseRent, new DateOnly(2026, 9, 1), 700m);
+            var increase = new RentIncrease(leaseId, RentIncreaseKind.Modernisation, 650m, 700m, new DateOnly(2026, 6, 10), new DateOnly(2026, 9, 1), null, "Modernisierung");
+            increase.Declare(new DateOnly(2026, 6, 10), new DateOnly(2026, 9, 1), null);
+            db.Add(increase);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        environment.Clock.SetUtcNow(new DateTimeOffset(2027, 1, 10, 10, 0, 0, TimeSpan.Zero));
+        var details = (await WithAsync(v => v.GetAsync(leaseId, Ct)))!;
+        Assert.Null(details.RentModel.LastIncrease);
+        Assert.Equal(new DateOnly(2027, 3, 1), details.RentModel.Index!.EarliestEffective);
+        Assert.Contains(await TodosAsync(), a => a.Title.StartsWith("Indexanpassung möglich: Wohnung 1", StringComparison.Ordinal));
+        Assert.Contains(await DeadlinesAsync(new DateOnly(2027, 6, 30)), d => d.Key == $"rent-increase:{leaseId}:20270301");
+
+        // One year after the lease start, not after the modernisation (which would only allow 1 September 2027).
+        Validate(await WithAsync(v => v.AdjustIndexAsync(leaseId, new IndexAdjustmentInput { DeclaredOn = new DateOnly(2027, 1, 10) }, Ct)));
+        details = (await WithAsync(v => v.GetAsync(leaseId, Ct)))!;
+        Assert.Equal(725.64m, details.Components.Single(c => c.Kind == RentComponentType.BaseRent && c.Validity.From == new DateOnly(2027, 3, 1)).Amount);
+    }
+
+    [Fact]
     public async Task Maintain_Cpi_manually_and_reimport()
     {
         await using var scope = environment.Services.CreateAsyncScope();
@@ -135,6 +168,20 @@ public class RentModelTests(PostgresFixture postgres) : IAsyncLifetime
     {
         await using var scope = environment.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<RentStepApplication>().ApplyAsync(Ct);
+    }
+
+    private static async Task ImportCpiAsync(AsyncServiceScope scope)
+    {
+        var import = await scope.ServiceProvider.GetRequiredService<ICpiService>().ImportAsync(
+            "GENESIS-Tabelle: 61111-0002\nJahr;Monat;Verbraucherpreisindex\n2026;Januar;117,4\n2026;Februar;117,9\n2027;Januar;121,7\n", Ct);
+        Assert.Empty(import.Errors);
+    }
+
+    private async Task<IReadOnlyList<DeadlineEntry>> DeadlinesAsync(DateOnly until)
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var source = scope.ServiceProvider.GetServices<IDeadlineSource>().OfType<LeaseDeadlineSource>().Single();
+        return await source.DeadlinesAsync(until, Ct);
     }
 
     private async Task<List<TodoItem>> TodosAsync()
