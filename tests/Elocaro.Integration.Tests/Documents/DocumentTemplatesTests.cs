@@ -150,7 +150,7 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
         var first = await WithAsync(t => t.InstallDefaultsAsync(Ct));
         var second = await WithAsync(t => t.InstallDefaultsAsync(Ct));
 
-        Assert.Equal((23, 0, 0, 23), (first.Created, first.Existing, second.Created, second.Existing));
+        Assert.Equal((27, 0, 0, 27), (first.Created, first.Existing, second.Created, second.Existing));
         var rows = await WithAsync(t => t.ListAsync(Ct));
         string[] expected =
         [
@@ -159,6 +159,7 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
             "Mieterhöhung Vergleichsmiete (§ 558 BGB)", "Mietvertrag Wohnraum", "Zimmervertrag WG",
             "Wohnungsgeberbestätigung Einzug (§ 19 BMG)", "Wohnungsgeberbestätigung Auszug (§ 19 BMG)", "Bestätigung der Kündigung",
             "Mietbescheinigung", "Mietschuldenfreiheitsbescheinigung", "Kautionsabrechnung und -rückzahlung", "Mieterhöhung Modernisierung (§ 559 BGB)", "Änderung des Umlageschlüssels (§ 556a Abs. 2 BGB)", "Information Vermieterwechsel (§ 566 BGB)",
+            "Abmahnung (§ 541 BGB)", "Kündigung Zahlungsverzug (§ 543 BGB)", "Kündigung Eigenbedarf (§ 573 BGB)", "Erinnerung Nachzahlung Betriebskosten",
         ];
         Assert.Equal(expected.Order(StringComparer.Ordinal), rows.Select(r => r.Name).Order(StringComparer.Ordinal));
         Assert.All(rows, r => Assert.Equal(1, r.Revision));
@@ -180,7 +181,7 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
 
         var second = await WithAsync(t => t.EnsureDefaultsAsync(Ct));
 
-        Assert.Equal(23, first.Created);
+        Assert.Equal(27, first.Created);
         Assert.Equal(0, second.Created);
         Assert.DoesNotContain(await WithAsync(t => t.ListAsync(Ct)), r => r.Name == "Mietbescheinigung");
 

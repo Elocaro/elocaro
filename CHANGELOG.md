@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- Neue Standardvorlagen für Konfliktfälle: Abmahnung, Kündigung wegen Zahlungsverzugs (fristlos, hilfsweise ordentlich), Eigenbedarfskündigung und Erinnerung an eine Nachzahlung aus der Betriebskostenabrechnung, jeweils mit Rechtsgrundlage und Prüfliste im Editor. Ausgangspunkte, keine Rechtsberatung; die Kündigungen vor dem Versand rechtlich prüfen lassen. Neue Standardvorlagen legt Elocaro beim Start selbst an (Refs #176).
 - Aktivität: Lesezugriffe und Token-Nutzung erzeugen keine eigenen Aktionen mehr und blockieren das Rückgängig nicht mehr (Refs #183).
 - Datenimport: Erkennt Elocaro die Spalten einer Datei nicht an den Überschriften (z. B. eine Liste aus einem anderen Programm), lassen sich die Spalten im Browser selbst zuordnen; die Zeilen laufen danach durch dieselben Prüfungen (Refs #180).
 - MCP kann Stammdaten anlegen und ändern (`MCP_ALLOW_WRITE=true`, Token-Bereich `write:masterdata`): Objekt, Einheit, Person, Zähler und Mietvertrag anlegen, Kontaktdaten ändern. Nichts wird gelöscht; jeder Aufruf steht in der Aktivität und lässt sich zurücknehmen. Die Regeln der Formulare (Pflichtfelder, Längen, Postleitzahl) prüfen jetzt auch die Dienste (Refs #183).
