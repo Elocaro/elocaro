@@ -688,7 +688,7 @@ body:has(.app) { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
 /* Release notes (Markdown from GitHub): readable column, real lists, groups as small headings */
 .release-body { padding: 0 1.25rem 1.25rem; max-width: 72ch; line-height: 1.55; overflow-wrap: anywhere; }
 .release-body > :first-child { margin-top: 0; }
-.release-body h3 { margin: 1.5rem 0 0.5rem; font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--md-primary); }
+.release-body h3 { margin: 1.5rem 0 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--md-primary); }
 .release-body p { margin: 0 0 0.75rem; }
 .release-body ul { margin: 0 0 0.5rem; padding-left: 1.25rem; list-style: disc; }
 .release-body ul ul { margin: 0.4rem 0 0; list-style: circle; }
