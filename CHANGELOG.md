@@ -4,6 +4,9 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- Fernablese-Check (HeizkostenV): Zähler haben das Feld „Fernablesbar“. Für Heiz- und Warmwasserzähler in Wohnungen, die es nicht sind, erscheinen eine Aufgabe, ein Eintrag im Fristenkalender (31.12.2026) und ein Hinweis in der Abrechnungsprüfung (Closes #171).
+
 ## [0.6.0] - 2026-11-13
 
 ### Geändert

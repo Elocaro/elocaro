@@ -219,7 +219,8 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
                 input.FinalReading ?? throw new RuleViolationException("Bitte den Endstand angeben."),
                 input.NewNumber,
                 input.InitialReading ?? throw new RuleViolationException("Bitte den Anfangsstand angeben."),
-                input.CalibrationDueDate);
+                input.CalibrationDueDate,
+                input.RemoteReadable);
             db.Add(newItem);
 
             // Sub-meters are attached to the new main meter from now on.
@@ -312,6 +313,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
         meter.Location = string.IsNullOrWhiteSpace(data.Location) ? null : data.Location.Trim();
         meter.MeasurementUnit = data.MeasurementUnit ?? meter.MeasurementUnit;
         meter.CalibrationDueDate = data.CalibrationDueDate ?? meter.CalibrationDueDate;
+        meter.RemoteReadable = data.RemoteReadable;
         meter.Notes = string.IsNullOrWhiteSpace(data.Notes) ? null : data.Notes.Trim();
         if (data.Order > 0)
         {
@@ -384,7 +386,8 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
         z.RemovedOn,
         z.MainMeterId,
         z.Order,
-        z.IsDerived);
+        z.IsDerived,
+        z.RemoteReadable);
 
     private static ReadingView Entry(MeterReading s) => new(s.Id, s.Date, s.Value, s.Kind, s.ReadBy, s.PhotoFileId, s.Note);
 
@@ -398,6 +401,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
         AssignmentId = z.RoomId ?? z.UnitId,
         MainMeterId = z.MainMeterId,
         CalibrationDueDate = z.CalibrationDueDate,
+        RemoteReadable = z.RemoteReadable,
         Order = z.Order,
         Notes = z.Notes,
     };
@@ -429,5 +433,52 @@ internal sealed class CalibrationDueTodos(ElocaroDbContext db, TimeProvider cloc
             z.CalibrationDueDate < today ? Urgency.Urgent : Urgency.Soon,
             "Nicht geeichte Zähler dürfen nicht für die Abrechnung verwendet werden: Zähler tauschen lassen.",
             z.CalibrationDueDate)).ToList();
+    }
+}
+
+/// <summary>Dashboard: heat and hot water meters in apartments that are not remotely readable (HeizkostenV, 90 days before the deadline and after).</summary>
+[Module(AppModule.Metering)]
+internal sealed class RemoteReadingTodos(ElocaroDbContext db, TimeProvider clock) : ITodoSource
+{
+    public async Task<IReadOnlyList<TodoItem>> TodosAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (!user.IsInRole(Roles.Admin) && !user.HasClaim(Permissions.ClaimType, nameof(AccessRight.MasterData)))
+        {
+            return [];
+        }
+
+        var today = GermanTime.Today(clock.GetUtcNow());
+        if (today < RemoteReadingRule.Deadline.AddDays(-90))
+        {
+            return [];
+        }
+
+        var missing = await RemoteReadingQuery.MissingByPropertyAsync(db, cancellationToken);
+        return missing.Select(p => new TodoItem(
+            "Zähler",
+            today > RemoteReadingRule.Deadline
+                ? $"{p.Count} Zähler nicht fernablesbar ({p.Property}): Frist 31.12.2026 abgelaufen"
+                : $"{p.Count} Zähler nicht fernablesbar ({p.Property}): umrüsten bis 31.12.2026",
+            $"/verwaltung/objekte/{p.PropertyId}/zaehler",
+            today > RemoteReadingRule.Deadline ? Urgency.Urgent : Urgency.Soon,
+            "Heiz- und Warmwasserzähler in den Wohnungen müssen nach der HeizkostenV fernablesbar sein. Zähler tauschen lassen und am Zähler „fernablesbar“ eintragen.",
+            RemoteReadingRule.Deadline)).ToList();
+    }
+}
+
+internal static class RemoteReadingQuery
+{
+    /// <summary>Per property: how many installed heat and hot water meters in apartments are not marked as remotely readable.</summary>
+    public static async Task<IReadOnlyList<(Guid PropertyId, string Property, int Count)>> MissingByPropertyAsync(ElocaroDbContext db, CancellationToken cancellationToken)
+    {
+        var meters = await (from z in db.Set<ZaehlerEntitaet>().AsNoTracking()
+                            join o in db.Set<Property>().AsNoTracking() on z.PropertyId equals o.Id
+                            where z.RemovedOn == null && !z.RemoteReadable && z.UnitId != null && !z.Terms.Any()
+                                && (z.Type == MeterType.Heat || z.Type == MeterType.HotWater)
+                            select new { o.Id, o.Name })
+            .ToListAsync(cancellationToken);
+        return meters.GroupBy(m => (m.Id, m.Name)).OrderBy(g => g.Key.Name, StringComparer.CurrentCulture)
+            .Select(g => (g.Key.Id, g.Key.Name, g.Count())).ToList();
     }
 }

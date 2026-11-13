@@ -42,6 +42,7 @@ else
     {
         <dt>Eichfrist</dt><dd>@Format.Date(deadline)</dd>
     }
+    <dt>Fernablesbar</dt><dd>@(meter.Meter.RemoteReadable ? "Ja" : "Nein")</dd>
     @if (meter.Meter.Location is not null)
     {
         <dt>Lage</dt><dd>@meter.Meter.Location</dd>
@@ -290,6 +291,7 @@ else
             <AppTextField @bind-Value="replacement.NewNumber" Label="Nummer neuer Zähler" Required="true" />
             <AppNumberField T="decimal?" @bind-Value="replacement.InitialReading" Label="Anfangsstand neuer Zähler" Required="true" />
             <AppDateField @bind-Value="replacement.CalibrationDueDate" Label="Eichfrist neuer Zähler" Hint="Leer = gesetzliche Frist" />
+            <AppCheckBox @bind-Value="replacement.RemoteReadable" Label="Neuer Zähler ist fernablesbar" />
         </text>;
         Guid? replacementId = null;
         if (await Dialogs.ShowFormAsync("Zähler tauschen", replacement, fields, async () =>

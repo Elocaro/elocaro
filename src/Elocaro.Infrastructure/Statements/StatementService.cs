@@ -223,6 +223,11 @@ internal sealed class StatementService(ElocaroDbContext db, IOperatingCosts oper
         var findings = new List<PlausibilityFinding>();
         foreach (var meter in meters)
         {
+            if (end > RemoteReadingRule.Deadline && RemoteReadingRule.IsMissing(meter))
+            {
+                findings.Add(new PlausibilityFinding(WizardStep.Meters, FindingSeverity.Info, $"Zähler {meter.Name} ({meter.Number}): {RemoteReadingRule.StatementHint}"));
+            }
+
             var open = period.From.AddDays(-1) < meter.InstalledOn ? meter.InstalledOn : period.From.AddDays(-1);
             var close = meter.RemovedOn is { } removed && removed < end ? removed : end;
             foreach (var (day, label) in new[] { (open, "Anfangsstand"), (close, "Endstand") })

@@ -93,6 +93,9 @@ public sealed class Meter : Entity
     /// <summary>End of calibration validity (water 6 y, hot water/heat 5 y, gas/electricity 8 y from installation).</summary>
     public DateOnly? CalibrationDueDate { get; set; }
 
+    /// <summary>The meter can be read remotely (radio, M-Bus); heat and hot water meters in the apartments must be (<see cref="RemoteReadingRule"/>).</summary>
+    public bool RemoteReadable { get; set; }
+
     /// <summary>Order in the reading round.</summary>
     public int Order { get; set; }
 
@@ -278,7 +281,7 @@ public sealed class Meter : Entity
     private static string Text(FormattableString text) => text.ToString(System.Globalization.CultureInfo.GetCultureInfo("de-DE"));
 
     /// <summary>Removes the meter (final reading) and returns the new meter of the measuring point with its initial reading.</summary>
-    public Meter Replace(DateOnly date, decimal finalReading, string newNumber, decimal initialReading, DateOnly? calibrationDue = null)
+    public Meter Replace(DateOnly date, decimal finalReading, string newNumber, decimal initialReading, DateOnly? calibrationDue = null, bool? remoteReadable = null)
     {
         if (RemovedOn is not null)
         {
@@ -316,6 +319,7 @@ public sealed class Meter : Entity
             MainMeterId = MainMeterId,
             Order = Order,
             CalibrationDueDate = calibrationDue ?? DefaultCalibrationDue(Type, date),
+            RemoteReadable = remoteReadable ?? RemoteReadable,
             PredecessorId = Id,
         };
         newItem.Assign(UnitId, RoomId);

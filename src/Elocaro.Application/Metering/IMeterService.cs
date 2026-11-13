@@ -61,7 +61,8 @@ public sealed record MeterRow(
     DateOnly? RemovedOn,
     Guid? MainMeterId,
     int Order,
-    bool IsDerived = false);
+    bool IsDerived = false,
+    bool RemoteReadable = false);
 
 public sealed record AnnualConsumption(int Year, Consumption Consumption);
 

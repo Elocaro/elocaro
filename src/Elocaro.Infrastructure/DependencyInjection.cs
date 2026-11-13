@@ -361,6 +361,7 @@ public static class DependencyInjection
         services.AddScoped<IMaintenanceService, MaintenanceService>();
         services.AddScoped<IAnlageVService, AnlageVService>();
         services.AddScoped<ITodoSource, CalibrationDueTodos>();
+        services.AddScoped<ITodoSource, RemoteReadingTodos>();
         services.AddScoped<IDocumentLibrary, DocumentLibrary>();
         services.AddScoped<IDocumentTemplates, DocumentTemplates>();
         services.AddScoped<IDocumentReadiness, DocumentReadiness>();
@@ -407,6 +408,7 @@ public static class DependencyInjection
         services.AddScoped<IDeadlineSource, LeaseDeadlineSource>();
         services.AddScoped<IDeadlineSource, LoanDeadlineSource>();
         services.AddScoped<IDeadlineSource, CalibrationDeadlineSource>();
+        services.AddScoped<IDeadlineSource, RemoteReadingDeadlineSource>();
         services.AddScoped<IDeadlineSource, DocumentDeadlineSource>();
         services.AddScoped<IDeadlineSource, TaskDeadlineSource>();
         services.AddScoped<DeadlineService>();

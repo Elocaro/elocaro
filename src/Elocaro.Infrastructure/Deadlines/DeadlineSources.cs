@@ -5,6 +5,7 @@ using Elocaro.Domain.Common;
 using Elocaro.Domain.Deadlines;
 using Elocaro.Domain.Documents;
 using Elocaro.Domain.Leases;
+using Elocaro.Domain.Metering;
 using Elocaro.Domain.Properties;
 using Elocaro.Domain.Statements;
 using Elocaro.Domain.Tax;
@@ -178,6 +179,26 @@ internal sealed class CalibrationDeadlineSource(ElocaroDbContext db, TimeProvide
             "Nicht geeichte Zähler dürfen nicht für die Abrechnung verwendet werden: Zähler tauschen lassen.", LeadDays: 90)).ToList();
     }
 }
+
+/// <summary>Deadline for equipping heat and hot water meters in apartments with remote reading (HeizkostenV).</summary>
+internal sealed class RemoteReadingDeadlineSource(ElocaroDbContext db) : IDeadlineSource
+{
+    public async Task<IReadOnlyList<DeadlineEntry>> DeadlinesAsync(DateOnly until, CancellationToken cancellationToken = default)
+    {
+        if (RemoteReadingRule.Deadline > until)
+        {
+            return [];
+        }
+
+        var missing = await Metering.RemoteReadingQuery.MissingByPropertyAsync(db, cancellationToken);
+        return missing.Select(p => new DeadlineEntry(
+            $"remote-reading:{p.PropertyId}", DeadlineOrigin.Derived, "Zähler",
+            $"Fernablesbarkeit: {p.Count} Zähler nicht umgerüstet ({p.Property})",
+            RemoteReadingRule.Deadline, $"/verwaltung/objekte/{p.PropertyId}/zaehler", AccessRight.MasterData,
+            "Heiz- und Warmwasserzähler in den Wohnungen müssen nach der HeizkostenV fernablesbar sein; sonst kann ein Kürzungsrecht der Mieter entstehen.", LeadDays: 120)).ToList();
+    }
+}
+
 
 /// <summary>Documents with an expiry date (energy certificate, insurance ...).</summary>
 internal sealed class DocumentDeadlineSource(ElocaroDbContext db) : IDeadlineSource

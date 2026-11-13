@@ -236,6 +236,34 @@ public class MeterServiceTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal(Urgency.Urgent, todo.Urgency);
     }
 
+    [Fact]
+    public async Task Heat_meters_in_apartments_without_remote_reading_produce_a_deadline_until_marked()
+    {
+        var heat = Validate(await WithAsync(v => v.CreateAsync(propertyId, new MeterCreation
+        {
+            Data = new MeterInput { Type = MeterType.Heat, Name = "Wärme Whg 1", Number = "WM-1", AssignmentId = apartment1 },
+            InstalledOn = YearEnd,
+            InitialReading = 0m,
+        }, Ct)));
+
+        var entry = Assert.Single(await DeadlinesAsync());
+        Assert.Equal(RemoteReadingRule.Deadline, entry.Due);
+        Assert.Contains("1 Zähler nicht umgerüstet", entry.Title, StringComparison.Ordinal);
+
+        var input = (await WithAsync(v => v.GetAsync(heat, Ct)))!.Data;
+        input.RemoteReadable = true;
+        Validate(await WithAsync(v => v.UpdateAsync(heat, input, Ct)));
+
+        Assert.Empty(await DeadlinesAsync());
+    }
+
+    private async Task<IReadOnlyList<Elocaro.Application.Deadlines.DeadlineEntry>> DeadlinesAsync()
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var source = scope.ServiceProvider.GetServices<Elocaro.Application.Deadlines.IDeadlineSource>().OfType<Elocaro.Infrastructure.Deadlines.RemoteReadingDeadlineSource>().Single();
+        return await source.DeadlinesAsync(RemoteReadingRule.Deadline, Ct);
+    }
+
     private async Task<Guid> CreateAsync(string name, string number, Guid? assignment, Guid? mainMeter, decimal start) =>
         Validate(await WithAsync(v => v.CreateAsync(propertyId, Creation(name, number, assignment, mainMeter, start), Ct)));
 

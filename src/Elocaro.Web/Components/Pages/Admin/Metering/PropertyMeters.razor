@@ -78,7 +78,7 @@ else
                         <tr>
                             <td>
                                 <a href="/verwaltung/zaehler/@z.Id">@z.Name</a>
-                                <span class="small">@(z.Name == Labels.From(z.Type) ? "" : Labels.From(z.Type) + " · ")Nr. @z.Number@(z.MainMeterId is not null ? " · Unterzähler" : "")</span>
+                                <span class="small">@(z.Name == Labels.From(z.Type) ? "" : Labels.From(z.Type) + " · ")Nr. @z.Number@(z.MainMeterId is not null ? " · Unterzähler" : "")@(z.RemoteReadable ? " · fernablesbar" : "")</span>
                             </td>
                             <td>@z.Assignment</td>
                             <td class="number">@Format.Quantity(z.LastReading?.Value, Labels.From(z.MeasurementUnit))<br /><span class="small">@Format.Date(z.LastReading?.Date)</span></td>

@@ -17,6 +17,11 @@
     <AppDateField @bind-Value="Data.CalibrationDueDate" Label="Eichfrist bis" Hint="Leer = gesetzliche Frist ab Einbau" />
     <AppNumberField T="int" @bind-Value="Data.Order" Label="Reihenfolge der Ablesung" Min="0" Max="999" />
 </div>
+<AppCheckBox @bind-Value="Data.RemoteReadable" Label="Fernablesbar (Funk, M-Bus)" />
+@if (RemoteReadingRule.Covers(Data.Type))
+{
+    <p class="small">Heiz- und Warmwasserzähler in den Wohnungen müssen nach der HeizkostenV fernablesbar sein (Frist für den Bestand: 31.12.2026).</p>
+}
 
 @code {
     private IReadOnlyList<Guid?> assignmentIds = [];

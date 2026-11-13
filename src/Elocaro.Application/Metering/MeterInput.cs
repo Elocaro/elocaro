@@ -27,6 +27,9 @@ public sealed class MeterInput
 
     public DateOnly? CalibrationDueDate { get; set; }
 
+    /// <summary>The meter can be read remotely (radio, M-Bus); see <c>RemoteReadingRule</c>.</summary>
+    public bool RemoteReadable { get; set; }
+
     [Range(0, 999)]
     public int Order { get; set; }
 
@@ -85,4 +88,7 @@ public sealed class ReplacementInput
     public decimal? InitialReading { get; set; }
 
     public DateOnly? CalibrationDueDate { get; set; }
+
+    /// <summary>The new meter can be read remotely; replacement meters in apartments should be (new meters have to be since 2021).</summary>
+    public bool RemoteReadable { get; set; }
 }

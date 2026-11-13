@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261112192758_BackupWeekday";
+    public override string LastMigrationId => "20261113153803_MeterRemoteReadable";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -3924,6 +3924,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.Property<Guid>("PropertyId")
                     .HasColumnType("uuid")
                     .HasColumnName("property_id");
+
+                b.Property<bool>("RemoteReadable")
+                    .HasColumnType("boolean")
+                    .HasColumnName("remote_readable");
 
                 b.Property<DateOnly?>("RemovedOn")
                     .HasColumnType("date")
