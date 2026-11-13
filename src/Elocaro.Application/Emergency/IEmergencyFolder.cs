@@ -31,7 +31,7 @@ public static class EmergencyFolderLimits
     public const int MaxPasswordLength = 256;
 
     /// <summary>Maximum size of the unencrypted content including embedded documents.</summary>
-    public const long MaxContentBytes = 40L * 1024 * 1024;
+    public const long MaxContentBytes = 100L * 1024 * 1024;
 }
 
 public sealed class EmergencyFolderNotes
