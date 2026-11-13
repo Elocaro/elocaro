@@ -175,6 +175,31 @@ public class OperatingCostCalculatorTests
     }
 
     [Fact]
+    public void Annual_pre_deduction_amount_is_prorated_for_a_billing_period_shorter_than_a_year()
+    {
+        var halfYear = Span(D(2026, 1, 1), D(2026, 6, 30));
+
+        var result = Calculate(BothAllYear(), [Cost(1, "betrkv-10", 1000m, halfYear)], [Rule("betrkv-10", AllocationKey.LivingArea, amount: 150m)], period: halfYear);
+
+        // 150.00 € per year × 181/365 days = 74.38 €; 925.62 € by area 60 : 40 → 555.37 and 370.25
+        Assert.Equal(74.38m, result.Landlord.Single(p => p.Reason == LandlordReason.PreDeduction).Amount);
+        Assert.Equal([555.37m, 370.25m], Both.Select(l => Line(result, l, "betrkv-10").Share));
+    }
+
+    [Fact]
+    public void Annual_pre_deduction_amount_is_deducted_once_when_direct_costs_belong_to_several_units()
+    {
+        var result = Calculate(
+            BothAllYear(),
+            [Cost(1, "betrkv-17", 300m, unit: 1), Cost(2, "betrkv-17", 300m, unit: 2)],
+            [Rule("betrkv-17", AllocationKey.Direct, amount: 100m)]);
+
+        // 100.00 € for the cost type and year, not per unit: 50.00 € of each unit's 300.00 €
+        Assert.Equal(100m, result.Landlord.Where(p => p.Reason == LandlordReason.PreDeduction).Sum(p => p.Amount));
+        Assert.Equal([250m, 250m], Both.Select(l => Line(result, l, "betrkv-17").Share));
+    }
+
+    [Fact]
     public void Cost_type_that_is_not_agreed_in_the_lease_is_not_charged()
     {
         var leases = new[] { Lease(11, "Anna", 1, D(2025, 1, 1), excluded: "betrkv-10"), Lease(12, "Ben", 2, D(2025, 1, 1)) };
@@ -337,6 +362,18 @@ public class OperatingCostCalculatorTests
 
         Assert.Contains("höchstens 12 Monate", error.Message, StringComparison.Ordinal);
         Assert.Throws<RuleViolationException>(() => OperatingCostCalculator.Calculate(Input([One], [], [], [], period: Span(D(2026, 1, 1)))));
+    }
+
+    [Fact]
+    public void Billing_period_of_twelve_months_that_starts_on_a_leap_day_is_accepted()
+    {
+        // 29.02.2024 – 28.02.2025 is exactly twelve months (§ 188 para. 2 and 3 BGB)
+        var period = Span(D(2024, 2, 29), D(2025, 2, 28));
+
+        var result = Calculate([Lease(11, "Anna", 1, D(2020, 1, 1))], [Cost(1, "betrkv-01", 366m, period)], [Rule("betrkv-01", AllocationKey.LivingArea)], units: [One], period: period);
+
+        Assert.Equal(366m, Line(result, 11, "betrkv-01").Share);
+        Assert.Throws<RuleViolationException>(() => Calculate([], [], [], units: [One], period: Span(D(2024, 2, 29), D(2025, 3, 1))));
     }
 
     [Fact]

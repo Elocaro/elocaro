@@ -66,6 +66,9 @@ public class PrepaymentCalculatorTests
     [InlineData(1200, 365, 365, 0, 100)]
     [InlineData(1000, 365, 365, 5, 88)] // 83.33 × 1.05 = 87.50 → 88
     [InlineData(600, 182, 365, 0, 101)] // half a year extrapolated: 600 ÷ 182 × 365 = 1,203.30 ÷ 12 = 100.27 → 101
+    [InlineData(600, 181, 181, 0, 101)] // billing period of half a year: 600 ÷ 181 × 365 = 1,209.94 ÷ 12 = 100.83 → 101
+    [InlineData(300, 90, 181, 0, 102)] // part of a short period: 300 ÷ 90 × 365 = 1,216.67 ÷ 12 = 101.39 → 102
+    [InlineData(1200, 366, 366, 0, 100)] // leap year: the whole period is the year
     [InlineData(0, 365, 365, 5, 0)]
     [InlineData(-120, 365, 365, 0, 0)] // credit larger than the costs never gives a negative prepayment
     public void Prepayment_is_a_twelfth_of_the_annual_costs_plus_margin_rounded_up(decimal share, int tenantDays, int periodDays, decimal percent, decimal expected)

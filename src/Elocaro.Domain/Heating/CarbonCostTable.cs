@@ -10,7 +10,9 @@ public sealed record CarbonCostLevel(int Number, decimal From, decimal? To, deci
 {
     public decimal TenantPercent => 100m - LandlordPercent;
 
-    public bool Contains(decimal specificKg) => specificKg >= From && (To is null || specificKg < To);
+    /// <param name="periodFactor">Share of a year the billing period covers (1 for a year): the bounds are reduced pro rata (§ 5 para. 1 sentence 4).</param>
+    public bool Contains(decimal specificKg, decimal periodFactor = 1m) =>
+        specificKg >= From * periodFactor && (To is null || specificKg < To * periodFactor);
 
     public string Range => To is { } to
         ? string.Create(CultureInfo.GetCultureInfo("de-DE"), $"{(Number == 1 ? "unter" : $"{From:0.##} bis unter")} {to:0.##} kg/(m²·a)")
@@ -22,8 +24,8 @@ public sealed record CarbonCostTable(string Version, int ValidFromYear, string S
 {
     public bool Verified { get; init; }
 
-    public CarbonCostLevel LevelFor(decimal specificKg) =>
-        Levels.FirstOrDefault(l => l.Contains(specificKg)) ?? Levels[^1];
+    public CarbonCostLevel LevelFor(decimal specificKg, decimal periodFactor = 1m) =>
+        Levels.FirstOrDefault(l => l.Contains(specificKg, periodFactor)) ?? Levels[^1];
 }
 
 /// <summary>
@@ -53,12 +55,16 @@ public static class CarbonCostTables
             ]),
     ];
 
-    /// <summary>The table valid for the billing year; <c>null</c> before the law came into force.</summary>
+    /// <summary>
+    /// The table valid for the year in which the billing period <b>begins</b>; <c>null</c> before the law applies
+    /// (§ 11 para. 2 CO2KostAufG: billing periods that begin on or after 1 January 2023).
+    /// </summary>
     public static CarbonCostTable? For(int billingYear) =>
         All.Where(t => t.ValidFromYear <= billingYear).OrderByDescending(t => t.ValidFromYear).FirstOrDefault();
 }
 
 /// <summary>Result of the level determination.</summary>
+/// <param name="SpecificKg">Emissions per m² in the billing period, rounded to one decimal, converted to a year with <paramref name="YearFactor"/>.</param>
 public sealed record CarbonCostClassification(CarbonCostTable Table, CarbonCostLevel Level, decimal SpecificKg, decimal Co2Kg, decimal LivingArea, decimal YearFactor);
 
 /// <summary>Determination of the level from the emissions of the building (pure).</summary>
@@ -66,7 +72,10 @@ public static class CarbonCostCalculator
 {
     /// <param name="co2Kg">CO₂ emissions of the fuel supplied in the billing period (heating and hot water).</param>
     /// <param name="livingArea">Living area of the building in m².</param>
-    /// <param name="billingDays">Days of the billing period; periods that are not a year long are converted to a year.</param>
+    /// <param name="billingDays">
+    /// Days of the billing period. The emissions per m² are rounded to one decimal (§ 5 para. 1 sentence 3 CO2KostAufG); for a period
+    /// shorter than a year the bounds of the levels are reduced pro rata (sentence 4).
+    /// </param>
     public static CarbonCostClassification Classify(CarbonCostTable table, decimal co2Kg, decimal livingArea, int billingDays)
     {
         ArgumentNullException.ThrowIfNull(table);
@@ -75,8 +84,10 @@ public static class CarbonCostCalculator
             throw new ArgumentOutOfRangeException(nameof(livingArea), "Die Wohnfläche muss größer als 0 sein.");
         }
 
-        var yearFactor = billingDays is 365 or 366 ? 1m : 365m / billingDays;
-        var specific = co2Kg * yearFactor / livingArea;
-        return new CarbonCostClassification(table, table.LevelFor(specific), specific, co2Kg, livingArea, yearFactor);
+        var shortPeriod = billingDays < 365;
+        var measured = decimal.Round(co2Kg / livingArea, 1, MidpointRounding.AwayFromZero);
+        var level = table.LevelFor(measured, shortPeriod ? billingDays / 365m : 1m);
+        var yearFactor = shortPeriod ? 365m / billingDays : 1m;
+        return new CarbonCostClassification(table, level, measured * yearFactor, co2Kg, livingArea, yearFactor);
     }
 }
