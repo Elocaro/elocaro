@@ -1,6 +1,7 @@
 @page "/verwaltung/system/neuigkeiten"
 @using Elocaro.Application.Operations
 @using Elocaro.Web.Display
+@using Elocaro.Web.Operations
 @inject IUpdateInfo Updates
 
 <PageTitle>Neuigkeiten – Elocaro</PageTitle>
@@ -47,6 +48,13 @@ else
             @if (info.CheckedAt is { } checkedAt && info.Failed is false)
             {
                 <p class="small">Zuletzt geprüft: @Format.Timestamp(checkedAt)</p>
+            }
+            @if (info.Enabled && info.CurrentVersion is not null)
+            {
+                <form method="post" action="@UpdateCheckEndpoint.Path" data-enhance="false" id="news-check-form">
+                    <AntiforgeryToken />
+                    <button type="submit" class="button button-outlined" id="news-check">Jetzt prüfen</button>
+                </form>
             }
         </div>
     </section>

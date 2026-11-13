@@ -4,6 +4,12 @@ namespace Elocaro.Application.Operations;
 public interface IUpdateInfo
 {
     Task<UpdateInfo> GetAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Asks GitHub for the published releases right away instead of waiting for the next scheduled check. Does nothing for a
+    /// switched-off check, a development build, or if the last attempt was only a moment ago (spares the GitHub rate limit).
+    /// </summary>
+    Task<UpdateInfo> RefreshAsync(CancellationToken cancellationToken = default);
 }
 
 /// <param name="Version">Without the leading "v", e.g. "0.2.0".</param>

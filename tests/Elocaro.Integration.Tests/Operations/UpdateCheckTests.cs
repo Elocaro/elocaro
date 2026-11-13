@@ -6,6 +6,7 @@ using Elocaro.Application.Admin;
 using Elocaro.Application.Operations;
 using Elocaro.Infrastructure.Identity;
 using Elocaro.Infrastructure.Operations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
@@ -65,7 +66,7 @@ public class UpdateCheckTests
         var (checker, state, options) = Setup(new Stub(HttpStatusCode.OK, Releases));
         await checker.CheckAsync(TestContext.Current.CancellationToken);
 
-        var info = await new UpdateInfoService(state, options).GetAsync(TestContext.Current.CancellationToken);
+        var info = await new UpdateInfoService(state, options, new ServiceCollection().BuildServiceProvider(), TimeProvider.System).GetAsync(TestContext.Current.CancellationToken);
 
         Assert.True(info.UpdateAvailable);
         Assert.Equal("0.2.0", info.Latest!.Version);
@@ -82,10 +83,10 @@ public class UpdateCheckTests
         await checker.CheckAsync(TestContext.Current.CancellationToken);
 
         options.Value.CurrentVersion = "0.2.0";
-        Assert.False((await new UpdateInfoService(state, options).GetAsync(TestContext.Current.CancellationToken)).UpdateAvailable);
+        Assert.False((await new UpdateInfoService(state, options, new ServiceCollection().BuildServiceProvider(), TimeProvider.System).GetAsync(TestContext.Current.CancellationToken)).UpdateAvailable);
 
         options.Value.CurrentVersion = "Entwicklung";
-        var development = await new UpdateInfoService(state, options).GetAsync(TestContext.Current.CancellationToken);
+        var development = await new UpdateInfoService(state, options, new ServiceCollection().BuildServiceProvider(), TimeProvider.System).GetAsync(TestContext.Current.CancellationToken);
         Assert.Null(development.CurrentVersion);
         Assert.False(development.UpdateAvailable);
     }
@@ -102,7 +103,7 @@ public class UpdateCheckTests
         stub.Next = (status, body);
         await checker.CheckAsync(TestContext.Current.CancellationToken);
 
-        var info = await new UpdateInfoService(state, options).GetAsync(TestContext.Current.CancellationToken);
+        var info = await new UpdateInfoService(state, options, new ServiceCollection().BuildServiceProvider(), TimeProvider.System).GetAsync(TestContext.Current.CancellationToken);
         Assert.True(info.Failed);
         Assert.Equal("0.2.0", info.Latest!.Version);
     }
@@ -117,7 +118,7 @@ public class UpdateCheckTests
         await checker.CheckAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(0, stub.Calls);
-        var info = await new UpdateInfoService(state, options).GetAsync(TestContext.Current.CancellationToken);
+        var info = await new UpdateInfoService(state, options, new ServiceCollection().BuildServiceProvider(), TimeProvider.System).GetAsync(TestContext.Current.CancellationToken);
         Assert.False(info.Enabled);
         Assert.Empty(info.Releases);
     }
@@ -138,7 +139,7 @@ public class UpdateCheckTests
     {
         var (checker, state, options) = Setup(new Stub(HttpStatusCode.OK, Releases));
         await checker.CheckAsync(TestContext.Current.CancellationToken);
-        var updates = new UpdateInfoService(state, options);
+        var updates = new UpdateInfoService(state, options, new ServiceCollection().BuildServiceProvider(), TimeProvider.System);
 
         var admin = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.Admin)], "test"));
         var system = new ClaimsPrincipal(new ClaimsIdentity([new Claim(Permissions.ClaimType, nameof(AccessRight.System))], "test"));
@@ -153,6 +154,50 @@ public class UpdateCheckTests
         Assert.Single(await new UpdateTodos(updates, Options.Create(new DemoOptions())).TodosAsync(system, TestContext.Current.CancellationToken));
         Assert.Empty(await new UpdateTodos(updates, Options.Create(new DemoOptions())).TodosAsync(manager, TestContext.Current.CancellationToken));
         Assert.Empty(await new UpdateTodos(updates, Options.Create(new DemoOptions { Enabled = true })).TodosAsync(admin, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Refresh_asks_right_away_but_not_twice_within_the_minimum_interval()
+    {
+        var stub = new Stub(HttpStatusCode.OK, Releases);
+        var (service, clock) = RefreshSetup(stub);
+
+        var first = await service.RefreshAsync(TestContext.Current.CancellationToken);
+        await service.RefreshAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("0.2.0", first.Latest!.Version);
+        Assert.Equal(1, stub.Calls);
+
+        clock.Advance(UpdateInfoService.RefreshInterval + TimeSpan.FromSeconds(1));
+        await service.RefreshAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(2, stub.Calls);
+    }
+
+    [Theory]
+    [InlineData(false, "0.1.0")]
+    [InlineData(true, "Entwicklung")]
+    public async Task Refresh_asks_nobody_when_the_check_is_off_or_this_is_a_development_build(bool enabled, string version)
+    {
+        var stub = new Stub(HttpStatusCode.OK, Releases);
+        var (service, _) = RefreshSetup(stub, o => (o.Enabled, o.CurrentVersion) = (enabled, version));
+
+        var info = await service.RefreshAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, stub.Calls);
+        Assert.Empty(info.Releases);
+    }
+
+    private static (UpdateInfoService Service, FakeTimeProvider Clock) RefreshSetup(Stub stub, Action<UpdateCheckOptions>? configure = null)
+    {
+        var options = new UpdateCheckOptions { CurrentVersion = "0.1.0" };
+        configure?.Invoke(options);
+        var wrapped = Options.Create(options);
+        var state = new UpdateState();
+        var clock = new FakeTimeProvider(new DateTimeOffset(2026, 11, 12, 12, 0, 0, TimeSpan.Zero));
+        var services = new ServiceCollection()
+            .AddSingleton(new UpdateChecker(new HttpClient(stub), state, clock, wrapped, NullLogger<UpdateChecker>.Instance))
+            .BuildServiceProvider();
+        return (new UpdateInfoService(state, wrapped, services, clock), clock);
     }
 
     private static (UpdateChecker Checker, UpdateState State, IOptions<UpdateCheckOptions> Options) Setup(Stub stub)

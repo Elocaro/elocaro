@@ -7,6 +7,7 @@ using Elocaro.Application.Admin;
 using Elocaro.Application.Operations;
 using Elocaro.Application.Todos;
 using Elocaro.Infrastructure.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -44,13 +45,43 @@ internal sealed class UpdateState
     public sealed record Snapshot(IReadOnlyList<ReleaseNotes> Releases, DateTimeOffset? CheckedAt, bool Failed);
 }
 
-internal sealed class UpdateInfoService(UpdateState state, IOptions<UpdateCheckOptions> options) : IUpdateInfo
+internal sealed class UpdateInfoService(UpdateState state, IOptions<UpdateCheckOptions> options, IServiceProvider services, TimeProvider clock) : IUpdateInfo
 {
+    /// <summary>Minimum time between two manual checks.</summary>
+    internal static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(30);
+
+    private readonly Lock gate = new();
+    private DateTimeOffset? lastRefresh;
+
     public Task<UpdateInfo> GetAsync(CancellationToken cancellationToken = default)
     {
         var current = state.Current;
         var version = ReleaseVersion.TryParse(options.Value.CurrentVersion, out _) ? options.Value.CurrentVersion : null;
         return Task.FromResult(new UpdateInfo(version, options.Value.Enabled, current.CheckedAt, current.Failed, current.Releases));
+    }
+
+    public async Task<UpdateInfo> RefreshAsync(CancellationToken cancellationToken = default)
+    {
+        var info = await GetAsync(cancellationToken);
+        if (!info.Enabled || info.CurrentVersion is null)
+        {
+            return info;
+        }
+
+        var now = clock.GetUtcNow();
+        lock (gate)
+        {
+            if (lastRefresh is { } last && now - last < RefreshInterval)
+            {
+                return info;
+            }
+
+            lastRefresh = now;
+        }
+
+        // The checker is a typed HttpClient (transient): fetch a fresh one instead of holding it in this singleton.
+        await services.GetRequiredService<UpdateChecker>().CheckAsync(cancellationToken);
+        return await GetAsync(cancellationToken);
     }
 }
 
