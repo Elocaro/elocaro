@@ -69,7 +69,7 @@ Alle Einstellungen kommen über Umgebungsvariablen in `deploy/.env` (eingetragen
 
 ## KI-Zugriff über MCP (optional)
 
-`MCP_ENABLED=true` in `deploy/.env` schaltet die lesende MCP-Schnittstelle `/mcp` ein, mit der KI-Assistenten (Claude, GitHub Copilot, Cursor u. a.) die Daten abfragen können. Sie ist standardmäßig aus und in der Demo nie verfügbar. Weitere Schlüssel: `MCP_REQUESTS_PER_MINUTE` (je Absenderadresse, 120), `MCP_MAX_RESULTS` (Einträge je Abfrage, 50) und `ACCESS_TOKEN_MAX_DAYS` (längste Gültigkeit eines Zugriffstokens, 90). Anmeldung, Rechte, Anleitungen für die Clients und Datenschutzhinweise: [mcp.md](mcp.md). Hinter Caddy ist nichts weiter einzustellen; der Proxy muss den Header `Authorization` weiterreichen (Standard).
+`MCP_ENABLED=true` in `deploy/.env` schaltet die MCP-Schnittstelle `/mcp` ein (lesend; `MCP_ALLOW_WRITE=true` erlaubt zusätzlich ein paar schreibende Werkzeuge für Stammdaten, siehe mcp.md), mit der KI-Assistenten (Claude, GitHub Copilot, Cursor u. a.) die Daten abfragen können. Sie ist standardmäßig aus und in der Demo nie verfügbar. Weitere Schlüssel: `MCP_REQUESTS_PER_MINUTE` (je Absenderadresse, 120), `MCP_MAX_RESULTS` (Einträge je Abfrage, 50) und `ACCESS_TOKEN_MAX_DAYS` (längste Gültigkeit eines Zugriffstokens, 90). Anmeldung, Rechte, Anleitungen für die Clients und Datenschutzhinweise: [mcp.md](mcp.md). Hinter Caddy ist nichts weiter einzustellen; der Proxy muss den Header `Authorization` weiterreichen (Standard).
 
 ## Belegauslesung (optional, KI)
 

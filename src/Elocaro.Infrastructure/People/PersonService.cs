@@ -100,6 +100,7 @@ internal sealed class PersonService(
     }
 
     public Task<Result> CreateAsync(PersonInput data, AddressInput? address = null, CancellationToken cancellationToken = default) =>
+        InputRules.Check(data, address) is { } invalid ? Task.FromResult(invalid) :
         Command.ExecuteAsync(async () =>
         {
             ArgumentNullException.ThrowIfNull(data);
@@ -116,6 +117,7 @@ internal sealed class PersonService(
         });
 
     public Task<Result> UpdateAsync(Guid id, PersonInput data, CancellationToken cancellationToken = default) =>
+        InputRules.Check(data) is { } invalid ? Task.FromResult(invalid) :
         WithPersonAsync(id, person =>
         {
             ArgumentNullException.ThrowIfNull(data);

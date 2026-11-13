@@ -1,6 +1,6 @@
 # ADR 0007: MCP mit Schreibzugriff, Aktivitätsprotokoll und Rückgängig
 
-- Status: angenommen (Schritte 1 bis 3 umgesetzt)
+- Status: angenommen (Schritte 1 bis 4 umgesetzt)
 - Datum: 2026-11-13
 - Ersetzt den Punkt „Nur lesend“ aus [ADR 0006](0006-mcp-schnittstelle.md); alles andere aus 0006 bleibt.
 

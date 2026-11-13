@@ -151,7 +151,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         Input ??= new() { ValidDays = Math.Min(30, Tokens.MaxDays) };
-        available = IAccessTokens.Scopes.Where(s => s.Right is AccessRight.MasterData or AccessRight.Finance
+        available = IAccessTokens.Scopes.Where(s => (!s.Write || Tokens.WriteEnabled) && s.Right is AccessRight.MasterData or AccessRight.Finance
             && (HttpContext.User.IsInRole(Roles.Admin) || HttpContext.User.HasClaim(Permissions.ClaimType, s.Right.ToString()))).ToList();
         await LoadAsync();
     }

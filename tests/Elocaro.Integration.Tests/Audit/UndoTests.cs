@@ -1,7 +1,10 @@
 using Elocaro.Application.Audit;
 using Elocaro.Application.Common;
+using Elocaro.Application.Leases;
+using Elocaro.Application.Metering;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
+using Elocaro.Domain.Metering;
 using Elocaro.Domain.People;
 using Elocaro.Domain.Properties;
 using Elocaro.Integration.Tests.Infrastructure;
@@ -154,5 +157,41 @@ public class UndoTests(PostgresFixture postgres) : IAsyncLifetime
     {
         await using var scope = environment.Services.CreateAsyncScope();
         return await action(scope.ServiceProvider.GetRequiredService<TService>());
+    }
+
+    [Fact]
+    public async Task A_lease_is_taken_back_with_its_parties()
+    {
+        var (_, unit) = await PropertyWithUnitAsync();
+        var tenant = await CreatePersonAsync("Mieter", "mieter@example.de");
+        var lease = (await InOperationAsync<ILeaseService, Result>("Vertrag", s => s.CreateAsync(
+            new LeaseCreation { RentalUnitId = unit, Start = Today, TenantIds = [tenant], BaseRent = 650m, OperatingCostPrepayment = 180m, HeatingCostPrepayment = 90m, People = 1 }, Ct)));
+        Assert.True(lease.Succeeded, string.Join(", ", lease.Errors));
+
+        var check = await CheckAsync("Vertrag");
+
+        Assert.True(check.CanUndo, check.Reason);
+        Assert.True((await UndoAsync("Vertrag")).Succeeded);
+        Assert.Null(await InScopeAsync<ILeaseService, LeaseDetails?>(s => s.GetAsync(lease.Id!.Value, Ct)));
+    }
+
+    [Fact]
+    public async Task A_meter_is_taken_back_with_its_first_reading()
+    {
+        var (propertyId, _) = await PropertyWithUnitAsync();
+        var meter = await InOperationAsync<IMeterService, Result>("Zähler", s => s.CreateAsync(
+            propertyId, new MeterCreation { Data = new MeterInput { Type = MeterType.ColdWater, Name = "Kaltwasser", Number = "K-1" }, InstalledOn = Today, InitialReading = 10m }, Ct));
+        Assert.True(meter.Succeeded, string.Join(", ", meter.Errors));
+
+        Assert.True((await UndoAsync("Zähler")).Succeeded);
+
+        Assert.DoesNotContain(await InScopeAsync<IMeterService, IReadOnlyList<MeterRow>>(s => s.ListAsync(propertyId, false, Ct)), m => m.Id == meter.Id);
+    }
+
+    private async Task<(Guid PropertyId, Guid UnitId)> PropertyWithUnitAsync()
+    {
+        var propertyId = (await InScopeAsync<IPropertyService, Result>(s => s.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, Ct))).Id!.Value;
+        var unitId = (await InScopeAsync<IPropertyService, Result>(s => s.CreateUnitAsync(propertyId, new UnitInput { Name = "Wohnung 1" }, Ct))).Id!.Value;
+        return (propertyId, unitId);
     }
 }

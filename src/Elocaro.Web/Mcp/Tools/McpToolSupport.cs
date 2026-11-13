@@ -16,3 +16,14 @@ internal static class McpToolSupport
         return new McpList<T>(source.Count, items.Count, items, source.Count > max ? $"Es werden nur die ersten {max} Einträge gezeigt. Bitte die Suche eingrenzen." : null);
     }
 }
+
+/// <summary>The result of a changing tool call: what happened, the id of the record and where to take it back.</summary>
+public sealed record McpChange(bool Succeeded, Guid? Id, IReadOnlyList<string> Errors, string? Note)
+{
+    internal const string UndoNote = "Rückgängig machen: Elocaro → Einstellungen → System → Aktivität.";
+
+    public static McpChange From(Elocaro.Application.Common.Result result, Guid? id = null) =>
+        new(result.Succeeded, result.Id ?? id, result.Errors, result.Succeeded ? UndoNote : null);
+
+    public static McpChange Failed(string error) => new(false, null, [error], null);
+}

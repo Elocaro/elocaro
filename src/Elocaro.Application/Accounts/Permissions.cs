@@ -49,5 +49,8 @@ public static class Policies
     public const string UserManagement = "Permission:UserManagement";
     public const string System = "Permission:System";
 
+    /// <summary>Write tools on master data: the permission plus the write scope of the token (see ADR 0007).</summary>
+    public const string MasterDataWrite = "Write:MasterData";
+
     public static string For(AccessRight permission) => "Permission:" + permission;
 }

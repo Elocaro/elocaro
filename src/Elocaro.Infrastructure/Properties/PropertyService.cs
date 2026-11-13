@@ -65,6 +65,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
     }
 
     public Task<Result> CreateAsync(PropertyInput data, CancellationToken cancellationToken = default) =>
+        InputRules.Check(data) is { } invalid ? Task.FromResult(invalid) :
         ExecuteAsync(async () =>
         {
             ArgumentNullException.ThrowIfNull(data);
@@ -76,6 +77,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
         });
 
     public Task<Result> UpdateAsync(Guid id, PropertyInput data, CancellationToken cancellationToken = default) =>
+        InputRules.Check(data) is { } invalid ? Task.FromResult(invalid) :
         WithPropertyAsync(id, property =>
         {
             ArgumentNullException.ThrowIfNull(data);
@@ -116,6 +118,11 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
 
     public async Task<Result> CreateUnitAsync(Guid propertyId, UnitInput data, CancellationToken cancellationToken = default)
     {
+        if (InputRules.Check(data) is { } invalidUnit)
+        {
+            return invalidUnit;
+        }
+
         Guid? newItem = null;
         var result = await WithPropertyAsync(propertyId, property =>
         {
@@ -150,6 +157,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
     }
 
     public Task<Result> UpdateUnitAsync(Guid id, UnitInput data, CancellationToken cancellationToken = default) =>
+        InputRules.Check(data) is { } invalid ? Task.FromResult(invalid) :
         WithUnitAsync(id, (property, unit) =>
         {
             ArgumentNullException.ThrowIfNull(data);

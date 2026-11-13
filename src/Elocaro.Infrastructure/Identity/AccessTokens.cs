@@ -33,6 +33,8 @@ internal sealed class AccessTokens(
     // The MCP interface is the only integration so far; tokens are only of use while one is switched on. Add further ones here.
     public bool IsAvailable => !demo.Value.Enabled && mcp.Value.Enabled;
 
+    public bool WriteEnabled => IsAvailable && mcp.Value.AllowWrite;
+
     public int MaxDays => options.Value.MaxDays;
 
     public async Task<IReadOnlyList<AccessTokenInfo>> ListAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -64,6 +66,11 @@ internal sealed class AccessTokens(
         }
 
         var chosen = IAccessTokens.Scopes.Where(s => scopes.Contains(s.Name)).ToList();
+        if (chosen.Any(s => s.Write) && !WriteEnabled)
+        {
+            return AccessTokenResult.Failed("Schreibzugriff ist auf diesem Server nicht eingeschaltet.");
+        }
+
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 100)
         {
             return AccessTokenResult.Failed("Bitte einen Namen mit höchstens 100 Zeichen angeben.");
@@ -132,7 +139,8 @@ internal sealed class AccessTokens(
             return null;
         }
 
-        var rights = EffectiveRights(account.Rights, stored.Scopes);
+        var rights = EffectiveRights(account.Rights, stored.Scopes, WriteEnabled);
+        var writeScopes = WriteEnabled ? IAccessTokens.Scopes.Where(s => s.Write && stored.Scopes.Contains(s.Name) && account.Rights.Contains(s.Right)).Select(s => s.Name).ToList() : [];
         if (rights.Count == 0)
         {
             return null;
@@ -144,7 +152,7 @@ internal sealed class AccessTokens(
             await db.Set<AccessToken>().Where(t => t.Id == stored.Id).ExecuteUpdateAsync(s => s.SetProperty(t => t.LastUsedAt, now), cancellationToken);
         }
 
-        return await BuildPrincipalAsync(account.User, stored.Id, rights);
+        return await BuildPrincipalAsync(account.User, stored.Id, rights, writeScopes);
     }
 
     public async Task RecordUseAsync(ClaimsPrincipal user, string action, string argumentsHash, CancellationToken cancellationToken = default)
@@ -159,7 +167,7 @@ internal sealed class AccessTokens(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<ClaimsPrincipal> BuildPrincipalAsync(ApplicationUser user, Guid tokenId, IReadOnlyList<AccessRight> rights)
+    private async Task<ClaimsPrincipal> BuildPrincipalAsync(ApplicationUser user, Guid tokenId, IReadOnlyList<AccessRight> rights, IReadOnlyList<string> writeScopes)
     {
         var full = await claimsFactory.CreateAsync(user);
         var identity = new ClaimsIdentity("ElocaroAccessToken", ClaimsIdentity.DefaultNameClaimType, ClaimsIdentity.DefaultRoleClaimType);
@@ -176,6 +184,11 @@ internal sealed class AccessTokens(
         }
 
         identity.AddClaim(new Claim(IAccessTokens.TokenIdClaim, tokenId.ToString()));
+        foreach (var scope in writeScopes)
+        {
+            identity.AddClaim(new Claim(IAccessTokens.WriteScopeClaim, scope));
+        }
+
         return new ClaimsPrincipal(identity);
     }
 
@@ -207,9 +220,9 @@ internal sealed class AccessTokens(
         return new Account(user, rights);
     }
 
-    /// <summary>Rights of the account that the scopes of the token cover. Nothing but the read scopes ever applies.</summary>
-    private static List<AccessRight> EffectiveRights(IReadOnlyCollection<AccessRight> accountRights, IEnumerable<string> scopes) =>
-        IAccessTokens.Scopes.Where(s => scopes.Contains(s.Name) && accountRights.Contains(s.Right)).Select(s => s.Right).ToList();
+    /// <summary>Rights of the account that the scopes of the token cover. A write scope covers the right too (the assistant has to read what it changes); it only counts while writing is switched on.</summary>
+    private static List<AccessRight> EffectiveRights(IReadOnlyCollection<AccessRight> accountRights, IEnumerable<string> scopes, bool writeEnabled) =>
+        IAccessTokens.Scopes.Where(s => (writeEnabled || !s.Write) && scopes.Contains(s.Name) && accountRights.Contains(s.Right)).Select(s => s.Right).Distinct().ToList();
 
     private bool TryUserId(ClaimsPrincipal actor, out Guid userId)
     {

@@ -59,6 +59,11 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
     public async Task<Result> CreateAsync(Guid propertyId, MeterCreation creation, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(creation);
+        if (InputRules.Check(creation, creation.Data) is { } invalid)
+        {
+            return invalid;
+        }
+
         if (!await db.Set<Property>().AnyAsync(o => o.Id == propertyId, cancellationToken))
         {
             return Command.NotFound;

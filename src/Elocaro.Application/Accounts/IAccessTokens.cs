@@ -13,6 +13,12 @@ public interface IAccessTokens
     /// <summary>Claim on the principal of a token request: the id of the token.</summary>
     public const string TokenIdClaim = "elocaro:access-token";
 
+    /// <summary>Claim on the principal of a token request: one per write scope of the token (only while <c>Mcp:AllowWrite</c> is on).</summary>
+    public const string WriteScopeClaim = "elocaro:write-scope";
+
+    /// <summary>The write scope for master data (create and change properties, people, leases, meters).</summary>
+    public const string WriteMasterData = "write:masterdata";
+
     /// <summary>Roles that may hold a token.</summary>
     public static bool MayHoldToken(IEnumerable<string> roles) => roles.Any(r => r is Roles.Admin or Roles.Manager);
 
@@ -21,10 +27,14 @@ public interface IAccessTokens
     [
         new("read:masterdata", AccessRight.MasterData, "Stammdaten lesen (Objekte, Mieter, Verträge, Zähler, Dokumente)"),
         new("read:finance", AccessRight.Finance, "Finanzen lesen (Mieterkonten, Belege, Bank, Abrechnungen)"),
+        new(WriteMasterData, AccessRight.MasterData, "Stammdaten schreiben: Objekte, Einheiten, Personen, Mietverträge und Zähler anlegen und ändern (schließt Lesen ein; jede Aktion steht in der Aktivität und lässt sich dort rückgängig machen)", Write: true),
     ];
 
     /// <summary>Whether tokens can be used at all: at least one integration is switched on, and this is no demo instance.</summary>
     bool IsAvailable { get; }
+
+    /// <summary>Whether write scopes can be chosen and take effect (<c>Mcp:AllowWrite</c>).</summary>
+    bool WriteEnabled { get; }
 
     /// <summary>Longest validity of a new token in days.</summary>
     int MaxDays { get; }
@@ -54,7 +64,7 @@ public interface IAccessTokens
     Task RecordUseAsync(ClaimsPrincipal user, string action, string argumentsHash, CancellationToken cancellationToken = default);
 }
 
-public sealed record AccessScope(string Name, AccessRight Right, string Description);
+public sealed record AccessScope(string Name, AccessRight Right, string Description, bool Write = false);
 
 public sealed record AccessTokenInfo(
     Guid Id,

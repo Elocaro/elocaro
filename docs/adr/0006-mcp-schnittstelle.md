@@ -1,4 +1,4 @@
-# ADR 0006: MCP-Schnittstelle (nur lesend) mit persönlichen Zugriffstoken
+# ADR 0006: MCP-Schnittstelle mit persönlichen Zugriffstoken (der Punkt „nur lesend“ ist durch ADR 0007 ersetzt)
 
 - Status: angenommen
 - Datum: 2026-11-09

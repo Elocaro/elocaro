@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- MCP kann Stammdaten anlegen und ändern (`MCP_ALLOW_WRITE=true`, Token-Bereich `write:masterdata`): Objekt, Einheit, Person, Zähler und Mietvertrag anlegen, Kontaktdaten ändern. Nichts wird gelöscht; jeder Aufruf steht in der Aktivität und lässt sich zurücknehmen. Die Regeln der Formulare (Pflichtfelder, Längen, Postleitzahl) prüfen jetzt auch die Dienste (Refs #183).
 - Rückgängig in der Aktivität: Änderungen an Objekten, Einheiten, Personen, Mietverträgen und Zählern lassen sich zurücknehmen (Anlegen → gelöscht, Löschen → wiederhergestellt, Ändern → frühere Werte). Das Rückgängig wird selbst protokolliert und bricht ab, wenn der Datensatz seitdem geändert wurde oder noch etwas darauf verweist. Mail-Versand, Bank, Signaturen und Finanzbuchungen sind ausgenommen (Refs #183).
 - Aktivität (*Einstellungen → System → Aktivität*): Jede Änderung an Daten gehört zu einer Operation mit Konto und Weg (Oberfläche, KI-Assistent über MCP, Hintergrundjob, Import). Mehrere Speichervorgänge einer Aktion, etwa ein Import, erscheinen als eine Zeile. Grundlage für Rückgängig und schreibenden MCP-Zugriff, siehe ADR 0007 (Refs #183).
 - Datenimport (*Einstellungen → Datenimport*) liest jetzt auch Excel-Dateien (.xlsx, erstes Tabellenblatt); Datumszellen und Zahlen werden erkannt, Spaltennamen wie in der CSV-Vorlage (Refs #180).

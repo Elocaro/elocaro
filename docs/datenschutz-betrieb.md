@@ -13,7 +13,7 @@ Arbeitsgrundlage für Betreiber von Elocaro: Wer mit Elocaro Mieterdaten verarbe
 | Ausgehende E-Mails | Empfänger, Betreff, Text, Zustellstatus | Mieter, Benutzer, Dienstleister | Vertragserfüllung, Nachweis des Versands | SMTP-Anbieter | Text von Mails mit geheimen Links (Einladung, Anmeldung, Passwort, Signatur) bis zur Zustellung; alle Mails 3 Jahre (`Mail:RetentionDays`). Mails, auf die ein Abrechnungsversand oder eine Mahnung verweist, bleiben danach ohne Text als Nachweis, siehe `docs/betrieb.md` |
 | Belege | Rechnungen, Lieferantendaten | Lieferanten | rechtliche Pflicht | optional KI-Anbieter, wenn die Belegauslesung mit einem Cloud-Anbieter aktiv ist (nur nach ausdrücklicher Einwilligung der Betreiber, siehe `docs/betrieb.md`) | Aufbewahrungsfristen |
 | Digitale Unterschrift | Name, IP-Adresse, Zeitpunkt, Prüfsumme | Mieter | Beweissicherung, Art. 6 Abs. 1 lit. f | – | mit dem Vertrag |
-| Betrieb | Zugriffs- und Änderungsprotokoll, Logs | Benutzer | IT-Sicherheit, Art. 6 Abs. 1 lit. f | – | Protokoll nach `Audit`-Einstellung, Job-Protokoll begrenzt |
+| Betrieb | Zugriffs- und Änderungsprotokoll, Logs | Benutzer | IT-Sicherheit, Art. 6 Abs. 1 lit. f | – | Protokoll nach `Audit`-Einstellung, Job-Protokoll begrenzt. Das Änderungsprotokoll zeigt vertrauliche Felder maskiert; für „Rückgängig“ liegt zusätzlich ein Vorher-Bild der geänderten Felder (auch vertrauliche, unmaskiert) in der Datenbank, wird nirgends angezeigt und folgt der Aufbewahrung des Änderungsprotokolls (ADR 0007) |
 
 ## Technische und organisatorische Maßnahmen
 

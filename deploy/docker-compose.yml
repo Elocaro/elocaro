@@ -46,6 +46,7 @@ services:
       Mcp__Enabled: ${MCP_ENABLED:-false}
       Mcp__RequestsPerMinute: ${MCP_REQUESTS_PER_MINUTE:-120}
       Mcp__MaxResults: ${MCP_MAX_RESULTS:-50}
+      Mcp__AllowWrite: ${MCP_ALLOW_WRITE:-false}
       AccessTokens__MaxDays: ${ACCESS_TOKEN_MAX_DAYS:-90}
       # Check for newer releases (GitHub, twice a day; display only, nothing is installed): false switches it off, see docs/betrieb.md
       UpdateCheck__Enabled: ${UPDATE_CHECK_ENABLED:-true}

@@ -1,8 +1,8 @@
 # KI-Zugriff über MCP
 
-Elocaro kann seine Daten einem KI-Assistenten **lesend** zur Verfügung stellen, über das [Model Context Protocol](https://modelcontextprotocol.io) (MCP). Dann lässt sich in Claude, GitHub Copilot, Cursor und ähnlichen Werkzeugen fragen: „Welche Mieter sind im Rückstand?“, „Was steht diese Woche an?“, „Zeig mir die Belege von Lindenweg 3 aus 2025, die noch nicht bezahlt sind.“
+Elocaro kann seine Daten einem KI-Assistenten **lesend** und, wenn der Betreiber es einschaltet, **schreibend** zur Verfügung stellen, über das [Model Context Protocol](https://modelcontextprotocol.io) (MCP). Dann lässt sich in Claude, GitHub Copilot, Cursor und ähnlichen Werkzeugen fragen: „Welche Mieter sind im Rückstand?“, „Was steht diese Woche an?“, „Zeig mir die Belege von Lindenweg 3 aus 2025, die noch nicht bezahlt sind.“
 
-Die Schnittstelle ist **standardmäßig aus**, kann nichts ändern und gibt nie mehr preis, als das Konto, dem das Token gehört, in Elocaro selbst sehen darf.
+Die Schnittstelle ist **standardmäßig aus**, ändert ohne ausdrückliche Freigabe (siehe [Schreibzugriff](#schreibzugriff)) nichts und gibt nie mehr preis, als das Konto, dem das Token gehört, in Elocaro selbst sehen darf.
 
 ## Auf einen Blick
 
@@ -11,7 +11,7 @@ Die Schnittstelle ist **standardmäßig aus**, kann nichts ändern und gibt nie 
 | Adresse | `https://<ihre-domain>/mcp` (Streamable HTTP, zustandslos) |
 | Anmeldung | Persönliches Zugriffstoken im Header `Authorization: Bearer elo_…` |
 | Wer darf | Administratoren und Verwalter (Rollen mit Pflicht-Zwei-Faktor), nicht Mieter, Eigentümer, Hausmeister, Handwerker |
-| Umfang | nur Lesen, 19 Werkzeuge (siehe [Werkzeuge](#werkzeuge)) |
+| Umfang | Lesen: 19 Werkzeuge; Schreiben: 6 Werkzeuge, nur mit `Mcp__AllowWrite=true` und Bereich `write:masterdata` (siehe [Werkzeuge](#werkzeuge)) |
 | Aktivieren | `Mcp__Enabled=true` |
 | Nicht in der Demo | Auf einer Demo-Instanz ist MCP immer abgeschaltet |
 
@@ -24,6 +24,7 @@ MCP_ENABLED=true
 # optional
 # MCP_REQUESTS_PER_MINUTE=120
 # MCP_MAX_RESULTS=50
+# MCP_ALLOW_WRITE=false
 # ACCESS_TOKEN_MAX_DAYS=90
 ```
 
@@ -91,6 +92,26 @@ Alle Werkzeuge sind schreibgeschützt (`readOnlyHint`).
 | `preview_operating_costs`, `list_statements` | Finanzen | Betriebskosten-Vorschau, freigegebene Abrechnungen |
 
 Ids für Folgeabfragen (Objekt, Vertrag) stammen aus den Listenwerkzeugen; der Assistent verkettet das selbst.
+
+## Schreibzugriff
+
+Schreibende Werkzeuge sind **aus**, solange der Betreiber `MCP_ALLOW_WRITE=true` (`Mcp:AllowWrite`) nicht setzt. Dann lässt sich beim Erstellen eines Tokens der Bereich `write:masterdata` wählen. Er schließt das Lesen der Stammdaten ein und gilt nur für Konten mit dem Recht *Stammdaten*.
+
+| Werkzeug | Wirkung |
+|---|---|
+| `create_property` | Objekt anlegen |
+| `create_unit` | Einheit in einem Objekt anlegen |
+| `create_person` | Person anlegen, auf Wunsch mit Anschrift |
+| `update_person_contact` | E-Mail, Telefon, Mobil, Notizen einer Person ändern |
+| `create_meter` | Zähler mit Anfangsstand anlegen |
+| `create_lease` | Mietvertrag anlegen |
+
+Was dabei gilt (Entscheidung: [ADR 0007](adr/0007-mcp-schreibzugriff-und-rueckgaengig.md)):
+
+- **Nichts wird gelöscht**, und es gibt keine Werkzeuge für Finanzbuchungen, Mails, Bank, Signaturen, Benutzer oder Token. Es sind nur Datentypen freigegeben, die sich rückgängig machen lassen.
+- **Dieselben Regeln wie in der Oberfläche:** Pflichtfelder, Längen und Wertebereiche der Formulare prüfen auch die Dienste; ein Aufruf mit ungültigen Werten wird mit denselben Meldungen abgelehnt.
+- **Jeder Aufruf ist eine Aktion** unter *Einstellungen → System → Aktivität* (Weg „KI-Assistent (MCP)“, Konto, Werkzeug, was geändert wurde) und lässt sich dort mit „Rückgängig“ zurücknehmen. Das Rückgängig bricht ab, wenn der Datensatz seitdem geändert wurde oder etwas darauf verweist.
+- **Prompt-Injection:** Texte aus Tickets, Nachrichten und Belegen kann ein Dritter geschrieben haben. Mit Schreibzugriff kann ein Assistent darauf hereinfallen und Daten anlegen oder ändern. Begrenzt wird das durch die kleine Werkzeugmenge, den eigenen Bereich und das Rückgängig; prüfen Sie die Aktivität regelmäßig. Das Token nur dem Client geben, dem Sie so weit vertrauen.
 
 ## Anleitungen für Clients
 
@@ -189,7 +210,7 @@ Jedes MCP-SDK mit Streamable-HTTP-Client funktioniert: URL `https://…/mcp`, He
 
 ## Grenzen und Ausblick
 
-- **Nur Lesen.** Schreibende Werkzeuge (z. B. Ticket anlegen) gibt es bewusst nicht. Sie würden eine Bestätigung je Aktion und ein eigenes Rechtekonzept verlangen.
+- **Schreiben nur eingeschränkt.** Es gibt nur Werkzeuge für Stammdaten (siehe [Schreibzugriff](#schreibzugriff)), keine Löschungen und nichts bei Finanzen, Mail, Bank oder Benutzern. Siehe [ADR 0007](adr/0007-mcp-schreibzugriff-und-rueckgaengig.md).
 - **Nur Administrator und Verwalter.** Portale (Mieter, Eigentümer, Hausmeister) sind nicht angebunden.
 - **Kein OAuth.** Damit entfallen die Web-Konnektoren von claude.ai und ChatGPT, die OAuth erwarten. Ein späterer Ausbau wäre OAuth 2.1 mit PKCE, bei dem die Anmeldung über die bestehende Seite samt Zwei-Faktor läuft und das Ergebnis weiter in dasselbe Token-Modell mündet. Siehe [ADR 0006](adr/0006-mcp-schnittstelle.md).
 - **Eine Instanz, ein Mandant.** Es gibt keine Trennung nach Objekten innerhalb einer Rolle, wie in der Oberfläche auch.

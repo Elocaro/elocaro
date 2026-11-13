@@ -15,4 +15,7 @@ public sealed class McpOptions
 
     /// <summary>Most entries a tool returns in one call.</summary>
     public int MaxResults { get; set; } = 50;
+
+    /// <summary>Whether tokens may carry write scopes (<c>write:masterdata</c>) and the write tools are available. Off by default (ADR 0007).</summary>
+    public bool AllowWrite { get; set; }
 }

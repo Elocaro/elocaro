@@ -19,6 +19,9 @@ internal static class AccessControlExtensions
             builder.AddPolicy(Policies.For(permission), p => p.RequireAssertion(k => HasPermission(k.User, permission)));
         }
 
+        builder.AddPolicy(Policies.MasterDataWrite, p => p.RequireAssertion(k =>
+            HasPermission(k.User, AccessRight.MasterData) && k.User.HasClaim(IAccessTokens.WriteScopeClaim, IAccessTokens.WriteMasterData)));
+
         return builder;
     }
 

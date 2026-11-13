@@ -134,6 +134,11 @@ internal sealed class LeaseService(ElocaroDbContext db, TimeProvider clock, IMod
     public async Task<Result> CreateAsync(LeaseCreation creation, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(creation);
+        if (InputRules.Check(creation, creation.Data) is { } invalid)
+        {
+            return invalid;
+        }
+
         var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
         if (creation.RentalUnitId is not { } rentalUnitId || !rentalUnits.TryGetValue(rentalUnitId, out var rentalUnit))
         {
@@ -202,6 +207,7 @@ internal sealed class LeaseService(ElocaroDbContext db, TimeProvider clock, IMod
     }
 
     public Task<Result> UpdateAsync(Guid id, LeaseInput data, CancellationToken cancellationToken = default) =>
+        InputRules.Check(data) is { } invalid ? Task.FromResult(invalid) :
         WithLeaseAsync(id, lease =>
         {
             ArgumentNullException.ThrowIfNull(data);
