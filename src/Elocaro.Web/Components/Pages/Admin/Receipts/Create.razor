@@ -20,22 +20,20 @@
         </div>
         <p class="small">Mehrere Seiten auf einmal möglich; auf dem Handy öffnet sich die Kamera zur Auswahl.</p>
 
-        @if (Extraction.Info.Enabled)
-        {
-            <section>
-                <h2>Beleg automatisch auslesen</h2>
+        <section>
+            <h2>Beleg automatisch auslesen</h2>
+            <p class="small" id="einvoice-hint">E-Rechnungen (ZUGFeRD-/Factur-X-PDF) werden direkt aus ihren eingebetteten Daten gelesen: genau, ohne KI, und nichts verlässt den Server.</p>
+            @if (Extraction.Info.Enabled)
+            {
                 <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
-                @if (Extraction.Info.Ready)
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExtractAsync" Disabled="@(selected.Count == 0)">Vorschlag aus Beleg auslesen</MudButton>
-                }
-                else
+                @if (!Extraction.Info.Ready)
                 {
                     <p class="small" id="extraction-problem">@Extraction.Info.Problem</p>
                 }
-            </section>
-            <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
-        }
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExtractAsync" Disabled="@(selected.Count == 0)">Vorschlag aus Beleg auslesen</MudButton>
+        </section>
+        <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
 
         <EditForm EditContext="editContext" OnValidSubmit="SaveAsync" novalidate>
             <DataAnnotationsValidator />

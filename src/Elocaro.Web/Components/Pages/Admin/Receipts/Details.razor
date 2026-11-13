@@ -51,9 +51,12 @@ else
 {
     <section>
         <h2>Angaben</h2>
-        @if (Extraction.Info.Ready && receipt.Files.Count > 0)
+        @if (receipt.Files.Count > 0)
         {
-            <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
+            @if (Extraction.Info.Ready)
+            {
+                <Notice Level="NoticeLevel.Info" id="extraction-notice">@Extraction.Info.Notice</Notice>
+            }
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExtractAsync">Vorschlag aus Beleg auslesen</MudButton>
             <ExtractionPanel Info="Extraction.Info" Outcome="outcome" />
         }

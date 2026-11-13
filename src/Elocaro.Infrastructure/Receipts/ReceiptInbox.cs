@@ -201,17 +201,20 @@ internal sealed class ReceiptInbox(IReceiptService receipts, IFileStore files, I
                 + (skipped.Count > 0 ? " Nicht übernommen: " + string.Join(", ", skipped) + "." : "")).Truncate(2000),
         };
 
-        if (settings.Extract && extraction.Info.Ready)
+        // An e-invoice is always read from its structured data (local, free, nothing leaves the server); the provider only if switched on.
+        var outcome = await extraction.ReadEInvoiceAsync(fileIds, cancellationToken);
+        if (outcome.Suggestion is null && settings.Extract && extraction.Info.Ready)
         {
-            var suggestion = (await extraction.SuggestAsync(fileIds, cancellationToken)).Suggestion;
-            if (suggestion is not null)
-            {
-                input.SupplierName = suggestion.SupplierName.HasValue ? suggestion.SupplierName.Value : input.SupplierName;
-                input.InvoiceNumber = suggestion.InvoiceNumber.HasValue ? suggestion.InvoiceNumber.Value : null;
-                input.InvoiceDate = suggestion.InvoiceDate.Value ?? input.InvoiceDate;
-                input.Gross = suggestion.Gross.Value ?? 0m;
-                input.Note += " Werte aus der Belegauslesung, bitte prüfen.";
-            }
+            outcome = await extraction.SuggestAsync(fileIds, cancellationToken);
+        }
+
+        if (outcome.Suggestion is { } suggestion)
+        {
+            input.SupplierName = suggestion.SupplierName.HasValue ? suggestion.SupplierName.Value : input.SupplierName;
+            input.InvoiceNumber = suggestion.InvoiceNumber.HasValue ? suggestion.InvoiceNumber.Value : null;
+            input.InvoiceDate = suggestion.InvoiceDate.Value ?? input.InvoiceDate;
+            input.Gross = suggestion.Gross.Value ?? 0m;
+            input.Note += outcome.Source is { } source ? $" Werte aus der {source}, bitte prüfen." : " Werte aus der Belegauslesung, bitte prüfen.";
         }
 
         var result = await receipts.CreateAsync(input, fileIds, null, cancellationToken);

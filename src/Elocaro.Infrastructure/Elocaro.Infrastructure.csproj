@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="libfintx.FinTS" />
     <PackageReference Include="MailKit" />
+    <PackageReference Include="PdfPig" />
     <PackageReference Include="QRCoder" />
     <PackageReference Include="Quartz.Extensions.Hosting" />
     <PackageReference Include="Quartz.Serialization.SystemTextJson" />

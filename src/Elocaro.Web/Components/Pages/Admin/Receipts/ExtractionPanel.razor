@@ -4,8 +4,16 @@
     <section class="suggestion-panel" aria-labelledby="suggestion-title">
         <h2 id="suggestion-title">Vorschlag aus dem Beleg</h2>
         <Notice Level="NoticeLevel.Info">
-            Das ist nur ein Vorschlag von @Info.Name@(Info.Model is null ? "" : $" ({Info.Model})"). Die Felder unten sind vorausgefüllt,
-            nichts ist gespeichert. Bitte alle Werte mit dem Beleg vergleichen; unsicher erkannte Felder sind hervorgehoben.
+            @if (Outcome.Source is { } source)
+            {
+                <span id="suggestion-source">Quelle: @source</span>
+                <text> – die Daten wurden aus den maschinenlesbaren Angaben der Rechnung übernommen, es wurde nichts an Dritte übermittelt.</text>
+            }
+            else
+            {
+                <text>Das ist nur ein Vorschlag von @Info.Name@(Info.Model is null ? "" : $" ({Info.Model})").</text>
+            }
+            Die Felder unten sind vorausgefüllt, nichts ist gespeichert. Bitte alle Werte mit dem Beleg vergleichen; unsicher erkannte Felder sind hervorgehoben.
         </Notice>
         @if (s.Warnings.Count > 0)
         {

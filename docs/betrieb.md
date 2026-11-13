@@ -71,7 +71,11 @@ Alle Einstellungen kommen über Umgebungsvariablen in `deploy/.env` (eingetragen
 
 `MCP_ENABLED=true` in `deploy/.env` schaltet die MCP-Schnittstelle `/mcp` ein (lesend; `MCP_ALLOW_WRITE=true` erlaubt zusätzlich ein paar schreibende Werkzeuge für Stammdaten, siehe mcp.md), mit der KI-Assistenten (Claude, GitHub Copilot, Cursor u. a.) die Daten abfragen können. Sie ist standardmäßig aus und in der Demo nie verfügbar. Weitere Schlüssel: `MCP_REQUESTS_PER_MINUTE` (je Absenderadresse, 120), `MCP_MAX_RESULTS` (Einträge je Abfrage, 50) und `ACCESS_TOKEN_MAX_DAYS` (längste Gültigkeit eines Zugriffstokens, 90). Anmeldung, Rechte, Anleitungen für die Clients und Datenschutzhinweise: [mcp.md](mcp.md). Hinter Caddy ist nichts weiter einzustellen; der Proxy muss den Header `Authorization` weiterreichen (Standard).
 
-## Belegauslesung (optional, KI)
+## Belegauslesung (E-Rechnung immer, KI optional)
+
+**E-Rechnungen werden ohne KI ausgelesen.** Enthält ein hochgeladenes PDF eine eingebettete Rechnung im Format ZUGFeRD/Factur-X (alle Profile von MINIMUM bis EXTENDED, auch XRechnung als PDF-Anhang), liest Elocaro Lieferant, Rechnungsnummer und -datum, Leistungszeitraum, Fälligkeit, IBAN, Brutto/Netto/USt und die Positionen direkt aus diesen Daten. Das gilt auch für Belege, die per E-Mail im Posteingang ankommen. Es braucht keinen Anbieter und keinen Schlüssel, kostet nichts, und kein Dokument verlässt den Server. Die E-Rechnung hat Vorrang; nur wenn keine gefunden wird und ein Anbieter eingerichtet ist, folgt die KI-Auslesung. Als Quelle steht im Vorschlag „E-Rechnung“. Eine Gutschrift oder eine andere Währung als Euro wird als Hinweis angezeigt. Reine XML-Dateien (XRechnung ohne PDF) kann Elocaro noch nicht hochladen, weil die Ablage nur PDF und Bilder annimmt.
+
+### KI-Auslesung (optional)
 
 Beim Erfassen eines Belegs kann Elocaro aus dem hochgeladenen PDF bzw. Foto einen **Vorschlag** auslesen (Lieferant, IBAN, Rechnungsnummer und -datum, Leistungszeitraum, Brutto/Netto/USt, Kostenart, § 35a, Brennstoffmenge und CO₂). Der Vorschlag füllt nur das Formular vor; gespeichert wird erst, wenn Sie bestätigen. Unsicher erkannte Felder sind gelb markiert, Unstimmigkeiten (Netto + USt ≠ Brutto, ungewöhnlicher Steuersatz, ungültige IBAN, unmögliche Daten) stehen als Warnung darüber.
 

@@ -59,6 +59,21 @@ public class ReceiptInboxTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_zugferd_attachment_fills_the_receipt_even_without_a_provider()
+    {
+        var outcome = await ProcessAsync(Mail("rechnung@stadtwerke.example", "Rechnung", ("rechnung.pdf", EInvoiceTests.PdfWithAttachment("factur-x.xml", EInvoiceTests.Cii))));
+
+        Assert.True(outcome.Created, outcome.Reason);
+        await using var scope = environment.Services.CreateAsyncScope();
+        var receipt = (await scope.ServiceProvider.GetRequiredService<IReceiptService>().GetAsync(outcome.ReceiptId!.Value, Ct))!;
+        Assert.Equal("Mustermann Haustechnik GmbH", receipt.Data.SupplierName);
+        Assert.Equal("RE-2026-0815", receipt.Data.InvoiceNumber);
+        Assert.Equal(297.50m, receipt.Data.Gross);
+        Assert.Contains("E-Rechnung", receipt.Data.Note, StringComparison.Ordinal);
+        Assert.DoesNotContain(await scope.ServiceProvider.GetRequiredService<IReceiptService>().SearchAsync(new ReceiptQuery(), Ct), r => r.Incomplete);
+    }
+
+    [Fact]
     public async Task Entering_the_amount_completes_the_receipt()
     {
         var outcome = await ProcessAsync(Mail("rechnung@stadtwerke.example", "Rechnung", ("rechnung.pdf", "%PDF-1.4 test"u8.ToArray())));

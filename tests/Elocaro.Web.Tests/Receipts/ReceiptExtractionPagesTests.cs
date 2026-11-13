@@ -22,7 +22,7 @@ public class ReceiptExtractionPagesTests(PostgresFixture postgres) : AccountTest
     }
 
     [Fact]
-    public async Task Without_provider_there_is_no_extraction_button_and_the_settings_say_so()
+    public async Task Without_provider_the_button_only_reads_e_invoices_and_the_settings_say_so()
     {
         extractor.Enabled = false;
         extractor.External = false;
@@ -32,15 +32,16 @@ public class ReceiptExtractionPagesTests(PostgresFixture postgres) : AccountTest
         var form = await admin.GetAsync("/verwaltung/belege/neu");
         var settings = await admin.GetAsync("/verwaltung/system/belegauslesung");
 
-        Assert.DoesNotContain("Vorschlag aus Beleg auslesen", form.Text, StringComparison.Ordinal);
-        Assert.Null(form.Document.QuerySelector("#extraction-notice"));
+        Assert.Contains("Vorschlag aus Beleg auslesen", form.Text, StringComparison.Ordinal); // an e-invoice is read locally, no provider needed
+        Assert.Contains("ohne KI", form.Document.QuerySelector("#einvoice-hint")!.TextContent, StringComparison.Ordinal);
+        Assert.Null(form.Document.QuerySelector("#extraction-notice")); // no third party is involved, so no notice about one
         Assert.Contains("Keiner", settings.Document.QuerySelector("#provider-name")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("ausgeschaltet", settings.Text, StringComparison.Ordinal);
         Assert.Null(settings.Document.QuerySelector("#third-party-notice"));
     }
 
     [Fact]
-    public async Task Provider_not_ready_shows_the_notice_and_the_problem_but_no_upload()
+    public async Task Provider_not_ready_shows_the_notice_and_the_problem_and_still_offers_the_local_e_invoice_reading()
     {
         extractor.Ready = false;
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
@@ -50,7 +51,7 @@ public class ReceiptExtractionPagesTests(PostgresFixture postgres) : AccountTest
 
         Assert.Contains("an einen Dritten übermittelt", form.Document.QuerySelector("#extraction-notice")!.TextContent, StringComparison.Ordinal);
         Assert.Contains("kein API-Schlüssel", form.Document.QuerySelector("#extraction-problem")!.TextContent, StringComparison.Ordinal);
-        Assert.DoesNotContain("Vorschlag aus Beleg auslesen", form.Text, StringComparison.Ordinal);
+        Assert.Contains("Vorschlag aus Beleg auslesen", form.Text, StringComparison.Ordinal); // the local e-invoice reading does not need the provider
     }
 
     [Fact]

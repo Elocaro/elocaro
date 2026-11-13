@@ -5,6 +5,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- E-Rechnung: Elocaro liest ZUGFeRD-/Factur-X-PDFs (eingebettetes XML) ohne KI und ohne Anbieter aus, beim Erfassen eines Belegs und im E-Mail-Posteingang: Lieferant, Rechnungsnummer, Datum, Zeitraum, Fälligkeit, IBAN, Brutto/Netto/USt und Positionen. Die E-Rechnung hat Vorrang vor der KI-Auslesung, die Quelle steht im Vorschlag (Refs #172).
 - Girocode (Zahlungs-QR) auf Mahnschreiben und auf Betriebskostenabrechnungen mit Nachzahlung: Die Banking-App füllt Empfänger, IBAN, Betrag und Verwendungszweck vor. Voraussetzung ist die IBAN im Vermieterprofil (Refs #175, Stufe 1).
 - Neue Standardvorlagen für Konfliktfälle: Abmahnung, Kündigung wegen Zahlungsverzugs (fristlos, hilfsweise ordentlich), Eigenbedarfskündigung und Erinnerung an eine Nachzahlung aus der Betriebskostenabrechnung, jeweils mit Rechtsgrundlage und Prüfliste im Editor. Ausgangspunkte, keine Rechtsberatung; die Kündigungen vor dem Versand rechtlich prüfen lassen. Neue Standardvorlagen legt Elocaro beim Start selbst an (Refs #176).
 - Aktivität: Lesezugriffe und Token-Nutzung erzeugen keine eigenen Aktionen mehr und blockieren das Rückgängig nicht mehr (Refs #183).

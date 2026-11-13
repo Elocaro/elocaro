@@ -17,15 +17,25 @@ internal sealed class ReceiptExtraction(IFileStore files, IReceiptExtractor extr
 {
     public ExtractorInfo Info => extractor.Info;
 
+    public async Task<ExtractionOutcome> ReadEInvoiceAsync(IReadOnlyList<Guid> fileIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(fileIds);
+        try
+        {
+            var documents = await LoadAsync(fileIds, cancellationToken);
+            return await ReadEInvoiceAsync(documents, GermanTime.Today(clock.GetUtcNow()), cancellationToken)
+                ?? ExtractionOutcome.Failed("In den Dateien wurde keine E-Rechnung gefunden.");
+        }
+        catch (ExtractionException ex)
+        {
+            return ExtractionOutcome.Failed(ex.Message);
+        }
+    }
+
     public async Task<ExtractionOutcome> SuggestAsync(IReadOnlyList<Guid> fileIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(fileIds);
         var info = extractor.Info;
-        if (!info.Ready)
-        {
-            return ExtractionOutcome.Failed(info.Problem ?? "Die Belegauslesung ist nicht aktiviert.");
-        }
-
         if (fileIds.Count == 0)
         {
             return ExtractionOutcome.Failed("Bitte zuerst mindestens eine Datei auswählen.");
@@ -33,19 +43,26 @@ internal sealed class ReceiptExtraction(IFileStore files, IReceiptExtractor extr
 
         try
         {
-            var documents = new List<ExtractionDocument>();
-            foreach (var id in fileIds.Distinct())
+            var documents = await LoadAsync(fileIds, cancellationToken);
+            var today = GermanTime.Today(clock.GetUtcNow());
+
+            // An e-invoice (ZUGFeRD/Factur-X PDF) is read from its structured data: exact, free of charge, and nothing leaves the server.
+            // It takes precedence over the provider; any other file falls through to the normal reading.
+            if (await ReadEInvoiceAsync(documents, today, cancellationToken) is { } fromEInvoice)
             {
-                await using var opened = await files.OpenAsync(id, cancellationToken) ?? throw new ExtractionException("Eine Datei wurde nicht gefunden.");
-                using var memory = new MemoryStream();
-                await opened.Content.CopyToAsync(memory, cancellationToken);
-                documents.Add(new ExtractionDocument(opened.StoredFile.Name, opened.StoredFile.MimeType, memory.ToArray()));
+                return fromEInvoice;
+            }
+
+            if (!info.Ready)
+            {
+                return ExtractionOutcome.Failed(info.Enabled
+                    ? info.Problem ?? "Die Belegauslesung ist nicht aktiviert."
+                    : "In den Dateien wurde keine E-Rechnung gefunden, und die automatische Belegauslesung ist nicht aktiviert (siehe Einstellungen → System → Belegauslesung).");
             }
 
             // The transfer is evidence for data protection: who sent which document to which provider.
             await accessLog.LogAsync("StoredFile", fileIds[0], $"Beleg zur Auslesung an {info.Name} übergeben", cancellationToken);
 
-            var today = GermanTime.Today(clock.GetUtcNow());
             var result = await extractor.ExtractAsync(documents, new ExtractionContext(today), cancellationToken);
             var suggestion = SuggestionChecks.Check(result.Suggestion, today);
             return await EnrichAsync(suggestion, result.Usage, cancellationToken);
@@ -54,6 +71,33 @@ internal sealed class ReceiptExtraction(IFileStore files, IReceiptExtractor extr
         {
             return ExtractionOutcome.Failed(ex.Message);
         }
+    }
+
+    private async Task<List<ExtractionDocument>> LoadAsync(IReadOnlyList<Guid> fileIds, CancellationToken cancellationToken)
+    {
+        var documents = new List<ExtractionDocument>();
+        foreach (var id in fileIds.Distinct())
+        {
+            await using var opened = await files.OpenAsync(id, cancellationToken) ?? throw new ExtractionException("Eine Datei wurde nicht gefunden.");
+            using var memory = new MemoryStream();
+            await opened.Content.CopyToAsync(memory, cancellationToken);
+            documents.Add(new ExtractionDocument(opened.StoredFile.Name, opened.StoredFile.MimeType, memory.ToArray()));
+        }
+
+        return documents;
+    }
+
+    /// <summary>The suggestion from the first document that is an e-invoice, or <c>null</c>.</summary>
+    private async Task<ExtractionOutcome?> ReadEInvoiceAsync(List<ExtractionDocument> documents, DateOnly today, CancellationToken cancellationToken)
+    {
+        var read = documents.Select(EInvoiceReader.TryRead).FirstOrDefault(s => s is not null);
+        if (read is null)
+        {
+            return null;
+        }
+
+        var outcome = await EnrichAsync(SuggestionChecks.Check(read, today), ExtractionUsage.None, cancellationToken);
+        return outcome with { Source = "E-Rechnung" };
     }
 
     /// <summary>Matches the supplier to a contact and replaces the cost type with the one learned from earlier receipts.</summary>
