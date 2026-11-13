@@ -247,7 +247,7 @@ internal sealed partial class HeatingRun
 
     private CarbonOutcome? Carbon(FuelResult fuel, Outcome? heat, Outcome? water, decimal carbonHeat, decimal carbonWater)
     {
-        if (!settings.ApplyCarbonCosts || settings.Fuel == HeatingFuel.Other || CarbonCostTables.For(billingEnd.Year) is not { } table)
+        if (!settings.ApplyCarbonCosts || settings.Fuel == HeatingFuel.Other || CarbonCostTables.For(billing.From.Year) is not { } table)
         {
             return null;
         }
@@ -382,7 +382,9 @@ internal sealed partial class HeatingRun
                     "kg CO₂ ÷ m² Wohnfläche (je Jahr)",
                     $"{Num(co2)} kg{(classification.YearFactor == 1m ? string.Empty : $" × {classification.YearFactor.ToString("0.####", German)}")} ÷ {Num(livingArea)} m²",
                     decimal.Round(classification.SpecificKg, 4, MidpointRounding.AwayFromZero),
-                    "kg/(m²·a), ohne Rundung auf die Stufe angewendet"),
+                    classification.YearFactor == 1m
+                        ? "kg/(m²·a), auf eine Nachkommastelle gerundet (§ 5 Abs. 1 Satz 3 CO2KostAufG)"
+                        : "kg/(m²·a): der auf eine Nachkommastelle gerundete Wert des Zeitraums, auf ein Jahr umgerechnet; das entspricht der anteiligen Kürzung der Stufengrenzen (§ 5 Abs. 1 Satz 3 und 4 CO2KostAufG)"),
                 new ProtocolEntry("Einstufung", $"Stufentabelle {table.Version}: {level.Range}", keyText, level.Number),
                 new ProtocolEntry("CO₂-Kosten laut Lieferant", "Σ Kostenpositionen der Art „CO₂-Kosten“ im Zeitraum", $"Heizung {Money(carbonHeat)}, Warmwasser {Money(carbonWater)}", carbonCents),
                 new ProtocolEntry("Vermieteranteil", "CO₂-Kosten × Vermieteranteil der Stufe", $"{Money(carbonCosts)} × {Num(level.LandlordPercent)} %", landlordShareTotal),

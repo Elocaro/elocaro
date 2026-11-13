@@ -11,23 +11,23 @@ public class CarbonCostTests
 {
     [Theory]
     [InlineData("0", 1, "0")]
-    [InlineData("11.99", 1, "0")]
+    [InlineData("11.94", 1, "0")]
     [InlineData("12", 2, "10")]
-    [InlineData("16.99", 2, "10")]
+    [InlineData("16.94", 2, "10")]
     [InlineData("17", 3, "20")]
-    [InlineData("21.99", 3, "20")]
+    [InlineData("21.94", 3, "20")]
     [InlineData("22", 4, "30")]
-    [InlineData("26.99", 4, "30")]
+    [InlineData("26.94", 4, "30")]
     [InlineData("27", 5, "40")]
-    [InlineData("31.99", 5, "40")]
+    [InlineData("31.94", 5, "40")]
     [InlineData("32", 6, "50")]
-    [InlineData("36.99", 6, "50")]
+    [InlineData("36.94", 6, "50")]
     [InlineData("37", 7, "60")]
-    [InlineData("41.99", 7, "60")]
+    [InlineData("41.94", 7, "60")]
     [InlineData("42", 8, "70")]
-    [InlineData("46.99", 8, "70")]
+    [InlineData("46.94", 8, "70")]
     [InlineData("47", 9, "80")]
-    [InlineData("51.99", 9, "80")]
+    [InlineData("51.94", 9, "80")]
     [InlineData("52", 10, "95")]
     [InlineData("150", 10, "95")]
     public void Every_level_boundary_belongs_to_the_higher_level(string specific, int level, string landlord)
@@ -40,6 +40,34 @@ public class CarbonCostTests
         Assert.Equal(level, result.Level.Number);
         Assert.Equal(decimal.Parse(landlord, System.Globalization.CultureInfo.InvariantCulture), result.Level.LandlordPercent);
         Assert.Equal(100m - result.Level.LandlordPercent, result.Level.TenantPercent);
+    }
+
+    [Theory]
+    [InlineData("11.949", 1)]
+    [InlineData("11.95", 2)] // 11.95 → 12.0 → level 2
+    [InlineData("11.99", 2)]
+    [InlineData("51.95", 10)]
+    [InlineData("51.94", 9)]
+    public void Specific_emissions_are_rounded_to_one_decimal_before_the_level_is_looked_up(string specific, int level)
+    {
+        // § 5 para. 1 sentence 3 CO2KostAufG
+        var kg = decimal.Parse(specific, System.Globalization.CultureInfo.InvariantCulture) * 100m;
+
+        var result = CarbonCostCalculator.Classify(CarbonCostTables.For(2026)!, kg, 100m, 365);
+
+        Assert.Equal(level, result.Level.Number);
+        Assert.Equal(decimal.Round(result.SpecificKg, 1), result.SpecificKg);
+    }
+
+    [Fact]
+    public void A_short_period_reduces_the_level_bounds_pro_rata_and_rounds_the_measured_value()
+    {
+        // § 5 para. 1 sentence 4: 181 days → level 2 starts at 12 × 181/365 = 5.9507 kg/m².
+        // 594 kg ÷ 100 m² = 5.94 → 5.9 → level 1; 595 kg → 5.95 → 6.0 → level 2 (annualised without rounding it would be 11.9986)
+        var table = CarbonCostTables.For(2026)!;
+
+        Assert.Equal(1, CarbonCostCalculator.Classify(table, 594m, 100m, 181).Level.Number);
+        Assert.Equal(2, CarbonCostCalculator.Classify(table, 595m, 100m, 181).Level.Number);
     }
 
     [Fact]
@@ -165,5 +193,20 @@ public class CarbonCostTests
         var result = Run(input with { Consumption = consumption, Costs = costs, Leases = input.Leases }, Measured);
 
         Assert.DoesNotContain(result.CostTypes, t => t.CostType == HeatingCostCalculator.CarbonKey);
+    }
+
+    [Fact]
+    public void A_period_that_began_before_2023_has_no_carbon_split_even_if_it_ends_in_2023()
+    {
+        // § 11 para. 1 CO2KostAufG: the law applies to billing periods that begin on or after 1 January 2023
+        var period = new Elocaro.Domain.Common.Period(D(2022, 7, 1), D(2023, 6, 30));
+        var consumption = new RuleConsumption((u, t, p) => new ConsumptionQuantity(t == MeterType.Heat ? 1000m : 10m));
+        var input = House(6000m);
+        var costs = input.Costs.Select(c => c with { BillingPeriod = period }).ToList();
+
+        var result = Run(input with { BillingPeriod = period, Consumption = consumption, Costs = costs }, Measured);
+
+        Assert.DoesNotContain(result.CostTypes, t => t.CostType == HeatingCostCalculator.CarbonKey);
+        Assert.DoesNotContain(result.Problems, p => p.CostType == HeatingCostCalculator.CarbonKey);
     }
 }
