@@ -79,6 +79,7 @@ internal sealed class LeaseDeadlineSource(ElocaroDbContext db, TimeProvider cloc
 
         var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
         var unitsWithMeters = (await db.Set<ZaehlerEntitaet>().AsNoTracking().Where(m => m.UnitId != null && m.RemovedOn == null && !m.Terms.Any()).Select(m => m.UnitId!.Value).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+        var modernisations = await RentIncreaseHistory.ModernisationDatesAsync(db, [.. leases.Select(v => v.Id)], cancellationToken);
         var entries = new List<DeadlineEntry>();
         foreach (var lease in leases)
         {
@@ -122,7 +123,7 @@ internal sealed class LeaseDeadlineSource(ElocaroDbContext db, TimeProvider cloc
 
             if (lease.End == null && (lease.RentModel == RentModel.Standard || lease.RentModel == RentModel.Index))
             {
-                var lastChange = lease.LastBaseRentChange(today);
+                var lastChange = lease.LastBaseRentChange(today, [.. modernisations[lease.Id]]);
                 var earliest = lease.RentModel == RentModel.Index
                     ? IndexedRent.EarliestEffectiveDate(lastChange ?? lease.Start)
                     : ComparativeRent.EarliestDeclaration(lastChange ?? lease.Start, lastChange is not null);

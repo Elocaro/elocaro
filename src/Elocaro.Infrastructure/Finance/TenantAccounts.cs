@@ -267,7 +267,8 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
             var (rentalUnit, tenant) = descriptions[lease.Id];
             items.AddRange(charges[lease.Id]
                 .Where(s => s.Amount > 0 && s.Due <= today && result.Open[s.Id] > 0)
-                .Select(s => new OpenItem(s.Id, lease.Id, rentalUnit, tenant, s.Kind, s.Name, s.Due, s.Amount, result.Open[s.Id], today.DayNumber - s.Due.DayNumber)));
+                .Select(s => new OpenItem(s.Id, lease.Id, rentalUnit, tenant, s.Kind, s.Name, s.Due, s.Amount, result.Open[s.Id], today.DayNumber - s.Due.DayNumber,
+                    [.. result.Shares.Where(a => a.ClaimId == s.Id).Select(a => new Settlement(a.Date, a.Amount))])));
         }
 
         return items.OrderBy(p => p.Due).ThenBy(p => p.RentalUnit, StringComparer.CurrentCulture).ThenBy(p => RankOrder(charges[p.LeaseId].Single(s => s.Id == p.ChargeId))).ToList();

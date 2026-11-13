@@ -59,11 +59,15 @@ public sealed record DunningRules(
 
 /// <summary>An overdue claim as input for the dunning planning.</summary>
 /// <param name="Open">Still unpaid part after allocation of the payments.</param>
-public sealed record DunningClaim(Guid ChargeId, ChargeType Kind, string Text, DateOnly Due, decimal Amount, decimal Open)
+/// <param name="Settlements">Part payments already allocated to the claim; the interest runs on the settled part until the day of payment.</param>
+public sealed record DunningClaim(Guid ChargeId, ChargeType Kind, string Text, DateOnly Due, decimal Amount, decimal Open, IReadOnlyList<Settlement>? Settlements = null)
 {
     /// <summary>Only principal claims are dunned; fees and interest are not themselves a reason (no interest on interest).</summary>
     public bool IsPrincipal => Charge.RankOf(Kind) == AllocationRank.PrincipalClaim;
 }
+
+/// <summary>Part of a claim that a payment settled on <paramref name="Date"/>.</summary>
+public readonly record struct Settlement(DateOnly Date, decimal Amount);
 
 /// <summary>Earlier dunning (issued or dismissed) of a tenancy as input for the planning.</summary>
 public sealed record DunningHistoryEntry(DunningLevel Level, DunningStatus Status, DateOnly Date);
@@ -156,15 +160,59 @@ public static class DefaultInterest
         return decimal.Round(open * annualPercent / 100m * days / 365m, 2, MidpointRounding.AwayFromZero);
     }
 
+    /// <summary>
+    /// Interest on a claim that was paid in parts: the full amount runs from the day after the due date until the first payment,
+    /// then the remainder until the next one, and so on. A payment day counts as the last day of interest. Rounded to the cent once.
+    /// </summary>
+    public static decimal Calculate(decimal amount, DateOnly due, IEnumerable<Settlement> settlements, DateOnly until, decimal annualPercent)
+    {
+        ArgumentNullException.ThrowIfNull(settlements);
+        if (amount <= 0 || annualPercent <= 0)
+        {
+            return 0m;
+        }
+
+        var remaining = amount;
+        var from = due;
+        var amountDays = 0m;
+        foreach (var settlement in settlements.Where(s => s.Amount > 0).OrderBy(s => s.Date))
+        {
+            var end = settlement.Date < until ? settlement.Date : until;
+            if (end.DayNumber > from.DayNumber)
+            {
+                amountDays += remaining * (end.DayNumber - from.DayNumber);
+                from = end;
+            }
+
+            remaining -= settlement.Amount;
+            if (remaining <= 0)
+            {
+                return Round(amountDays, annualPercent);
+            }
+        }
+
+        if (until.DayNumber > from.DayNumber)
+        {
+            amountDays += remaining * (until.DayNumber - from.DayNumber);
+        }
+
+        return Round(amountDays, annualPercent);
+    }
+
     /// <summary>Sum over the principal claims (each rounded to the cent); 0 if interest is switched off or the base rate is missing.</summary>
     public static decimal Total(DunningRules rules, IEnumerable<DunningClaim> claims, DateOnly until)
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(claims);
         return rules.InterestRate is { } rate
-            ? claims.Where(c => c.IsPrincipal).Sum(c => Calculate(c.Open, c.Due, until, rate))
+            ? claims.Where(c => c.IsPrincipal).Sum(c => c.Settlements is { Count: > 0 } settlements
+                ? Calculate(c.Amount, c.Due, settlements, until, rate)
+                : Calculate(c.Open, c.Due, until, rate))
             : 0m;
     }
+
+    private static decimal Round(decimal amountDays, decimal annualPercent) =>
+        decimal.Round(amountDays * annualPercent / 100m / 365m, 2, MidpointRounding.AwayFromZero);
 }
 
 /// <summary>

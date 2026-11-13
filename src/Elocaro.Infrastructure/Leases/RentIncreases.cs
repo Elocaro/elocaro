@@ -231,14 +231,8 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
 
     private DateOnly Today => GermanTime.Today(clock.GetUtcNow());
 
-    /// <summary>
-    /// Days on which increases after modernisation (§ 559 BGB) took effect. They are part of the base rent but neither restart
-    /// the 15 months and the lockout of § 558 Abs. 1 BGB nor the lockout of § 557b Abs. 2 BGB.
-    /// </summary>
-    private async Task<IReadOnlyCollection<DateOnly>> ModernisationDatesAsync(Guid leaseId, CancellationToken cancellationToken) =>
-        await db.Set<RentIncrease>().AsNoTracking()
-            .Where(r => r.LeaseId == leaseId && r.Kind == RentIncreaseKind.Modernisation && r.Status == RentIncreaseStatus.InForce)
-            .Select(r => r.EffectiveFrom).ToListAsync(cancellationToken);
+    private Task<IReadOnlyCollection<DateOnly>> ModernisationDatesAsync(Guid leaseId, CancellationToken cancellationToken) =>
+        RentIncreaseHistory.ModernisationDatesAsync(db, leaseId, cancellationToken);
 
     /// <summary>Base rent three years before the day the increase takes effect (at the start of the lease if it is younger).</summary>
     private static decimal RentThreeYearsBefore(Lease lease, DateOnly effectiveFrom)
@@ -426,6 +420,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
     private async Task<Plan> PlanIndexAsync(Context context, DateOnly planned, decimal current, RentIncreaseModel baseModel, List<string> errors, List<string> warnings, CancellationToken cancellationToken)
     {
         var lease = context.Lease;
+        var ignored = await ModernisationDatesAsync(lease.Id, cancellationToken);
         DateOnly effective = IndexedRent.EffectiveFrom(planned);
         decimal? newRent = null;
         CpiValue? newest = null;
@@ -448,7 +443,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
                     errors.Add("Der Index ist nicht gestiegen; eine Erhöhung ist nicht möglich (eine Senkung wäre auf Verlangen des Mieters zu beachten).");
                 }
 
-                var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange(null, await ModernisationDatesAsync(lease.Id, cancellationToken)) ?? lease.Start);
+                var earliest = IndexedRent.EarliestEffectiveDate(lease.LastBaseRentChange(null, ignored) ?? lease.Start);
                 if (effective < earliest)
                 {
                     errors.Add($"Die Miete muss mindestens ein Jahr unverändert bleiben: die Anpassung kann frühestens ab {earliest:dd.MM.yyyy} wirken.");
@@ -473,7 +468,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
             IncreaseAmount = (newRent ?? current) - current,
             IncreasePercent = current > 0 ? Math.Round(((newRent ?? current) - current) / current * 100, 1, MidpointRounding.AwayFromZero) : 0m,
             EffectiveFrom = effective,
-            LastIncrease = lease.LastBaseRentChange(),
+            LastIncrease = lease.LastBaseRentChange(null, ignored),
         };
         return new Plan(errors, warnings, current, newRent, planned, effective, null, newest is null ? "Indexanpassung" : $"VPI {model.OldIndex:0.0} → {newest.Value:0.0}", model, null, null,
             r =>
