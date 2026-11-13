@@ -50,14 +50,13 @@ public class UpdateCheckTests
     }
 
     [Fact]
-    public void Release_notes_become_sections_with_entries()
+    public void Release_notes_keep_the_markdown_body()
     {
-        var notes = ReleaseList.Parse(Releases)[0];
+        var releases = ReleaseList.Parse(Releases);
 
-        Assert.Equal(["Hinzugefügt", "Geändert"], notes.Sections.Select(s => s.Title));
-        Assert.Equal(["Datensicherung in der App: **mehrere Ziele**", "Hinweis auf `neue Versionen`"], notes.Sections[0].Items);
-        Assert.Equal(["Umgestellt auf .NET 11"], notes.Sections[1].Items);
-        Assert.Empty(ReleaseList.Parse(Releases)[1].Sections);
+        Assert.StartsWith("### Hinzugefügt\n- Datensicherung in der App: **mehrere Ziele**", releases[0].Body, StringComparison.Ordinal);
+        Assert.EndsWith("- Umgestellt auf .NET 11", releases[0].Body, StringComparison.Ordinal);
+        Assert.Equal("Erste veröffentlichte Version.", releases[1].Body);
     }
 
     [Fact]

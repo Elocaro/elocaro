@@ -3,8 +3,8 @@
 @using Elocaro.Web.Display
 @inject IUpdateInfo Updates
 
-<PageTitle>Neuigkeiten und Updates – Elocaro</PageTitle>
-<PageHeader Title="Neuigkeiten und Updates" Subtitle="Welche Version läuft, ob eine neuere veröffentlicht wurde und was sich geändert hat." />
+<PageTitle>Neuigkeiten – Elocaro</PageTitle>
+<PageHeader Title="Neuigkeiten" Subtitle="Welche Version läuft, ob eine neuere da ist und was sich geändert hat." />
 
 @if (info is null)
 {
@@ -12,50 +12,54 @@
 }
 else
 {
-    <dl class="details">
-        <dt>Installierte Version</dt><dd id="news-current">@(info.CurrentVersion ?? "Entwicklung")</dd>
-        @if (info.CheckedAt is { } checkedAt)
-        {
-            <dt>Zuletzt geprüft</dt><dd>@Format.Timestamp(checkedAt)</dd>
-        }
-    </dl>
+    <section class="news-hero @HeroClass" aria-labelledby="news-heading">
+        <div class="news-version">
+            <span class="news-version-label">Installierte Version</span>
+            <strong id="news-current">@(info.CurrentVersion ?? "Entwicklung")</strong>
+        </div>
+        <div class="news-status" id="news-status">
+            <h2 id="news-heading">@HeroTitle</h2>
+            @if (!info.Enabled)
+            {
+                <p>Die Prüfung auf neue Versionen ist abgeschaltet (<code>UpdateCheck__Enabled=false</code>). Neue Versionen und ihre Änderungen stehen unter <a href="@ReleasesUrl" rel="noopener">GitHub Releases</a>.</p>
+            }
+            else if (info.CurrentVersion is null)
+            {
+                <p>Dies ist ein Entwicklungsstand ohne Versionsnummer, ein Vergleich mit den Veröffentlichungen ist nicht möglich.</p>
+            }
+            else if (info.UpdateAvailable)
+            {
+                <p>Elocaro aktualisiert sich nicht selbst. Auf dem Server, im Ordner der Installation:</p>
+                <div class="news-command">
+                    <pre id="news-command"><code>@UpdateInfo.UpdateCommand(info.Latest!.Version)</code></pre>
+                    <button type="button" class="button secondary" data-copy="#news-command">Kopieren</button>
+                </div>
+                <p class="small">Das Skript sichert vorher die Daten und merkt sich die bisherige Version. Einzelheiten: <a href="@UpdateDocs" rel="noopener">Dokumentation Update</a>.</p>
+            }
+            else if (info.CheckedAt is null)
+            {
+                <p>@(info.Failed ? "Die Prüfung ist fehlgeschlagen (GitHub nicht erreichbar?). Sie wird automatisch wiederholt." : "Die erste Prüfung steht noch aus.")</p>
+            }
+            else if (info.Failed)
+            {
+                <p>Die letzte Prüfung ist fehlgeschlagen, der Stand ist von @Format.Timestamp(info.CheckedAt).</p>
+            }
+            @if (info.CheckedAt is { } checkedAt && info.Failed is false)
+            {
+                <p class="small">Zuletzt geprüft: @Format.Timestamp(checkedAt)</p>
+            }
+        </div>
+    </section>
 
-    @if (!info.Enabled)
+    @if (info.Releases.Count > 0)
     {
-        <Notice Level="NoticeLevel.Info" id="news-status">Die Prüfung auf neue Versionen ist abgeschaltet (<code>UpdateCheck__Enabled=false</code>). Neue Versionen und ihre Änderungen stehen unter <a href="@ReleasesUrl" rel="noopener">GitHub Releases</a>.</Notice>
-    }
-    else if (info.CurrentVersion is null)
-    {
-        <Notice Level="NoticeLevel.Info" id="news-status">Dies ist ein Entwicklungsstand ohne Versionsnummer, ein Vergleich mit den Veröffentlichungen ist nicht möglich.</Notice>
-    }
-    else if (info.UpdateAvailable)
-    {
-        <Notice Level="NoticeLevel.Warning" id="news-status">
-            <strong>Version @info.Latest!.Version ist verfügbar.</strong> Installiert ist @info.CurrentVersion.
-            Elocaro aktualisiert sich nicht selbst. Auf dem Server, im Ordner der Installation:
-            <pre id="news-command"><code>@UpdateInfo.UpdateCommand(info.Latest.Version)</code></pre>
-            Das Skript sichert vorher die Daten und merkt sich die bisherige Version. Einzelheiten: <a href="@UpdateDocs" rel="noopener">Dokumentation Update</a>.
-        </Notice>
-    }
-    else if (info.CheckedAt is null)
-    {
-        <Notice Level="@(info.Failed ? NoticeLevel.Warning : NoticeLevel.Info)" id="news-status">
-            @(info.Failed ? "Die Prüfung auf neue Versionen ist fehlgeschlagen (GitHub nicht erreichbar?). Sie wird automatisch wiederholt." : "Die erste Prüfung auf neue Versionen steht noch aus.")
-        </Notice>
-    }
-    else
-    {
-        <Notice Level="NoticeLevel.Success" id="news-status">Elocaro ist auf dem neuesten Stand@(info.Failed ? " (die letzte Prüfung ist fehlgeschlagen, der Stand ist von " + Format.Timestamp(info.CheckedAt) + ")" : "").</Notice>
-    }
-
-    @foreach (var release in info.Newer)
-    {
-        @ReleaseView(release, "Neu in")
-    }
-
-    @if (info.Installed is { } installed)
-    {
-        @ReleaseView(installed, "Das ist neu in")
+        <h2 class="news-list-title">Versionen und Änderungen</h2>
+        <div class="release-list">
+            @foreach (var release in info.Releases)
+            {
+                @ReleaseView(release)
+            }
+        </div>
     }
 }
 
@@ -67,27 +71,45 @@ else
 
     protected override async Task OnInitializedAsync() => info = await Updates.GetAsync();
 
-    private RenderFragment ReleaseView(ReleaseNotes release, string prefix) => @<section class="panel release" data-version="@release.Version">
+    private string HeroClass => info switch
+    {
+        { Enabled: true, CurrentVersion: not null, UpdateAvailable: true } => "is-update",
+        { Enabled: true, CurrentVersion: not null, CheckedAt: not null } => "is-current",
+        { Failed: true } => "is-update",
+        _ => "",
+    };
+
+    private string HeroTitle => info switch
+    {
+        { Enabled: true, CurrentVersion: not null, UpdateAvailable: true } => $"Version {info.Latest!.Version} ist verfügbar",
+        { Enabled: true, CurrentVersion: not null, CheckedAt: not null } => "Elocaro ist auf dem neuesten Stand",
+        _ => "Prüfung auf neue Versionen",
+    };
+
+    private RenderFragment ReleaseView(ReleaseNotes release) => @<article class="release" data-version="@release.Version">
         <header>
-            <h2>@prefix Version @release.Version</h2>
+            <h3>Version @release.Version</h3>
+            @if (info!.CurrentVersion is not null && ReleaseVersion.Compare(release.Version, info.CurrentVersion) == 0)
+            {
+                <span class="release-badge is-installed">Installiert</span>
+            }
+            else if (info.UpdateAvailable && info.Newer.Contains(release))
+            {
+                <span class="release-badge is-new">Neu</span>
+            }
             @if (release.Date is { } date)
             {
-                <span class="small">@Format.Date(date)</span>
+                <span class="release-date">@Format.Date(date)</span>
             }
+            <a class="release-link" href="@release.Url" rel="noopener">Auf GitHub</a>
         </header>
-        @if (release.Sections.Count == 0)
+        @if (string.IsNullOrWhiteSpace(release.Body))
         {
-            <p class="small">Zu dieser Version gibt es keine Beschreibung. <a href="@release.Url" rel="noopener">Auf GitHub ansehen</a></p>
+            <p class="small">Zu dieser Version gibt es keine Beschreibung.</p>
         }
-        @foreach (var section in release.Sections)
+        else
         {
-            <h3>@section.Title</h3>
-            <ul>
-                @foreach (var item in section.Items)
-                {
-                    <li>@ReleaseText.ToMarkup(item)</li>
-                }
-            </ul>
+            <div class="release-body">@ReleaseMarkdown.ToMarkup(release.Body)</div>
         }
-    </section>;
+    </article>;
 }

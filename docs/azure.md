@@ -76,7 +76,7 @@ AZURE_ACCOUNT_NAME=<speicherkonto>
 AZURE_ACCOUNT_KEY=<schlüssel>
 ```
 
-**Images:** Stehen veröffentlichte Images in GHCR bereit (Release-Workflow), genügt `ELOCARO_IMAGE=ghcr.io/elocaro/elocaro:<version>` und `ELOCARO_BACKUP_IMAGE=…/elocaro-backup:<version>`; sind die Pakete privat, vorher `docker login ghcr.io` mit einem GitHub-Token (`read:packages`). Ohne Registry baut der Server die Images selbst aus dem Repository (dauert beim ersten Mal einige Minuten):
+**Images:** Der Release-Workflow veröffentlicht sie in GHCR, dort genügt `ELOCARO_IMAGE=ghcr.io/elocaro/elocaro:<version>` und `ELOCARO_BACKUP_IMAGE=…/elocaro-backup:<version>`; sind die Pakete privat, vorher `docker login ghcr.io` mit einem GitHub-Token (`read:packages`). Nur ohne Registry (eigener Stand) baut der Server sie selbst aus dem Repository, das braucht auf kleinen VMs viel Speicher:
 
 ```
 ELOCARO_IMAGE=elocaro:0.1.0
@@ -96,32 +96,38 @@ Ein Update ist in [Update auf der VM](#update-auf-der-vm-ohne-git-auf-dem-server
 So wird eine Instanz auf der VM aktualisiert. Die VM hat kein `.git`, der Quellstand wird vom Arbeitsrechner hochgeladen; `deploy/.env` bleibt dabei erhalten. Auf Windows läuft das in Git Bash (`.gitattributes` erzwingt LF für Shell-Skripte, Dockerfile, Caddyfile und YAML, sonst scheitert `install.sh` mit `bash\r`).
 
 ```bash
-# 1. Auf dem Arbeitsrechner: Stand des Standardbranches holen, Commit merken
+# 1. Auf dem Arbeitsrechner: Release festlegen (der Release-Workflow muss grün durch sein,
+#    damit die Images in GHCR liegen)
 git pull
-C=$(git rev-parse --short HEAD)
+V=0.5.0
+C=$(git rev-parse --short v$V)
 
 # 2. Quelltext in ein neues Verzeichnis hochladen (alte Dateien bleiben nicht liegen),
 #    .env übernehmen, vorher Sicherung anstoßen und das alte Image als Rückfallebene taggen
-git archive --format=tar HEAD | ssh azureuser@<ip> "set -e
+git archive --format=tar v$V | ssh azureuser@<ip> "set -e
   rm -rf ~/Elocaro.neu ~/Elocaro.alt; mkdir ~/Elocaro.neu
   tar -x -C ~/Elocaro.neu; echo $C > ~/Elocaro.neu/.deployed-commit
   cp -p ~/Elocaro/deploy/.env ~/Elocaro.neu/deploy/.env
   cd ~/Elocaro/deploy && docker compose --env-file .env run --rm backup backup | tail -3
-  docker tag elocaro:0.1.0 elocaro:vorher
+  docker tag \$(docker inspect -f '{{.Image}}' elocaro-app-1) elocaro:vorher
   cd ~ && mv Elocaro Elocaro.alt && mv Elocaro.neu Elocaro"
 
-# 3. Auf der VM bauen (ca. 2,5 Minuten) und die Container neu erstellen
-ssh azureuser@<ip> 'cd ~/Elocaro && DC="docker compose -f deploy/docker-compose.yml --env-file deploy/.env" \
-  && $DC build && $DC up -d --force-recreate'
+# 3. Versionen in der .env setzen, Images aus GHCR ziehen (auf der VM wird nichts gebaut) und neu starten
+ssh azureuser@<ip> "cd ~/Elocaro \
+  && sed -i -e \"s#^ELOCARO_IMAGE=.*#ELOCARO_IMAGE=ghcr.io/elocaro/elocaro:$V#\" \
+    -e \"s#^ELOCARO_BACKUP_IMAGE=.*#ELOCARO_BACKUP_IMAGE=ghcr.io/elocaro/elocaro-backup:$V#\" \
+    -e \"s#^ELOCARO_VERSION=.*#ELOCARO_VERSION=$V#\" deploy/.env \
+  && DC='docker compose -f deploy/docker-compose.yml --env-file deploy/.env' \
+  && \$DC pull app backup && \$DC up -d --no-build"
 ```
 
 Hinweise:
 
 - Das Verzeichnis muss `Elocaro` heißen: Daraus leitet Compose den Projektnamen und damit die Namen der Volumes ab.
-- `--force-recreate` ist nötig, weil der Image-Name (`elocaro:0.1.0`) gleich bleibt und Compose sonst nichts neu startet. Es lädt auch eine ausgetauschte Caddyfile neu, die als einzelne Datei eingebunden ist.
+- Der Server baut nichts selbst: Die Images kommen aus GHCR (`ghcr.io/elocaro/elocaro` und `…/elocaro-backup`, öffentlich). Ein Build auf der VM (2 Kerne, 4 GB RAM, kein Swap) hat sie schon einmal so überlastet, dass sie nicht mehr antwortete. Der Quelltext wird nur für `docker-compose.yml`, Caddyfile und Skripte hochgeladen. Hat sich nur die Caddyfile geändert (sie ist als einzelne Datei eingebunden), zusätzlich `$DC up -d --force-recreate caddy`.
 - Nach dem Start meldet Caddy `503`, bis die nächste Gesundheitsprüfung durch ist (`health_interval 30s`). Das ist normal und vergeht nach höchstens einer halben Minute.
 - Datenbankmigrationen laufen beim Start der App, deshalb vorher die Sicherung (Schritt 2).
-- Rückgängig machen: `docker tag elocaro:vorher elocaro:0.1.0 && cd ~/Elocaro.alt && $DC up -d --force-recreate`. Bei Modelländerungen mit Migration zusätzlich die Datenbank aus der Sicherung zurückspielen.
+- Rückgängig machen: `cd ~/Elocaro.alt && $DC up -d --no-build` (die `.env` dort nennt die frühere Version; deren Images liegen noch auf der VM). Bei Modelländerungen mit Migration zusätzlich die Datenbank aus der Sicherung zurückspielen.
 - Prüfen: `docker ps` (alle Container `healthy`/`Up`), `docker exec elocaro-caddy-1 wget -qO- http://app:8080/health` (`{"status":"Healthy"}`; welche Prüfung abweicht, steht im App-Log), außerhalb `https://<ihre-domain>/_framework/blazor.web.js` muss `200` liefern (fehlt die Datei, funktioniert keine interaktive Seite).
 - Der genaue Stand auf dem Server steht in `~/Elocaro/.deployed-commit`.
 

@@ -1,7 +1,9 @@
 @using System.Security.Claims
 @using Elocaro.Application.Accounts
 @using Elocaro.Infrastructure.Identity
+@using Elocaro.Application.Operations
 @using Elocaro.Web.Account
+@inject IUpdateInfo Updates
 
 <AuthorizeView>
     <Authorized>
@@ -11,6 +13,15 @@
                 <p class="account-menu-name">@(context.User.FindFirstValue(AccountClaims.DisplayName) ?? context.User.Identity?.Name)</p>
                 <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
                 <a href="@HelpLink(context.User)">Hilfe</a>
+<AuthorizeView Policy="@Policies.System" Context="system">
+                    <a href="/verwaltung/system/neuigkeiten" id="news-link">
+                        Neuigkeiten
+                        @if (updateAvailable)
+                        {
+                            <span class="nav-dot" role="img" aria-label="Neue Version verfügbar"></span>
+                        }
+                    </a>
+                </AuthorizeView>
                 <a href="/ueber">Über Elocaro</a>
                 <ThemeSwitch />
                 <LogoutConfirm />
@@ -25,6 +36,15 @@
             <div class="user-menu-content">
                 <a href="/konto/sicherheit">Konto &amp; Sicherheit</a>
                 <a href="@HelpLink(context.User)">Hilfe</a>
+<AuthorizeView Policy="@Policies.System" Context="system">
+                    <a href="/verwaltung/system/neuigkeiten" id="news-link">
+                        Neuigkeiten
+                        @if (updateAvailable)
+                        {
+                            <span class="nav-dot" role="img" aria-label="Neue Version verfügbar"></span>
+                        }
+                    </a>
+                </AuthorizeView>
                 <a href="/ueber">Über Elocaro</a>
                 <ThemeSwitch />
                 <LogoutConfirm />
@@ -35,6 +55,10 @@
 </AuthorizeView>
 
 @code {
+    private bool updateAvailable;
+
+    protected override async Task OnInitializedAsync() => updateAvailable = (await Updates.GetAsync()).UpdateAvailable;
+
     private static string HelpLink(ClaimsPrincipal user) => user.IsInRole(Roles.Tenant) ? "/portal/hilfe" : "/verwaltung/hilfe";
 
     /// <summary>Flat variant for the menu sheet on smartphones (no dropdown).</summary>

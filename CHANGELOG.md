@@ -4,6 +4,43 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ## [Unveröffentlicht]
 
+### Geändert
+- Neuigkeiten besser zu finden und übersichtlicher: Das Benutzermenü hat den Eintrag *Neuigkeiten* (mit Punkt, wenn eine neue Version da ist). Die Seite zeigt Version und Status als Karte, den Update-Befehl zum Kopieren und alle veröffentlichten Versionen.
+- *Neuigkeiten und Updates* zeigt die Änderungen als gegliederten Text: Markdown (Fett, Kursiv, Code, verschachtelte Listen) wird dargestellt, Aufzählungen und Abschnitte sind abgesetzt und der Text hat eine lesbare Zeilenbreite.
+
+### Behoben
+- Betriebskosten: Ein Vorwegabzug als Jahresbetrag wird bei einem Abrechnungszeitraum unter einem Jahr tagesanteilig gekürzt (bisher voll abgezogen) und bei direkt zugeordneten Kosten mehrerer Einheiten nur einmal abgezogen (bisher je Einheit).
+- Betriebskosten: Ein Abrechnungszeitraum vom 29.2. bis zum 28.2. des Folgejahres wird als 12 Monate angenommen.
+- Vorschlag für die neue Vorauszahlung: Bei einem Abrechnungszeitraum unter 12 Monaten werden die Kosten auf ein Jahr hochgerechnet (bisher fiel der Vorschlag entsprechend zu niedrig aus).
+- CO₂-Kostenaufteilung: Der Ausstoß je m² wird vor der Einstufung auf eine Nachkommastelle gerundet (§ 5 Abs. 1 Satz 3 CO2KostAufG); bei Zeiträumen unter einem Jahr werden die Stufengrenzen anteilig gekürzt. Zeiträume, die vor dem 1.1.2023 begonnen haben, erhalten keine Aufteilung mehr, auch wenn sie 2023 enden (§ 11 Abs. 2).
+
+## [0.5.0] - 2026-11-13
+
+### Hinzugefügt
+- Sicherungen als **Datei**: In *Vorhandene Sicherungen* lässt sich jeder Stand mit *Herunterladen* als `.tar` speichern.
+  - Die Datei ist ein eigenständiges restic-Repository mit diesem einen Stand, verschlüsselt mit dem Passwort der Sicherung; der Download steht im Audit-Log. Er startet nach dem Packen von selbst, die Datei wird nach dem Senden gelöscht.
+  - *Aus Datei wiederherstellen* öffnet so eine Datei mit dem Passwort, zeigt Datum und Größe und spielt sie nach Bestätigung ein, auch auf einem anderen Server. Die Ersteinrichtung bietet auf einem neuen Server neben „Aus einem Ziel“ auch „Aus einer Datei“.
+  - Der Vollexport steht jetzt eingeklappt unter „Weitere Optionen“.
+- Die Seite *Datensicherung* erscheint sofort; die Liste der Sicherungen wird danach Ziel für Ziel geladen („Sicherungen werden geladen …“). Das Lesen der Liste braucht nur noch einen restic-Aufruf je Ziel. Verweise auf die Dokumentation sind echte Links.
+- *Vorhandene Sicherungen* zeigen die **Größe** der gesicherten Daten und lassen sich **löschen**.
+  - Die Größe gibt es für Sicherungen, die restic 0.17 oder neuer angelegt hat; ältere zeigen einen Strich.
+  - Das Löschen verlangt eine Bestätigung und gibt den Speicherplatz frei, den nur diese Sicherung belegte.
+  - Zeilen in den Tabellen sind vertikal zentriert, die Knöpfe brechen nicht mehr um.
+- **Fortschritt** bei laufender Sicherung und Wiederherstellung: ein Balken mit „Schritt 3 von 5: Dateien übertragen (2,1 GB von 3,6 GB), insgesamt 55 %“.
+  - Sicherung: Repository prüfen, Datenbank sichern, Dateien übertragen, Alte Sicherungen aufräumen, Sicherung prüfen.
+  - Wiederherstellung: Repository prüfen, Stand herunterladen, Datenbank ersetzen, Dateien ersetzen.
+  - Die Seite erkennt auch Sicherungen, die von selbst oder von jemand anderem gestartet wurden (Abfrage alle 10 Sekunden, während des Laufs alle 2).
+
+### Geändert
+- Die Seite „Keine Verbindung“ der installierten Web-App (offline) ist im Design der App: Logo, Karte, Symbol, Hell und Dunkel, mit Hinweis „Nächster Versuch in n s“ und dem Knopf „Jetzt erneut versuchen“. Sie ist in sich geschlossen (Farben, Logo und Schrift kommen aus dem Zwischenspeicher des Service Workers, `elocaro-offline-v3`).
+- **Dialog für Sicherungsziele** neu gestaltet.
+  - Der Speicherort wird über Karten gewählt (Google Drive, S3, Azure, SFTP/NAS, dieser Server); darunter stehen nur die Angaben, die der gewählte Ort braucht, getrennt nach Zugang, Verschlüsselung und Name. Neue Ziele starten bei Google Drive, der Name folgt der Auswahl.
+  - „Automatisch sichern“ ist ein Schalter; erst wenn er an ist, erscheinen Wie oft, Uhrzeit und Aufbewahrung. Die Uhrzeit hat die Uhr-Auswahl (neues Eingabefeld `AppTimeField`).
+  - „Speichern“ und „Verbindung testen“ bleiben ausgegraut, bis alles Nötige eingetragen ist; der Dialog nennt, was noch fehlt. „Mit Google anmelden“ ist ausgegraut, wenn Google Drive auf dem Server nicht eingerichtet ist.
+  - Wöchentliche Sicherungen haben einen Wochentag (Migration `BackupWeekday`); bestehende wöchentliche Ziele zählen weiter sieben Tage ab der letzten Sicherung, bis man einen Wochentag wählt.
+- Eingabefelder (Text, Auswahl, Zahl, Uhrzeit, Datei) haben 12 px statt 4 px Rundung (`--shape-field`), passend zu Karten und Dialogen.
+- Die Seite *Datensicherung* ohne Ziel zeigt „Noch keine Sicherung eingerichtet“ mit dem Knopf *Ziel hinzufügen*, statt der Meldung zur Überwachung oder dem Hinweis auf die Server-Konfiguration. Nach einer Wiederherstellung bleibt die Seite nicht mehr stehen, wenn die Datenbank gerade ersetzt wird.
+
 ## [0.4.0] - 2026-11-12
 
 ### Geändert

@@ -101,6 +101,20 @@ internal sealed class BackupSidecarContainer : IAsyncDisposable
     {
         try
         {
+            // For the diagnosis of a test that hangs: what the service wrote (and what it was doing), in the temp directory
+            var (stdout, stderr) = await container.GetLogsAsync(ct: CancellationToken.None);
+            var processes = await container.ExecAsync(["sh", "-c", "ps -o pid,etime,args 2>/dev/null | head -20; true"], CancellationToken.None);
+            await File.WriteAllTextAsync(Path.Combine(Path.GetTempPath(), $"elocaro-sidecar-{container.Id[..12]}.log"), $"{stdout}\n{stderr}\n--- ps ---\n{processes.Stdout}", CancellationToken.None);
+        }
+#pragma warning disable CA1031 // Diagnosis only
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            // nothing to learn then
+        }
+
+        try
+        {
             // The container wrote as root (restic repository, files with the owner of the app): clean up from inside so that the
             // test directories can be deleted afterwards.
             await container.ExecAsync(["sh", "-c", "rm -rf /data/* /data/.[!.]* /repo/* /repo/.[!.]* /status/* 2>/dev/null; true"], CancellationToken.None);

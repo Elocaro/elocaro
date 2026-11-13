@@ -28,7 +28,7 @@ public class EmergencyFolderDocumentsTests(PostgresFixture postgres, GotenbergFi
 
     public async ValueTask InitializeAsync()
     {
-        environment = await InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?> { ["Pdf:GotenbergUrl"] = gotenberg.Url, ["FileStore:MaxSizeMb"] = "60" });
+        environment = await InfrastructureEnvironment.CreateAsync(postgres, new Dictionary<string, string?> { ["Pdf:GotenbergUrl"] = gotenberg.Url, ["FileStore:MaxSizeMb"] = "120" });
         await using var scope = environment.Services.CreateAsyncScope();
         var properties = scope.ServiceProvider.GetRequiredService<IPropertyService>();
         var house = Validate(await properties.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln" }, Ct));

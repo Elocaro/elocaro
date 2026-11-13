@@ -8,6 +8,7 @@ builder.Services.AddSingleton(settings);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IProcessRunner, ProcessRunner>();
 builder.Services.AddSingleton<BackupEngine>();
+builder.Services.AddSingleton<BackupTransfers>();
 builder.Services.AddSingleton<BackupCoordinator>();
 builder.Services.AddHostedService<EnvironmentScheduler>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));

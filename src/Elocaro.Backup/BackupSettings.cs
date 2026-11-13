@@ -14,7 +14,8 @@ public sealed record BackupSettings(
     int AppUid,
     string BackupTime,
     RetentionPolicy Retention,
-    BackupTarget? EnvironmentTarget)
+    BackupTarget? EnvironmentTarget,
+    string ExportDir = "/cache/export")
 {
     public const string Tag = "elocaro";
 
@@ -46,6 +47,7 @@ public sealed record BackupSettings(
             GetInt("APP_UID", 1654),
             Get("BACKUP_TIME", "02:30"),
             retention,
-            target);
+            target,
+            Get("BACKUP_EXPORT_DIR", "/cache/export"));
     }
 }

@@ -117,7 +117,7 @@ internal sealed class EmergencyFolderContent(
                     return new EmergencyFolderPages("", [], TooLarge: true);
                 }
 
-                using var buffer = new MemoryStream();
+                var buffer = new MemoryStream(checked((int)opened.StoredFile.Size));
                 await opened.Content.CopyToAsync(buffer, cancellationToken);
                 budget -= buffer.Length;
                 if (budget < 0)
@@ -125,7 +125,9 @@ internal sealed class EmergencyFolderContent(
                     return new EmergencyFolderPages("", [], TooLarge: true);
                 }
 
-                embedded.Add(new EmbeddedFile(name + Path.GetExtension(opened.StoredFile.Name), opened.StoredFile.MimeType, buffer.ToArray()));
+                // The stream was created with the exact size, so its buffer is the content (no second copy).
+                var content = buffer.Length == buffer.GetBuffer().Length ? buffer.GetBuffer() : buffer.ToArray();
+                embedded.Add(new EmbeddedFile(name + Path.GetExtension(opened.StoredFile.Name), opened.StoredFile.MimeType, content));
             }
         }
 

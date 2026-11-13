@@ -3,22 +3,62 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
     <title>Keine Verbindung – Elocaro</title>
     <style>
-        body { font-family: system-ui, sans-serif; margin: 0; padding: 2rem 1rem; background: #f8faf3; color: #1f1a18; }
-        main { max-width: 32rem; margin: 3rem auto; }
-        h1 { font-size: 1.4rem; }
-        a { color: #8a2f0c; }
-        .small { font-size: .9rem; opacity: .8; }
-        @media (prefers-color-scheme: dark) { body { background: #1c1311; color: #f1dfda; } a { color: #ffb59e; } }
+        /* Self-contained: this page is served by the service worker without a connection, so it cannot load the stylesheet of the app.
+           Colors and shapes are the Material 3 roles of app.css (light-dark follows the system). */
+        @font-face { font-family: "Roboto Flex"; font-style: normal; font-weight: 100 1000; font-display: swap; src: url("/fonts/roboto-flex-latin.woff2") format("woff2"); }
+        :root {
+            color-scheme: light dark;
+            --surface: light-dark(#f8faf3, #111410);
+            --surface-card: light-dark(#ecefe7, #1d211c);
+            --on-surface: light-dark(#191c18, #e1e3dc);
+            --on-surface-variant: light-dark(#424940, #c2c9bd);
+            --outline-variant: light-dark(#c2c9bd, #424940);
+            --primary: light-dark(#146d29, #84da88);
+            --on-primary: light-dark(#ffffff, #00390f);
+            --primary-container: light-dark(#a0f7a2, #00531a);
+            --on-primary-container: light-dark(#002106, #a0f7a2);
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body { margin: 0; display: grid; place-items: center; padding: 1.5rem 1rem; background: var(--surface); color: var(--on-surface); font-family: "Roboto Flex", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.5; }
+        main { width: min(30rem, 100%); }
+        .brand { display: flex; align-items: center; gap: 0.625rem; margin: 0 0 1.5rem 0.5rem; font-size: 1.25rem; font-weight: 600; color: var(--primary); }
+        .brand svg { width: 2rem; height: 2rem; }
+        .card { padding: 2.25rem 1.75rem 1.75rem; border-radius: 28px; background: var(--surface-card); border: 1px solid var(--outline-variant); }
+        .icon { position: relative; display: grid; place-items: center; width: 4.5rem; height: 4.5rem; margin-bottom: 1.25rem; border-radius: 40% 60% 55% 45% / 50% 45% 55% 50%; background: var(--primary-container); color: var(--on-primary-container); }
+        .icon svg { width: 2.25rem; height: 2.25rem; fill: currentColor; }
+        h1 { margin: 0 0 0.75rem; font-size: 1.625rem; font-weight: 600; line-height: 1.25; }
+        p { margin: 0 0 1rem; color: var(--on-surface-variant); }
+        .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem; margin-top: 1.5rem; }
+        .button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem; padding: 0 1.5rem; border: 0; border-radius: 999px; background: var(--primary); color: var(--on-primary); font: inherit; font-size: 0.9375rem; font-weight: 600; text-decoration: none; cursor: pointer; transition: box-shadow 120ms, filter 120ms; }
+        .button:hover { filter: brightness(1.08); box-shadow: 0 1px 3px rgb(0 0 0 / 30%); }
+        .button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+        .status { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--on-surface-variant); }
+        .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--primary); animation: pulse 1.6s ease-in-out infinite; }
+        .hint { margin: 1.5rem 0 0; padding-top: 1rem; border-top: 1px solid var(--outline-variant); font-size: 0.8125rem; }
+        @keyframes pulse { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1); } }
+        @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
     </style>
 </head>
 <body>
 <main>
-    <h1>Keine Verbindung</h1>
-    <p>Elocaro kann den Server gerade nicht erreichen. Bitte prüfen Sie Ihre Internetverbindung. Die Seite versucht es alle paar Sekunden von selbst erneut und öffnet Elocaro, sobald der Server antwortet.</p>
-    <p><a href="/">Jetzt erneut versuchen</a></p>
-    <p class="small">Bleibt es dabei: Stimmt die Adresse in der Leiste des Browsers, und ist der Server erreichbar?</p>
+    <div class="brand">
+        <svg viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="offline-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22a34a"/><stop offset="1" stop-color="#0a4d22"/></linearGradient><mask id="offline-m"><rect width="512" height="512" fill="#fff"/><g fill="#000"><rect x="166" y="252" width="40" height="166" rx="6"/><rect x="196" y="252" width="136" height="36" rx="6"/><rect x="196" y="316" width="104" height="36" rx="6"/><rect x="196" y="382" width="136" height="36" rx="6"/></g></mask></defs><rect width="512" height="512" rx="120" fill="url(#offline-g)"/><path d="M256 92 418 218V420H94V218Z" fill="#fff" stroke="#fff" stroke-width="26" stroke-linejoin="round" mask="url(#offline-m)"/></svg>
+        Elocaro
+    </div>
+    <div class="card" role="status" aria-live="polite">
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M22.99 9C19.15 5.16 13.8 3.76 8.84 4.78l2.52 2.52c3.47-.17 6.99 1.05 9.63 3.7l2-2zm-4 4c-1.29-1.29-2.84-2.13-4.49-2.56l3.53 3.53.96-.97zM2 3.05L5.07 6.1C3.6 6.82 2.22 7.78 1 9l1.99 2c1.24-1.24 2.67-2.16 4.2-2.77l2.24 2.24C7.81 10.89 6.27 11.73 5 13v.01L6.99 15c1.36-1.36 3.14-2.04 4.92-2.06L18.98 20l1.27-1.26L3.29 1.79 2 3.05zM9 17l3 3 3-3c-1.65-1.66-4.34-1.66-6 0z"/></svg></span>
+        <h1>Keine Verbindung</h1>
+        <p>Elocaro kann den Server gerade nicht erreichen. Bitte prüfen Sie Ihre Internetverbindung. Die Seite versucht es von selbst erneut und öffnet Elocaro, sobald der Server antwortet.</p>
+        <div class="actions">
+            <a class="button" id="retry" href="/">Jetzt erneut versuchen</a>
+            <span class="status"><span class="dot" aria-hidden="true"></span><span id="status">Es wird nach dem Server gesucht …</span></span>
+        </div>
+        <p class="hint">Bleibt es dabei: Stimmt die Adresse in der Leiste des Browsers, und ist der Server erreichbar?</p>
+    </div>
 </main>
 <script src="/offline.js"></script>
 </body>

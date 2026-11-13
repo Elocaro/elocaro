@@ -487,6 +487,7 @@ data/
 # Production secrets
 deploy/.env
 deploy/backup-repo/
+deploy/backup-status/
 deploy/backup-ssh/
 
 # Pentest-Läufe (Befunde sind sensibel)

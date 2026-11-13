@@ -1,10 +1,16 @@
 // Service worker of the installed web app: an offline notice instead of the browser error page, and hints from the server.
 // The push message is empty; title and text are fetched from the server (so they never pass through the push service).
-const CACHE = 'elocaro-offline-v2';
+const CACHE = 'elocaro-offline-v3';
 const OFFLINE = '/offline.html';
+// What the offline page needs besides itself (script, font)
+const OFFLINE_ASSETS = ['/offline.js', '/fonts/roboto-flex-latin.woff2'];
 
 self.addEventListener('install', event => {
-    event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([OFFLINE, '/offline.js'])));
+    // The page is required; script and font are best effort (a missing font must not stop the installation)
+    event.waitUntil(caches.open(CACHE).then(async cache => {
+        await cache.add(OFFLINE);
+        await Promise.all(OFFLINE_ASSETS.map(asset => cache.add(asset).catch(() => undefined)));
+    }));
     self.skipWaiting();
 });
 
@@ -15,9 +21,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     if (event.request.mode === 'navigate') {
         event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE)));
-    } else if (new URL(event.request.url).pathname === '/offline.js') {
-        // the offline page itself needs its script while there is no connection
-        event.respondWith(fetch(event.request).catch(() => caches.match('/offline.js')));
+    } else {
+        // the offline page itself needs its script and font while there is no connection
+        const path = new URL(event.request.url).pathname;
+        if (OFFLINE_ASSETS.includes(path)) {
+            event.respondWith(fetch(event.request).catch(() => caches.match(path)));
+        }
     }
 });
 

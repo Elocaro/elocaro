@@ -8,7 +8,8 @@ public sealed record ProcessResult(int ExitCode, string Output);
 /// <summary>Starts external programs (restic, pg_dump, …). Arguments are passed as a list, never through a shell.</summary>
 public interface IProcessRunner
 {
-    Task<ProcessResult> RunAsync(string file, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string>? environment, CancellationToken cancellationToken);
+    /// <param name="onOutput">Called with every line of standard output while the program runs (progress).</param>
+    Task<ProcessResult> RunAsync(string file, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string>? environment, CancellationToken cancellationToken, Action<string>? onOutput = null);
 }
 
 internal sealed class ProcessRunner : IProcessRunner
@@ -16,7 +17,7 @@ internal sealed class ProcessRunner : IProcessRunner
     /// <summary>Only the end of the output is kept (restic prints its summary last).</summary>
     private const int MaxOutput = 256 * 1024;
 
-    public async Task<ProcessResult> RunAsync(string file, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string>? environment, CancellationToken cancellationToken)
+    public async Task<ProcessResult> RunAsync(string file, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string>? environment, CancellationToken cancellationToken, Action<string>? onOutput = null)
     {
         var start = new ProcessStartInfo(file)
         {
@@ -53,7 +54,23 @@ internal sealed class ProcessRunner : IProcessRunner
             }
         }
 
-        process.OutputDataReceived += (_, e) => Append(e.Data);
+        process.OutputDataReceived += (_, e) =>
+        {
+            Append(e.Data);
+            if (e.Data is not null && onOutput is not null)
+            {
+                try
+                {
+                    onOutput(e.Data);
+                }
+#pragma warning disable CA1031 // Progress is a courtesy: whatever goes wrong while reporting it must not stop the backup.
+                catch (Exception)
+                {
+                    // ignored
+                }
+#pragma warning restore CA1031
+            }
+        };
         process.ErrorDataReceived += (_, e) => Append(e.Data);
         process.Start();
         process.BeginOutputReadLine();

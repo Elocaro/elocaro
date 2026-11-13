@@ -7,6 +7,9 @@ public static class AppInfo
 {
     public const string SourceUrl = "https://github.com/elocaro/elocaro";
     public const string SupportUrl = SourceUrl + "/blob/HEAD/docs/foerderung.md";
+
+    /// <summary>Address of a page of the documentation in the repository (<paramref name="anchor"/>: heading as GitHub names it).</summary>
+    public static string Docs(string file, string? anchor = null) => $"{SourceUrl}/blob/HEAD/docs/{file}" + (anchor is null ? string.Empty : "#" + anchor);
     public const string LicenseName = "GNU Affero General Public License v3.0 oder später (AGPL-3.0-or-later)";
 
     public const string Copyright = "© 2026 Andreas Hahn";

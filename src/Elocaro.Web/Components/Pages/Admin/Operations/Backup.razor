@@ -1,6 +1,7 @@
 @page "/verwaltung/system/datensicherung"
 @rendermode InteractiveServer
 @implements IDisposable
+@using System.Data.Common
 @using System.Globalization
 @using MudBlazor
 @using Elocaro.Application.Operations
@@ -11,6 +12,9 @@
 @inject IBackupControl Control
 @inject Notifier Notify
 @inject IDialogService Dialogs
+@inject Confirmations Confirm
+@inject NavigationManager Navigation
+@inject IServiceScopeFactory Scopes
 @inject IAppRestart Restart
 
 <InteractiveShell>
@@ -21,8 +25,19 @@
     </PageHeader>
 
     <section>
-        <h2>@(targets.Count == 0 && environment is null ? "Letzte Sicherung" : "Sicherungsziele")</h2>
-        @if (state is not null && environment is null)
+        <h2>@(targets.Count == 0 && environment is null && !progress.Available ? "Letzte Sicherung" : "Sicherungsziele")</h2>
+        @if (targets.Count == 0 && environment is null && progress.Available)
+        {
+            <div class="empty-setup" id="backup-empty">
+                <Icon Path="@MudBlazor.Icons.Material.Outlined.CloudUpload" />
+                <div>
+                    <strong>Noch keine Sicherung eingerichtet</strong>
+                    <p>Richten Sie ein Ziel ein, damit Elocaro Ihre Daten regelmäßig sichert, z. B. in Google Drive oder auf einem NAS. Es sind mehrere Ziele möglich.</p>
+                </div>
+                <button type="button" class="button button-primary" id="backup-empty-add" @onclick="NewTargetAsync">Ziel hinzufügen</button>
+            </div>
+        }
+        else if (state is not null && environment is null)
         {
             <Notice Level="Level(state.State)">@state.Description</Notice>
             @if (targets.Count == 0)
@@ -64,7 +79,7 @@
                 @if (state.State == BackupState.NotConfigured)
                 {
                     <p>Der Backup-Container aus <code>deploy/docker-compose.yml</code> meldet hier sein Ergebnis, sobald
-                    <code>Backup__StatusFile</code> gesetzt ist. Einrichtung: <code>docs/betrieb.md</code>, Abschnitt „Backup“.</p>
+                    <code>Backup__StatusFile</code> gesetzt ist. Einrichtung: <a href="@AppInfo.Docs("betrieb.md", "backup")" target="_blank" rel="noopener noreferrer">Betriebsanleitung (Backup)</a>.</p>
                 }
                 else if (state.NeedsAttention)
                 {
@@ -81,7 +96,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
             <Notice Level="NoticeLevel.Warning" id="backup-unavailable">Der Backup-Dienst ist von hier aus nicht erreichbar. Ziele lassen sich erst einrichten und sichern,
             wenn der Container „backup“ läuft und <code>BACKUP_API_TOKEN</code> in <code>deploy/.env</code> gesetzt ist.</Notice>
         }
-        else if (targets.Count == 0)
+        else if (targets.Count == 0 && environment is not null)
         {
             <Notice Level="NoticeLevel.Info" id="backup-environment">Die Sicherung läuft derzeit nach der Server-Konfiguration. Richten Sie mit „Ziel hinzufügen“ ein Ziel ein, dann verwalten Sie Ziele und Zeitplan hier,
             sehen alle Sicherungen und können daraus wiederherstellen. Es sind mehrere Ziele möglich, z. B. Google Drive und ein NAS.</Notice>
@@ -89,7 +104,18 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
         @if (progress.Running)
         {
-            <Notice Level="NoticeLevel.Info" id="backup-running">@RunningText</Notice>
+            <div class="backup-progress" id="backup-running" role="status">
+                <strong>@RunningText</strong>
+                @if (progress.Detail is { } run)
+                {
+                    <MudProgressLinear Value="@((run.Percent ?? 0) * 100)" Color="Color.Primary" Rounded="true" Size="Size.Medium" aria-label="Fortschritt" />
+                    <span class="small">Schritt @run.StepNumber von @run.StepCount: @run.Step@(string.IsNullOrEmpty(run.Detail) ? "" : " (" + run.Detail + ")")@(run.Percent is { } done ? $", insgesamt {(int)Math.Round(done * 100)} %" : "")</span>
+                }
+                else
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Rounded="true" Size="Size.Medium" aria-label="Fortschritt" />
+                }
+            </div>
         }
         else if (progress.Last is { Kind: "Restore" } restored)
         {
@@ -120,7 +146,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                                     }
                                 }
                             </td>
-                            <td>
+                            <td class="row-actions">
                                 <button type="button" class="button button-text" id="environment-backup" @onclick="StartEnvironmentBackupAsync" disabled="@(progress.Running || busy || !progress.Available)">Jetzt sichern</button>
                                 @if (BackupProviders.Parse(environment.Repository) is not null)
                                 {
@@ -158,7 +184,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
                                         <span class="small">@status.Status.Description</span>
                                     }
                                 </td>
-                                <td>
+                                <td class="row-actions">
                                     <button type="button" class="button button-text" @onclick="() => StartBackupAsync(target)" disabled="@(progress.Running || busy || !progress.Available)">Jetzt sichern</button>
                                     <button type="button" class="button button-text" @onclick="() => EditTargetAsync(target)" disabled="@busy">Bearbeiten</button>
                                 </td>
@@ -180,7 +206,29 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
             {
                 <Notice Level="NoticeLevel.Warning">Sicherungen von „@failed.Key“ konnten nicht gelesen werden: @failed.Value</Notice>
             }
-            @if (snapshots.Count == 0 && snapshotErrors.Count == 0)
+            @if (progress.Export is { } export && ExportKey(export) != startedDownload && !progress.Running)
+            {
+                @* Normally the download starts by itself; this is for a file that is still waiting (another session, a download that was cancelled) *@
+                <Notice Level="NoticeLevel.Info" id="backup-download">
+                    Eine vorbereitete Sicherung wartet auf den Download: <strong>@export.Name</strong> (@Format.Size(export.Size)). Sie bleibt mit dem Passwort der Sicherung verschlüsselt.
+                    <span class="form-actions">
+                        <a class="button button-outlined" id="backup-download-link" href="@BackupFileEndpoints.DownloadPath" download="@export.Name">Datei herunterladen</a>
+                        <button type="button" class="button button-text" id="backup-download-discard" @onclick="DiscardExportAsync" disabled="@busy">Verwerfen</button>
+                    </span>
+                </Notice>
+            }
+            @if (progress.Last is { Kind: "Export" or "Delete", Succeeded: false } failedRun && !progress.Running)
+            {
+                <Notice Level="NoticeLevel.Error" id="backup-run-failed">@(failedRun.Kind == "Export" ? "Die Sicherung konnte nicht für den Download vorbereitet werden: " : "Die Sicherung konnte nicht gelöscht werden: ")@failedRun.Message</Notice>
+            }
+            @if (snapshots.Count == 0 && !snapshotsLoaded)
+            {
+                <div class="snapshots-loading" id="snapshots-loading" role="status">
+                    <span class="small">Sicherungen werden geladen …</span>
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Rounded="true" Size="Size.Small" aria-label="Sicherungen werden geladen" />
+                </div>
+            }
+            else if (snapshots.Count == 0 && snapshotErrors.Count == 0)
             {
                 <EmptyState Text="Am Ziel liegt noch keine Sicherung." />
             }
@@ -188,15 +236,20 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
             {
                 <div class="table-wrapper">
                     <table class="data-table">
-                        <thead><tr><th>Zeitpunkt</th><th>Ziel</th><th>Kennung</th><th></th></tr></thead>
+                        <thead><tr><th>Zeitpunkt</th><th>Ziel</th><th>Größe</th><th>Kennung</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var entry in snapshots)
                             {
                                 <tr>
                                     <td>@Format.Timestamp(entry.Row.Time)</td>
                                     <td>@entry.TargetName</td>
+                                    <td>@Format.Size(entry.Row.Size)</td>
                                     <td><code>@entry.Row.ShortId</code></td>
-                                    <td><button type="button" class="button button-text" @onclick="() => Select(entry)" disabled="@(progress.Running || busy)">Wiederherstellen …</button></td>
+                                    <td class="row-actions">
+                                        <button type="button" class="button button-text" @onclick="() => ExportAsync(entry)" disabled="@(progress.Running || busy)">Herunterladen</button>
+                                        <button type="button" class="button button-text" @onclick="() => Select(entry)" disabled="@(progress.Running || busy)">Wiederherstellen</button>
+                                        <button type="button" class="button button-text danger" @onclick="() => DeleteSnapshotAsync(entry)" disabled="@(progress.Running || busy)">Löschen</button>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -223,21 +276,81 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         </section>
     }
 
-    <section>
-        <h2>Vollexport</h2>
+    @if (progress.Available)
+    {
+        <section id="backup-upload">
+            <h2>Aus Datei wiederherstellen</h2>
+            @if (UploadMessage is { } uploadMessage)
+            {
+                <Notice Level="@(UploadResult == "ok" ? NoticeLevel.Success : NoticeLevel.Error)" id="backup-upload-result">@uploadMessage</Notice>
+            }
+
+            @if (progress.Upload is { } upload)
+            {
+                <div class="backup-progress" id="backup-uploaded">
+                    <strong>Hochgeladen: @upload.Name (@Format.Size(upload.Size))</strong>
+                    <span class="small">Zum Öffnen braucht Elocaro das Passwort der Sicherung. Die Datei wird erst durch „Jetzt wiederherstellen“ eingespielt.</span>
+                    <div class="upload-open">
+                        <AppTextField Value="@uploadPassword" ValueChanged="v => { uploadPassword = v ?? string.Empty; uploadCheck = null; }" Label="Passwort der Sicherung" Type="password" Immediate="true" Autocomplete="off" />
+                        <div class="form-actions">
+                            <button type="button" class="button button-primary" id="upload-inspect" @onclick="InspectUploadAsync" disabled="@(busy || progress.Running || uploadPassword.Length == 0)">Datei öffnen</button>
+                            <button type="button" class="button button-text" id="upload-discard" @onclick="DiscardUploadAsync" disabled="@(busy || progress.Running)">Verwerfen</button>
+                        </div>
+                    </div>
+                    @if (uploadCheck is { Succeeded: false } failed)
+                    {
+                        <Notice Level="NoticeLevel.Error" id="upload-check">@failed.Message</Notice>
+                    }
+                    else if (uploadCheck is { Snapshots: [var held, ..] })
+                    {
+                        <div class="danger-action-content" role="alertdialog" aria-label="Wiederherstellen aus Datei" id="upload-confirm">
+                            <p><strong>Die Datei enthält die Sicherung vom @Format.Timestamp(held.Time) (@Format.Size(held.Size)).
+                            Alle aktuellen Daten und Dateien werden durch diesen Stand ersetzt.</strong>
+                            Was seitdem erfasst wurde, geht verloren. Die App ist währenddessen nicht nutzbar und startet danach von selbst neu.</p>
+                            <AppTextField Value="@uploadConfirmation" ValueChanged="v => uploadConfirmation = v ?? string.Empty" Label="Zur Bestätigung „WIEDERHERSTELLEN“ eingeben" Immediate="true" />
+                            <div class="form-actions">
+                                <button type="button" class="button button-primary" id="upload-restore" @onclick="RestoreUploadAsync"
+                                        disabled="@(busy || progress.Running || !string.Equals(uploadConfirmation.Trim(), "WIEDERHERSTELLEN", StringComparison.Ordinal))">Ja, jetzt wiederherstellen</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p>Eine Sicherungsdatei, die Sie zuvor mit „Herunterladen“ gespeichert haben, hochladen und daraus wiederherstellen, auch von einem anderen Server.</p>
+                <form method="post" enctype="multipart/form-data" action="@BackupFileEndpoints.UploadPath" data-enhance="false" id="backup-upload-form" class="upload-form">
+                    <AntiforgeryToken />
+                    <label class="dropzone @(chosenFile is null ? null : "chosen")">
+                        <Icon Path="@MudBlazor.Icons.Material.Outlined.UploadFile" />
+                        <span class="dropzone-title">@(chosenFile ?? "Sicherungsdatei auswählen oder hierher ziehen")</span>
+                        <span class="dropzone-text">@(chosenFile is null ? "Eine .tar-Datei, die mit „Herunterladen“ entstanden ist" : "Zum Ändern erneut klicken")</span>
+                        <input type="file" name="file" accept=".tar,application/x-tar" aria-label="Sicherungsdatei" @onchange="OnFileChosen" />
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="button button-primary" id="upload-send" disabled="@(chosenFile is null)">Datei hochladen</button>
+                    </div>
+                </form>
+            }
+        </section>
+    }
+
+    <details class="explain" id="backup-more">
+        <summary>Weitere Optionen: Vollexport aller Daten</summary>
         <p>Alle Daten als ZIP: jede Tabelle als JSON und CSV (für Excel), dazu alle hochgeladenen Dateien und eine
         Beschreibung des Formats. Der Export ist ohne Elocaro lesbar, enthält aber keine Passwörter oder Anmeldetokens.
-        Er enthält alle personenbezogenen Daten: sicher aufbewahren. Der Export wird im Audit-Log vermerkt.</p>
+        Er enthält alle personenbezogenen Daten: sicher aufbewahren. Der Export wird im Audit-Log vermerkt.
+        Zum Wiederherstellen von Elocaro dient die Sicherung, nicht der Vollexport.</p>
         <form method="post" action="@ExportEndpoint.Path" data-enhance="false">
             <AntiforgeryToken />
             <button type="submit" class="button">Vollexport herunterladen</button>
         </form>
-    </section>
+    </details>
 
     <section>
         <h2>Wiederherstellen auf einem neuen Server</h2>
-        <p>Auf einem frisch installierten Server fragt die Ersteinrichtung nach einer Datensicherung: Ziel und Passwort eingeben, Stand wählen,
-        fertig. Eine Anleitung für die Konsole steht in <code>docs/betrieb.md</code>.</p>
+        <p>Auf einem frisch installierten Server fragt die Ersteinrichtung nach einer Datensicherung: entweder aus einem Ziel (Ziel und Passwort eingeben, Stand wählen)
+        oder aus einer hier heruntergeladenen Sicherungsdatei. Eine Anleitung für die Konsole steht in der <a href="@AppInfo.Docs("betrieb.md", "auf-einem-neuen-server")" target="_blank" rel="noopener noreferrer">Betriebsanleitung (Auf einem neuen Server)</a>.</p>
     </section>
 </InteractiveShell>
 
@@ -249,6 +362,39 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
     private bool busy;
     private IReadOnlyList<string>? listErrors;
+
+    private string? chosenFile;
+    private bool snapshotsLoaded;
+    private bool snapshotsLoading;
+    private bool snapshotsDirty;
+
+    /// <summary>This page asked for a download: when the file is ready it is fetched at once.</summary>
+    private bool awaitingDownload;
+
+    /// <summary>The prepared file whose download was started from here (it disappears while it is sent).</summary>
+    private string? startedDownload;
+
+    // The browser reports the chosen file as "C:\fakepath\name.tar": the name is all that is shown
+    private void OnFileChosen(ChangeEventArgs e) =>
+        chosenFile = (e.Value as string)?.Replace('\\', '/') is { Length: > 0 } path ? Path.GetFileName(path) : null;
+
+    private string uploadPassword = string.Empty;
+    private string uploadConfirmation = string.Empty;
+    private BackupUploadCheck? uploadCheck;
+
+    /// <summary>Result of the upload form (a fixed word in the address).</summary>
+    [SupplyParameterFromQuery(Name = "upload")]
+    public string? UploadResult { get; set; }
+
+    private string? UploadMessage => UploadResult switch
+    {
+        "ok" => "Die Datei wurde hochgeladen. Geben Sie das Passwort der Sicherung ein, um sie zu öffnen.",
+        "abgelehnt" => "Die Datei ist keine Sicherungsdatei von Elocaro. Gültig ist eine .tar, die über „Herunterladen“ entstanden ist.",
+        "belegt" => "Es läuft gerade eine Sicherung oder Wiederherstellung. Bitte später noch einmal hochladen.",
+        "leer" => "Es wurde keine Datei gewählt.",
+        null => null,
+        _ => "Die Datei konnte nicht hochgeladen werden. Läuft der Backup-Dienst?",
+    };
 
     /// <summary><see cref="TargetId"/> is <c>null</c> for the target of the server configuration.</summary>
     private sealed record SnapshotEntry(Guid? TargetId, string TargetName, BackupSnapshotRow Row);
@@ -268,7 +414,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         get
         {
             var name = targets.FirstOrDefault(t => t.Id.ToString("N") == progress.RunningTargetId)?.Name;
-            return progress.Kind == "Restore" ? "Die Wiederherstellung läuft …" : name is null ? "Eine Sicherung läuft …" : $"Eine Sicherung läuft: {name} …";
+            return progress.Kind == "Export" ? "Die Sicherung wird für den Download vorbereitet …" : progress.Kind == "Delete" ? "Eine Sicherung wird gelöscht …" : progress.Kind == "Restore" ? "Die Wiederherstellung läuft …" : name is null ? "Eine Sicherung läuft …" : $"Eine Sicherung läuft: {name} …";
         }
     }
 
@@ -276,7 +422,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (progress.Running && polling is null)
+        if (polling is null)
         {
             _ = PollAsync();
         }
@@ -284,40 +430,92 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
     private async Task RefreshAsync()
     {
-        targets = await Settings.ListAsync();
-        state = await BackupStatus.QueryAsync();
-        states = (await BackupStatus.QueryTargetsAsync()).ToDictionary(s => s.Id);
+        // First what the backup service says (it does not touch the database): during and right after a restore the database is replaced,
+        // and what the page has to do then (show the result, restart the app) must not depend on it
         progress = await Control.ProgressAsync();
-        environment = targets.Count == 0 && progress.Available ? await Control.EnvironmentAsync() : null;
-        await LoadSnapshotsAsync();
+        if (progress.Export is null)
+        {
+            startedDownload = null;
+        }
+
         sawRestore |= progress is { Running: true, Kind: "Restore" };
         // Only a restore that ran while this page was open restarts the app (a result from earlier must not do it again).
-        if (sawRestore && !progress.Running && progress.Last is { Kind: "Restore", Succeeded: true })
+        if (sawRestore && !restarting && !progress.Running && progress.Last is { Kind: "Restore", Succeeded: true })
         {
             restarting = true;
             Restart.Schedule();
         }
+
+        // The file for a download that this page asked for is ready: fetch it (the page stays, the browser saves the file)
+        if (awaitingDownload && !progress.Running)
+        {
+            awaitingDownload = false;
+            if (progress.Export is { } ready)
+            {
+                startedDownload = ExportKey(ready);
+                Notify.Success("Der Download der Sicherung startet.");
+                Navigation.NavigateTo(BackupFileEndpoints.DownloadPath, forceLoad: true);
+            }
+        }
+
+        try
+        {
+            targets = await Settings.ListAsync();
+            state = await BackupStatus.QueryAsync();
+            states = (await BackupStatus.QueryTargetsAsync()).ToDictionary(s => s.Id);
+            environment = targets.Count == 0 && progress.Available ? await Control.EnvironmentAsync() : null;
+        }
+        catch (Exception ex) when (ex is DbException or InvalidOperationException or IOException)
+        {
+            // The database is being replaced by a restore (connections cut): what is shown stays, the next refresh reads again
+        }
+
+        // The list of the backups is read from the targets, which can be slow: the page appears first, the list follows
+        if (RendererInfo.IsInteractive)
+        {
+            _ = InvokeAsync(LoadSnapshotsAsync);
+        }
     }
 
-    /// <summary>While an operation runs, the status is refreshed every few seconds.</summary>
+    /// <summary>
+    /// While an operation runs, the page follows it every two seconds. Otherwise it only asks the backup service every ten seconds
+    /// whether something started (scheduled backup, another administrator) and then follows that.
+    /// </summary>
     private async Task PollAsync()
     {
         polling = new CancellationTokenSource();
         var token = polling.Token;
+        var idleTicks = 0;
         try
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
             while (await timer.WaitForNextTickAsync(token))
             {
                 await InvokeAsync(async () =>
                 {
-                    await RefreshAsync();
+                    try
+                    {
+                        if (progress.Running)
+                        {
+                            idleTicks = 0;
+                            await RefreshAsync();
+                        }
+                        else if (++idleTicks >= 5)
+                        {
+                            idleTicks = 0;
+                            if ((await Control.ProgressAsync()).Running)
+                            {
+                                await RefreshAsync();
+                            }
+                        }
+                    }
+                    catch (Exception ex) when (ex is DbException or InvalidOperationException or IOException or HttpRequestException)
+                    {
+                        // A tick that fails (the service or the database is just being replaced) must not end the following of the run: try again at the next
+                    }
+
                     StateHasChanged();
                 });
-                if (!progress.Running)
-                {
-                    break;
-                }
             }
         }
         catch (OperationCanceledException)
@@ -359,7 +557,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
 
 
     private static string Schedule(BackupSettingsView target) =>
-        $"{(target.IntervalDays == 1 ? "täglich" : target.IntervalDays == 7 ? "wöchentlich" : $"alle {target.IntervalDays} Tage")} um {target.Time.ToString("HH:mm", CultureInfo.InvariantCulture)}";
+        $"{(target.IntervalDays == 1 ? "täglich" : target.IntervalDays == 7 ? (target.Weekday is { } day ? $"wöchentlich {BackupTargetDialog.WeekdayPlural(day)}" : "wöchentlich") : $"alle {target.IntervalDays} Tage")} um {target.Time.ToString("HH:mm", CultureInfo.InvariantCulture)}";
 
     private static StatusLevel Chip(BackupState state) => state switch
     {
@@ -446,48 +644,71 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
         }
     }
 
+    /// <summary>
+    /// Reads the backups of every target, one after the other; the list grows as each target answers. Runs in a scope of its own (the page
+    /// keeps using its database context meanwhile). Never while the backup service works on a repository (a backup or restore holds it):
+    /// the list follows when the run is over. A request that comes in while the list is being read repeats it afterwards.
+    /// </summary>
     private async Task LoadSnapshotsAsync()
     {
-        // Never read the repository while the backup service is working on it (a backup or restore holds it); the list follows when the run is over.
-        if (progress.Running)
+        if (snapshotsLoading)
+        {
+            snapshotsDirty = true;
+            return;
+        }
+
+        if (progress.Running || !progress.Available)
         {
             return;
         }
 
-        var entries = new List<SnapshotEntry>();
-        var failures = new Dictionary<string, string>();
-        if (progress.Available)
+        snapshotsLoading = true;
+        try
         {
-            if (environment is not null)
+            do
             {
-                await AddSnapshotsAsync("Server-Konfiguration", () => Control.EnvironmentSnapshotsAsync(), null);
-            }
+                snapshotsDirty = false;
+                var wanted = (environment is not null ? new[] { (Id: (Guid?)null, Name: "Server-Konfiguration") } : [])
+                    .Concat(targets.Select(t => (Id: (Guid?)t.Id, t.Name))).ToList();
+                var entries = new List<SnapshotEntry>();
+                var failures = new Dictionary<string, string>();
+                await using var scope = Scopes.CreateAsyncScope();
+                var control = scope.ServiceProvider.GetRequiredService<IBackupControl>();
+                foreach (var (id, name) in wanted)
+                {
+                    try
+                    {
+                        var rows = id is { } targetId ? await control.SnapshotsAsync(targetId) : await control.EnvironmentSnapshotsAsync();
+                        entries.AddRange(rows.Select(row => new SnapshotEntry(id, name, row)));
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+                    {
+                        failures[name] = ex.Message;
+                    }
 
-            foreach (var target in targets)
-            {
-                await AddSnapshotsAsync(target.Name, () => Control.SnapshotsAsync(target.Id), target.Id);
+                    snapshots = entries.OrderByDescending(e => e.Row.Time).ToList();
+                    snapshotErrors = new Dictionary<string, string>(failures);
+                    await InvokeAsync(StateHasChanged);
+                }
+
+                snapshotsLoaded = true;
             }
+            while (snapshotsDirty && !progress.Running);
         }
-
-        async Task AddSnapshotsAsync(string name, Func<Task<IReadOnlyList<BackupSnapshotRow>>> load, Guid? id)
+        finally
         {
-            try
+            snapshotsLoading = false;
+            snapshotsLoaded = true;
+            if (selected is not null && !snapshots.Any(e => e.TargetId == selected.TargetId && e.Row.Id == selected.Row.Id))
             {
-                entries.AddRange((await load()).Select(row => new SnapshotEntry(id, name, row)));
+                selected = null;
             }
-            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
-            {
-                failures[name] = ex.Message;
-            }
-        }
 
-        snapshots = entries.OrderByDescending(e => e.Row.Time).ToList();
-        snapshotErrors = failures;
-        if (selected is not null && !snapshots.Any(e => e.TargetId == selected.TargetId && e.Row.Id == selected.Row.Id))
-        {
-            selected = null;
+            await InvokeAsync(StateHasChanged);
         }
     }
+
+    private static string ExportKey(BackupFileInfo file) => file.Name + "|" + file.Created.ToString("O", CultureInfo.InvariantCulture);
 
     private async Task ReloadSnapshotsAsync()
     {
@@ -508,6 +729,119 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm back
     {
         selected = entry;
         confirmation = string.Empty;
+    }
+
+    private async Task ExportAsync(SnapshotEntry entry)
+    {
+        listErrors = null;
+        busy = true;
+        try
+        {
+            var result = entry.TargetId is { } targetId
+                ? await Control.StartExportAsync(targetId, entry.Row.Id)
+                : await Control.StartEnvironmentExportAsync(entry.Row.Id);
+            if (!result.Succeeded)
+            {
+                listErrors = result.Errors;
+                return;
+            }
+
+            awaitingDownload = true;
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DiscardExportAsync()
+    {
+        await Control.DiscardExportAsync();
+        await RefreshAsync();
+    }
+
+    private async Task InspectUploadAsync()
+    {
+        busy = true;
+        try
+        {
+            uploadConfirmation = string.Empty;
+            uploadCheck = await Control.InspectUploadAsync(uploadPassword);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DiscardUploadAsync()
+    {
+        await Control.DiscardUploadAsync();
+        uploadPassword = string.Empty;
+        uploadCheck = null;
+        await RefreshAsync();
+    }
+
+    private async Task RestoreUploadAsync()
+    {
+        if (!string.Equals(uploadConfirmation.Trim(), "WIEDERHERSTELLEN", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Control.StartRestoreUploadAsync(uploadPassword);
+            if (!result.Succeeded)
+            {
+                listErrors = result.Errors;
+                return;
+            }
+
+            uploadPassword = string.Empty;
+            uploadCheck = null;
+            // Started here: a restore that finishes between two polls (small installations) must still restart the app.
+            sawRestore = true;
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteSnapshotAsync(SnapshotEntry entry)
+    {
+        var only = snapshots.Count(s => s.TargetId == entry.TargetId) == 1;
+        var text = $"Soll die Sicherung vom {Format.Timestamp(entry.Row.Time)} aus „{entry.TargetName}“ endgültig gelöscht werden? Das lässt sich nicht rückgängig machen."
+            + (only ? " Es ist die einzige Sicherung an diesem Ziel: danach gibt es dort keine mehr." : "");
+        if (!await Confirm.AskAsync("Sicherung löschen", text, "Ja, löschen"))
+        {
+            return;
+        }
+
+        listErrors = null;
+        busy = true;
+        try
+        {
+            var result = entry.TargetId is { } targetId
+                ? await Control.StartDeleteSnapshotAsync(targetId, entry.Row.Id)
+                : await Control.StartEnvironmentDeleteSnapshotAsync(entry.Row.Id);
+            if (!result.Succeeded)
+            {
+                listErrors = result.Errors;
+                return;
+            }
+
+            Notify.Success("Die Sicherung wird gelöscht.");
+            await RefreshAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private async Task RestoreAsync()

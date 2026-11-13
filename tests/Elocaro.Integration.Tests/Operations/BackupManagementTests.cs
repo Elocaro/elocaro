@@ -113,6 +113,8 @@ public class BackupManagementTests(PostgresFixture postgres) : IAsyncLifetime
         var nas = Local("NAS");
         nas.IntervalDays = 7;
         nas.Time = new TimeOnly(4, 0);
+        nas.Weekday = DayOfWeek.Friday;
+        drive.Weekday = DayOfWeek.Tuesday;
         await AddAsync(drive);
         await AddAsync(nas);
 
@@ -121,6 +123,9 @@ public class BackupManagementTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal(["Drive", "NAS"], list.Select(t => t.Name));
         Assert.Equal([1, 7], list.Select(t => t.IntervalDays));
         Assert.Equal(new TimeOnly(4, 0), list[1].Time);
+        // The weekday belongs to weekly targets only
+        Assert.Null(list[0].Weekday);
+        Assert.Equal(DayOfWeek.Friday, list[1].Weekday);
     }
 
     [Fact]

@@ -78,6 +78,7 @@ internal sealed class BackupSettingsService(ElocaroDbContext db, IDataProtection
             row.Enabled = input.Enabled;
             row.Time = input.Time;
             row.IntervalDays = input.IntervalDays;
+            row.Weekday = input.IntervalDays == 7 ? input.Weekday : null;
             row.KeepDaily = input.KeepDaily;
             row.KeepWeekly = input.KeepWeekly;
             row.KeepMonthly = input.KeepMonthly;
@@ -133,7 +134,7 @@ internal sealed class BackupSettingsService(ElocaroDbContext db, IDataProtection
 
     private BackupSettingsView ToView(BackupSetting row) =>
         new(row.Id, row.Name, row.Provider, row.Location, row.Enabled, row.Time, row.IntervalDays, row.KeepDaily, row.KeepWeekly, row.KeepMonthly,
-            Unprotect(row.ProtectedPassword) is { Length: > 0 }, Credentials(row).Keys.ToHashSet(StringComparer.Ordinal));
+            Unprotect(row.ProtectedPassword) is { Length: > 0 }, Credentials(row).Keys.ToHashSet(StringComparer.Ordinal), row.Weekday);
 
     /// <summary>Entered values win; empty secrets keep the saved ones (only for the same provider).</summary>
     private (string? Password, Dictionary<string, string> Credentials) Merge(BackupSetting? saved, BackupSettingsInput input)

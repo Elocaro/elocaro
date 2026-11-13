@@ -27,15 +27,18 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
         services.AddHttpClient<BackupSidecar>().ConfigurePrimaryHttpMessageHandler(() => sidecar);
 
     [Fact]
-    public async Task Without_settings_the_page_says_that_the_environment_decides_and_offers_no_backup_button()
+    public async Task Without_any_target_the_page_says_that_nothing_is_set_up_and_offers_to_add_one()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
         var page = await admin.GetAsync(Page);
 
-        Assert.Contains("Server-Konfiguration", page.Text, StringComparison.Ordinal);
-        Assert.Contains("dann verwalten Sie Ziele und Zeitplan hier", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Noch keine Sicherung eingerichtet", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Ziel hinzufügen", page.Text, StringComparison.Ordinal);
+        // Not the old claim that the server configuration decides (there is no such target), nor the monitoring message
+        Assert.DoesNotContain("Die Sicherung läuft derzeit nach der Server-Konfiguration", page.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Backup-Überwachung ist nicht eingerichtet", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Jetzt sichern", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("von hier aus nicht erreichbar", page.Text, StringComparison.Ordinal);
     }
@@ -72,14 +75,14 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
         Assert.Contains("Bearbeiten", page.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("super-geheimes-passwort", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("super-geheimer-schluessel", page.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("dann verwalten Sie Ziele und Zeitplan hier", page.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Noch keine Sicherung eingerichtet", page.Text, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task The_target_from_the_server_configuration_shows_where_what_is_backed_up_and_lists_the_backups()
     {
         sidecar.EnvironmentJson = """{"repository":"azure:elocaro-backup:/","time":"02:30","keepDaily":7,"keepWeekly":4,"keepMonthly":12,"paused":false}""";
-        sidecar.SnapshotsJson = """[{"id":"bbbbbbbb22222222","shortId":"bbbbbbbb","time":"2026-03-02T01:30:00Z"},{"id":"aaaaaaaa11111111","shortId":"aaaaaaaa","time":"2026-03-01T01:30:00Z"}]""";
+        sidecar.SnapshotsJson = """[{"id":"bbbbbbbb22222222","shortId":"bbbbbbbb","time":"2026-03-02T01:30:00Z","size":3865470566},{"id":"aaaaaaaa11111111","shortId":"aaaaaaaa","time":"2026-03-01T01:30:00Z"}]""";
         var (admin, _) = await SignedInAsAsync(Roles.Admin);
         using var _ = admin;
 
@@ -88,10 +91,10 @@ public class BackupSettingsPageTests(PostgresFixture postgres) : AccountTestBase
         Assert.Contains("azure:elocaro-backup:/", page.Text, StringComparison.Ordinal);
         Assert.Contains("täglich um 02:30", page.Text, StringComparison.Ordinal);
         Assert.Contains("7 täglich, 4 wöchentlich, 12 monatlich", page.Text, StringComparison.Ordinal);
+        // The list of the backups is read after the page appeared (it can be slow); the page itself says so. The list is checked in the browser
+        // (BackupEnvironmentBrowserTests).
         Assert.Contains("Vorhandene Sicherungen", page.Text, StringComparison.Ordinal);
-        Assert.Contains("bbbbbbbb", page.Text, StringComparison.Ordinal);
-        Assert.Contains("aaaaaaaa", page.Text, StringComparison.Ordinal);
-        Assert.Contains("Wiederherstellen …", page.Text, StringComparison.Ordinal);
+        Assert.Contains("Sicherungen werden geladen", page.Text, StringComparison.Ordinal);
         Assert.Contains("Jetzt sichern", page.Text, StringComparison.Ordinal);
     }
 

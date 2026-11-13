@@ -108,7 +108,7 @@ public sealed class CostAllocationRule : Entity, ITimeDependent
     /// <summary>Deduction before allocation in percent of the costs (e.g. commercial share); mutually exclusive with the amount.</summary>
     public decimal? PreDeductionPercent { get; private set; }
 
-    /// <summary>Deduction before allocation as a fixed amount per year (prorated if the key changes within the period).</summary>
+    /// <summary>Deduction before allocation as a fixed amount per year for the cost type (prorated by days if the key changes within the period or the billing period is shorter than a year).</summary>
     public decimal? PreDeductionAmount { get; private set; }
 
     public string? PreDeductionNote { get; private set; }

@@ -114,6 +114,31 @@ public class BackupScheduleTests
     }
 
     [Fact]
+    public void A_weekly_target_with_a_weekday_runs_on_that_day_after_the_time()
+    {
+        var lastMonday = Utc("2026-03-02T01:35:00Z"); // Monday 02:35 local
+
+        // Before the time on Monday: the backup of last Monday is the current one
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-09T01:00:00Z"), Time, 7, lastMonday, DayOfWeek.Monday));
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-09T01:31:00Z"), Time, 7, lastMonday, DayOfWeek.Monday));
+        // On the days between, nothing is due
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-04T10:00:00Z"), Time, 7, lastMonday, DayOfWeek.Monday));
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-08T20:00:00Z"), Time, 7, lastMonday, DayOfWeek.Monday));
+    }
+
+    [Fact]
+    public void A_weekly_target_with_a_weekday_catches_up_when_the_day_was_missed()
+    {
+        var lastSunday = Utc("2026-03-01T01:35:00Z");
+
+        // Monday's backup is overdue on Wednesday, but not before its time on the day itself
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-04T10:00:00Z"), Time, 7, lastSunday, DayOfWeek.Monday));
+        Assert.False(BackupSchedule.IsDue(Utc("2026-03-02T01:00:00Z"), Time, 7, lastSunday, DayOfWeek.Monday));
+        // Never ran: due at once, whatever the day
+        Assert.True(BackupSchedule.IsDue(Utc("2026-03-04T10:00:00Z"), Time, 7, null, DayOfWeek.Friday));
+    }
+
+    [Fact]
     public void A_weekly_target_that_never_ran_is_due_at_once() =>
         Assert.True(BackupSchedule.IsDue(Utc("2026-03-01T13:00:00Z"), Time, 7, null));
 

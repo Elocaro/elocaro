@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261111154003_GoogleClientSettings";
+    public override string LastMigrationId => "20261112192758_BackupWeekday";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -5270,6 +5270,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAddOrUpdate()
                     .HasColumnType("xid")
                     .HasColumnName("xmin");
+
+                b.Property<int?>("Weekday")
+                    .HasColumnType("integer")
+                    .HasColumnName("weekday");
 
                 b.HasKey("Id")
                     .HasName("pk_backup_settings");
