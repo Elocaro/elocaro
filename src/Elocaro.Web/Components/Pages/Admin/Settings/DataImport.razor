@@ -54,8 +54,41 @@
         <h2>2. Datei prüfen</h2>
         <AppFileUpload Text="Datei auswählen" Accept=".xlsx,.csv,.txt" OnSelected="OnFileSelected" MaxBytes="5242880" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PreviewAsync" Disabled="busy">Prüfen</MudButton>
+        @if (analysis is not null && !showMapping)
+        {
+            <MudButton Variant="Variant.Text" OnClick="() => showMapping = true">Spalten selbst zuordnen</MudButton>
+        }
         <p class="small">Es wird noch nichts gespeichert. Vorhandene Objekte, Einheiten und Personen werden erkannt und nicht doppelt angelegt.</p>
     </section>
+
+    @if (analysis is not null && showMapping)
+    {
+        <section id="import-mapping">
+            <h2>Spalten zuordnen</h2>
+            @if (analysis.NeedsMapping)
+            {
+                <Notice Level="NoticeLevel.Warning">Diese Spalten hat Elocaro nicht an der Überschrift erkannt: @string.Join(", ", analysis.Missing.Select(m => $"„{m.Label}“")). Bitte unten zuordnen.</Notice>
+            }
+
+            <p class="small">Ordnen Sie jeder Spalte Ihrer Datei die passende Spalte der Vorlage zu. Nicht zugeordnete Spalten werden ignoriert. Pflicht sind Objekt und Einheit. Die Beispielwerte stehen nur hier im Browser und werden nirgends hin gesendet.</p>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Spalte in Ihrer Datei</th><th>Beispiele</th><th>Entspricht in Elocaro</th></tr></thead>
+                    <tbody>
+                        @foreach (var column in analysis.Source)
+                        {
+                            <tr>
+                                <td>@(column.Header.Length == 0 ? $"(Spalte {column.Index + 1})" : column.Header)</td>
+                                <td class="small">@string.Join(" · ", column.Samples)</td>
+                                <td><AppSelect T="string" Value="Assigned(column.Index)" ValueChanged="v => assignments[column.Index] = v" Label="@($"Zuordnung für Spalte {column.Header}")" Items="targetKeys" Text="TargetText" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PreviewMappedAsync" Disabled="busy" id="mapping-apply">Zuordnung übernehmen und prüfen</MudButton>
+        </section>
+    }
 
     @if (preview is not null)
     {
@@ -126,6 +159,11 @@
 
 @code {
     private FileSelection? file;
+    private ColumnAnalysis? analysis;
+    private bool showMapping;
+    private IReadOnlyDictionary<int, string>? mapping;
+    private readonly Dictionary<int, string> assignments = [];
+    private string[] targetKeys = [];
     private DataImportPreview? preview;
     private DataImportResult? result;
     private IReadOnlyList<string>? errors;
@@ -167,6 +205,9 @@
     {
         file = selection;
         preview = null;
+        analysis = null;
+        mapping = null;
+        showMapping = false;
         result = null;
         errors = null;
     }
@@ -200,6 +241,23 @@
         busy = true;
         try
         {
+            analysis = await Import.AnalyzeAsync(content);
+            targetKeys = ["", .. analysis.Target.Select(t => t.Key)];
+            assignments.Clear();
+            foreach (var (index, key) in analysis.Recognized)
+            {
+                assignments[index] = key;
+            }
+
+            mapping = null;
+            if (analysis.FileErrors.Count == 0 && analysis.NeedsMapping)
+            {
+                // Required columns are not recognized: ask for the assignment instead of showing only an error.
+                showMapping = true;
+                preview = null;
+                return;
+            }
+
             preview = await Import.PreviewAsync(content);
         }
         finally
@@ -207,6 +265,30 @@
             busy = false;
         }
     }
+
+    private async Task PreviewMappedAsync()
+    {
+        errors = null;
+        if (await ReadAsync() is not { } content)
+        {
+            return;
+        }
+
+        mapping = assignments.Where(a => a.Value.Length > 0).ToDictionary(a => a.Key, a => a.Value);
+        busy = true;
+        try
+        {
+            preview = await Import.PreviewAsync(content, mapping);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private string Assigned(int index) => assignments.TryGetValue(index, out var key) ? key : "";
+
+    private string TargetText(string key) => key.Length == 0 ? "– ignorieren –" : analysis!.Target.First(t => t.Key == key).Label;
 
     private async Task ImportAsync()
     {
@@ -224,7 +306,7 @@
         busy = true;
         try
         {
-            result = await Import.ImportAsync(content);
+            result = await Import.ImportAsync(content, mapping);
             if (result.Succeeded)
             {
                 Notify.Success("Der Import ist abgeschlossen.");

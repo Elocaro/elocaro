@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Elocaro.Application.Setup;
 using Elocaro.Domain.Leases;
 using Elocaro.Infrastructure.Common;
 
@@ -332,6 +333,94 @@ internal static partial class ImportSheet
 
         return decimal.TryParse(cleaned, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value);
     }
+
+    /// <summary>The template columns in file order with their headings; a heading is always one the import itself recognizes (checked by a test).</summary>
+    public static IReadOnlyList<ImportColumn> Targets { get; } =
+    [
+        new("property", "Objekt", true), new("street", "Straße", false), new("postalCode", "PLZ", false), new("city", "Ort", false),
+        new("unit", "Einheit", true), new("location", "Lage", false), new("area", "Wohnfläche", false),
+        new("firstName", "Vorname", false), new("lastName", "Nachname", false), new("email", "E-Mail", false),
+        new("start", "Mietbeginn", false), new("baseRent", "Kaltmiete", false), new("operatingCosts", "Betriebskosten", false), new("heatingCosts", "Heizkosten", false),
+        new("deposit", "Kaution", false), new("depositReceived", "Kaution eingegangen", false), new("balance", "Saldo", false),
+        new("model", "Mietmodell", false), new("indexMonth", "Indexmonat", false), new("indexValue", "Indexwert", false),
+        new("fixedUntil", "Befristet bis", false), new("people", "Personen", false), new("steps", "Staffeln", false),
+    ];
+
+    /// <summary>The headings of the file, the first values of each column and what the import recognizes by name.</summary>
+    public static ColumnAnalysis Analyze(byte[] content)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        var text = TextDecoding.Read(content);
+        var rows = Split(text, Delimiter(text)).Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
+        if (rows.Count == 0)
+        {
+            return new ColumnAnalysis([], Targets, new Dictionary<int, string>(), [.. Targets.Where(t => t.Required)], ["Die Datei ist leer."]);
+        }
+
+        var source = rows[0].Select((header, index) => new SourceColumn(
+            index,
+            header.Trim(),
+            [.. rows.Skip(1).Select(r => index < r.Count ? r[index].Trim() : "").Where(v => v.Length > 0).Take(3).Select(v => v.Length > 40 ? v[..40] + "…" : v)])).ToList();
+        var recognized = new Dictionary<int, string>();
+        foreach (var column in Columns)
+        {
+            var index = rows[0].Select(Normalize).ToList().FindIndex(h => column.Value.Contains(h, StringComparer.Ordinal));
+            if (index >= 0 && !recognized.ContainsKey(index))
+            {
+                recognized[index] = column.Key;
+            }
+        }
+
+        var missing = Targets.Where(t => t.Required && !recognized.ContainsValue(t.Key)).ToList();
+        return new ColumnAnalysis(source, Targets, recognized, missing, rows.Count == 1 ? ["Die Datei enthält keine Zeilen unter den Überschriften."] : []);
+    }
+
+    /// <summary>Problems with a column assignment: unknown targets, one target twice, required columns missing.</summary>
+    public static IReadOnlyList<string> CheckMapping(IReadOnlyDictionary<int, string> mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        var errors = new List<string>();
+        var known = Targets.ToDictionary(t => t.Key, StringComparer.Ordinal);
+        foreach (var key in mapping.Values.Where(k => !known.ContainsKey(k)).Distinct())
+        {
+            errors.Add($"Die Zielspalte „{key}“ gibt es nicht.");
+        }
+
+        foreach (var group in mapping.Values.Where(known.ContainsKey).GroupBy(k => k).Where(g => g.Count() > 1))
+        {
+            errors.Add($"„{known[group.Key].Label}“ ist mehreren Spalten zugeordnet.");
+        }
+
+        foreach (var required in Targets.Where(t => t.Required && !mapping.Values.Contains(t.Key)))
+        {
+            errors.Add($"Die Spalte „{required.Label}“ ist nicht zugeordnet.");
+        }
+
+        return errors;
+    }
+
+    /// <summary>The file with the first row rewritten: assigned columns get the heading of the template, all others an ignored one. Only valid mappings.</summary>
+    public static byte[] ApplyMapping(byte[] content, IReadOnlyDictionary<int, string> mapping)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(mapping);
+        var labels = Targets.ToDictionary(t => t.Key, t => t.Label, StringComparer.Ordinal);
+        var text = TextDecoding.Read(content);
+        var rows = Split(text, Delimiter(text)).Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
+        var output = new StringBuilder();
+        for (var r = 0; r < rows.Count; r++)
+        {
+            var cells = r == 0
+                ? rows[0].Select((_, i) => mapping.TryGetValue(i, out var key) && labels.TryGetValue(key, out var label) ? label : $"ignoriert {i + 1}")
+                : rows[r];
+            output.AppendJoin(';', cells.Select(Quote)).Append("\r\n");
+        }
+
+        return [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(output.ToString())];
+    }
+
+    private static string Quote(string value) =>
+        value.AsSpan().IndexOfAny(";\"\r\n") >= 0 ? "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : value;
 
     private static char Delimiter(string text)
     {

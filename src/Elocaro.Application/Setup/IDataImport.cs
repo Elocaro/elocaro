@@ -9,6 +9,15 @@ public interface IDataImport
     /// <summary>A sample file with the columns and one example row (UTF-8 with BOM, semicolon, German numbers).</summary>
     byte[] TemplateCsv();
 
+    /// <summary>Looks at the columns of the file: which headings are known, which required columns are missing. Writes nothing.</summary>
+    Task<ColumnAnalysis> AnalyzeAsync(byte[] content, CancellationToken cancellationToken = default);
+
+    /// <summary>Like <see cref="PreviewAsync(byte[], CancellationToken)"/> with the columns assigned by hand: source column index → template column key; columns not listed are ignored.</summary>
+    Task<DataImportPreview> PreviewAsync(byte[] content, IReadOnlyDictionary<int, string>? mapping, CancellationToken cancellationToken = default);
+
+    /// <summary>Like <see cref="ImportAsync(byte[], CancellationToken)"/> with the columns assigned by hand.</summary>
+    Task<DataImportResult> ImportAsync(byte[] content, IReadOnlyDictionary<int, string>? mapping, CancellationToken cancellationToken = default);
+
     /// <summary>Reads the file and says per row what would be created, reused or is wrong. Writes nothing.</summary>
     Task<DataImportPreview> PreviewAsync(byte[] content, CancellationToken cancellationToken = default);
 

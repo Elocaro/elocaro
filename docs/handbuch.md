@@ -10,7 +10,7 @@ Dieses Handbuch ist für Vermieter, die Elocaro benutzen. Betrieb und Installati
 4. **Zahlungen** (Bank): Konto anlegen, Umsätze importieren; Elocaro ordnet sie den Forderungen zu.
 5. **Mieterzugang** (Personen → Mieter → Portalzugang): damit der Mieter Konto, Dokumente und Meldungen selbst sieht.
 
-Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. Wer schon Daten in einer Tabelle hat, nutzt Einstellungen → Datenimport; zum Ausprobieren gibt es Beispieldaten (ebenda).
+Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. Wer schon Daten in einer Tabelle hat, nutzt Einstellungen → Datenimport (Excel-Datei direkt hochladen; erkennt Elocaro die Spalten nicht an den Überschriften, ordnet man sie dort selbst zu); zum Ausprobieren gibt es Beispieldaten (ebenda).
 
 ## Aufgaben
 

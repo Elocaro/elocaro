@@ -36,17 +36,34 @@ internal sealed class DataImport(
 
     public byte[] TemplateCsv() => [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(ImportSheet.Template)];
 
-    public async Task<DataImportPreview> PreviewAsync(byte[] content, CancellationToken cancellationToken = default)
+    public Task<DataImportPreview> PreviewAsync(byte[] content, CancellationToken cancellationToken = default) => PreviewAsync(content, null, cancellationToken);
+
+    public Task<DataImportResult> ImportAsync(byte[] content, CancellationToken cancellationToken = default) => ImportAsync(content, null, cancellationToken);
+
+    public Task<ColumnAnalysis> AnalyzeAsync(byte[] content, CancellationToken cancellationToken = default)
     {
-        var (plans, fileErrors) = await PlanAsync(content, cancellationToken);
+        ArgumentNullException.ThrowIfNull(content);
+        try
+        {
+            return Task.FromResult(ImportSheet.Analyze(XlsxReader.Looks(content) ? XlsxReader.ToCsv(content) : content));
+        }
+        catch (InvalidDataException ex)
+        {
+            return Task.FromResult(new ColumnAnalysis([], ImportSheet.Targets, new Dictionary<int, string>(), [.. ImportSheet.Targets.Where(t => t.Required)], [ex.Message]));
+        }
+    }
+
+    public async Task<DataImportPreview> PreviewAsync(byte[] content, IReadOnlyDictionary<int, string>? mapping, CancellationToken cancellationToken = default)
+    {
+        var (plans, fileErrors) = await PlanAsync(content, mapping, cancellationToken);
         return new DataImportPreview(
             plans.Select(p => new DataImportRow(p.Line.Line, p.Line.Property, p.Line.Unit, p.Tenant, p.Actions, p.Errors)).ToList(),
             Summary(plans), fileErrors);
     }
 
-    public async Task<DataImportResult> ImportAsync(byte[] content, CancellationToken cancellationToken = default)
+    public async Task<DataImportResult> ImportAsync(byte[] content, IReadOnlyDictionary<int, string>? mapping, CancellationToken cancellationToken = default)
     {
-        var (plans, fileErrors) = await PlanAsync(content, cancellationToken);
+        var (plans, fileErrors) = await PlanAsync(content, mapping, cancellationToken);
         var summary = Summary(plans);
         if (fileErrors.Count > 0 || plans.Count == 0 || plans.Any(p => p.Errors.Count > 0))
         {
@@ -77,7 +94,7 @@ internal sealed class DataImport(
 
     // ---- planning -----------------------------------------------------------------------------------------------
 
-    private async Task<(IReadOnlyList<RowPlan> Plans, IReadOnlyList<string> FileErrors)> PlanAsync(byte[] content, CancellationToken cancellationToken)
+    private async Task<(IReadOnlyList<RowPlan> Plans, IReadOnlyList<string> FileErrors)> PlanAsync(byte[] content, IReadOnlyDictionary<int, string>? mapping, CancellationToken cancellationToken)
     {
         if (XlsxReader.Looks(content))
         {
@@ -89,6 +106,17 @@ internal sealed class DataImport(
             {
                 return ([], [ex.Message]);
             }
+        }
+
+        if (mapping is not null)
+        {
+            var problems = ImportSheet.CheckMapping(mapping);
+            if (problems.Count > 0)
+            {
+                return ([], problems);
+            }
+
+            content = ImportSheet.ApplyMapping(content, mapping);
         }
 
         var (lines, fileErrors) = ImportSheet.Read(content);
