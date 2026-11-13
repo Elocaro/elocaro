@@ -593,6 +593,12 @@ public static class PageInfoCatalog
                 "Jobs von abgeschalteten Modulen laufen leer.",
                 "Das Laufprotokoll zeigt, wann ein Job zuletzt lief und wie es ausging.")]), $"{Admin}/system/jobs");
 
+        Add(new("Aktivität",
+            "Alle Änderungen an Daten mit Konto und Weg: Oberfläche, KI-Assistent (MCP), Hintergrundjob oder Import.",
+            [new("Gut zu wissen",
+                "Mehrere Änderungen einer Aktion, etwa ein Import oder ein Aufruf des KI-Assistenten, erscheinen als eine Zeile.",
+                "Die Einzelheiten je Datensatz stehen in dessen Änderungshistorie.")]), $"{Admin}/system/aktivitaet");
+
         Add(new("Datensicherung",
             "Ziel und Zeitplan der täglichen Sicherung, Wiederherstellung und Vollexport aller Daten.",
             [new("Gut zu wissen",

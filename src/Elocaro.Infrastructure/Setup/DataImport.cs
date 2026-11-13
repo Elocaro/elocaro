@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Elocaro.Application.Admin;
+using Elocaro.Application.Audit;
 using Elocaro.Application.Finance;
 using Elocaro.Application.Leases;
 using Elocaro.Application.People;
@@ -28,6 +29,7 @@ internal sealed class DataImport(
     ILeaseService leases,
     ITenantAccounts accounts,
     IDeposits deposits,
+    IOperationScope scope,
     TimeProvider clock) : IDataImport
 {
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
@@ -57,6 +59,7 @@ internal sealed class DataImport(
         {
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
             db.ChangeTracker.Clear();
+            using var operation = scope.Begin(ChangeChannel.Import, "Datenimport");
             try
             {
                 await ApplyAsync(plans, cancellationToken);

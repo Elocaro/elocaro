@@ -92,6 +92,7 @@ dotnet ef migrations add <Name> -p src/Elocaro.Infrastructure -s src/Elocaro.Inf
 | Basisklasse | Jede Entität erbt von `Domain.Common.Entity` |
 | Schlüssel | `Guid` v7 (`Guid.CreateVersion7()`), wird im Code erzeugt, nicht in der DB |
 | Audit | `CreatedAt/By`, `ModifiedAt/By` setzt `EntitySaveInterceptor` (Zeit aus `TimeProvider`, Benutzer aus `ICurrentUser`) |
+| Operation | Jede Änderung gehört zu einer Operation mit Weg (`ChangeChannel`: Oberfläche, MCP, Job, Import). `IOperationScope.Begin` fasst die Speichervorgänge einer Aktion zusammen (MCP-Aufruf und Datenimport tun es), sonst ist jedes Speichern eine eigene Operation; der Bereich gilt für den aufrufenden Ablauf (AsyncLocal), nicht für den DI-Scope. Anzeige: `IActivityLog`. ADR 0007 |
 | Löschen | Immer logisch: `Remove()` setzt `Deleted = true`. Ein globaler Filter (`SoftDelete`) blendet gelöschte Zeilen aus, `IgnoreQueryFilters()` zeigt sie |
 | Nebenläufigkeit | `Version` ↔ PostgreSQL-Systemspalte `xmin`. Konflikte werfen `DbUpdateConcurrencyException` |
 | Namen | Tabellen und Spalten in snake_case (`EFCore.NamingConventions`) |

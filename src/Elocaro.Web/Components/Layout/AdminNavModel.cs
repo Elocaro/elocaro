@@ -86,7 +86,7 @@ public static class AdminNavModel
             [$"{Root}/einstellungen", $"{Root}/system"],
             [new("Vermieter", $"{Root}/einstellungen/vermieter"), new("Module", $"{Root}/einstellungen/module"), new("Vorlagen", $"{Root}/einstellungen/vorlagen"), new("Erinnerungen", $"{Root}/einstellungen/fristen"), new("Rechtsstände", $"{Root}/einstellungen/rechtsstaende"), new("Daten importieren", $"{Root}/einstellungen/import"),
              NavTab.Group("System", null,
-                 new("E-Mail-Versand", $"{Root}/system/mails"), new("Hintergrundjobs", $"{Root}/system/jobs"),
+                 new("E-Mail-Versand", $"{Root}/system/mails"), new("Hintergrundjobs", $"{Root}/system/jobs"), new("Aktivität", $"{Root}/system/aktivitaet"),
                  new("Datensicherung", $"{Root}/system/datensicherung"), new("Notfallmappe", $"{Root}/system/notfallmappe"), new("Belegauslesung", $"{Root}/system/belegauslesung"), new("Neuigkeiten", $"{Root}/system/neuigkeiten"))], "System"),
     ];
 

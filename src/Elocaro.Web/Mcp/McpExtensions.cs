@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Audit;
 using Elocaro.Web.AccessControl;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
@@ -42,6 +43,7 @@ internal static class McpExtensions
             .WithRequestFilters(f => f.AddCallToolFilter(next => async (context, cancellationToken) =>
             {
                 await RecordAsync(context, cancellationToken);
+                using var operation = context.Services!.GetRequiredService<IOperationScope>().Begin(ChangeChannel.Mcp, "MCP " + (context.Params?.Name ?? "?"));
                 return await next(context, cancellationToken);
             }))
             .WithToolsFromAssembly(typeof(McpExtensions).Assembly, Json);

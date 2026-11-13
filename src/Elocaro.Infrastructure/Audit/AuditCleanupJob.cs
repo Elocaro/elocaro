@@ -33,6 +33,9 @@ internal sealed class AuditCleanup(ElocaroDbContext db, TimeProvider clock, IOpt
         var accesses = await db.Set<AuditEntry>()
             .Where(a => a.Action == AuditAction.Read && a.Timestamp < accessesCutoff)
             .ExecuteDeleteAsync(cancellationToken);
+        await db.Set<Operation>()
+            .Where(o => o.Timestamp < changesCutoff && !db.Set<AuditEntry>().Any(a => a.OperationId == o.Id))
+            .ExecuteDeleteAsync(cancellationToken);
         return changes + accesses;
     }
 }

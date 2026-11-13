@@ -43,4 +43,9 @@ public sealed class AuditEntry
 
     /// <summary>For <see cref="AuditAction.Read"/>: reason for the access.</summary>
     public string? Purpose { get; private set; }
+
+    /// <summary>The <see cref="Operation"/> this entry belongs to (empty for entries from before operations existed).</summary>
+    public Guid? OperationId { get; private set; }
+
+    public void AssignOperation(Guid operationId) => OperationId ??= operationId;
 }

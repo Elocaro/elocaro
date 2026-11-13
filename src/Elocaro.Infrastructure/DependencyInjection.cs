@@ -214,6 +214,8 @@ public static class DependencyInjection
         services.Configure<AuditOptions>(configuration.GetSection(AuditOptions.Section));
         services.AddScoped<IAccessLog, AccessLog>();
         services.AddScoped<IChangeHistory, ChangeHistory>();
+        services.AddSingleton<IOperationScope, OperationScope>();
+        services.AddScoped<IActivityLog, ActivityLog>();
         services.AddScoped<AuditCleanup>();
         services.AddScoped<AuditWriter>();
         services.AddScoped<ISecurityAudit, SecurityAudit>();

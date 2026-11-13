@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261113153803_MeterRemoteReadable";
+    public override string LastMigrationId => "20261113172743_AuditOperations";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -8587,6 +8587,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("character varying(100)")
                     .HasColumnName("entity_type");
 
+                b.Property<Guid?>("OperationId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("operation_id");
+
                 b.Property<string>("Purpose")
                     .HasMaxLength(200)
                     .HasColumnType("character varying(200)")
@@ -8605,6 +8609,9 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.HasKey("Id")
                     .HasName("pk_audit_entries");
 
+                b.HasIndex("OperationId")
+                    .HasDatabaseName("ix_audit_entries_operation_id");
+
                 b.HasIndex("Timestamp")
                     .HasDatabaseName("ix_audit_entries_timestamp");
 
@@ -8612,6 +8619,42 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasDatabaseName("ix_audit_entries_entity_type_entity_id_timestamp");
 
                 b.ToTable("audit_entries");
+            });
+
+        modelBuilder.Entity("Elocaro.Infrastructure.Audit.Operation", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<string>("Channel")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("character varying(20)")
+                    .HasColumnName("channel");
+
+                b.Property<string>("Label")
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)")
+                    .HasColumnName("label");
+
+                b.Property<DateTimeOffset>("Timestamp")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("timestamp");
+
+                b.Property<string>("User")
+                    .IsRequired()
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("user");
+
+                b.HasKey("Id")
+                    .HasName("pk_operations");
+
+                b.HasIndex("Timestamp")
+                    .HasDatabaseName("ix_operations_timestamp");
+
+                b.ToTable("operations");
             });
 
         modelBuilder.Entity("Elocaro.Infrastructure.Identity.AccessToken", b =>

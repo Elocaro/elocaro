@@ -1,0 +1,72 @@
+@page "/verwaltung/system/aktivitaet"
+@using Elocaro.Application.Audit
+@inject IActivityLog ActivityLog
+
+<PageHeader Title="Aktivität" Subtitle="Alle Änderungen an Daten, mit Konto und Weg: Oberfläche, KI-Assistent (MCP), Hintergrundjob oder Import." />
+
+<div class="toolbar">
+    <AppSelect T="ChangeChannel?" Value="channel" ValueChanged="ChannelChangedAsync" Label="Weg" Items="channels" Text="ChannelText" />
+</div>
+
+@if (rows is null)
+{
+    <p class="loading" role="status">Wird geladen …</p>
+}
+else if (rows.Count == 0)
+{
+    <EmptyState Text="Noch keine Änderungen aufgezeichnet." />
+}
+else
+{
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Zeit</th><th>Konto</th><th>Weg</th><th>Was</th><th>Geändert</th></tr></thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>@Format.Timestamp(row.Timestamp)</td>
+                        <td>@row.User</td>
+                        <td><StatusChip Level="@(row.Channel == ChangeChannel.Mcp ? StatusLevel.Warning : StatusLevel.Neutral)">@ChannelText(row.Channel)</StatusChip></td>
+                        <td>@(row.Label ?? "–")</td>
+                        <td>@string.Join(", ", row.Touched.Select(t => $"{t.Count} × {t.EntityType} {ActionText(t.Action)}"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private static readonly ChangeChannel?[] channels = [null, ChangeChannel.Ui, ChangeChannel.Mcp, ChangeChannel.Job, ChangeChannel.Import];
+    private IReadOnlyList<ActivityRow>? rows;
+    private ChangeChannel? channel;
+
+    protected override async Task OnInitializedAsync() => rows = await ActivityLog.RecentAsync(channel);
+
+    private async Task ChannelChangedAsync(ChangeChannel? value)
+    {
+        channel = value;
+        rows = await ActivityLog.RecentAsync(channel);
+    }
+
+    private static string ChannelText(ChangeChannel? value) => value switch
+    {
+        null => "alle",
+        ChangeChannel.Ui => "Oberfläche",
+        ChangeChannel.Mcp => "KI-Assistent (MCP)",
+        ChangeChannel.Job => "Hintergrundjob",
+        ChangeChannel.Import => "Import",
+        _ => value.ToString()!,
+    };
+
+    private static string ActionText(AuditAction action) => action switch
+    {
+        AuditAction.Created => "angelegt",
+        AuditAction.Modified => "geändert",
+        AuditAction.Deleted => "gelöscht",
+        AuditAction.Read => "eingesehen",
+        AuditAction.SecurityEvent => "Sicherheitsereignis",
+        _ => action.ToString(),
+    };
+}
