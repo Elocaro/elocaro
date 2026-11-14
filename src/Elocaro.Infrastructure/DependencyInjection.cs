@@ -400,6 +400,8 @@ public static class DependencyInjection
         services.AddScoped<IOperatingCosts, OperatingCostService>();
         services.AddScoped<IHeatingSettings, HeatingSettingsService>();
         services.AddScoped<IHeatingReferences, HeatingReferences>();
+        services.AddScoped<IMeterUsage, HeatingMeterUsage>();
+        services.AddScoped<IMeterUsage, SupplyContractMeterUsage>();
         services.AddHttpClient<DegreeDayImporter>(http => http.Timeout = TimeSpan.FromSeconds(90));
         services.AddScoped<IStatements, StatementService>();
         services.AddScoped<IStatementDispatch, StatementDispatchService>();

@@ -34,12 +34,10 @@ internal static class MeterConsumption
             }
 
             // Result in the unit of the calculated meter (the source meters may count in another unit, e.g. MWh instead of kWh).
-            total += term.Sign * quantity * Factor(chain[^1]) / Factor(meter);
+            total += term.Sign * quantity * chain[^1].UnitFactor() / meter.UnitFactor();
             basis.AddRange(consumption.Basis);
         }
 
         return new Consumption(period, total, basis, null);
     }
-
-    private static decimal Factor(Meter meter) => Elocaro.Infrastructure.OperatingCosts.MeterConsumptionSource.UnitFactor(meter);
 }

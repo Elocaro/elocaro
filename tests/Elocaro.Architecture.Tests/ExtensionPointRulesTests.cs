@@ -11,7 +11,7 @@ namespace Elocaro.Architecture.Tests;
 public partial class ExtensionPointRulesTests
 {
     /// <summary>The extension points known today; a new one is found by <see cref="Every_extension_point_is_known"/>.</summary>
-    private static readonly string[] Known = ["ITodoSource", "IDeadlineSource", "IPersonalDataSource", "IPersonReference", "IFileShare", "IOptionUsageSource"];
+    private static readonly string[] Known = ["ITodoSource", "IDeadlineSource", "IPersonalDataSource", "IPersonReference", "IFileShare", "IOptionUsageSource", "IMeterUsage"];
 
     public static TheoryData<string> ExtensionPoints => [.. Known];
 

@@ -85,7 +85,7 @@ internal sealed class MeterConsumptionSource(IReadOnlyList<Meter> meters) : ICon
                 return new ConsumptionQuantity(null, false, consumption.MissingReason);
             }
 
-            var factor = UnitFactor(chain[^1]);
+            var factor = chain[^1].UnitFactor();
             total += quantity * factor;
             interpolated.AddRange(consumption.Basis.Where(g => g.Interpolated).Select(g => g.Date));
             notes.Add($"{string.Join(" → ", chain.Select(m => m.Number))}: {quantity * factor:0.###}");
@@ -93,14 +93,6 @@ internal sealed class MeterConsumptionSource(IReadOnlyList<Meter> meters) : ICon
 
         return new ConsumptionQuantity(total, interpolated.Count > 0, string.Join("; ", notes), [.. interpolated.Distinct()]);
     }
-
-    /// <summary>Heat in kWh (meters in MWh are converted), water in m³ (liters are converted).</summary>
-    internal static decimal UnitFactor(Meter meter) => (meter.Type, meter.MeasurementUnit) switch
-    {
-        (MeterType.Heat, MeasurementUnit.MegawattHours) => 1000m,
-        (MeterType.ColdWater or MeterType.HotWater, MeasurementUnit.Liters) => 0.001m,
-        _ => 1m,
-    };
 
     private static string Label(MeterType type) => type switch
     {

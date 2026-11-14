@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Infrastructure.Metering;
 
-internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeatingReferences heating, TimeProvider clock) : IMeterService
+internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IEnumerable<IMeterUsage> usages, TimeProvider clock) : IMeterService
 {
     private DateOnly Today => GermanTime.Today(clock.GetUtcNow());
 
@@ -130,12 +130,11 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
             var users = new List<string>();
             users.AddRange((await db.Set<Meter>().AsNoTracking()
                 .Where(z => z.MainMeterId == id || z.Terms.Any(t => t.SourceMeterId == id)).Select(z => z.Name).ToListAsync(cancellationToken)).Select(n => $"Zähler „{n}“"));
-            if (await heating.UsesMeterAsync(id, cancellationToken))
+            foreach (var usage in usages)
             {
-                users.Add("die Heizkosteneinstellungen");
+                users.AddRange(await usage.UsersAsync(id, cancellationToken));
             }
 
-            users.AddRange((await db.Set<Domain.OperatingCosts.SupplyContract>().AsNoTracking().Where(v => v.MeterIds.Contains(id)).Select(v => v.Name).ToListAsync(cancellationToken)).Select(n => $"Versorgungsvertrag „{n}“"));
             if (users.Count > 0)
             {
                 throw new RuleViolationException($"Der Zähler wird noch verwendet von: {string.Join(", ", users)}. Bitte dort zuerst lösen.");

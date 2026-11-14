@@ -2,11 +2,14 @@ using System.Security.Claims;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Common;
 using Elocaro.Application.Files;
+using Elocaro.Application.Heating;
 using Elocaro.Application.Metering;
+using Elocaro.Application.OperatingCosts;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Todos;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
+using Elocaro.Domain.OperatingCosts;
 using Elocaro.Infrastructure.Metering;
 using Elocaro.Integration.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,6 +58,39 @@ public class MeterServiceTests(PostgresFixture postgres) : IAsyncLifetime
         Validate(await WithAsync(v => v.DeleteAsync(sub, Ct)));
         Assert.Null(await WithAsync(v => v.GetAsync(sub, Ct)));
         Validate(await WithAsync(v => v.DeleteAsync(main, Ct)));
+    }
+
+    [Fact]
+    public async Task A_meter_used_by_another_meter_the_heating_settings_and_a_supply_contract_names_all_of_them_when_deleted()
+    {
+        var heat = await CreateHeatAsync("Wärmezähler Haus", "WMZ-0", null, null);
+        var sub = await CreateHeatAsync("Wärme Wohnung 1", "WMZ-1", apartment1, heat);
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            Validate(await scope.ServiceProvider.GetRequiredService<IHeatingSettings>().SaveAsync(propertyId, new HeatingSettingsInput { ConsumptionPercent = 60m, HotWaterHeatMeterId = heat }, Ct));
+            Validate(await scope.ServiceProvider.GetRequiredService<ISupplyContracts>().CreateAsync(
+                propertyId,
+                new SupplyContractInput
+                {
+                    Name = "Fernwärme",
+                    CostType = "betrkv-02",
+                    MeterType = MeterType.Heat,
+                    PriceUnit = PriceUnit.KilowattHour,
+                    MeterIds = [heat],
+                    Tariff = new SupplyTariffInput { From = new DateOnly(2020, 1, 1), UnitPrice = 0.1m },
+                },
+                Ct));
+        }
+
+        var blocked = await WithAsync(v => v.DeleteAsync(heat, Ct));
+
+        Assert.Equal(
+            "Der Zähler wird noch verwendet von: Zähler „Wärme Wohnung 1“, die Heizkosteneinstellungen, Versorgungsvertrag „Fernwärme“. Bitte dort zuerst lösen.",
+            Assert.Single(blocked.Errors));
+        Validate(await WithAsync(v => v.DeleteAsync(sub, Ct)));
+        Assert.Equal(
+            "Der Zähler wird noch verwendet von: die Heizkosteneinstellungen, Versorgungsvertrag „Fernwärme“. Bitte dort zuerst lösen.",
+            Assert.Single((await WithAsync(v => v.DeleteAsync(heat, Ct))).Errors));
     }
 
     [Fact]
@@ -266,6 +302,12 @@ public class MeterServiceTests(PostgresFixture postgres) : IAsyncLifetime
 
     private async Task<Guid> CreateAsync(string name, string number, Guid? assignment, Guid? mainMeter, decimal start) =>
         Validate(await WithAsync(v => v.CreateAsync(propertyId, Creation(name, number, assignment, mainMeter, start), Ct)));
+
+    private async Task<Guid> CreateHeatAsync(string name, string number, Guid? assignment, Guid? mainMeter) =>
+        Validate(await WithAsync(v => v.CreateAsync(
+            propertyId,
+            new MeterCreation { Data = new MeterInput { Type = MeterType.Heat, Name = name, Number = number, AssignmentId = assignment, MainMeterId = mainMeter }, InstalledOn = YearEnd, InitialReading = 0m },
+            Ct)));
 
     private static MeterCreation Creation(string name, string number, Guid? assignment, Guid? mainMeter, decimal start) => new()
     {

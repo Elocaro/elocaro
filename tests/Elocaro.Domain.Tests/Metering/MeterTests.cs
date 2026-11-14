@@ -1,3 +1,4 @@
+using System.Globalization;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
 
@@ -18,6 +19,20 @@ public class MeterTests
         Assert.Equal(MeasurementUnit.CubicMeters, meter.MeasurementUnit);
         Assert.Equal(MeasurementUnit.KilowattHours, Meter.DefaultUnit(MeterType.Heat));
         Assert.Equal(D(2030, 12, 31), Meter.DefaultCalibrationDue(MeterType.Heat, D(2025, 3, 1)));
+    }
+
+    [Theory]
+    [InlineData(MeterType.Heat, MeasurementUnit.MegawattHours, "1000")]
+    [InlineData(MeterType.Heat, MeasurementUnit.KilowattHours, "1")]
+    [InlineData(MeterType.ColdWater, MeasurementUnit.Liters, "0.001")]
+    [InlineData(MeterType.HotWater, MeasurementUnit.Liters, "0.001")]
+    [InlineData(MeterType.HotWater, MeasurementUnit.CubicMeters, "1")]
+    [InlineData(MeterType.OilTank, MeasurementUnit.Liters, "1")]
+    public void Unit_factor_converts_to_kWh_for_heat_and_m3_for_water(MeterType type, MeasurementUnit unit, string factor)
+    {
+        var meter = new Meter(Guid.NewGuid(), type, "Zähler", "1", D(2025, 12, 31), 0m) { MeasurementUnit = unit };
+
+        Assert.Equal(decimal.Parse(factor, CultureInfo.InvariantCulture), meter.UnitFactor());
     }
 
     [Fact]

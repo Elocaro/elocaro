@@ -326,6 +326,14 @@ public sealed class Meter : Entity
         return newItem;
     }
 
+    /// <summary>Factor to the base unit of the type: heat in kWh (meters in MWh are converted), water in m³ (liters are converted).</summary>
+    public decimal UnitFactor() => (Type, MeasurementUnit) switch
+    {
+        (MeterType.Heat, MeasurementUnit.MegawattHours) => 1000m,
+        (MeterType.ColdWater or MeterType.HotWater, MeasurementUnit.Liters) => 0.001m,
+        _ => 1m,
+    };
+
     public static MeasurementUnit DefaultUnit(MeterType type) => type switch
     {
         MeterType.Heat or MeterType.Electricity => MeasurementUnit.KilowattHours,

@@ -6,9 +6,6 @@ namespace Elocaro.Application.Metering;
 /// </summary>
 public interface IHeatingReferences
 {
-    /// <summary>Whether the heating cost settings of a property use the meter (it then cannot be deleted).</summary>
-    Task<bool> UsesMeterAsync(Guid meterId, CancellationToken cancellationToken = default);
-
     /// <summary>Degree days per month (first day of the month) of the weather station chosen for the property; empty without a station.</summary>
     Task<IReadOnlyDictionary<DateOnly, decimal>> DegreeDaysAsync(Guid propertyId, CancellationToken cancellationToken = default);
 }

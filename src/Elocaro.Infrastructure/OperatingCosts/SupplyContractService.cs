@@ -1,4 +1,5 @@
 using Elocaro.Application.Common;
+using Elocaro.Application.Metering;
 using Elocaro.Application.OperatingCosts;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
@@ -154,4 +155,12 @@ internal sealed class SupplyContractService(ElocaroDbContext db) : ISupplyContra
             input.UnitPrice ?? 0m,
             input.BaseFeePerMonth ?? 0m,
             input.Note);
+}
+
+/// <summary>Supply contracts bill by meters; such a meter cannot be removed.</summary>
+internal sealed class SupplyContractMeterUsage(ElocaroDbContext db) : IMeterUsage
+{
+    public async Task<IReadOnlyList<string>> UsersAsync(Guid meterId, CancellationToken cancellationToken = default) =>
+        (await db.Set<SupplyContract>().AsNoTracking().Where(v => v.MeterIds.Contains(meterId)).Select(v => v.Name).ToListAsync(cancellationToken))
+            .Select(n => $"Versorgungsvertrag „{n}“").ToList();
 }

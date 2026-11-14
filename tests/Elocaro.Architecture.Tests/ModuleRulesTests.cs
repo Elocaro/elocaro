@@ -15,7 +15,6 @@ public partial class ModuleRulesTests
         "Bank <-> Tax",
         "Leases <-> People",
         "Leases <-> Properties",
-        "Metering <-> OperatingCosts",
         "People <-> Properties",
         "Properties <-> Receipts",
     ];
