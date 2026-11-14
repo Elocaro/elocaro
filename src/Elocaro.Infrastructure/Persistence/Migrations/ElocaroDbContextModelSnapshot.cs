@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261113204725_UndoOperations";
+    public override string LastMigrationId => "20261114153059_RentReductions";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -2160,6 +2160,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("character varying(1000)")
                     .HasColumnName("note");
 
+                b.Property<Guid?>("ReductionId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("reduction_id");
+
                 b.Property<DateOnly?>("ServiceMonth")
                     .HasColumnType("date")
                     .HasColumnName("service_month");
@@ -2175,6 +2179,11 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("LeaseId", "Due")
                     .HasDatabaseName("ix_charges_lease_id_due");
+
+                b.HasIndex("ReductionId", "ServiceMonth")
+                    .IsUnique()
+                    .HasDatabaseName("ix_charges_reduction_unique")
+                    .HasFilter("kind = 'RentReduction' AND NOT deleted");
 
                 b.HasIndex("LeaseId", "ServiceMonth", "Component")
                     .IsUnique()
@@ -2555,6 +2564,96 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasDatabaseName("ix_payments_lease_id_date");
 
                 b.ToTable("payments");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Finance.RentReduction", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateOnly?>("AcknowledgedOn")
+                    .HasColumnType("date")
+                    .HasColumnName("acknowledged_on");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<string>("Description")
+                    .IsRequired()
+                    .HasMaxLength(500)
+                    .HasColumnType("character varying(500)")
+                    .HasColumnName("description");
+
+                b.Property<DateOnly>("From")
+                    .HasColumnType("date")
+                    .HasColumnName("from");
+
+                b.Property<Guid>("LeaseId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("lease_id");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<decimal?>("MonthlyAmount")
+                    .HasPrecision(12, 2)
+                    .HasColumnType("numeric(12,2)")
+                    .HasColumnName("monthly_amount");
+
+                b.Property<string>("Note")
+                    .HasMaxLength(1000)
+                    .HasColumnType("character varying(1000)")
+                    .HasColumnName("note");
+
+                b.Property<decimal?>("Percent")
+                    .HasPrecision(5, 2)
+                    .HasColumnType("numeric(5,2)")
+                    .HasColumnName("percent");
+
+                b.Property<string>("Status")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("character varying(20)")
+                    .HasColumnName("status");
+
+                b.Property<Guid?>("TicketId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("ticket_id");
+
+                b.Property<DateOnly?>("To")
+                    .HasColumnType("date")
+                    .HasColumnName("to");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.HasKey("Id")
+                    .HasName("pk_rent_reductions");
+
+                b.HasIndex("LeaseId")
+                    .HasDatabaseName("ix_rent_reductions_lease_id");
+
+                b.ToTable("rent_reductions");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Heating.DegreeDayValue", b =>
@@ -9365,6 +9464,12 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired()
                     .HasConstraintName("fk_charges_lease_lease_id");
+
+                b.HasOne("Elocaro.Domain.Finance.RentReduction", null)
+                    .WithMany()
+                    .HasForeignKey("ReductionId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("fk_charges_rent_reduction_reduction_id");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Finance.Dunning", b =>
@@ -9407,6 +9512,16 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired()
                     .HasConstraintName("fk_payments_leases_lease_id");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Finance.RentReduction", b =>
+            {
+                b.HasOne("Elocaro.Domain.Leases.Lease", null)
+                    .WithMany()
+                    .HasForeignKey("LeaseId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired()
+                    .HasConstraintName("fk_rent_reductions_leases_lease_id");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Heating.HeatingSettings", b =>

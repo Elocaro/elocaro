@@ -135,9 +135,18 @@ public static class Labels
         _ => value.ToString(),
     };
 
+    public static string From(RentReductionStatus value) => value switch
+    {
+        RentReductionStatus.Announced => "angekündigt",
+        RentReductionStatus.Acknowledged => "anerkannt",
+        RentReductionStatus.Disputed => "bestritten",
+        _ => "beendet",
+    };
+
     public static string From(ChargeType value) => value switch
     {
         ChargeType.Rent => "Miete",
+        ChargeType.RentReduction => "Mietminderung",
         ChargeType.AdditionalPayment => "Nachzahlung (Abrechnung)",
         ChargeType.Refund => "Erstattung / Gutschrift",
         ChargeType.DunningFee => "Mahngebühr",

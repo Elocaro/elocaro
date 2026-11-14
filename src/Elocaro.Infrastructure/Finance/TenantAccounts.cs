@@ -37,7 +37,7 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
 
         var lines = charges.Select(s => (Date: s.Due, Order: RankOrder(s), s.Id, Row: (Func<decimal, AccountEntry>)(balance => new AccountEntry(
                 s.Id, EntryType.Charge, s.Due, s.Name, s.Kind, Math.Max(s.Amount, 0), Math.Max(-s.Amount, 0), balance,
-                s.Amount > 0 ? result.Open[s.Id] : null, s.Automatic, null, s.Note)), Amount: s.Amount))
+                s.Amount > 0 ? result.Open[s.Id] : null, s.Generated, null, s.Note)), Amount: s.Amount))
             .Concat(payments.Select(z => (Date: z.Date, Order: 1000, z.Id, Row: (Func<decimal, AccountEntry>)(balance => new AccountEntry(
                 z.Id, EntryType.Payment, z.Date, PaymentText(z), null, Math.Max(-z.Amount, 0), Math.Max(z.Amount, 0), balance,
                 null, false, z.Origin, z.Purpose, z.ChargeId)), Amount: -z.Amount)))
@@ -53,7 +53,7 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
 
         var due = charges.Where(s => s.Amount > 0 && s.Due <= today).Sum(s => result.Open[s.Id]);
         return new TenantAccount(lease.Id, rentalUnit, tenant, settings.AccountingStart, bookings, running, due,
-            AnnualValues(charges, result), settings.Allocation);
+            AnnualValues(charges, payments, result), settings.Allocation);
     }
 
     public async Task<int> GenerateChargesAsync(Guid? leaseId = null, CancellationToken cancellationToken = default)
@@ -75,6 +75,9 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
         var leases = await query.ToListAsync(cancellationToken);
         var leaseIds = leases.Select(v => v.Id).ToList();
         var existingByLease = (await db.Set<Charge>().Where(s => s.Kind == ChargeType.Rent && leaseIds.Contains(s.LeaseId)).ToListAsync(cancellationToken))
+            .ToLookup(s => s.LeaseId);
+        var reductions = (await db.Set<RentReduction>().AsNoTracking().Where(r => leaseIds.Contains(r.LeaseId)).ToListAsync(cancellationToken)).ToLookup(r => r.LeaseId);
+        var existingReductions = (await db.Set<Charge>().Where(s => s.Kind == ChargeType.RentReduction && leaseIds.Contains(s.LeaseId)).ToListAsync(cancellationToken))
             .ToLookup(s => s.LeaseId);
 
         var changes = 0;
@@ -112,9 +115,62 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
                 db.Remove(surplus.Value);
                 changes++;
             }
+
+            changes += SyncReductions(lease, from, toMonth, reductions[lease.Id], existingReductions[lease.Id]);
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        return changes;
+    }
+
+    /// <summary>One credit per month for each granted rent reduction (idempotent); credits of changed, disputed or removed reductions disappear.</summary>
+    private int SyncReductions(Lease lease, DateOnly from, DateOnly toMonth, IEnumerable<RentReduction> reductions, IEnumerable<Charge> existingCredits)
+    {
+        var existing = existingCredits.ToDictionary(s => (s.ReductionId!.Value, s.ServiceMonth!.Value));
+        var target = new HashSet<(Guid, DateOnly)>();
+        var changes = 0;
+        foreach (var reduction in reductions.Where(r => r.Grants))
+        {
+            foreach (var month in ChargeCalculation.Months(lease, from, toMonth))
+            {
+                if (ChargeCalculation.Bounds(lease, month.Year, month.Month, from) is not { } active)
+                {
+                    continue;
+                }
+
+                var rent = ChargeCalculation.Month(lease, month.Year, month.Month, from).Sum(i => i.Amount);
+                var amount = reduction.AmountFor(month, rent, active);
+                if (amount == 0)
+                {
+                    continue;
+                }
+
+                var due = WorkingDays.NthWorkingDay(month.Year, month.Month, lease.DueOnWorkingDay);
+                if (lease.Start > due)
+                {
+                    due = lease.Start;
+                }
+
+                var name = $"Mietminderung {month.Month:00}/{month.Year}" + (reduction.Percent is { } percent ? $" ({percent.ToString("0.##", CultureInfo.GetCultureInfo("de-DE"))} %)" : "");
+                target.Add((reduction.Id, month));
+                if (existing.TryGetValue((reduction.Id, month), out var credit))
+                {
+                    changes += credit.Adjust(due, -amount, name) ? 1 : 0;
+                }
+                else
+                {
+                    db.Add(Charge.Reduction(lease.Id, reduction.Id, month, due, -amount, name));
+                    changes++;
+                }
+            }
+        }
+
+        foreach (var surplus in existing.Where(c => !target.Contains(c.Key)))
+        {
+            db.Remove(surplus.Value);
+            changes++;
+        }
+
         return changes;
     }
 
@@ -123,9 +179,9 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
         {
             ArgumentNullException.ThrowIfNull(input);
             await ValidateLeaseAsync(leaseId, cancellationToken);
-            if (input.Kind == ChargeType.Rent)
+            if (input.Kind is ChargeType.Rent or ChargeType.RentReduction)
             {
-                throw new RuleViolationException("Monatsmieten entstehen automatisch aus dem Vertrag.");
+                throw new RuleViolationException("Monatsmieten und Mietminderungen entstehen automatisch aus Vertrag und Minderungsvorgang.");
             }
 
             var amount = input.Amount ?? 0m;
@@ -147,9 +203,9 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
         Command.ExecuteAsync(async () =>
         {
             var charge = await db.Set<Charge>().SingleOrDefaultAsync(s => s.Id == chargeId, cancellationToken) ?? throw new NotFoundException();
-            if (charge.Automatic)
+            if (charge.Generated)
             {
-                throw new RuleViolationException("Monatsmieten ergeben sich aus dem Vertrag und lassen sich nicht löschen; bei Bedarf eine Gutschrift (Erstattung) anlegen.");
+                throw new RuleViolationException("Monatsmieten ergeben sich aus dem Vertrag und Minderungen aus dem Minderungsvorgang; sie lassen sich nicht löschen. Bei Bedarf eine Gutschrift (Erstattung) anlegen oder die Minderung ändern.");
             }
 
             // Payment allocations to this receivable are dropped (FK ON DELETE SET NULL does not apply to soft deletion).
@@ -164,9 +220,9 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
         {
             ArgumentNullException.ThrowIfNull(input);
             var charge = await db.Set<Charge>().SingleOrDefaultAsync(s => s.Id == chargeId, cancellationToken) ?? throw new NotFoundException();
-            if (charge.Automatic)
+            if (charge.Generated)
             {
-                throw new RuleViolationException("Monatsmieten ergeben sich aus dem Vertrag; Korrekturen bitte am Vertrag oder als eigene Sollstellung.");
+                throw new RuleViolationException("Monatsmieten und Mietminderungen ergeben sich aus Vertrag und Minderungsvorgang; Korrekturen bitte dort oder als eigene Sollstellung.");
             }
 
             var amount = input.Amount ?? 0m;
@@ -260,17 +316,23 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
         var leases = await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).Where(v => leaseIds.Contains(v.Id)).ToListAsync(cancellationToken);
         var descriptions = await LeaseDescriptions.OfAsync(db, leases, cancellationToken);
 
+        var disputedReductions = (await db.Set<RentReduction>().AsNoTracking().Where(r => r.Status == RentReductionStatus.Disputed && leaseIds.Contains(r.LeaseId)).ToListAsync(cancellationToken))
+            .ToLookup(r => r.LeaseId);
+
         var items = new List<OpenItem>();
         foreach (var lease in leases)
         {
             var result = Allocate(charges[lease.Id].ToList(), payments[lease.Id].ToList(), settings.Allocation);
             var (rentalUnit, tenant) = descriptions[lease.Id];
-            items.AddRange(charges[lease.Id]
-                .Where(s => s.Amount > 0 && s.Due <= today && result.Open[s.Id] > 0)
-                .Select(s => new OpenItem(s.Id, lease.Id, rentalUnit, tenant, s.Kind, s.Name, s.Due, s.Amount, result.Open[s.Id], today.DayNumber - s.Due.DayNumber,
-                    [.. result.Shares.Where(a => a.ClaimId == s.Id).Select(a => new Settlement(a.Date, a.Amount))])));
-        }
 
+            // A disputed rent reduction is withheld by the tenant on purpose: that part is neither dunned nor charged interest.
+            var due = charges[lease.Id].Where(s => s.Amount > 0 && s.Due <= today && result.Open[s.Id] > 0).Select(s => (Charge: s, Open: result.Open[s.Id]));
+            var disputed = DisputedAmounts.ByMonth(charges[lease.Id], disputedReductions[lease.Id], lease.Term, today);
+            items.AddRange(DisputedAmounts.Apply(due, disputed)
+                .Where(i => i.Open > 0)
+                .Select(i => new OpenItem(i.Charge.Id, lease.Id, rentalUnit, tenant, i.Charge.Kind, i.Charge.Name, i.Charge.Due, i.Charge.Amount, i.Open, today.DayNumber - i.Charge.Due.DayNumber,
+                    [.. result.Shares.Where(a => a.ClaimId == i.Charge.Id).Select(a => new Settlement(a.Date, a.Amount))], i.Disputed)));
+        }
         return items.OrderBy(p => p.Due).ThenBy(p => p.RentalUnit, StringComparer.CurrentCulture).ThenBy(p => RankOrder(charges[p.LeaseId].Single(s => s.Id == p.ChargeId))).ToList();
     }
 
@@ -280,15 +342,23 @@ internal sealed class TenantAccounts(ElocaroDbContext db, TimeProvider clock) : 
         var claims = charges.Where(s => s.Amount > 0).Select(s => new AllocationItem(s.Id, s.Due, s.Amount, s.Rank, s.Automatic))
             .Concat(payments.Where(z => z.Amount < 0).Select(z => new AllocationItem(z.Id, z.Date, -z.Amount)));
         var credit = payments.Where(z => z.Amount > 0).Select(z => new AllocationItem(z.Id, z.Date, z.Amount, Designation: z.ChargeId))
-            .Concat(charges.Where(s => s.Amount < 0).Select(s => new AllocationItem(s.Id, s.Due, -s.Amount)));
+            .Concat(charges.Where(s => s.Amount < 0).Select(s => new AllocationItem(s.Id, s.Due, -s.Amount, Designation: DesignatedRent(s, charges))));
         return Allocation.Distribute(claims, credit, order);
     }
 
-    private static List<AnnualValue> AnnualValues(List<Charge> charges, AllocationResult result)
+    /// <summary>The credit of a rent reduction settles the rent of its month first and not an older fee or arrears.</summary>
+    private static Guid? DesignatedRent(Charge credit, IReadOnlyCollection<Charge> charges) =>
+        credit.Kind != ChargeType.RentReduction ? null
+            : charges.Where(s => s.Kind == ChargeType.Rent && s.Amount > 0 && s.ServiceMonth == credit.ServiceMonth)
+                .OrderByDescending(s => s.Amount).ThenBy(s => s.Id).Select(s => (Guid?)s.Id).FirstOrDefault();
+
+    private static List<AnnualValue> AnnualValues(List<Charge> charges, List<Payment> payments, AllocationResult result)
     {
         var rents = charges.Where(s => s.Automatic).ToDictionary(s => s.Id);
         var target = rents.Values.Select(s => (s.ServiceMonth!.Value.Year, s.Component!.Value, Debit: s.Amount, Settled: result.Settled(s.Id), Inflow: 0m));
-        var inflow = result.Shares.Where(a => rents.ContainsKey(a.ClaimId))
+        // Inflow is money received: credit notes (refunds, rent reductions) settle debit but are no payment under § 11 EStG.
+        var received = payments.Where(z => z.Amount > 0).Select(z => z.Id).ToHashSet();
+        var inflow = result.Shares.Where(a => rents.ContainsKey(a.ClaimId) && received.Contains(a.CreditId))
             .Select(a => (a.Date.Year, rents[a.ClaimId].Component!.Value, Debit: 0m, Settled: 0m, Inflow: a.Amount));
         return target.Concat(inflow)
             .GroupBy(w => (w.Year, w.Value))

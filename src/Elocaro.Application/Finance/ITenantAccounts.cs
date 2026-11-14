@@ -164,6 +164,7 @@ public sealed record TenantAccount(
     IReadOnlyList<AnnualValue> AnnualValues,
     AllocationOrder Allocation);
 
+/// <param name="Disputed">Part of the original open amount that is withheld under a disputed rent reduction and not included in <paramref name="Open"/>.</param>
 public sealed record OpenItem(
     Guid ChargeId,
     Guid LeaseId,
@@ -175,4 +176,5 @@ public sealed record OpenItem(
     decimal Amount,
     decimal Open,
     int DaysOverdue,
-    IReadOnlyList<Settlement>? Settlements = null);
+    IReadOnlyList<Settlement>? Settlements = null,
+    decimal Disputed = 0m);

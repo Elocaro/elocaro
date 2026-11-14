@@ -19,6 +19,9 @@ public enum ChargeType
 
     /// <summary>Outstanding amount from the period before accounting started.</summary>
     BalanceCarriedForward = 8,
+
+    /// <summary>Credit for an acknowledged rent reduction, one per month (negative amount, automatic).</summary>
+    RentReduction = 9,
     Miscellaneous = 99,
 }
 
@@ -43,9 +46,9 @@ public sealed class Charge : Entity
 
     public Charge(Guid leaseId, ChargeType kind, DateOnly due, decimal amount, string name)
     {
-        if (kind == ChargeType.Rent)
+        if (kind is ChargeType.Rent or ChargeType.RentReduction)
         {
-            throw new ArgumentException("Monatsmieten entstehen über Monatsmiete().", nameof(kind));
+            throw new ArgumentException("Monatsmieten und Mietminderungen entstehen über Monatsmiete() und Mietminderung().", nameof(kind));
         }
 
         LeaseId = leaseId;
@@ -72,9 +75,16 @@ public sealed class Charge : Entity
 
     public string Name { get; private set; }
 
+    /// <summary>Only for the credit of a rent reduction: the reduction it belongs to.</summary>
+    public Guid? ReductionId { get; private set; }
+
     public string? Note { get; set; }
 
+    /// <summary>Monthly rent from the lease (also the basis of the cash-basis rule for regularly recurring rent).</summary>
     public bool Automatic => Kind == ChargeType.Rent;
+
+    /// <summary>Created and adjusted by the job from the lease or a rent reduction: no manual correction or deletion.</summary>
+    public bool Generated => Kind is ChargeType.Rent or ChargeType.RentReduction;
 
     public AllocationRank Rank => RankOf(Kind);
 
@@ -107,12 +117,34 @@ public sealed class Charge : Entity
         return charge;
     }
 
+    /// <summary>Credit of an acknowledged rent reduction for one service month; <paramref name="amount"/> is negative.</summary>
+    public static Charge Reduction(Guid leaseId, Guid reductionId, DateOnly serviceMonth, DateOnly due, decimal amount, string name)
+    {
+        if (serviceMonth.Day != 1)
+        {
+            throw new ArgumentException("Der Leistungsmonat beginnt am Ersten.", nameof(serviceMonth));
+        }
+
+        var charge = new Charge
+        {
+            LeaseId = leaseId,
+            Kind = ChargeType.RentReduction,
+            ReductionId = reductionId,
+            ServiceMonth = serviceMonth,
+            Due = due,
+            Amount = amount,
+            Name = name,
+        };
+        charge.Validate();
+        return charge;
+    }
+
     /// <summary>Adjusts an automatic monthly rent to changed lease data.</summary>
     public bool Adjust(DateOnly due, decimal amount, string name)
     {
-        if (!Automatic)
+        if (!Generated)
         {
-            throw new InvalidOperationException("Nur automatische Monatsmieten werden angeglichen.");
+            throw new InvalidOperationException("Nur automatisch erzeugte Posten werden angeglichen.");
         }
 
         if (Due == due && Amount == amount && Name == name)
@@ -128,9 +160,9 @@ public sealed class Charge : Entity
 
     public void Update(ChargeType kind, DateOnly due, decimal amount, string name)
     {
-        if (Automatic || kind == ChargeType.Rent)
+        if (Generated || kind is ChargeType.Rent or ChargeType.RentReduction)
         {
-            throw new RuleViolationException("Monatsmieten ergeben sich aus dem Vertrag; Korrekturen bitte als eigene Sollstellung.");
+            throw new RuleViolationException("Monatsmieten und Mietminderungen ergeben sich aus dem Vertrag und der Minderung; Korrekturen bitte als eigene Sollstellung.");
         }
 
         Kind = kind;
@@ -156,6 +188,11 @@ public sealed class Charge : Entity
         if (Kind == ChargeType.Refund && Amount > 0)
         {
             throw new RuleViolationException("Eine Erstattung ist ein Guthaben des Mieters und wird negativ erfasst.");
+        }
+
+        if (Kind == ChargeType.RentReduction && Amount > 0)
+        {
+            throw new RuleViolationException("Eine Mietminderung ist ein Guthaben des Mieters und wird negativ erfasst.");
         }
     }
 }

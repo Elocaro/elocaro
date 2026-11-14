@@ -13,13 +13,7 @@ public static class ChargeCalculation
     {
         ArgumentNullException.ThrowIfNull(lease);
         var calendarMonth = Period.Month(year, month);
-        var bounds = calendarMonth.Intersect(lease.Term);
-        if (from is { } start)
-        {
-            bounds = bounds?.Intersect(new Period(start));
-        }
-
-        if (bounds is not { } period)
+        if (Bounds(lease, year, month, from) is not { } period)
         {
             return [];
         }
@@ -53,6 +47,14 @@ public static class ChargeCalculation
         }
 
         return items;
+    }
+
+    /// <summary>The days of the month on which the lease runs and rent is claimed, or <c>null</c> if there are none.</summary>
+    public static Period? Bounds(Lease lease, int year, int month, DateOnly? from = null)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        var bounds = Period.Month(year, month).Intersect(lease.Term);
+        return from is { } start ? bounds?.Intersect(new Period(start)) : bounds;
     }
 
     /// <summary>Months for which rent is due from <paramref name="from"/> up to and including <paramref name="toMonth"/>.</summary>

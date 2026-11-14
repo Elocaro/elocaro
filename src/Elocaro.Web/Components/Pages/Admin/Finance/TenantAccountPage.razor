@@ -197,6 +197,10 @@ else
             </section>
         </MudTabPanel>
 
+        <MudTabPanel Text="Minderung">
+            <RentReductionSection LeaseId="Id" OnChanged="LoadAsync" />
+        </MudTabPanel>
+
         <MudTabPanel Text="Auswertung">
             <section>
     <LineChart id="balance-chart" Caption="Saldo im Zeitverlauf (über null: Rückstand, unter null: Guthaben)" LabelHeading="Monatsende" ValueHeading="Saldo" Points="BalancePoints" />

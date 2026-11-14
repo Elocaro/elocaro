@@ -42,7 +42,7 @@ public static class UndoPolicy
             "CpiValue", "DegreeDayValue", "Ticket", "TicketComment", "TicketPhoto", "TicketWork", "TicketInvoice", "Notice", "NoticeFile",
             "MessageThread", "Message", "MessageFile", "HeatingSettings", "DeadlineSettings", "FinanceSettings", "ModuleSettings", "DatevSettings");
         Add(result, UndoClass.Compensating,
-            "Charge", "Payment", "Transaction", "TransactionAssignment", "DepositEntry", "Dunning", "DunningHold", "BillingStatement", "PrepaymentProposal", "RentIncrease");
+            "Charge", "Payment", "Transaction", "TransactionAssignment", "DepositEntry", "Dunning", "DunningHold", "RentReduction", "BillingStatement", "PrepaymentProposal", "RentIncrease");
         Add(result, UndoClass.Irreversible,
             "OutgoingMail", "StatementDispatch", "ConsumptionInformationDispatch", "SignatureRequest", "PushMessage", "PushSubscription", "PushKeys",
             "BankAccount", "BankDetails", "BankImport", "DatevExport", "DatevExportedItem", "BackupSetting", "GoogleClientSetting", "EmergencyFolder",

@@ -22,6 +22,12 @@ internal sealed class ChargeConfiguration : IEntityTypeConfiguration<Charge>
         builder.HasIndex(s => new { s.LeaseId, s.ServiceMonth, s.Component }).IsUnique()
             .HasFilter("kind = 'Rent' AND NOT deleted")
             .HasDatabaseName("ix_charges_monthly_rent_unique");
+
+        // One credit per rent reduction and month.
+        builder.HasOne<RentReduction>().WithMany().HasForeignKey(s => s.ReductionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(s => new { s.ReductionId, s.ServiceMonth }).IsUnique()
+            .HasFilter("kind = 'RentReduction' AND NOT deleted")
+            .HasDatabaseName("ix_charges_reduction_unique");
     }
 }
 
@@ -83,6 +89,21 @@ internal sealed class DunningHoldConfiguration : IEntityTypeConfiguration<Dunnin
         builder.Property(s => s.Reason).HasMaxLength(500);
         builder.HasOne<Lease>().WithMany().HasForeignKey(s => s.LeaseId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(s => s.LeaseId);
+    }
+}
+
+internal sealed class RentReductionConfiguration : IEntityTypeConfiguration<RentReduction>
+{
+    public void Configure(EntityTypeBuilder<RentReduction> builder)
+    {
+        builder.ToTable("rent_reductions");
+        builder.Property(m => m.Description).HasMaxLength(500);
+        builder.Property(m => m.Note).HasMaxLength(1000);
+        builder.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(m => m.Percent).HasPrecision(5, 2);
+        builder.Property(m => m.MonthlyAmount).HasPrecision(12, 2);
+        builder.HasOne<Lease>().WithMany().HasForeignKey(m => m.LeaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(m => m.LeaseId);
     }
 }
 

@@ -1,0 +1,178 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using Elocaro.Application.Tickets
+@inject IRentReductions Reductions
+@inject ITickets Tickets
+@inject Notifier Notify
+@inject Confirmations Confirm
+@inject IDialogService Dialogs
+@* Rent reductions (§ 536 BGB) of a lease: the tenant's announcement, the landlord's answer and the effect on the account. *@
+<section id="rent-reduction" aria-label="Mietminderung">
+    <ErrorList Errors="errors" />
+    @if (rows is null)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else
+    {
+        @if (rows.Count == 0)
+        {
+            <EmptyState Compact="true" Text="Keine Mietminderung erfasst." />
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Mangel</th><th>Zeitraum</th><th class="number">Minderung</th><th>Status</th>
+                            <th class="number">Gutschrift</th><th class="number">Nicht gemahnt</th><th><span class="visually-hidden">Aktion</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in rows)
+                        {
+                            <tr>
+                                <td>
+                                    @row.Description
+                                    @if (row.TicketId is { } ticket)
+                                    {
+                                        <br /><a class="small" href="/verwaltung/tickets/@ticket">Zum Ticket</a>
+                                    }
+                                    @if (row.Note is not null)
+                                    {
+                                        <br /><span class="small">@row.Note</span>
+                                    }
+                                </td>
+                                <td>@Format.Date(row.From) – @(row.To is { } to ? Format.Date(to) : "offen")</td>
+                                <td class="number">@(row.Percent is { } percent ? $"{percent.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("de-DE"))} %" : $"{Format.Money(row.MonthlyAmount ?? 0m)} / Monat")</td>
+                                <td><StatusChip Level="Level(row.Status)">@Labels.From(row.Status)</StatusChip></td>
+                                <td class="number">@(row.Granted ? Format.Money(row.CreditsTotal) : "–")</td>
+                                <td class="number">@(row.Status == RentReductionStatus.Disputed ? Format.Money(row.DisputedTotal) : "–")</td>
+                                <td>
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => EditAsync(row)" aria-label="@($"Minderung {row.Description} bearbeiten")">Bearbeiten</MudButton>
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => DeleteAsync(row)" aria-label="@($"Minderung {row.Description} löschen")">Löschen</MudButton>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddAsync">Minderung erfassen</MudButton>
+
+        <details class="explain">
+            <summary>So wirkt eine Minderung</summary>
+            <p class="small">
+                Ist die Mietsache mangelhaft, mindert sich die Miete kraft Gesetzes (§ 536 BGB). Maßgeblich ist die Bruttomiete, also die Miete einschließlich der Vorauszahlungen
+                (BGH, Urteil vom 6.4.2005, XII ZR 225/03). Der Mieter muss den Mangel anzeigen (§ 536c BGB).
+            </p>
+            <ul class="small">
+                <li><strong>Anerkannt:</strong> Für jeden Monat entsteht eine Gutschrift. Das Konto bleibt ausgeglichen, wenn der Mieter die geminderte Miete zahlt.</li>
+                <li><strong>Bestritten:</strong> Es entsteht keine Gutschrift, der Rückstand bleibt im Konto sichtbar. Der einbehaltene Betrag wird nicht gemahnt und mit keinen Verzugszinsen belegt.</li>
+                <li><strong>Angekündigt:</strong> Keine Wirkung, bis Sie die Minderung anerkennen oder bestreiten.</li>
+                <li><strong>Beendet:</strong> Der Mangel ist behoben; eine anerkannte Minderung gilt bis zum letzten Tag, eine bestrittene wirkt nicht mehr.</li>
+            </ul>
+            <p class="small">Ob und in welcher Höhe eine Minderung berechtigt ist, hängt vom Einzelfall ab; im Streitfall rechtlichen Rat einholen.</p>
+        </details>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<RentReductionRow>? rows;
+    private IReadOnlyList<string>? errors;
+    private IReadOnlyList<TicketRow> tickets = [];
+    private RentReductionInput input = new();
+
+    [Parameter, EditorRequired]
+    public Guid LeaseId { get; set; }
+
+    /// <summary>Raised after a change: the account (credits, balance) has to be reloaded.</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tickets = await Tickets.ListAsync((await Authentication).User, openOnly: false);
+        rows = await Reductions.ForLeaseAsync(LeaseId);
+    }
+
+    private static StatusLevel Level(RentReductionStatus status) => status switch
+    {
+        RentReductionStatus.Acknowledged => StatusLevel.Success,
+        RentReductionStatus.Disputed => StatusLevel.Warning,
+        _ => StatusLevel.Neutral,
+    };
+
+    private Task AddAsync()
+    {
+        input = new RentReductionInput();
+        return FormAsync("Mietminderung erfassen", () => Reductions.CreateAsync(LeaseId, input), "Erfassen");
+    }
+
+    private Task EditAsync(RentReductionRow row)
+    {
+        input = new RentReductionInput
+        {
+            Description = row.Description,
+            From = row.From,
+            To = row.To,
+            Percent = row.Percent,
+            MonthlyAmount = row.MonthlyAmount,
+            Status = row.Status,
+            TicketId = row.TicketId,
+            Note = row.Note,
+        };
+        return FormAsync("Mietminderung bearbeiten", () => Reductions.UpdateAsync(row.Id, input), "Speichern");
+    }
+
+    private async Task FormAsync(string title, Func<Task<Elocaro.Application.Common.Result>> save, string submitText)
+    {
+        RenderFragment fields = @<text>
+            <AppTextField @bind-Value="input.Description" Label="Mangel" Required="true" Hint="z. B. „Heizung ausgefallen“, „Schimmel im Schlafzimmer“" />
+            <div class="form-grid">
+                <AppDateField @bind-Value="input.From" Label="Von" Required="true" />
+                <AppDateField @bind-Value="input.To" Label="Bis (leer = läuft noch)" />
+            </div>
+            <div class="form-grid">
+                <AppNumberField T="decimal?" @bind-Value="input.Percent" Label="Quote" Suffix="%" Hint="Prozent der Bruttomiete" />
+                <AppNumberField T="decimal?" @bind-Value="input.MonthlyAmount" Label="oder Betrag je Monat" Suffix="€" />
+            </div>
+            <AppSelect @bind-Value="input.Status" Label="Status" Items="Enum.GetValues<RentReductionStatus>()" Text="@(v => Labels.From(v))" />
+            <AppSelect T="Guid?" @bind-Value="input.TicketId" Label="Ticket (Nachweis)" Items="tickets.Select(t => (Guid?)t.Id)" Text="@(id => tickets.FirstOrDefault(t => t.Id == id)?.Title ?? "")" EmptyText="keines" />
+            <AppTextField @bind-Value="input.Note" Label="Notiz" />
+        </text>;
+        if (await Dialogs.ShowFormAsync(title, input, fields, save, submitText))
+        {
+            errors = null;
+            Notify.Success("Die Minderung wurde gespeichert.");
+            await ReloadAsync();
+        }
+    }
+
+    private async Task DeleteAsync(RentReductionRow row)
+    {
+        if (!await Confirm.AskAsync("Minderung löschen", $"„{row.Description}“ löschen? Die Gutschriften im Mieterkonto entfallen.", "Ja, löschen"))
+        {
+            return;
+        }
+
+        var result = await Reductions.DeleteAsync(row.Id);
+        errors = result.Succeeded ? null : result.Errors;
+        if (result.Succeeded)
+        {
+            Notify.Success("Die Minderung wurde gelöscht.");
+            await ReloadAsync();
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        rows = await Reductions.ForLeaseAsync(LeaseId);
+        await OnChanged.InvokeAsync();
+    }
+}
