@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Prüft den Betreff jedes Commits (Regeln: .github/scripts/check-commit-subject.sh). Einrichten: git config core.hooksPath .githooks
+exec bash "$(git rev-parse --show-toplevel)/.github/scripts/check-commit-subject.sh" "$(head -n 1 "$1")"

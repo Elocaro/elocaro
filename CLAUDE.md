@@ -18,7 +18,7 @@ Details: [docs/architektur.md](docs/architektur.md) (Schichten, Module, Regeln u
 - Default-Branch ist `main`; dort wird entwickelt und gepusht.
 - Vor jedem Commit: `dotnet format --verify-no-changes && dotnet build && dotnet test` (Warnungen sind Fehler;
   Integrations- und Web-Tests brauchen Docker, Browser-Tests Playwright-Chromium).
-- Commits mit `Closes #<Issue>` bzw. `Refs #<Issue>`; Funktionen immer mit Tests und Doku in `docs/` abschließen.
+- Commit-Betreff = Eintrag in den Release-Notes (es gibt kein Changelog): `<Bereich>: <verständlicher deutscher Satz> (Refs #<Issue>)` bzw. `(Closes #<Issue>)`, 15–130 Zeichen, Großbuchstabe, kein Punkt; Details in den Text darunter. Prüft `.githooks/commit-msg` (einmalig `git config core.hooksPath .githooks`) und die CI. Funktionen immer mit Tests und Doku in `docs/` abschließen.
 - Architektur: Anwendungsdienste liegen `internal` in `Infrastructure` hinter Schnittstellen aus `Application`; Seiten, Endpunkte und
   MCP-Tools prüfen den Zugriff selbst (die Dienste tun es nicht). Keine neuen Modulzyklen; Querverbindungen über Erweiterungspunkte.
   `dotnet test --project tests/Elocaro.Architecture.Tests` prüft das in Sekunden ohne Docker.

@@ -40,7 +40,7 @@ Ein Tag `vX.Y.Z` auf dem Default-Branch baut das Image für amd64 und arm64 und 
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-Es gibt keine gepflegte Änderungsdatei: Der Release-Workflow erzeugt die Änderungen der Version aus den Commit-Betreffs seit dem vorigen Tag (`.github/scripts/release-notes.sh`; Vorschau: `.github/scripts/release-notes.sh HEAD`). Deshalb jeden Commit-Betreff als einen verständlichen deutschen Satz schreiben, mit `Refs #<Issue>` am Ende; Merge-Commits und Betreffe mit `Changelog:` kommen nicht vor. Die Version aus dem Tag landet über das Build-Argument `VERSION` in der Anwendung („Über Elocaro“).
+Es gibt keine gepflegte Änderungsdatei: Der Release-Workflow erzeugt die Änderungen der Version aus den Commit-Betreffs seit dem vorigen Tag (`.github/scripts/release-notes.sh`; Vorschau: `.github/scripts/release-notes.sh HEAD`). Deshalb folgt jeder Commit-Betreff dem Muster `<Bereich>: <was sich ändert, als verständlicher deutscher Satz> (Refs #<Issue>)` (oder `Closes`), 15–130 Zeichen vor dem Verweis, Großbuchstabe, kein Punkt am Ende, Einzelheiten im Text darunter. Beispiel: `Zähler: Änderungshistorie zeigt wieder Einträge (Refs #184)`. Der Hook `.githooks/commit-msg` prüft das beim Commit (einmalig `git config core.hooksPath .githooks`), die CI-Aufgabe „Commit-Betreffe“ bei jedem Push und Pull Request. Merge-Commits sind ausgenommen, Betreffe mit `Changelog:`, `Release ` oder `Version ` sind nicht erlaubt. Die Version aus dem Tag landet über das Build-Argument `VERSION` in der Anwendung („Über Elocaro“).
 
 Die erzeugte Liste wird als Text des GitHub-Releases veröffentlicht und unter *Neuigkeiten und Updates* als Markdown dargestellt (Fett, Kursiv, `Code`, Listen, Links mit http/https; kein HTML, keine Bilder).
 

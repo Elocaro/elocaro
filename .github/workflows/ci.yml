@@ -24,6 +24,33 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
 
 jobs:
+  # Commit subjects become the release notes (.github/scripts/release-notes.sh), so they are checked on every push and pull request.
+  commit-betreffe:
+    name: Commit-Betreffe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Betreffe prüfen
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          # New branch or manual run: only the last commit.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            range="$HEAD~1..$HEAD"
+          else
+            range="$BASE..$HEAD"
+          fi
+          status=0
+          while IFS= read -r subject; do
+            bash .github/scripts/check-commit-subject.sh "$subject" || status=1
+          done < <(git log "$range" --no-merges --format=%s)
+          exit $status
+
   build-und-test:
     name: Build & Test
     runs-on: ubuntu-24.04
