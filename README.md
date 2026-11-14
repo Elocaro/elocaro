@@ -28,9 +28,9 @@
 
 ## Technik
 
-**Stack:** .NET 11 · Blazor Static SSR · PostgreSQL (EF Core) · Quartz · Gotenberg · Docker Compose
+**Stack:** .NET 11 · Blazor (Interactive Server und Static SSR) · PostgreSQL (EF Core) · Quartz · Gotenberg · Docker Compose
 
-- **Architektur:** Modularer Monolith in vier Projekten (`Domain`, `Application`, `Infrastructure`, `Web`) mit klarer Abhängigkeitsrichtung, die ein Architekturtest absichert.
+- **Architektur:** Modularer Monolith in vier Projekten (`Domain`, `Application`, `Infrastructure`, `Web`) mit klarer Abhängigkeitsrichtung; Architekturtests sichern Schichten, Modulgrenzen und den Zugriff auf Seiten und Endpunkte ab.
 - **Tests:** Rechenkerne mit Golden-Master-Fällen (Nebenkosten, Heizkosten, CO₂, AfA, Index), Integrationstests mit Testcontainers, Web-Tests mit bUnit und Playwright, Architekturtests.
 - **Entscheidungen:** nachvollziehbar in [Architektur](docs/architektur.md) und in den [Architekturentscheidungen (ADR)](docs/adr/).
 - **Betrieb:** Docker Compose mit Caddy (TLS), nächtlichem Backup (restic) und CI mit GitHub Actions.
