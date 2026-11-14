@@ -92,7 +92,7 @@
         <ErrorList Errors="errors" />
     }
 
-    @if (phase == Phase.Target && source == Source.Target)
+    @if (phase == Phase.Target && source == Source.Target && setupChecked)
     {
         <EditForm Model="input" OnValidSubmit="FindAsync" novalidate>
             <div class="form-grid">
@@ -204,6 +204,7 @@
     private Phase phase;
     private string setupCode = string.Empty;
     private bool busy;
+    private bool setupChecked;
     private bool verified;
     private bool sawRunning;
     private IReadOnlyList<string>? errors;
@@ -213,19 +214,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Back from the upload form: stay with the file. Decided before the first await, because the page is rendered then, and the
-        // fields of a target (which read the database) must not start next to the check below.
+        // Back from the upload form: stay with the file.
         if (UploadResult is not null)
         {
             source = Source.File;
         }
 
-        // Only for an empty installation, like the creation of the first administrator.
+        // Only for an empty installation, like the creation of the first administrator. The page is rendered at this first await
+        // already: the fields of a target read the database too (same context), so they only appear once the check is done.
         if (!await Accounts.InitialSetupPossibleAsync())
         {
             Navigation.NavigateTo("/konto/anmelden");
             return;
         }
+
+        setupChecked = true;
 
         // Know what was handed in (only the backup service is asked)
         progress = await Control.ProgressAsync();
