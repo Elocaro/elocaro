@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/Elocaro/elocaro/actions/workflows/ci.yml/badge.svg)](https://github.com/Elocaro/elocaro/actions/workflows/ci.yml)
 [![Lizenz: AGPL-3.0](https://img.shields.io/github/license/Elocaro/elocaro)](LICENSE)
-[![Version](https://img.shields.io/github/v/tag/Elocaro/elocaro?label=Version)](CHANGELOG.md)
+[![Version](https://img.shields.io/github/v/tag/Elocaro/elocaro?label=Version)](https://github.com/Elocaro/elocaro/releases)
 
 **Die Vermieterverwaltung, die dir gehört.** Elocaro ist eine selbst betriebene Verwaltung für private Vermieter: Objekte, Mieter und Verträge, Mieteingänge, Nebenkosten- und Heizkostenabrechnung, Steuerunterlagen und ein Mieterportal. Alle Daten liegen bei dir, jederzeit vollständig exportierbar, ohne Abo und ohne Module hinter einer Bezahlschranke.
 
@@ -71,7 +71,7 @@ Elocaro ist **keine Rechts- und keine Steuerberatung**. Vorlagen und Rechenwerte
 - [Architektur](docs/architektur.md): Technologie und Struktur
 - [Entwicklung](docs/entwicklung.md): lokale Umgebung, Migrationen, Konventionen, Tests
 - [UI-Leitfaden](docs/ui.md)
-- [Mitarbeiten](CONTRIBUTING.md): Ablauf, CI, Releases · [Änderungen](CHANGELOG.md) · [Sicherheit melden](SECURITY.md)
+- [Mitarbeiten](CONTRIBUTING.md): Ablauf, CI, Releases · [Änderungen](https://github.com/Elocaro/elocaro/releases) · [Sicherheit melden](SECURITY.md)
 - [Banking & FinTS-Registrierung](docs/banking-fints.md)
 - [Architekturentscheidungen (ADR)](docs/adr/)
 

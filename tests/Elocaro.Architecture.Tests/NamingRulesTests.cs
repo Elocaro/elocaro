@@ -9,11 +9,8 @@ public class NamingRulesTests
     // Assembled so that this file does not match itself.
     private static readonly string[] FormerNames = ["Miet" + "Hahn", "Miet-" + "Hahn", "Miet " + "Hahn"];
 
-    /// <summary>Files that talk about the former name on purpose (the history of changes).</summary>
-    private static readonly string[] Allowed =
-    [
-        "CHANGELOG.md",
-    ];
+    /// <summary>Files that talk about the former name on purpose.</summary>
+    private static readonly string[] Allowed = [];
 
     private static readonly string[] SkippedDirectories = [".git", "bin", "obj", "node_modules", "TestResults", "data", ".vs", ".vscode", ".claude"];
 

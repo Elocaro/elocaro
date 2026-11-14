@@ -14,7 +14,7 @@ public interface IUpdateInfo
 
 /// <param name="Version">Without the leading "v", e.g. "0.2.0".</param>
 /// <param name="Url">Page of the release on GitHub.</param>
-/// <param name="Body">Release notes as Markdown (the section of the changelog); empty if there is none.</param>
+/// <param name="Body">Release notes as Markdown (generated from the commits since the previous version); empty if there is none.</param>
 public sealed record ReleaseNotes(string Version, DateOnly? Date, string Url, string Body);
 
 /// <param name="CurrentVersion">The running version; null for development builds.</param>

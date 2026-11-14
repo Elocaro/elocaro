@@ -40,9 +40,9 @@ Ein Tag `vX.Y.Z` auf dem Default-Branch baut das Image für amd64 und arm64 und 
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-Vorher `CHANGELOG.md` (Abschnitt „Unveröffentlicht“ → neue Version mit Datum) abschließen. Die Version aus dem Tag landet über das Build-Argument `VERSION` in der Anwendung („Über Elocaro“).
+Es gibt keine gepflegte Änderungsdatei: Der Release-Workflow erzeugt die Änderungen der Version aus den Commit-Betreffs seit dem vorigen Tag (`.github/scripts/release-notes.sh`; Vorschau: `.github/scripts/release-notes.sh HEAD`). Deshalb jeden Commit-Betreff als einen verständlichen deutschen Satz schreiben, mit `Refs #<Issue>` am Ende; Merge-Commits und Betreffe mit `Changelog:` kommen nicht vor. Die Version aus dem Tag landet über das Build-Argument `VERSION` in der Anwendung („Über Elocaro“).
 
-Der Abschnitt einer Version wird als Text des GitHub-Releases veröffentlicht und unter *Neuigkeiten und Updates* als Markdown dargestellt (Fett, Kursiv, `Code`, Listen, Links mit http/https; kein HTML, keine Bilder). Ein Eintrag besteht aus einem kurzen Kopfsatz, Einzelheiten stehen als eingerückte Unterpunkte (`  - …`), nicht in einem langen Absatz.
+Die erzeugte Liste wird als Text des GitHub-Releases veröffentlicht und unter *Neuigkeiten und Updates* als Markdown dargestellt (Fett, Kursiv, `Code`, Listen, Links mit http/https; kein HTML, keine Bilder).
 
 **Google-Anmeldung im Image:** Damit „Mit Google verbinden“ in den veröffentlichten Images ohne Einrichtung funktioniert, liest der
 Release-Workflow die Repository-Secrets `GOOGLE_CLIENT_ID` und `GOOGLE_CLIENT_SECRET` (OAuth-Client vom Typ „Fernsehgeräte und Geräte mit

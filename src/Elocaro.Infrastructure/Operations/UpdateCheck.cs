@@ -115,7 +115,7 @@ internal sealed partial class UpdateChecker(HttpClient http, UpdateState state, 
     private static partial void LogCheckFailed(ILogger logger, string reason);
 }
 
-/// <summary>Reads the answer of the GitHub releases API and the release notes (the Markdown of the changelog section).</summary>
+/// <summary>Reads the answer of the GitHub releases API and the release notes (the Markdown list of the commits since the previous version).</summary>
 internal static class ReleaseList
 {
     /// <returns>Published releases (no drafts, no pre-releases) with a valid version, newest first.</returns>
