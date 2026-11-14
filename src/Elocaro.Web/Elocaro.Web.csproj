@@ -2,9 +2,6 @@
 
   <PropertyGroup>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <!-- New Blazor analyzers in .NET 11: BL0016 (JS interop without try/catch) is suppressed until the pages are reviewed one by one
-         (Refs #163, #184). BL0012 (unnecessary StateHasChanged) and BL0013 (stale auth state) are active again. -->
-    <NoWarn>$(NoWarn);BL0016</NoWarn>
     <!-- .NET 11 SDK: Debug builds add /_framework/dotnet-browser-tools/hot-reload-settings.json, which blazor.web.js requests.
          The request never completes in the app (LoadState.NetworkIdle times out in all browser tests). Disabled until the cause is found (Refs #163). -->
     <EnableHotReloadInRuntimeConfigDevFile>false</EnableHotReloadInRuntimeConfigDevFile>

@@ -190,8 +190,11 @@ else
         if (pendingHtml is { } html && loaded)
         {
             pendingHtml = null;
-            module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/code-editor.js");
-            await module.InvokeVoidAsync("setPreview", frame, html);
+            module ??= await JS.TryImportAsync("/js/code-editor.js");
+            if (module is not null)
+            {
+                await module.TryInvokeVoidAsync("setPreview", frame, html);
+            }
         }
     }
 

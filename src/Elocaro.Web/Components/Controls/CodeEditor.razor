@@ -99,7 +99,7 @@
         if (editor is not null && Value != lastKnown)
         {
             lastKnown = Value;
-            await editor.InvokeVoidAsync("setValue", Value ?? "");
+            await editor.TryInvokeVoidAsync("setValue", Value ?? "");
         }
     }
 
@@ -108,8 +108,11 @@
         if (firstRender)
         {
             self = DotNetObjectReference.Create(this);
-            module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/code-editor.js");
-            editor = await module.InvokeAsync<IJSObjectReference>("init", root, self, Value ?? "");
+            module = await JS.TryImportAsync("/js/code-editor.js");
+            if (module is not null)
+            {
+                editor = await module.TryInvokeAsync<IJSObjectReference>("init", root, self, Value ?? "");
+            }
         }
     }
 

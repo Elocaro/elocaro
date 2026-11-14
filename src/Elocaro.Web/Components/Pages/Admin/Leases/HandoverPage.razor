@@ -325,10 +325,11 @@ else
 
     private async Task LoadSignatureAsync()
     {
-        var loaded = await JS.InvokeAsync<IJSObjectReference>("import", "/js/signature.js");
-        await loaded.InvokeVoidAsync("init", tenantCanvas);
-        await loaded.InvokeVoidAsync("init", landlordCanvas);
-        module = loaded;
+        var loaded = await JS.TryImportAsync("/js/signature.js");
+        if (loaded is not null && await loaded.TryInvokeVoidAsync("init", tenantCanvas) && await loaded.TryInvokeVoidAsync("init", landlordCanvas))
+        {
+            module = loaded;
+        }
     }
 
     private async Task ReloadAsync()
@@ -442,7 +443,7 @@ else
         await WhenSignatureReadyAsync();
         if (module is not null)
         {
-            await module.InvokeVoidAsync("clear", canvas);
+            await module.TryInvokeVoidAsync("clear", canvas);
         }
     }
 
@@ -463,17 +464,31 @@ else
             return;
         }
 
-        if (await module.InvokeAsync<bool>("isEmpty", tenantCanvas))
+        var tenantEmpty = await module.TryInvokeAsync<bool?>("isEmpty", tenantCanvas);
+        if (tenantEmpty is null)
+        {
+            return; // circuit is gone
+        }
+
+        if (tenantEmpty.Value)
         {
             errors = ["Bitte unterschreiben (Unterschrift des Mieters fehlt)."];
             return;
         }
 
+        var tenantPng = await module.TryInvokeAsync<string>("toPng", tenantCanvas);
+        var landlordEmpty = await module.TryInvokeAsync<bool?>("isEmpty", landlordCanvas);
+        var landlordPng = landlordEmpty == false ? await module.TryInvokeAsync<string>("toPng", landlordCanvas) : null;
+        if (tenantPng is null || landlordEmpty is null || (landlordEmpty == false && landlordPng is null))
+        {
+            return; // circuit is gone
+        }
+
         var signature = new HandoverSignature
         {
             SignedByName = signedBy ?? "",
-            TenantSignature = Convert.FromBase64String(await module.InvokeAsync<string>("toPng", tenantCanvas)),
-            LandlordSignature = await module.InvokeAsync<bool>("isEmpty", landlordCanvas) ? null : Convert.FromBase64String(await module.InvokeAsync<string>("toPng", landlordCanvas)),
+            TenantSignature = Convert.FromBase64String(tenantPng),
+            LandlordSignature = landlordPng is null ? null : Convert.FromBase64String(landlordPng),
         };
         await FinishAsync(await Handovers.SignAsync(view!.Id, signature, confirm));
     }
