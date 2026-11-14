@@ -8,7 +8,6 @@ using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Notices;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using ZaehlerEntitaet = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.Metering;
 
@@ -92,7 +91,7 @@ internal sealed class ConsumptionInformation(ElocaroDbContext db, IHeatingRefere
             return null;
         }
 
-        var meters = await db.Set<ZaehlerEntitaet>().AsNoTracking().Include(z => z.Readings).Include(z => z.Terms)
+        var meters = await db.Set<Meter>().AsNoTracking().Include(z => z.Readings).Include(z => z.Terms)
             .Where(z => z.PropertyId == unit.PropertyId && Types.Contains(z.Type)).ToListAsync(cancellationToken);
         if (!meters.Any(z => z.UnitId == unit.Id && z.RoomId == null))
         {
@@ -176,5 +175,5 @@ internal sealed class ConsumptionInformation(ElocaroDbContext db, IHeatingRefere
     private static decimal? Basis(MeterType type, Unit unit, Lease? lease, DateOnly day) =>
         type == MeterType.Heat ? unit.AreaOn(day)?.LivingArea : lease?.OccupantCountOn(day);
 
-    private sealed record Context(Unit Unit, List<ZaehlerEntitaet> Meters, Dictionary<Guid, Unit> Units, List<Lease> Leases, IReadOnlyDictionary<DateOnly, decimal> DegreeDays);
+    private sealed record Context(Unit Unit, List<Meter> Meters, Dictionary<Guid, Unit> Units, List<Lease> Leases, IReadOnlyDictionary<DateOnly, decimal> DegreeDays);
 }

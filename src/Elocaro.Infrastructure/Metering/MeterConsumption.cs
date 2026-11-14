@@ -1,21 +1,20 @@
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
-using Zaehler = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.Metering;
 
-/// <summary>Consumption of a metering point; a calculated meter (<see cref="Zaehler.Terms"/>) is the signed sum of its source meters.</summary>
+/// <summary>Consumption of a metering point; a calculated meter (<see cref="Meter.Terms"/>) is the signed sum of its source meters.</summary>
 internal static class MeterConsumption
 {
     /// <param name="chain">The metering point (chain of replaced meters, or a single calculated meter).</param>
     /// <param name="all">All meters of the property (the source meters are looked up here, with their replacements).</param>
-    public static Consumption Calculate(IReadOnlyList<Zaehler> chain, IReadOnlyList<Zaehler> all, Period period)
+    public static Consumption Calculate(IReadOnlyList<Meter> chain, IReadOnlyList<Meter> all, Period period)
     {
         ArgumentNullException.ThrowIfNull(chain);
         return chain.Count == 1 && chain[0].IsDerived ? Derived(chain[0], all, period) : ConsumptionCalculator.Calculate(chain, period);
     }
 
-    private static Consumption Derived(Zaehler meter, IReadOnlyList<Zaehler> all, Period period)
+    private static Consumption Derived(Meter meter, IReadOnlyList<Meter> all, Period period)
     {
         decimal total = 0;
         var basis = new List<ReadingOnDay>();
@@ -42,5 +41,5 @@ internal static class MeterConsumption
         return new Consumption(period, total, basis, null);
     }
 
-    private static decimal Factor(Zaehler meter) => Elocaro.Infrastructure.OperatingCosts.MeterConsumptionSource.UnitFactor(meter);
+    private static decimal Factor(Meter meter) => Elocaro.Infrastructure.OperatingCosts.MeterConsumptionSource.UnitFactor(meter);
 }

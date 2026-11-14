@@ -1,13 +1,13 @@
 using Elocaro.Application.Common;
 using Elocaro.Application.OperatingCosts;
 using Elocaro.Domain.Common;
+using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
 using Elocaro.Domain.Properties;
 using Elocaro.Domain.Receipts;
 using Elocaro.Infrastructure.Common;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Zaehler = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.OperatingCosts;
 
@@ -21,7 +21,7 @@ internal sealed class SupplyContractService(ElocaroDbContext db) : ISupplyContra
             return null;
         }
 
-        var meters = await db.Set<Zaehler>().AsNoTracking().Where(m => m.PropertyId == propertyId).OrderBy(m => m.Type).ThenBy(m => m.Name).ToListAsync(cancellationToken);
+        var meters = await db.Set<Meter>().AsNoTracking().Where(m => m.PropertyId == propertyId).OrderBy(m => m.Type).ThenBy(m => m.Name).ToListAsync(cancellationToken);
         var contracts = await db.Set<SupplyContract>().AsNoTracking().Include(c => c.Tariffs).Where(c => c.PropertyId == propertyId).AsSplitQuery().ToListAsync(cancellationToken);
         var numbers = meters.ToDictionary(m => m.Id, m => m.Number);
         return new SupplyOverview(
@@ -56,7 +56,7 @@ internal sealed class SupplyContractService(ElocaroDbContext db) : ISupplyContra
                 throw new NotFoundException();
             }
 
-            var chosen = await db.Set<Zaehler>().Where(m => m.PropertyId == propertyId && input.MeterIds.Contains(m.Id)).ToListAsync(cancellationToken);
+            var chosen = await db.Set<Meter>().Where(m => m.PropertyId == propertyId && input.MeterIds.Contains(m.Id)).ToListAsync(cancellationToken);
             if (chosen.Count != input.MeterIds.Distinct().Count())
             {
                 throw new RuleViolationException("Ein gewählter Zähler gehört nicht zum Objekt.");
@@ -80,7 +80,7 @@ internal sealed class SupplyContractService(ElocaroDbContext db) : ISupplyContra
         {
             ArgumentNullException.ThrowIfNull(input);
             var contract = await db.Set<SupplyContract>().SingleOrDefaultAsync(c => c.Id == contractId, cancellationToken) ?? throw new NotFoundException();
-            var chosen = await db.Set<Zaehler>().Where(m => m.PropertyId == contract.PropertyId && input.MeterIds.Contains(m.Id)).ToListAsync(cancellationToken);
+            var chosen = await db.Set<Meter>().Where(m => m.PropertyId == contract.PropertyId && input.MeterIds.Contains(m.Id)).ToListAsync(cancellationToken);
             if (chosen.Count != input.MeterIds.Distinct().Count())
             {
                 throw new RuleViolationException("Ein gewählter Zähler gehört nicht zum Objekt.");

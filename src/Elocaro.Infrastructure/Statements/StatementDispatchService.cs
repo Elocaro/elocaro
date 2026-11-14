@@ -21,7 +21,6 @@ using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Properties;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Zaehler = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.Statements;
 
@@ -370,7 +369,7 @@ internal sealed class StatementDispatchService(
         var unitId = lease.UnitId;
         var roomIds = lease.RoomIds;
         var propertyId = await db.Set<Domain.Properties.Unit>().AsNoTracking().Where(u => u.Id == unitId).Select(u => u.PropertyId).SingleAsync(cancellationToken);
-        var all = await db.Set<Zaehler>().AsNoTracking().Include(m => m.Readings).Include(m => m.Terms).Where(m => m.PropertyId == propertyId).ToListAsync(cancellationToken);
+        var all = await db.Set<Meter>().AsNoTracking().Include(m => m.Readings).Include(m => m.Terms).Where(m => m.PropertyId == propertyId).ToListAsync(cancellationToken);
         var source = new MeterConsumptionSource(all);
         var meters = all
             .Where(m => (m.UnitId == unitId && m.RoomId == null || roomIds.Contains(m.RoomId ?? Guid.Empty)) && m.InstalledOn <= period.To && (m.RemovedOn is null || m.RemovedOn >= period.From))

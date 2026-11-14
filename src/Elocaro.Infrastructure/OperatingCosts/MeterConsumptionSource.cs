@@ -2,7 +2,6 @@ using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
 using Elocaro.Infrastructure.Metering;
-using Zaehler = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.OperatingCosts;
 
@@ -11,7 +10,7 @@ namespace Elocaro.Infrastructure.OperatingCosts;
 /// readings are interpolated at the reference dates (e.g. on tenant change), see <see cref="ConsumptionCalculator"/>.
 /// Heat quantities are returned in kWh and water in m³, whatever unit the meter counts in.
 /// </summary>
-internal sealed class MeterConsumptionSource(IReadOnlyList<Zaehler> meters) : IConsumptionSource
+internal sealed class MeterConsumptionSource(IReadOnlyList<Meter> meters) : IConsumptionSource
 {
     public ConsumptionQuantity Quantity(Guid unitId, MeterType type, Period period)
     {
@@ -66,7 +65,7 @@ internal sealed class MeterConsumptionSource(IReadOnlyList<Zaehler> meters) : IC
             _ => null,
         };
 
-    private static ConsumptionQuantity Sum(List<Zaehler> assigned, List<Zaehler> ofType, Period period)
+    private static ConsumptionQuantity Sum(List<Meter> assigned, List<Meter> ofType, Period period)
     {
         decimal total = 0;
         var interpolated = new List<DateOnly>();
@@ -96,7 +95,7 @@ internal sealed class MeterConsumptionSource(IReadOnlyList<Zaehler> meters) : IC
     }
 
     /// <summary>Heat in kWh (meters in MWh are converted), water in m³ (liters are converted).</summary>
-    internal static decimal UnitFactor(Zaehler meter) => (meter.Type, meter.MeasurementUnit) switch
+    internal static decimal UnitFactor(Meter meter) => (meter.Type, meter.MeasurementUnit) switch
     {
         (MeterType.Heat, MeasurementUnit.MegawattHours) => 1000m,
         (MeterType.ColdWater or MeterType.HotWater, MeasurementUnit.Liters) => 0.001m,

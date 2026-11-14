@@ -12,7 +12,6 @@ using Elocaro.Domain.Tax;
 using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using ZaehlerEntitaet = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.Deadlines;
 
@@ -79,7 +78,7 @@ internal sealed class LeaseDeadlineSource(ElocaroDbContext db, TimeProvider cloc
         }
 
         var rentalUnits = await RentalUnit.GetAsync(db, cancellationToken);
-        var unitsWithMeters = (await db.Set<ZaehlerEntitaet>().AsNoTracking().Where(m => m.UnitId != null && m.RemovedOn == null && !m.Terms.Any()).Select(m => m.UnitId!.Value).Distinct().ToListAsync(cancellationToken)).ToHashSet();
+        var unitsWithMeters = (await db.Set<Meter>().AsNoTracking().Where(m => m.UnitId != null && m.RemovedOn == null && !m.Terms.Any()).Select(m => m.UnitId!.Value).Distinct().ToListAsync(cancellationToken)).ToHashSet();
         var modernisations = await RentIncreaseHistory.ModernisationDatesAsync(db, [.. leases.Select(v => v.Id)], cancellationToken);
         var entries = new List<DeadlineEntry>();
         foreach (var lease in leases)
@@ -168,7 +167,7 @@ internal sealed class CalibrationDeadlineSource(ElocaroDbContext db, TimeProvide
     public async Task<IReadOnlyList<DeadlineEntry>> DeadlinesAsync(DateOnly until, CancellationToken cancellationToken = default)
     {
         _ = clock;
-        var meters = await db.Set<ZaehlerEntitaet>().AsNoTracking()
+        var meters = await db.Set<Meter>().AsNoTracking()
             .Where(z => z.RemovedOn == null && z.CalibrationDueDate != null && z.CalibrationDueDate <= until)
             .Select(z => new { z.Id, z.Name, z.Number, z.CalibrationDueDate })
             .ToListAsync(cancellationToken);

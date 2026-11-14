@@ -1,6 +1,5 @@
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
-using ZaehlerEntitaet = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Domain.Tests.Metering;
 
@@ -17,8 +16,8 @@ public class MeterTests
         Assert.Equal((D(2025, 12, 31), 100m, ReadingType.Installation), (entry.Date, entry.Value, entry.Kind));
         Assert.Equal(D(2031, 12, 31), meter.CalibrationDueDate);
         Assert.Equal(MeasurementUnit.CubicMeters, meter.MeasurementUnit);
-        Assert.Equal(MeasurementUnit.KilowattHours, ZaehlerEntitaet.DefaultUnit(MeterType.Heat));
-        Assert.Equal(D(2030, 12, 31), ZaehlerEntitaet.DefaultCalibrationDue(MeterType.Heat, D(2025, 3, 1)));
+        Assert.Equal(MeasurementUnit.KilowattHours, Meter.DefaultUnit(MeterType.Heat));
+        Assert.Equal(D(2030, 12, 31), Meter.DefaultCalibrationDue(MeterType.Heat, D(2025, 3, 1)));
     }
 
     [Fact]
@@ -113,6 +112,6 @@ public class MeterTests
         Assert.Null(ConsumptionCalculator.ReadingAt(meter.Readings, D(2026, 1, 12)));
     }
 
-    private static ZaehlerEntitaet WaterMeter(DateOnly installation, decimal start) =>
+    private static Meter WaterMeter(DateOnly installation, decimal start) =>
         new(Guid.CreateVersion7(), MeterType.ColdWater, "Kaltwasser Bad", "WZ-1", installation, start);
 }

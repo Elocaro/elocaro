@@ -45,6 +45,22 @@ public class MeterTests(PostgresFixture postgres) : AccountTestBase(postgres)
     }
 
     [Fact]
+    public async Task Meter_page_shows_the_change_history_of_the_meter()
+    {
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        using var _ = admin;
+        var (property, apartment) = await PropertyAsync();
+        var meter = await MeterAsync(property, apartment, "WZ-4711", 100.5m);
+
+        var page = await admin.GetAsync($"/verwaltung/zaehler/{meter}");
+
+        // The audit log files the entries under the class name; the page has to ask for exactly that name, or the history stays empty.
+        var history = page.Document.QuerySelector("details.history")!;
+        Assert.DoesNotContain("(0)", history.QuerySelector("summary")!.TextContent, StringComparison.Ordinal);
+        Assert.Contains("angelegt", history.TextContent, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Reading_round_starts_at_the_first_meter_and_an_interim_round_covers_only_one_unit()
     {
         var (admin, _) = await SignedInAsAsync(Roles.Admin);

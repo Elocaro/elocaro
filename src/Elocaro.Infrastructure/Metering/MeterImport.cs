@@ -5,7 +5,6 @@ using Elocaro.Domain.Properties;
 using Elocaro.Infrastructure.Common;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using ZaehlerEntitaet = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.Metering;
 
@@ -40,10 +39,10 @@ internal sealed class MeterImport(ElocaroDbContext db) : IMeterImport
         return new ReadingImportOutcome(true, [], imported, preview.Rows.Count - imported);
     }
 
-    private async Task<(ReadingImportPreview Preview, Dictionary<string, ZaehlerEntitaet> Meters)> PlanAsync(Guid propertyId, byte[] csv, bool tracking, CancellationToken cancellationToken)
+    private async Task<(ReadingImportPreview Preview, Dictionary<string, Meter> Meters)> PlanAsync(Guid propertyId, byte[] csv, bool tracking, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(csv);
-        var query = db.Set<ZaehlerEntitaet>().Include(z => z.Readings).Where(z => z.PropertyId == propertyId);
+        var query = db.Set<Meter>().Include(z => z.Readings).Where(z => z.PropertyId == propertyId);
         if (!tracking)
         {
             query = query.AsNoTracking();
@@ -67,7 +66,7 @@ internal sealed class MeterImport(ElocaroDbContext db) : IMeterImport
         return (new ReadingImportPreview(rows.OrderBy(r => r.Line).ToList(), []), meters);
     }
 
-    private static ImportRow Check(ReadingCsv.Row row, Dictionary<string, ZaehlerEntitaet> meters, Dictionary<(string Number, DateOnly Date), decimal> added)
+    private static ImportRow Check(ReadingCsv.Row row, Dictionary<string, Meter> meters, Dictionary<(string Number, DateOnly Date), decimal> added)
     {
         ImportRow Make(ImportRowStatus status, string? note, string? name = null) => new(row.Line, row.Number, name, row.Date, row.Value, status, note);
         if (row.Problem is not null)

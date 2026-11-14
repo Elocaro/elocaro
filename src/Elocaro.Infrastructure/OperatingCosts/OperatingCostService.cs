@@ -13,7 +13,6 @@ using Elocaro.Infrastructure.Heating;
 using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Zaehler = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.OperatingCosts;
 
@@ -86,7 +85,7 @@ internal sealed class OperatingCostService(ElocaroDbContext db) : IOperatingCost
 
         var rules = await db.Set<CostAllocationRule>().AsNoTracking().Include(r => r.Shares)
             .Where(r => r.PropertyId == propertyId).ToListAsync(cancellationToken);
-        var meters = await db.Set<Zaehler>().AsNoTracking().Include(z => z.Readings).Include(z => z.Terms).Where(z => z.PropertyId == propertyId).ToListAsync(cancellationToken);
+        var meters = await db.Set<Meter>().AsNoTracking().Include(z => z.Readings).Include(z => z.Terms).Where(z => z.PropertyId == propertyId).ToListAsync(cancellationToken);
 
         var source = new MeterConsumptionSource(meters);
         var heating = await db.Set<HeatingSettings>().AsNoTracking().SingleOrDefaultAsync(h => h.PropertyId == propertyId, cancellationToken)
@@ -131,7 +130,7 @@ internal sealed class OperatingCostService(ElocaroDbContext db) : IOperatingCost
     }
 
     /// <summary>Settings of the property plus the measured values of the heat meter in the hot water circuit and the oil tank stock.</summary>
-    private static HeatingParameters BuildHeatingParameters(HeatingSettings settings, IReadOnlyList<Zaehler> meters, MeterConsumptionSource source, Period period, DegreeDayTable? degreeDays)
+    private static HeatingParameters BuildHeatingParameters(HeatingSettings settings, IReadOnlyList<Meter> meters, MeterConsumptionSource source, Period period, DegreeDayTable? degreeDays)
     {
         OilStock? oil = null;
         if (settings.Fuel == HeatingFuel.Oil)

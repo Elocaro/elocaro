@@ -10,7 +10,6 @@ using Elocaro.Domain.Properties;
 using Elocaro.Infrastructure.Common;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using ZaehlerEntitaet = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Infrastructure.Metering;
 
@@ -72,11 +71,11 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
         return await Command.ExecuteAsync(async () =>
         {
             var data = creation.Data;
-            List<(ZaehlerEntitaet Source, int Sign)>? terms = null;
+            List<(Meter Source, int Sign)>? terms = null;
             if (creation.Terms.Count > 0)
             {
                 var ids = creation.Terms.Select(t => t.MeterId).Distinct().ToList();
-                var sources = await db.Set<ZaehlerEntitaet>().AsNoTracking().Include(z => z.Terms).Where(z => z.PropertyId == propertyId && ids.Contains(z.Id)).ToListAsync(cancellationToken);
+                var sources = await db.Set<Meter>().AsNoTracking().Include(z => z.Terms).Where(z => z.PropertyId == propertyId && ids.Contains(z.Id)).ToListAsync(cancellationToken);
                 if (sources.Count != ids.Count)
                 {
                     throw new RuleViolationException("Ein gewählter Zähler gehört nicht zum Objekt.");
@@ -85,7 +84,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
                 terms = [.. creation.Terms.Select(t => (sources.First(z => z.Id == t.MeterId), t.Subtract ? -1 : 1))];
             }
 
-            var meter = new ZaehlerEntitaet(
+            var meter = new Meter(
                 propertyId,
                 data.Type,
                 data.Name,
@@ -100,7 +99,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
             await ApplyAsync(meter, data, cancellationToken);
             if (data.Order == 0)
             {
-                meter.Order = (await db.Set<ZaehlerEntitaet>().Where(z => z.PropertyId == propertyId).MaxAsync(z => (int?)z.Order, cancellationToken) ?? 0) + 1;
+                meter.Order = (await db.Set<Meter>().Where(z => z.PropertyId == propertyId).MaxAsync(z => (int?)z.Order, cancellationToken) ?? 0) + 1;
             }
 
             db.Add(meter);
@@ -113,7 +112,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
         Command.ExecuteAsync(async () =>
         {
             ArgumentNullException.ThrowIfNull(data);
-            var meter = await db.Set<ZaehlerEntitaet>().SingleOrDefaultAsync(z => z.Id == id, cancellationToken) ?? throw new NotFoundException();
+            var meter = await db.Set<Meter>().SingleOrDefaultAsync(z => z.Id == id, cancellationToken) ?? throw new NotFoundException();
             if (meter.Type != data.Type)
             {
                 throw new RuleViolationException("Der Zählertyp lässt sich nicht ändern. Bitte einen neuen Zähler anlegen.");
@@ -127,9 +126,9 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
     public Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
         Command.ExecuteAsync(async () =>
         {
-            var meter = await db.Set<ZaehlerEntitaet>().SingleOrDefaultAsync(z => z.Id == id, cancellationToken) ?? throw new NotFoundException();
+            var meter = await db.Set<Meter>().SingleOrDefaultAsync(z => z.Id == id, cancellationToken) ?? throw new NotFoundException();
             var users = new List<string>();
-            users.AddRange((await db.Set<ZaehlerEntitaet>().AsNoTracking()
+            users.AddRange((await db.Set<Meter>().AsNoTracking()
                 .Where(z => z.MainMeterId == id || z.Terms.Any(t => t.SourceMeterId == id)).Select(z => z.Name).ToListAsync(cancellationToken)).Select(n => $"Zähler „{n}“"));
             if (await heating.UsesMeterAsync(id, cancellationToken))
             {
@@ -229,7 +228,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
             db.Add(newItem);
 
             // Sub-meters are attached to the new main meter from now on.
-            foreach (var subMeters in await db.Set<ZaehlerEntitaet>().Where(z => z.MainMeterId == id && z.RemovedOn == null).ToListAsync(cancellationToken))
+            foreach (var subMeters in await db.Set<Meter>().Where(z => z.MainMeterId == id && z.RemovedOn == null).ToListAsync(cancellationToken))
             {
                 subMeters.MainMeterId = newItem.Id;
             }
@@ -261,9 +260,9 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
     }
 
     /// <summary>All meters of the metering point (chain via predecessor/successor), oldest first.</summary>
-    internal static List<ZaehlerEntitaet> MeteringPoint(ZaehlerEntitaet meter, IReadOnlyList<ZaehlerEntitaet> all)
+    internal static List<Meter> MeteringPoint(Meter meter, IReadOnlyList<Meter> all)
     {
-        var chain = new List<ZaehlerEntitaet> { meter };
+        var chain = new List<Meter> { meter };
         for (var predecessor = all.FirstOrDefault(z => z.Id == meter.PredecessorId); predecessor is not null; predecessor = all.FirstOrDefault(z => z.Id == predecessor.PredecessorId))
         {
             chain.Insert(0, predecessor);
@@ -277,7 +276,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
         return chain;
     }
 
-    private static SubMeterBalance Balance(int year, List<ZaehlerEntitaet> main, List<ZaehlerEntitaet> subMeters, List<ZaehlerEntitaet> all)
+    private static SubMeterBalance Balance(int year, List<Meter> main, List<Meter> subMeters, List<Meter> all)
     {
         var period = Period.CalendarYear(year);
         var hints = new List<string>();
@@ -311,7 +310,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
             hints);
     }
 
-    private async Task ApplyAsync(ZaehlerEntitaet meter, MeterInput data, CancellationToken cancellationToken)
+    private async Task ApplyAsync(Meter meter, MeterInput data, CancellationToken cancellationToken)
     {
         meter.Name = data.Name.Trim();
         meter.Number = data.Number.Trim();
@@ -340,7 +339,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
 
         if (data.MainMeterId is { } mainId)
         {
-            var main = await db.Set<ZaehlerEntitaet>().AsNoTracking().SingleOrDefaultAsync(z => z.Id == mainId, cancellationToken);
+            var main = await db.Set<Meter>().AsNoTracking().SingleOrDefaultAsync(z => z.Id == mainId, cancellationToken);
             if (main is null || main.PropertyId != meter.PropertyId || main.Id == meter.Id)
             {
                 throw new RuleViolationException("Der Hauptzähler muss ein anderer Zähler desselben Objekts sein.");
@@ -355,9 +354,9 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
         meter.MainMeterId = data.MainMeterId;
     }
 
-    private IQueryable<ZaehlerEntitaet> WithReadings(bool tracking = false)
+    private IQueryable<Meter> WithReadings(bool tracking = false)
     {
-        var query = db.Set<ZaehlerEntitaet>().Include(z => z.Readings).Include(z => z.Terms);
+        var query = db.Set<Meter>().Include(z => z.Readings).Include(z => z.Terms);
         return tracking ? query : query.AsNoTracking();
     }
 
@@ -373,10 +372,10 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
         return names;
     }
 
-    private static IEnumerable<ZaehlerEntitaet> Sorted(IEnumerable<ZaehlerEntitaet> meter) =>
+    private static IEnumerable<Meter> Sorted(IEnumerable<Meter> meter) =>
         meter.OrderBy(z => z.Order).ThenBy(z => z.Name, StringComparer.CurrentCulture).ThenBy(z => z.InstalledOn);
 
-    private static MeterRow Row(ZaehlerEntitaet z, IReadOnlyDictionary<Guid, string> names) => new(
+    private static MeterRow Row(Meter z, IReadOnlyDictionary<Guid, string> names) => new(
         z.Id,
         z.Name,
         z.Type,
@@ -396,7 +395,7 @@ internal sealed class MeterService(ElocaroDbContext db, ICurrentUser user, IHeat
 
     private static ReadingView Entry(MeterReading s) => new(s.Id, s.Date, s.Value, s.Kind, s.ReadBy, s.PhotoFileId, s.Note);
 
-    private static MeterInput Data(ZaehlerEntitaet z) => new()
+    private static MeterInput Data(Meter z) => new()
     {
         Type = z.Type,
         MeasurementUnit = z.MeasurementUnit,
@@ -426,7 +425,7 @@ internal sealed class CalibrationDueTodos(ElocaroDbContext db, TimeProvider cloc
 
         var today = GermanTime.Today(clock.GetUtcNow());
         var cutoff = today.AddDays(90);
-        var due = await db.Set<ZaehlerEntitaet>().AsNoTracking()
+        var due = await db.Set<Meter>().AsNoTracking()
             .Where(z => z.RemovedOn == null && z.CalibrationDueDate != null && z.CalibrationDueDate <= cutoff)
             .OrderBy(z => z.CalibrationDueDate)
             .Select(z => new { z.Id, z.Name, z.Number, z.CalibrationDueDate })
@@ -477,7 +476,7 @@ internal static class RemoteReadingQuery
     /// <summary>Per property: how many installed heat and hot water meters in apartments are not marked as remotely readable.</summary>
     public static async Task<IReadOnlyList<(Guid PropertyId, string Property, int Count)>> MissingByPropertyAsync(ElocaroDbContext db, CancellationToken cancellationToken)
     {
-        var meters = await (from z in db.Set<ZaehlerEntitaet>().AsNoTracking()
+        var meters = await (from z in db.Set<Meter>().AsNoTracking()
                             join o in db.Set<Property>().AsNoTracking() on z.PropertyId equals o.Id
                             where z.RemovedOn == null && !z.RemoteReadable && z.UnitId != null && !z.Terms.Any()
                                 && (z.Type == MeterType.Heat || z.Type == MeterType.HotWater)

@@ -1,13 +1,12 @@
 using Elocaro.Domain.Metering;
-using ZaehlerEntitaet = Elocaro.Domain.Metering.Meter;
 
 namespace Elocaro.Domain.Tests.Metering;
 
 public class RemoteReadingRuleTests
 {
-    private static ZaehlerEntitaet HeatMeter(Guid? unitId)
+    private static Meter HeatMeter(Guid? unitId)
     {
-        var meter = new ZaehlerEntitaet(Guid.NewGuid(), MeterType.Heat, "Wärme", "W1", new DateOnly(2020, 1, 1), 0m);
+        var meter = new Meter(Guid.NewGuid(), MeterType.Heat, "Wärme", "W1", new DateOnly(2020, 1, 1), 0m);
         meter.Assign(unitId, null);
         return meter;
     }
@@ -26,7 +25,7 @@ public class RemoteReadingRuleTests
         Assert.False(RemoteReadingRule.IsMissing(readable));
         Assert.False(RemoteReadingRule.IsMissing(HeatMeter(null)));
 
-        var cold = new ZaehlerEntitaet(Guid.NewGuid(), MeterType.ColdWater, "Kalt", "K1", new DateOnly(2020, 1, 1), 0m);
+        var cold = new Meter(Guid.NewGuid(), MeterType.ColdWater, "Kalt", "K1", new DateOnly(2020, 1, 1), 0m);
         cold.Assign(Guid.NewGuid(), null);
         Assert.False(RemoteReadingRule.IsMissing(cold));
     }
