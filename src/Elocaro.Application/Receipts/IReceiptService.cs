@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Elocaro.Application.Common;
-using Elocaro.Domain.Heating;
 using Elocaro.Domain.Receipts;
 
 namespace Elocaro.Application.Receipts;

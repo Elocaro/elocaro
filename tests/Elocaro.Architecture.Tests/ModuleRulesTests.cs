@@ -20,11 +20,7 @@ public partial class ModuleRulesTests
     ];
 
     /// <summary>Pairs of Domain modules that use each other today. Goal: empty.</summary>
-    private static readonly string[] KnownDomainCycles =
-    [
-        "Heating <-> OperatingCosts",
-        "Heating <-> Receipts",
-    ];
+    private static readonly string[] KnownDomainCycles = [];
 
     /// <summary>Places where a foundation uses a business module today. Goal: empty.</summary>
     private static readonly string[] KnownFoundationUses =

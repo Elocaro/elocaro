@@ -5,8 +5,8 @@ using Elocaro.Application.Metering;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Receipts;
-using Elocaro.Domain.Heating;
 using Elocaro.Domain.Metering;
+using Elocaro.Domain.Receipts;
 using Elocaro.Web.Tests.Account;
 using Microsoft.Extensions.DependencyInjection;
 

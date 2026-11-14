@@ -1,7 +1,7 @@
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Heating;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
+using Elocaro.Domain.Receipts;
 using static Elocaro.Domain.Tests.OperatingCosts.Scenario;
 
 namespace Elocaro.Domain.Tests.OperatingCosts;

@@ -1,5 +1,4 @@
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Heating;
 
 namespace Elocaro.Domain.Receipts;
 

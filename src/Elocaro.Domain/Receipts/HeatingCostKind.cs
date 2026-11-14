@@ -1,4 +1,4 @@
-namespace Elocaro.Domain.Heating;
+namespace Elocaro.Domain.Receipts;
 
 /// <summary>What a cost item of the heating group is (for the aggregation of the total costs of the heating plant, § 7 para. 2 HeizkostenV).</summary>
 public enum HeatingCostKind

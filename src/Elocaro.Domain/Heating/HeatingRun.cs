@@ -2,6 +2,7 @@ using System.Globalization;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
+using Elocaro.Domain.Receipts;
 
 namespace Elocaro.Domain.Heating;
 

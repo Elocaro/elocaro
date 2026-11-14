@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Elocaro.Application.Common;
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Heating;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
+using Elocaro.Domain.Receipts;
 
 namespace Elocaro.Application.OperatingCosts;
 

@@ -15,7 +15,6 @@ using Elocaro.Domain.Common;
 using Elocaro.Domain.Communication;
 using Elocaro.Domain.Documents;
 using Elocaro.Domain.Finance;
-using Elocaro.Domain.Heating;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
