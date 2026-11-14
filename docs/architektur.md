@@ -58,7 +58,7 @@ Größenordnung (November 2026, ohne generierte Migrationen): Domain rund 15.000
 Die Anwendungsfälle liegen also **in der Infrastructure**, nicht in der Application: Ein Dienst wie `LeaseService` ist Use Case und Datenzugriff
 in einem, ohne Repository dazwischen. Das hält den Weg von der Seite zur Datenbank kurz und ist der Grund, warum die Dienste mit
 Integrationstests gegen PostgreSQL geprüft werden statt mit Unit-Tests gegen Attrappen. Die Application ist die Vertragsschicht, über die
-das Web die Infrastructure sieht.
+das Web die Infrastructure sieht. Entscheidung und Alternativen: [ADR 0008](adr/0008-anwendungsdienste-in-der-infrastructure.md).
 
 ### Abhängigkeiten
 
@@ -202,11 +202,8 @@ anschlagen als etwas übersehen; wer ein Muster umgeht, hat die Regel nicht erf�
 
 Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die noch aussteht, keine beschlossene Aufgabe.
 
-1. **Application ist Vertragsschicht, die Anwendungsfälle liegen in der Infrastructure.** Das ist gewachsen und nirgends entschieden.
-   Es funktioniert: kurze Wege, eine Stelle je Anwendungsfall, rund 900 Integrationstests gegen die echte Datenbank. Der Preis: Anwendungslogik
-   lässt sich nicht ohne Datenbank testen, und „Infrastructure“ sagt nicht, was drin ist. Empfehlung: so lassen und als ADR festhalten.
-   Ein Verschieben der Dienste in die Application (mit Repository- oder DbContext-Schnittstelle) wäre ein Umbau von rund 30.000 Zeilen ohne
-   fachlichen Gewinn.
+1. ~~Application ist Vertragsschicht, die Anwendungsfälle liegen in der Infrastructure.~~ Entschieden: bleibt so,
+   [ADR 0008](adr/0008-anwendungsdienste-in-der-infrastructure.md).
 2. **Acht eingefrorene Modulzyklen** (Tabelle oben) und drei weitere über Schichtgrenzen. Bis zu dieser Prüfung stand nur
    Leases ↔ Properties in der Liste: Der Test zählte nur `using`-Zeilen und nur die Infrastructure.
    Die meisten hängen an einer einzelnen Stelle und lassen sich über einen Erweiterungspunkt oder das Verschieben einer Funktion lösen
@@ -224,9 +221,9 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
    eingefrorener Ausnahmeliste wie bei den Zyklen.
 6. **Eine Registrierungsdatei für alles.** `DependencyInjection.cs` hat 520 Zeilen und rund 170 Registrierungen. Eine
    Erweiterungsmethode je Modul im Modulordner (`AddLeases()`) würde zeigen, was zu einem Modul gehört, und Merge-Konflikte verringern.
-7. **Laufzeit.** Die Umstellung auf .NET 11 ist erfolgt (#163), EF Core, Npgsql und die ASP.NET-Core-Pakete stehen aber noch auf
-   `11.0.0-rc.3`. Offen: auf die freigegebenen Versionen heben, sobald alle Pakete sie haben. Die frühere Begründung der Leitentscheidung
-   („LTS“) gilt für .NET 11 nicht; wer sich darauf verlassen hat (Betrieb, Updates), sollte das wissen.
+7. **Laufzeit.** Die Umstellung auf .NET 11 ist erfolgt (#163), die Pakete stehen aber noch auf `11.0.0-rc.3`. Stand 14. November 2026:
+   EF Core und die ASP.NET-Core-Pakete gibt es als `11.0.0`, den Npgsql-Provider für EF Core nur als `11.0.0-rc.3`. Die Pakete werden
+   gemeinsam angehoben, sobald der Provider freigegeben ist. Die frühere Begründung der Leitentscheidung („LTS“) gilt für .NET 11 nicht.
 8. **Namen der Module über die Schichten.** `Accounts`/`Identity` und `Communication`/`Mail` meinen dasselbe; `Datev` und `Deposits`
    stehen in der Domain neben den Modulen, zu denen sie gehören. Gleiche Namen würden die Modulregeln über die Schichten hinweg prüfbar
    machen.
