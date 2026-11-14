@@ -131,6 +131,7 @@ zu kennen. Jedes Modul liefert seine Implementierung und registriert sie in `Dep
 | `IPersonalDataSource` | Daten zu einer Person für die DSGVO-Auskunft | Datenschutz |
 | `IFileShare` | Gibt eine Datei für andere Rollen frei | Dateiablage |
 | `IOptionUsageSource` | Zählt, ob eine abschaltbare Option noch verwendet wird | Modulschalter |
+| `IMeterUsage` | Wer einen Zähler noch verwendet; verhindert das Entfernen | Zähler |
 
 Neue Querverbindungen von unten nach oben gehen über einen solchen Punkt oder über eine schmale Schnittstelle des anderen Moduls
 (Beispiel: `IDocumentLeaseSource`, über die die Dokumentenbibliothek Verträge kennt), nicht über `db.Set<FremdeEntität>()`.
@@ -138,7 +139,10 @@ Neue Querverbindungen von unten nach oben gehen über einen solchen Punkt oder �
 ### Bekannte Zyklen
 
 Zwei Module, die sich gegenseitig verwenden, sind ein Zyklus. Die vorhandenen sind in `ModuleRulesTests` eingefroren: Ein neuer bricht
-den Test, ein aufgelöster muss aus der Liste. Ziel ist eine leere Liste.
+den Test, ein aufgelöster muss aus der Liste. Ziel ist eine leere Liste. Domain und Application sind frei von Zyklen.
+
+Aufgelöst im November 2026: Metering ↔ OperatingCosts (Umrechnungsfaktor am Zähler, Erweiterungspunkt `IMeterUsage`) sowie in der
+Domain Heating ↔ OperatingCosts und Heating ↔ Receipts (`HeatingCostKind` liegt bei den Kostengruppen in `Domain.Receipts`).
 
 | Schicht | Zyklus | Ursache (kleinere Richtung) |
 |---|---|---|
@@ -146,15 +150,12 @@ den Test, ein aufgelöster muss aus der Liste. Ziel ist eine leere Liste.
 | Infrastructure | Leases ↔ People | `PersonService` fragt beim Einrichten des Zugangs, ob die Person Mieter ist |
 | Infrastructure | People ↔ Properties | `PersonService` fragt dabei auch, ob die Person Eigentümer ist |
 | Infrastructure | Properties ↔ Receipts | `PropertyService` prüft selbst bezahlte Kostenarten gegen den Kostenarten-Katalog |
-| Infrastructure | Metering ↔ OperatingCosts | `MeterConsumption` nutzt den Umrechnungsfaktor aus `MeterConsumptionSource`; `MeterService` prüft vor dem Entfernen die Versorgungsverträge |
 | Infrastructure | Bank ↔ Tax | `LoanService` liest zugeordnete Umsätze; die Zuordnung liest Darlehen |
-| Domain | Heating ↔ OperatingCosts | Betriebskostenmodell und Versorgungsvertrag kennen Typen der Heizkosten |
-| Domain | Heating ↔ Receipts | `Receipt` kennt einen Typ der Heizkosten |
 
 Grenzen der Prüfung:
 
 - **Nur Paare.** Ketten über mehrere Module (A → B → C → A) erkennt der Test nicht; heute hängen so Documents, Leases, People,
-  Properties und Receipts zusammen, ebenso Heating, Metering und OperatingCosts.
+  Properties und Receipts zusammen.
 - **Nur je Schicht.** Drei weitere Paare schließen sich erst über zwei Schichten und stehen in keiner Liste: Admin ↔ Leases
   (`ModuleCatalog` in der Application kennt die Mietmodelle, die Dienste von Leases fragen den Modulschalter), Datev ↔ Tax (`Domain/Datev`
   nutzt Typen aus `Domain/Tax`, der DATEV-Export liegt in `Tax`) und OperatingCosts ↔ Properties (`Unit` in der Domain kennt einen Typ der
@@ -188,12 +189,13 @@ Quelltext, brauchen weder Docker noch Datenbank und laufen in Sekunden.
 | MCP | `McpRulesTests` | Jedes Tool hinter einer Richtlinie; lesende Tools rufen nichts Änderndes auf; schreibende nur Dienste mit wiederherstellbaren Typen; jeder Aufruf in einer Operation |
 | Rückgängig | `UndoRulesTests` | Jeder Entitätstyp ist in `UndoPolicy` eingeordnet; Typen mit Geheimnissen oder Außenwirkung sind nicht wiederherstellbar |
 | Änderungshistorie | `AuditRulesTests` | `<ChangeHistory>` fragt nach einem Entitätstyp, den es gibt (das Protokoll speichert den Klassennamen) |
-| Oberfläche | `UiRulesTests` | Bausteine statt Rohmarkup, siehe [ui.md](ui.md) |
+| Oberfläche | `UiRulesTests`, `InteractiveUiRulesTests` | Bausteine statt Rohmarkup; interaktive Seiten in `InteractiveShell`, Rückmeldung über `Notifier`, Formulare mit `OnValidSubmit`, Anmeldung und Konto bleiben statisch, eigene Komponenten ohne MudBlazor-Typen in den Parametern. Siehe [ui.md](ui.md) |
+| Größe der Seiten | `PageSizeRulesTests` | Ein `@code`-Block hat höchstens 200 Zeilen. Elf längere sind mit ihrer Größe eingefroren: Sie dürfen nicht wachsen und verlassen die Liste, wenn sie unter die Grenze fallen |
 | Name | `NamingRulesTests` | Der frühere Produktname kommt nicht zurück |
 | Modell und Migrationen | `Model_and_migrations_are_in_sync` (Integrationstests) | Jede Modelländerung hat eine Migration |
 
 Dazu kommen die Analyzer im Build (`Directory.Build.props`): Warnungen sind Fehler, Meziantou.Analyzer, verbotene APIs
-(`BannedSymbols.txt`), NuGet-Audit für alle Pakete.
+(`BannedSymbols.txt`), die Blazor-Analyzer (BL0012, BL0013, BL0016; JS-Interop läuft über `Components/Shell/JsInterop`), NuGet-Audit für alle Pakete.
 
 Die Regeln auf Quelltext arbeiten mit Mustern, nicht mit dem Compiler. Sie sind so geschrieben, dass sie beim Umbau eher zu früh
 anschlagen als etwas übersehen; wer ein Muster umgeht, hat die Regel nicht erfüllt.
@@ -204,21 +206,16 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
 
 1. ~~Application ist Vertragsschicht, die Anwendungsfälle liegen in der Infrastructure.~~ Entschieden: bleibt so,
    [ADR 0008](adr/0008-anwendungsdienste-in-der-infrastructure.md).
-2. **Acht eingefrorene Modulzyklen** (Tabelle oben) und drei weitere über Schichtgrenzen. Bis zu dieser Prüfung stand nur
-   Leases ↔ Properties in der Liste: Der Test zählte nur `using`-Zeilen und nur die Infrastructure.
-   Die meisten hängen an einer einzelnen Stelle und lassen sich über einen Erweiterungspunkt oder das Verschieben einer Funktion lösen
-   (`PersonService` → `IPersonReference` um die Rolle erweitern; `UnitFactor` zum Zähler; Kostenarten-Prüfung in die Domain).
-   Leases ↔ Properties und die beiden Domain-Zyklen brauchen eine Entscheidung, wem die gemeinsamen Typen gehören.
+2. **Fünf eingefrorene Modulzyklen** in der Infrastructure (Tabelle oben) und drei weitere über Schichtgrenzen. Offen sind die
+   schwierigeren: `PersonService` entscheidet beim Einrichten eines Zugangs über die Rolle und fragt dafür Verträge und Eigentümer
+   ab (zuerst alle Fälle mit Tests festhalten, dann über `IPersonReference` mit einem typisierten Merkmal führen); der Belegungsplan
+   gehört fachlich zu `Leases`; Bank ↔ Tax und Properties ↔ Receipts brauchen je eine schmale Schnittstelle oder eine Regel in der Domain.
 3. **Ein DbContext für alle Module.** Jedes Modul kann fremde Tabellen direkt abfragen und tut es auch. Solange das so ist, sind
    Modulgrenzen eine Vereinbarung. Ein Verbot von `db.Set<FremdeEntität>()` wäre der nächste Schritt, verlangt aber für jede heutige
    Querabfrage eine Schnittstelle.
-4. **Regeln für interaktive Seiten fehlen.** [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md) kündigt sie an, „sobald die Muster
-   feststehen“. Inzwischen sind 97 von 143 Seiten interaktiv; `UiRulesTests` prüft vor allem Muster der statischen Seiten. Die Blazor-Analyzer
-   BL0012, BL0013 und BL0016 sind in `Elocaro.Web.csproj` abgeschaltet (Refs #163); die Begründung dort („irrelevant in Static SSR“) trifft
-   für interaktive Seiten nicht mehr zu.
-5. **Große Seiten.** Elf Seiten und Komponenten haben mehr als 200 Zeilen `@code` (`Backup.razor` 530, `HandoverPage.razor` 310, `SetupWizard.razor` 290).
-   Dort sammelt sich Ablaufsteuerung, die kein Test ohne Browser erreicht. Eine Grenze gibt es nicht; denkbar ist eine Obergrenze mit
-   eingefrorener Ausnahmeliste wie bei den Zyklen.
+4. ~~Regeln für interaktive Seiten fehlen.~~ Erledigt: `InteractiveUiRulesTests`, die Blazor-Analyzer sind wieder aktiv.
+5. **Große Seiten.** Elf Seiten und Komponenten haben mehr als 200 Zeilen `@code` (`Backup.razor` 530, `HandoverPage.razor` 320,
+   `SetupWizard.razor` 290). Die Grenze gilt jetzt für alles Neue (`PageSizeRulesTests`); die elf sind eingefroren und noch nicht zerlegt.
 6. **Eine Registrierungsdatei für alles.** `DependencyInjection.cs` hat 520 Zeilen und rund 170 Registrierungen. Eine
    Erweiterungsmethode je Modul im Modulordner (`AddLeases()`) würde zeigen, was zu einem Modul gehört, und Merge-Konflikte verringern.
 7. **Laufzeit.** Die Umstellung auf .NET 11 ist erfolgt (#163), die Pakete stehen aber noch auf `11.0.0-rc.3`. Stand 14. November 2026:

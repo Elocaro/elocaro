@@ -18,9 +18,11 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen 
 
 ### Behoben
 - Zähler: Die Änderungshistorie auf der Zählerseite war immer leer, weil sie nach einem Typnamen fragte, den es seit der Umstellung der Bezeichner nicht mehr gibt. Sie zeigt die Änderungen jetzt wieder; ein Architekturtest prüft die Typnamen aller Historien.
+- Wiederherstellen bei der Ersteinrichtung: Die Seite zeigte bei langsamer Datenbank gelegentlich einen Fehler statt des Formulars, weil zwei Abfragen gleichzeitig liefen.
+- Rücksicherung: Der Backup-Dienst bildet die Pfade im Restic-Ziel jetzt auch unter Windows richtig (betrifft nur Entwicklung und Tests; im Container unverändert).
 
 ### Geändert
-- Architektur geprüft und dokumentiert (`docs/architektur.md`: Schichten, Module, Erweiterungspunkte, Regeln, bekannte Abweichungen). Die Modulregeln zählen jetzt auch ausgeschriebene Namen und prüfen Domain und Application mit; dadurch sind sieben weitere Zyklen und ein Verweis eines Bausteins auf ein Fachmodul sichtbar und eingefroren. Neue Regeln: Jeder Minimal-API-Endpunkt nennt seinen Zugriff, jede Implementierung eines Erweiterungspunkts ist registriert.
+- Architektur geprüft und dokumentiert (`docs/architektur.md`: Schichten, Module, Erweiterungspunkte, Regeln, bekannte Abweichungen). Die Modulregeln zählen jetzt auch ausgeschriebene Namen und prüfen Domain und Application mit; dadurch sind sieben weitere Zyklen und ein Verweis eines Bausteins auf ein Fachmodul sichtbar und eingefroren. Neue Regeln: Jeder Minimal-API-Endpunkt nennt seinen Zugriff, jede Implementierung eines Erweiterungspunkts ist registriert, interaktive Seiten folgen den Mustern aus `docs/ui.md`, ein `@code`-Block hat höchstens 200 Zeilen (elf längere eingefroren). Drei Modulzyklen sind aufgelöst, die Blazor-Analyzer BL0012, BL0013 und BL0016 wieder aktiv, alle Textdateien werden mit LF ausgecheckt. Entscheidung zur Schichtung: ADR 0008.
 
 ## [0.6.0] - 2026-11-13
 
