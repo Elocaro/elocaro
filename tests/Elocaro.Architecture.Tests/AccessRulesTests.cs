@@ -7,7 +7,7 @@ namespace Elocaro.Architecture.Tests;
 /// its own attribute or through the <c>_Imports.razor</c> of its folder. The fallback policy (authenticated users) is only the net
 /// below; it must not be what protects an administration page.
 /// </summary>
-public class AccessRulesTests
+public partial class AccessRulesTests
 {
     /// <summary>Pages that are reachable without signing in, on purpose (sign-in, public links with a token, errors).</summary>
     private static readonly string[] AnonymousPages =
@@ -74,9 +74,10 @@ public class AccessRulesTests
             "Components/Layout/UserMenu.razor",
             "Components/Pages/Admin/Users/Details.razor",
         ];
+        // Any mention counts, not only a using: a name written out in full (Elocaro.Infrastructure.X.Y or Infrastructure.X.Y) is the same dependency.
         var users = Directory.EnumerateFiles(Repository.Web, "*.*", SearchOption.AllDirectories)
             .Where(f => (f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".razor", StringComparison.Ordinal)) && !IsBuildOutput(f))
-            .Where(f => File.ReadAllText(f).Contains("using Elocaro.Infrastructure", StringComparison.Ordinal))
+            .Where(f => InfrastructureReference().IsMatch(File.ReadAllText(f)))
             .Select(f => Repository.Relative(Repository.Web, f))
             .ToList();
 
@@ -108,6 +109,8 @@ public class AccessRulesTests
         return string.Join("\n", text.Split('\n').Where(line => line.TrimStart().StartsWith("@attribute", StringComparison.Ordinal)));
     }
 
-    private static bool IsBuildOutput(string path) => path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-        || path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+    private static bool IsBuildOutput(string path) => Repository.IsBuildOutput(path);
+
+    [GeneratedRegex(@"(?<![\w.])(?:Elocaro\.)?Infrastructure(?:\.[A-Z]|\s*;)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex InfrastructureReference();
 }

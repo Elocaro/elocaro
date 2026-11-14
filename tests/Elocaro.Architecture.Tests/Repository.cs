@@ -11,6 +11,14 @@ internal static class Repository
 
     public static string Infrastructure { get; } = Path.Combine(Root, "src", "Elocaro.Infrastructure");
 
+    public static string Application { get; } = Path.Combine(Root, "src", "Elocaro.Application");
+
+    public static string Domain { get; } = Path.Combine(Root, "src", "Elocaro.Domain");
+
+    /// <summary>True for generated files below <c>bin</c> or <c>obj</c>.</summary>
+    public static bool IsBuildOutput(string path) => path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+        || path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+
     /// <summary>Path relative to <paramref name="root"/> with forward slashes.</summary>
     public static string Relative(string root, string path) => Path.GetRelativePath(root, path).Replace('\\', '/');
 
