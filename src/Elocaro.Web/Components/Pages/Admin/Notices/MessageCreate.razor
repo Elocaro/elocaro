@@ -8,7 +8,6 @@
 @inject IMessages Messages
 @inject ILeaseService Leases
 @inject IFileStore Files
-@inject AuthenticationStateProvider Authentication
 @inject NavigationManager Navigation
 
 <InteractiveShell>
@@ -34,6 +33,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private readonly NewThread input = new();
     private IReadOnlyList<LeaseOverview>? leases;
     private IReadOnlyList<FileSelection> selected = [];
@@ -61,7 +63,7 @@
                 ids.Add((await Files.SaveAsync(content, file.Name)).Id);
             }
 
-            var result = await Messages.StartAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            var result = await Messages.StartAsync((await Authentication).User, input, ids);
             if (result.Succeeded)
             {
                 Navigation.NavigateTo($"/verwaltung/nachrichten/{result.Id}");

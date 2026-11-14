@@ -3,7 +3,6 @@
 @using MudBlazor
 @using Elocaro.Domain.Datev
 @inject IDatevExport Export
-@inject AuthenticationStateProvider Authentication
 @inject TimeProvider Clock
 @inject Notifier Notify
 
@@ -163,6 +162,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private static readonly int[] AccountLengths = [4, 5, 6, 7, 8];
     private static readonly int[] Months = Enumerable.Range(1, 12).ToArray();
 
@@ -248,7 +250,7 @@
             return;
         }
 
-        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var user = (await Authentication).User;
         var result = await Export.ExportAsync(f, t, fixedPosting, includeExported, user.Identity?.Name ?? "Elocaro");
         errors = result.Succeeded ? null : result.Errors;
         if (result.Succeeded)

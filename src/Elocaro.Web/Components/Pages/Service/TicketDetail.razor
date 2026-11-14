@@ -5,7 +5,6 @@
 @using Elocaro.Web.Components.Controls
 @inject ITicketWork Work
 @inject IFileStore Files
-@inject AuthenticationStateProvider Authentication
 @inject Notifier Notify
 
 <InteractiveShell>
@@ -23,6 +22,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private TicketWorkView? view;
     private IReadOnlyList<string>? errors;
     private int version;
@@ -37,7 +39,7 @@
         loaded = true;
     }
 
-    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication).User;
 
     private async Task LoadAsync() => view = await Work.GetAsync(await UserAsync(), Id);
 

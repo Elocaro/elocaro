@@ -9,7 +9,6 @@
 @inject IMessages Messages
 @inject ITenantStatements TenantStatements
 @inject IFileStore Files
-@inject AuthenticationStateProvider Authentication
 @inject NavigationManager Navigation
 
 <InteractiveShell>
@@ -45,6 +44,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private readonly NewThread input = new();
     private IReadOnlyList<MessageTarget>? targets;
     private IReadOnlyList<FileSelection> selected = [];
@@ -61,7 +63,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var user = (await Authentication).User;
         targets = await Messages.TargetsAsync(user);
         input.LeaseId = targets.Count > 0 ? targets[0].LeaseId : null;
         if (StatementDispatchId is { } dispatchId && await TenantStatements.GetAsync(user, dispatchId) is { } statement)
@@ -89,7 +91,7 @@
                 ids.Add((await Files.SaveAsync(content, file.Name)).Id);
             }
 
-            var result = await Messages.StartAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            var result = await Messages.StartAsync((await Authentication).User, input, ids);
             if (result.Succeeded)
             {
                 Navigation.NavigateTo($"/portal/nachrichten/{result.Id}");

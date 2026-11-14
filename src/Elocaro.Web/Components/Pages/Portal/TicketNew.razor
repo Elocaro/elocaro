@@ -9,7 +9,6 @@
 @inject ITickets Tickets
 @inject IFileStore Files
 @inject ILandlordProfileService Landlord
-@inject AuthenticationStateProvider Authentication
 @inject NavigationManager Navigation
 
 <InteractiveShell>
@@ -66,6 +65,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private readonly TicketReport input = new();
     private IReadOnlyList<ReportTarget>? targets;
     private IReadOnlyList<FileSelection> selected = [];
@@ -77,7 +79,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var user = (await Authentication).User;
         targets = await Tickets.ReportTargetsAsync(user);
         input.LeaseId = targets.Count > 0 ? targets[0].LeaseId : null;
         foreach (var propertyId in targets.Select(t => t.PropertyId).Distinct())
@@ -106,7 +108,7 @@
                 ids.Add((await Files.SaveAsync(content, file.Name)).Id);
             }
 
-            var result = await Tickets.ReportAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            var result = await Tickets.ReportAsync((await Authentication).User, input, ids);
             if (result.Succeeded)
             {
                 Navigation.NavigateTo($"/portal/tickets/{result.Id}");

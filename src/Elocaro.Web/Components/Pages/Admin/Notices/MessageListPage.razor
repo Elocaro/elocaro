@@ -3,7 +3,6 @@
 @using MudBlazor
 @using Elocaro.Application.Notices
 @inject IMessages Messages
-@inject AuthenticationStateProvider Authentication
 
 <InteractiveShell>
     <PageHeader Title="Nachrichten" Subtitle="Unterhaltungen mit den Mietern im Portal.">
@@ -19,7 +18,10 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private IReadOnlyList<ThreadRow>? rows;
 
-    protected override async Task OnInitializedAsync() => rows = await Messages.ListAsync((await Authentication.GetAuthenticationStateAsync()).User);
+    protected override async Task OnInitializedAsync() => rows = await Messages.ListAsync((await Authentication).User);
 }

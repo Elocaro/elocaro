@@ -3,7 +3,6 @@
 @using MudBlazor
 @using Elocaro.Application.Tickets
 @inject ITickets Tickets
-@inject AuthenticationStateProvider Authentication
 
 <InteractiveShell>
     <PageHeader Title="Tickets" Subtitle="Schadensmeldungen der Mieter und Aufträge an Hausmeister und Handwerker.">
@@ -23,6 +22,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private IReadOnlyList<TicketRow>? rows;
     private bool openOnly = true;
 
@@ -34,5 +36,5 @@
         await LoadAsync();
     }
 
-    private async Task LoadAsync() => rows = await Tickets.ListAsync((await Authentication.GetAuthenticationStateAsync()).User, openOnly);
+    private async Task LoadAsync() => rows = await Tickets.ListAsync((await Authentication).User, openOnly);
 }

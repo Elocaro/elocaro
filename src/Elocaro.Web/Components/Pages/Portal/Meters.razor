@@ -4,7 +4,6 @@
 @using Elocaro.Application.Portal
 @using Elocaro.Web.Components.Controls
 @inject ITenantPortal Portal
-@inject AuthenticationStateProvider Authentication
 
 <InteractiveShell>
     <PageHeader Title="Zählerstände melden" Subtitle="Lesen Sie Ihre Zähler ab und tragen Sie den Stand ein. Ihr Vermieter prüft und übernimmt ihn." />
@@ -59,6 +58,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private readonly Dictionary<Guid, PortalReadingInput> entries = [];
     private IReadOnlyList<PortalMeter>? meters;
     private IReadOnlyList<string>? errors;
@@ -77,7 +79,7 @@
         return entry;
     }
 
-    private async Task LoadAsync() => meters = await Portal.MetersAsync((await Authentication.GetAuthenticationStateAsync()).User);
+    private async Task LoadAsync() => meters = await Portal.MetersAsync((await Authentication).User);
 
     private async Task SubmitAsync(Guid id)
     {
@@ -85,7 +87,7 @@
         saved = false;
         try
         {
-            var result = await Portal.ReportReadingAsync((await Authentication.GetAuthenticationStateAsync()).User, id, Entry(id));
+            var result = await Portal.ReportReadingAsync((await Authentication).User, id, Entry(id));
             errors = result.Succeeded ? null : result.Errors;
             if (result.Succeeded)
             {

@@ -11,7 +11,6 @@
 @inject IDeadlines Deadlines
 @inject IDocumentLibrary Documents
 @inject IFileStore Files
-@inject AuthenticationStateProvider Authentication
 @inject NavigationManager Navigation
 
 <InteractiveShell>
@@ -44,6 +43,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private readonly AdminTicketInput input = new();
     private ReferenceOptions? options;
     private IReadOnlyList<ReferenceOption> assignees = [];
@@ -80,7 +82,7 @@
                 ids.Add((await Files.SaveAsync(content, file.Name)).Id);
             }
 
-            var result = await Tickets.CreateAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            var result = await Tickets.CreateAsync((await Authentication).User, input, ids);
             if (result.Succeeded)
             {
                 Navigation.NavigateTo($"/verwaltung/tickets/{result.Id}?meldung=angelegt");

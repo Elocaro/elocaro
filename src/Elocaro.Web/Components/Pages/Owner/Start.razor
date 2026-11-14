@@ -2,7 +2,6 @@
 @attribute [StreamRendering]
 @using Elocaro.Application.Portal
 @inject IOwnerPortal Owner
-@inject AuthenticationStateProvider Authentication
 @inject TimeProvider Clock
 
 <PageHeader Title="Meine Objekte" Subtitle="Ihre Objekte und Anteile. Die Auswertung zeigt nur Ihren Anteil." />
@@ -36,10 +35,13 @@ else
 }
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private IReadOnlyList<OwnedPropertyView>? properties;
 
     protected override async Task OnInitializedAsync() =>
-        properties = await Owner.PropertiesAsync((await Authentication.GetAuthenticationStateAsync()).User);
+        properties = await Owner.PropertiesAsync((await Authentication).User);
 
     /// <summary>Last year, or the year the ownership ended if that was earlier.</summary>
     private int YearFor(OwnedPropertyView property)

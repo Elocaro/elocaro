@@ -5,7 +5,6 @@
 @using Elocaro.Application.Tickets
 @inject IReceiptService Receipts
 @inject ITicketWork TicketWork
-@inject AuthenticationStateProvider Authentication
 @inject IReceiptExtraction Extraction
 @inject IFileStore Storage
 @inject NavigationManager Navigation
@@ -180,6 +179,9 @@ else
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     // The property the receipt is booked to belongs in the header: it is the first thing one wants to know about a receipt.
     private string ReceiptSubtitle()
     {
@@ -210,7 +212,7 @@ else
     private async Task LoadAsync()
     {
         receipt = await Receipts.GetAsync(Id);
-        tickets = await TicketWork.ForReceiptAsync((await Authentication.GetAuthenticationStateAsync()).User, Id);
+        tickets = await TicketWork.ForReceiptAsync((await Authentication).User, Id);
         if (receipt is not null)
         {
             data = receipt.Data;

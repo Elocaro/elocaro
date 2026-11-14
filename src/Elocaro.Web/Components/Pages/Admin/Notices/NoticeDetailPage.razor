@@ -3,7 +3,6 @@
 @using MudBlazor
 @using Elocaro.Application.Notices
 @inject INotices Notices
-@inject AuthenticationStateProvider Authentication
 @inject Notifier Notify
 
 <InteractiveShell>
@@ -56,6 +55,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private NoticeDetails? view;
     private IReadOnlyList<string>? errors;
 
@@ -64,7 +66,7 @@
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
-    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication).User;
 
     private async Task LoadAsync() => view = await Notices.GetAsync(await UserAsync(), Id);
 

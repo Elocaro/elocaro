@@ -7,7 +7,6 @@
 @using Elocaro.Application.Admin
 @inject IModuleState Modules
 @inject IAuthorizationService Authorization
-@inject AuthenticationStateProvider AuthenticationState
 @inject IServiceScopeFactory Scopes
 @inject ILogger<QuickSearch> Logger
 @inject NavigationManager Navigation
@@ -55,6 +54,9 @@
 }
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private sealed record Hit(string Label, string Hint, string Href, string Icon);
 
     private bool open;
@@ -74,7 +76,7 @@
 
     private async Task OpenAsync()
     {
-        var user = (await AuthenticationState.GetAuthenticationStateAsync()).User;
+        var user = (await Authentication).User;
         canMasterData = (await Authorization.AuthorizeAsync(user, Policies.MasterData)).Succeeded;
         pages = [];
         foreach (var area in AdminNavModel.VisibleAreas(Modules))

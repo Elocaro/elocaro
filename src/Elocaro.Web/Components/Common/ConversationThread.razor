@@ -4,7 +4,6 @@
 @using Elocaro.Web.Components.Controls
 @inject IMessages Messages
 @inject IFileStore Files
-@inject AuthenticationStateProvider Authentication
 
 @* Messages between tenants and administration. The mail only points here, the text stays in the app. *@
 @if (!loaded)
@@ -44,6 +43,9 @@ else
 }
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private ThreadView? view;
     private bool loaded;
     private bool busy;
@@ -64,7 +66,7 @@ else
         loaded = true;
     }
 
-    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication).User;
 
     private async Task LoadAsync() => view = await Messages.GetAsync(await UserAsync(), Id);
 

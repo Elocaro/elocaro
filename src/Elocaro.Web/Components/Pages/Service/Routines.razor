@@ -6,7 +6,6 @@
 @using Elocaro.Web.Components.Controls
 @inject ICareRoutines Care
 @inject IFileStore Files
-@inject AuthenticationStateProvider Authentication
 @inject Notifier Notify
 
 <InteractiveShell>
@@ -44,12 +43,15 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private IReadOnlyList<RoutineRow>? rows;
     private IReadOnlyList<string>? errors;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
-    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication).User;
 
     private async Task LoadAsync() => rows = await Care.ListAsync(await UserAsync());
 

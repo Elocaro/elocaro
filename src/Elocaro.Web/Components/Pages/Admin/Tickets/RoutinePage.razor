@@ -6,7 +6,6 @@
 @using Elocaro.Domain.Tickets
 @inject ICareRoutines Routines
 @inject IDocumentLibrary Documents
-@inject AuthenticationStateProvider Authentication
 @inject Notifier Notify
 @inject IDialogService Dialogs
 
@@ -56,6 +55,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private ReferenceOptions? options;
     private IReadOnlyList<RoutineRow>? rows;
     private IReadOnlyList<string>? errors;
@@ -66,7 +68,7 @@
         await LoadAsync();
     }
 
-    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication.GetAuthenticationStateAsync()).User;
+    private async Task<System.Security.Claims.ClaimsPrincipal> UserAsync() => (await Authentication).User;
 
     private async Task LoadAsync() => rows = await Routines.ListAsync(await UserAsync());
 

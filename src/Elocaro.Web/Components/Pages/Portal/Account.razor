@@ -2,7 +2,6 @@
 @attribute [StreamRendering]
 @using Elocaro.Application.Portal
 @inject ITenantPortal Portal
-@inject AuthenticationStateProvider Authentication
 
 <PageHeader Title="Konto" Subtitle="Ihre Mietforderungen und Zahlungen." />
 
@@ -72,10 +71,13 @@ else
 }
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private IReadOnlyList<PortalAccount>? accounts;
 
     protected override async Task OnInitializedAsync() =>
-        accounts = await Portal.AccountsAsync((await Authentication.GetAuthenticationStateAsync()).User);
+        accounts = await Portal.AccountsAsync((await Authentication).User);
 
     private static string State(decimal balance) => balance > 0 ? "arrears" : balance < 0 ? "credit" : "settled";
 

@@ -10,7 +10,6 @@
 @inject IPropertyService Properties
 @inject IDocumentLibrary Documents
 @inject IFileStore Files
-@inject AuthenticationStateProvider Authentication
 @inject NavigationManager Navigation
 
 <InteractiveShell>
@@ -50,6 +49,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private readonly NoticeInput input = new();
     private ReferenceOptions? options;
     private IReadOnlyList<FileSelection> selected = [];
@@ -90,7 +92,7 @@
                 ids.Add((await Files.SaveAsync(content, file.Name)).Id);
             }
 
-            var result = await Notices.CreateAsync((await Authentication.GetAuthenticationStateAsync()).User, input, ids);
+            var result = await Notices.CreateAsync((await Authentication).User, input, ids);
             if (result.Succeeded)
             {
                 Navigation.NavigateTo($"/verwaltung/aushaenge/{result.Id}");

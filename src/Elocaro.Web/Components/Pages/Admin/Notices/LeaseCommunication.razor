@@ -3,7 +3,6 @@
 @using Elocaro.Application.Notices
 @inject IMessages Messages
 @inject INotices Notices
-@inject AuthenticationStateProvider Authentication
 
 <InteractiveShell>
     <PageHeader Title="Mitteilungen" Subtitle="Nachrichten und Aushänge zu diesem Mietverhältnis (Nachweis)." Back="@($"/verwaltung/vertraege/{Id}")" BackText="Zum Vertrag">
@@ -68,6 +67,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private IReadOnlyList<ThreadView>? threads;
     private IReadOnlyList<LeaseNotice>? notices;
 
@@ -76,7 +78,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var user = (await Authentication).User;
         threads = await Messages.ForLeaseAsync(user, Id);
         notices = await Notices.ForLeaseAsync(user, Id);
     }

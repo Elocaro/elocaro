@@ -9,7 +9,6 @@
 @inject ITicketWork Work
 @inject IContractorLinks ContractorLinks
 @inject IReceiptService Receipts
-@inject AuthenticationStateProvider Authentication
 @inject Notifier Notify
 
 <InteractiveShell>
@@ -86,6 +85,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private TicketView? view;
     private IReadOnlyList<Elocaro.Application.Documents.ReferenceOption> assignees = [];
     private IReadOnlyList<ReceiptRow> receipts = [];
@@ -116,18 +118,18 @@
 
     private async Task LoadAsync()
     {
-        view = await Tickets.GetAsync((await Authentication.GetAuthenticationStateAsync()).User, Id);
+        view = await Tickets.GetAsync((await Authentication).User, Id);
         assigneeId = view?.AssigneeId;
         appointment = view?.Row.AppointmentOn;
         receiptId = view?.ReceiptId;
-        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var user = (await Authentication).User;
         work = await Work.GetAsync(user, Id) ?? work;
         links = await ContractorLinks.ListAsync(user, Id);
     }
 
     private async Task CreateLinkAsync()
     {
-        var created = await ContractorLinks.CreateAsync((await Authentication.GetAuthenticationStateAsync()).User, Id, linkRecipient ?? "", linkDays);
+        var created = await ContractorLinks.CreateAsync((await Authentication).User, Id, linkRecipient ?? "", linkDays);
         errors = created.Result.Succeeded ? null : created.Result.Errors;
         if (created.Result.Succeeded)
         {
@@ -141,19 +143,19 @@
 
     private async Task RevokeAsync(Guid linkId)
     {
-        var result = await ContractorLinks.RevokeAsync((await Authentication.GetAuthenticationStateAsync()).User, linkId);
+        var result = await ContractorLinks.RevokeAsync((await Authentication).User, linkId);
         await FinishAsync(result, "Der Link ist widerrufen.");
     }
 
     private async Task AssignAsync()
     {
-        var result = await Tickets.AssignAsync((await Authentication.GetAuthenticationStateAsync()).User, Id, assigneeId, appointment);
+        var result = await Tickets.AssignAsync((await Authentication).User, Id, assigneeId, appointment);
         await FinishAsync(result, "Die Zuständigkeit wurde gespeichert.");
     }
 
     private async Task LinkAsync()
     {
-        var result = await Tickets.LinkReceiptAsync((await Authentication.GetAuthenticationStateAsync()).User, Id, receiptId);
+        var result = await Tickets.LinkReceiptAsync((await Authentication).User, Id, receiptId);
         await FinishAsync(result, "Der Beleg wurde verknüpft.");
     }
 

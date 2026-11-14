@@ -3,7 +3,6 @@
 @using MudBlazor
 @using Elocaro.Application.Notices
 @inject INotices Notices
-@inject AuthenticationStateProvider Authentication
 
 <InteractiveShell>
     <PageHeader Title="Aushänge" Subtitle="Mitteilungen an alle Mieter eines Objekts, im Portal und per Mail.">
@@ -41,7 +40,10 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private IReadOnlyList<NoticeRow>? rows;
 
-    protected override async Task OnInitializedAsync() => rows = await Notices.ListAsync((await Authentication.GetAuthenticationStateAsync()).User);
+    protected override async Task OnInitializedAsync() => rows = await Notices.ListAsync((await Authentication).User);
 }

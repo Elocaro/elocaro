@@ -3,7 +3,6 @@
 @using Elocaro.Application.Metering
 @using Elocaro.Domain.Metering
 @inject IConsumptionInformation Information
-@inject AuthenticationStateProvider Authentication
 
 <PageHeader Title="Verbrauch" Subtitle="Monatliche Verbrauchsinformation für Heizung und Warmwasser." />
 
@@ -84,12 +83,15 @@ else
 }
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
 
     private IReadOnlyList<TenantConsumption>? leases;
 
     protected override async Task OnInitializedAsync() =>
-        leases = await Information.ForTenantAsync((await Authentication.GetAuthenticationStateAsync()).User, 12);
+        leases = await Information.ForTenantAsync((await Authentication).User, 12);
 
     private static string Number(decimal value) => value.ToString("#,##0.##", German);
 

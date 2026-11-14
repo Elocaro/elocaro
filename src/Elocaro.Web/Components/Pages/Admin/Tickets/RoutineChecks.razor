@@ -2,7 +2,6 @@
 @rendermode InteractiveServer
 @using Elocaro.Application.Tickets
 @inject ICareRoutines Routines
-@inject AuthenticationStateProvider Authentication
 
 <InteractiveShell>
     @if (loaded && routine is null)
@@ -45,6 +44,9 @@
 </InteractiveShell>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
     private RoutineRow? routine;
     private IReadOnlyList<CheckRow> checks = [];
     private bool loaded;
@@ -60,7 +62,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var user = (await Authentication).User;
         routine = (await Routines.ListAsync(user, true)).FirstOrDefault(r => r.Id == Id);
         checks = routine is null ? [] : await Routines.ChecksAsync(user, Id, Year);
         loaded = true;
