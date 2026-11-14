@@ -1,11 +1,9 @@
 @page "/verwaltung/vertraege/{Id:guid}/uebergabe/{Kind}"
 @rendermode InteractiveServer
-@implements IAsyncDisposable
 @using MudBlazor
 @using Elocaro.Web.Documents
 @inject IHandovers Handovers
 @inject TemplatePreviews Previews
-@inject IJSRuntime JS
 @inject Notifier Notify
 @inject IDialogService Dialogs
 @inject Confirmations Confirm
@@ -62,7 +60,7 @@ else
                             <tr>
                                 <td>@difference.Room</td>
                                 <td>@difference.Text</td>
-                                <td><StatusChip Level="@(difference.Kind == DifferenceKind.KnownDefect ? StatusLevel.Neutral : StatusLevel.Warning)">@DifferenceText(difference.Kind)</StatusChip></td>
+                                <td><StatusChip Level="@(difference.Kind == DifferenceKind.KnownDefect ? StatusLevel.Neutral : StatusLevel.Warning)">@HandoverTexts.Difference(difference.Kind)</StatusChip></td>
                             </tr>
                         }
                     </tbody>
@@ -88,12 +86,12 @@ else
                 @foreach (var room in view.Content.Rooms)
                 {
                     <details class="field">
-                        <summary>@room.Name @RoomSummary(room)</summary>
+                        <summary>@room.Name @HandoverTexts.RoomSummary(room)</summary>
                         @foreach (var item in room.Items)
                         {
                             <div class="handover-item">
                                 <strong>@item.Component</strong>
-                                <AppSelect T="ItemCondition" @bind-Value="item.Condition" Label="Zustand" Items="Enum.GetValues<ItemCondition>()" Text="@(v => ConditionText(v))" />
+                                <AppSelect T="ItemCondition" @bind-Value="item.Condition" Label="Zustand" Items="Enum.GetValues<ItemCondition>()" Text="@(v => HandoverTexts.Condition(v))" />
                                 <AppTextField @bind-Value="item.Note" Label="Bemerkung" />
                             </div>
                         }
@@ -213,38 +211,7 @@ else
 
     @if (view.Status == HandoverStatus.Draft)
     {
-        <section>
-            <h2>Unterschreiben</h2>
-            <AppTextField @bind-Value="signedBy" Label="Name der unterschreibenden Person (Mieter)" Required="true" />
-            <p class="small">Unterschrift des Mieters (mit dem Finger oder Stift):</p>
-            <canvas @ref="tenantCanvas" class="signature-field" aria-label="Unterschrift des Mieters"></canvas>
-            <MudButton Variant="Variant.Text" OnClick="() => ClearAsync(tenantCanvas)" aria-label="Feld für die Mieter-Unterschrift leeren">Löschen</MudButton>
-            <p class="small">Unterschrift des Vermieters (optional):</p>
-            <canvas @ref="landlordCanvas" class="signature-field" aria-label="Unterschrift des Vermieters"></canvas>
-            <MudButton Variant="Variant.Text" OnClick="() => ClearAsync(landlordCanvas)" aria-label="Feld für die Vermieter-Unterschrift leeren">Löschen</MudButton>
-
-            @if (warnings.Count > 0)
-            {
-                <Notice Level="NoticeLevel.Warning">
-                    <strong>Bitte prüfen:</strong>
-                    <ul>@foreach (var warning in warnings) {<li>@warning</li>}</ul>
-                    Die Zählerstände sind trotzdem richtig? Dann erneut unterschreiben und bestätigen.
-                </Notice>
-            }
-
-            <div class="form-row">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SignAsync(warnings.Count > 0)">@(warnings.Count > 0 ? "Trotzdem unterschreiben und ablegen" : "Unterschreiben und ablegen")</MudButton>
-            </div>
-        </section>
-
-        <section>
-            <h2>Oder: unterschriebenen Ausdruck ablegen</h2>
-            <p class="small">Protokoll als PDF ausdrucken, unterschreiben lassen und den Scan oder ein Foto hier hochladen. Der Name ist der des Unterzeichners.</p>
-            <div class="form-grid">
-                <AppFileUpload Text="Scan oder Foto wählen" Accept="application/pdf,image/*" OnSelected="f => scan = f" />
-            </div>
-            <MudButton Variant="Variant.Outlined" OnClick="() => SignScanAsync(warnings.Count > 0)">Scan ablegen</MudButton>
-        </section>
+        <HandoverSigning HandoverId="view.Id" Proposal="@view.Tenants" Warnings="warnings" Persist="PersistAsync" Signed="FinishAsync" />
     }
 }
 </InteractiveShell>
@@ -272,19 +239,12 @@ else
 
     private static readonly DialogOptions ListDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
 
-    private IJSObjectReference? module;
-    private Task? moduleReady;
-    private ElementReference tenantCanvas;
-    private ElementReference landlordCanvas;
-    private bool canvasReady;
     private HandoverView? view;
     private EditContext? editContext;
     private bool dirty;
     private IReadOnlyList<string>? errors;
     private List<string> warnings = [];
     private DateOnly? date;
-    private string? signedBy;
-    private FileSelection? scan;
     private Guid? previewId;
     private bool loaded;
     private bool valid = true;
@@ -313,32 +273,12 @@ else
         loaded = true;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (view is { Status: HandoverStatus.Draft } && !canvasReady && tenantCanvas.Id is not null)
-        {
-            canvasReady = true;
-            moduleReady = LoadSignatureAsync();
-            await moduleReady;
-        }
-    }
-
-    private async Task LoadSignatureAsync()
-    {
-        var loaded = await JS.TryImportAsync("/js/signature.js");
-        if (loaded is not null && await loaded.TryInvokeVoidAsync("init", tenantCanvas) && await loaded.TryInvokeVoidAsync("init", landlordCanvas))
-        {
-            module = loaded;
-        }
-    }
-
     private async Task ReloadAsync()
     {
         view = await Handovers.GetAsync(Id, Type);
         if (view is not null)
         {
             date = view.Date;
-            signedBy ??= view.Tenants;
             editContext = new EditContext(view.Content);
             editContext.OnFieldChanged += (_, _) => dirty = true;
         }
@@ -438,78 +378,6 @@ else
         return result.Succeeded ? result.Id : null;
     }
 
-    private async Task ClearAsync(ElementReference canvas)
-    {
-        await WhenSignatureReadyAsync();
-        if (module is not null)
-        {
-            await module.TryInvokeVoidAsync("clear", canvas);
-        }
-    }
-
-    /// <summary>A quick click can arrive while the signature script is still loading: wait for it instead of ignoring the click.</summary>
-    private async Task WhenSignatureReadyAsync()
-    {
-        if (moduleReady is not null)
-        {
-            await moduleReady;
-        }
-    }
-
-    private async Task SignAsync(bool confirm)
-    {
-        await WhenSignatureReadyAsync();
-        if (module is null || !await PersistAsync())
-        {
-            return;
-        }
-
-        var tenantEmpty = await module.TryInvokeAsync<bool?>("isEmpty", tenantCanvas);
-        if (tenantEmpty is null)
-        {
-            return; // circuit is gone
-        }
-
-        if (tenantEmpty.Value)
-        {
-            errors = ["Bitte unterschreiben (Unterschrift des Mieters fehlt)."];
-            return;
-        }
-
-        var tenantPng = await module.TryInvokeAsync<string>("toPng", tenantCanvas);
-        var landlordEmpty = await module.TryInvokeAsync<bool?>("isEmpty", landlordCanvas);
-        var landlordPng = landlordEmpty == false ? await module.TryInvokeAsync<string>("toPng", landlordCanvas) : null;
-        if (tenantPng is null || landlordEmpty is null || (landlordEmpty == false && landlordPng is null))
-        {
-            return; // circuit is gone
-        }
-
-        var signature = new HandoverSignature
-        {
-            SignedByName = signedBy ?? "",
-            TenantSignature = Convert.FromBase64String(tenantPng),
-            LandlordSignature = landlordPng is null ? null : Convert.FromBase64String(landlordPng),
-        };
-        await FinishAsync(await Handovers.SignAsync(view!.Id, signature, confirm));
-    }
-
-    private async Task SignScanAsync(bool confirm)
-    {
-        if (scan is null || scan.Length == 0)
-        {
-            errors = ["Bitte den Scan oder das Foto des unterschriebenen Protokolls auswählen."];
-            return;
-        }
-
-        if (!await PersistAsync())
-        {
-            return;
-        }
-
-        await using var content = scan.Open();
-        await FinishAsync(await Handovers.SignWithScanAsync(view!.Id, signedBy ?? "", scan.Name, content, confirm));
-    }
-
     private async Task FinishAsync(HandoverSignResult result)
     {
         errors = result.Errors.Count > 0 ? result.Errors : null;
@@ -534,42 +402,6 @@ else
         if (result.Succeeded)
         {
             view = null;
-        }
-    }
-
-    private static string ConditionText(ItemCondition value) => value switch
-    {
-        ItemCondition.Wear => "Gebrauchsspuren",
-        ItemCondition.Defect => "Mangel",
-        _ => "in Ordnung",
-    };
-
-    private static string DifferenceText(DifferenceKind kind) => kind switch
-    {
-        DifferenceKind.Worse => "verschlechtert",
-        DifferenceKind.NewDefect => "neu",
-        DifferenceKind.KnownDefect => "schon beim Einzug",
-        _ => "fehlt",
-    };
-
-    private static string RoomSummary(HandoverRoom room)
-    {
-        var defects = room.Items.Count(i => i.Condition == ItemCondition.Defect);
-        var wear = room.Items.Count(i => i.Condition == ItemCondition.Wear);
-        return defects > 0 ? $"· {defects} Mangel" : wear > 0 ? $"· {wear}× Gebrauchsspuren" : "";
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (module is not null)
-        {
-            try
-            {
-                await module.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-            }
         }
     }
 }

@@ -145,16 +145,6 @@
     [Parameter]
     public EventCallback<BackupProvider> ProviderChanged { get; set; }
 
-    /// <summary>Short name for a new target of this provider (it can be changed).</summary>
-    public static string DefaultName(BackupProvider provider) => provider switch
-    {
-        BackupProvider.GoogleDrive => "Google Drive",
-        BackupProvider.S3 => "S3-Speicher",
-        BackupProvider.Azure => "Azure",
-        BackupProvider.Sftp => "NAS",
-        _ => "Dieser Server",
-    };
-
     private string AccessTitle => Input.Provider switch
     {
         BackupProvider.GoogleDrive => "Anmeldung bei Google",
@@ -228,72 +218,37 @@
         }
 
         device = authorization;
-        deviceLink = DeviceLink(authorization);
+        deviceLink = BackupTargetForm.DeviceLink(authorization);
         using var generator = new QRCodeGenerator();
         using var qr = generator.CreateQrCode(deviceLink, QRCodeGenerator.ECCLevel.M);
         deviceQr = new SvgQRCode(qr).GetGraphic(4);
         _ = PollAsync(authorization);
     }
 
-    /// <summary>Address at Google with the code already filled in (what the QR code holds).</summary>
-    public static string DeviceLink(DeviceAuthorization authorization)
-    {
-        ArgumentNullException.ThrowIfNull(authorization);
-        var separator = authorization.VerificationUrl.Contains('?', StringComparison.Ordinal) ? '&' : '?';
-        return $"{authorization.VerificationUrl}{separator}user_code={Uri.EscapeDataString(authorization.UserCode)}";
-    }
-
-    /// <summary>Asks Google at the pace it names until the person confirmed, refused or the code ran out.</summary>
     private async Task PollAsync(DeviceAuthorization authorization)
     {
         polling?.Cancel();
         polling = new CancellationTokenSource();
-        var token = polling.Token;
-        var interval = authorization.IntervalSeconds;
-        var deadline = Clock.GetUtcNow().AddSeconds(authorization.ExpiresInSeconds);
         try
         {
-            while (!token.IsCancellationRequested && Clock.GetUtcNow() < deadline)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(interval), token);
-                var result = await Google.PollAsync(authorization.DeviceCode, token);
-                if (result.State == DeviceAuthorizationState.Pending)
-                {
-                    continue;
-                }
-
-                if (result.State == DeviceAuthorizationState.SlowDown)
-                {
-                    interval += 5;
-                    continue;
-                }
-
-                await InvokeAsync(() =>
-                {
-                    if (result.State == DeviceAuthorizationState.Authorized && result.Credentials is not null)
-                    {
-                        foreach (var (key, value) in result.Credentials)
-                        {
-                            Input.Credentials[key] = value;
-                        }
-
-                        justConnected = true;
-                        _ = InputChanged.InvokeAsync();
-                    }
-                    else
-                    {
-                        connectError = result.Message ?? "Die Anmeldung bei Google ist fehlgeschlagen.";
-                    }
-
-                    device = null;
-                    StateHasChanged();
-                });
-                return;
-            }
-
+            var outcome = await BackupTargetForm.WaitForSignInAsync(Google, Clock, authorization, polling.Token);
             await InvokeAsync(() =>
             {
-                connectError = "Der Code ist abgelaufen. Bitte erneut anmelden.";
+                if (outcome.Credentials is not null)
+                {
+                    foreach (var (key, value) in outcome.Credentials)
+                    {
+                        Input.Credentials[key] = value;
+                    }
+
+                    justConnected = true;
+                    _ = InputChanged.InvokeAsync();
+                }
+                else
+                {
+                    connectError = outcome.Error;
+                }
+
                 device = null;
                 StateHasChanged();
             });

@@ -377,14 +377,7 @@ else
 
     private Task RevokeTerminationAsync() => ExecuteAsync(Admin.RevokeTerminationAsync(Id), "Die Kündigung wurde aufgehoben.");
 
-    private async Task EditComponentAsync(ComponentVersion component)
-    {
-        var dialog = await Dialogs.ShowAsync<ComponentDialog>("Mietbestandteil bearbeiten", new DialogParameters { ["LeaseId"] = Id, ["Component"] = component }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
-        if (!(await dialog.Result)!.Canceled)
-        {
-            await LoadAsync();
-        }
-    }
+    private Task EditComponentAsync(ComponentVersion component) => ShowDialogAndReloadAsync<ComponentDialog>("Mietbestandteil bearbeiten", new DialogParameters { ["LeaseId"] = Id, ["Component"] = component });
 
     private async Task RemoveComponentAsync(ComponentVersion component)
     {
@@ -395,9 +388,12 @@ else
         }
     }
 
-    private async Task EditOccupantAsync(OccupantCountView entry)
+    private Task EditOccupantAsync(OccupantCountView entry) => ShowDialogAndReloadAsync<OccupantCountDialog>("Personenanzahl bearbeiten", new DialogParameters { ["LeaseId"] = Id, ["Entry"] = entry });
+
+    private async Task ShowDialogAndReloadAsync<TDialog>(string title, DialogParameters parameters)
+        where TDialog : ComponentBase
     {
-        var dialog = await Dialogs.ShowAsync<OccupantCountDialog>("Personenanzahl bearbeiten", new DialogParameters { ["LeaseId"] = Id, ["Entry"] = entry }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        var dialog = await Dialogs.ShowAsync<TDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
         if (!(await dialog.Result)!.Canceled)
         {
             await LoadAsync();
@@ -424,11 +420,6 @@ else
         {
             await ExecuteAsync(Admin.RemoveRoomAsync(Id, room.Id), "Das Zimmer wurde entfernt.");
         }
-    }
-
-    private sealed class RoomModel
-    {
-        public Guid? RoomId { get; set; }
     }
 
     // Typing errors in start and fixed term are corrected in a dialog; components and persons move along, the rents are recalculated.
@@ -467,21 +458,5 @@ else
         }
 
         await LoadAsync();
-    }
-
-    private sealed class EndModel
-    {
-        public RentComponentType Kind { get; set; }
-
-        [Required(ErrorMessage = "Bitte den letzten Tag angeben.")]
-        public DateOnly? LastDay { get; set; }
-    }
-
-    private sealed class PartyModel
-    {
-        [Required(ErrorMessage = "Bitte eine Person wählen.")]
-        public Guid? PersonId { get; set; }
-
-        public PartyRole Role { get; set; }
     }
 }

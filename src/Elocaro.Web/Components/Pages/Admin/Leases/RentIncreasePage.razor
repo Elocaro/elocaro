@@ -209,7 +209,7 @@ else
                                 <td>@Labels.From(row.Kind)<br><span class="small">@row.Summary</span></td>
                                 <td class="number">@Format.Money(row.CurrentAmount)</td>
                                 <td class="number">@Format.Money(row.NewAmount)</td>
-                                <td><ProcessTrack Compact="true" Label="@($"Stand: {Labels.From(row.Kind)}")" Steps="Steps(row)" /></td>
+                                <td><ProcessTrack Compact="true" Label="@($"Stand: {Labels.From(row.Kind)}")" Steps="RentIncreaseFlow.Steps(row)" /></td>
                                 <td><StatusChip Level="Labels.Level(row.Status)">@Labels.From(row.Status)</StatusChip></td>
                                 <td>
                                     @if (row.DocumentId is not null) {<a href="/verwaltung/dokumente/@row.DocumentId">Schreiben</a>}
@@ -265,8 +265,6 @@ else
         Agree,
     }
 
-    private static readonly RentIncreaseKind[] AllKinds = Enum.GetValues<RentIncreaseKind>();
-
     private RentIncreaseOverview? overview;
     private IReadOnlyList<TemplateRow> templates = [];
     private IReadOnlyList<string>? errors;
@@ -281,38 +279,9 @@ else
     [Parameter]
     public Guid Id { get; set; }
 
-    /// <summary>What the lease allows, and whatever is selected; comparative rent and modernisation only without an agreed rent path (§§ 557a, 557b BGB).</summary>
-    private IEnumerable<RentIncreaseKind> Kinds => AllKinds.Where(kind => kind == input.Kind || kind switch
-    {
-        RentIncreaseKind.Index => overview!.Model == RentModel.Index,
-        RentIncreaseKind.Graduated => overview!.Model == RentModel.Graduated,
-        RentIncreaseKind.FlatRate => overview!.BillingType == BillingType.FlatRate,
-        RentIncreaseKind.Comparative => overview!.Model == RentModel.Standard,
-        _ => overview!.Model != RentModel.Graduated,
-    });
+    private IEnumerable<RentIncreaseKind> Kinds => RentIncreaseFlow.AllowedKinds(overview!.Model, overview.BillingType, input.Kind);
 
-    private static List<ProcessStep> Steps(RentIncreaseRow row)
-    {
-        var rejected = row.Status is not (RentIncreaseStatus.Draft or RentIncreaseStatus.Declared or RentIncreaseStatus.Agreed);
-        var needsConsent = row.Kind == RentIncreaseKind.Comparative;
-        var steps = new List<ProcessStep>
-        {
-            new("Schreiben erzeugt", ProcessState.Done),
-            new("Zugegangen", row.DeclaredOn is not null ? ProcessState.Done : row.Status == RentIncreaseStatus.Draft ? ProcessState.Current : ProcessState.Open, row.DeclaredOn is { } declared ? Format.Date(declared) : null),
-        };
-        if (needsConsent)
-        {
-            steps.Add(new("Zustimmung", row.ConsentOn is not null ? ProcessState.Done : row.Status == RentIncreaseStatus.Declared ? ProcessState.Current : ProcessState.Open,
-                row.ConsentOn is { } consent ? Format.Date(consent) : row.ConsentDeadline is { } deadline ? $"bis {Format.Date(deadline)}" : null));
-        }
-
-        steps.Add(rejected
-            ? new(Labels.From(row.Status), ProcessState.Done)
-            : new("Wirksam", row.Status == RentIncreaseStatus.Agreed || (!needsConsent && row.DeclaredOn is not null) ? ProcessState.Done : ProcessState.Open, $"ab {Format.Date(row.EffectiveFrom)}"));
-        return steps;
-    }
-
-    private IEnumerable<TemplateRow> KindTemplates => templates.Where(t => t.Name.Contains(Keyword(input.Kind), StringComparison.Ordinal) || !templates.Any(o => o.Name.Contains(Keyword(input.Kind), StringComparison.Ordinal)));
+    private IEnumerable<TemplateRow> KindTemplates => templates.Where(t => t.Name.Contains(RentIncreaseFlow.Keyword(input.Kind), StringComparison.Ordinal) || !templates.Any(o => o.Name.Contains(RentIncreaseFlow.Keyword(input.Kind), StringComparison.Ordinal)));
 
     private IReadOnlyList<ReadinessIssue> readiness = [];
 
@@ -332,26 +301,12 @@ else
         {
             readiness = await Readiness.CheckAsync(TemplateKind.RentIncrease, Id);
             templates = (await Templates.ListAsync()).Where(t => t.Kind == TemplateKind.RentIncrease).ToList();
-            input.Kind = overview.Model switch
-            {
-                RentModel.Index => RentIncreaseKind.Index,
-                RentModel.Graduated => RentIncreaseKind.Graduated,
-                _ => overview.BillingType == BillingType.FlatRate ? RentIncreaseKind.FlatRate : RentIncreaseKind.Comparative,
-            };
+            input.Kind = RentIncreaseFlow.DefaultKind(overview.Model, overview.BillingType);
             SelectTemplate();
         }
 
         loaded = true;
     }
-
-    private static string Keyword(RentIncreaseKind kind) => kind switch
-    {
-        RentIncreaseKind.Index => "Indexmiete",
-        RentIncreaseKind.Graduated => "Staffel",
-        RentIncreaseKind.FlatRate => "Pauschale",
-        RentIncreaseKind.Modernisation => "Modernisierung",
-        _ => "Vergleichsmiete",
-    };
 
     private void OnKindChanged(RentIncreaseKind kind)
     {

@@ -25,7 +25,7 @@
                 SkipText="@(State.SetupCompleted ? null : "Später")" OnSkip="LaterAsync" ProgressLabel="Fortschritt der Einrichtung">
             @switch (Key)
             {
-                case StepKey.Welcome:
+                case SetupStep.Welcome:
                     <p class="help">
                         Elocaro kann sehr viel. Das meiste davon brauchen Sie vielleicht (noch) nicht. Wir schalten zuerst nur ein, was zu Ihnen passt,
                         und legen dann Ihre Absenderdaten und das erste Objekt an. Alles Weitere zeigt Ihnen die Übersicht Schritt für Schritt.
@@ -34,8 +34,8 @@
                     {
                         <fieldset>
                             <legend>Wie vermieten Sie?</legend>
-                            <AppRadioGroup T="Profile" Value="profile" ValueChanged="ChooseProfile" ValueExpression="() => profile"
-                                           Items="Enum.GetValues<Profile>()" Text="ProfileText" />
+                            <AppRadioGroup T="SetupProfile" Value="profile" ValueChanged="ChooseProfile" ValueExpression="() => profile"
+                                           Items="Enum.GetValues<SetupProfile>()" Text="SetupWizardChoices.ProfileText" />
                         </fieldset>
                         <p class="help">Das ist nur eine Vorauswahl. Im nächsten Schritt können Sie jede Funktion einzeln ein- oder ausschalten.</p>
                     }
@@ -45,12 +45,12 @@
                     </Notice>
                     break;
 
-                case StepKey.Features:
+                case SetupStep.Features:
                     @foreach (var choice in choices)
                     {
                         var info = ModuleCatalog.Info(choice.Module);
                         <div class="module-choice">
-                            <AppCheckBox Value="choice.On" ValueChanged="on => Set(choice, on)" ValueExpression="() => choice.On" Label="@info.Title" />
+                            <AppCheckBox Value="choice.On" ValueChanged="on => SetupWizardChoices.Switch(choices!, choice, on)" ValueExpression="() => choice.On" Label="@info.Title" />
                             <p class="help">@info.Summary</p>
                             <details>
                                 <summary>Was gehört dazu?</summary>
@@ -70,12 +70,12 @@
                     }
                     break;
 
-                case StepKey.Rental:
+                case SetupStep.Rental:
                     @foreach (var group in Groups)
                     {
                         <fieldset class="wizard-group">
                             <legend>@group</legend>
-                            <p class="help">@GroupQuestion(group)</p>
+                            <p class="help">@SetupWizardChoices.GroupQuestion(group)</p>
                             @foreach (var option in options!.Where(o => ModuleCatalog.Info(o.Option).Group == group))
                             {
                                 var info = ModuleCatalog.Info(option.Option);
@@ -90,7 +90,7 @@
                     }
                     break;
 
-                case StepKey.Profile:
+                case SetupStep.Profile:
                     <p class="help">Name und Anschrift erscheinen in Briefkopf und Fußzeile aller Dokumente, die Elocaro für Sie erzeugt (Mietvertrag, Abrechnung, Mahnung).</p>
                     <div class="form-grid">
                         <AppTextField @bind-Value="profileInput.Name" Label="Name" Required="true" Autocomplete="name" />
@@ -103,7 +103,7 @@
                     <p class="help">IBAN, Steuernummer und Notdienst tragen Sie später unter Einstellungen &rarr; Vermieter ein.</p>
                     break;
 
-                case StepKey.Property:
+                case SetupStep.Property:
                     <AppCheckBox @bind-Value="createProperty" Label="Erstes Objekt jetzt anlegen" />
                     <p class="help">Ohne Haken überspringt „Weiter“ diesen Schritt; Sie können das Objekt jederzeit unter Objekte anlegen.</p>
                     @if (createProperty)
@@ -137,7 +137,7 @@
                     }
                     break;
 
-                case StepKey.Books:
+                case SetupStep.Books:
                     @if (accountingOpen)
                     {
                         <h3>Mieten automatisch buchen</h3>
@@ -210,8 +210,6 @@
 </InteractiveShell>
 
 @code {
-    private static readonly Profile[] AllProfiles = Enum.GetValues<Profile>();
-
     private List<ModuleChoice>? choices;
     private List<OptionChoice>? options;
     private IReadOnlyList<string>? errors;
@@ -221,7 +219,7 @@
     private bool needsProperty;
     private bool createProperty;
     private Guid? createdProperty;
-    private Profile profile = Profile.Few;
+    private SetupProfile profile = SetupProfile.Few;
     private int step;
     private readonly LandlordProfileInput profileInput = new();
     private readonly PropertyInput propertyInput = new();
@@ -247,61 +245,43 @@
 
     private static readonly DialogOptions UnitDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
 
-    private enum Profile
-    {
-        Few,
-        Many,
-        Rooms,
-    }
-
-    private enum StepKey
-    {
-        Welcome,
-        Features,
-        Rental,
-        Profile,
-        Property,
-        Books,
-        Summary,
-    }
-
-    private IReadOnlyList<StepKey> Keys
+    private IReadOnlyList<SetupStep> Keys
     {
         get
         {
-            var keys = new List<StepKey> { StepKey.Welcome, StepKey.Features };
+            var keys = new List<SetupStep> { SetupStep.Welcome, SetupStep.Features };
             if (Groups.Count > 0)
             {
-                keys.Add(StepKey.Rental);
+                keys.Add(SetupStep.Rental);
             }
 
             if (needsProfile)
             {
-                keys.Add(StepKey.Profile);
+                keys.Add(SetupStep.Profile);
             }
 
             if (needsProperty)
             {
-                keys.Add(StepKey.Property);
+                keys.Add(SetupStep.Property);
             }
 
             if (accountingOpen)
             {
-                keys.Add(StepKey.Books);
+                keys.Add(SetupStep.Books);
             }
 
-            keys.Add(StepKey.Summary);
+            keys.Add(SetupStep.Summary);
             return keys;
         }
     }
 
-    private StepKey Key => Keys[Math.Clamp(step, 0, Keys.Count - 1)];
+    private SetupStep Key => Keys[Math.Clamp(step, 0, Keys.Count - 1)];
 
     /// <summary>The model of the current step; the wizard checks its DataAnnotations before "Next".</summary>
     private object? CurrentModel => Key switch
     {
-        StepKey.Profile => profileInput,
-        StepKey.Property when createProperty => propertyInput,
+        SetupStep.Profile => profileInput,
+        SetupStep.Property when createProperty => propertyInput,
         _ => null,
     };
 
@@ -316,31 +296,14 @@
 
     private IReadOnlyList<WizardStepInfo> Steps => Keys.Select(key => key switch
     {
-        StepKey.Welcome => new WizardStepInfo("Willkommen", Description: "Ein paar Fragen, dann ist Elocaro auf Sie zugeschnitten."),
-        StepKey.Features => new WizardStepInfo("Funktionen", Description: "Schalten Sie ein, was Sie brauchen. Alles andere bleibt unsichtbar und still."),
-        StepKey.Rental => new WizardStepInfo("Ihre Vermietung", Description: "Damit Formulare nur zeigen, was für Sie wichtig ist."),
-        StepKey.Profile => new WizardStepInfo("Ihre Absenderdaten", Description: "Sie erscheinen auf allen Dokumenten."),
-        StepKey.Property => new WizardStepInfo("Erstes Objekt", Description: "Das Haus und seine Wohnungen; Sie können es auch später anlegen."),
-        StepKey.Books => new WizardStepInfo("Buchhaltung", Description: "Ab wann Mieten gebucht werden."),
+        SetupStep.Welcome => new WizardStepInfo("Willkommen", Description: "Ein paar Fragen, dann ist Elocaro auf Sie zugeschnitten."),
+        SetupStep.Features => new WizardStepInfo("Funktionen", Description: "Schalten Sie ein, was Sie brauchen. Alles andere bleibt unsichtbar und still."),
+        SetupStep.Rental => new WizardStepInfo("Ihre Vermietung", Description: "Damit Formulare nur zeigen, was für Sie wichtig ist."),
+        SetupStep.Profile => new WizardStepInfo("Ihre Absenderdaten", Description: "Sie erscheinen auf allen Dokumenten."),
+        SetupStep.Property => new WizardStepInfo("Erstes Objekt", Description: "Das Haus und seine Wohnungen; Sie können es auch später anlegen."),
+        SetupStep.Books => new WizardStepInfo("Buchhaltung", Description: "Ab wann Mieten gebucht werden."),
         _ => new WizardStepInfo("Zusammenfassung", Description: "Das haben Sie gewählt. Mit „Einrichtung abschließen“ wird es gespeichert."),
     }).ToList();
-
-    private static string GroupQuestion(string group) => group switch
-    {
-        ModuleCatalog.RentModelGroup => "Welche Mietmodelle verwenden Sie? Die Vergleichsmiete (normale Miete mit Erhöhung nach § 558 BGB) ist immer dabei.",
-        ModuleCatalog.DunningGroup => "Wie soll das Mahnwesen arbeiten? Mahnungen werden immer nur vorgeschlagen und erst nach Ihrer Freigabe versendet.",
-        ModuleCatalog.UnitsGroup => "Was vermieten Sie? Wohnungen sind immer dabei.",
-        ModuleCatalog.LeaseGroup => "Welche Angaben möchten Sie im Mietvertrag erfassen?",
-        ModuleCatalog.TaxGroup => "Welche Teile der Steuer-Vorbereitung brauchen Sie? Die Anlage V selbst ist immer dabei.",
-        _ => "Wie rechnen Sie die Nebenkosten mit Ihren Mietern ab? Wählen Sie alles, was vorkommt.",
-    };
-
-    private static string ProfileText(Profile value) => value switch
-    {
-        Profile.Many => "Ich habe einen größeren Bestand oder einen Hausmeister",
-        Profile.Rooms => "Ich vermiete einzelne Zimmer (WG)",
-        _ => "Ich vermiete selbst einige Wohnungen",
-    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -352,59 +315,14 @@
         options = ModuleCatalog.Options.Select(info => new OptionChoice(info.Option) { On = selection.EnabledOptions.Contains(info.Option) }).ToList();
         if (!State.SetupCompleted)
         {
-            ChooseProfile(Profile.Few);
+            ChooseProfile(SetupProfile.Few);
         }
     }
 
-    /// <summary>
-    /// A starting point for the modules and the options, from the answer to "Wie vermieten Sie?". The next steps let the user change every
-    /// one of them; nothing is chosen "for everything".
-    /// </summary>
-    private void ChooseProfile(Profile value)
+    private void ChooseProfile(SetupProfile value)
     {
         profile = value;
-        var off = value == Profile.Many ? [] : new[] { AppModule.Tickets, AppModule.Notices };
-        foreach (var choice in choices!)
-        {
-            choice.On = !off.Contains(choice.Module);
-        }
-
-        HashSet<AppOption> on = [AppOption.BillingPrepayment, AppOption.TaxLoans, AppOption.TaxDepreciation, AppOption.LeaseDeposit];
-        switch (value)
-        {
-            case Profile.Many:
-                on.UnionWith([AppOption.RentModelGraduated, AppOption.RentModelIndex, AppOption.TaxDatev, AppOption.UnitParking, AppOption.LeaseGuarantor]);
-                break;
-            case Profile.Rooms:
-                on.UnionWith([AppOption.RoomRental, AppOption.BillingFlatRate]);
-                break;
-        }
-
-        foreach (var option in options!)
-        {
-            option.On = on.Contains(option.Option);
-        }
-    }
-
-    private void Set(ModuleChoice choice, bool on)
-    {
-        choice.On = on;
-        if (on)
-        {
-            // Switching on a module also switches on what it needs.
-            foreach (var required in ModuleCatalog.WithRequirements([choice.Module]))
-            {
-                choices!.First(c => c.Module == required).On = true;
-            }
-        }
-        else
-        {
-            // Switching off a module also switches off what needs it.
-            foreach (var other in choices!.Where(c => c.On && ModuleCatalog.WithRequirements([c.Module]).Contains(choice.Module)))
-            {
-                other.On = false;
-            }
-        }
+        SetupWizardChoices.ApplyProfile(value, choices!, options!);
     }
 
     private async Task FinishAsync()
@@ -483,19 +401,5 @@
     {
         await State.SkipSetupAsync();
         Navigation.NavigateTo("/verwaltung");
-    }
-
-    private sealed class OptionChoice(AppOption option)
-    {
-        public AppOption Option { get; } = option;
-
-        public bool On { get; set; }
-    }
-
-    private sealed class ModuleChoice(AppModule module)
-    {
-        public AppModule Module { get; } = module;
-
-        public bool On { get; set; }
     }
 }

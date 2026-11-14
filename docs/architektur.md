@@ -190,7 +190,7 @@ Quelltext, brauchen weder Docker noch Datenbank und laufen in Sekunden.
 | Rückgängig | `UndoRulesTests` | Jeder Entitätstyp ist in `UndoPolicy` eingeordnet; Typen mit Geheimnissen oder Außenwirkung sind nicht wiederherstellbar |
 | Änderungshistorie | `AuditRulesTests` | `<ChangeHistory>` fragt nach einem Entitätstyp, den es gibt (das Protokoll speichert den Klassennamen) |
 | Oberfläche | `UiRulesTests`, `InteractiveUiRulesTests` | Bausteine statt Rohmarkup; interaktive Seiten in `InteractiveShell`, Rückmeldung über `Notifier`, Formulare mit `OnValidSubmit`, Anmeldung und Konto bleiben statisch, eigene Komponenten ohne MudBlazor-Typen in den Parametern. Siehe [ui.md](ui.md) |
-| Größe der Seiten | `PageSizeRulesTests` | Ein `@code`-Block hat höchstens 200 Zeilen. Elf längere sind mit ihrer Größe eingefroren: Sie dürfen nicht wachsen und verlassen die Liste, wenn sie unter die Grenze fallen |
+| Größe der Seiten | `PageSizeRulesTests` | Ein `@code`-Block hat höchstens 200 Zeilen; was länger wird, geht in den Dienst, in eine Klasse neben der Seite oder in eine Komponente |
 | Name | `NamingRulesTests` | Der frühere Produktname kommt nicht zurück |
 | Modell und Migrationen | `Model_and_migrations_are_in_sync` (Integrationstests) | Jede Modelländerung hat eine Migration |
 
@@ -214,8 +214,7 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
    Zyklen-Regeln bleiben die Grenze, fremde Entitäten werden nur über die Schnittstelle des Moduls verändert,
    [ADR 0009](adr/0009-modulgrenzen-bei-gemeinsamem-dbcontext.md).
 4. ~~Regeln für interaktive Seiten fehlen.~~ Erledigt: `InteractiveUiRulesTests`, die Blazor-Analyzer sind wieder aktiv.
-5. **Große Seiten.** Elf Seiten und Komponenten haben mehr als 200 Zeilen `@code` (`Backup.razor` 530, `HandoverPage.razor` 320,
-   `SetupWizard.razor` 290). Die Grenze gilt jetzt für alles Neue (`PageSizeRulesTests`); die elf sind eingefroren und noch nicht zerlegt.
+5. ~~Große Seiten.~~ Erledigt (#190): Die elf Seiten mit mehr als 200 Zeilen `@code` sind zerlegt (Rechenkerne und Texte in Klassen neben der Seite, Abschnitte in Komponenten); `PageSizeRulesTests` gilt ohne Ausnahmen.
 6. **Eine Registrierungsdatei für alles.** `DependencyInjection.cs` hat 520 Zeilen und rund 170 Registrierungen. Eine
    Erweiterungsmethode je Modul im Modulordner (`AddLeases()`) würde zeigen, was zu einem Modul gehört, und Merge-Konflikte verringern.
 7. **Laufzeit.** Die Umstellung auf .NET 11 ist erfolgt (#163), die Pakete stehen aber noch auf `11.0.0-rc.3`. Stand 14. November 2026:

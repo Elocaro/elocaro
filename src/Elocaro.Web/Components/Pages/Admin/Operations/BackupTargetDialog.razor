@@ -36,7 +36,7 @@
                                 <AppSelect T="int" Value="data.IntervalDays" ValueChanged="v => data.IntervalDays = v" Label="Wie oft" Items="Intervals" Text="IntervalText" />
                                 @if (data.IntervalDays == 7)
                                 {
-                                    <AppSelect T="DayOfWeek" Value="data.Weekday" ValueChanged="v => data.Weekday = v" Label="Wochentag" Items="Weekdays" Text="WeekdayName" />
+                                    <AppSelect T="DayOfWeek" Value="data.Weekday" ValueChanged="v => data.Weekday = v" Label="Wochentag" Items="Weekdays" Text="BackupTargetForm.WeekdayName" />
                                 }
                                 <AppTimeField Value="data.Time" ValueChanged="v => data.Time = v ?? data.Time" Label="Uhrzeit" Required="true" Hint="Nachts ist meist günstig." />
                             </div>
@@ -106,63 +106,26 @@
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
-    /// <summary>German name of a weekday ("Montag").</summary>
-    public static string WeekdayName(DayOfWeek day) => CultureInfo.GetCultureInfo("de-DE").DateTimeFormat.GetDayName(day);
+    private IReadOnlyList<string> missing => BackupTargetForm.Missing(data, hasPassword, storedCredentials);
 
-    /// <summary>"montags": for the schedule text ("wöchentlich montags um 02:30").</summary>
-    public static string WeekdayPlural(DayOfWeek day) => WeekdayName(day).ToLowerInvariant() + "s";
-
-    /// <summary>What is still missing before the target can be tested or saved (German names of the fields).</summary>
-    private List<string> missing
+    /// <summary>Opens the dialog; <c>true</c> if something was saved or removed.</summary>
+    public static async Task<bool> ShowAsync(IDialogService dialogs, string title, BackupSettingsView? existing, BackupSettingsInput? prefill, string? notice)
     {
-        get
+        var parameters = new DialogParameters<BackupTargetDialog>
         {
-            var list = new List<string>();
-            if (string.IsNullOrWhiteSpace(data.Name))
-            {
-                list.Add("Name");
-            }
-
-            // A stored secret counts as entered (an empty field keeps it).
-            var credentials = new Dictionary<string, string>(data.Credentials, StringComparer.Ordinal);
-            foreach (var key in storedCredentials.Where(k => string.IsNullOrWhiteSpace(credentials.GetValueOrDefault(k))))
-            {
-                credentials[key] = "gespeichert";
-            }
-
-            var password = string.IsNullOrEmpty(data.Password) && hasPassword ? "gespeichert" : data.Password;
-            foreach (var message in BackupProviders.Validate(data.Provider, data.Location, credentials, password))
-            {
-                var name = message.EndsWith(" fehlt.", StringComparison.Ordinal) ? message[..^" fehlt.".Length] : message;
-                list.Add(name.StartsWith("Das ", StringComparison.Ordinal) || name.StartsWith("Der ", StringComparison.Ordinal) ? name[4..] : name);
-            }
-
-            if (data.KeepDaily < 0 || data.KeepWeekly < 0 || data.KeepMonthly < 0 || data.KeepDaily + data.KeepWeekly + data.KeepMonthly == 0)
-            {
-                list.Add("Aufbewahrung (mindestens eine Frist)");
-            }
-
-            return list;
-        }
+            { x => x.Existing, existing },
+            { x => x.Prefill, prefill },
+            { x => x.Notice, notice },
+        };
+        var dialog = await dialogs.ShowAsync<BackupTargetDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+        return await dialog.Result is { Canceled: false };
     }
 
     protected override void OnInitialized()
     {
         if (Existing is { } target)
         {
-            data = new BackupSettingsInput
-            {
-                Name = target.Name,
-                Provider = target.Provider,
-                Location = target.Location,
-                Enabled = target.Enabled,
-                Time = target.Time,
-                IntervalDays = target.IntervalDays,
-                Weekday = target.Weekday ?? DayOfWeek.Monday,
-                KeepDaily = target.KeepDaily,
-                KeepWeekly = target.KeepWeekly,
-                KeepMonthly = target.KeepMonthly,
-            };
+            data = BackupTargetForm.ToInput(target);
             hasPassword = target.HasPassword;
             storedCredentials = target.StoredCredentials;
             savedProvider = target.Provider;
@@ -182,7 +145,7 @@
 
         if (string.IsNullOrWhiteSpace(data.Name))
         {
-            data.Name = BackupTargetFields.DefaultName(data.Provider);
+            data.Name = BackupTargetForm.DefaultName(data.Provider);
         }
     }
 
@@ -196,9 +159,9 @@
     {
         check = null;
         // A name that was never typed follows the provider.
-        if (Existing is null && BackupProviders.All.Any(p => data.Name == BackupTargetFields.DefaultName(p)))
+        if (Existing is null && BackupProviders.All.Any(p => data.Name == BackupTargetForm.DefaultName(p)))
         {
-            data.Name = BackupTargetFields.DefaultName(provider);
+            data.Name = BackupTargetForm.DefaultName(provider);
         }
 
         // Credentials of the saved provider do not carry over to another one.

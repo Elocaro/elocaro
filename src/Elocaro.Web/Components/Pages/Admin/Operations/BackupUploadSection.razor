@@ -1,0 +1,140 @@
+@using Elocaro.Application.Operations
+@using Elocaro.Web.Operations
+@inject IBackupControl Control
+@* Restore from a backup file: upload a .tar, open it with the password of the backup, confirm. The page follows the restore; this part only starts it. *@
+<section id="backup-upload">
+    <h2>Aus Datei wiederherstellen</h2>
+    @if (UploadMessage is { } uploadMessage)
+    {
+        <Notice Level="@(UploadResult == "ok" ? NoticeLevel.Success : NoticeLevel.Error)" id="backup-upload-result">@uploadMessage</Notice>
+    }
+
+    @if (Progress.Upload is { } upload)
+    {
+        <div class="backup-progress" id="backup-uploaded">
+            <strong>Hochgeladen: @upload.Name (@Format.Size(upload.Size))</strong>
+            <span class="small">Zum Öffnen braucht Elocaro das Passwort der Sicherung. Die Datei wird erst durch „Jetzt wiederherstellen“ eingespielt.</span>
+            <div class="upload-open">
+                <AppTextField Value="@password" ValueChanged="v => { password = v ?? string.Empty; check = null; }" Label="Passwort der Sicherung" Type="password" Immediate="true" Autocomplete="off" />
+                <div class="form-actions">
+                    <button type="button" class="button button-primary" id="upload-inspect" @onclick="InspectUploadAsync" disabled="@(busy || Progress.Running || password.Length == 0)">Datei öffnen</button>
+                    <button type="button" class="button button-text" id="upload-discard" @onclick="DiscardUploadAsync" disabled="@(busy || Progress.Running)">Verwerfen</button>
+                </div>
+            </div>
+            @if (check is { Succeeded: false } failed)
+            {
+                <Notice Level="NoticeLevel.Error" id="upload-check">@failed.Message</Notice>
+            }
+            else if (check is { Snapshots: [var held, ..] })
+            {
+                <div class="danger-action-content" role="alertdialog" aria-label="Wiederherstellen aus Datei" id="upload-confirm">
+                    <p><strong>Die Datei enthält die Sicherung vom @Format.Timestamp(held.Time) (@Format.Size(held.Size)).
+                    Alle aktuellen Daten und Dateien werden durch diesen Stand ersetzt.</strong>
+                    Was seitdem erfasst wurde, geht verloren. Die App ist währenddessen nicht nutzbar und startet danach von selbst neu.</p>
+                    <AppTextField Value="@confirmation" ValueChanged="v => confirmation = v ?? string.Empty" Label="Zur Bestätigung „WIEDERHERSTELLEN“ eingeben" Immediate="true" />
+                    <div class="form-actions">
+                        <button type="button" class="button button-primary" id="upload-restore" @onclick="RestoreUploadAsync"
+                                disabled="@(busy || Progress.Running || !BackupTexts.IsConfirmed(confirmation))">Ja, jetzt wiederherstellen</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p>Eine Sicherungsdatei, die Sie zuvor mit „Herunterladen“ gespeichert haben, hochladen und daraus wiederherstellen, auch von einem anderen Server.</p>
+        <form method="post" enctype="multipart/form-data" action="@BackupFileEndpoints.UploadPath" data-enhance="false" id="backup-upload-form" class="upload-form">
+            <AntiforgeryToken />
+            <label class="dropzone @(chosenFile is null ? null : "chosen")">
+                <Icon Path="@MudBlazor.Icons.Material.Outlined.UploadFile" />
+                <span class="dropzone-title">@(chosenFile ?? "Sicherungsdatei auswählen oder hierher ziehen")</span>
+                <span class="dropzone-text">@(chosenFile is null ? "Eine .tar-Datei, die mit „Herunterladen“ entstanden ist" : "Zum Ändern erneut klicken")</span>
+                <input type="file" name="file" accept=".tar,application/x-tar" aria-label="Sicherungsdatei" @onchange="OnFileChosen" />
+            </label>
+            <div class="form-actions">
+                <button type="submit" class="button button-primary" id="upload-send" disabled="@(chosenFile is null)">Datei hochladen</button>
+            </div>
+        </form>
+    }
+    <ErrorList Errors="errors" />
+</section>
+
+@code {
+    private bool busy;
+    private string? chosenFile;
+    private string password = string.Empty;
+    private string confirmation = string.Empty;
+    private BackupUploadCheck? check;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public BackupProgress Progress { get; set; } = default!;
+
+    /// <summary>Result of the upload form (a fixed word in the address).</summary>
+    [Parameter]
+    public string? UploadResult { get; set; }
+
+    /// <summary>Called when the state of the backup service may have changed (the page reads it again).</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    /// <summary>Called when the restore of the file has started: the page follows it and restarts the app when it is over.</summary>
+    [Parameter]
+    public EventCallback OnRestoreStarted { get; set; }
+
+    private string? UploadMessage => BackupTexts.UploadMessage(UploadResult);
+
+    // The browser reports the chosen file as "C:\fakepath\name.tar": the name is all that is shown
+    private void OnFileChosen(ChangeEventArgs e) =>
+        chosenFile = (e.Value as string)?.Replace('\\', '/') is { Length: > 0 } path ? Path.GetFileName(path) : null;
+
+    private async Task InspectUploadAsync()
+    {
+        busy = true;
+        try
+        {
+            confirmation = string.Empty;
+            check = await Control.InspectUploadAsync(password);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DiscardUploadAsync()
+    {
+        await Control.DiscardUploadAsync();
+        password = string.Empty;
+        check = null;
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task RestoreUploadAsync()
+    {
+        if (!BackupTexts.IsConfirmed(confirmation))
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Control.StartRestoreUploadAsync(password);
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            errors = null;
+            password = string.Empty;
+            check = null;
+            await OnRestoreStarted.InvokeAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

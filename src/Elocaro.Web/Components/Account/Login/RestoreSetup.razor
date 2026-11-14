@@ -1,6 +1,7 @@
 @page "/konto/einrichtung/wiederherstellen"
 @rendermode InteractiveServer
 @implements IDisposable
+@using Elocaro.Application.Common
 @using Elocaro.Application.Operations
 @using Elocaro.Web.Operations
 @inject IAccountService Accounts
@@ -16,17 +17,17 @@
     <p>Auf einem neuen Server holen Sie hier den Stand einer früheren Datensicherung zurück: Datenbank, Belege und Dokumente, Konten und Einstellungen.
     Danach melden Sie sich mit Ihrem bisherigen Konto an.</p>
 
-    @if (phase == Phase.Target)
+    @if (phase == RestorePhase.Target)
     {
         <section class="dialog-section">
             <h3>Woher kommt die Sicherung?</h3>
             <div class="choice-cards" role="radiogroup" aria-label="Quelle der Sicherung">
-                <button type="button" role="radio" aria-checked="@(source == Source.Target ? "true" : "false")" id="source-target" class="choice-card @(source == Source.Target ? "selected" : null)" @onclick="() => ChooseSource(Source.Target)">
+                <button type="button" role="radio" aria-checked="@(source == RestoreSource.Target ? "true" : "false")" id="source-target" class="choice-card @(source == RestoreSource.Target ? "selected" : null)" @onclick="() => ChooseSource(RestoreSource.Target)">
                     <Icon Path="@MudBlazor.Icons.Material.Outlined.Cloud" />
                     <span class="choice-title">Aus einem Ziel</span>
                     <span class="choice-text">Google Drive, S3, Azure, SFTP oder NAS: dort, wo die Sicherungen liegen</span>
                 </button>
-                <button type="button" role="radio" aria-checked="@(source == Source.File ? "true" : "false")" id="source-file" class="choice-card @(source == Source.File ? "selected" : null)" @onclick="() => ChooseSource(Source.File)">
+                <button type="button" role="radio" aria-checked="@(source == RestoreSource.File ? "true" : "false")" id="source-file" class="choice-card @(source == RestoreSource.File ? "selected" : null)" @onclick="() => ChooseSource(RestoreSource.File)">
                     <Icon Path="@MudBlazor.Icons.Material.Outlined.UploadFile" />
                     <span class="choice-title">Aus einer Datei</span>
                     <span class="choice-text">Eine Sicherungsdatei, die Sie zuvor heruntergeladen haben</span>
@@ -35,7 +36,7 @@
         </section>
     }
 
-    @if (phase == Phase.Target && source == Source.File)
+    @if (phase == RestorePhase.Target && source == RestoreSource.File)
     {
         @if (UploadMessage is { } uploadMessage)
         {
@@ -92,7 +93,7 @@
         <ErrorList Errors="errors" />
     }
 
-    @if (phase == Phase.Target && source == Source.Target && setupChecked)
+    @if (phase == RestorePhase.Target && source == RestoreSource.Target && setupChecked)
     {
         <EditForm Model="input" OnValidSubmit="FindAsync" novalidate>
             <div class="form-grid">
@@ -108,7 +109,7 @@
         </EditForm>
         <ErrorList Errors="errors" />
     }
-    else if (phase == Phase.Choose)
+    else if (phase == RestorePhase.Choose)
     {
         @if (snapshots.Count == 0)
         {
@@ -138,7 +139,7 @@
         <ErrorList Errors="errors" />
         <button type="button" class="button button-outlined" @onclick="Back">Zurück</button>
     }
-    else if (phase == Phase.Running)
+    else if (phase == RestorePhase.Running)
     {
         @if (!progress.Available)
         {
@@ -162,26 +163,13 @@
 </InteractiveShell>
 
 @code {
-    private enum Phase
-    {
-        Target,
-        Choose,
-        Running,
-    }
-
-    private enum Source
-    {
-        Target,
-        File,
-    }
-
     private string? chosenFile;
 
     // The browser reports the chosen file as "C:\fakepath\name.tar": the name is all that is shown
     private void OnFileChosen(ChangeEventArgs e) =>
         chosenFile = (e.Value as string)?.Replace('\\', '/') is { Length: > 0 } path ? Path.GetFileName(path) : null;
 
-    private Source source;
+    private RestoreSource source;
     private string filePassword = string.Empty;
     private BackupUploadCheck? fileCheck;
 
@@ -189,24 +177,14 @@
     [SupplyParameterFromQuery(Name = "upload")]
     public string? UploadResult { get; set; }
 
-    private string? UploadMessage => UploadResult switch
-    {
-        "ok" => "Die Datei wurde hochgeladen.",
-        "code" => "Der Einrichtungscode stimmt nicht.",
-        "abgelehnt" => "Die Datei ist keine Sicherungsdatei von Elocaro. Gültig ist eine .tar, die über „Herunterladen“ entstanden ist.",
-        "belegt" => "Es läuft gerade eine Sicherung oder Wiederherstellung. Bitte später noch einmal hochladen.",
-        "leer" => "Es wurde keine Datei gewählt.",
-        null => null,
-        _ => "Die Datei konnte nicht hochgeladen werden. Läuft der Backup-Dienst?",
-    };
+    private string? UploadMessage => RestoreSetupText.UploadMessage(UploadResult);
 
     private readonly BackupSettingsInput input = new();
-    private Phase phase;
+    private RestorePhase phase;
     private string setupCode = string.Empty;
     private bool busy;
     private bool setupChecked;
     private bool verified;
-    private bool sawRunning;
     private IReadOnlyList<string>? errors;
     private IReadOnlyList<BackupSnapshotRow> snapshots = [];
     private BackupProgress progress = new(false, false, null, null);
@@ -217,7 +195,7 @@
         // Back from the upload form: stay with the file.
         if (UploadResult is not null)
         {
-            source = Source.File;
+            source = RestoreSource.File;
         }
 
         // Only for an empty installation, like the creation of the first administrator. The page is rendered at this first await
@@ -234,35 +212,49 @@
         progress = await Control.ProgressAsync();
     }
 
-    private void ChooseSource(Source chosen)
+    private void ChooseSource(RestoreSource chosen)
     {
         source = chosen;
         errors = null;
     }
 
-    private async Task OpenFileAsync()
+    /// <summary>The setup code is right and the installation is still empty; otherwise the error is set.</summary>
+    private async Task<bool> CodeAcceptedAsync()
     {
         errors = null;
-        fileCheck = null;
-        if (!SetupCode.Matches(setupCode) || !await Accounts.InitialSetupPossibleAsync())
+        if (SetupCode.Matches(setupCode) && await Accounts.InitialSetupPossibleAsync())
         {
-            errors = ["Der Einrichtungscode stimmt nicht."];
-            return;
+            verified = true;
+            return true;
         }
 
+        errors = ["Der Einrichtungscode stimmt nicht."];
+        return false;
+    }
+
+    private async Task RunBusyAsync(Func<Task> work)
+    {
         busy = true;
         try
         {
-            verified = true;
-            fileCheck = await Control.InspectUploadAsync(filePassword);
-            if (!fileCheck.Succeeded)
-            {
-                errors = [fileCheck.Message];
-            }
+            await work();
         }
         finally
         {
             busy = false;
+        }
+    }
+
+    private async Task OpenFileAsync()
+    {
+        fileCheck = null;
+        if (await CodeAcceptedAsync())
+        {
+            await RunBusyAsync(async () =>
+            {
+                fileCheck = await Control.InspectUploadAsync(filePassword);
+                errors = fileCheck.Succeeded ? null : [fileCheck.Message];
+            });
         }
     }
 
@@ -275,50 +267,15 @@
         Navigation.NavigateTo("/konto/einrichtung/wiederherstellen");
     }
 
-    private async Task RestoreFileAsync()
-    {
-        // The code was checked in this session; the installation must still be empty.
-        if (!verified || fileCheck is not { Succeeded: true } || !await Accounts.InitialSetupPossibleAsync())
-        {
-            return;
-        }
-
-        errors = null;
-        busy = true;
-        try
-        {
-            var result = await Control.StartRestoreUploadAsync(filePassword);
-            if (!result.Succeeded)
-            {
-                errors = result.Errors;
-                return;
-            }
-
-            phase = Phase.Running;
-            // Started here: a restore that finishes between two polls (small installations) must still restart the app.
-            sawRunning = true;
-            progress = new BackupProgress(true, true, "Restore", null);
-            _ = PollAsync();
-        }
-        finally
-        {
-            busy = false;
-        }
-    }
-
     private async Task FindAsync()
     {
-        errors = null;
-        if (!SetupCode.Matches(setupCode) || !await Accounts.InitialSetupPossibleAsync())
+        if (!await CodeAcceptedAsync())
         {
-            errors = ["Der Einrichtungscode stimmt nicht."];
             return;
         }
 
-        busy = true;
-        try
+        await RunBusyAsync(async () =>
         {
-            verified = true;
             var check = await Control.TestAsync(null, input);
             if (check.State is not BackupTargetState.Ready)
             {
@@ -327,15 +284,16 @@
             }
 
             snapshots = await Control.SnapshotsAsync(input);
-            phase = Phase.Choose;
-        }
-        finally
-        {
-            busy = false;
-        }
+            phase = RestorePhase.Choose;
+        });
     }
 
-    private async Task RestoreAsync(BackupSnapshotRow row)
+    private Task RestoreFileAsync() =>
+        fileCheck is { Succeeded: true } ? StartRestoreAsync(() => Control.StartRestoreUploadAsync(filePassword)) : Task.CompletedTask;
+
+    private Task RestoreAsync(BackupSnapshotRow row) => StartRestoreAsync(() => Control.StartRestoreAsync(input, row.Id));
+
+    private async Task StartRestoreAsync(Func<Task<Result>> start)
     {
         // The code was checked in this session; the installation must still be empty.
         if (!verified || !await Accounts.InitialSetupPossibleAsync())
@@ -344,26 +302,20 @@
         }
 
         errors = null;
-        busy = true;
-        try
+        await RunBusyAsync(async () =>
         {
-            var result = await Control.StartRestoreAsync(input, row.Id);
+            var result = await start();
             if (!result.Succeeded)
             {
                 errors = result.Errors;
                 return;
             }
 
-            phase = Phase.Running;
-            // Started here: a restore that finishes between two polls (small installations) must still restart the app.
-            sawRunning = true;
+            phase = RestorePhase.Running;
+            // Running from the start: a restore that finishes between two polls (small installations) must still restart the app.
             progress = new BackupProgress(true, true, "Restore", null);
             _ = PollAsync();
-        }
-        finally
-        {
-            busy = false;
-        }
+        });
     }
 
     // The database is replaced during the restore: only the backup service is asked, never the database.
@@ -377,13 +329,12 @@
             while (await timer.WaitForNextTickAsync(token))
             {
                 var current = await Control.ProgressAsync(token);
-                sawRunning |= current.Running;
                 await InvokeAsync(() =>
                 {
                     progress = current;
                     StateHasChanged();
                 });
-                if (sawRunning && !current.Running)
+                if (!current.Running)
                 {
                     if (current.Last is { Kind: "Restore", Succeeded: true })
                     {
@@ -405,8 +356,7 @@
     private void Back()
     {
         errors = null;
-        phase = Phase.Target;
+        phase = RestorePhase.Target;
         progress = new BackupProgress(false, false, null, null);
-        sawRunning = false;
     }
 }

@@ -1,0 +1,284 @@
+@using MudBlazor
+@using System.Globalization
+@using Elocaro.Application.Common
+@using Elocaro.Application.Operations
+@using Elocaro.Web.Operations
+@inject IBackupControl Control
+@inject IServiceScopeFactory Scopes
+@inject Notifier Notify
+@inject Confirmations Confirm
+@* The backups that lie at the targets (and at the target of the server configuration): download, restore, delete. The page follows what runs; this part starts it. *@
+<section id="backup-snapshots">
+    <h2>Vorhandene Sicherungen</h2>
+    @foreach (var failed in snapshotErrors)
+    {
+        <Notice Level="NoticeLevel.Warning">Sicherungen von „@failed.Key“ konnten nicht gelesen werden: @failed.Value</Notice>
+    }
+    @if (Progress.Export is { } export && BackupTexts.ExportKey(export) != StartedDownload && !Progress.Running)
+    {
+        @* Normally the download starts by itself; this is for a file that is still waiting (another session, a download that was cancelled) *@
+        <Notice Level="NoticeLevel.Info" id="backup-download">
+            Eine vorbereitete Sicherung wartet auf den Download: <strong>@export.Name</strong> (@Format.Size(export.Size)). Sie bleibt mit dem Passwort der Sicherung verschlüsselt.
+            <span class="form-actions">
+                <a class="button button-outlined" id="backup-download-link" href="@BackupFileEndpoints.DownloadPath" download="@export.Name">Datei herunterladen</a>
+                <button type="button" class="button button-text" id="backup-download-discard" @onclick="DiscardExportAsync" disabled="@busy">Verwerfen</button>
+            </span>
+        </Notice>
+    }
+    @if (Progress.Last is { Kind: "Export" or "Delete", Succeeded: false } failedRun && !Progress.Running)
+    {
+        <Notice Level="NoticeLevel.Error" id="backup-run-failed">@(failedRun.Kind == "Export" ? "Die Sicherung konnte nicht für den Download vorbereitet werden: " : "Die Sicherung konnte nicht gelöscht werden: ")@failedRun.Message</Notice>
+    }
+    @if (snapshots.Count == 0 && !snapshotsLoaded)
+    {
+        <div class="snapshots-loading" id="snapshots-loading" role="status">
+            <span class="small">Sicherungen werden geladen …</span>
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Rounded="true" Size="Size.Small" aria-label="Sicherungen werden geladen" />
+        </div>
+    }
+    else if (snapshots.Count == 0 && snapshotErrors.Count == 0)
+    {
+        <EmptyState Text="Am Ziel liegt noch keine Sicherung." />
+    }
+    else if (snapshots.Count > 0)
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>Zeitpunkt</th><th>Ziel</th><th>Größe</th><th>Kennung</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var entry in snapshots)
+                    {
+                        <tr>
+                            <td>@Format.Timestamp(entry.Row.Time)</td>
+                            <td>@entry.TargetName</td>
+                            <td>@Format.Size(entry.Row.Size)</td>
+                            <td><code>@entry.Row.ShortId</code></td>
+                            <td class="row-actions">
+                                <button type="button" class="button button-text" @onclick="() => ExportAsync(entry)" disabled="@(Progress.Running || busy)">Herunterladen</button>
+                                <button type="button" class="button button-text" @onclick="() => Select(entry)" disabled="@(Progress.Running || busy)">Wiederherstellen</button>
+                                <button type="button" class="button button-text danger" @onclick="() => DeleteSnapshotAsync(entry)" disabled="@(Progress.Running || busy)">Löschen</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (selected is not null)
+    {
+        <div class="danger-action-content" role="alertdialog" aria-label="Wiederherstellen" id="restore-confirm">
+            <p><strong>Alle aktuellen Daten und Dateien werden durch den Stand vom @Format.Timestamp(selected.Row.Time) ersetzt.</strong>
+            Was seitdem erfasst wurde, geht verloren. Die App ist währenddessen nicht nutzbar und startet danach von selbst neu.
+            Laden Sie vorher am besten den Vollexport herunter.</p>
+            <AppTextField Value="@confirmation" ValueChanged="v => confirmation = v ?? string.Empty" Label="Zur Bestätigung „WIEDERHERSTELLEN“ eingeben" Immediate="true" />
+            <div class="form-actions">
+                <button type="button" class="button button-primary" id="restore-start" @onclick="RestoreAsync"
+                        disabled="@(busy || !BackupTexts.IsConfirmed(confirmation))">Ja, jetzt wiederherstellen</button>
+                <button type="button" class="button button-outlined" @onclick="CloseSnapshots">Abbrechen</button>
+            </div>
+        </div>
+    }
+
+    <button type="button" class="button button-outlined" id="snapshots-refresh" @onclick="ReloadAsync" disabled="@(busy || Progress.Running)">Aktualisieren</button>
+    <ErrorList Errors="errors" />
+</section>
+
+@code {
+    /// <summary><see cref="TargetId"/> is <c>null</c> for the target of the server configuration.</summary>
+    private sealed record SnapshotEntry(Guid? TargetId, string TargetName, BackupSnapshotRow Row);
+
+    private List<SnapshotEntry> snapshots = [];
+    private Dictionary<string, string> snapshotErrors = [];
+    private SnapshotEntry? selected;
+    private string confirmation = string.Empty;
+    private IReadOnlyList<string>? errors;
+    private bool busy;
+    private bool snapshotsLoaded;
+    private bool snapshotsLoading;
+    private bool snapshotsDirty;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<BackupSettingsView> Targets { get; set; } = [];
+
+    /// <summary>The target of the server configuration (.env) is in use and has backups of its own.</summary>
+    [Parameter]
+    public bool HasEnvironment { get; set; }
+
+    [Parameter, EditorRequired]
+    public BackupProgress Progress { get; set; } = default!;
+
+    /// <summary>The prepared file whose download was started from the page (it disappears while it is sent).</summary>
+    [Parameter]
+    public string? StartedDownload { get; set; }
+
+    /// <summary>Called when the state of the backup service may have changed (the page reads it again).</summary>
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    /// <summary>Called when the file for a download is being prepared: the page fetches it as soon as it is ready.</summary>
+    [Parameter]
+    public EventCallback OnExportStarted { get; set; }
+
+    /// <summary>Called when a restore has started: the page follows it and restarts the app when it is over.</summary>
+    [Parameter]
+    public EventCallback OnRestoreStarted { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // The list is read from the targets, which can be slow: the page appears first, the list follows
+        if (RendererInfo.IsInteractive)
+        {
+            _ = InvokeAsync(() => LoadAsync(Targets, HasEnvironment, Progress));
+        }
+    }
+
+    /// <summary>
+    /// Reads the backups of every target, one after the other; the list grows as each target answers. Runs in a scope of its own (the page
+    /// keeps using its database context meanwhile). Never while the backup service works on a repository (a backup or restore holds it):
+    /// the list follows when the run is over. A request that comes in while the list is being read repeats it afterwards.
+    /// </summary>
+    public async Task LoadAsync(IReadOnlyList<BackupSettingsView> targets, bool hasEnvironment, BackupProgress progress)
+    {
+        if (snapshotsLoading)
+        {
+            snapshotsDirty = true;
+            return;
+        }
+
+        if (progress.Running || !progress.Available)
+        {
+            return;
+        }
+
+        snapshotsLoading = true;
+        try
+        {
+            do
+            {
+                snapshotsDirty = false;
+                var wanted = (hasEnvironment ? new[] { (Id: (Guid?)null, Name: "Server-Konfiguration") } : [])
+                    .Concat(targets.Select(t => (Id: (Guid?)t.Id, t.Name))).ToList();
+                var entries = new List<SnapshotEntry>();
+                var failures = new Dictionary<string, string>();
+                await using var scope = Scopes.CreateAsyncScope();
+                var control = scope.ServiceProvider.GetRequiredService<IBackupControl>();
+                foreach (var (id, name) in wanted)
+                {
+                    try
+                    {
+                        var rows = id is { } targetId ? await control.SnapshotsAsync(targetId) : await control.EnvironmentSnapshotsAsync();
+                        entries.AddRange(rows.Select(row => new SnapshotEntry(id, name, row)));
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+                    {
+                        failures[name] = ex.Message;
+                    }
+
+                    snapshots = entries.OrderByDescending(e => e.Row.Time).ToList();
+                    snapshotErrors = new Dictionary<string, string>(failures);
+                    await InvokeAsync(StateHasChanged);
+                }
+
+                snapshotsLoaded = true;
+            }
+            while (snapshotsDirty && !Progress.Running);
+        }
+        finally
+        {
+            snapshotsLoading = false;
+            snapshotsLoaded = true;
+            if (selected is not null && !snapshots.Any(e => e.TargetId == selected.TargetId && e.Row.Id == selected.Row.Id))
+            {
+                selected = null;
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private Task ReloadAsync() => RunAsync(() => LoadAsync(Targets, HasEnvironment, Progress));
+
+    private void CloseSnapshots() => selected = null;
+
+    private void Select(SnapshotEntry entry)
+    {
+        selected = entry;
+        confirmation = string.Empty;
+    }
+
+    private async Task RunAsync(Func<Task> work)
+    {
+        busy = true;
+        try
+        {
+            await work();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    /// <summary>Starts an operation of the backup service; if it was refused the reasons are shown, otherwise <paramref name="started"/> is called.</summary>
+    private async Task StartAsync(Func<Task<Result>> start, EventCallback started, string? success = null)
+    {
+        errors = null;
+        await RunAsync(async () =>
+        {
+            var result = await start();
+            if (!result.Succeeded)
+            {
+                errors = result.Errors;
+                return;
+            }
+
+            if (success is not null)
+            {
+                Notify.Success(success);
+            }
+
+            await started.InvokeAsync();
+        });
+    }
+
+    private Task ExportAsync(SnapshotEntry entry) => StartAsync(
+        () => entry.TargetId is { } targetId ? Control.StartExportAsync(targetId, entry.Row.Id) : Control.StartEnvironmentExportAsync(entry.Row.Id),
+        OnExportStarted);
+
+    private async Task DiscardExportAsync()
+    {
+        await Control.DiscardExportAsync();
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task DeleteSnapshotAsync(SnapshotEntry entry)
+    {
+        var only = snapshots.Count(s => s.TargetId == entry.TargetId) == 1;
+        var text = $"Soll die Sicherung vom {Format.Timestamp(entry.Row.Time)} aus „{entry.TargetName}“ endgültig gelöscht werden? Das lässt sich nicht rückgängig machen."
+            + (only ? " Es ist die einzige Sicherung an diesem Ziel: danach gibt es dort keine mehr." : "");
+        if (await Confirm.AskAsync("Sicherung löschen", text, "Ja, löschen"))
+        {
+            await StartAsync(
+                () => entry.TargetId is { } targetId ? Control.StartDeleteSnapshotAsync(targetId, entry.Row.Id) : Control.StartEnvironmentDeleteSnapshotAsync(entry.Row.Id),
+                OnChanged,
+                "Die Sicherung wird gelöscht.");
+        }
+    }
+
+    private async Task RestoreAsync()
+    {
+        if (selected is not { } entry || !BackupTexts.IsConfirmed(confirmation))
+        {
+            return;
+        }
+
+        await StartAsync(
+            () => entry.TargetId is { } targetId ? Control.StartRestoreAsync(targetId, entry.Row.Id) : Control.StartEnvironmentRestoreAsync(entry.Row.Id),
+            OnRestoreStarted);
+        if (errors is null)
+        {
+            CloseSnapshots();
+        }
+    }
+}

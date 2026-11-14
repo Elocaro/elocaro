@@ -1,0 +1,178 @@
+@implements IAsyncDisposable
+@using MudBlazor
+@using Elocaro.Application.Leases
+@inject IHandovers Handovers
+@inject IJSRuntime JS
+@* Signing of a handover protocol: on the screen (two signature fields) or with a scan of the signed printout. The page keeps the protocol; this component asks it to save first and hands back the result. *@
+<ErrorList Errors="errors" />
+<section>
+    <h2>Unterschreiben</h2>
+    <AppTextField @bind-Value="signedBy" Label="Name der unterschreibenden Person (Mieter)" Required="true" />
+    <p class="small">Unterschrift des Mieters (mit dem Finger oder Stift):</p>
+    <canvas @ref="tenantCanvas" class="signature-field" aria-label="Unterschrift des Mieters"></canvas>
+    <MudButton Variant="Variant.Text" OnClick="() => ClearAsync(tenantCanvas)" aria-label="Feld für die Mieter-Unterschrift leeren">Löschen</MudButton>
+    <p class="small">Unterschrift des Vermieters (optional):</p>
+    <canvas @ref="landlordCanvas" class="signature-field" aria-label="Unterschrift des Vermieters"></canvas>
+    <MudButton Variant="Variant.Text" OnClick="() => ClearAsync(landlordCanvas)" aria-label="Feld für die Vermieter-Unterschrift leeren">Löschen</MudButton>
+
+    @if (Warnings.Count > 0)
+    {
+        <Notice Level="NoticeLevel.Warning">
+            <strong>Bitte prüfen:</strong>
+            <ul>@foreach (var warning in Warnings) {<li>@warning</li>}</ul>
+            Die Zählerstände sind trotzdem richtig? Dann erneut unterschreiben und bestätigen.
+        </Notice>
+    }
+
+    <div class="form-row">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SignAsync(Warnings.Count > 0)">@(Warnings.Count > 0 ? "Trotzdem unterschreiben und ablegen" : "Unterschreiben und ablegen")</MudButton>
+    </div>
+</section>
+
+<section>
+    <h2>Oder: unterschriebenen Ausdruck ablegen</h2>
+    <p class="small">Protokoll als PDF ausdrucken, unterschreiben lassen und den Scan oder ein Foto hier hochladen. Der Name ist der des Unterzeichners.</p>
+    <div class="form-grid">
+        <AppFileUpload Text="Scan oder Foto wählen" Accept="application/pdf,image/*" OnSelected="f => scan = f" />
+    </div>
+    <MudButton Variant="Variant.Outlined" OnClick="() => SignScanAsync(Warnings.Count > 0)">Scan ablegen</MudButton>
+</section>
+
+@code {
+    private IJSObjectReference? module;
+    private Task? moduleReady;
+    private ElementReference tenantCanvas;
+    private ElementReference landlordCanvas;
+    private bool canvasReady;
+    private string? signedBy;
+    private FileSelection? scan;
+    private IReadOnlyList<string>? errors;
+
+    [Parameter, EditorRequired]
+    public Guid HandoverId { get; set; }
+
+    /// <summary>Name of the signer that is proposed (the tenants of the lease).</summary>
+    [Parameter]
+    public string? Proposal { get; set; }
+
+    /// <summary>Warnings of the last attempt; signing again confirms them.</summary>
+    [Parameter]
+    public IReadOnlyList<string> Warnings { get; set; } = [];
+
+    /// <summary>Saves the protocol first; <c>false</c> if that failed (the page shows why).</summary>
+    [Parameter, EditorRequired]
+    public Func<Task<bool>> Persist { get; set; } = default!;
+
+    /// <summary>Called with what the service answered to the signature.</summary>
+    [Parameter]
+    public EventCallback<HandoverSignResult> Signed { get; set; }
+
+    protected override void OnInitialized() => signedBy = Proposal;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!canvasReady && tenantCanvas.Id is not null)
+        {
+            canvasReady = true;
+            moduleReady = LoadSignatureAsync();
+            await moduleReady;
+        }
+    }
+
+    private async Task LoadSignatureAsync()
+    {
+        var loaded = await JS.TryImportAsync("/js/signature.js");
+        if (loaded is not null && await loaded.TryInvokeVoidAsync("init", tenantCanvas) && await loaded.TryInvokeVoidAsync("init", landlordCanvas))
+        {
+            module = loaded;
+        }
+    }
+
+    /// <summary>A quick click can arrive while the signature script is still loading: wait for it instead of ignoring the click.</summary>
+    private async Task WhenSignatureReadyAsync()
+    {
+        if (moduleReady is not null)
+        {
+            await moduleReady;
+        }
+    }
+
+    private async Task ClearAsync(ElementReference canvas)
+    {
+        await WhenSignatureReadyAsync();
+        if (module is not null)
+        {
+            await module.TryInvokeVoidAsync("clear", canvas);
+        }
+    }
+
+    private async Task SignAsync(bool confirm)
+    {
+        errors = null;
+        await WhenSignatureReadyAsync();
+        if (module is null || !await Persist())
+        {
+            return;
+        }
+
+        var tenantEmpty = await module.TryInvokeAsync<bool?>("isEmpty", tenantCanvas);
+        if (tenantEmpty is null)
+        {
+            return; // circuit is gone
+        }
+
+        if (tenantEmpty.Value)
+        {
+            errors = ["Bitte unterschreiben (Unterschrift des Mieters fehlt)."];
+            return;
+        }
+
+        var tenantPng = await module.TryInvokeAsync<string>("toPng", tenantCanvas);
+        var landlordEmpty = await module.TryInvokeAsync<bool?>("isEmpty", landlordCanvas);
+        var landlordPng = landlordEmpty == false ? await module.TryInvokeAsync<string>("toPng", landlordCanvas) : null;
+        if (tenantPng is null || landlordEmpty is null || (landlordEmpty == false && landlordPng is null))
+        {
+            return; // circuit is gone
+        }
+
+        var signature = new HandoverSignature
+        {
+            SignedByName = signedBy ?? "",
+            TenantSignature = Convert.FromBase64String(tenantPng),
+            LandlordSignature = landlordPng is null ? null : Convert.FromBase64String(landlordPng),
+        };
+        await Signed.InvokeAsync(await Handovers.SignAsync(HandoverId, signature, confirm));
+    }
+
+    private async Task SignScanAsync(bool confirm)
+    {
+        errors = null;
+        if (scan is null || scan.Length == 0)
+        {
+            errors = ["Bitte den Scan oder das Foto des unterschriebenen Protokolls auswählen."];
+            return;
+        }
+
+        if (!await Persist())
+        {
+            return;
+        }
+
+        await using var content = scan.Open();
+        await Signed.InvokeAsync(await Handovers.SignWithScanAsync(HandoverId, signedBy ?? "", scan.Name, content, confirm));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+        {
+            try
+            {
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+        }
+    }
+}
