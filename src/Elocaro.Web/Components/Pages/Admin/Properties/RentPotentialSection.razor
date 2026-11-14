@@ -1,0 +1,76 @@
+@using Elocaro.Application.Portfolio
+@using Elocaro.Domain.Portfolio
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IRentPotential Potential
+@* Rent potential: the rents of the running leases against the comparative rent from the rent index (§ 558 BGB), with cap limit and earliest date. *@
+<section id="rent-potential" aria-label="Mieterhöhungspotenzial">
+    <h2>Mieterhöhungspotenzial</h2>
+    @if (potential is null)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else if (potential.PerSquareMetre is null)
+    {
+        <p>Für das Potenzial den Mietspiegel-Wert (€/m²) im Objekt unter „Bearbeiten“ erfassen.</p>
+    }
+    else if (potential.Rows.Count == 0)
+    {
+        <p>Es laufen keine Mietverträge.</p>
+    }
+    else
+    {
+        <div class="kpi-row">
+            <KpiTile Label="Mietspiegel" Value="@(Format.Money(potential.PerSquareMetre) + " / m²")" />
+            <KpiTile Label="Mögliche Erhöhung je Monat" Value="@Format.Money(potential.TotalPotential)" />
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Einheit</th><th class="number">Miete</th><th class="number">Vergleichsmiete</th><th class="number">Kappungsgrenze</th><th class="number">Potenzial</th><th>Begrenzt durch</th><th>Frühester Zugang</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in potential.Rows)
+                    {
+                        <tr>
+                            <td>@row.Unit</td>
+                            <td class="number">@Format.Money(row.CurrentRent)</td>
+                            <td class="number">@Format.Money(row.ComparativeRent)</td>
+                            <td class="number">@Format.Money(row.CapLimit)</td>
+                            <td class="number">@(row.Limit == RentPotentialLimit.NotAssessable ? "–" : Format.Money(row.Potential))</td>
+                            <td title="@row.Calculation">@Text(row.Limit)</td>
+                            <td>@Format.Date(row.EarliestDeclaration)</td>
+                            <td>@if (row.Potential > 0m) {<a href="@($"/verwaltung/vertraege/{row.LeaseId}/mieterhoehung")">Erhöhung vorbereiten</a>}</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="small">
+            Vergleichsmiete = Mietspiegel-Wert × Wohnfläche. Die Kappungsgrenze erlaubt höchstens die Miete vor drei Jahren plus 20 % (15 %); erlaubt ist der niedrigere Wert.
+            Der Rechenweg steht als Hinweistext an „Begrenzt durch“ und im Export.
+        </p>
+        <div class="form-actions">
+            <a class="button" href="@($"/verwaltung/objekte/{PropertyId}/mieterhoehungspotenzial.csv")">CSV exportieren</a>
+        </div>
+    }
+</section>
+
+@code {
+    private RentPotential? potential;
+
+    [Parameter, EditorRequired]
+    public Guid PropertyId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync() => potential = await Potential.GetAsync((await Authentication).User, PropertyId);
+
+    private static string Text(RentPotentialLimit limit) => limit switch
+    {
+        RentPotentialLimit.ComparativeRent => "Vergleichsmiete",
+        RentPotentialLimit.CapLimit => "Kappungsgrenze (später mehr)",
+        RentPotentialLimit.NotAssessable => "nicht bewertbar",
+        _ => "kein Potenzial",
+    };
+}

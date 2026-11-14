@@ -3,12 +3,14 @@ using Elocaro.Application.Operations;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Operations;
+using Elocaro.Domain.Portfolio;
 using Elocaro.Web.Components.Account.Login;
 using Elocaro.Web.Components.Common;
 using Elocaro.Web.Components.Pages.Admin.Leases;
 using Elocaro.Web.Components.Pages.Admin.OperatingCosts;
 using Elocaro.Web.Components.Pages.Admin.Operations;
 using Elocaro.Web.Components.Pages.Admin.Settings;
+using Elocaro.Web.Finance;
 
 namespace Elocaro.Web.Tests;
 
@@ -113,5 +115,19 @@ public class PageLogicTests
         SetupWizardChoices.ApplyProfile(SetupProfile.Rooms, modules, options);
         Assert.True(options.Single(o => o.Option == AppOption.RoomRental).On);
         Assert.False(options.Single(o => o.Option == AppOption.RentModelIndex).On);
+    }
+
+    [Fact]
+    public void Rent_potential_csv_has_german_numbers_a_bom_and_neutralized_text()
+    {
+        var row = RentPotentialCalculator.Assess(
+            new RentPotentialInput(Guid.NewGuid(), "=Wohnung 1", 500m, 80m, 500m, 20, new DateOnly(2027, 8, 20), true), 10m, new DateOnly(2027, 2, 10));
+
+        var csv = RentPotentialEndpoint.Csv([row]);
+        var text = System.Text.Encoding.UTF8.GetString(csv, 3, csv.Length - 3);
+
+        Assert.Equal([0xEF, 0xBB, 0xBF], csv[..3]);
+        Assert.StartsWith("Mietobjekt;Kaltmiete;", text, StringComparison.Ordinal);
+        Assert.Contains("'=Wohnung 1;500,00;80,00;6,25;800,00;600,00;600,00;100,00;Kappungsgrenze;20.08.2027;01.11.2027;", text, StringComparison.Ordinal);
     }
 }

@@ -42,6 +42,10 @@ public sealed class PropertyInput
     [Range(15, 20, ErrorMessage = "Die Kappungsgrenze beträgt 15 oder 20 Prozent.")]
     public int RentCapPercent { get; set; } = 20;
 
+    /// <summary>Comparative rent per m² from the local rent index for a typical flat; the rent potential compares the rents with it.</summary>
+    [Range(typeof(decimal), "0.1", "200", ErrorMessage = "Bitte einen Betrag zwischen 0,10 und 200 € je m² angeben.", ParseLimitsInInvariantCulture = true)]
+    public decimal? RentIndexPerSquareMetre { get; set; }
+
     [StringLength(4000)]
     public string? Notes { get; set; }
 

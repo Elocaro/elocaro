@@ -80,6 +80,7 @@ app.MapEmergencyFolderEndpoint();
 app.MapUpdateCheckEndpoint();
 app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
+app.MapRentPotentialEndpoint();
 app.MapImportTemplateEndpoint();
 app.MapCareChecksEndpoint();
 app.MapNoticePdfEndpoint();

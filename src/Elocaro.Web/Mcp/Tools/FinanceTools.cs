@@ -19,6 +19,7 @@ namespace Elocaro.Web.Mcp.Tools;
 internal sealed class FinanceTools(
     IPortfolioFigures figures,
     IPropertyKeyFigures keyFigures,
+    IRentPotential rentPotential,
     ITenantAccounts accounts,
     IDunning dunning,
     IReceiptService receipts,
@@ -37,6 +38,11 @@ internal sealed class FinanceTools(
     [Description("Kennzahlen eines Objekts und Jahres: Nettomietrendite, Cashflow, Leerstands- und Rückstandsquote, mit Rechenweg (aus Anlage V, Darlehen und Mietverhältnissen).")]
     public async Task<PropertyKeyFigures?> GetPropertyKeyFiguresAsync([Description("Id des Objekts")] Guid propertyId, [Description("Jahr, z. B. 2026")] int year, CancellationToken cancellationToken) =>
         await keyFigures.GetAsync(http.HttpContext!.User, propertyId, year, cancellationToken);
+
+    [McpServerTool(Name = "get_rent_potential", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Mieterhöhungspotenzial eines Objekts: Miete je laufendem Vertrag gegen die Vergleichsmiete aus dem Mietspiegel, mit Kappungsgrenze, möglichem Betrag und frühestem Zugang eines Erhöhungsverlangens. Ohne erfassten Mietspiegel-Wert am Objekt keine Zeilen.")]
+    public async Task<RentPotential?> GetRentPotentialAsync([Description("Id des Objekts")] Guid propertyId, CancellationToken cancellationToken) =>
+        await rentPotential.GetAsync(http.HttpContext!.User, propertyId, cancellationToken);
 
     [McpServerTool(Name = "get_tenant_account", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Zeigt das Mieterkonto eines Mietvertrags: Sollstellungen, Zahlungen, Saldo und Fälliges.")]

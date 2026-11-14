@@ -79,6 +79,9 @@ public sealed class Property : Entity
     /// </summary>
     public int RentCapPercent { get; set; } = 20;
 
+    /// <summary>Comparative rent per m² and month from the local rent index (Mietspiegel) for a typical flat of the property; <c>null</c> = not entered.</summary>
+    public decimal? RentIndexPerSquareMetre { get; set; }
+
     public string? Notes { get; set; }
 
     /// <summary>Sender details for the documents of this property; empty = the standard profile.</summary>

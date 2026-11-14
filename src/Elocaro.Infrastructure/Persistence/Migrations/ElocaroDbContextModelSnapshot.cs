@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261114153059_RentReductions";
+    public override string LastMigrationId => "20261114234122_PropertyRentIndex";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -5885,6 +5885,11 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("integer")
                     .HasDefaultValue(20)
                     .HasColumnName("rent_cap_percent");
+
+                b.Property<decimal?>("RentIndexPerSquareMetre")
+                    .HasPrecision(8, 2)
+                    .HasColumnType("numeric(8,2)")
+                    .HasColumnName("rent_index_per_square_metre");
 
                 b.Property<string>("Street")
                     .IsRequired()

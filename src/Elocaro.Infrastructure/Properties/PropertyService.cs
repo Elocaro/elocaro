@@ -348,6 +348,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
         HeatingType = o.HeatingType,
         EnergySource = o.EnergySource,
         RentCapPercent = o.RentCapPercent,
+        RentIndexPerSquareMetre = o.RentIndexPerSquareMetre,
         Notes = o.Notes,
         LandlordProfileId = o.LandlordProfileId,
     };
@@ -380,6 +381,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
         o.HeatingType = d.HeatingType;
         o.EnergySource = d.EnergySource;
         o.RentCapPercent = d.RentCapPercent is 15 ? 15 : 20;
+        o.RentIndexPerSquareMetre = d.RentIndexPerSquareMetre;
         o.Notes = TrimToNull(d.Notes);
         o.LandlordProfileId = d.LandlordProfileId;
     }

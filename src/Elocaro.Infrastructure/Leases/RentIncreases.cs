@@ -676,7 +676,7 @@ internal sealed class RentIncreases(ElocaroDbContext db, IPdfGenerator pdf, IDoc
         var people = await db.Set<Person>().AsNoTracking().Include(p => p.Addresses).Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
         var tenants = ids.Select(i => people.First(p => p.Id == i)).ToList();
         var landlord = await SenderProfiles.ForPropertyAsync(db, property.Id, cancellationToken);
-        return new Context(lease, rentalUnit, property, area, tenants, landlord ?? new LandlordProfile("(Vermieter fehlt)", "", "", ""),
+        return new Context(lease, rentalUnit, property, area, tenants, landlord ?? new LandlordProfile("(Vermieter fehlt)", "–", "–", "–"),
             string.Join(" und ", tenants.Select(p => p.DisplayName)), LetterParts.SalutationOf(tenants));
     }
 
