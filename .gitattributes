@@ -1,4 +1,7 @@
-# Skripte und Container-Dateien müssen auch bei Checkout unter Windows LF behalten (sonst laufen sie unter Linux nicht)
+# Alle Textdateien liegen im Repository und in der Arbeitskopie mit LF (wie es die .editorconfig verlangt), auch unter Windows.
+# Sonst meldet "dotnet format --verify-no-changes" jede Zeile, und Skripte und Container-Dateien laufen unter Linux nicht.
+* text=auto eol=lf
+
 *.sh text eol=lf
 Dockerfile text eol=lf
 Caddyfile* text eol=lf
