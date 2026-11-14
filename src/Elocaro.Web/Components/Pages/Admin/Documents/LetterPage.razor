@@ -139,11 +139,8 @@
 
     private bool Blocked => readiness.Any(i => i.Blocking);
 
-    private async Task ReloadAsync()
-    {
-        await OnInitializedAsync();
-        StateHasChanged();
-    }
+    // Handler of ReadinessNotice.OnFixed: the page renders again once an event callback has run.
+    private Task ReloadAsync() => OnInitializedAsync();
 
     protected override async Task OnInitializedAsync()
     {

@@ -323,7 +323,6 @@ else
         templates = (await Templates.ListAsync()).Where(t => t.Kind == TemplateKind.RentIncrease).ToList();
         SelectTemplate();
         readiness = await Readiness.CheckAsync(TemplateKind.RentIncrease, Id);
-        StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
