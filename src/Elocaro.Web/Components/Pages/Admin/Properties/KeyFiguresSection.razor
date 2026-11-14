@@ -1,0 +1,72 @@
+@using Elocaro.Application.Portfolio
+@using Elocaro.Domain.Portfolio
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IPropertyKeyFigures KeyFigures
+@inject TimeProvider Clock
+@* Key figures of the property for one year, calculated from the books (Anlage V, loans, acquisition, leases), with the way they are calculated. *@
+<section id="key-figures" aria-label="Kennzahlen">
+    <div class="form-grid">
+        <AppSelect T="int" Value="year" ValueChanged="YearChangedAsync" Label="Jahr" Items="years" />
+    </div>
+    @if (figures is null)
+    {
+        <p class="loading" role="status">Wird geladen …</p>
+    }
+    else
+    {
+        <div class="kpi-row">
+            <KpiTile Label="Nettomietrendite" Value="@(figures.NetYield is { } yield ? Percent(yield) : "–")" Note="@(figures.NetYield is null ? "Kaufpreis unter Steuer → Anschaffung erfassen" : null)" />
+            <KpiTile Label="Cashflow" Value="@Format.Money(figures.Cashflow)" Level="@(figures.Cashflow < 0m ? NoticeLevel.Warning : null)" />
+            <KpiTile Label="Leerstand" Value="@(figures.VacancyPercent is { } vacancy ? Percent(vacancy) : "–")" />
+            <KpiTile Label="Rückstände" Value="@(figures.ArrearsPercent is { } arrears ? Percent(arrears) : "–")" />
+        </div>
+        <details class="explain">
+            <summary>So werden die Kennzahlen berechnet</summary>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>Größe</th><th class="number">Wert</th><th>Rechenweg</th></tr></thead>
+                    <tbody>
+                        @foreach (var step in figures.Steps)
+                        {
+                            <tr><td>@step.Label</td><td class="number">@(step.Label.EndsWith("(%)", StringComparison.Ordinal) ? Percent(step.Amount) : Format.Money(step.Amount))</td><td>@step.Formula</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p class="small">
+                Einnahmen und Kosten stammen aus der Anlage V desselben Jahres (Zuflussprinzip), Zinsen und Tilgung aus den Darlehen des Objekts.
+                Umlagefähige Kosten (Betriebskosten, Grundsteuer, Versicherung) zählen nicht zur Nettomiete. Erhaltungsaufwand steht wie in der Anlage V im Jahr der Verteilung.
+            </p>
+        </details>
+    }
+</section>
+
+@code {
+    private PropertyKeyFigures? figures;
+    private int year;
+    private IReadOnlyList<int> years = [];
+
+    [Parameter, EditorRequired]
+    public Guid PropertyId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> Authentication { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var thisYear = Clock.GetLocalNow().Year;
+        years = [.. Enumerable.Range(thisYear - 4, 5).Reverse()];
+        year = thisYear - 1;
+        await LoadAsync();
+    }
+
+    private async Task YearChangedAsync(int value)
+    {
+        year = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => figures = await KeyFigures.GetAsync((await Authentication).User, PropertyId, year);
+
+    private static string Percent(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) + " %";
+}

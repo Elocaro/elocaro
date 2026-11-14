@@ -161,6 +161,9 @@ else
 </section>
 
     </MudTabPanel>
+    <MudTabPanel Text="Kennzahlen" Visible="@(figures is not null && ModuleState.IsEnabled(AppModule.Tax))">
+        <KeyFiguresSection PropertyId="Id" />
+    </MudTabPanel>
     <MudTabPanel Text="Flächen">
 <AreaSection Save="input => Admin.SetAreaAsync(Id, input)" OnSaved="LoadAsync" Current="property.Area" History="property.AreaHistory"
                  AreaText="Gesamtfläche" AdditionalText="Gemeinschaftsfläche" AdditionalHint="Treppenhaus, Keller, Waschküche …" />

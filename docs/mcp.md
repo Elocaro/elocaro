@@ -85,6 +85,7 @@ Alle Werkzeuge sind schreibgeschützt (`readOnlyHint`).
 | `list_todos` | Stammdaten oder Finanzen | Dashboard-Hinweise; jede Quelle liefert nur, was der Umfang des Tokens erlaubt |
 | `list_deadlines` | Stammdaten oder Finanzen | Fristen und Termine, nach Recht gefiltert |
 | `get_portfolio_figures` | Finanzen | Kennzahlen des Bestands |
+| `get_property_key_figures` | Finanzen | Kennzahlen eines Objekts und Jahres (Nettomietrendite, Cashflow, Leerstand, Rückstände) mit Rechenweg |
 | `get_tenant_account`, `list_open_items` | Finanzen | Mieterkonto, offene Posten |
 | `get_dunning_overview` | Finanzen | Mahnwesen |
 | `search_receipts` | Finanzen | Belege |

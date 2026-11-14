@@ -6,6 +6,7 @@ using Elocaro.Application.OperatingCosts;
 using Elocaro.Application.Portfolio;
 using Elocaro.Application.Receipts;
 using Elocaro.Application.Statements;
+using Elocaro.Domain.Portfolio;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
@@ -17,6 +18,7 @@ namespace Elocaro.Web.Mcp.Tools;
 [Authorize(Policy = Policies.Finance)]
 internal sealed class FinanceTools(
     IPortfolioFigures figures,
+    IPropertyKeyFigures keyFigures,
     ITenantAccounts accounts,
     IDunning dunning,
     IReceiptService receipts,
@@ -30,6 +32,11 @@ internal sealed class FinanceTools(
     [Description("Kennzahlen des Bestands: Einheiten, Vermietungsstand, Sollmiete, Zahlungseingang des Monats, Rückstände.")]
     public async Task<PortfolioFigures?> GetPortfolioFiguresAsync(CancellationToken cancellationToken) =>
         await figures.FiguresAsync(http.HttpContext!.User, cancellationToken);
+
+    [McpServerTool(Name = "get_property_key_figures", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Kennzahlen eines Objekts und Jahres: Nettomietrendite, Cashflow, Leerstands- und Rückstandsquote, mit Rechenweg (aus Anlage V, Darlehen und Mietverhältnissen).")]
+    public async Task<PropertyKeyFigures?> GetPropertyKeyFiguresAsync([Description("Id des Objekts")] Guid propertyId, [Description("Jahr, z. B. 2026")] int year, CancellationToken cancellationToken) =>
+        await keyFigures.GetAsync(http.HttpContext!.User, propertyId, year, cancellationToken);
 
     [McpServerTool(Name = "get_tenant_account", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Zeigt das Mieterkonto eines Mietvertrags: Sollstellungen, Zahlungen, Saldo und Fälliges.")]

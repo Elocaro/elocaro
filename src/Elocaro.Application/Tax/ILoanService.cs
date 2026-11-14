@@ -168,7 +168,8 @@ public sealed record LoanDetail(
     public IReadOnlyList<BookedInstalment> Booked { get; init; } = [];
 }
 
-public sealed record FinancingExpenses(decimal Interest, decimal OneOffCosts)
+/// <param name="Repayment">Repayment of the year (share of the property); no expense, but part of the cash flow.</param>
+public sealed record FinancingExpenses(decimal Interest, decimal OneOffCosts, decimal Repayment = 0m)
 {
     public decimal Total => Interest + OneOffCosts;
 }

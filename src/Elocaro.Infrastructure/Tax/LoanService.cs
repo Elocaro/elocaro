@@ -221,6 +221,7 @@ internal sealed class LoanService(ElocaroDbContext db) : ILoanService
     {
         var loans = await db.Set<Loan>().AsNoTracking().Where(d => d.PropertyId == propertyId).ToListAsync(cancellationToken);
         var interest = 0m;
+        var repayment = 0m;
         foreach (var loan in loans)
         {
             var extras = await db.Set<LoanExtraPayment>().AsNoTracking().Where(s => s.LoanId == loan.Id).ToListAsync(cancellationToken);
@@ -228,12 +229,13 @@ internal sealed class LoanService(ElocaroDbContext db) : ILoanService
             var plan = LoanCalculator.Calculate(loan.ToCalculation(), extras.Select(s => s.ToCalculation()).ToList());
             var row = YearsOf(plan, certificates).SingleOrDefault(j => j.Year == year);
             interest += Math.Round((row?.Interest ?? 0m) * loan.SharePercent / 100m, 2, MidpointRounding.AwayFromZero);
+            repayment += Math.Round((row?.Repayment ?? 0m) * loan.SharePercent / 100m, 2, MidpointRounding.AwayFromZero);
         }
 
         var oneOff = await db.Set<FinancingCost>().AsNoTracking()
             .Where(k => k.PropertyId == propertyId && k.Date.Year == year)
             .SumAsync(k => k.Amount, cancellationToken);
-        return new FinancingExpenses(interest, oneOff);
+        return new FinancingExpenses(interest, oneOff, repayment);
     }
 
     /// <summary>Plan years merged with certificates: a certificate replaces the calculated interest and balance.</summary>

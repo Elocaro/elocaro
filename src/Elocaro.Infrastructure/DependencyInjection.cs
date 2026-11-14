@@ -249,6 +249,7 @@ public static class DependencyInjection
         services.AddScoped<IDemoData, Setup.DemoData>();
         services.AddScoped<IDeposits, Leases.Deposits>();
         services.AddScoped<IRentReductions, Finance.RentReductions>();
+        services.AddScoped<IPropertyKeyFigures, Portfolio.PropertyKeyFiguresService>();
         services.AddScoped<ITodoSource, Leases.DepositTodos>();
         services.AddScoped<ITodoSource, Legal.LegalReferenceTodos>();
     }

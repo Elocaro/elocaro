@@ -18,6 +18,7 @@ Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. W
 |---|---|---|
 | Mieter anlegen | Bestand → Personen → Neu | Name, Anrede, Anschrift, E-Mail; danach im Vertrag wählen |
 | Zahlung zuordnen | Geld → Bank → Zuordnen | Vorschlag bestätigen; mit Regeln geht es künftig automatisch. Barzahlungen im Mieterkonto des Vertrags |
+| Kennzahlen eines Objekts ansehen | Bestand â Objekt â Reiter âKennzahlenâ | Jahr wÃ¤hlen; Rendite, Cashflow, Leerstand und RÃ¼ckstÃ¤nde samt Rechenweg. FÃ¼r die Rendite vorher unter Steuer die Anschaffung erfassen |
 | Mietminderung erfassen | Vertrag â Mieterkonto â Reiter âMinderungâ | Mangel, Zeitraum und Quote (Prozent der Bruttomiete) oder Monatsbetrag eintragen, optional das Ticket als Nachweis wÃ¤hlen, dann den Status setzen: âAnerkanntâ bucht je Monat eine Gutschrift, âBestrittenâ bucht nichts, mahnt den einbehaltenen Betrag aber auch nicht. Details: Fachlichkeit â Finanzen |
 | Beleg erfassen | Geld → Belege → Beleg erfassen | Rechnung hochladen, Lieferant, Datum und Brutto eintragen und gleich unter „Zuordnung“ Kostenart und Objekt wählen; bei mehreren Kostenarten den Betrag aufteilen. Die Anzeige unter der Zuordnung nennt, was noch fehlt |
 | Nebenkosten abrechnen | Belege, dann Objekt → Abrechnung | Zeitraum, Kostenarten, Verteilung prüfen; Zugang beim Mieter binnen zwölf Monaten nach Ende des Zeitraums |
