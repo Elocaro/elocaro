@@ -182,10 +182,10 @@ public sealed class BackupEngineTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(environment.Settings.DataPath, "old.pdf"), "old", Ct);
         environment.Runner.Script["restic restore"] = _ =>
         {
-            var dump = environment.Settings.RestoreDir + Path.Combine(environment.Settings.WorkDir, "elocaro.dump");
+            var dump = BackupEngine.RestoredPath(environment.Settings.RestoreDir, Path.Combine(environment.Settings.WorkDir, "elocaro.dump"));
             Directory.CreateDirectory(Path.GetDirectoryName(dump)!);
             File.WriteAllText(dump, "dump");
-            Directory.CreateDirectory(environment.Settings.RestoreDir + environment.Settings.DataPath);
+            Directory.CreateDirectory(BackupEngine.RestoredPath(environment.Settings.RestoreDir, environment.Settings.DataPath));
             return new ProcessResult(0, string.Empty);
         };
 
@@ -196,6 +196,25 @@ public sealed class BackupEngineTests : IDisposable
         Assert.False(Directory.Exists(environment.Settings.RestoreDir));
         var chown = environment.Runner.Calls.Single(c => c.File == "chown");
         Assert.Equal("1654:1654", chown.Arguments[1]);
+    }
+
+    [Fact]
+    public void Restored_path_keeps_a_posix_path_below_the_restore_target()
+    {
+        Assert.Equal("/restore/srv/data/file.pdf", BackupEngine.RestoredPath("/restore", "/srv/data/file.pdf"));
+    }
+
+    [Fact]
+    public void Restored_path_turns_a_windows_drive_into_a_directory_like_restic()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            // Drive letters only form a path root on Windows; there the layout below is what restic produces.
+            Assert.Equal(@"/restore" + @"C:\data", BackupEngine.RestoredPath("/restore", @"C:\data"));
+            return;
+        }
+
+        Assert.Equal(@"D:\restore\C\data\file.pdf", BackupEngine.RestoredPath(@"D:\restore", @"C:\data\file.pdf"));
     }
 
     [Fact]

@@ -253,7 +253,7 @@ public sealed partial class BackupEngine(IProcessRunner runner, BackupSettings s
             Report(report, RestoreSteps, 1);
             BackupLog.FetchingSnapshot(logger, snapshot);
             await RunAsync("restic", ["restore", snapshot, "--host", settings.Hostname, "--tag", BackupSettings.Tag, "--target", settings.RestoreDir], environment, cancellationToken);
-            var dump = settings.RestoreDir + Path.Combine(settings.WorkDir, settings.Database + ".dump");
+            var dump = RestoredPath(settings.RestoreDir, Path.Combine(settings.WorkDir, settings.Database + ".dump"));
             if (!File.Exists(dump))
             {
                 throw new BackupException($"Die Sicherung enthält keinen Datenbank-Dump ({Path.Combine(settings.WorkDir, settings.Database + ".dump")}).");
@@ -279,7 +279,7 @@ public sealed partial class BackupEngine(IProcessRunner runner, BackupSettings s
                 }
             }
 
-            var restoredFiles = settings.RestoreDir + settings.DataPath;
+            var restoredFiles = RestoredPath(settings.RestoreDir, settings.DataPath);
             if (Directory.Exists(restoredFiles))
             {
                 await RunAsync("cp", ["-a", restoredFiles + "/.", settings.DataPath + "/"], null, cancellationToken);
@@ -295,6 +295,22 @@ public sealed partial class BackupEngine(IProcessRunner runner, BackupSettings s
                 Directory.Delete(settings.RestoreDir, recursive: true);
             }
         }
+    }
+
+    /// <summary>
+    /// Returns where <c>restic restore --target</c> puts an absolute path of the snapshot. Restic keeps the
+    /// absolute path below the target: <c>/srv/data</c> lands in <c>{target}/srv/data</c>, and on Windows the
+    /// drive becomes a directory, so <c>C:\data</c> lands in <c>{target}\C\data</c>.
+    /// </summary>
+    internal static string RestoredPath(string restoreDir, string absolutePath)
+    {
+        var root = Path.GetPathRoot(absolutePath);
+        if (root is not [_, ':', ..])
+        {
+            return restoreDir + absolutePath;
+        }
+
+        return Path.Combine(restoreDir, root[..1], absolutePath[root.Length..]);
     }
 
     private async Task EnsureRepositoryAsync(IReadOnlyDictionary<string, string> environment, bool create, CancellationToken cancellationToken)
