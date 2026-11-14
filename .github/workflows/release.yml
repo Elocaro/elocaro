@@ -86,7 +86,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           version="${TAG#v}"
-          .github/scripts/release-notes.sh "$TAG" > notes.md
+          bash .github/scripts/release-notes.sh "$TAG" > notes.md
           if [ ! -s notes.md ]; then
             echo "Keine Änderungen seit der vorigen Version." > notes.md
           fi
