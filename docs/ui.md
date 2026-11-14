@@ -201,14 +201,16 @@ Filter und Suche einer Liste oder Auswertung stehen in `<FilterBar>`: GET-Formul
 
 Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Components/Pages/Admin/People/ListPage.razor`.
 
-- `@rendermode InteractiveServer`, `@using MudBlazor` in der Seite (nicht global), Inhalt in `<InteractiveShell>` (Provider, Hell/Dunkel, Marker `data-interactive`).
+- `@rendermode InteractiveServer`, `@using MudBlazor` in der Seite (nicht global), Inhalt in `<InteractiveShell>` (Provider, Hell/Dunkel, Marker `data-interactive`). Ein Architekturtest meldet interaktive Seiten ohne `<InteractiveShell>` und ein `@using MudBlazor` in einer `_Imports.razor`.
 - MudBlazor-Komponenten dürfen direkt verwendet werden. Look über `M3Theme` und die Tokens, keine eigenen Farben an der Komponente.
-- Eigene Komponenten haben **keine MudBlazor-Typen in der Schnittstelle**, damit sie ersetzbar bleiben.
-- Rückmeldung nach einer Aktion über `Notifier` (`Success`, `Info`, `Warning`, `Error`), nicht über `StatusMessage`/Redirect-Cookie.
+- Eigene Komponenten haben **keine MudBlazor-Typen in der Schnittstelle**, damit sie ersetzbar bleiben (ein Architekturtest prüft alle `[Parameter]` und `[CascadingParameter]`; einzige Ausnahme ist die `IMudDialogInstance`, die der Dialogdienst jedem Dialog selbst übergibt).
+- Rückmeldung nach einer Aktion über `Notifier` (`Success`, `Info`, `Warning`, `Error`), nicht über `StatusMessage`/Redirect-Cookie (eine Circuit kann keine Cookies setzen). Nach einer Weiterleitung hängt die Seite `?meldung=<Schlüssel>` an die URL (siehe unten); `InteractiveShell` der Zielseite zeigt den Text als Snackbar. `<StatusMessage>` und `Redirector` gehören auf statische Seiten, ein Architekturtest meldet sie in interaktiven Seiten.
+- Formulare sind ein `EditForm` mit `OnValidSubmit`; `[SupplyParameterFromForm]` und `@formname` gehören zu statischen Seiten und sind in interaktiven Seiten verboten (Architekturtest).
+- Anmeldung, Magic Link, Abmeldung und die Konto-Seiten bleiben statisch, weil sich Cookies nicht über eine Circuit setzen lassen (Architekturtest für alles unter `Components/Account`). Bekannte Ausnahme: die Wiederherstellung bei der Einrichtung (`RestoreSetup`); die Liste im Test darf nur schrumpfen.
 - Die Query-Parameter liefern nur den Startwert; danach hält die Seite ihren Zustand. Live-Eingaben mit `DebounceInterval` und `OnDebounceIntervalElapsed`, nicht mit `ValueChanged` allein.
 - Riskante Aktionen auch hier mit Rückfrage über den Dienst `Confirmations` (`AskAsync`), Zeilenaktionen als `MudButton` mit `aria-label`.
 - Assistenten halten ihre Schritte als Zustand der Seite (Weiter/Zurück ohne Seitenwechsel); der Startschritt kommt aus dem Query-Parameter.
-- Keine `return;` im Markup innerhalb von `<InteractiveShell>`: Lade-, Nicht-gefunden- und Inhaltszustand als `if / else if / else`.
+- Keine `return;` im Markup innerhalb von `<InteractiveShell>`: Lade-, Nicht-gefunden- und Inhaltszustand als `if / else if / else` (Architekturtest).
 - Steuerelemente mit `ValueExpression` brauchen ein umgebendes `EditForm`; ohne Validierung genügt `Value`/`ValueChanged`.
 
 **Eingabekomponenten** (`Components/Controls`): `AppTextField`, `AppSelect<T>`, `AppDateField`, `AppTimeField` (Uhrzeit mit Uhr-Auswahl, `TimeOnly?`), `AppNumberField<T>`, `AppMonthField` (Monat als `yyyy-MM`), `AppCheckBox`, `AppSwitch` (Ein/Aus mit Erklärung, zeigt weitere Einstellungen an), `AppRadioGroup<T>`, `AppFileUpload` (auch mehrere Dateien). Dazu `OptionSelect` (Auswahl aus `(Id, Name)`-Listen, z. B. Objekt, Zähler). Sie sind der Standard in interaktiven Formularen (einheitlicher Look, Beschriftung im Rahmen, deutsche Zahlen und Datumsangaben) und haben nur einfache Parameter (`@bind-Value`, `Label`, `Hint`, `Required`, `Suffix`), keine MudBlazor-Typen. Einträge eines Auswahlfelds: `Items` und `Text`. Sie validieren über das umgebende `EditForm`. Eine Komponente, die den Wert selbst hält und einen eigenen Handler für `ValueChanged` nutzt, darf den Parameter nicht blind neu lesen (siehe `AppDateField`).
@@ -220,9 +222,11 @@ Grundlage: [ADR 0005](adr/0005-interaktive-seiten-mit-mudblazor.md). Muster: `Co
 - **Listen legen nie inline an:** Auf Listenseiten (Darlehen, Wartung, Hausmeister-Aufgaben, CSV-Profile, Umlageschlüssel, Zählerliste) steht „… anlegen“ als Schaltfläche im Seitenkopf und öffnet einen Dialog (`ShowFormAsync`); darunter steht kein Formular.
 - Anlegen und Bearbeiten zeigen dieselben Felder (dieselbe `*Editor`-Komponente); selten Gebrauchtes steht unter „Weitere Angaben“, nicht in einer abgespeckten Schnellanlage.
 - Dialog: `IDialogService.ShowAsync<…Dialog>`, Inhalt im `EditForm class="dialog-form"` (hält Inhalt scrollbar und Aktionen sichtbar), Erfolg → `Notifier.Success`, `MudDialog.Close(DialogResult.Ok(id))`, die Liste lädt neu. Fehler aus Diensten über `ErrorList` im Dialog.
-- Nach dem Speichern auf einer Seite weiterleiten: `Navigation.NavigateTo("…?meldung=gespeichert")`; `StatusMessage` der Zielseite zeigt den festen Text (`StatusMessage.Keys`: `gespeichert`, `angelegt`, `geloescht`, `importiert`, `verworfen`, `auszug-erfasst`, `objekt-angelegt`, `freigegeben`; neue Texte dort ergänzen). Freitext in der URL gibt es nicht.
+- Nach dem Speichern auf einer Seite weiterleiten: `Navigation.NavigateTo("…?meldung=gespeichert")`; die Zielseite zeigt den festen Text (interaktiv als Snackbar durch `InteractiveShell`, statisch durch `StatusMessage`; Schlüssel in `StatusMessage.Keys`: `gespeichert`, `angelegt`, `geloescht`, `importiert`, `verworfen`, `auszug-erfasst`, `objekt-angelegt`, `freigegeben`; neue Texte dort ergänzen). Freitext in der URL gibt es nicht.
 - Testen: Anlegen und Bearbeiten im Browser-Test (Dialog, Validierung, Snackbar, Audit-Benutzer); HTTP-Tests legen Daten über Dienste an.
 - Tests: Browser-Test auf `[data-interactive=true]` warten, dann bedienen; Debounce-Timer brauchen die vorgestellte Testuhr (`App.Clock`).
+
+Die mechanisch prüfbaren Regeln dieses Abschnitts stehen in `tests/Elocaro.Architecture.Tests/InteractiveUiRulesTests.cs` (Ergänzung zu den Regeln für statische Seiten in `UiRulesTests`).
 
 ## Seitentypen
 
