@@ -94,8 +94,8 @@ Regeln dazu:
 ## Module
 
 Ein Modul ist ein Ordner, der in Domain, Application und Infrastructure gleich heißt (`Leases`, `Bank`, `Metering` …). Module sind
-Namensräume, keine Assemblies, und teilen sich einen `ElocaroDbContext`: Technisch kann jedes Modul jede Tabelle lesen. Die Grenzen
-halten deshalb nur die Regeln unten.
+Namensräume, keine Assemblies, und teilen sich einen `ElocaroDbContext`: Technisch kann jedes Modul jede Tabelle lesen, und das ist gewollt ([ADR 0009](adr/0009-modulgrenzen-bei-gemeinsamem-dbcontext.md)). Die Grenzen
+halten deshalb nur die Regeln unten; verändert wird eine fremde Entität nur über die Schnittstelle ihres Moduls.
 
 Nicht jeder Ordner hat in jeder Schicht denselben Namen: Die Verträge von `Identity` liegen in `Application/Accounts`, die von `Mail` in
 `Application/Communication`; `Application/Todos` (Erweiterungspunkt des Dashboards), `Domain/Datev` (gehört fachlich zu `Tax`) und
@@ -210,9 +210,9 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
    schwierigeren: `PersonService` entscheidet beim Einrichten eines Zugangs über die Rolle und fragt dafür Verträge und Eigentümer
    ab (zuerst alle Fälle mit Tests festhalten, dann über `IPersonReference` mit einem typisierten Merkmal führen); der Belegungsplan
    gehört fachlich zu `Leases`; Bank ↔ Tax und Properties ↔ Receipts brauchen je eine schmale Schnittstelle oder eine Regel in der Domain.
-3. **Ein DbContext für alle Module.** Jedes Modul kann fremde Tabellen direkt abfragen und tut es auch. Solange das so ist, sind
-   Modulgrenzen eine Vereinbarung. Ein Verbot von `db.Set<FremdeEntität>()` wäre der nächste Schritt, verlangt aber für jede heutige
-   Querabfrage eine Schnittstelle.
+3. ~~Ein DbContext für alle Module.~~ Entschieden: Lesen fremder Tabellen bleibt erlaubt (423 Zugriffe in 101 Modulpaaren), die
+   Zyklen-Regeln bleiben die Grenze, fremde Entitäten werden nur über die Schnittstelle des Moduls verändert,
+   [ADR 0009](adr/0009-modulgrenzen-bei-gemeinsamem-dbcontext.md).
 4. ~~Regeln für interaktive Seiten fehlen.~~ Erledigt: `InteractiveUiRulesTests`, die Blazor-Analyzer sind wieder aktiv.
 5. **Große Seiten.** Elf Seiten und Komponenten haben mehr als 200 Zeilen `@code` (`Backup.razor` 530, `HandoverPage.razor` 320,
    `SetupWizard.razor` 290). Die Grenze gilt jetzt für alles Neue (`PageSizeRulesTests`); die elf sind eingefroren und noch nicht zerlegt.
