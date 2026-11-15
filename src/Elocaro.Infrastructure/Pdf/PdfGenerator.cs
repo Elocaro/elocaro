@@ -7,7 +7,6 @@ using Elocaro.Infrastructure.Documents;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Properties;
 using Elocaro.Infrastructure.Templates;
-using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Infrastructure.Pdf;
 

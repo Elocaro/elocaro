@@ -4,7 +4,6 @@ using Elocaro.Application.Common;
 using Elocaro.Application.Communication;
 using Elocaro.Application.Documents;
 using Elocaro.Application.Tickets;
-using Elocaro.Domain.Admin;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.People;

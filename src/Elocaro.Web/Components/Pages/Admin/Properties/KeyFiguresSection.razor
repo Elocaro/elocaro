@@ -38,8 +38,9 @@
                 Umlagefähige Kosten (Betriebskosten, Grundsteuer, Versicherung) zählen nicht zur Nettomiete. Erhaltungsaufwand steht wie in der Anlage V im Jahr der Verteilung.
             </p>
         </details>
+        @* Only now: both read through the same context of the request, so they must not load at the same time. *@
+        <RentPotentialSection PropertyId="PropertyId" />
     }
-    <RentPotentialSection PropertyId="PropertyId" />
 </section>
 
 @code {

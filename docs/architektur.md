@@ -121,7 +121,7 @@ Was wohin gehört, wenn es nicht offensichtlich ist:
 ### Erweiterungspunkte
 
 Wo ein Baustein oder ein oberes Modul etwas von vielen Fachmodulen braucht, fragt es eine Liste von Schnittstellen ab, statt die Module
-zu kennen. Jedes Modul liefert seine Implementierung und registriert sie in `DependencyInjection.cs`.
+zu kennen. Jedes Modul liefert seine Implementierung und registriert sie in seiner Registrierungsdatei `<Modul>/<Modul>Registration.cs`.
 
 | Schnittstelle | Wozu | Abnehmer |
 |---|---|---|
@@ -215,8 +215,7 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
    [ADR 0009](adr/0009-modulgrenzen-bei-gemeinsamem-dbcontext.md).
 4. ~~Regeln für interaktive Seiten fehlen.~~ Erledigt: `InteractiveUiRulesTests`, die Blazor-Analyzer sind wieder aktiv.
 5. ~~Große Seiten.~~ Erledigt (#190): Die elf Seiten mit mehr als 200 Zeilen `@code` sind zerlegt (Rechenkerne und Texte in Klassen neben der Seite, Abschnitte in Komponenten); `PageSizeRulesTests` gilt ohne Ausnahmen.
-6. **Eine Registrierungsdatei für alles.** `DependencyInjection.cs` hat 520 Zeilen und rund 170 Registrierungen. Eine
-   Erweiterungsmethode je Modul im Modulordner (`AddLeases()`) würde zeigen, was zu einem Modul gehört, und Merge-Konflikte verringern.
+6. ~~Eine Registrierungsdatei für alles.~~ Erledigt (#187): Jedes Modul registriert seine Dienste in `<Modul>/<Modul>Registration.cs` (`Add<Modul>Module`); `DependencyInjection.cs` ruft sie nur auf und hält Datenbank und Health-Checks. Die Reihenfolge der Aufrufe bestimmt die Reihenfolge der Erweiterungspunkt-Listen (z. B. Zählerverwendung). `ExtensionPointRulesTests` liest alle Registrierungsdateien.
 7. **Laufzeit.** Die Umstellung auf .NET 11 ist erfolgt (#163), die Pakete stehen aber noch auf `11.0.0-rc.3`. Stand 14. November 2026:
    EF Core und die ASP.NET-Core-Pakete gibt es als `11.0.0`, den Npgsql-Provider für EF Core nur als `11.0.0-rc.3`. Die Pakete werden
    gemeinsam angehoben, sobald der Provider freigegeben ist. Die frühere Begründung der Leitentscheidung („LTS“) gilt für .NET 11 nicht.

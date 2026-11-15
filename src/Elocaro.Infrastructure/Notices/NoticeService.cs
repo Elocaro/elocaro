@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Elocaro.Application.Common;
 using Elocaro.Application.Documents;
-using Elocaro.Application.Files;
 using Elocaro.Application.Notices;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Leases;

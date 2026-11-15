@@ -3,7 +3,6 @@ using Elocaro.Application.Accounts;
 using Elocaro.Application.Common;
 using Elocaro.Application.Documents;
 using Elocaro.Application.Portal;
-using Elocaro.Domain.Admin;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Documents;
 using Elocaro.Domain.Leases;
@@ -15,7 +14,6 @@ using Elocaro.Infrastructure.Identity;
 using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Properties;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Infrastructure.Portal;

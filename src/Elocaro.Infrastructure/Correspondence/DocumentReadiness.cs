@@ -4,7 +4,6 @@ using Elocaro.Domain.Common;
 using Elocaro.Domain.Documents;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Properties;
-using Elocaro.Infrastructure.Common;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

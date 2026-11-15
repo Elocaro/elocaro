@@ -6,7 +6,6 @@ using Elocaro.Application.Communication;
 using Elocaro.Application.Todos;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Leases;
-using Elocaro.Domain.People;
 using Elocaro.Infrastructure.Identity;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

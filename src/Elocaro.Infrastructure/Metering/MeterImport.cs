@@ -1,7 +1,5 @@
 using Elocaro.Application.Metering;
-using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
-using Elocaro.Domain.Properties;
 using Elocaro.Infrastructure.Common;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

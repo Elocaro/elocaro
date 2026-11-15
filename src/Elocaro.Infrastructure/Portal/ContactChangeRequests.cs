@@ -3,7 +3,6 @@ using Elocaro.Application.Accounts;
 using Elocaro.Application.Common;
 using Elocaro.Application.People;
 using Elocaro.Application.Todos;
-using Elocaro.Domain.Common;
 using Elocaro.Domain.People;
 using Elocaro.Infrastructure.Common;
 using Elocaro.Infrastructure.Persistence;

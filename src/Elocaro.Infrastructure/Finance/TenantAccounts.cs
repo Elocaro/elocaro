@@ -9,7 +9,6 @@ using Elocaro.Application.Todos;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Finance;
 using Elocaro.Domain.Leases;
-using Elocaro.Domain.People;
 using Elocaro.Infrastructure.Common;
 using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Persistence;

@@ -770,7 +770,7 @@ Ein schaltbares Fachmodul braucht drei Dinge:
 
 Im Code ist ein Modul ein Ordner, der in `Domain`, `Application` und `Infrastructure` gleich heißt (siehe [architektur.md](architektur.md#module)):
 Entitäten und Regeln in die Domain, Schnittstelle und Ein-/Ausgabemodelle in die Application, der Dienst (`internal`) in die Infrastructure
-mit Registrierung in `DependencyInjection.cs`. Braucht ein vorhandenes Modul etwas vom neuen (Hinweis fürs Dashboard, Termin, Verweis auf
+mit Registrierung in `<Modul>/<Modul>Registration.cs` (und einem Aufruf in `DependencyInjection.cs`, falls das Modul neu ist). Braucht ein vorhandenes Modul etwas vom neuen (Hinweis fürs Dashboard, Termin, Verweis auf
 eine Person), liefert das neue Modul eine Implementierung des passenden Erweiterungspunkts, statt dass das alte das neue kennt.
 Ein Endpunkt für Downloads nennt seine Richtlinie mit `RequireAuthorization(Policies.…)`.
 

@@ -4,7 +4,6 @@ using Elocaro.Application.Admin;
 using Elocaro.Application.Common;
 using Elocaro.Application.Metering;
 using Elocaro.Application.Todos;
-using Elocaro.Domain.Common;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.Properties;
 using Elocaro.Infrastructure.Common;

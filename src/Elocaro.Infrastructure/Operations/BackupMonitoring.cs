@@ -6,7 +6,6 @@ using Elocaro.Application.Operations;
 using Elocaro.Application.Todos;
 using Elocaro.Infrastructure.Identity;
 using Elocaro.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Quartz;

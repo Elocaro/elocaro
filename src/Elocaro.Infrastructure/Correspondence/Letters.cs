@@ -1,10 +1,8 @@
 using System.Net;
-using Elocaro.Application.Common;
 using Elocaro.Application.Communication;
 using Elocaro.Application.Documents;
 using Elocaro.Application.Finance;
 using Elocaro.Application.Leases;
-using Elocaro.Domain.Admin;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Documents;
 using Elocaro.Domain.Leases;

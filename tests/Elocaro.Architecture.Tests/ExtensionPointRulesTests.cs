@@ -5,7 +5,7 @@ namespace Elocaro.Architecture.Tests;
 /// <summary>
 /// Extension points are Application interfaces with several implementations that a consumer collects as a list (dashboard hints,
 /// deadlines, personal data, references to a person, file shares, usage of an option). Each implementation has to be registered: a
-/// class that implements the interface but is missing in <c>DependencyInjection.cs</c> compiles and is documented, but is never asked
+/// class that implements the interface but is missing in the <c>*Registration.cs</c> files of the modules compiles and is documented, but is never asked
 /// (this happened with the reading reports on the dashboard).
 /// </summary>
 public partial class ExtensionPointRulesTests
@@ -19,7 +19,7 @@ public partial class ExtensionPointRulesTests
     [MemberData(nameof(ExtensionPoints))]
     public void Every_implementation_of_an_extension_point_is_registered(string extensionPoint)
     {
-        var registrations = File.ReadAllText(Path.Combine(Repository.Infrastructure, "DependencyInjection.cs"));
+        var registrations = string.Concat(SourceFiles(Repository.Infrastructure).Where(f => f.EndsWith("Registration.cs", StringComparison.Ordinal) || f.EndsWith("DependencyInjection.cs", StringComparison.Ordinal)).Select(File.ReadAllText));
         var implementation = new Regex($@"class\s+(\w+)\s*(?:\([^)]*\))?\s*:\s*(?:[\w<>, ]+,\s*)?{extensionPoint}\b", RegexOptions.None, TimeSpan.FromSeconds(1));
         var implementations = SourceFiles(Repository.Infrastructure)
             .SelectMany(f => implementation.Matches(File.ReadAllText(f)).Select(m => m.Groups[1].Value))
@@ -29,7 +29,7 @@ public partial class ExtensionPointRulesTests
         var missing = implementations.Where(name => !Regex.IsMatch(registrations, $@"AddScoped<{extensionPoint},\s*(\w+\.)*{name}>", RegexOptions.None, TimeSpan.FromSeconds(1))).ToList();
 
         Assert.True(implementations.Count > 1, $"{extensionPoint} has no implementations; the rule would pass without checking anything.");
-        Assert.True(missing.Count == 0, $"{extensionPoint} implementations without registration in DependencyInjection.cs:\n" + string.Join("\n", missing));
+        Assert.True(missing.Count == 0, $"{extensionPoint} implementations without registration (<Module>Registration.cs):\n" + string.Join("\n", missing));
     }
 
     [Fact]

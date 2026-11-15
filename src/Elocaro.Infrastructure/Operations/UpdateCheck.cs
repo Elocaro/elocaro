@@ -6,7 +6,6 @@ using Elocaro.Application.Accounts;
 using Elocaro.Application.Admin;
 using Elocaro.Application.Operations;
 using Elocaro.Application.Todos;
-using Elocaro.Infrastructure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
