@@ -103,7 +103,7 @@ hinweg.
 | Art | Module | Regel |
 |---|---|---|
 | **Bausteine** | Common, Admin (Modulschalter, Gates), Accounts, Files, Communication, Templates, Notifications, Audit | verweisen auf kein Fachmodul. Keine eingefrorenen Ausnahmen mehr: Die Zuordnung der Mietmodelle zu Optionen liegt als `LeaseOptions` bei `Application/Leases` |
-| **Fachmodule** | Properties, People, Leases, Finance, Bank, Receipts, Documents, Metering, Heating, OperatingCosts, Statements, Tax, Tickets, Notices, Deadlines, Portal, Privacy; dazu die technischen Dienste Operations, Pdf und Jobs | keine neuen wechselseitigen Abhängigkeiten |
+| **Fachmodule** | Properties, People, Leases, Finance, Bank, Receipts, Documents, Metering, Heating, OperatingCosts, Statements, Payments, Tax, Tickets, Notices, Deadlines, Portal, Privacy; dazu die technischen Dienste Operations, Pdf und Jobs | keine neuen wechselseitigen Abhängigkeiten |
 | **Oberste Module** | Setup (Import, Beispieldaten, Einrichtung), Portfolio (Kennzahlen, Navigationskontext), Legal (Rechtsstände), Handover (Übergabeprotokoll), Correspondence (Serienbriefe, Dokumentbereitschaft), Emergency (Notfallmappe) | lesen aus vielen Modulen; kein anderes Modul verwendet sie |
 | **Persistenz** | Persistence (DbContext, Konfigurationen, Migrationen) | gehört allen, zählt nicht als Modul |
 

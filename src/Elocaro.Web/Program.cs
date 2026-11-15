@@ -82,6 +82,7 @@ app.MapAccessReportEndpoint();
 app.MapOpenItemsEndpoint();
 app.MapRentPotentialEndpoint();
 app.MapKeyFiguresEndpoint();
+app.MapPaymentOrderEndpoint();
 app.MapImportTemplateEndpoint();
 app.MapCareChecksEndpoint();
 app.MapNoticePdfEndpoint();

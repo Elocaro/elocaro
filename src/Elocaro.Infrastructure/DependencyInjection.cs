@@ -23,6 +23,7 @@ using Elocaro.Infrastructure.Notices;
 using Elocaro.Infrastructure.Notifications;
 using Elocaro.Infrastructure.OperatingCosts;
 using Elocaro.Infrastructure.Operations;
+using Elocaro.Infrastructure.Payments;
 using Elocaro.Infrastructure.Pdf;
 using Elocaro.Infrastructure.People;
 using Elocaro.Infrastructure.Persistence;
@@ -87,6 +88,7 @@ public static class DependencyInjection
         services.AddLeasesModule();
         services.AddPropertiesModule();
         services.AddFinanceModule();
+        services.AddPaymentsModule();
         services.AddTaxModule();
         services.AddDatevModule();
         services.AddLegalModule();

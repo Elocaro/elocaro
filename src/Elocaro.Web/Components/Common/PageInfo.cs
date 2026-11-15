@@ -492,6 +492,17 @@ public static class PageInfoCatalog
                 "Passt ein Import nicht, sehen Sie vor dem Übernehmen eine Vorschau mit den erkannten Spalten.")]), $"{Admin}/bank/csv-profile");
 
         // ---- Finance
+        Add(new("Überweisungen",
+            "Offene Rechnungen, Guthaben von Mietern und Kautionen als SEPA-Datei für das Online-Banking.",
+            [
+                new("Gut zu wissen",
+                    "Elocaro überweist nichts selbst und bucht nichts. Sie laden die Datei herunter, laden sie im Online-Banking hoch und geben die Zahlungen dort frei.",
+                    "Bezahlt wird von dem Konto im Vermieterprofil. Ohne IBAN beim Empfänger ist die Zeile gesperrt.",
+                    "Die Auszahlung ordnen Sie später im Bankabgleich zu. Bei Kautionen vorher Verrechnungen erfassen."),
+                new("Hinweis",
+                    "Die Datei enthält IBANs. Bewahren Sie sie sicher auf und löschen Sie sie nach dem Hochladen."),
+            ]), $"{Admin}/finanzen/ueberweisungen");
+
         Add(new("Offene Posten",
             "Fällige, nicht vollständig bezahlte Forderungen, nach Mietverhältnis gruppiert.",
             [new("Gut zu wissen",

@@ -1,0 +1,95 @@
+@page "/verwaltung/finanzen/ueberweisungen"
+@using Elocaro.Application.Payments
+@using Elocaro.Web.Finance
+@inject IPaymentOrders Orders
+@inject TimeProvider Clock
+
+<PageHeader Title="Überweisungen" Subtitle="Offene Rechnungen, Guthaben und Kautionen als SEPA-Überweisungsdatei für das Online-Banking." />
+
+<p class="help">
+    Elocaro überweist nichts selbst und bucht nichts. Sie wählen aus, laden die Datei herunter und laden sie im Online-Banking hoch; dort prüfen und
+    geben Sie die Zahlungen frei. Ob bezahlt wurde, zeigt später der Bankabgleich. Die Datei enthält IBANs: sicher aufbewahren und nach dem Hochladen löschen.
+    Die Erstellung wird bei jeder betroffenen Person im Zugriffsprotokoll vermerkt.
+</p>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <Notice Level="NoticeLevel.Error">@Error</Notice>
+}
+
+@if (candidates is { Count: 0 })
+{
+    <EmptyState Text="Nichts zu überweisen: keine offene Rechnung, kein Guthaben und keine Kaution zur Rückzahlung." />
+}
+else if (candidates is not null)
+{
+    <form method="post" action="@PaymentOrderEndpoint.Path" data-enhance="false">
+        <AntiforgeryToken />
+        @foreach (var group in candidates.GroupBy(c => c.Source).OrderBy(g => g.Key))
+        {
+            <section aria-labelledby="@($"group-{group.Key}")">
+                <h2 id="@($"group-{group.Key}")">@Title(group.Key)</h2>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th></th><th>Empfänger</th><th>Wofür</th><th>Fällig</th><th class="number">Betrag</th></tr></thead>
+                        <tbody>
+                            @foreach (var candidate in group)
+                            {
+                                var id = "pick-" + candidate.Key.Replace(':', '-');
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" id="@id" name="auswahl" value="@candidate.Key" disabled="@(candidate.Problem is not null)" aria-label="@($"{candidate.Payee}, {candidate.Reference}, {Format.Money(candidate.Amount)} auswählen")" />
+                                    </td>
+                                    <td>@candidate.Payee</td>
+                                    <td>
+                                        @candidate.Reference
+                                        @if (candidate.Problem is { } problem)
+                                        {
+                                            <br /><span class="small field-error">@problem</span>
+                                        }
+                                        else if (candidate.Notice is { } notice)
+                                        {
+                                            <br /><span class="small">@notice</span>
+                                        }
+                                    </td>
+                                    <td>@(candidate.DueOn is { } due ? Format.Date(due) : "–")</td>
+                                    <td class="number">@Format.Money(candidate.Amount)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+
+        <section>
+            <h2>Datei erstellen</h2>
+            <div class="field">
+                <label for="ausfuehrung">Ausführungstag</label>
+                <input type="date" id="ausfuehrung" name="ausfuehrung" value="@Tomorrow.ToString("yyyy-MM-dd")" min="@Today.ToString("yyyy-MM-dd")" required />
+                <span class="field-hint">Tag, an dem die Bank überweisen soll. Gezahlt wird von dem Konto im Vermieterprofil.</span>
+            </div>
+            <button type="submit" class="button button-primary">Überweisungsdatei herunterladen</button>
+        </section>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<PaymentCandidate>? candidates;
+
+    [SupplyParameterFromQuery(Name = "fehler")]
+    private string? Error { get; set; }
+
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    private DateOnly Tomorrow => Today.AddDays(1);
+
+    protected override async Task OnInitializedAsync() => candidates = await Orders.CandidatesAsync();
+
+    private static string Title(PaymentSource source) => source switch
+    {
+        PaymentSource.Receipt => "Offene Rechnungen",
+        PaymentSource.TenantCredit => "Guthaben von Mietern",
+        _ => "Kautionen zur Rückzahlung",
+    };
+}
