@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@playwright/mcp@0.0.85"]
+    },
+    "postgres": {
+      "command": "uvx",
+      "args": ["postgres-mcp==0.3.0", "--access-mode=restricted"],
+      "env": {
+        "DATABASE_URI": "postgresql://elocaro:elocaro@localhost:5432/elocaro"
+      }
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN:-}"
+      }
+    }
+  }
+}
