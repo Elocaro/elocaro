@@ -756,7 +756,7 @@ Das Repository bringt die Einrichtung für Claude Code mit (`.claude/settings.js
 - **Graphify** (Wissensgraph über den Code): einmalig `uv tool install graphifyy && graphify install`, dann `graphify update .` (nur lokal, ohne API-Kosten). Die Ausgabe `graphify-out/` ist nicht eingecheckt.
 - **Ponytail** (Plugin, wenig Code statt viel): wird über `enabledPlugins` angeboten.
 - **Formatierung:** Ein Hook formatiert geänderte `.cs`-Dateien (`.claude/hooks/format-cs.sh`, nur Leerraum). Die vollständige Prüfung bleibt `dotnet format --verify-no-changes` vor dem Commit.
-- **MCP-Server** (`.mcp.json`): `playwright` (Browser), `postgres` (nur lesend, gegen die lokale Entwicklungsdatenbank; braucht `uv`) und `github` (braucht die Umgebungsvariable `GITHUB_PERSONAL_ACCESS_TOKEN`; das Token gehört nie ins Repository). Der Aufruf von `playwright` nutzt `cmd /c` und gilt damit für Windows; unter Linux/macOS in der lokalen Einstellung durch `npx` ersetzen.
+- **MCP-Server** (`.mcp.json`): `playwright` (Browser). Für GitHub genügt `gh`; einen Postgres-MCP gibt es nicht, weil `postgres-mcp` auf eine nicht mehr auffindbare Abhängigkeit (`pglast==7.2.0`) festgelegt ist. Der Aufruf von `playwright` nutzt `cmd /c` und gilt damit für Windows; unter Linux/macOS in der lokalen Einstellung durch `npx` ersetzen.
 
 ## Sicherheitsaudit mit /pentest
 
