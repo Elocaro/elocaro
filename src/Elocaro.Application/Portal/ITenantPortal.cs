@@ -32,6 +32,9 @@ public interface ITenantPortal
     /// </summary>
     Task<Result> ReportReadingAsync(ClaimsPrincipal user, Guid meterId, PortalReadingInput input, CancellationToken cancellationToken = default);
 
+    /// <summary>A hint for the tenant if the value looks unusual against the earlier readings (consumption far from the average); empty if it looks normal. The report is still possible.</summary>
+    Task<IReadOnlyList<string>> ReadingHintsAsync(ClaimsPrincipal user, Guid meterId, PortalReadingInput input, CancellationToken cancellationToken = default);
+
     Task<PortalContacts?> ContactsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
     /// <summary>Stores a change request; nothing changes until an administrator approves it.</summary>
@@ -65,6 +68,9 @@ public sealed class PortalReadingInput
 
     [StringLength(500)]
     public string? Note { get; set; }
+
+    /// <summary>Photo of the meter (optional), stored beforehand in the file store by the page.</summary>
+    public Guid? PhotoFileId { get; set; }
 }
 
 /// <param name="Pending">An open report of the tenant for this meter (value and date), not yet confirmed by the landlord.</param>

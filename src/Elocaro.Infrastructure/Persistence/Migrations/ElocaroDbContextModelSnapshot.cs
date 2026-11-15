@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261114234122_PropertyRentIndex";
+    public override string LastMigrationId => "20261115180529_ReadingReportPhoto";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -1635,73 +1635,6 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.ToTable("task_completions");
             });
 
-        modelBuilder.Entity("Elocaro.Domain.Leases.DepositEntry", b =>
-            {
-                b.Property<Guid>("Id")
-                    .HasColumnType("uuid")
-                    .HasColumnName("id");
-
-                b.Property<decimal>("Amount")
-                    .HasPrecision(12, 2)
-                    .HasColumnType("numeric(12,2)")
-                    .HasColumnName("amount");
-
-                b.Property<DateTimeOffset>("CreatedAt")
-                    .HasColumnType("timestamp with time zone")
-                    .HasColumnName("created_at");
-
-                b.Property<string>("CreatedBy")
-                    .HasMaxLength(256)
-                    .HasColumnType("character varying(256)")
-                    .HasColumnName("created_by");
-
-                b.Property<DateOnly>("Date")
-                    .HasColumnType("date")
-                    .HasColumnName("date");
-
-                b.Property<bool>("Deleted")
-                    .HasColumnType("boolean")
-                    .HasColumnName("deleted");
-
-                b.Property<string>("Kind")
-                    .IsRequired()
-                    .HasMaxLength(20)
-                    .HasColumnType("character varying(20)")
-                    .HasColumnName("kind");
-
-                b.Property<Guid>("LeaseId")
-                    .HasColumnType("uuid")
-                    .HasColumnName("lease_id");
-
-                b.Property<DateTimeOffset?>("ModifiedAt")
-                    .HasColumnType("timestamp with time zone")
-                    .HasColumnName("modified_at");
-
-                b.Property<string>("ModifiedBy")
-                    .HasMaxLength(256)
-                    .HasColumnType("character varying(256)")
-                    .HasColumnName("modified_by");
-
-                b.Property<string>("Note")
-                    .HasMaxLength(500)
-                    .HasColumnType("character varying(500)")
-                    .HasColumnName("note");
-
-                b.Property<uint>("Version")
-                    .IsConcurrencyToken()
-                    .ValueGeneratedOnAddOrUpdate()
-                    .HasColumnType("xid")
-                    .HasColumnName("xmin");
-
-                b.HasKey("Id")
-                    .HasName("pk_deposit_entries");
-
-                b.HasIndex("LeaseId", "Date")
-                    .HasDatabaseName("ix_deposit_entries_lease_id_date");
-
-                b.ToTable("deposit_entries");
-            });
-
         modelBuilder.Entity("Elocaro.Domain.Documents.Document", b =>
             {
                 b.Property<Guid>("Id")
@@ -2936,6 +2869,73 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasFilter("NOT deleted");
 
                 b.ToTable("cpi_values");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Leases.DepositEntry", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<decimal>("Amount")
+                    .HasPrecision(12, 2)
+                    .HasColumnType("numeric(12,2)")
+                    .HasColumnName("amount");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<DateOnly>("Date")
+                    .HasColumnType("date")
+                    .HasColumnName("date");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<string>("Kind")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("character varying(20)")
+                    .HasColumnName("kind");
+
+                b.Property<Guid>("LeaseId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("lease_id");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<string>("Note")
+                    .HasMaxLength(500)
+                    .HasColumnType("character varying(500)")
+                    .HasColumnName("note");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.HasKey("Id")
+                    .HasName("pk_deposit_entries");
+
+                b.HasIndex("LeaseId", "Date")
+                    .HasDatabaseName("ix_deposit_entries_lease_id_date");
+
+                b.ToTable("deposit_entries");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Leases.HandoverProtocol", b =>
@@ -4324,6 +4324,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("character varying(1000)")
                     .HasColumnName("note");
 
+                b.Property<Guid?>("PhotoFileId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("photo_file_id");
+
                 b.Property<string>("ReportedBy")
                     .IsRequired()
                     .HasMaxLength(200)
@@ -4349,6 +4353,9 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
 
                 b.HasKey("Id")
                     .HasName("pk_reading_reports");
+
+                b.HasIndex("PhotoFileId")
+                    .HasDatabaseName("ix_reading_reports_photo_file_id");
 
                 b.HasIndex("MeterId", "Status")
                     .HasDatabaseName("ix_reading_reports_meter_id_status");
@@ -8664,114 +8671,6 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.ToTable("ticket_work");
             });
 
-        modelBuilder.Entity("Elocaro.Infrastructure.Audit.AuditEntry", b =>
-            {
-                b.Property<Guid>("Id")
-                    .HasColumnType("uuid")
-                    .HasColumnName("id");
-
-                b.Property<string>("Action")
-                    .IsRequired()
-                    .HasMaxLength(20)
-                    .HasColumnType("character varying(20)")
-                    .HasColumnName("action");
-
-                b.Property<string>("ChangesJson")
-                    .IsRequired()
-                    .HasColumnType("jsonb")
-                    .HasColumnName("changes");
-
-                b.Property<Guid>("EntityId")
-                    .HasColumnType("uuid")
-                    .HasColumnName("entity_id");
-
-                b.Property<string>("EntityType")
-                    .IsRequired()
-                    .HasMaxLength(100)
-                    .HasColumnType("character varying(100)")
-                    .HasColumnName("entity_type");
-
-                b.Property<Guid?>("OperationId")
-                    .HasColumnType("uuid")
-                    .HasColumnName("operation_id");
-
-                b.Property<string>("Purpose")
-                    .HasMaxLength(200)
-                    .HasColumnType("character varying(200)")
-                    .HasColumnName("purpose");
-
-                b.Property<string>("RestoreJson")
-                    .HasColumnType("jsonb")
-                    .HasColumnName("restore");
-
-                b.Property<DateTimeOffset>("Timestamp")
-                    .HasColumnType("timestamp with time zone")
-                    .HasColumnName("timestamp");
-
-                b.Property<string>("User")
-                    .IsRequired()
-                    .HasMaxLength(256)
-                    .HasColumnType("character varying(256)")
-                    .HasColumnName("user");
-
-                b.HasKey("Id")
-                    .HasName("pk_audit_entries");
-
-                b.HasIndex("OperationId")
-                    .HasDatabaseName("ix_audit_entries_operation_id");
-
-                b.HasIndex("Timestamp")
-                    .HasDatabaseName("ix_audit_entries_timestamp");
-
-                b.HasIndex("EntityType", "EntityId", "Timestamp")
-                    .HasDatabaseName("ix_audit_entries_entity_type_entity_id_timestamp");
-
-                b.ToTable("audit_entries");
-            });
-
-        modelBuilder.Entity("Elocaro.Infrastructure.Audit.Operation", b =>
-            {
-                b.Property<Guid>("Id")
-                    .HasColumnType("uuid")
-                    .HasColumnName("id");
-
-                b.Property<string>("Channel")
-                    .IsRequired()
-                    .HasMaxLength(20)
-                    .HasColumnType("character varying(20)")
-                    .HasColumnName("channel");
-
-                b.Property<string>("Label")
-                    .HasMaxLength(200)
-                    .HasColumnType("character varying(200)")
-                    .HasColumnName("label");
-
-                b.Property<DateTimeOffset>("Timestamp")
-                    .HasColumnType("timestamp with time zone")
-                    .HasColumnName("timestamp");
-
-                b.Property<Guid?>("UndoOf")
-                    .HasColumnType("uuid")
-                    .HasColumnName("undo_of");
-
-                b.Property<string>("User")
-                    .IsRequired()
-                    .HasMaxLength(256)
-                    .HasColumnType("character varying(256)")
-                    .HasColumnName("user");
-
-                b.HasKey("Id")
-                    .HasName("pk_operations");
-
-                b.HasIndex("Timestamp")
-                    .HasDatabaseName("ix_operations_timestamp");
-
-                b.HasIndex("UndoOf")
-                    .HasDatabaseName("ix_operations_undo_of");
-
-                b.ToTable("operations");
-            });
-
         modelBuilder.Entity("Elocaro.Infrastructure.Accounts.AccessToken", b =>
             {
                 b.Property<Guid>("Id")
@@ -9054,6 +8953,114 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasDatabaseName("RoleNameIndex");
 
                 b.ToTable("roles");
+            });
+
+        modelBuilder.Entity("Elocaro.Infrastructure.Audit.AuditEntry", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<string>("Action")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("character varying(20)")
+                    .HasColumnName("action");
+
+                b.Property<string>("ChangesJson")
+                    .IsRequired()
+                    .HasColumnType("jsonb")
+                    .HasColumnName("changes");
+
+                b.Property<Guid>("EntityId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("entity_id");
+
+                b.Property<string>("EntityType")
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnType("character varying(100)")
+                    .HasColumnName("entity_type");
+
+                b.Property<Guid?>("OperationId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("operation_id");
+
+                b.Property<string>("Purpose")
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)")
+                    .HasColumnName("purpose");
+
+                b.Property<string>("RestoreJson")
+                    .HasColumnType("jsonb")
+                    .HasColumnName("restore");
+
+                b.Property<DateTimeOffset>("Timestamp")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("timestamp");
+
+                b.Property<string>("User")
+                    .IsRequired()
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("user");
+
+                b.HasKey("Id")
+                    .HasName("pk_audit_entries");
+
+                b.HasIndex("OperationId")
+                    .HasDatabaseName("ix_audit_entries_operation_id");
+
+                b.HasIndex("Timestamp")
+                    .HasDatabaseName("ix_audit_entries_timestamp");
+
+                b.HasIndex("EntityType", "EntityId", "Timestamp")
+                    .HasDatabaseName("ix_audit_entries_entity_type_entity_id_timestamp");
+
+                b.ToTable("audit_entries");
+            });
+
+        modelBuilder.Entity("Elocaro.Infrastructure.Audit.Operation", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<string>("Channel")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("character varying(20)")
+                    .HasColumnName("channel");
+
+                b.Property<string>("Label")
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)")
+                    .HasColumnName("label");
+
+                b.Property<DateTimeOffset>("Timestamp")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("timestamp");
+
+                b.Property<Guid?>("UndoOf")
+                    .HasColumnType("uuid")
+                    .HasColumnName("undo_of");
+
+                b.Property<string>("User")
+                    .IsRequired()
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("user");
+
+                b.HasKey("Id")
+                    .HasName("pk_operations");
+
+                b.HasIndex("Timestamp")
+                    .HasDatabaseName("ix_operations_timestamp");
+
+                b.HasIndex("UndoOf")
+                    .HasDatabaseName("ix_operations_undo_of");
+
+                b.ToTable("operations");
             });
 
         modelBuilder.Entity("Elocaro.Infrastructure.Jobs.JobRun", b =>
@@ -9391,16 +9398,6 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasConstraintName("fk_task_completions_recurring_tasks_task_id");
             });
 
-        modelBuilder.Entity("Elocaro.Domain.Leases.DepositEntry", b =>
-            {
-                b.HasOne("Elocaro.Domain.Leases.Lease", null)
-                    .WithMany()
-                    .HasForeignKey("LeaseId")
-                    .OnDelete(DeleteBehavior.Restrict)
-                    .IsRequired()
-                    .HasConstraintName("fk_deposit_entries_lease_lease_id");
-            });
-
         modelBuilder.Entity("Elocaro.Domain.Documents.Document", b =>
             {
                 b.HasOne("Elocaro.Domain.Files.StoredFile", null)
@@ -9549,6 +9546,16 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired()
                     .HasConstraintName("fk_heating_settings_property_property_id");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Leases.DepositEntry", b =>
+            {
+                b.HasOne("Elocaro.Domain.Leases.Lease", null)
+                    .WithMany()
+                    .HasForeignKey("LeaseId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired()
+                    .HasConstraintName("fk_deposit_entries_lease_lease_id");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Leases.HandoverProtocol", b =>
@@ -9828,6 +9835,12 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired()
                     .HasConstraintName("fk_reading_reports_meters_meter_id");
+
+                b.HasOne("Elocaro.Domain.Files.StoredFile", null)
+                    .WithMany()
+                    .HasForeignKey("PhotoFileId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("fk_reading_reports_stored_file_photo_file_id");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Notices.Message", b =>

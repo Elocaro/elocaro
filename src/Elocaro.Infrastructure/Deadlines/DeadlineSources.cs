@@ -239,3 +239,32 @@ internal sealed class TaskDeadlineSource(ElocaroDbContext db) : IDeadlineSource
             t.DueOn, $"/verwaltung/fristen/wartung/{t.Id}", AccessRight.MasterData, t.Note, t.LeadDays, t.Id)).ToList();
     }
 }
+
+/// <summary>Reading round at the turn of the year: until 31 December the meters of the apartments should have a reading from December (tenants are reminded from 15 December).</summary>
+internal sealed class ReadingRoundDeadlineSource(ElocaroDbContext db, TimeProvider clock) : IDeadlineSource
+{
+    public async Task<IReadOnlyList<DeadlineEntry>> DeadlinesAsync(DateOnly until, CancellationToken cancellationToken = default)
+    {
+        var today = GermanTime.Today(clock.GetUtcNow());
+        var due = new DateOnly(today.Year, 12, 31);
+        if (due > until)
+        {
+            return [];
+        }
+
+        var start = new DateOnly(today.Year, 12, 1);
+        var meters = await db.Set<Meter>().AsNoTracking()
+            .Where(m => m.RemovedOn == null && m.UnitId != null)
+            .Select(m => new { m.PropertyId, Missing = !m.Readings.Any(r => r.Date >= start) })
+            .ToListAsync(cancellationToken);
+        var properties = await db.Set<Property>().AsNoTracking().ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+        return meters.GroupBy(m => m.PropertyId)
+            .Select(g => (PropertyId: g.Key, Missing: g.Count(m => m.Missing)))
+            .Where(g => g.Missing > 0 && properties.ContainsKey(g.PropertyId))
+            .Select(g => new DeadlineEntry(
+                $"reading-round:{g.PropertyId}:{today.Year}", DeadlineOrigin.Derived, "Zähler",
+                $"Zählerstände zum Jahreswechsel: {g.Missing} Zähler ohne Dezember-Stand ({properties[g.PropertyId]})",
+                due, $"/verwaltung/objekte/{g.PropertyId}/zaehler", AccessRight.MasterData,
+                "Die Stände zum Jahreswechsel brauchen Sie für die Abrechnung. Mieter mit Portalzugang erinnert Elocaro ab dem 15. Dezember und können ihre Stände dort selbst melden; die Meldungen prüfen Sie unter Zähler.", LeadDays: 30)).ToList();
+    }
+}

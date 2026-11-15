@@ -35,4 +35,5 @@ public sealed record ReadingReportRow(
     DateOnly? PreviousDate,
     string ReportedBy,
     string? Note,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    Guid? PhotoFileId = null);

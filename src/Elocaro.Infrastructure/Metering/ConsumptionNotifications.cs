@@ -145,12 +145,16 @@ internal sealed class ReadingReminders(ElocaroDbContext db, IMailSender mail, IO
         var done = (await db.Set<ReadingReminder>().AsNoTracking().Where(r => r.Year == today.Year).Select(r => r.LeaseId).ToListAsync(cancellationToken)).ToHashSet();
         var leases = (await db.Set<Lease>().AsNoTracking().Include(v => v.Parties).ToListAsync(cancellationToken))
             .Where(v => !done.Contains(v.Id) && v.Start <= today && (v.End is null || v.End >= today)).ToList();
-        var meters = await db.Set<Meter>().AsNoTracking().Where(m => m.RemovedOn == null && m.UnitId != null).Select(m => new { m.UnitId, m.RoomId }).ToListAsync(cancellationToken);
+        var meters = await db.Set<Meter>().AsNoTracking().Where(m => m.RemovedOn == null && m.UnitId != null).Select(m => new { m.Id, m.UnitId, m.RoomId }).ToListAsync(cancellationToken);
+        // Tenants who already reported a reading since 1 December need no reminder.
+        var roundStart = new DateTimeOffset(today.Year, 12, 1, 0, 0, 0, TimeSpan.Zero);
+        var reported = (await db.Set<ReadingReport>().AsNoTracking().Where(r => r.CreatedAt >= roundStart).Select(r => r.MeterId).ToListAsync(cancellationToken)).ToHashSet();
         var link = app.Value.Link("/portal/zaehler").ToString();
         var sent = 0;
         foreach (var lease in leases)
         {
-            if (!meters.Any(m => m.UnitId == lease.UnitId && (lease.RoomId is null ? m.RoomId is null : m.RoomId == lease.RoomId)))
+            var own = meters.Where(m => m.UnitId == lease.UnitId && (lease.RoomId is null ? m.RoomId is null : m.RoomId == lease.RoomId)).ToList();
+            if (own.Count == 0 || own.All(m => reported.Contains(m.Id)))
             {
                 continue;
             }

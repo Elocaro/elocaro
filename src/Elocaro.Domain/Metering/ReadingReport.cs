@@ -20,7 +20,7 @@ public sealed class ReadingReport : Entity
         ReportedBy = "";
     }
 
-    public ReadingReport(Guid meterId, DateOnly date, decimal value, string reportedBy, string? note = null)
+    public ReadingReport(Guid meterId, DateOnly date, decimal value, string reportedBy, string? note = null, Guid? photoFileId = null)
     {
         if (value < 0)
         {
@@ -32,6 +32,7 @@ public sealed class ReadingReport : Entity
         Value = decimal.Round(value, 3);
         ReportedBy = string.IsNullOrWhiteSpace(reportedBy) ? "Mieter" : reportedBy.Trim();
         Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        PhotoFileId = photoFileId;
         Status = ReadingReportStatus.Open;
     }
 
@@ -45,6 +46,9 @@ public sealed class ReadingReport : Entity
     public string ReportedBy { get; private set; }
 
     public string? Note { get; private set; }
+
+    /// <summary>Photo of the meter, optional; becomes the photo of the reading when the landlord accepts the report.</summary>
+    public Guid? PhotoFileId { get; private set; }
 
     public ReadingReportStatus Status { get; private set; }
 

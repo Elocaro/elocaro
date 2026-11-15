@@ -1,9 +1,11 @@
 @page "/portal/zaehler"
 @rendermode InteractiveServer
 @using MudBlazor
+@using Elocaro.Application.Files
 @using Elocaro.Application.Portal
 @using Elocaro.Web.Components.Controls
 @inject ITenantPortal Portal
+@inject IFileStore Files
 
 <InteractiveShell>
     <PageHeader Title="Zählerstände melden" Subtitle="Lesen Sie Ihre Zähler ab und tragen Sie den Stand ein. Ihr Vermieter prüft und übernimmt ihn." />
@@ -12,6 +14,10 @@
     @if (saved)
     {
         <Notice Level="NoticeLevel.Success">Danke, der Stand wurde gemeldet. Ihr Vermieter prüft ihn und übernimmt ihn.</Notice>
+        @foreach (var hint in hints)
+        {
+            <Notice Level="NoticeLevel.Warning">@hint Bitte prüfen Sie den Stand noch einmal. Stimmt er, müssen Sie nichts weiter tun.</Notice>
+        }
     }
 
     @if (meters is null)
@@ -50,6 +56,11 @@
                         <AppNumberField T="decimal?" @bind-Value="entry.Value" Label="Zählerstand" Required="true" />
                         <AppTextField @bind-Value="entry.Note" Label="Anmerkung" />
                     </div>
+                    <AppFileUpload Text="@(photos.ContainsKey(meter.Id) ? "Anderes Foto wählen" : "Foto des Zählers (freiwillig)")" Accept="image/*" Capture="environment" OnSelected="file => OnPhoto(meter.Id, file)" />
+                    @if (photos.TryGetValue(meter.Id, out var chosen))
+                    {
+                        <p class="small">Gewählt: @chosen.Name</p>
+                    }
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy">Stand melden</MudButton>
                 </EditForm>
             </section>
@@ -62,6 +73,8 @@
     private Task<AuthenticationState> Authentication { get; set; } = default!;
 
     private readonly Dictionary<Guid, PortalReadingInput> entries = [];
+    private readonly Dictionary<Guid, FileSelection> photos = [];
+    private IReadOnlyList<string> hints = [];
     private IReadOnlyList<PortalMeter>? meters;
     private IReadOnlyList<string>? errors;
     private bool saved;
@@ -79,6 +92,8 @@
         return entry;
     }
 
+    private void OnPhoto(Guid meterId, FileSelection file) => photos[meterId] = file;
+
     private async Task LoadAsync() => meters = await Portal.MetersAsync((await Authentication).User);
 
     private async Task SubmitAsync(Guid id)
@@ -87,14 +102,30 @@
         saved = false;
         try
         {
-            var result = await Portal.ReportReadingAsync((await Authentication).User, id, Entry(id));
+            var user = (await Authentication).User;
+            var entry = Entry(id);
+            entry.PhotoFileId = null;
+            if (photos.TryGetValue(id, out var photo))
+            {
+                await using var content = photo.Open();
+                entry.PhotoFileId = (await Files.SaveAsync(content, photo.Name)).Id;
+            }
+
+            var found = await Portal.ReadingHintsAsync(user, id, entry);
+            var result = await Portal.ReportReadingAsync(user, id, entry);
             errors = result.Succeeded ? null : result.Errors;
             if (result.Succeeded)
             {
                 saved = true;
+                hints = found;
                 entries.Remove(id);
+                photos.Remove(id);
                 await LoadAsync();
             }
+        }
+        catch (FileRejectedException ex)
+        {
+            errors = [ex.Message];
         }
         finally
         {

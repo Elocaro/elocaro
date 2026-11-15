@@ -44,7 +44,13 @@ else
                         {
                             <tr>
                                 <td><a href="/verwaltung/zaehler/@r.MeterId">@r.MeterName</a> <span class="small">@r.Assignment</span></td>
-                                <td>@r.ReportedBy<br /><span class="small">@Format.Date(r.Date)@(r.Note is null ? "" : " · " + r.Note)</span></td>
+                                <td>
+                                    @r.ReportedBy<br /><span class="small">@Format.Date(r.Date)@(r.Note is null ? "" : " · " + r.Note)</span>
+                                    @if (r.PhotoFileId is { } photo)
+                                    {
+                                        <div class="thumbnails"><a href="/dateien/@photo"><img src="/dateien/@photo" alt="Foto des Zählers" /></a></div>
+                                    }
+                                </td>
                                 <td class="number">@Format.Quantity(r.Value, Labels.From(r.Unit))</td>
                                 <td class="number">@Format.Quantity(r.PreviousValue, Labels.From(r.Unit))<br /><span class="small">@Format.Date(r.PreviousDate)</span></td>
                                 <td>

@@ -40,7 +40,7 @@ internal sealed class ReadingReports(ElocaroDbContext db, IMeterService meters, 
             var assignment = (meter.RoomId ?? meter.UnitId) is { } rentalId && units.TryGetValue(rentalId, out var unit) ? unit.Name : "Haus";
             rows.Add(new ReadingReportRow(
                 report.Id, meter.Id, meter.PropertyId, properties.GetValueOrDefault(meter.PropertyId, ""), meter.Name, meter.Number, meter.MeasurementUnit, assignment,
-                report.Date, report.Value, before?.Value, before?.Date, report.ReportedBy, report.Note, meter.Validate(report.Date, report.Value)));
+                report.Date, report.Value, before?.Value, before?.Date, report.ReportedBy, report.Note, meter.Validate(report.Date, report.Value), report.PhotoFileId));
         }
 
         return rows;
@@ -66,7 +66,7 @@ internal sealed class ReadingReports(ElocaroDbContext db, IMeterService meters, 
             Kind = ReadingType.Reading,
             Note = $"Vom Mieter gemeldet ({report.ReportedBy})" + (report.Note is null ? "" : ": " + report.Note),
             Confirmed = confirmed,
-        }, null, cancellationToken);
+        }, report.PhotoFileId, cancellationToken);
         if (!result.Succeeded)
         {
             return result;

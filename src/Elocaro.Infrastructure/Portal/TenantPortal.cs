@@ -160,11 +160,18 @@ internal sealed class TenantPortal(ElocaroDbContext db, IDocumentLeaseSource lea
                 old.Reject("Durch eine neue Meldung ersetzt.", clock.GetUtcNow());
             }
 
-            var report = new Elocaro.Domain.Metering.ReadingReport(meterId, date, value, user.FindFirstValue(AccountClaims.DisplayName) ?? user.Identity?.Name ?? "Mieter", input.Note);
+            var report = new Elocaro.Domain.Metering.ReadingReport(meterId, date, value, user.FindFirstValue(AccountClaims.DisplayName) ?? user.Identity?.Name ?? "Mieter", input.Note, input.PhotoFileId);
             db.Add(report);
             await db.SaveChangesAsync(cancellationToken);
             return report.Id;
         });
+
+    public async Task<IReadOnlyList<string>> ReadingHintsAsync(ClaimsPrincipal user, Guid meterId, PortalReadingInput input, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        var meter = (await OwnMetersAsync(user, cancellationToken)).Select(m => m.Meter).FirstOrDefault(m => m.Id == meterId);
+        return meter is not null && input.Date is { } date && input.Value is { } value && meter.OutlierWarning(date, value) is { } warning ? [warning] : [];
+    }
 
     /// <summary>The active meters of the running leases of the tenant: of the apartment, or of the own room.</summary>
     private async Task<List<(Elocaro.Domain.Metering.Meter Meter, string RentalUnit)>> OwnMetersAsync(ClaimsPrincipal user, CancellationToken cancellationToken)

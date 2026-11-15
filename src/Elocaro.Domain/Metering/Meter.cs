@@ -263,19 +263,30 @@ public sealed class Meter : Entity
             warnings.Add(Text($"Der Wert ist größer als der spätere Stand vom {after.Date:dd.MM.yyyy} ({after.Value:#,##0.###})."));
         }
 
-        // Outlier: daily consumption since the last reading compared to the average before it
-        var first = others.Where(s => s.Date < date).MinBy(s => s.Date);
-        if (before is not null && first is not null && before != first && value >= before.Value && date > before.Date)
+        if (OutlierWarning(date, value, outlierPercent, ignoring) is { } outlier)
         {
-            var previous = (before.Value - first.Value) / (before.Date.DayNumber - first.Date.DayNumber);
-            var current = (value - before.Value) / (date.DayNumber - before.Date.DayNumber);
-            if (previous > 0 && Math.Abs(current - previous) / previous * 100 > outlierPercent)
-            {
-                warnings.Add(Text($"Ungewöhnlicher Verbrauch: {current:#,##0.###} pro Tag statt bisher {previous:#,##0.###} ({(current > previous ? "+" : "")}{(current - previous) / previous * 100:0} %)."));
-            }
+            warnings.Add(outlier);
         }
 
         return warnings;
+    }
+
+    /// <summary>Daily consumption since the last reading compared to the average before it; <c>null</c> if it looks normal or there is too little history.</summary>
+    public string? OutlierWarning(DateOnly date, decimal value, int outlierPercent = 50, Guid? ignoring = null)
+    {
+        var others = Readings.Where(s => s.Id != ignoring).ToList();
+        var before = others.Where(s => s.Date < date).MaxBy(s => s.Date);
+        var first = others.Where(s => s.Date < date).MinBy(s => s.Date);
+        if (before is null || first is null || before == first || value < before.Value || date <= before.Date)
+        {
+            return null;
+        }
+
+        var previous = (before.Value - first.Value) / (before.Date.DayNumber - first.Date.DayNumber);
+        var current = (value - before.Value) / (date.DayNumber - before.Date.DayNumber);
+        return previous > 0 && Math.Abs(current - previous) / previous * 100 > outlierPercent
+            ? Text($"Ungewöhnlicher Verbrauch: {current:#,##0.###} pro Tag statt bisher {previous:#,##0.###} ({(current > previous ? "+" : "")}{(current - previous) / previous * 100:0} %).")
+            : null;
     }
 
     private static string Text(FormattableString text) => text.ToString(System.Globalization.CultureInfo.GetCultureInfo("de-DE"));

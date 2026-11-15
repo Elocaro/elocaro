@@ -74,6 +74,7 @@ internal sealed class ReadingReportConfiguration : IEntityTypeConfiguration<Read
         builder.Property(r => r.DecisionNote).HasMaxLength(500);
         builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
         builder.HasOne<Elocaro.Domain.Metering.Meter>().WithMany().HasForeignKey(r => r.MeterId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<StoredFile>().WithMany().HasForeignKey(r => r.PhotoFileId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(r => new { r.MeterId, r.Status });
     }
 }

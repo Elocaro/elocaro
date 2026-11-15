@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Common;
+using Elocaro.Application.Deadlines;
+using Elocaro.Application.Files;
 using Elocaro.Application.Leases;
 using Elocaro.Application.Metering;
 using Elocaro.Application.People;
@@ -10,6 +12,7 @@ using Elocaro.Domain.Communication;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.People;
 using Elocaro.Infrastructure.Accounts;
+using Elocaro.Infrastructure.Deadlines;
 using Elocaro.Infrastructure.Metering;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Integration.Tests.Infrastructure;
@@ -49,7 +52,7 @@ public class ReadingReportTests(PostgresFixture postgres) : IAsyncLifetime
 
     public async ValueTask DisposeAsync() => await environment.DisposeAsync();
 
-    private static PortalReadingInput Input(decimal value, DateOnly? date = null) => new() { Date = date ?? new DateOnly(2026, 12, 16), Value = value };
+    private static PortalReadingInput Input(decimal value, DateOnly? date = null, Guid? photo = null) => new() { Date = date ?? new DateOnly(2026, 12, 16), Value = value, PhotoFileId = photo };
 
     [Fact]
     public async Task The_tenant_sees_the_own_meters_and_a_report_waits_for_the_landlord()
@@ -116,6 +119,72 @@ public class ReadingReportTests(PostgresFixture postgres) : IAsyncLifetime
         var mail = Assert.Single(await WithDbAsync(db => db.Set<OutgoingMail>().Where(m => m.Template == "reading-reminder").ToListAsync(Ct)));
         Assert.Equal("anna@example.de", mail.To.Single());
         Assert.Contains("/portal/zaehler", mail.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_photo_of_the_meter_travels_with_the_report_into_the_reading()
+    {
+        Guid photo;
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            photo = (await scope.ServiceProvider.GetRequiredService<IFileStore>().SaveAsync(new MemoryStream(TestFiles.Pdf("zaehler.pdf")), "zaehler.pdf", Ct)).Id;
+        }
+
+        Validate(await PortalAsync(p => p.ReportReadingAsync(tenant, meter, Input(130m, photo: photo), Ct)));
+        var report = Assert.Single(await ReportsAsync(r => r.OpenAsync(null, Ct)));
+        Assert.Equal(photo, report.PhotoFileId);
+
+        Assert.True((await ReportsAsync(r => r.AcceptAsync(report.Id, false, Ct))).Succeeded);
+        var stored = await WithDbAsync(db => db.Set<Meter>().Include(m => m.Readings).SingleAsync(Ct));
+        Assert.Equal(photo, stored.Readings.Single(r => r.Value == 130m).PhotoFileId);
+    }
+
+    [Fact]
+    public async Task An_unusual_consumption_gives_the_tenant_a_hint_but_the_report_is_still_possible()
+    {
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            var recorded = await scope.ServiceProvider.GetRequiredService<IMeterService>().RecordReadingAsync(meter, new ReadingInput { Date = new DateOnly(2026, 6, 1), Value = 200m, Kind = ReadingType.Reading }, null, Ct);
+            Assert.True(recorded.Succeeded);
+        }
+
+        Assert.Empty(await PortalAsync(p => p.ReadingHintsAsync(tenant, meter, Input(300m), Ct)));
+        var hint = Assert.Single(await PortalAsync(p => p.ReadingHintsAsync(tenant, meter, Input(1000m), Ct)));
+        Assert.StartsWith("Ungewöhnlicher Verbrauch", hint, StringComparison.Ordinal);
+        Validate(await PortalAsync(p => p.ReportReadingAsync(tenant, meter, Input(1000m), Ct)));
+
+        var stranger = await LinkedAccountAsync(null);
+        Assert.Empty(await PortalAsync(p => p.ReadingHintsAsync(stranger, meter, Input(1000m), Ct)));
+    }
+
+    [Fact]
+    public async Task A_tenant_who_has_already_reported_gets_no_reminder()
+    {
+        Validate(await PortalAsync(p => p.ReportReadingAsync(tenant, meter, Input(130m), Ct)));
+
+        Assert.Equal(0, await RemindAsync());
+        Assert.Empty(await WithDbAsync(db => db.Set<OutgoingMail>().Where(m => m.Template == "reading-reminder").ToListAsync(Ct)));
+    }
+
+    [Fact]
+    public async Task The_reading_round_is_a_deadline_until_the_meter_has_a_reading_from_december()
+    {
+        var entries = await RoundDeadlinesAsync();
+        var entry = Assert.Single(entries);
+        Assert.Equal(new DateOnly(2026, 12, 31), entry.Due);
+        Assert.Equal($"/verwaltung/objekte/{property}/zaehler", entry.Link);
+        Assert.Empty(await RoundDeadlinesAsync(new DateOnly(2026, 11, 1)));
+
+        Validate(await PortalAsync(p => p.ReportReadingAsync(tenant, meter, Input(130m), Ct)));
+        Assert.True((await ReportsAsync(async r => await r.AcceptAsync((await r.OpenAsync(null, Ct)).Single().Id, false, Ct))).Succeeded);
+        Assert.Empty(await RoundDeadlinesAsync());
+    }
+
+    private async Task<IReadOnlyList<DeadlineEntry>> RoundDeadlinesAsync(DateOnly? until = null)
+    {
+        await using var scope = environment.Services.CreateAsyncScope();
+        var source = scope.ServiceProvider.GetServices<IDeadlineSource>().OfType<ReadingRoundDeadlineSource>().Single();
+        return await source.DeadlinesAsync(until ?? new DateOnly(2027, 1, 31), Ct);
     }
 
     private async Task<int> RemindAsync()

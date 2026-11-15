@@ -14,6 +14,7 @@ internal static class DeadlinesRegistration
         services.AddScoped<IDeadlineSource, LoanDeadlineSource>();
         services.AddScoped<IDeadlineSource, CalibrationDeadlineSource>();
         services.AddScoped<IDeadlineSource, RemoteReadingDeadlineSource>();
+        services.AddScoped<IDeadlineSource, ReadingRoundDeadlineSource>();
         services.AddScoped<IDeadlineSource, DocumentDeadlineSource>();
         services.AddScoped<IDeadlineSource, TaskDeadlineSource>();
         services.AddScoped<DeadlineService>();
