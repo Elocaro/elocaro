@@ -27,6 +27,7 @@ Der Einrichtungsassistent auf der Übersicht führt durch die ersten Schritte. W
 | Zählerstände | Objekt → Zähler | Ablese-Runde, CSV-Import oder Meldung der Mieter im Portal prüfen und übernehmen |
 | Mieterwechsel | Vertrag → Ein- & Auszug → Mieterwechsel | Die Leiste oben zeigt den Stand: Kündigung, Auszug, Zählerstände, Übergabe, Kaution, Bescheinigung, Folgevertrag, Abrechnung |
 | Bescheinigungen | Kommunikation → Dokumente → Schreiben an Mieter | Wohnungsgeberbestätigung, Mietbescheinigung, Mietschuldenfreiheit, Kautionsabrechnung |
+| Abmahnung, Kündigung, Nachzahlungserinnerung | Kommunikation → Dokumente → Schreiben an Mieter | Vorlagen für Abmahnung, Kündigung wegen Zahlungsverzugs, Eigenbedarfskündigung und Erinnerung an eine Nachzahlung; der Rückstand kommt aus dem Mieterkonto. Rechtsgrundlage und Prüfliste stehen im Vorlagentext (Einstellungen → Vorlagen). Ausgangspunkte, keine Rechtsberatung: vor dem Einsatz rechtlich prüfen |
 | Notfallmappe erzeugen | Einstellungen → System → Notfallmappe | Verschlüsselte Datei für Angehörige: Mieter, Konten, offene Posten, Fristen und Ihre Hinweise. Passwort zweimal wählen und getrennt von der Datei aufbewahren; es gibt keine Wiederherstellung |
 
 ## So sieht es aus
