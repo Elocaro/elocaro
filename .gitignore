@@ -496,3 +496,6 @@ deploy/backup-ssh/
 # Claude Code (lokale Arbeitsverzeichnisse und Einstellungen)
 .claude/worktrees/
 .claude/settings.local.json
+
+# Graphify (generiert)
+graphify-out/

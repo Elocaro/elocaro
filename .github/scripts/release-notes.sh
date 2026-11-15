@@ -8,8 +8,10 @@ previous="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -vx 
   | while read -r t; do git merge-base --is-ancestor "$t" "$tag" && { echo "$t"; break; }; done || true)"
 range="${previous:+$previous..}$tag"
 
-# Merge-Commits und Commits, die nur Nummer/Dokumentation der Version pflegen, gehören nicht in die Notes.
+# Merge-Commits und Commits, die nur Nummer/Dokumentation der Version pflegen, gehören nicht in die Notes. Ebenso Commits
+# ohne direkte Auswirkung für Anwender: Bereiche Intern, Werkzeuge, Architektur, Tests und CI (siehe CONTRIBUTING.md).
 git log "$range" --no-merges --format='%s' \
   | grep -Eiv '^(Merge |Release |Version |Changelog:)' \
+  | grep -Ev '^(Intern|Werkzeuge|Architektur|Tests|CI):' \
   | sed -E 's/ \((Refs|Closes|Fixes) (#[0-9]+)(, [^)]*)?\)$/ (\2)/' \
   | sed -E 's/^/- /'
