@@ -22,10 +22,7 @@ public partial class ModuleRulesTests
     private static readonly string[] KnownDomainCycles = [];
 
     /// <summary>Places where a foundation uses a business module today. Goal: empty.</summary>
-    private static readonly string[] KnownFoundationUses =
-    [
-        "Application: Admin -> Leases", // ModuleCatalog names the rent models of the options
-    ];
+    private static readonly string[] KnownFoundationUses = [];
 
     /// <summary>The rules hold in each layer on its own; a module is the folder of the same name in each of them.</summary>
     private static readonly (string Name, string Project)[] Layers =

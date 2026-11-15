@@ -1,4 +1,3 @@
-using Elocaro.Domain.Leases;
 
 namespace Elocaro.Application.Admin;
 
@@ -255,20 +254,6 @@ public static class ModuleCatalog
     }
 
     public static OptionInfo? OptionOfJob(string jobName) => Options.FirstOrDefault(o => o.Jobs.Contains(jobName));
-
-    public static AppOption Of(RentModel model) => model switch
-    {
-        RentModel.Graduated => AppOption.RentModelGraduated,
-        RentModel.Index => AppOption.RentModelIndex,
-        _ => throw new ArgumentOutOfRangeException(nameof(model), "Die Vergleichsmiete ist immer verfügbar."),
-    };
-
-    public static AppOption Of(BillingType type) => type switch
-    {
-        BillingType.Prepayment => AppOption.BillingPrepayment,
-        BillingType.FlatRate => AppOption.BillingFlatRate,
-        _ => AppOption.BillingInclusive,
-    };
 
     public static ModuleInfo Info(AppModule module) => All.First(m => m.Module == module);
 

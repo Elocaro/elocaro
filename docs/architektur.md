@@ -104,7 +104,7 @@ hinweg.
 
 | Art | Module | Regel |
 |---|---|---|
-| **Bausteine** | Common, Admin (Modulschalter, Gates), Identity (in Application: Accounts), Files, Mail (in Application: Communication), Templates, Notifications, Audit | verweisen auf kein Fachmodul. Eine eingefrorene Ausnahme: `ModuleCatalog` (Application/Admin) nennt die Mietmodelle aus `Leases` |
+| **Bausteine** | Common, Admin (Modulschalter, Gates), Identity (in Application: Accounts), Files, Mail (in Application: Communication), Templates, Notifications, Audit | verweisen auf kein Fachmodul. Keine eingefrorenen Ausnahmen mehr: Die Zuordnung der Mietmodelle zu Optionen liegt als `LeaseOptions` bei `Application/Leases` |
 | **Fachmodule** | Properties, People, Leases, Finance, Bank, Receipts, Documents, Metering, Heating, OperatingCosts, Statements, Tax, Tickets, Notices, Deadlines, Portal, Privacy; dazu die technischen Dienste Operations, Pdf und Jobs | keine neuen wechselseitigen Abhängigkeiten |
 | **Oberste Module** | Setup (Import, Beispieldaten, Einrichtung), Portfolio (Kennzahlen, Navigationskontext), Legal (Rechtsstände), Handover (Übergabeprotokoll), Correspondence (Serienbriefe, Dokumentbereitschaft), Emergency (Notfallmappe) | lesen aus vielen Modulen; kein anderes Modul verwendet sie |
 | **Persistenz** | Persistence (DbContext, Konfigurationen, Migrationen) | gehört allen, zählt nicht als Modul |
@@ -155,8 +155,8 @@ Grenzen der Prüfung:
 
 - **Nur Paare.** Ketten über mehrere Module (A → B → C → A) erkennt der Test nicht; heute hängen so Documents, Leases, People,
   Properties und Receipts zusammen.
-- **Nur je Schicht.** Drei weitere Paare schließen sich erst über zwei Schichten und stehen in keiner Liste: Admin ↔ Leases
-  (`ModuleCatalog` in der Application kennt die Mietmodelle, die Dienste von Leases fragen den Modulschalter), Datev ↔ Tax (`Domain/Datev`
+- **Nur je Schicht.** Zwei weitere Paare schließen sich erst über zwei Schichten und stehen in keiner Liste:
+  Datev ↔ Tax (`Domain/Datev`
   nutzt Typen aus `Domain/Tax`, der DATEV-Export liegt in `Tax`) und OperatingCosts ↔ Properties (`Unit` in der Domain kennt einen Typ der
   Betriebskosten, die Dienste der Betriebskosten lesen Objekte).
 

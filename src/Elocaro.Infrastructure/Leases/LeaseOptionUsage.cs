@@ -1,4 +1,5 @@
 using Elocaro.Application.Admin;
+using Elocaro.Application.Leases;
 using Elocaro.Domain.Leases;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +15,13 @@ internal sealed class LeaseOptionUsage(ElocaroDbContext db) : IOptionUsageSource
         var models = await db.Set<Lease>().GroupBy(l => l.RentModel).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken);
         foreach (var row in models.Where(m => m.Key != RentModel.Standard))
         {
-            result[ModuleCatalog.Of(row.Key)] = row.Count;
+            result[LeaseOptions.Of(row.Key)] = row.Count;
         }
 
         var billing = await db.Set<Lease>().GroupBy(l => l.BillingType).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken);
         foreach (var row in billing)
         {
-            result[ModuleCatalog.Of(row.Key)] = row.Count;
+            result[LeaseOptions.Of(row.Key)] = row.Count;
         }
 
         var deposits = await db.Set<Lease>().CountAsync(l => l.Deposit != null && l.Deposit > 0, cancellationToken);

@@ -1,5 +1,6 @@
 @using MudBlazor
 @using Elocaro.Application.Admin
+@using Elocaro.Application.Leases
 @inject ILeaseService Admin
 @inject IModuleState State
 @inject Notifier Notify
@@ -108,7 +109,7 @@
 
     /// <summary>The rent models on offer: the ones the landlord uses plus the current one of this lease.</summary>
     private IReadOnlyList<RentModel> Choices => Enum.GetValues<RentModel>()
-        .Where(m => m == RentModel.Standard || m == Model.Model || State.IsVisible(ModuleCatalog.Of(m)))
+        .Where(m => m == RentModel.Standard || m == Model.Model || State.IsVisible(LeaseOptions.Of(m)))
         .ToList();
 
     [Parameter, EditorRequired]

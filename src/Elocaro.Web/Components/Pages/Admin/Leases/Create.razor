@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @using Elocaro.Application.Admin
+@using Elocaro.Application.Leases
 @inject ILeaseService Admin
 @inject IModuleState State
 @inject IPersonService People
@@ -127,10 +128,10 @@
     }
 
     private IReadOnlyList<RentModel> RentModels => Enum.GetValues<RentModel>()
-        .Where(m => m == RentModel.Standard || State.IsVisible(ModuleCatalog.Of(m))).ToList();
+        .Where(m => m == RentModel.Standard || State.IsVisible(LeaseOptions.Of(m))).ToList();
 
     private IReadOnlyList<BillingType> BillingTypes => Enum.GetValues<BillingType>()
-        .Where(b => State.IsVisible(ModuleCatalog.Of(b))).ToList();
+        .Where(b => State.IsVisible(LeaseOptions.Of(b))).ToList();
 
     [SupplyParameterFromQuery(Name = "mietobjekt")]
     private Guid? RentalUnit { get; set; }

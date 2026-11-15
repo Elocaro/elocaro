@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using MudBlazor
 @using Elocaro.Application.Admin
+@using Elocaro.Application.Leases
 @inject ILeaseService Admin
 @inject IModuleState State
 @inject IPersonService People
@@ -272,7 +273,7 @@ else
 
     /// <summary>The kinds of billing on offer: the ones in use plus the current one of this lease.</summary>
     private IReadOnlyList<BillingType> BillingChoices => Enum.GetValues<BillingType>()
-        .Where(b => State.IsVisible(ModuleCatalog.Of(b)) || b == data.BillingType)
+        .Where(b => State.IsVisible(LeaseOptions.Of(b)) || b == data.BillingType)
         .ToList();
 
     private LeaseDetails? lease;
