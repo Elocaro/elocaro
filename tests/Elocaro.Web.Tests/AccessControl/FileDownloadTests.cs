@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Files;
 using Elocaro.Web.Tests.Account;
 using Microsoft.Extensions.DependencyInjection;

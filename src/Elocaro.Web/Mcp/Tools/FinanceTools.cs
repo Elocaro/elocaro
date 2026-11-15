@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Bank;
+using Elocaro.Application.Common;
 using Elocaro.Application.Finance;
 using Elocaro.Application.OperatingCosts;
 using Elocaro.Application.Portfolio;

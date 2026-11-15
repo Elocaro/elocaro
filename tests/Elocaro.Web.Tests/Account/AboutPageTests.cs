@@ -1,4 +1,5 @@
 using System.Net;
+using Elocaro.Application.Common;
 
 namespace Elocaro.Web.Tests.Account;
 
@@ -24,7 +25,7 @@ public class AboutPageTests(PostgresFixture postgres) : AccountTestBase(postgres
     [Fact]
     public async Task User_menu_links_to_the_about_page()
     {
-        var (browser, _) = await SignedInAsAsync(Elocaro.Application.Accounts.Roles.Admin);
+        var (browser, _) = await SignedInAsAsync(Elocaro.Application.Common.Roles.Admin);
         using (browser)
         {
             var page = await browser.GetAsync("/verwaltung");
@@ -36,7 +37,7 @@ public class AboutPageTests(PostgresFixture postgres) : AccountTestBase(postgres
     [Fact]
     public async Task Help_is_linked_in_the_user_menu_and_opens_for_landlords_and_tenants()
     {
-        var (landlord, _) = await SignedInAsAsync(Elocaro.Application.Accounts.Roles.Admin);
+        var (landlord, _) = await SignedInAsAsync(Elocaro.Application.Common.Roles.Admin);
         using (landlord)
         {
             var start = await landlord.GetAsync("/verwaltung");
@@ -48,7 +49,7 @@ public class AboutPageTests(PostgresFixture postgres) : AccountTestBase(postgres
             Assert.Contains("Erste Schritte", page.Text);
         }
 
-        var (tenant, _) = await SignedInAsAsync(Elocaro.Application.Accounts.Roles.Tenant);
+        var (tenant, _) = await SignedInAsAsync(Elocaro.Application.Common.Roles.Tenant);
         using (tenant)
         {
             var page = await tenant.GetAsync("/portal/hilfe");

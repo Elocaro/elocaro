@@ -153,7 +153,7 @@ else
         @if (person.Access is { } access)
         {
             <p>
-                Konto <a href="/verwaltung/benutzer/@access.UserId">@access.Email</a> (@Elocaro.Application.Accounts.Roles.DisplayName(access.Role))
+                Konto <a href="/verwaltung/benutzer/@access.UserId">@access.Email</a> (@Elocaro.Application.Common.Roles.DisplayName(access.Role))
                 @if (access.Locked)
                 {
                     <StatusChip Level="StatusLevel.Error">gesperrt</StatusChip>

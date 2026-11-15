@@ -1,4 +1,4 @@
-namespace Elocaro.Application.Accounts;
+namespace Elocaro.Application.Common;
 
 /// <summary>
 /// Individual permissions in the administration. Admins always have all permissions; managers get a configurable selection

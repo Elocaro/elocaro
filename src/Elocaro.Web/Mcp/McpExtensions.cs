@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Audit;
+using Elocaro.Application.Common;
 using Elocaro.Web.AccessControl;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Elocaro.Application.Common;
 
 namespace Elocaro.Architecture.Tests;
 

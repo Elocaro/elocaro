@@ -1,3 +1,5 @@
+using Elocaro.Application.Common;
+
 namespace Elocaro.Application.Accounts;
 
 /// <summary>Creation and invitation of user accounts as well as passwordless sign-in (magic link).</summary>

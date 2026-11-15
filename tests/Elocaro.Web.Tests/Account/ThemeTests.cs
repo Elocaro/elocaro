@@ -1,5 +1,6 @@
 using System.Net;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 
 namespace Elocaro.Web.Tests.Account;
 

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Audit;
+using Elocaro.Application.Common;
 using Elocaro.Infrastructure.Audit;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;

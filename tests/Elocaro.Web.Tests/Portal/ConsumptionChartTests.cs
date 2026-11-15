@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Metering;
 using Elocaro.Domain.Metering;
 using Elocaro.Web.Tests.Account;

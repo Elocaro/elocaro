@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Elocaro.Application.Common;
 
 namespace Elocaro.Application.Accounts;
 

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using AngleSharp.Html.Dom;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Properties;
 using Elocaro.Infrastructure.Audit;
 using Elocaro.Infrastructure.Persistence;

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Communication;
 using Elocaro.Application.Notifications;
 using Elocaro.Domain.Notifications;

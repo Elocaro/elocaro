@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Leases;
 using Elocaro.Application.Portfolio;
 using Elocaro.Domain.Common;

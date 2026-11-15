@@ -1,5 +1,6 @@
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Audit;
+using Elocaro.Application.Common;
 using Elocaro.Application.Communication;
 using Elocaro.Infrastructure.Audit;
 using Elocaro.Infrastructure.Persistence;

@@ -1,4 +1,5 @@
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Documents;
 using Microsoft.Extensions.Caching.Memory;
 

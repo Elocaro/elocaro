@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Audit;
+using Elocaro.Application.Common;
 using Elocaro.Infrastructure.Audit;
 using Elocaro.Web.Tests.Account;
 using Microsoft.AspNetCore.Mvc.Testing;

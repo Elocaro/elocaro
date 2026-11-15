@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;

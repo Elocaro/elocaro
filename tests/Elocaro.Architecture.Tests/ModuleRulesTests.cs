@@ -10,7 +10,7 @@ namespace Elocaro.Architecture.Tests;
 public partial class ModuleRulesTests
 {
     /// <summary>Pairs of Infrastructure modules that use each other today (alphabetical), counting namespaces of Application, Domain and Infrastructure. Goal: empty.</summary>
-    private static readonly string[] KnownCycles = ["Accounts <-> Communication"];
+    private static readonly string[] KnownCycles = [];
 
     /// <summary>Pairs of Domain modules that use each other today. Goal: empty.</summary>
     private static readonly string[] KnownDomainCycles = [];

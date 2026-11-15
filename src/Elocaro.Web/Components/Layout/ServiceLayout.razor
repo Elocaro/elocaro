@@ -9,7 +9,7 @@
     <div class="workspace">
         <nav class="tab-bar" aria-label="Hauptnavigation">
             <NavLink href="/service" Match="NavLinkMatch.All">Aufträge</NavLink>
-            <AuthorizeView Roles="@Elocaro.Application.Accounts.Roles.Caretaker">
+            <AuthorizeView Roles="@Elocaro.Application.Common.Roles.Caretaker">
                 <NavLink href="/service/routinen">Aufgaben</NavLink>
                 <NavLink href="/service/objekte">Objekte</NavLink>
             </AuthorizeView>

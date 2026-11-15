@@ -1,5 +1,6 @@
 using System.Net;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Receipts;
 using Elocaro.Infrastructure.Receipts.Extraction;
 using Elocaro.Web.Tests.Account;

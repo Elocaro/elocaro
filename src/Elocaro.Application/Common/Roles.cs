@@ -1,4 +1,4 @@
-namespace Elocaro.Application.Accounts;
+namespace Elocaro.Application.Common;
 
 /// <summary>Roles according to docs/fachlichkeit.md → "Nutzer &amp; Rollen".</summary>
 public static class Roles

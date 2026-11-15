@@ -1,5 +1,6 @@
 using System.Text;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Tax;
 using Elocaro.Domain.Common;

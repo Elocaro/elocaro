@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Application.Portfolio;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Portfolio;

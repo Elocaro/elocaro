@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Elocaro.Application.Accounts;
+using Elocaro.Application.Common;
 using Elocaro.Infrastructure.Operations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
