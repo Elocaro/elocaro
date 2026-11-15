@@ -46,7 +46,7 @@ internal sealed class MailKitSmtpSender(IOptions<MailOptions> options) : ISmtpSe
         {
             try
             {
-                await client.SendAsync(message, cancellationToken);
+                await client.SendAsync(new MailKit.SendRequest(message), cancellationToken);
                 await result(message, null);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
