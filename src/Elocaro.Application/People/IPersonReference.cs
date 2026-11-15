@@ -13,7 +13,20 @@ public interface IPersonReference
 /// <param name="Description">E.g. "Wohnung 1, Lindenweg 3 (seit 01.03.2026)".</param>
 /// <param name="Active">Is the relationship still ongoing (e.g. lease not ended)?</param>
 /// <param name="EndsOn">End of the relationship; basis of the retention period.</param>
-public sealed record PersonRelation(Guid PersonId, string Role, string Description, bool Active, DateOnly? EndsOn, string? Link = null);
+/// <param name="Kind">Typed kind of the relationship; the portal role of a new access follows from it, not from the display text <paramref name="Role"/>.</param>
+public sealed record PersonRelation(Guid PersonId, string Role, string Description, bool Active, DateOnly? EndsOn, string? Link = null, PersonRelationKind Kind = PersonRelationKind.Other);
+
+/// <summary>Kinds of relationships the portal role of a person depends on.</summary>
+public enum PersonRelationKind
+{
+    Other = 0,
+
+    /// <summary>Party of a lease (tenant or guarantor).</summary>
+    LeaseParty = 1,
+
+    /// <summary>Owner of a property.</summary>
+    PropertyOwner = 2,
+}
 
 /// <summary>Extension point for the GDPR data access request: each module provides the data stored about the person.</summary>
 public interface IPersonalDataSource

@@ -60,7 +60,8 @@ internal sealed class LeasePersonalReferences(ElocaroDbContext db, TimeProvider 
                 $"{rentalUnit?.Name}, {rentalUnit?.Property} ({v.Term})",
                 v.End is null || v.End >= today,
                 v.End,
-                $"/verwaltung/vertraege/{v.Id}");
+                $"/verwaltung/vertraege/{v.Id}",
+                PersonRelationKind.LeaseParty);
         })).ToList();
     }
 }

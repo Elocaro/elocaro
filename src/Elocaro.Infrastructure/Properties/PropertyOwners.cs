@@ -135,6 +135,6 @@ internal sealed class PropertyOwnerReferences(ElocaroDbContext db, TimeProvider 
         var owners = await db.Set<PropertyOwner>().AsNoTracking().Where(o => personIds.Contains(o.PersonId)).ToListAsync(cancellationToken);
         var ids = owners.Select(o => o.PropertyId).Distinct().ToList();
         var names = await db.Set<Property>().AsNoTracking().Where(p => ids.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
-        return owners.Select(o => new PersonRelation(o.PersonId, "Eigentümer", $"{names.GetValueOrDefault(o.PropertyId, "?")} ({o.SharePercent:0.##} %)", o.IsValidOn(today), o.ValidTo, $"/verwaltung/objekte/{o.PropertyId}")).ToList();
+        return owners.Select(o => new PersonRelation(o.PersonId, "Eigentümer", $"{names.GetValueOrDefault(o.PropertyId, "?")} ({o.SharePercent:0.##} %)", o.IsValidOn(today), o.ValidTo, $"/verwaltung/objekte/{o.PropertyId}", PersonRelationKind.PropertyOwner)).ToList();
     }
 }

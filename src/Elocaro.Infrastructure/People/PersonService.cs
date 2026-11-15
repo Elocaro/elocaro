@@ -181,8 +181,8 @@ internal sealed class PersonService(
         else
         {
             // A person who owns a property and is not a tenant gets the owner access (read-only view of their share).
-            var owner = await db.Set<Elocaro.Domain.Properties.PropertyOwner>().AnyAsync(o => o.PersonId == person.Id, cancellationToken)
-                && !await db.Set<Elocaro.Domain.Leases.Lease>().AnyAsync(v => v.Parties.Any(p => p.PersonId == person.Id), cancellationToken);
+            var relations = await ReferencesAsync([person.Id], cancellationToken);
+            var owner = relations.Any(r => r.Kind == PersonRelationKind.PropertyOwner) && !relations.Any(r => r.Kind == PersonRelationKind.LeaseParty);
             var role = person.ContactType switch
             {
                 ContactType.Caretaker => Roles.Caretaker,
