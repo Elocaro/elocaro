@@ -1,13 +1,17 @@
 using Elocaro.Application.Audit;
 using Elocaro.Application.Common;
+using Elocaro.Application.Finance;
 using Elocaro.Application.Leases;
 using Elocaro.Application.Metering;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
+using Elocaro.Domain.Finance;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.People;
 using Elocaro.Domain.Properties;
+using Elocaro.Infrastructure.Persistence;
 using Elocaro.Integration.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Elocaro.Integration.Tests.Audit;
@@ -157,6 +161,75 @@ public class UndoTests(PostgresFixture postgres) : IAsyncLifetime
     {
         await using var scope = environment.Services.CreateAsyncScope();
         return await action(scope.ServiceProvider.GetRequiredService<TService>());
+    }
+
+    [Fact]
+    public async Task A_manual_claim_is_taken_back_by_a_counter_claim_and_the_original_stays()
+    {
+        var lease = await LeaseAsync();
+        var charge = (await InOperationAsync<ITenantAccounts, Result>("Sollstellung", s => s.CreateChargeAsync(lease, new ChargeInput { Due = Today, Amount = 120m, Name = "Schlüsselersatz" }, Ct))).Id!.Value;
+
+        var check = await CheckAsync("Sollstellung");
+        Assert.True(check.CanUndo);
+        Assert.Contains("Gegenbuchung", check.Notice, StringComparison.Ordinal);
+        var undone = await UndoAsync("Sollstellung");
+
+        Assert.True(undone.Succeeded, string.Join(" ", undone.Errors));
+        var charges = await InScopeAsync<ElocaroDbContext, List<Charge>>(db => db.Set<Charge>().Where(c => c.LeaseId == lease && c.Kind != ChargeType.Rent).OrderBy(c => c.Amount).ToListAsync(Ct));
+        Assert.Equal([-120m, 120m], charges.Select(c => c.Amount));
+        Assert.Equal(charge, charges[1].Id);
+        Assert.StartsWith("Storno: Schlüsselersatz", charges[0].Name, StringComparison.Ordinal);
+        Assert.Equal(charges[1].Due, charges[0].Due);
+        Assert.False((await CheckAsync("Sollstellung")).CanUndo);
+    }
+
+    [Fact]
+    public async Task A_manual_payment_is_taken_back_by_a_reversal_dated_today()
+    {
+        var lease = await LeaseAsync();
+        await InOperationAsync<ITenantAccounts, Result>("Zahlung", s => s.RecordPaymentAsync(lease, new PaymentInput { Date = Today.AddDays(-20), Amount = 650m, Purpose = "Miete" }, Ct));
+
+        var undone = await UndoAsync("Zahlung");
+
+        Assert.True(undone.Succeeded, string.Join(" ", undone.Errors));
+        var payments = await InScopeAsync<ElocaroDbContext, List<Payment>>(db => db.Set<Payment>().Where(p => p.LeaseId == lease).OrderBy(p => p.Amount).ToListAsync(Ct));
+        Assert.Equal([-650m, 650m], payments.Select(p => p.Amount));
+        Assert.Equal(Today, payments[0].Date);
+        Assert.Equal("Rückbuchung: Miete", payments[0].Purpose);
+    }
+
+    [Fact]
+    public async Task A_claim_with_an_allocated_payment_is_not_taken_back()
+    {
+        var lease = await LeaseAsync();
+        var charge = (await InOperationAsync<ITenantAccounts, Result>("Sollstellung", s => s.CreateChargeAsync(lease, new ChargeInput { Due = Today, Amount = 120m, Name = "Schlüsselersatz" }, Ct))).Id!.Value;
+        await InOperationAsync<ITenantAccounts, Result>("Zahlung", s => s.RecordPaymentAsync(lease, new PaymentInput { Date = Today, Amount = 120m, ChargeId = charge }, Ct));
+
+        var check = await CheckAsync("Sollstellung");
+
+        Assert.False(check.CanUndo);
+        Assert.Contains("Payment", check.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_changed_or_deleted_booking_cannot_be_taken_back_and_the_reason_names_the_counter_entry()
+    {
+        var lease = await LeaseAsync();
+        var charge = (await InOperationAsync<ITenantAccounts, Result>("Sollstellung", s => s.CreateChargeAsync(lease, new ChargeInput { Due = Today, Amount = 120m, Name = "Schlüsselersatz" }, Ct))).Id!.Value;
+        await InOperationAsync<ITenantAccounts, Result>("Löschen", s => s.DeleteChargeAsync(charge, Ct));
+
+        var check = await CheckAsync("Löschen");
+
+        Assert.False(check.CanUndo);
+        Assert.Contains("Gegenbuchung", check.Reason, StringComparison.Ordinal);
+    }
+
+    private async Task<Guid> LeaseAsync()
+    {
+        var (_, unit) = await PropertyWithUnitAsync();
+        var tenant = await CreatePersonAsync("Mieter", "mieter@example.de");
+        return (await InScopeAsync<ILeaseService, Result>(s => s.CreateAsync(
+            new LeaseCreation { RentalUnitId = unit, Start = Today.AddMonths(-2), TenantIds = [tenant], BaseRent = 650m, OperatingCostPrepayment = 180m, HeatingCostPrepayment = 90m, People = 1 }, Ct))).Id!.Value;
     }
 
     [Fact]

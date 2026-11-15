@@ -130,6 +130,7 @@ zu kennen. Jedes Modul liefert seine Implementierung und registriert sie in sein
 | `IFileShare` | Gibt eine Datei für andere Rollen frei | Dateiablage |
 | `IOptionUsageSource` | Zählt, ob eine abschaltbare Option noch verwendet wird | Modulschalter |
 | `IMeterUsage` | Wer einen Zähler noch verwendet; verhindert das Entfernen | Zähler |
+| `IUndoCompensation` | Gegenbuchung für das Anlegen eines Finanztyps (Sollstellung, Zahlung), statt zu löschen | Rückgängig (Aktivität) |
 
 Neue Querverbindungen von unten nach oben gehen über einen solchen Punkt oder über eine schmale Schnittstelle des anderen Moduls
 (Beispiel: `IDocumentLeaseSource`, über die die Dokumentenbibliothek Verträge kennt), nicht über `db.Set<FremdeEntität>()`.
@@ -156,7 +157,7 @@ Grenzen der Prüfung:
 ## Querschnitt
 
 - **Mandantenfähigkeit:** nicht nötig (eine Installation pro Vermieter). Alle Daten hängen aber an `PropertyId`; darauf bauen Eigentümer je Objekt und die Objektzuordnung der Hausmeister auf.
-- **Historisierung:** Gültigkeitszeiträume statt Überschreiben (`Period`, `TimeSeries`), Audit-Log (wer, wann, was) für alle Änderungen, Rückgängig je Operation.
+- **Historisierung:** Gültigkeitszeiträume statt Überschreiben (`Period`, `TimeSeries`), Audit-Log (wer, wann, was) für alle Änderungen, Rückgängig je Operation (bei Buchungen als Gegenbuchung).
 - **Sicherheit:** HTTPS über Caddy, Antiforgery, Rate-Limiting für Login/Magic Link, Secrets über Umgebungsvariablen bzw. Docker Secrets, FinTS-PIN wird nie gespeichert, Upload-Validierung (Typ/Größe), CSP mit Nonce.
 - **Backups:** nächtlich `pg_dump` + Datei-Volume, verschlüsselt (restic) im eigenen Container (`src/Elocaro.Backup`, ASP.NET-Core-API mit Token im internen Netz), Statusdatei → Dashboard/Warnmail, Restore-Test in der CI (`deploy/backup/`). Vollexport aller Daten als ZIP (JSON/CSV + Dateien) aus dem EF-Modell.
 - **Lokalisierung:** nur Deutsch, Formate de-DE (`AppCulture`), Zeitzone Europe/Berlin.

@@ -11,9 +11,12 @@ public interface IOperationUndo
     Task<Result> UndoAsync(Guid operationId, CancellationToken cancellationToken = default);
 }
 
-public sealed record UndoCheck(bool CanUndo, string? Reason)
+/// <param name="Notice">For the confirmation, if taking back works differently than the user may expect (a counter entry instead of deleting).</param>
+public sealed record UndoCheck(bool CanUndo, string? Reason, string? Notice = null)
 {
     public static UndoCheck Yes { get; } = new(true, null);
+
+    public static UndoCheck YesWith(string notice) => new(true, null, notice);
 
     public static UndoCheck No(string reason) => new(false, reason);
 }

@@ -14,7 +14,7 @@ namespace Elocaro.Infrastructure.Audit;
 /// (the typed values in <see cref="AuditEntry.RestoreJson"/>, not the display texts of the audit log). Anything later touching the same
 /// record, or still depending on a created one, stops it. Runs in one transaction and is an operation of its own.
 /// </summary>
-internal sealed class OperationUndo(ElocaroDbContext db, IOperationScope scope) : IOperationUndo
+internal sealed class OperationUndo(ElocaroDbContext db, IOperationScope scope, IEnumerable<IUndoCompensation> compensations) : IOperationUndo
 {
     private static readonly MethodInfo Loader = typeof(OperationUndo).GetMethod(nameof(LoadAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
 
@@ -44,12 +44,19 @@ internal sealed class OperationUndo(ElocaroDbContext db, IOperationScope scope) 
             return UndoCheck.No("Die Aktion hat keine Änderungen aufgezeichnet.");
         }
 
-        var blocked = entries
-            .Where(e => e.Action is not (AuditAction.Created or AuditAction.Modified or AuditAction.Deleted) || !UndoPolicy.IsRestorable(e.EntityType))
-            .Select(e => e.EntityType).Distinct().Order(StringComparer.Ordinal).ToList();
+        var blocked = entries.Where(e => !CanBeTakenBack(e)).Select(e => e.EntityType).Distinct().Order(StringComparer.Ordinal).ToList();
         if (blocked.Count > 0)
         {
-            return UndoCheck.No("Die Aktion enthält Änderungen, die sich nicht rückgängig machen lassen: " + string.Join(", ", blocked) + ".");
+            var bookings = blocked.Any(t => UndoPolicy.All.GetValueOrDefault(t) == UndoClass.Compensating) ? " Buchungen werden nur durch eine Gegenbuchung ausgeglichen, und nur ihr Anlegen; Änderungen und Löschungen bitte als Korrekturbuchung erfassen." : "";
+            return UndoCheck.No("Die Aktion enthält Änderungen, die sich nicht rückgängig machen lassen: " + string.Join(", ", blocked) + "." + bookings);
+        }
+
+        foreach (var entry in entries.Where(e => CompensationFor(e.EntityType) is not null))
+        {
+            if (await CompensationFor(entry.EntityType)!.CheckAsync(entry.EntityId, cancellationToken) is { } reason)
+            {
+                return UndoCheck.No(reason);
+            }
         }
 
         var later = await LaterChangeAsync(operationId, entries, cancellationToken);
@@ -59,6 +66,11 @@ internal sealed class OperationUndo(ElocaroDbContext db, IOperationScope scope) 
         }
 
         var dependent = await DependentAsync(entries, cancellationToken);
+        if (dependent is null && entries.Any(e => e.Action == AuditAction.Created && CompensationFor(e.EntityType) is not null))
+        {
+            return UndoCheck.YesWith("Buchungen werden nicht gelöscht: Elocaro legt eine Gegenbuchung an, die den Betrag ausgleicht. Das Original bleibt sichtbar.");
+        }
+
         return dependent is null ? UndoCheck.Yes : UndoCheck.No($"{dependent} gehört inzwischen dazu oder verweist darauf. Zuerst das entfernen.");
     }
 
@@ -116,6 +128,9 @@ internal sealed class OperationUndo(ElocaroDbContext db, IOperationScope scope) 
         var entry = db.Entry(entity);
         switch (audit.Action)
         {
+            case AuditAction.Created when CompensationFor(audit.EntityType) is { } compensation:
+                return await compensation.CompensateAsync(audit.EntityId, cancellationToken);
+
             case AuditAction.Created:
                 if (entity.Deleted)
                 {
@@ -137,6 +152,13 @@ internal sealed class OperationUndo(ElocaroDbContext db, IOperationScope scope) 
 
         return null;
     }
+
+    private IUndoCompensation? CompensationFor(string entityType) => compensations.FirstOrDefault(c => c.EntityType == entityType);
+
+    /// <summary>Master data in any way; finance types only their creation, and only where a module can compensate it.</summary>
+    private bool CanBeTakenBack(AuditEntry e) =>
+        e.Action is AuditAction.Created or AuditAction.Modified or AuditAction.Deleted
+        && (UndoPolicy.IsRestorable(e.EntityType) || (e.Action == AuditAction.Created && CompensationFor(e.EntityType) is not null));
 
     private static void SetValues(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, AuditEntry audit)
     {

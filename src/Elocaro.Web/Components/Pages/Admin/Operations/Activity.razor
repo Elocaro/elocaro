@@ -81,7 +81,7 @@
         }
 
         var what = string.Join(", ", row.Touched.Select(t => $"{t.Count} × {t.EntityType} {ActionText(t.Action)}"));
-        var confirmed = await Dialogs.ShowMessageBoxAsync("Rückgängig machen?", $"{row.Label ?? "Änderung"} ({what}) wird zurückgenommen. Das wird selbst in der Aktivität vermerkt.", yesText: "Rückgängig machen", cancelText: "Abbrechen");
+        var confirmed = await Dialogs.ShowMessageBoxAsync("Rückgängig machen?", $"{row.Label ?? "Änderung"} ({what}) wird zurückgenommen. {(check.Notice is null ? "" : check.Notice + " ")}Das wird selbst in der Aktivität vermerkt.", yesText: "Rückgängig machen", cancelText: "Abbrechen");
         if (confirmed != true)
         {
             return;

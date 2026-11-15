@@ -1,4 +1,5 @@
 using Elocaro.Application.Admin;
+using Elocaro.Application.Audit;
 using Elocaro.Application.Finance;
 using Elocaro.Application.People;
 using Elocaro.Application.Todos;
@@ -17,6 +18,8 @@ internal static class FinanceRegistration
         services.AddScoped<IFinanceSettings, FinanceSettingsService>();
         services.AddScoped<ITodoSource, FinanceTodos>();
         services.AddScoped<IDunning, DunningService>();
+        services.AddScoped<IUndoCompensation, ChargeCompensation>();
+        services.AddScoped<IUndoCompensation, PaymentCompensation>();
         services.AddScoped<ITodoSource, DunningTodos>();
         services.AddScoped<IPersonalDataSource, DunningPersonalData>();
         services.AddScoped<IPersonalDataSource, TenantAccountPersonalData>();

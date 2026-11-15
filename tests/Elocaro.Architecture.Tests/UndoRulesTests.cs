@@ -25,6 +25,19 @@ public class UndoRulesTests
     }
 
     [Fact]
+    public void Only_compensating_types_have_a_counter_entry_and_each_type_only_one()
+    {
+        var types = typeof(Elocaro.Infrastructure.InfrastructureAssembly).Assembly.GetTypes()
+            .Where(t => t is { IsAbstract: false, IsClass: true } && t.IsAssignableTo(typeof(Elocaro.Application.Audit.IUndoCompensation))).ToList();
+        var names = types.Select(t => ((Elocaro.Application.Audit.IUndoCompensation)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(t)).EntityType).ToList();
+
+        Assert.NotEmpty(names);
+        Assert.Equal(names.Distinct().Count(), names.Count);
+        var wrong = names.Where(n => UndoPolicy.All.GetValueOrDefault(n) != UndoClass.Compensating).ToList();
+        Assert.True(wrong.Count == 0, "A counter entry only makes sense for a type of the class Compensating: " + string.Join(", ", wrong));
+    }
+
+    [Fact]
     public void Types_with_secrets_or_outside_effects_are_not_restorable()
     {
         foreach (var name in new[] { "BankDetails", "BankAccount", "OutgoingMail", "SignatureRequest", "StoredFile" })

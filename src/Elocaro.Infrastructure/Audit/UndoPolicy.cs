@@ -9,7 +9,7 @@ public enum UndoClass
     /// <summary>Restorable in principle, not enabled yet (its dependents or rules have not been looked at).</summary>
     Planned = 1,
 
-    /// <summary>Finance: taking back means a counter entry, never deleting. Not enabled yet.</summary>
+    /// <summary>Finance: taking back means a counter entry, never deleting. Enabled for the creation of a type for which a module registers an <c>IUndoCompensation</c> (Charge, Payment); the rest is not enabled yet.</summary>
     Compensating = 2,
 
     /// <summary>Cannot be taken back: sent mail, delivered documents, bank and signatures, users and settings of the system.</summary>
