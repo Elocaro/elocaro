@@ -2,11 +2,10 @@ using Elocaro.Application.Properties;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Properties;
-using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Elocaro.Infrastructure.Properties;
+namespace Elocaro.Infrastructure.Leases;
 
 internal sealed class OccupancyPlanService(ElocaroDbContext db, TimeProvider clock) : IOccupancyPlan
 {

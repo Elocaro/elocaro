@@ -13,7 +13,6 @@ internal static class PropertiesRegistration
         services.AddScoped<IOptionUsageSource, Properties.PropertyOptionUsage>();
         services.AddScoped<IPropertyService, PropertyService>();
         services.AddScoped<IPropertyAssignments, PropertyAssignments>();
-        services.AddScoped<IOccupancyPlan, OccupancyPlanService>();
         services.AddScoped<IPropertyOwners, PropertyOwners>();
         services.AddScoped<IPropertyLandlords, PropertyLandlords>();
         services.AddScoped<IPersonReference, PropertyOwnerReferences>();

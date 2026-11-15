@@ -17,6 +17,7 @@ internal static class LeasesRegistration
         services.AddScoped<IDeposits, Leases.Deposits>();
         services.AddScoped<ITodoSource, Leases.DepositTodos>();
         services.AddScoped<IOccupancyLookup, LeaseOccupancy>();
+        services.AddScoped<IOccupancyPlan, OccupancyPlanService>();
         services.AddScoped<ILeaseService, LeaseService>();
         services.AddScoped<IPersonReference, LeasePersonalReferences>();
         services.AddScoped<IPersonalDataSource, LeasePersonalData>();

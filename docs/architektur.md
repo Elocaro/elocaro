@@ -142,11 +142,10 @@ Zwei Module, die sich gegenseitig verwenden, sind ein Zyklus. Die vorhandenen si
 den Test, ein aufgelöster muss aus der Liste. Ziel ist eine leere Liste. Domain und Application sind frei von Zyklen.
 
 Aufgelöst im November 2026: Metering ↔ OperatingCosts (Umrechnungsfaktor am Zähler, Erweiterungspunkt `IMeterUsage`) sowie in der
-Domain Heating ↔ OperatingCosts und Heating ↔ Receipts (`HeatingCostKind` liegt bei den Kostengruppen in `Domain.Receipts`) sowie Bank ↔ Tax (Schnittstelle `ILoanBookings` der Darlehen, umgesetzt in Bank) und Properties ↔ Receipts (die Regel für selbst bezahlte Kostenarten liegt als `SelfPaidCostTypes` in `Domain.Properties`).
+Domain Heating ↔ OperatingCosts und Heating ↔ Receipts (`HeatingCostKind` liegt bei den Kostengruppen in `Domain.Receipts`) sowie Leases ↔ Properties (der Belegungsplan liegt jetzt in `Leases`), Bank ↔ Tax (Schnittstelle `ILoanBookings` der Darlehen, umgesetzt in Bank) und Properties ↔ Receipts (die Regel für selbst bezahlte Kostenarten liegt als `SelfPaidCostTypes` in `Domain.Properties`).
 
 | Schicht | Zyklus | Ursache (kleinere Richtung) |
 |---|---|---|
-| Infrastructure | Leases ↔ Properties | `OccupancyPlanService` (Belegungsplan) liest Verträge |
 | Infrastructure | Leases ↔ People | `PersonService` fragt beim Einrichten des Zugangs, ob die Person Mieter ist |
 | Infrastructure | People ↔ Properties | `PersonService` fragt dabei auch, ob die Person Eigentümer ist |
 
@@ -204,10 +203,10 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
 
 1. ~~Application ist Vertragsschicht, die Anwendungsfälle liegen in der Infrastructure.~~ Entschieden: bleibt so,
    [ADR 0008](adr/0008-anwendungsdienste-in-der-infrastructure.md).
-2. **Fünf eingefrorene Modulzyklen** in der Infrastructure (Tabelle oben) und drei weitere über Schichtgrenzen. Offen sind die
+2. **Drei eingefrorene Modulzyklen** in der Infrastructure (Tabelle oben) und zwei weitere über Schichtgrenzen. Offen sind die
    schwierigeren: `PersonService` entscheidet beim Einrichten eines Zugangs über die Rolle und fragt dafür Verträge und Eigentümer
-   ab (zuerst alle Fälle mit Tests festhalten, dann über `IPersonReference` mit einem typisierten Merkmal führen); der Belegungsplan
-   gehört fachlich zu `Leases`; Bank ↔ Tax ist aufgelöst.
+   ab (zuerst alle Fälle mit Tests festhalten, dann über `IPersonReference` mit einem typisierten Merkmal führen); Belegungsplan,
+   Bank ↔ Tax und Properties ↔ Receipts sind aufgelöst.
 3. ~~Ein DbContext für alle Module.~~ Entschieden: Lesen fremder Tabellen bleibt erlaubt (423 Zugriffe in 101 Modulpaaren), die
    Zyklen-Regeln bleiben die Grenze, fremde Entitäten werden nur über die Schnittstelle des Moduls verändert,
    [ADR 0009](adr/0009-modulgrenzen-bei-gemeinsamem-dbcontext.md).

@@ -13,7 +13,6 @@ public partial class ModuleRulesTests
     private static readonly string[] KnownCycles =
     [
         "Leases <-> People",
-        "Leases <-> Properties",
         "People <-> Properties",
     ];
 
