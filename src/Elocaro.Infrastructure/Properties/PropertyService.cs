@@ -398,7 +398,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
         e.FittedKitchen = d.FittedKitchen;
         e.EnergyStandard = TrimToNull(d.EnergyStandard);
         e.Amenities = TrimToNull(d.Amenities);
-        e.SelfPaidCostTypes = [.. d.SelfPaidCostTypes.Distinct(StringComparer.Ordinal).Where(k => Elocaro.Domain.Receipts.CostTypes.Find(k) is { Allocable: true } && Elocaro.Domain.Receipts.CostGroups.Of(k) != Elocaro.Domain.Receipts.CostGroup.Heating)];
+        e.SelfPaidCostTypes = [.. SelfPaidCostTypes.Normalize(d.SelfPaidCostTypes)];
     }
 
     private static void Apply(Room z, RoomInput d)

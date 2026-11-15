@@ -16,7 +16,6 @@ public partial class ModuleRulesTests
         "Leases <-> People",
         "Leases <-> Properties",
         "People <-> Properties",
-        "Properties <-> Receipts",
     ];
 
     /// <summary>Pairs of Domain modules that use each other today. Goal: empty.</summary>
