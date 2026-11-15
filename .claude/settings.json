@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "C:/Users/Andy/.local/bin/graphify.EXE hook-guard search",
+            "command": "graphify hook-guard search",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "C:/Users/Andy/.local/bin/graphify.EXE hook-guard read",
+            "command": "graphify hook-guard read",
             "timeout": 10
           }
         ]
@@ -28,11 +28,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "C:/Users/Andy/.local/bin/graphify.EXE hook-guard compact",
+            "command": "graphify hook-guard compact",
             "timeout": 10
           }
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "ponytail@ponytail": true
+  },
+  "extraKnownMarketplaces": {
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    }
   }
 }
