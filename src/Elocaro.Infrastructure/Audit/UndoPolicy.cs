@@ -39,7 +39,7 @@ public static class UndoPolicy
             "CostAllocationRule", "CostAllocationShare", "CostSubtype", "CostItem", "SupplyContract", "SupplyTariff", "SupplierCostTypeRule",
             "TaxLineMapping", "DatevAccount", "CsvProfile", "MatchRule", "DocumentTemplate", "DocumentTemplateRevision", "Document", "Receipt", "ReceiptFile",
             "RecurringTask", "TaskCompletion", "CareRoutine", "CareCheck", "Loan", "LoanCertificate", "LoanExtraPayment", "FinancingCost",
-            "CpiValue", "DegreeDayValue", "Ticket", "TicketComment", "TicketPhoto", "TicketWork", "TicketInvoice", "Notice", "NoticeFile",
+            "DirectDebitMandate", "CpiValue", "DegreeDayValue", "Ticket", "TicketComment", "TicketPhoto", "TicketWork", "TicketInvoice", "Notice", "NoticeFile",
             "MessageThread", "Message", "MessageFile", "HeatingSettings", "DeadlineSettings", "FinanceSettings", "ModuleSettings", "DatevSettings");
         Add(result, UndoClass.Compensating,
             "Charge", "Payment", "Transaction", "TransactionAssignment", "DepositEntry", "Dunning", "DunningHold", "RentReduction", "BillingStatement", "PrepaymentProposal", "RentIncrease");

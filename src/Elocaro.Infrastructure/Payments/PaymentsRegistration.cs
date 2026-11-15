@@ -9,6 +9,8 @@ internal static class PaymentsRegistration
     internal static IServiceCollection AddPaymentsModule(this IServiceCollection services)
     {
         services.AddScoped<IPaymentOrders, PaymentOrders>();
+        services.AddScoped<IDirectDebitMandates, DirectDebitMandates>();
+        services.AddScoped<IDirectDebits, DirectDebits>();
         return services;
     }
 }

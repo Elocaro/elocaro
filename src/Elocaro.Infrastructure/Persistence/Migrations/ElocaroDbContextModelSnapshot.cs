@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261115180529_ReadingReportPhoto";
+    public override string LastMigrationId => "20261115201718_DirectDebitMandates";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -124,6 +124,11 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasMaxLength(256)
                     .HasColumnType("character varying(256)")
                     .HasColumnName("created_by");
+
+                b.Property<string>("CreditorId")
+                    .HasMaxLength(35)
+                    .HasColumnType("character varying(35)")
+                    .HasColumnName("creditor_id");
 
                 b.Property<bool>("Deleted")
                     .HasColumnType("boolean")
@@ -5442,6 +5447,100 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.ToTable("google_client_settings");
             });
 
+        modelBuilder.Entity("Elocaro.Domain.Payments.DirectDebitMandate", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<string>("DebtorBic")
+                    .HasMaxLength(11)
+                    .HasColumnType("character varying(11)")
+                    .HasColumnName("debtor_bic");
+
+                b.Property<string>("DebtorIban")
+                    .IsRequired()
+                    .HasMaxLength(34)
+                    .HasColumnType("character varying(34)")
+                    .HasColumnName("debtor_iban");
+
+                b.Property<string>("DebtorName")
+                    .IsRequired()
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)")
+                    .HasColumnName("debtor_name");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<Guid>("LeaseId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("lease_id");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<string>("Note")
+                    .HasMaxLength(500)
+                    .HasColumnType("character varying(500)")
+                    .HasColumnName("note");
+
+                b.Property<string>("Reference")
+                    .IsRequired()
+                    .HasMaxLength(35)
+                    .HasColumnType("character varying(35)")
+                    .HasColumnName("reference");
+
+                b.Property<DateOnly?>("RevokedOn")
+                    .HasColumnType("date")
+                    .HasColumnName("revoked_on");
+
+                b.Property<string>("Sequence")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("character varying(20)")
+                    .HasColumnName("sequence");
+
+                b.Property<DateOnly>("SignedOn")
+                    .HasColumnType("date")
+                    .HasColumnName("signed_on");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.HasKey("Id")
+                    .HasName("pk_direct_debit_mandates");
+
+                b.HasIndex("LeaseId")
+                    .HasDatabaseName("ix_direct_debit_mandates_lease_id");
+
+                b.HasIndex("Reference")
+                    .IsUnique()
+                    .HasDatabaseName("ix_direct_debit_mandates_reference")
+                    .HasFilter("NOT deleted");
+
+                b.ToTable("direct_debit_mandates");
+            });
+
         modelBuilder.Entity("Elocaro.Domain.People.BankDetails", b =>
             {
                 b.Property<Guid>("Id")
@@ -9969,6 +10068,16 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired()
                     .HasConstraintName("fk_supply_tariffs_supply_contracts_contract_id");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Payments.DirectDebitMandate", b =>
+            {
+                b.HasOne("Elocaro.Domain.Leases.Lease", null)
+                    .WithMany()
+                    .HasForeignKey("LeaseId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired()
+                    .HasConstraintName("fk_direct_debit_mandates_lease_lease_id");
             });
 
         modelBuilder.Entity("Elocaro.Domain.People.BankDetails", b =>

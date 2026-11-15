@@ -180,9 +180,9 @@ public static class CreditTransferFile
         return letter != default ? letter.ToString() : " ";
     }
 
-    private static string Money(decimal amount) => decimal.Round(amount, 2).ToString("0.00", CultureInfo.InvariantCulture);
+    internal static string Money(decimal amount) => decimal.Round(amount, 2).ToString("0.00", CultureInfo.InvariantCulture);
 
-    private static string? Bic(string? bic)
+    internal static string? Bic(string? bic)
     {
         var compact = string.IsNullOrWhiteSpace(bic) ? "" : new string(bic.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToUpperInvariant();
         return compact.Length is 8 or 11 && compact.All(char.IsAsciiLetterOrDigit) ? compact : null;

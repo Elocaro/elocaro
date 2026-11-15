@@ -80,6 +80,7 @@ internal sealed class LandlordProfileService(ElocaroDbContext db) : ILandlordPro
         Email = profile.Email,
         Iban = profile.Iban,
         Bic = profile.Bic,
+        CreditorId = profile.CreditorId,
         Bank = profile.Bank,
         TaxNumber = profile.TaxNumber,
         EmergencyInfo = profile.EmergencyInfo,
@@ -102,6 +103,7 @@ internal sealed class LandlordProfileService(ElocaroDbContext db) : ILandlordPro
         profile.Email = TrimToNull(data.Email);
         profile.Iban = FormatIban(data.Iban);
         profile.Bic = TrimToNull(data.Bic)?.ToUpperInvariant();
+        profile.CreditorId = TrimToNull(data.CreditorId) is { } creditorId ? Domain.Common.CreditorId.Compact(creditorId) : null;
         profile.Bank = TrimToNull(data.Bank);
         profile.TaxNumber = TrimToNull(data.TaxNumber);
         profile.EmergencyInfo = TrimToNull(data.EmergencyInfo);

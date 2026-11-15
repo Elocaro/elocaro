@@ -45,6 +45,9 @@ public sealed class LandlordProfile : Entity
 
     public string? Bic { get; set; }
 
+    /// <summary>Creditor identifier (Gläubiger-ID) of the Bundesbank, needed for SEPA direct debits.</summary>
+    public string? CreditorId { get; set; }
+
     public string? Bank { get; set; }
 
     public string? TaxNumber { get; set; }

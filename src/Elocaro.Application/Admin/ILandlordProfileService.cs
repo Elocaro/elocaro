@@ -62,6 +62,10 @@ public sealed class LandlordProfileInput
     [StringLength(11)]
     public string? Bic { get; set; }
 
+    [CreditorId]
+    [StringLength(35)]
+    public string? CreditorId { get; set; }
+
     [StringLength(100)]
     public string? Bank { get; set; }
 

@@ -50,6 +50,7 @@
             <div class="form-grid">
                 <AppTextField @bind-Value="data.Iban" Label="IBAN" Hint="Erscheint in der Fußzeile und in Zahlungsaufforderungen." />
                 <AppTextField @bind-Value="data.Bic" Label="BIC" />
+                <AppTextField @bind-Value="data.CreditorId" Label="Gläubiger-ID" Hint="Für SEPA-Lastschriften; erhalten Sie von der Bundesbank (z. B. DE98ZZZ09999999999)." />
                 <AppTextField @bind-Value="data.Bank" Label="Bank" />
                 <AppTextField @bind-Value="data.TaxNumber" Label="Steuernummer" />
             </div>

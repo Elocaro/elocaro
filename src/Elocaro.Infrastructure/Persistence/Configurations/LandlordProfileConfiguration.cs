@@ -18,6 +18,7 @@ internal sealed class LandlordProfileConfiguration : IEntityTypeConfiguration<La
         builder.Property(v => v.Email).HasMaxLength(254);
         builder.Property(v => v.Iban).HasMaxLength(34);
         builder.Property(v => v.Bic).HasMaxLength(11);
+        builder.Property(v => v.CreditorId).HasMaxLength(35);
         builder.Property(v => v.Bank).HasMaxLength(100);
         builder.Property(v => v.TaxNumber).HasMaxLength(30);
         builder.Property(v => v.EmergencyInfo).HasMaxLength(500);

@@ -1,0 +1,90 @@
+@page "/verwaltung/finanzen/lastschriften"
+@using Elocaro.Application.Payments
+@using Elocaro.Web.Finance
+@inject IDirectDebits Debits
+@inject TimeProvider Clock
+
+<PageHeader Title="Lastschriften" Subtitle="Offene Mieten von Mietern mit SEPA-Mandat als Lastschriftdatei für das Online-Banking.">
+    <Actions>
+        <a class="button" href="/verwaltung/finanzen/lastschrift-mandate">Mandate verwalten</a>
+    </Actions>
+</PageHeader>
+
+<p class="help">
+    Elocaro zieht nichts selbst ein und bucht nichts. Sie wählen aus, laden die Datei herunter und laden sie im Online-Banking hoch; dort prüfen und
+    geben Sie die Einzüge frei. Die Zahlungen erscheinen später im Bankabgleich. Eingezogen wird, was im Mieterkonto für die Miete noch offen ist.
+    Die Datei muss der Bank mindestens einen Bankarbeitstag vor dem Einzugstag vorliegen, und die Mieter müssen vorher angekündigt sein (der Vertrag oder das Mandat
+    nennt die Frist, üblich sind 14 Tage; Elocaro verschickt keine Ankündigung). Die Datei enthält IBANs: sicher aufbewahren und nach dem Hochladen löschen.
+</p>
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <Notice Level="NoticeLevel.Error">@Error</Notice>
+}
+
+@if (candidates is { Count: 0 })
+{
+    <EmptyState Text="Nichts einzuziehen: Es gibt keine offene Miete bei Mietern mit Lastschrift. Mandate legen Sie unter „Mandate verwalten“ an." />
+}
+else if (candidates is not null)
+{
+    <form method="post" action="@DirectDebitEndpoint.Path" data-enhance="false">
+        <AntiforgeryToken />
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead><tr><th></th><th>Mieter</th><th>Mietobjekt</th><th>Fällig</th><th>Mandat</th><th class="number">Betrag</th></tr></thead>
+                <tbody>
+                    @foreach (var candidate in candidates)
+                    {
+                        var id = "pick-" + candidate.Key.Replace(':', '-');
+                        <tr>
+                            <td>
+                                <input type="checkbox" id="@id" name="auswahl" value="@candidate.Key" disabled="@(candidate.Problem is not null)" aria-label="@($"{candidate.Tenant}, Miete vom {Format.Date(candidate.Due)}, {Format.Money(candidate.Amount)} auswählen")" />
+                            </td>
+                            <td>@candidate.Tenant</td>
+                            <td>@candidate.RentalUnit</td>
+                            <td>@Format.Date(candidate.Due)</td>
+                            <td>
+                                @if (candidate.Problem is { } problem)
+                                {
+                                    <span class="small field-error">@problem</span>
+                                }
+                                else
+                                {
+                                    <span class="small">@candidate.MandateReference</span>
+                                }
+                            </td>
+                            <td class="number">@Format.Money(candidate.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <section>
+            <h2>Datei erstellen</h2>
+            <div class="field">
+                <label for="einzugstag">Einzugstag</label>
+                <input type="date" id="einzugstag" name="einzugstag" value="@Suggested.ToString("yyyy-MM-dd")" min="@Tomorrow.ToString("yyyy-MM-dd")" required />
+                <span class="field-hint">Tag, an dem die Bank einziehen soll: nicht vor der Fälligkeit und mindestens morgen. Eingezogen wird auf das Konto im Vermieterprofil, mit der dort hinterlegten Gläubiger-ID.</span>
+            </div>
+            <button type="submit" class="button button-primary">Lastschriftdatei herunterladen</button>
+        </section>
+    </form>
+}
+
+@code {
+    private IReadOnlyList<DebitCandidate>? candidates;
+
+    [SupplyParameterFromQuery(Name = "fehler")]
+    private string? Error { get; set; }
+
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    private DateOnly Tomorrow => Today.AddDays(1);
+
+    /// <summary>The next due date that is still ahead, otherwise tomorrow.</summary>
+    private DateOnly Suggested => candidates?.Where(c => c.Due >= Tomorrow).Select(c => (DateOnly?)c.Due).Min() ?? Tomorrow;
+
+    protected override async Task OnInitializedAsync() => candidates = await Debits.CandidatesAsync();
+}

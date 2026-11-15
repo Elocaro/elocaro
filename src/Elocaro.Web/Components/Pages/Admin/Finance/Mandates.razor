@@ -1,0 +1,63 @@
+@page "/verwaltung/finanzen/lastschrift-mandate"
+@rendermode InteractiveServer
+@using Elocaro.Application.Payments
+@using MudBlazor
+@inject IDirectDebitMandates MandateService
+
+<InteractiveShell>
+    <PageHeader Title="Lastschrift-Mandate" Subtitle="Das SEPA-Mandat erlaubt, die Miete vom Konto des Mieters einzuziehen." Back="/verwaltung/finanzen/lastschriften" BackText="Lastschriften">
+        <Actions>
+            @if (rows is not { Count: 0 })
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/finanzen/lastschrift-mandate/neu">Mandat erfassen</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <details class="explain">
+        <summary>Was ein Mandat ist</summary>
+        <p class="small">
+            Der Mieter unterschreibt ein SEPA-Lastschriftmandat (Vorlage Ihrer Bank). Bewahren Sie das unterschriebene Mandat auf, auch 14 Monate über das Ende des
+            Mietverhältnisses hinaus. Hier erfassen Sie nur die Daten, die in die Lastschriftdatei gehören: Kontoinhaber, IBAN, Datum der Unterschrift und die Mandatsreferenz.
+            Die Referenz vergibt Elocaro, wenn Sie das Feld leer lassen; sie muss eindeutig sein und lässt sich später nicht ändern. Die Gläubiger-ID tragen Sie im Vermieterprofil ein.
+        </p>
+    </details>
+
+    @if (rows is { Count: 0 })
+    {
+        <EmptyState Text="Noch kein Mandat erfasst.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/verwaltung/finanzen/lastschrift-mandate/neu">Mandat erfassen</MudButton>
+        </EmptyState>
+    }
+    else if (rows is not null)
+    {
+        <MudTable T="MandateRow" Items="rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Mieter</MudTh><MudTh>Mietobjekt</MudTh><MudTh>Referenz</MudTh><MudTh>Konto</MudTh><MudTh>Unterschrieben</MudTh><MudTh>Zustand</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Mieter"><a href="/verwaltung/finanzen/lastschrift-mandate/@context.Id">@context.Tenant</a></MudTd>
+                <MudTd DataLabel="Mietobjekt">@context.RentalUnit<br /><span class="small">@context.Property</span></MudTd>
+                <MudTd DataLabel="Referenz">@context.Reference</MudTd>
+                <MudTd DataLabel="Konto">@context.DebtorName <span class="small">@context.IbanEnding</span></MudTd>
+                <MudTd DataLabel="Unterschrieben">@Format.Date(context.SignedOn)</MudTd>
+                <MudTd DataLabel="Zustand">
+                    @if (context.Active)
+                    {
+                        <StatusChip Level="StatusLevel.Success">gültig</StatusChip>
+                    }
+                    else
+                    {
+                        <StatusChip Level="StatusLevel.Warning">@(context.RevokedOn is { } revoked ? $"widerrufen am {Format.Date(revoked)}" : "noch nicht gültig")</StatusChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<MandateRow>? rows;
+
+    protected override async Task OnInitializedAsync() => rows = await MandateService.ListAsync();
+}

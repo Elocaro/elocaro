@@ -1,0 +1,145 @@
+@page "/verwaltung/finanzen/lastschrift-mandate/neu"
+@page "/verwaltung/finanzen/lastschrift-mandate/{Id:guid}"
+@rendermode InteractiveServer
+@using Elocaro.Application.Payments
+@using Elocaro.Domain.Payments
+@using MudBlazor
+@inject IDirectDebitMandates Mandates
+@inject NavigationManager Navigation
+@inject Confirmations Confirm
+@inject TimeProvider Clock
+
+<InteractiveShell>
+    <PageHeader Title="@(Id is null ? "Mandat erfassen" : "Mandat bearbeiten")" Subtitle="Daten aus dem unterschriebenen SEPA-Lastschriftmandat." Back="/verwaltung/finanzen/lastschrift-mandate" BackText="Mandate" />
+
+    <ErrorList Errors="errors" />
+
+    @if (loaded && Id is not null && !exists)
+    {
+        <EmptyState Text="Das Mandat wurde nicht gefunden." />
+    }
+    else if (loaded)
+    {
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                @if (Id is null)
+                {
+                    <OptionSelect @bind-Value="leaseId" Label="Mietverhältnis" Options="leases.Select(l => (l.Id, l.Label)).ToList()" />
+                }
+                <AppTextField @bind-Value="data.DebtorName" Label="Kontoinhaber" Required="true" Hint="Wie im Mandat, höchstens 70 Zeichen." />
+                <AppTextField @bind-Value="data.DebtorIban" Label="IBAN" Required="true" />
+                <AppTextField @bind-Value="data.DebtorBic" Label="BIC" Hint="Freiwillig." />
+                <AppDateField @bind-Value="data.SignedOn" Label="Datum der Unterschrift" Required="true" />
+                <AppSelect @bind-Value="data.Sequence" Label="Art" Items="Enum.GetValues<MandateSequence>()" Text="@(v => v == MandateSequence.OneOff ? "einmalig" : "wiederkehrend (Miete)")" />
+                <AppTextField @bind-Value="data.Reference" Label="Mandatsreferenz" Disabled="@(Id is not null)" Hint="@(Id is null ? "Leer lassen, dann vergibt Elocaro eine." : "Lässt sich nicht mehr ändern.")" />
+                <AppTextField @bind-Value="data.Note" Label="Anmerkung" Lines="2" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+
+        @if (Id is { } existing)
+        {
+            <section>
+                <h2>Widerruf</h2>
+                @if (revokedOn is { } revoked)
+                {
+                    <p>Das Mandat gilt seit dem @Format.Date(revoked) nicht mehr.</p>
+                    <MudButton Variant="Variant.Outlined" OnClick="ReactivateAsync">Wieder gültig setzen</MudButton>
+                }
+                else
+                {
+                    <p class="small">Widerruft der Mieter oder endet das Mietverhältnis, setzen Sie das Mandat ab dem heutigen Tag außer Kraft. Danach wird nichts mehr eingezogen.</p>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="RevokeAsync">Mandat widerrufen</MudButton>
+                }
+            </section>
+            <ChangeHistory EntityType="DirectDebitMandate" EntityId="existing" />
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<MandateLeaseOption> leases = [];
+    private MandateInput data = new() { Sequence = MandateSequence.Recurring };
+    private IReadOnlyList<string>? errors;
+    private Guid? leaseId;
+    private DateOnly? revokedOn;
+    private bool exists = true;
+    private bool loaded;
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is { } id)
+        {
+            var existing = await Mandates.GetAsync(id);
+            exists = existing is not null;
+            if (existing is not null)
+            {
+                data = existing;
+                revokedOn = (await Mandates.ListAsync()).FirstOrDefault(r => r.Id == id)?.RevokedOn;
+            }
+        }
+        else
+        {
+            leases = await Mandates.LeaseOptionsAsync();
+            data.SignedOn = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        }
+
+        loaded = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (Id is null && leaseId is null)
+        {
+            errors = ["Bitte das Mietverhältnis wählen."];
+            return;
+        }
+
+        var result = Id is { } id ? await Mandates.UpdateAsync(id, data) : await Mandates.CreateAsync(leaseId!.Value, data);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/finanzen/lastschrift-mandate?meldung=gespeichert");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task RevokeAsync()
+    {
+        if (!await Confirm.AskAsync("Mandat widerrufen", "Ab heute wird nichts mehr auf Grundlage dieses Mandats eingezogen. Bereits erstellte Dateien ändert das nicht.", "Ja, widerrufen"))
+        {
+            return;
+        }
+
+        var result = await Mandates.RevokeAsync(Id!.Value, DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        if (result.Succeeded)
+        {
+            revokedOn = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+            errors = null;
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task ReactivateAsync()
+    {
+        var result = await Mandates.ReactivateAsync(Id!.Value);
+        if (result.Succeeded)
+        {
+            revokedOn = null;
+            errors = null;
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

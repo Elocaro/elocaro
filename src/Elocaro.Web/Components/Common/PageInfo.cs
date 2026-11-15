@@ -503,6 +503,25 @@ public static class PageInfoCatalog
                     "Die Datei enthält IBANs. Bewahren Sie sie sicher auf und löschen Sie sie nach dem Hochladen."),
             ]), $"{Admin}/finanzen/ueberweisungen");
 
+        Add(new("Lastschriften",
+            "Offene Mieten von Mietern mit SEPA-Mandat als Lastschriftdatei für das Online-Banking.",
+            [
+                new("Gut zu wissen",
+                    "Elocaro zieht nichts selbst ein und bucht nichts. Sie laden die Datei herunter, laden sie im Online-Banking hoch und geben die Einzüge dort frei.",
+                    "Eingezogen wird, was im Mieterkonto für die Miete noch offen ist. Ohne gültiges Mandat ist die Zeile gesperrt.",
+                    "Auf dem Konto im Vermieterprofil, mit der Gläubiger-ID aus dem Profil. Die Zahlungen erscheinen später im Bankabgleich."),
+                new("Hinweis",
+                    "Die Datei muss der Bank mindestens einen Bankarbeitstag vor dem Einzugstag vorliegen, und die Mieter müssen vorher angekündigt sein. Elocaro verschickt keine Ankündigung."),
+            ]), $"{Admin}/finanzen/lastschriften");
+
+        Add(new("Lastschrift-Mandate",
+            "Das SEPA-Mandat erlaubt, die Miete vom Konto des Mieters einzuziehen.",
+            [new("Gut zu wissen",
+                "Bewahren Sie das unterschriebene Mandat auf. Elocaro speichert nur die Daten für die Lastschriftdatei.",
+                "Die Mandatsreferenz muss eindeutig sein und lässt sich später nicht ändern.",
+                "Widerruft der Mieter oder endet das Mietverhältnis, setzen Sie das Mandat außer Kraft.")]),
+            $"{Admin}/finanzen/lastschrift-mandate", $"{Admin}/finanzen/lastschrift-mandate/neu", $"{Admin}/finanzen/lastschrift-mandate/{{id}}");
+
         Add(new("Offene Posten",
             "Fällige, nicht vollständig bezahlte Forderungen, nach Mietverhältnis gruppiert.",
             [new("Gut zu wissen",

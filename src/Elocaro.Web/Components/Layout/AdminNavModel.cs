@@ -74,6 +74,7 @@ public static class AdminNavModel
                  new("Zuordnen", $"{Root}/bank/zuordnung", Also: [$"{Root}/bank/umsaetze/"]),
                  new("Alle Umsätze", $"{Root}/bank/umsaetze", Exact: true),
                  new("Überweisungen", $"{Root}/finanzen/ueberweisungen"),
+                 new("Lastschriften", $"{Root}/finanzen/lastschriften", Also: [$"{Root}/finanzen/lastschrift-mandate"]),
                  new("Regeln", $"{Root}/bank/regeln"),
                  new("Bankkonten", $"{Root}/bank/konten", Also: [$"{Root}/bank/importe"]),
                  new("CSV-Profile", $"{Root}/bank/csv-profile")),

@@ -83,6 +83,7 @@ app.MapOpenItemsEndpoint();
 app.MapRentPotentialEndpoint();
 app.MapKeyFiguresEndpoint();
 app.MapPaymentOrderEndpoint();
+app.MapDirectDebitEndpoint();
 app.MapImportTemplateEndpoint();
 app.MapCareChecksEndpoint();
 app.MapNoticePdfEndpoint();
