@@ -12,7 +12,6 @@ public partial class ModuleRulesTests
     /// <summary>Pairs of Infrastructure modules that use each other today (alphabetical), counting namespaces of Application, Domain and Infrastructure. Goal: empty.</summary>
     private static readonly string[] KnownCycles =
     [
-        "Bank <-> Tax",
         "Leases <-> People",
         "Leases <-> Properties",
         "People <-> Properties",

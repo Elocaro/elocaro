@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Infrastructure.Tax;
 
-internal sealed class LoanService(ElocaroDbContext db) : ILoanService
+internal sealed class LoanService(ElocaroDbContext db, ILoanBookings bookings) : ILoanService
 {
     public async Task<IReadOnlyList<LoanListItem>> ListAsync(CancellationToken cancellationToken = default) =>
         await (from d in db.Set<Loan>().AsNoTracking()
@@ -31,11 +31,7 @@ internal sealed class LoanService(ElocaroDbContext db) : ILoanService
         var certificates = await db.Set<LoanCertificate>().AsNoTracking().Where(b => b.LoanId == loanId).OrderBy(b => b.Year).ToListAsync(cancellationToken);
         var costs = await db.Set<FinancingCost>().AsNoTracking().Where(k => k.LoanId == loanId).OrderBy(k => k.Date).ToListAsync(cancellationToken);
 
-        var booked = await (from a in db.Set<Elocaro.Domain.Bank.TransactionAssignment>().AsNoTracking()
-                            join u in db.Set<Elocaro.Domain.Bank.Transaction>().AsNoTracking() on a.TransactionId equals u.Id
-                            where a.LoanId == loanId
-                            orderby u.BookingDate
-                            select new { u.Id, u.BookingDate, a.Amount, a.LoanInterest }).ToListAsync(cancellationToken);
+        var booked = await bookings.ForLoanAsync(loanId, cancellationToken);
 
         var plan = LoanCalculator.Calculate(loan.ToCalculation(), extras.Select(s => s.ToCalculation()).ToList());
         return new LoanDetail(
@@ -48,7 +44,7 @@ internal sealed class LoanService(ElocaroDbContext db) : ILoanService
             certificates.Select(b => new CertificateRow(b.Id, b.Year, b.Interest, b.ClosingBalance)).ToList(),
             costs.Select(k => new FinancingCostRow(k.Id, k.Date, k.Amount, k.Kind, k.Description)).ToList())
         {
-            Booked = booked.Select(b => new BookedInstalment(b.Id, b.BookingDate, -b.Amount, b.LoanInterest ?? 0m, -b.Amount - (b.LoanInterest ?? 0m))).ToList(),
+            Booked = booked.Select(b => new BookedInstalment(b.TransactionId, b.BookingDate, -b.Amount, b.Interest ?? 0m, -b.Amount - (b.Interest ?? 0m))).ToList(),
         };
     }
 

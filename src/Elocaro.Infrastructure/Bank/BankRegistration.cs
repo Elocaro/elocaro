@@ -1,4 +1,5 @@
 using Elocaro.Application.Bank;
+using Elocaro.Application.Tax;
 using Elocaro.Application.Todos;
 using Elocaro.Infrastructure.Bank.FinTs;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,7 @@ internal static class BankRegistration
         services.AddScoped<IFinTsService, FinTsService>();
         services.AddScoped<IPaymentAssignment, PaymentAssignment>();
         services.AddScoped<IMatchRules, MatchRules>();
+        services.AddScoped<ILoanBookings, LoanBookings>();
         services.AddScoped<ITodoSource, BankTodos>();
 
         return services;
