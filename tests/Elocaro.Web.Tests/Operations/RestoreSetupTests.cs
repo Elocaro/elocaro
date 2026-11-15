@@ -52,4 +52,70 @@ public class RestoreSetupTests(PostgresFixture postgres) : AccountTestBase(postg
         Assert.Equal(System.Net.HttpStatusCode.Redirect, closed.Status);
         Assert.Equal("/konto/anmelden", closed.RedirectLocation!.AbsolutePath);
     }
+
+    [Fact]
+    public async Task Upload_with_a_wrong_setup_code_is_turned_away_before_the_file_is_read()
+    {
+        using var browser = App.Browser();
+
+        var response = await PostUploadAsync(browser, token: await TokenAsync(browser), code: "falsch");
+
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, response.StatusCode);
+        Assert.EndsWith("?upload=code", response.Headers.Location!.OriginalString, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Upload_without_the_token_first_is_rejected()
+    {
+        using var browser = App.Browser();
+
+        var response = await PostUploadAsync(browser, token: null, code: ElocaroWebFactory.SetupCode);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task An_oversized_token_field_is_rejected()
+    {
+        using var browser = App.Browser();
+
+        var response = await PostUploadAsync(browser, token: new string('x', 10_000), code: ElocaroWebFactory.SetupCode);
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Once_an_account_exists_the_anonymous_upload_is_closed()
+    {
+        using var browser = App.Browser();
+        var token = await TokenAsync(browser);
+        var (admin, _) = await SignedInAsAsync(Roles.Admin);
+        admin.Dispose();
+
+        var response = await PostUploadAsync(browser, token, code: ElocaroWebFactory.SetupCode);
+
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, response.StatusCode);
+        Assert.EndsWith("?upload=code", response.Headers.Location!.OriginalString, StringComparison.Ordinal);
+    }
+
+    private static async Task<string> TokenAsync(TestBrowser browser)
+    {
+        // The upload form is interactive and has no token while pre-rendering; the token is not tied to the page.
+        var page = await browser.GetAsync("/konto/link");
+        return page.Document.QuerySelector("input[name=__RequestVerificationToken]")!.GetAttribute("value")!;
+    }
+
+    /// <summary>Posts the upload form of the setup like a browser; <paramref name="token"/> <c>null</c> leaves the token out.</summary>
+    private static async Task<HttpResponseMessage> PostUploadAsync(TestBrowser browser, string? token, string code)
+    {
+        using var data = new MultipartFormDataContent();
+        if (token is not null)
+        {
+            data.Add(new StringContent(token), "__RequestVerificationToken");
+        }
+
+        data.Add(new StringContent(code), "setupCode");
+        data.Add(new ByteArrayContent([1, 2, 3]), "file", "sicherung.tar");
+        return await browser.Http.PostAsync("/konto/einrichtung/wiederherstellen/hochladen", data, TestContext.Current.CancellationToken);
+    }
 }

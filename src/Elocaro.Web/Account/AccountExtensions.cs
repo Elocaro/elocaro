@@ -76,6 +76,15 @@ internal static class AccountExtensions
                         _ => new FixedWindowRateLimiterOptions { PermitLimit = mcp.RequestsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 });
                 }
 
+                // Public links with a secret token (calendar feed, contractor files): every call reads the database
+                if (context.Request.Path.StartsWithSegments("/kalender", StringComparison.OrdinalIgnoreCase)
+                    || context.Request.Path.StartsWithSegments("/auftrag", StringComparison.OrdinalIgnoreCase))
+                {
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        "link:" + address,
+                        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 });
+                }
+
                 return HttpMethods.IsPost(context.Request.Method) && context.Request.Path.StartsWithSegments(AccountPath, StringComparison.OrdinalIgnoreCase)
                     ? RateLimitPartition.GetFixedWindowLimiter(
                         address,

@@ -22,6 +22,9 @@ internal static class BackupFileEndpoints
     private const string TokenField = "__RequestVerificationToken";
     private const string SetupCodeField = "setupCode";
 
+    /// <summary>Token and code are short; anything longer is not read into memory (the endpoint of the setup is anonymous).</summary>
+    private const int MaxFieldLength = 4096;
+
     public static IEndpointRouteBuilder MapBackupFileEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet(DownloadPath, async (HttpContext context, IBackupControl control) =>
@@ -63,6 +66,12 @@ internal static class BackupFileEndpoints
             return Results.BadRequest();
         }
 
+        // Anonymous (setup): only while there is no account yet, checked before the form is read
+        if (accounts is not null && !await accounts.InitialSetupPossibleAsync(context.RequestAborted))
+        {
+            return Results.Redirect(back + "?upload=code");
+        }
+
         // The upload is as big as the backup
         if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
         {
@@ -83,7 +92,12 @@ internal static class BackupFileEndpoints
             if (field == TokenField)
             {
                 // The token is checked from the header: that does not read (and buffer) the form
-                context.Request.Headers[options.HeaderName ?? "RequestVerificationToken"] = await new StreamReader(section.Body).ReadToEndAsync(context.RequestAborted);
+                if (await ReadFieldAsync(section.Body, context.RequestAborted) is not { } token)
+                {
+                    return Results.BadRequest();
+                }
+
+                context.Request.Headers[options.HeaderName ?? "RequestVerificationToken"] = token;
                 try
                 {
                     await antiforgery.ValidateRequestAsync(context);
@@ -97,7 +111,7 @@ internal static class BackupFileEndpoints
             }
             else if (field == SetupCodeField)
             {
-                codeGiven = await new StreamReader(section.Body).ReadToEndAsync(context.RequestAborted);
+                codeGiven = await ReadFieldAsync(section.Body, context.RequestAborted) ?? string.Empty;
             }
             else if (disposition.FileName.HasValue || disposition.FileNameStar.HasValue)
             {
@@ -106,7 +120,7 @@ internal static class BackupFileEndpoints
                     return Results.BadRequest();
                 }
 
-                if (accounts is not null && setupCode is not null && (!setupCode.Matches(codeGiven) || !await accounts.InitialSetupPossibleAsync(context.RequestAborted)))
+                if (accounts is not null && setupCode is not null && !setupCode.Matches(codeGiven))
                 {
                     return Results.Redirect(back + "?upload=code");
                 }
@@ -118,6 +132,14 @@ internal static class BackupFileEndpoints
         }
 
         return Results.Redirect(back + "?upload=leer");
+    }
+
+    /// <summary>Text of a form field, or <c>null</c> if it is longer than <see cref="MaxFieldLength"/>.</summary>
+    private static async Task<string?> ReadFieldAsync(Stream body, CancellationToken cancellationToken)
+    {
+        var buffer = new char[MaxFieldLength + 1];
+        var read = await new StreamReader(body).ReadBlockAsync(buffer.AsMemory(), cancellationToken);
+        return read > MaxFieldLength ? null : new string(buffer, 0, read);
     }
 
     /// <summary>The answer as a fixed word in the address (the page has the texts).</summary>

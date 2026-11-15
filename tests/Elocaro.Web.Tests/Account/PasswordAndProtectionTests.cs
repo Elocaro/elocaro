@@ -211,4 +211,18 @@ public class RateLimitTests(PostgresFixture postgres) : AccountTestBase(postgres
         Assert.Equal([HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.TooManyRequests], status);
         Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync("/konto/link")).Status); // GET remains allowed
     }
+
+    [Fact]
+    public async Task Public_token_links_are_throttled_per_address()
+    {
+        using var browser = App.Browser();
+
+        HttpStatusCode last = default;
+        for (var i = 0; i < 61; i++)
+        {
+            last = (await browser.GetAsync("/kalender/falsch.ics", followRedirects: false)).Status;
+        }
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, last);
+    }
 }

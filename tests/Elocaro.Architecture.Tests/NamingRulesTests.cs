@@ -12,7 +12,7 @@ public class NamingRulesTests
     /// <summary>Files that talk about the former name on purpose.</summary>
     private static readonly string[] Allowed = [];
 
-    private static readonly string[] SkippedDirectories = [".git", "bin", "obj", "node_modules", "TestResults", "data", ".vs", ".vscode", ".claude"];
+    private static readonly string[] SkippedDirectories = [".git", "bin", "obj", "node_modules", "TestResults", "data", ".vs", ".vscode", ".claude", "graphify-out"];
 
     private static readonly string[] TextExtensions =
     [
