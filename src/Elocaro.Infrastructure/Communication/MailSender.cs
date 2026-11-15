@@ -5,10 +5,10 @@ using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Templates;
 using Microsoft.Extensions.Options;
 
-namespace Elocaro.Infrastructure.Mail;
+namespace Elocaro.Infrastructure.Communication;
 
 /// <summary>
-/// Renders mail templates from <c>Mail/Templates/{name}.sbn</c> into the layout <c>_layout.sbn</c> and places them in the outbox.
+/// Renders mail templates from <c>Communication/Templates/{name}.sbn</c> into the layout <c>_layout.sbn</c> and places them in the outbox.
 /// Every template must set the subject via <c>{{ capture subject }}…{{ end }}</c>; optionally a plain-text version via <c>capture text</c>.
 /// </summary>
 internal sealed partial class MailSender(
@@ -26,12 +26,12 @@ internal sealed partial class MailSender(
             throw new ArgumentException($"Ungültiger Vorlagenname '{job.Template}'.", nameof(job));
         }
 
-        var content = renderer.RenderEmbedded($"Mail/Templates/{job.Template}.sbn", job.Model);
+        var content = renderer.RenderEmbedded($"Communication/Templates/{job.Template}.sbn", job.Model);
         var subject = content.Variable("subject")
             ?? throw new TemplateErrorException($"Mailvorlage '{job.Template}' setzt keinen Betreff (capture betreff).");
         var text = content.Variable("text") ?? HtmlToText(content.Html);
 
-        var layout = renderer.RenderEmbedded("Mail/Templates/_layout.sbn", null, new Dictionary<string, object?>
+        var layout = renderer.RenderEmbedded("Communication/Templates/_layout.sbn", null, new Dictionary<string, object?>
         {
             ["subject"] = subject,
             ["content"] = new RawHtml(content.Html),

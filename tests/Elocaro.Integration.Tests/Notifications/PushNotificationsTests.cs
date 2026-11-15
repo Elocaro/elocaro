@@ -6,7 +6,7 @@ using Elocaro.Application.Accounts;
 using Elocaro.Application.Communication;
 using Elocaro.Application.Notifications;
 using Elocaro.Domain.Notifications;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Notifications;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Integration.Tests.Infrastructure;

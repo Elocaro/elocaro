@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>Additional claims: display name and whether two-factor is enabled (for the mandatory 2FA).</summary>
 internal sealed class ElocaroClaimsFactory(UserManager<ApplicationUser> user, RoleManager<Role> roles, IOptions<IdentityOptions> options)

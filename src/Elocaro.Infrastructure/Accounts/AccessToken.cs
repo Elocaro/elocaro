@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Elocaro.Domain.Common;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>
 /// Personal access token for integrations such as the MCP interface (see <c>IAccessTokens</c>). Only the SHA-256 hash is stored; the secret appears once, when it is created.

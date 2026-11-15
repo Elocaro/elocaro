@@ -1,6 +1,6 @@
 using MailKit.Security;
 
-namespace Elocaro.Infrastructure.Mail;
+namespace Elocaro.Infrastructure.Communication;
 
 /// <summary>Configuration section <c>Mail</c>.</summary>
 public sealed class MailOptions

@@ -1,6 +1,6 @@
 using Elocaro.Domain.Common;
 
-namespace Elocaro.Domain.Deposits;
+namespace Elocaro.Domain.Leases;
 
 public enum DepositEntryKind
 {

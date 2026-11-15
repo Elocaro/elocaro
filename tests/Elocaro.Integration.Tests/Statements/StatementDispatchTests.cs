@@ -20,7 +20,7 @@ using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
 using Elocaro.Domain.Receipts;
 using Elocaro.Domain.Statements;
-using Elocaro.Infrastructure.Mail;
+using Elocaro.Infrastructure.Communication;
 using Elocaro.Infrastructure.Operations;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Statements;

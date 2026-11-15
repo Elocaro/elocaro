@@ -5,7 +5,7 @@ using Elocaro.Application.Leases;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Todos;
-using Elocaro.Domain.Deposits;
+using Elocaro.Domain.Leases;
 using Elocaro.Integration.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 

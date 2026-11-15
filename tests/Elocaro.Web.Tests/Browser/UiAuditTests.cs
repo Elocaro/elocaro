@@ -2,7 +2,7 @@ using Elocaro.Application.Accounts;
 using Elocaro.Application.Leases;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

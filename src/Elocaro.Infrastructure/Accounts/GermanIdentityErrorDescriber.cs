@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>German error messages for ASP.NET Core Identity.</summary>
 internal sealed class GermanIdentityErrorDescriber : IdentityErrorDescriber

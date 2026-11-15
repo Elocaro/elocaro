@@ -1,11 +1,11 @@
 using Elocaro.Application.Operations;
 using Elocaro.Infrastructure.Admin;
 using Elocaro.Infrastructure.Audit;
+using Elocaro.Infrastructure.Communication;
 using Elocaro.Infrastructure.Deadlines;
 using Elocaro.Infrastructure.Finance;
 using Elocaro.Infrastructure.Heating;
 using Elocaro.Infrastructure.Leases;
-using Elocaro.Infrastructure.Mail;
 using Elocaro.Infrastructure.Metering;
 using Elocaro.Infrastructure.Notices;
 using Elocaro.Infrastructure.Operations;

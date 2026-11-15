@@ -6527,7 +6527,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_entries", (string)null);
                 });
 
-            modelBuilder.Entity("Elocaro.Infrastructure.Identity.ApplicationUser", b =>
+            modelBuilder.Entity("Elocaro.Infrastructure.Accounts.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -6626,7 +6626,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                     b.ToTable("users", (string)null);
                 });
 
-            modelBuilder.Entity("Elocaro.Infrastructure.Identity.MagicLink", b =>
+            modelBuilder.Entity("Elocaro.Infrastructure.Accounts.MagicLink", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -6692,7 +6692,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                     b.ToTable("magic_links", (string)null);
                 });
 
-            modelBuilder.Entity("Elocaro.Infrastructure.Identity.Role", b =>
+            modelBuilder.Entity("Elocaro.Infrastructure.Accounts.Role", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -6792,7 +6792,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
-                    b.HasOne("Elocaro.Infrastructure.Identity.Role", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.Role", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -6802,7 +6802,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
-                    b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -6812,7 +6812,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
                 {
-                    b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -6822,14 +6822,14 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
                 {
-                    b.HasOne("Elocaro.Infrastructure.Identity.Role", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.Role", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_roles_roles_role_id");
 
-                    b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -6839,7 +6839,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
-                    b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -7410,7 +7410,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Elocaro.Domain.People.Person", b =>
                 {
-                    b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull)
@@ -7455,7 +7455,7 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_property_assignments_property_property_id");
 
-                    b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -7809,9 +7809,9 @@ namespace Elocaro.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_ticket_photos_tickets_ticket_id");
                 });
 
-            modelBuilder.Entity("Elocaro.Infrastructure.Identity.MagicLink", b =>
+            modelBuilder.Entity("Elocaro.Infrastructure.Accounts.MagicLink", b =>
                 {
-                    b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)

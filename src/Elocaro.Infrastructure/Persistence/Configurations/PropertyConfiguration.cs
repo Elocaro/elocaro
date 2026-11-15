@@ -1,7 +1,7 @@
 using Elocaro.Domain.Files;
 using Elocaro.Domain.OperatingCosts;
 using Elocaro.Domain.Properties;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

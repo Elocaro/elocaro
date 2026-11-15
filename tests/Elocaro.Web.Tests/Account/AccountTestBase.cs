@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Elocaro.Application.Accounts;
 using Elocaro.Domain.Communication;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

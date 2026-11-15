@@ -1,7 +1,7 @@
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Audit;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Audit;
-using Elocaro.Infrastructure.Identity;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Integration.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;

@@ -241,7 +241,7 @@ Der Job `dunning` (täglich 6:15, sichtbar unter **System → Hintergrundjobs**)
 
 Unter **Finanzen → Einstellungen Finanzen → Mahnwesen** stehen Karenzzeit, Wartezeiten zwischen den Stufen, Zahlungsfrist, Mindestbetrag, Mahngebühren je Stufe, die Verzugszinsen und der **Basiszinssatz**. Der Basiszinssatz ändert sich zum 1. Januar und 1. Juli und muss dort von Hand nachgetragen werden (Veröffentlichung der Deutschen Bundesbank); ohne Wert werden keine Verzugszinsen berechnet. Voreinstellung: keine Gebühren, keine Zinsen. Die freigegebenen Briefe liegen als PDF in der Dokumentenablage (Kategorie *Schriftverkehr*, nicht für Mieter freigegeben) und sind Teil der Datensicherung; Tabellen `dunnings` und `dunning_holds`.
 
-> Die mitgelieferte Mahnvorlage (`Pdf/Templates/dunning.sbn`, `Mail/Templates/dunning.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte, Fristen, Gebühren und Zinsen vor dem produktiven Einsatz rechtlich prüfen lassen.
+> Die mitgelieferte Mahnvorlage (`Pdf/Templates/dunning.sbn`, `Communication/Templates/dunning.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte, Fristen, Gebühren und Zinsen vor dem produktiven Einsatz rechtlich prüfen lassen.
 
 ## Nebenkostenabrechnung
 
@@ -259,7 +259,7 @@ Konfiguration (Abschnitt `Statements`, Umgebungsvariablen `Statements__…`):
 
 Auf der Startseite erinnert ab Oktober des Folgejahres eine Aufgabe an die Abrechnung des Vorjahres, 6, 4 und 2 Wochen vor dem 31.12. wird sie dringlicher (§ 556 Abs. 3 BGB). Nach Fristablauf lässt sich die Abrechnung weiter erstellen. Soll die Erinnerung nicht mehr erscheinen, blendet man sie im Abrechnungs-Assistenten für das Jahr dauerhaft aus („Erinnerung für 2025 ausblenden“); dort lässt sie sich auch wieder einblenden.
 
-> Die mitgelieferte Abrechnungsvorlage (`Pdf/Templates/statement.sbn`, `Mail/Templates/statement.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte vor dem produktiven Einsatz rechtlich prüfen lassen. Die CO₂- und Gradtagstabellen der Heizkostenabrechnung sind „Stand/prüfen“ (siehe Entwicklung).
+> Die mitgelieferte Abrechnungsvorlage (`Pdf/Templates/statement.sbn`, `Communication/Templates/statement.sbn`) ist eine **Basisvorlage und keine Rechtsberatung**. Texte vor dem produktiven Einsatz rechtlich prüfen lassen. Die CO₂- und Gradtagstabellen der Heizkostenabrechnung sind „Stand/prüfen“ (siehe Entwicklung).
 
 ## Aufbewahrung ausgehender E-Mails
 

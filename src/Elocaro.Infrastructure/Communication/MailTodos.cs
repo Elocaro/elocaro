@@ -5,7 +5,7 @@ using Elocaro.Domain.Communication;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Elocaro.Infrastructure.Mail;
+namespace Elocaro.Infrastructure.Communication;
 
 /// <summary>
 /// Reports permanently failed emails on the dashboard (for accounts with the system permission). A failed mail whose content was removed

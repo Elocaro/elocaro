@@ -6,8 +6,8 @@ using Elocaro.Application.Privacy;
 using Elocaro.Application.Todos;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Communication;
-using Elocaro.Infrastructure.Identity;
-using Elocaro.Infrastructure.Mail;
+using Elocaro.Infrastructure.Accounts;
+using Elocaro.Infrastructure.Communication;
 using Elocaro.Infrastructure.Operations;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Integration.Tests.Infrastructure;
@@ -107,7 +107,7 @@ public class MailContentProtectionTests(PostgresFixture postgres, MailpitFixture
     {
         var resources = typeof(MailOutbox).Assembly.GetManifestResourceNames();
 
-        Assert.All(OutgoingMail.SecretTemplates, t => Assert.Contains(resources, r => r.EndsWith($"Mail.Templates.{t}.sbn", StringComparison.Ordinal)));
+        Assert.All(OutgoingMail.SecretTemplates, t => Assert.Contains(resources, r => r.EndsWith($"Communication.Templates.{t}.sbn", StringComparison.Ordinal)));
     }
 
     [Fact]

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 internal sealed class AccountService(
     ElocaroDbContext db,

@@ -97,14 +97,12 @@ Ein Modul ist ein Ordner, der in Domain, Application und Infrastructure gleich h
 Namensräume, keine Assemblies, und teilen sich einen `ElocaroDbContext`: Technisch kann jedes Modul jede Tabelle lesen, und das ist gewollt ([ADR 0009](adr/0009-modulgrenzen-bei-gemeinsamem-dbcontext.md)). Die Grenzen
 halten deshalb nur die Regeln unten; verändert wird eine fremde Entität nur über die Schnittstelle ihres Moduls.
 
-Nicht jeder Ordner hat in jeder Schicht denselben Namen: Die Verträge von `Identity` liegen in `Application/Accounts`, die von `Mail` in
-`Application/Communication`; `Application/Todos` (Erweiterungspunkt des Dashboards) und
-`Domain/Deposits` (gehört zu `Leases`) haben kein Gegenstück. Die Regeln werden deshalb **je Schicht** geprüft, nicht über die Schichten
+Nicht jeder Ordner hat in jeder Schicht ein Gegenstück: `Application/Todos` (Erweiterungspunkt des Dashboards) steht allein. Die Regeln werden deshalb **je Schicht** geprüft, nicht über die Schichten
 hinweg.
 
 | Art | Module | Regel |
 |---|---|---|
-| **Bausteine** | Common, Admin (Modulschalter, Gates), Identity (in Application: Accounts), Files, Mail (in Application: Communication), Templates, Notifications, Audit | verweisen auf kein Fachmodul. Keine eingefrorenen Ausnahmen mehr: Die Zuordnung der Mietmodelle zu Optionen liegt als `LeaseOptions` bei `Application/Leases` |
+| **Bausteine** | Common, Admin (Modulschalter, Gates), Accounts, Files, Communication, Templates, Notifications, Audit | verweisen auf kein Fachmodul. Keine eingefrorenen Ausnahmen mehr: Die Zuordnung der Mietmodelle zu Optionen liegt als `LeaseOptions` bei `Application/Leases` |
 | **Fachmodule** | Properties, People, Leases, Finance, Bank, Receipts, Documents, Metering, Heating, OperatingCosts, Statements, Tax, Tickets, Notices, Deadlines, Portal, Privacy; dazu die technischen Dienste Operations, Pdf und Jobs | keine neuen wechselseitigen Abhängigkeiten |
 | **Oberste Module** | Setup (Import, Beispieldaten, Einrichtung), Portfolio (Kennzahlen, Navigationskontext), Legal (Rechtsstände), Handover (Übergabeprotokoll), Correspondence (Serienbriefe, Dokumentbereitschaft), Emergency (Notfallmappe) | lesen aus vielen Modulen; kein anderes Modul verwendet sie |
 | **Persistenz** | Persistence (DbContext, Konfigurationen, Migrationen) | gehört allen, zählt nicht als Modul |
@@ -211,6 +209,4 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
    Npgsql-Provider) bleibt auf `11.0.0-rc.3`: Den Provider gibt es nur als `11.0.0-rc.3`, und `EFCore.NamingConventions` 10.0.1
    verlangt EF Core kleiner als 11.0.0. Die Gruppe wird gemeinsam angehoben, sobald beide freigegeben sind; alle übrigen
    Pakete stehen auf der aktuellen stabilen Version. Die frühere Begründung der Leitentscheidung („LTS“) gilt für .NET 11 nicht.
-8. **Namen der Module über die Schichten.** `Accounts`/`Identity` und `Communication`/`Mail` meinen dasselbe; `Deposits`
-   steht in der Domain neben dem Modul, zu dem es gehört. Gleiche Namen würden die Modulregeln über die Schichten hinweg prüfbar
-   machen.
+8. ~~Namen der Module über die Schichten.~~ Erledigt (#188): `Accounts` (vorher Infrastructure/Identity), `Communication` (vorher Infrastructure/Mail) und `Leases` (Deposits aus der Domain) heißen in allen Schichten gleich. Dadurch wird ein bestehender Zyklus sichtbar, der vorher an den Namen vorbeilief: `Accounts` versendet Mail (`IMailSender`), `Communication` liest in `MailTodos` die Rechtekonstanten (`Roles`, `Permissions`) aus `Application/Accounts`; er steht in `KnownCycles`.

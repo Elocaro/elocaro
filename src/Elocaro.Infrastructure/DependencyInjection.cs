@@ -1,9 +1,11 @@
 using Elocaro.Application.Common;
 using Elocaro.Domain.Common;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Admin;
 using Elocaro.Infrastructure.Audit;
 using Elocaro.Infrastructure.Bank;
 using Elocaro.Infrastructure.Bank.FinTs;
+using Elocaro.Infrastructure.Communication;
 using Elocaro.Infrastructure.Correspondence;
 using Elocaro.Infrastructure.Datev;
 using Elocaro.Infrastructure.Deadlines;
@@ -13,11 +15,9 @@ using Elocaro.Infrastructure.Files;
 using Elocaro.Infrastructure.Finance;
 using Elocaro.Infrastructure.Handover;
 using Elocaro.Infrastructure.Heating;
-using Elocaro.Infrastructure.Identity;
 using Elocaro.Infrastructure.Jobs;
 using Elocaro.Infrastructure.Leases;
 using Elocaro.Infrastructure.Legal;
-using Elocaro.Infrastructure.Mail;
 using Elocaro.Infrastructure.Metering;
 using Elocaro.Infrastructure.Notices;
 using Elocaro.Infrastructure.Notifications;
@@ -73,14 +73,14 @@ public static class DependencyInjection
 
         // Extension points (IMeterUsage, ITodoSource, ...) are resolved as lists in the order of registration, which is the order of these calls:
         // a consumer that shows them to the user (blocked deletion of a meter) lists the modules in this order.
-        services.AddIdentityModule(configuration);
+        services.AddAccountsModule(configuration);
         services.AddAuditModule(configuration);
         services.AddPdfModule(configuration);
         services.AddReceiptsModule(configuration);
         services.AddOperationsModule(configuration);
         services.AddPrivacyModule(configuration);
         services.AddJobsModule(configuration);
-        services.AddMailModule(configuration);
+        services.AddCommunicationModule(configuration);
         services.AddTemplatesModule();
         services.AddNotificationsModule(configuration);
         services.AddSetupModule();

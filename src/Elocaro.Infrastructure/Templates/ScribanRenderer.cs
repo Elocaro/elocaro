@@ -23,7 +23,7 @@ public sealed class ScribanRenderer
 
     private readonly ConcurrentDictionary<string, Template> cache = new(StringComparer.Ordinal);
 
-    /// <summary>Renders a template embedded in the Infrastructure assembly (relative path, e.g. <c>Mail/Templates/test.sbn</c>).</summary>
+    /// <summary>Renders a template embedded in the Infrastructure assembly (relative path, e.g. <c>Communication/Templates/test.sbn</c>).</summary>
     public TemplateResult RenderEmbedded(string path, object? model, IReadOnlyDictionary<string, object?>? supplement = null)
     {
         var template = cache.GetOrAdd(path, p => Parse(EmbeddedResource.ReadText(p), p));

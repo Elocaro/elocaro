@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <remarks>
 /// The principal of a token request is not a copy of the sign-in: it is built new from the database on every request, as

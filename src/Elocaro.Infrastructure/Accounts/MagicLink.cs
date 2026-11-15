@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Elocaro.Domain.Common;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>
 /// One-time token for passwordless sign-in. Only the SHA-256 hash is stored in the database; the token itself

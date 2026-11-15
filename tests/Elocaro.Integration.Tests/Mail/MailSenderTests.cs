@@ -1,7 +1,7 @@
 using Elocaro.Application.Communication;
 using Elocaro.Application.Files;
 using Elocaro.Domain.Communication;
-using Elocaro.Infrastructure.Mail;
+using Elocaro.Infrastructure.Communication;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Templates;
 using Elocaro.Integration.Tests.Infrastructure;

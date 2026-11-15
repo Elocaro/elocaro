@@ -13,7 +13,6 @@ using Elocaro.Application.Todos;
 using Elocaro.Domain.Admin;
 using Elocaro.Domain.Bank;
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Deposits;
 using Elocaro.Domain.Documents;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.People;

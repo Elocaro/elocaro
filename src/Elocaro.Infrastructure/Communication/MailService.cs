@@ -3,7 +3,7 @@ using Elocaro.Domain.Communication;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Elocaro.Infrastructure.Mail;
+namespace Elocaro.Infrastructure.Communication;
 
 internal sealed class MailService(ElocaroDbContext db, TimeProvider clock) : IMailService
 {

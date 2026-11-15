@@ -1,7 +1,7 @@
 using System.Net;
 using System.Threading.RateLimiting;
 using Elocaro.Application.Admin;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Web.AccessControl;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;

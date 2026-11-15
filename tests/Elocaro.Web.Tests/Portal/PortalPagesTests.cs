@@ -8,7 +8,7 @@ using Elocaro.Application.Leases;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Domain.People;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Web.Tests.Account;
 using Microsoft.AspNetCore.Identity;

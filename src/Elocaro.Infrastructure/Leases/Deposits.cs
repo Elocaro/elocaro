@@ -5,7 +5,6 @@ using Elocaro.Application.Common;
 using Elocaro.Application.Leases;
 using Elocaro.Application.Todos;
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Deposits;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.People;
 using Elocaro.Infrastructure.Common;

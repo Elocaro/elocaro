@@ -1,5 +1,5 @@
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Deposits;
+using Elocaro.Domain.Leases;
 
 namespace Elocaro.Domain.Tests.Deposits;
 

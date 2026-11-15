@@ -1,6 +1,6 @@
 using Quartz;
 
-namespace Elocaro.Infrastructure.Mail;
+namespace Elocaro.Infrastructure.Communication;
 
 /// <summary>Delivers due mails from the outbox (every 30 seconds, never in parallel).</summary>
 [DisallowConcurrentExecution]

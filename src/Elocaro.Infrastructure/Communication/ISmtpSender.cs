@@ -2,7 +2,7 @@ using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace Elocaro.Infrastructure.Mail;
+namespace Elocaro.Infrastructure.Communication;
 
 /// <summary>Encapsulates SMTP sending (replaceable in tests).</summary>
 internal interface ISmtpSender

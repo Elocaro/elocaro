@@ -1,5 +1,4 @@
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Deposits;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;

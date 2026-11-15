@@ -3,7 +3,7 @@ using System.Text;
 using Elocaro.Application.Accounts;
 using Microsoft.Extensions.Options;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>Configuration section <c>Setup</c>.</summary>
 public sealed class SetupOptions

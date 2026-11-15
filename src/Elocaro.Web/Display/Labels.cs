@@ -126,12 +126,12 @@ public static class Labels
         _ => "Ausgabe (Kostenart und Objekt)",
     };
 
-    public static string From(Elocaro.Domain.Deposits.DepositEntryKind value) => value switch
+    public static string From(Elocaro.Domain.Leases.DepositEntryKind value) => value switch
     {
-        Elocaro.Domain.Deposits.DepositEntryKind.Received => "Eingang",
-        Elocaro.Domain.Deposits.DepositEntryKind.Interest => "Zinsen",
-        Elocaro.Domain.Deposits.DepositEntryKind.Refund => "Rückzahlung",
-        Elocaro.Domain.Deposits.DepositEntryKind.Deduction => "Verrechnung",
+        Elocaro.Domain.Leases.DepositEntryKind.Received => "Eingang",
+        Elocaro.Domain.Leases.DepositEntryKind.Interest => "Zinsen",
+        Elocaro.Domain.Leases.DepositEntryKind.Refund => "Rückzahlung",
+        Elocaro.Domain.Leases.DepositEntryKind.Deduction => "Verrechnung",
         _ => value.ToString(),
     };
 

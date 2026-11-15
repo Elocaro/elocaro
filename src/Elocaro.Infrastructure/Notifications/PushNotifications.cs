@@ -7,7 +7,7 @@ using Elocaro.Application.Notifications;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Notifications;
 using Elocaro.Infrastructure.Common;
-using Elocaro.Infrastructure.Mail;
+using Elocaro.Infrastructure.Communication;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;

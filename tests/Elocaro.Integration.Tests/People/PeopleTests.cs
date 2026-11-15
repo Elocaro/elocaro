@@ -183,7 +183,7 @@ public class PeopleTests(PostgresFixture postgres) : IAsyncLifetime
         var userId = (await WithAsync(v => v.GetAsync(anna, Ct)))!.Access!.UserId;
         await using (var scope = environment.Services.CreateAsyncScope())
         {
-            var manager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Elocaro.Infrastructure.Identity.ApplicationUser>>();
+            var manager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Elocaro.Infrastructure.Accounts.ApplicationUser>>();
             var user = (await manager.FindByIdAsync(userId.ToString()))!;
             user.LastSignInAt = DateTimeOffset.UtcNow;
             await manager.UpdateAsync(user);

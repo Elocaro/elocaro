@@ -9,7 +9,7 @@ using Elocaro.Application.Properties;
 using Elocaro.Domain.Communication;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.People;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Metering;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Integration.Tests.Infrastructure;

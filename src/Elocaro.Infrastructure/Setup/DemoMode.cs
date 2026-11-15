@@ -6,7 +6,7 @@ using Elocaro.Application.Properties;
 using Elocaro.Application.Setup;
 using Elocaro.Domain.People;
 using Elocaro.Domain.Properties;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

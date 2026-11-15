@@ -1,6 +1,6 @@
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Properties;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 

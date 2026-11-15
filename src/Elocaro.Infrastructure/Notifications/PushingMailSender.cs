@@ -1,7 +1,7 @@
 using Elocaro.Application.Accounts;
 using Elocaro.Application.Communication;
 using Elocaro.Application.Notifications;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Quartz;

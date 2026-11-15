@@ -4,7 +4,7 @@ using Elocaro.Infrastructure.Audit;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 internal sealed class SecurityAudit(ElocaroDbContext db, UserManager<ApplicationUser> userManager, TimeProvider clock) : ISecurityAudit
 {

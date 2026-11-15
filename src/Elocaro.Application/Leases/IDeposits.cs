@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Elocaro.Application.Common;
-using Elocaro.Domain.Deposits;
+using Elocaro.Domain.Leases;
 
 namespace Elocaro.Application.Leases;
 

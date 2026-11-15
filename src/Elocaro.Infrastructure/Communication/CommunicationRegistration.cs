@@ -4,12 +4,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Elocaro.Infrastructure.Mail;
+namespace Elocaro.Infrastructure.Communication;
 
 /// <summary>Registrations of the Mail module.</summary>
-internal static class MailRegistration
+internal static class CommunicationRegistration
 {
-    internal static IServiceCollection AddMailModule(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddCommunicationModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MailOptions>(configuration.GetSection(MailOptions.Section));
         services.AddScoped<MailSender>();

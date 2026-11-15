@@ -118,11 +118,11 @@ public class ScribanRendererTests
     {
         var renderer = new ScribanRenderer();
 
-        var result = renderer.RenderEmbedded("Mail/Templates/test.sbn", new { SentAt = new DateOnly(2026, 3, 1), TriggeredBy = "admin" });
+        var result = renderer.RenderEmbedded("Communication/Templates/test.sbn", new { SentAt = new DateOnly(2026, 3, 1), TriggeredBy = "admin" });
 
         Assert.Equal("Testnachricht von Elocaro", result.Variable("subject"));
         Assert.Contains("01.03.2026", result.Html, StringComparison.Ordinal);
-        Assert.Throws<InvalidOperationException>(() => renderer.RenderEmbedded("Mail/Templates/gibt-es-nicht.sbn", null));
+        Assert.Throws<InvalidOperationException>(() => renderer.RenderEmbedded("Communication/Templates/gibt-es-nicht.sbn", null));
     }
 
     [Fact]

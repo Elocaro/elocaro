@@ -7,7 +7,6 @@ using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Setup;
 using Elocaro.Domain.Common;
-using Elocaro.Domain.Deposits;
 using Elocaro.Domain.Finance;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.People;

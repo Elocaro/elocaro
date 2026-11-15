@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>User account (ASP.NET Core Identity). The email address is also the user name.</summary>
 public sealed class ApplicationUser : IdentityUser<Guid>

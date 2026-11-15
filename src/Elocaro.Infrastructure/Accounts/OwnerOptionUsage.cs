@@ -4,7 +4,7 @@ using Elocaro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>How many owners have an account (the owner portal).</summary>
 internal sealed class OwnerOptionUsage(ElocaroDbContext db) : IOptionUsageSource

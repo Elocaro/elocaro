@@ -83,8 +83,8 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
             Assert.Equal(650m + 150m + 80m, lease.MonthlyRentOn(new DateOnly(2026, 1, 1)));
             Assert.Equal(1950m, lease.Deposit);
             Assert.Single(lease.Tenant);
-            var deposit = await db.Set<Elocaro.Domain.Deposits.DepositEntry>().AsNoTracking().SingleAsync(Ct);
-            Assert.Equal((Elocaro.Domain.Deposits.DepositEntryKind.Received, 1950m, new DateOnly(2024, 1, 1)), (deposit.Kind, deposit.Amount, deposit.Date));
+            var deposit = await db.Set<Elocaro.Domain.Leases.DepositEntry>().AsNoTracking().SingleAsync(Ct);
+            Assert.Equal((Elocaro.Domain.Leases.DepositEntryKind.Received, 1950m, new DateOnly(2024, 1, 1)), (deposit.Kind, deposit.Amount, deposit.Date));
         }
 
         var second = await WithAsync(i => i.ImportAsync(template, Ct));
@@ -95,7 +95,7 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
         await using var check = environment.Services.CreateAsyncScope();
         var dbCheck = check.ServiceProvider.GetRequiredService<ElocaroDbContext>();
         Assert.Equal(1, await dbCheck.Set<Lease>().CountAsync(Ct));
-        Assert.Equal(1, await dbCheck.Set<Elocaro.Domain.Deposits.DepositEntry>().CountAsync(Ct));
+        Assert.Equal(1, await dbCheck.Set<Elocaro.Domain.Leases.DepositEntry>().CountAsync(Ct));
         Assert.Equal(1, await dbCheck.Set<Elocaro.Domain.People.Person>().CountAsync(Ct));
     }
 
@@ -154,7 +154,7 @@ public class DataImportTests(PostgresFixture postgres) : IAsyncLifetime
 
         Assert.True((await WithAsync(i => i.ImportAsync(Encoding.UTF8.GetBytes(withColumn), Ct))).Succeeded);
         await using var scope = environment.Services.CreateAsyncScope();
-        var entries = await scope.ServiceProvider.GetRequiredService<ElocaroDbContext>().Set<Elocaro.Domain.Deposits.DepositEntry>().AsNoTracking().ToListAsync(Ct);
+        var entries = await scope.ServiceProvider.GetRequiredService<ElocaroDbContext>().Set<Elocaro.Domain.Leases.DepositEntry>().AsNoTracking().ToListAsync(Ct);
         Assert.Equal([500m], entries.Select(e => e.Amount));
     }
 

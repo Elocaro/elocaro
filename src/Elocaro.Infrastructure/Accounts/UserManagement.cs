@@ -6,7 +6,7 @@ using Elocaro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <remarks>
 /// Role and permission changes and blocking renew the security stamp. That signs the user out, also in open interactive pages,

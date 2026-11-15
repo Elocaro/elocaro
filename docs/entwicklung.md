@@ -187,7 +187,7 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Monate mit `<i
 - **Rate-Limiting:** POST auf `/konto/*` höchstens `SignIn:RequestsPerMinute` (10) je IP.
 - **Links in Mails** basieren auf `Application:BaseUrl` (konfiguriert, nicht aus dem Host-Header).
 - **Data-Protection-Schlüssel** liegen in PostgreSQL (`data_protection_keys`): Anmeldungen überstehen Neustarts und sind im DB-Backup enthalten.
-- Identity rechnet Token-Laufzeiten und Sperren mit der Systemuhr (ohne `TimeProvider`). Tests prüfen daher die Konfiguration statt Zeit vorzuspulen; eigene Anmeldelinks nutzen `TimeProvider`.
+- Accounts rechnet Token-Laufzeiten und Sperren mit der Systemuhr (ohne `TimeProvider`). Tests prüfen daher die Konfiguration statt Zeit vorzuspulen; eigene Anmeldelinks nutzen `TimeProvider`.
 
 ## Autorisierung
 
@@ -213,7 +213,7 @@ Datum: das eingebaute `InputDate<DateOnly>` (nativer Datepicker). Monate mit `<i
 
 Betrieb und Anwendung: [mcp.md](mcp.md); Begründung: [ADR 0006](adr/0006-mcp-schnittstelle.md).
 
-**Zugriffstoken** (`IAccessTokens`, Entität `AccessToken` in `Infrastructure/Identity`, Handler `AccessTokenAuthenticationHandler`, Schema `ElocaroAccessToken`) sind persönlich und allgemein. Ein Token gehört einem Konto; `AuthenticateAsync` baut bei **jeder** Anfrage den Principal neu aus der Datenbank (Konto gesperrt? Rolle Administrator/Verwalter? Zwei-Faktor an? Token widerrufen oder abgelaufen?). Der Principal ist immer ein *Verwalter* mit den Rechten „Konto ∩ Bereiche des Tokens“, auch bei Administratoren; so sehen die vorhandenen Prüfungen (`IsInRole(Admin) || HasClaim(…)`) nur den begrenzten Umfang. Neue Bereiche kommen in `IAccessTokens.Scopes`.
+**Zugriffstoken** (`IAccessTokens`, Entität `AccessToken` in `Infrastructure/Accounts`, Handler `AccessTokenAuthenticationHandler`, Schema `ElocaroAccessToken`) sind persönlich und allgemein. Ein Token gehört einem Konto; `AuthenticateAsync` baut bei **jeder** Anfrage den Principal neu aus der Datenbank (Konto gesperrt? Rolle Administrator/Verwalter? Zwei-Faktor an? Token widerrufen oder abgelaufen?). Der Principal ist immer ein *Verwalter* mit den Rechten „Konto ∩ Bereiche des Tokens“, auch bei Administratoren; so sehen die vorhandenen Prüfungen (`IsInRole(Admin) || HasClaim(…)`) nur den begrenzten Umfang. Neue Bereiche kommen in `IAccessTokens.Scopes`.
 
 **Neue Integration** mit Token: Endpoint mit `RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = AccessTokenAuthenticationHandler.SchemeName, Policy = … })`, `DisableAntiforgery()` und eine Prüfung in `AccessTokens.IsAvailable`, ob sie eingeschaltet ist. Nutzung mit `IAccessTokens.RecordUseAsync` ins Audit-Protokoll schreiben.
 
@@ -244,7 +244,7 @@ await mailVersand.EinreihenAsync(new MailAuftrag(["mieter@example.de"], "test", 
 - Mails werden **beim Einreihen gerendert** und in `outgoing_mails` gespeichert. Das ist zugleich der Versandnachweis. Optional gibt es einen fachlichen `Reference`, z. B. `statement:<id>`.
 - Der Job `mail-outbox` stellt alle 30 s per SMTP (MailKit) zu. Bei Fehlern wird mit Backoff wiederholt (1, 2, 4 … Minuten, höchstens 6 h), nach 8 Versuchen ist die Mail „fehlgeschlagen“. Unter `/verwaltung/system/mails` sieht man den Status, kann erneut senden und eine Testnachricht verschicken.
 - **Geheime Links:** Vorlagen, deren Link als Schlüssel wirkt, stehen in `OutgoingMail.SecretTemplates`; eine neue Vorlage dieser Art gehört dorthin. Nach Zustellung oder endgültigem Fehlschlag ersetzt `PurgedContent` ihren Inhalt, `Retry` lehnt solche Mails ab. `Html` und `Text` sind für alle Mails `[NoExport]`. Der Job `mail-retention` (`Operations/MailRetentionJob.cs`) räumt nach (auch später geheim gewordene Vorlagen) und löscht nach `Mail:RetentionDays`, bewahrt aber Mails mit Verweis aus `StatementDispatch` oder `Dunning` ohne Inhalt. `PersonMails` (Privacy) findet Mails zu einer Person für Auskunft und Anonymisierung.
-- Vorlagen liegen unter `src/Elocaro.Infrastructure/Mail/Templates/<name>.sbn` (Scriban, als Ressource eingebettet). Der Name besteht nur aus `a-z0-9-`. Jede Vorlage setzt `{{ capture subject }}…{{ end }}`, optional eine Textfassung per `capture text`, sonst wird sie aus dem HTML abgeleitet. Der Rahmen kommt aus `_layout.sbn`.
+- Vorlagen liegen unter `src/Elocaro.Infrastructure/Communication/Templates/<name>.sbn` (Scriban, als Ressource eingebettet). Der Name besteht nur aus `a-z0-9-`. Jede Vorlage setzt `{{ capture subject }}…{{ end }}`, optional eine Textfassung per `capture text`, sonst wird sie aus dem HTML abgeleitet. Der Rahmen kommt aus `_layout.sbn`.
 - Konfiguration: Abschnitt `Mail` (`SenderAddress`, `SenderName`, `ReplyTo`, `Smtp:Host/Port/Security/UserName/Password`). `Security` ist `StartTls` (587), `SslOnConnect` (465) oder `None` (nur lokal).
 
 ### Vorlagen (Scriban)

@@ -3,7 +3,7 @@ using Elocaro.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>Email addresses of all active (not blocked) administrators, e.g. for warnings and notices.</summary>
 internal static class AdminRecipients

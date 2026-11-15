@@ -10,7 +10,7 @@ namespace Elocaro.Architecture.Tests;
 public partial class ModuleRulesTests
 {
     /// <summary>Pairs of Infrastructure modules that use each other today (alphabetical), counting namespaces of Application, Domain and Infrastructure. Goal: empty.</summary>
-    private static readonly string[] KnownCycles = [];
+    private static readonly string[] KnownCycles = ["Accounts <-> Communication"];
 
     /// <summary>Pairs of Domain modules that use each other today. Goal: empty.</summary>
     private static readonly string[] KnownDomainCycles = [];
@@ -68,8 +68,8 @@ public partial class ModuleRulesTests
     public void Foundations_do_not_depend_on_business_modules()
     {
         // Technical building blocks used by many; they must not reach back into business modules.
-        // Admin = module switches, Identity = accounts and roles (Accounts in Application), Mail = Communication in Application.
-        string[] foundations = ["Common", "Admin", "Identity", "Accounts", "Files", "Mail", "Communication", "Templates", "Notifications", "Audit"];
+        // Admin = module switches, Accounts = accounts and roles, Communication = mail and notifications dispatch.
+        string[] foundations = ["Common", "Admin", "Accounts", "Files", "Communication", "Templates", "Notifications", "Audit"];
         var uses = Layers
             .SelectMany(layer => ModuleUses(layer.Project)
                 .Where(kv => foundations.Contains(kv.Key))

@@ -1,7 +1,7 @@
 using Elocaro.Domain.Communication;
 using Elocaro.Domain.Finance;
 using Elocaro.Domain.Statements;
-using Elocaro.Infrastructure.Mail;
+using Elocaro.Infrastructure.Communication;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;

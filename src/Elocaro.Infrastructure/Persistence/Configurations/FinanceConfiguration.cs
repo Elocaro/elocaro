@@ -107,9 +107,9 @@ internal sealed class RentReductionConfiguration : IEntityTypeConfiguration<Rent
     }
 }
 
-internal sealed class DepositEntryConfiguration : IEntityTypeConfiguration<Elocaro.Domain.Deposits.DepositEntry>
+internal sealed class DepositEntryConfiguration : IEntityTypeConfiguration<Elocaro.Domain.Leases.DepositEntry>
 {
-    public void Configure(EntityTypeBuilder<Elocaro.Domain.Deposits.DepositEntry> builder)
+    public void Configure(EntityTypeBuilder<Elocaro.Domain.Leases.DepositEntry> builder)
     {
         builder.ToTable("deposit_entries");
         builder.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20);

@@ -1,5 +1,5 @@
 using Elocaro.Application.Accounts;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Setup;
 using Elocaro.Integration.Tests.Infrastructure;

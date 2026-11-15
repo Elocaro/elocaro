@@ -9,12 +9,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Elocaro.Infrastructure.Identity;
+namespace Elocaro.Infrastructure.Accounts;
 
 /// <summary>Registrations of the Identity module.</summary>
-internal static class IdentityRegistration
+internal static class AccountsRegistration
 {
-    internal static IServiceCollection AddIdentityModule(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddAccountsModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpContextAccessor();
         var dataProtection = services.AddDataProtection()
@@ -60,7 +60,7 @@ internal static class IdentityRegistration
         services.Configure<AccessTokenOptions>(configuration.GetSection(AccessTokenOptions.Section));
         services.Configure<McpOptions>(configuration.GetSection(McpOptions.Section));
         services.AddScoped<IAccessTokens, AccessTokens>();
-        services.AddScoped<IOptionUsageSource, Identity.OwnerOptionUsage>();
+        services.AddScoped<IOptionUsageSource, OwnerOptionUsage>();
 
         services.AddScoped<ISecurityAudit, SecurityAudit>();
 

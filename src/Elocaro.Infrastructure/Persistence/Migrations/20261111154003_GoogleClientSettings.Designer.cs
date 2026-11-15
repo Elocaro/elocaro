@@ -1633,7 +1633,7 @@ partial class GoogleClientSettings
                 b.ToTable("task_completions");
             });
 
-        modelBuilder.Entity("Elocaro.Domain.Deposits.DepositEntry", b =>
+        modelBuilder.Entity("Elocaro.Domain.Leases.DepositEntry", b =>
             {
                 b.Property<Guid>("Id")
                     .HasColumnType("uuid")
@@ -8604,7 +8604,7 @@ partial class GoogleClientSettings
                 b.ToTable("audit_entries");
             });
 
-        modelBuilder.Entity("Elocaro.Infrastructure.Identity.AccessToken", b =>
+        modelBuilder.Entity("Elocaro.Infrastructure.Accounts.AccessToken", b =>
             {
                 b.Property<Guid>("Id")
                     .HasColumnType("uuid")
@@ -8691,7 +8691,7 @@ partial class GoogleClientSettings
                 b.ToTable("access_tokens");
             });
 
-        modelBuilder.Entity("Elocaro.Infrastructure.Identity.ApplicationUser", b =>
+        modelBuilder.Entity("Elocaro.Infrastructure.Accounts.ApplicationUser", b =>
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
@@ -8790,7 +8790,7 @@ partial class GoogleClientSettings
                 b.ToTable("users");
             });
 
-        modelBuilder.Entity("Elocaro.Infrastructure.Identity.MagicLink", b =>
+        modelBuilder.Entity("Elocaro.Infrastructure.Accounts.MagicLink", b =>
             {
                 b.Property<Guid>("Id")
                     .HasColumnType("uuid")
@@ -8856,7 +8856,7 @@ partial class GoogleClientSettings
                 b.ToTable("magic_links");
             });
 
-        modelBuilder.Entity("Elocaro.Infrastructure.Identity.Role", b =>
+        modelBuilder.Entity("Elocaro.Infrastructure.Accounts.Role", b =>
             {
                 b.Property<Guid>("Id")
                     .ValueGeneratedOnAdd()
@@ -9223,7 +9223,7 @@ partial class GoogleClientSettings
                     .HasConstraintName("fk_task_completions_recurring_tasks_task_id");
             });
 
-        modelBuilder.Entity("Elocaro.Domain.Deposits.DepositEntry", b =>
+        modelBuilder.Entity("Elocaro.Domain.Leases.DepositEntry", b =>
             {
                 b.HasOne("Elocaro.Domain.Leases.Lease", null)
                     .WithMany()
@@ -9796,7 +9796,7 @@ partial class GoogleClientSettings
 
         modelBuilder.Entity("Elocaro.Domain.People.Person", b =>
             {
-                b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.SetNull)
@@ -9847,7 +9847,7 @@ partial class GoogleClientSettings
                     .IsRequired()
                     .HasConstraintName("fk_property_assignments_property_property_id");
 
-                b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -10325,9 +10325,9 @@ partial class GoogleClientSettings
                     .HasConstraintName("fk_ticket_work_tickets_ticket_id");
             });
 
-        modelBuilder.Entity("Elocaro.Infrastructure.Identity.AccessToken", b =>
+        modelBuilder.Entity("Elocaro.Infrastructure.Accounts.AccessToken", b =>
             {
-                b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -10335,9 +10335,9 @@ partial class GoogleClientSettings
                     .HasConstraintName("fk_access_tokens_users_user_id");
             });
 
-        modelBuilder.Entity("Elocaro.Infrastructure.Identity.MagicLink", b =>
+        modelBuilder.Entity("Elocaro.Infrastructure.Accounts.MagicLink", b =>
             {
-                b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -10347,7 +10347,7 @@ partial class GoogleClientSettings
 
         modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
             {
-                b.HasOne("Elocaro.Infrastructure.Identity.Role", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.Role", null)
                     .WithMany()
                     .HasForeignKey("RoleId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -10357,7 +10357,7 @@ partial class GoogleClientSettings
 
         modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
             {
-                b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -10367,7 +10367,7 @@ partial class GoogleClientSettings
 
         modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
             {
-                b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -10377,14 +10377,14 @@ partial class GoogleClientSettings
 
         modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
             {
-                b.HasOne("Elocaro.Infrastructure.Identity.Role", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.Role", null)
                     .WithMany()
                     .HasForeignKey("RoleId")
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired()
                     .HasConstraintName("fk_user_roles_roles_role_id");
 
-                b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -10394,7 +10394,7 @@ partial class GoogleClientSettings
 
         modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
             {
-                b.HasOne("Elocaro.Infrastructure.Identity.ApplicationUser", null)
+                b.HasOne("Elocaro.Infrastructure.Accounts.ApplicationUser", null)
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)

@@ -11,7 +11,7 @@ using Elocaro.Domain.Communication;
 using Elocaro.Domain.Documents;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.People;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Portal;
 using Elocaro.Integration.Tests.Infrastructure;

@@ -10,7 +10,7 @@ using Elocaro.Application.Todos;
 using Elocaro.Domain.Communication;
 using Elocaro.Domain.People;
 using Elocaro.Domain.Tickets;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Integration.Tests.Infrastructure;
 using Microsoft.AspNetCore.Identity;

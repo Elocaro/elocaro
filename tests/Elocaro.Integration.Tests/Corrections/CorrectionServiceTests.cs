@@ -5,7 +5,6 @@ using Elocaro.Application.Metering;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Receipts;
-using Elocaro.Domain.Deposits;
 using Elocaro.Domain.Finance;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;

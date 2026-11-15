@@ -1,6 +1,6 @@
 using System.Net;
 using Elocaro.Application.Accounts;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 

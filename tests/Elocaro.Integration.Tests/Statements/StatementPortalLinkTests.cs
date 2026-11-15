@@ -12,7 +12,7 @@ using Elocaro.Domain.Common;
 using Elocaro.Domain.OperatingCosts;
 using Elocaro.Domain.People;
 using Elocaro.Domain.Statements;
-using Elocaro.Infrastructure.Identity;
+using Elocaro.Infrastructure.Accounts;
 using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Statements;
 using Elocaro.Integration.Tests.Infrastructure;

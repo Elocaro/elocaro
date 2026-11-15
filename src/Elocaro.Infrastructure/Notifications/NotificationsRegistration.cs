@@ -1,7 +1,7 @@
 using Elocaro.Application.Communication;
 using Elocaro.Application.Notifications;
-using Elocaro.Infrastructure.Identity;
-using Elocaro.Infrastructure.Mail;
+using Elocaro.Infrastructure.Accounts;
+using Elocaro.Infrastructure.Communication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

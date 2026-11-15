@@ -193,7 +193,7 @@ public class McpTests(PostgresFixture postgres) : AccountTestBase(postgres)
 
         await App.WithScopeAsync(async sp =>
         {
-            var manager = sp.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Elocaro.Infrastructure.Identity.ApplicationUser>>();
+            var manager = sp.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Elocaro.Infrastructure.Accounts.ApplicationUser>>();
             await manager.SetTwoFactorEnabledAsync((await manager.FindByIdAsync(id.ToString()))!, false);
             return true;
         });
@@ -238,10 +238,10 @@ public class McpTests(PostgresFixture postgres) : AccountTestBase(postgres)
         var secret = await TokenAsync(id, AllScopes);
 
         var stored = await App.WithScopeAsync(sp => sp.GetRequiredService<Elocaro.Infrastructure.Persistence.ElocaroDbContext>()
-            .Set<Elocaro.Infrastructure.Identity.AccessToken>().SingleAsync(TestContext.Current.CancellationToken));
+            .Set<Elocaro.Infrastructure.Accounts.AccessToken>().SingleAsync(TestContext.Current.CancellationToken));
         Assert.StartsWith("elo_", secret, StringComparison.Ordinal);
         Assert.NotEqual(secret, stored.TokenHash);
-        Assert.Equal(Elocaro.Infrastructure.Identity.AccessToken.Hash(secret), stored.TokenHash);
+        Assert.Equal(Elocaro.Infrastructure.Accounts.AccessToken.Hash(secret), stored.TokenHash);
         Assert.DoesNotContain(secret, stored.TokenStart, StringComparison.Ordinal);
     }
 
