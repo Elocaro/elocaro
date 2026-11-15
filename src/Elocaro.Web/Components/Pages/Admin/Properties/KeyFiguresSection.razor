@@ -20,6 +20,15 @@
             <KpiTile Label="Leerstand" Value="@(figures.VacancyPercent is { } vacancy ? Percent(vacancy) : "–")" />
             <KpiTile Label="Rückstände" Value="@(figures.ArrearsPercent is { } arrears ? Percent(arrears) : "–")" />
         </div>
+        @if (history.Count >= 2)
+        {
+            <LineChart id="cashflow-chart" Caption="Cashflow je Jahr" LabelHeading="Jahr" ValueHeading="Cashflow" Points="history" />
+        }
+        else
+        {
+            <p><button type="button" class="button" @onclick="ShowHistoryAsync" disabled="@loadingHistory">Cashflow-Verlauf anzeigen</button></p>
+        }
+        <p class="small"><a class="button" href="@($"/verwaltung/objekte/{PropertyId}/kennzahlen.csv")">CSV exportieren</a></p>
         <details class="explain">
             <summary>So werden die Kennzahlen berechnet</summary>
             <div class="table-wrapper">
@@ -44,6 +53,8 @@
 </section>
 
 @code {
+    private List<ChartPoint> history = [];
+    private bool loadingHistory;
     private PropertyKeyFigures? figures;
     private int year;
     private IReadOnlyList<int> years = [];
@@ -69,6 +80,30 @@
     }
 
     private async Task LoadAsync() => figures = await KeyFigures.GetAsync((await Authentication).User, PropertyId, year);
+
+    /// <summary>On request only: the years are calculated one after the other and share the context of the circuit with the rest of the page.</summary>
+    private async Task ShowHistoryAsync()
+    {
+        loadingHistory = true;
+        try
+        {
+            var user = (await Authentication).User;
+            var points = new List<ChartPoint>();
+            foreach (var y in years.Reverse())
+            {
+                if (await KeyFigures.GetAsync(user, PropertyId, y) is { } row)
+                {
+                    points.Add(new ChartPoint(y.ToString(System.Globalization.CultureInfo.InvariantCulture), row.Cashflow));
+                }
+            }
+
+            history = points;
+        }
+        finally
+        {
+            loadingHistory = false;
+        }
+    }
 
     private static string Percent(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) + " %";
 }

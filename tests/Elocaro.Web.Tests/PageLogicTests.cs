@@ -130,4 +130,17 @@ public class PageLogicTests
         Assert.StartsWith("Mietobjekt;Kaltmiete;", text, StringComparison.Ordinal);
         Assert.Contains("'=Wohnung 1;500,00;80,00;6,25;800,00;600,00;600,00;100,00;Kappungsgrenze;20.08.2027;01.11.2027;", text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Key_figures_csv_has_a_row_per_year_with_german_numbers_and_empty_cells_for_missing_values()
+    {
+        var figures = PropertyKeyFigureCalculator.Calculate(new PropertyFigureInput(2025, 12000m, 14000m, 1000m, 2000m, 500m, 0m, 800m, null, 365, 73, 14000m, 0m));
+
+        var csv = KeyFiguresEndpoint.Csv([figures]);
+        var text = System.Text.Encoding.UTF8.GetString(csv, 3, csv.Length - 3);
+
+        Assert.Equal([0xEF, 0xBB, 0xBF], csv[..3]);
+        Assert.StartsWith("Jahr;Nettomietrendite (%);Cashflow vor Tilgung;Cashflow;Leerstandsquote (%);Rückstandsquote (%)\r\n", text, StringComparison.Ordinal);
+        Assert.Contains("2025;;10500,00;9700,00;20,00;0,00\r\n", text, StringComparison.Ordinal);
+    }
 }
