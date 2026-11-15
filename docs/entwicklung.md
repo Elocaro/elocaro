@@ -751,12 +751,12 @@ Vor dem Push lokal prüfen: `dotnet format --verify-no-changes && dotnet build -
 
 ## Werkzeuge für Claude Code
 
-Das Repository bringt die Einrichtung für Claude Code mit (`.claude/settings.json`, `.mcp.json`); beim ersten Start fragt Claude Code nach der Freigabe.
+Das Repository bringt die Einrichtung für Claude Code mit (`.claude/settings.json`); beim ersten Start fragt Claude Code nach der Freigabe.
 
 - **Graphify** (Wissensgraph über den Code): einmalig `uv tool install graphifyy && graphify install`, dann `graphify update .` (nur lokal, ohne API-Kosten). Die Ausgabe `graphify-out/` ist nicht eingecheckt.
-- **Ponytail** (Plugin, wenig Code statt viel): wird über `enabledPlugins` angeboten.
-- **Formatierung:** Ein Hook formatiert geänderte `.cs`-Dateien (`.claude/hooks/format-cs.sh`, nur Leerraum). Die vollständige Prüfung bleibt `dotnet format --verify-no-changes` vor dem Commit.
-- **MCP-Server** (`.mcp.json`): `playwright` (Browser). Für GitHub genügt `gh`; einen Postgres-MCP gibt es nicht, weil `postgres-mcp` auf eine nicht mehr auffindbare Abhängigkeit (`pglast==7.2.0`) festgelegt ist. Der Aufruf von `playwright` nutzt `cmd /c` und gilt damit für Windows; unter Linux/macOS in der lokalen Einstellung durch `npx` ersetzen.
+- **Ponytail** (Plugin, wenig Code statt viel): wird über `enabledPlugins` angeboten, auf die Version `v5.3.3` festgelegt (`ref` in `extraKnownMarketplaces`); eine neue Version erst nach Durchsicht übernehmen.
+- **Formatierung:** Die Prüfung ist `dotnet format --verify-no-changes` vor dem Commit; einen Hook je Änderung gibt es nicht (5 s je Datei).
+- **Browser-MCP** (optional, nicht im Repository): `claude mcp add playwright -- npx @playwright/mcp@0.0.85` (unter Windows `cmd /c npx …`). Für GitHub genügt `gh`.
 
 ## Sicherheitsaudit mit /pentest
 

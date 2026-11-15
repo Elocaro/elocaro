@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "graphify hook-guard search",
+            "command": "command -v graphify >/dev/null || exit 0; graphify hook-guard search",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "graphify hook-guard read",
+            "command": "command -v graphify >/dev/null || exit 0; graphify hook-guard read",
             "timeout": 10
           }
         ]
@@ -28,20 +28,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "graphify hook-guard compact",
+            "command": "command -v graphify >/dev/null || exit 0; graphify hook-guard compact",
             "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-cs.sh\"",
-            "timeout": 60
           }
         ]
       }
@@ -54,7 +42,8 @@
     "ponytail": {
       "source": {
         "source": "github",
-        "repo": "DietrichGebert/ponytail"
+        "repo": "DietrichGebert/ponytail",
+        "ref": "v5.3.3"
       }
     }
   }
