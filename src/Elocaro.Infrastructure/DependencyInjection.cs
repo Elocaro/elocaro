@@ -5,6 +5,7 @@ using Elocaro.Infrastructure.Audit;
 using Elocaro.Infrastructure.Bank;
 using Elocaro.Infrastructure.Bank.FinTs;
 using Elocaro.Infrastructure.Correspondence;
+using Elocaro.Infrastructure.Datev;
 using Elocaro.Infrastructure.Deadlines;
 using Elocaro.Infrastructure.Documents;
 using Elocaro.Infrastructure.Emergency;
@@ -87,6 +88,7 @@ public static class DependencyInjection
         services.AddPropertiesModule();
         services.AddFinanceModule();
         services.AddTaxModule();
+        services.AddDatevModule();
         services.AddLegalModule();
         services.AddPortfolioModule();
         services.AddEmergencyModule();

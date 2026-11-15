@@ -98,7 +98,7 @@ Namensräume, keine Assemblies, und teilen sich einen `ElocaroDbContext`: Techni
 halten deshalb nur die Regeln unten; verändert wird eine fremde Entität nur über die Schnittstelle ihres Moduls.
 
 Nicht jeder Ordner hat in jeder Schicht denselben Namen: Die Verträge von `Identity` liegen in `Application/Accounts`, die von `Mail` in
-`Application/Communication`; `Application/Todos` (Erweiterungspunkt des Dashboards), `Domain/Datev` (gehört fachlich zu `Tax`) und
+`Application/Communication`; `Application/Todos` (Erweiterungspunkt des Dashboards) und
 `Domain/Deposits` (gehört zu `Leases`) haben kein Gegenstück. Die Regeln werden deshalb **je Schicht** geprüft, nicht über die Schichten
 hinweg.
 
@@ -150,10 +150,10 @@ Grenzen der Prüfung:
 
 - **Nur Paare.** Ketten über mehrere Module (A → B → C → A) erkennt der Test nicht; heute hängen so Documents, Leases, People,
   Properties und Receipts zusammen.
-- **Nur je Schicht.** Zwei weitere Paare schließen sich erst über zwei Schichten und stehen in keiner Liste:
-  Datev ↔ Tax (`Domain/Datev`
-  nutzt Typen aus `Domain/Tax`, der DATEV-Export liegt in `Tax`) und OperatingCosts ↔ Properties (`Unit` in der Domain kennt einen Typ der
-  Betriebskosten, die Dienste der Betriebskosten lesen Objekte).
+- **Nur je Schicht.** Die Regeln gelten je Schicht. Schichtübergreifend bleiben Paare möglich (etwa Heating ↔ OperatingCosts über Domain und
+  Infrastructure), solange keine Schicht für sich einen Zyklus bildet. Die zwei früher bekannten Paare sind aufgelöst: Datev liegt als eigenes
+  Modul in Application und Infrastructure (der DATEV-Export gehört nicht mehr zu `Tax`), und `SharedFlatBilling` liegt in `Domain.Properties`
+  statt bei den Betriebskosten.
 
 ## Querschnitt
 
@@ -200,8 +200,7 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
 
 1. ~~Application ist Vertragsschicht, die Anwendungsfälle liegen in der Infrastructure.~~ Entschieden: bleibt so,
    [ADR 0008](adr/0008-anwendungsdienste-in-der-infrastructure.md).
-2. **Modulzyklen:** In der Infrastructure sind alle aufgelöst (`KnownCycles` leer). Offen sind zwei Paare über Schichtgrenzen (Datev ↔ Tax,
-   OperatingCosts ↔ Properties), siehe „Grenzen der Prüfung“ oben.
+2. ~~Modulzyklen.~~ Erledigt: `KnownCycles` ist leer (#185).
 3. ~~Ein DbContext für alle Module.~~ Entschieden: Lesen fremder Tabellen bleibt erlaubt (423 Zugriffe in 101 Modulpaaren), die
    Zyklen-Regeln bleiben die Grenze, fremde Entitäten werden nur über die Schnittstelle des Moduls verändert,
    [ADR 0009](adr/0009-modulgrenzen-bei-gemeinsamem-dbcontext.md).
@@ -211,6 +210,6 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
 7. **Laufzeit.** Die Umstellung auf .NET 11 ist erfolgt (#163), die Pakete stehen aber noch auf `11.0.0-rc.3`. Stand 14. November 2026:
    EF Core und die ASP.NET-Core-Pakete gibt es als `11.0.0`, den Npgsql-Provider für EF Core nur als `11.0.0-rc.3`. Die Pakete werden
    gemeinsam angehoben, sobald der Provider freigegeben ist. Die frühere Begründung der Leitentscheidung („LTS“) gilt für .NET 11 nicht.
-8. **Namen der Module über die Schichten.** `Accounts`/`Identity` und `Communication`/`Mail` meinen dasselbe; `Datev` und `Deposits`
-   stehen in der Domain neben den Modulen, zu denen sie gehören. Gleiche Namen würden die Modulregeln über die Schichten hinweg prüfbar
+8. **Namen der Module über die Schichten.** `Accounts`/`Identity` und `Communication`/`Mail` meinen dasselbe; `Deposits`
+   steht in der Domain neben dem Modul, zu dem es gehört. Gleiche Namen würden die Modulregeln über die Schichten hinweg prüfbar
    machen.

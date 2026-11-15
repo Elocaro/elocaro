@@ -12,6 +12,7 @@ using Elocaro.Domain.Heating;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
+using Elocaro.Domain.Properties;
 using Elocaro.Domain.Receipts;
 using Elocaro.Integration.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;

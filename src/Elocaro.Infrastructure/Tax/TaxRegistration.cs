@@ -14,7 +14,6 @@ internal static class TaxRegistration
         services.AddScoped<ILoanService, LoanService>();
         services.AddScoped<IMaintenanceService, MaintenanceService>();
         services.AddScoped<IAnlageVService, AnlageVService>();
-        services.AddScoped<IDatevExport, DatevExportService>();
 
         return services;
     }

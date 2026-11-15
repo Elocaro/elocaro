@@ -2,6 +2,7 @@ using System.Globalization;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;
+using Elocaro.Domain.Properties;
 using Elocaro.Domain.Receipts;
 
 namespace Elocaro.Domain.OperatingCosts;

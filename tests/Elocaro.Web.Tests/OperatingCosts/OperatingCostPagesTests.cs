@@ -5,6 +5,7 @@ using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Receipts;
 using Elocaro.Domain.OperatingCosts;
+using Elocaro.Domain.Properties;
 using Elocaro.Web.Tests.Account;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -1,5 +1,6 @@
 using Elocaro.Domain.Common;
 using Elocaro.Domain.OperatingCosts;
+using Elocaro.Domain.Properties;
 using Elocaro.Domain.Receipts;
 
 namespace Elocaro.Domain.Heating;

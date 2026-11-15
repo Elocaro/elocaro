@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Elocaro.Application.Common;
-using Elocaro.Application.Tax;
+using Elocaro.Application.Datev;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Datev;
 using Elocaro.Domain.Finance;
@@ -13,7 +13,7 @@ using Elocaro.Infrastructure.Finance;
 using Elocaro.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Elocaro.Infrastructure.Tax;
+namespace Elocaro.Infrastructure.Datev;
 
 internal sealed class DatevExportService(ElocaroDbContext db, TimeProvider clock) : IDatevExport
 {

@@ -3,6 +3,7 @@ using Elocaro.Domain.Heating;
 using Elocaro.Domain.Leases;
 using Elocaro.Domain.Metering;
 using Elocaro.Domain.OperatingCosts;
+using Elocaro.Domain.Properties;
 using Elocaro.Domain.Receipts;
 using static Elocaro.Domain.Tests.Heating.HeatingScenario;
 using static Elocaro.Domain.Tests.OperatingCosts.Scenario;

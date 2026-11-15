@@ -1,5 +1,4 @@
 using Elocaro.Domain.Common;
-using Elocaro.Domain.OperatingCosts;
 
 namespace Elocaro.Domain.Properties;
 

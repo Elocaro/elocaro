@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Elocaro.Application.Common;
 using Elocaro.Domain.Datev;
 
-namespace Elocaro.Application.Tax;
+namespace Elocaro.Application.Datev;
 
 /// <summary>
 /// DATEV export (posting batch, EXTF) of payments received and paid receipts on a cash basis, with a configurable
