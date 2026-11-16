@@ -6,7 +6,7 @@
 @inject ILeaseService Leases
 @inject IExposes Exposes
 
-<PageHeader Title="Exposé" Subtitle="Eine Wohnung für Interessenten als PDF: Daten der Einheit und das Foto des Hauses." Back="/verwaltung/interessenten" BackText="Interessenten" />
+<PageHeader Title="Exposé" Subtitle="Eine Wohnung oder ein WG-Zimmer für Interessenten als PDF: Daten, Fotos und Kosten." Back="/verwaltung/interessenten" BackText="Interessenten" />
 
 @if (!string.IsNullOrWhiteSpace(Error))
 {
@@ -22,7 +22,7 @@
                 <option value="">– bitte wählen –</option>
                 @foreach (var unit in units)
                 {
-                    <option value="@unit.Id" selected="@(unit.Id == RentalUnit)">@unit.Property – @unit.Name</option>
+                    <option value="@unit.Id" selected="@(unit.Id == RentalUnit)">@unit.Property – @unit.Name@(unit.IsRoom ? " (WG-Zimmer)" : "")</option>
                 }
             </select>
         </div>
@@ -79,7 +79,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        units = [.. (await Leases.RentalUnitsAsync()).Where(u => !u.IsRoom).OrderBy(u => u.Property, StringComparer.CurrentCultureIgnoreCase).ThenBy(u => u.Name, StringComparer.CurrentCultureIgnoreCase)];
+        units = [.. (await Leases.RentalUnitsAsync()).OrderBy(u => u.Property, StringComparer.CurrentCultureIgnoreCase).ThenBy(u => u.Name, StringComparer.CurrentCultureIgnoreCase)];
         if (RentalUnit is { } unit && ExposeEndpoint.ExposeForm.Money(Rent) is not null)
         {
             var input = ExposeEndpoint.ExposeForm.Read(name => name switch

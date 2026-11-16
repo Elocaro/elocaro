@@ -15,6 +15,16 @@
 <h2>Ausstattung</h2>
 <ul>{{~ for f in features ~}}<li>{{ f }}</li>{{ end ~}}</ul>
 {{~ end ~}}
+{{~ if pictures.size > 0 ~}}
+<h2>Fotos</h2>
+<table>
+  <tbody>
+  {{~ for p in pictures ~}}
+    <tr><td>{{ p.image }}{{ if p.caption }}<br><span class="small">{{ p.caption }}</span>{{ end }}</td></tr>
+  {{~ end ~}}
+  </tbody>
+</table>
+{{~ end ~}}
 <h2>Kosten pro Monat</h2>
 <table>
   <tbody>

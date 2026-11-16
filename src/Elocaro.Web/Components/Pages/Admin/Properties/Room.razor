@@ -44,6 +44,9 @@ else
 <AreaSection Save="input => Admin.SetRoomAreaAsync(Id, input)" OnSaved="LoadAsync" Current="room.Area" History="room.AreaHistory"
                  AreaText="Zimmerfläche" AdditionalText="Anteil Gemeinschaftsfläche" AdditionalHint="Anteil an Küche, Bad, Flur der WG (für Umlagen nach Fläche)." />
     </MudTabPanel>
+    <MudTabPanel Text="Fotos">
+<PhotosSection RentalUnitId="Id" />
+    </MudTabPanel>
     <MudTabPanel Text="Verlauf">
 <ChangeHistory EntityType="@nameof(Elocaro.Domain.Properties.Room)" EntityId="Id" />
     </MudTabPanel>

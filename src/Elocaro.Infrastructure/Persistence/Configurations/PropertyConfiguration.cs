@@ -134,3 +134,14 @@ internal sealed class PropertyOwnerConfiguration : IEntityTypeConfiguration<Prop
         builder.HasIndex(o => o.PersonId).HasFilter("NOT deleted");
     }
 }
+
+internal sealed class UnitPhotoConfiguration : IEntityTypeConfiguration<UnitPhoto>
+{
+    public void Configure(EntityTypeBuilder<UnitPhoto> builder)
+    {
+        builder.ToTable("unit_photos");
+        builder.Property(p => p.Caption).HasMaxLength(UnitPhoto.MaxCaption);
+        builder.HasOne<StoredFile>().WithMany().HasForeignKey(p => p.FileId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(p => p.RentalUnitId);
+    }
+}

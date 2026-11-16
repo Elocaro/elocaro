@@ -5,6 +5,7 @@ using Elocaro.Application.Documents;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Prospects;
 using Elocaro.Domain.Files;
+using Elocaro.Domain.Properties;
 using Elocaro.Domain.Prospects;
 using Elocaro.Infrastructure.Pdf;
 using Elocaro.Integration.Tests.Infrastructure;
@@ -15,6 +16,7 @@ namespace Elocaro.Integration.Tests.Prospects;
 public class ExposeTests(PostgresFixture postgres) : IAsyncLifetime
 {
     private InfrastructureEnvironment environment = null!;
+    private Guid property;
     private Guid unit;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -28,7 +30,7 @@ public class ExposeTests(PostgresFixture postgres) : IAsyncLifetime
             await s.SaveAsync(new LandlordProfileInput { Name = "Hans Müller", Street = "Musterweg 1", PostalCode = "50667", City = "Köln" }, Ct);
             return true;
         });
-        var property = Validate(await With<IPropertyService, Result>(s => s.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln", RentIndexPerSquareMetre = 10m, RentCapPercent = 15 }, Ct)));
+        property = Validate(await With<IPropertyService, Result>(s => s.CreateAsync(new PropertyInput { Name = "Lindenweg 3", Street = "Lindenweg 3", PostalCode = "50667", City = "Köln", RentIndexPerSquareMetre = 10m, RentCapPercent = 15 }, Ct)));
         unit = Validate(await With<IPropertyService, Result>(s => s.CreateUnitAsync(property, new UnitInput { Name = "Wohnung 1", Location = "EG links", RoomCount = 2.5m, Balcony = true, Amenities = "Parkett\nKeller" }, Ct)));
         Validate(await With<IPropertyService, Result>(s => s.SetUnitAreaAsync(unit, new AreaInput { From = new DateOnly(2020, 1, 1), Area = 60m }, Ct)));
     }
@@ -65,6 +67,27 @@ public class ExposeTests(PostgresFixture postgres) : IAsyncLifetime
         var withPrevious = await With<IExposes, ExposeFile>(s => s.CreateAsync(unit, new ExposeInput { Rent = 650m, PreviousRent = 640m }, Ct));
         Assert.Contains("Vormieters", Encoding.UTF8.GetString(withPrevious.Content!), StringComparison.Ordinal);
         Assert.False((await With<IExposes, ExposeFile>(s => s.CreateAsync(unit, new ExposeInput(), Ct))).Result.Succeeded);
+    }
+
+    [Fact]
+    public async Task The_photos_are_in_the_expose_with_captions_and_a_room_shows_its_own_photos_before_those_of_the_flat()
+    {
+        async Task<Guid> Image() => await With<Elocaro.Application.Files.IFileStore, Guid>(async s => (await s.SaveAsync(new MemoryStream(TestFiles.TwoColorImage(40, 30)), "foto.jpg", Ct)).Id);
+        Validate(await With<IUnitPhotos, Result>(s => s.AddAsync(unit, Image().Result, "Wohnzimmer mit Parkett", Ct)));
+        var flat = Validate(await With<IPropertyService, Result>(s => s.CreateUnitAsync(property, new UnitInput { Name = "WG 1" }, Ct)));
+        var room = Validate(await With<IPropertyService, Result>(s => s.CreateRoomAsync(flat, new RoomInput { Name = "Zimmer 1", Furnishing = Furnishing.Furnished }, Ct)));
+        Validate(await With<IUnitPhotos, Result>(s => s.AddAsync(flat, Image().Result, "Gemeinschaftsküche", Ct)));
+        Validate(await With<IUnitPhotos, Result>(s => s.AddAsync(room, Image().Result, "Das Zimmer", Ct)));
+
+        var unitHtml = Encoding.UTF8.GetString((await With<IExposes, ExposeFile>(s => s.CreateAsync(unit, new ExposeInput { Rent = 650m }, Ct))).Content!);
+        Assert.Contains("Wohnzimmer mit Parkett", unitHtml, StringComparison.Ordinal);
+        Assert.Contains("data:image/", unitHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Gemeinschaftsküche", unitHtml, StringComparison.Ordinal);
+
+        var roomHtml = Encoding.UTF8.GetString((await With<IExposes, ExposeFile>(s => s.CreateAsync(room, new ExposeInput { Rent = 400m }, Ct))).Content!);
+        Assert.True(roomHtml.IndexOf("Das Zimmer", StringComparison.Ordinal) is var own and >= 0 && roomHtml.IndexOf("Gemeinschaftsküche", StringComparison.Ordinal) > own);
+        Assert.Contains("Möbliert", roomHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Wohnzimmer mit Parkett", roomHtml, StringComparison.Ordinal);
     }
 
     private async Task<T> With<TService, T>(Func<TService, Task<T>> action)

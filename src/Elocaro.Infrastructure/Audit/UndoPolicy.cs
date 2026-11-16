@@ -35,7 +35,7 @@ public static class UndoPolicy
             "Person", "PersonAddress", "Lease", "LeaseParty", "LeaseRoom", "RentComponent", "RentStep", "OccupantCount",
             "Meter", "MeterTerm", "MeterReading");
         Add(result, UndoClass.Planned,
-            "PropertyAsset", "PropertyCost", "PropertyAcquisition", "PropertyAssignment", "LocalRent", "MaintenanceDistribution", "LandlordProfile",
+            "PropertyAsset", "UnitPhoto", "PropertyCost", "PropertyAcquisition", "PropertyAssignment", "LocalRent", "MaintenanceDistribution", "LandlordProfile",
             "CostAllocationRule", "CostAllocationShare", "CostSubtype", "CostItem", "SupplyContract", "SupplyTariff", "SupplierCostTypeRule",
             "TaxLineMapping", "DatevAccount", "CsvProfile", "MatchRule", "DocumentTemplate", "DocumentTemplateRevision", "Document", "Receipt", "ReceiptFile",
             "RecurringTask", "TaskCompletion", "CareRoutine", "CareCheck", "Loan", "LoanCertificate", "LoanExtraPayment", "FinancingCost",

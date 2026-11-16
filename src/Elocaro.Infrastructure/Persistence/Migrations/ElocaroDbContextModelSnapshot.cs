@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261116083839_SelfDisclosures";
+    public override string LastMigrationId => "20261116091541_UnitPhotos";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -6610,6 +6610,69 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.ToTable("unit_areas");
             });
 
+        modelBuilder.Entity("Elocaro.Domain.Properties.UnitPhoto", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<string>("Caption")
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)")
+                    .HasColumnName("caption");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<Guid>("FileId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("file_id");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<int>("Order")
+                    .HasColumnType("integer")
+                    .HasColumnName("order");
+
+                b.Property<Guid>("RentalUnitId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("rental_unit_id");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.HasKey("Id")
+                    .HasName("pk_unit_photos");
+
+                b.HasIndex("FileId")
+                    .HasDatabaseName("ix_unit_photos_file_id");
+
+                b.HasIndex("RentalUnitId")
+                    .HasDatabaseName("ix_unit_photos_rental_unit_id");
+
+                b.ToTable("unit_photos");
+            });
+
         modelBuilder.Entity("Elocaro.Domain.Prospects.Prospect", b =>
             {
                 b.Property<Guid>("Id")
@@ -10427,6 +10490,16 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired()
                     .HasConstraintName("fk_unit_areas_unit_unit_id");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Properties.UnitPhoto", b =>
+            {
+                b.HasOne("Elocaro.Domain.Files.StoredFile", null)
+                    .WithMany()
+                    .HasForeignKey("FileId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired()
+                    .HasConstraintName("fk_unit_photos_stored_files_file_id");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Prospects.SelfDisclosure", b =>

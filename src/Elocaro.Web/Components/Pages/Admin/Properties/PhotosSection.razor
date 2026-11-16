@@ -1,0 +1,96 @@
+@using MudBlazor
+@using Elocaro.Application.Files
+@inject IUnitPhotos Photos
+@inject IFileStore Storage
+@inject Notifier Notify
+@inject Confirmations Confirm
+
+<section>
+    <h2>Fotos</h2>
+    <p class="small">Die Fotos kommen ins Exposé, in der Reihenfolge hier. Höchstens @UnitPhoto.MaxPerUnit Fotos.</p>
+    <ErrorList Errors="errors" />
+
+    @if (rows.Count > 0)
+    {
+        <ul class="photo-list">
+            @foreach (var (photo, index) in rows.Select((p, i) => (p, i)))
+            {
+                <li>
+                    <img src="/dateien/@photo.FileId" alt="@(photo.Caption ?? $"Foto {index + 1}")" style="max-width: 200px; max-height: 140px" />
+                    <div class="form-row">
+                        <input type="text" value="@photo.Caption" maxlength="@UnitPhoto.MaxCaption" placeholder="Bildunterschrift" aria-label="@($"Bildunterschrift Foto {index + 1}")"
+                               @onchange="e => SetCaptionAsync(photo.Id, e.Value?.ToString())" />
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" aria-label="Nach vorn" Disabled="@(index == 0)" OnClick="() => MoveAsync(photo.Id, true)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" aria-label="Nach hinten" Disabled="@(index == rows.Count - 1)" OnClick="() => MoveAsync(photo.Id, false)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" aria-label="Foto entfernen" Color="Color.Error" OnClick="() => RemoveAsync(photo.Id)" />
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+
+    <AppFileUpload Text="Fotos hinzufügen" Accept="image/jpeg,image/png,image/webp,image/heic" Multiple="true" Disabled="@(rows.Count >= UnitPhoto.MaxPerUnit)" OnSelectedMany="UploadAsync" />
+</section>
+
+@code {
+    private IReadOnlyList<UnitPhotoRow> rows = [];
+    private IReadOnlyList<string>? errors;
+
+    /// <summary>The unit or the room.</summary>
+    [Parameter, EditorRequired]
+    public Guid RentalUnitId { get; set; }
+
+    protected override async Task OnInitializedAsync() => rows = await Photos.ListAsync(RentalUnitId);
+
+    private async Task UploadAsync(IReadOnlyList<FileSelection> files)
+    {
+        errors = null;
+        foreach (var selection in files)
+        {
+            try
+            {
+                await using var content = selection.Open();
+                var file = await Storage.SaveAsync(content, selection.Name);
+                var result = await Photos.AddAsync(RentalUnitId, file.Id, null);
+                if (!result.Succeeded)
+                {
+                    errors = result.Errors;
+                    break;
+                }
+            }
+            catch (FileRejectedException ex)
+            {
+                errors = [ex.Message];
+                break;
+            }
+        }
+
+        rows = await Photos.ListAsync(RentalUnitId);
+    }
+
+    private async Task SetCaptionAsync(Guid id, string? caption)
+    {
+        var result = await Photos.SetCaptionAsync(id, caption);
+        errors = result.Succeeded ? null : result.Errors;
+        rows = await Photos.ListAsync(RentalUnitId);
+    }
+
+    private async Task MoveAsync(Guid id, bool up)
+    {
+        await Photos.MoveAsync(id, up);
+        rows = await Photos.ListAsync(RentalUnitId);
+    }
+
+    private async Task RemoveAsync(Guid id)
+    {
+        if (!await Confirm.AskAsync("Foto entfernen", "Soll das Foto entfernt werden?", "Ja, Foto entfernen"))
+        {
+            return;
+        }
+
+        var result = await Photos.RemoveAsync(id);
+        errors = result.Succeeded ? null : result.Errors;
+        Notify.Success("Das Foto wurde entfernt.");
+        rows = await Photos.ListAsync(RentalUnitId);
+    }
+}

@@ -187,6 +187,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
             }
 
             property.Units.Remove(unit);
+            db.RemoveRange(db.Set<UnitPhoto>().Where(p => p.RentalUnitId == id).ToList());
         }, cancellationToken);
     }
 
@@ -271,6 +272,7 @@ internal sealed class PropertyService(ElocaroDbContext db, IOccupancyLookup occu
         return await WithRoomAsync(id, (unit, room) =>
         {
             unit.Room.Remove(room);
+            db.RemoveRange(db.Set<UnitPhoto>().Where(p => p.RentalUnitId == id).ToList());
         }, cancellationToken);
     }
 

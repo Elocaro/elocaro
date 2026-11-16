@@ -7,11 +7,11 @@ namespace Elocaro.Application.Prospects;
 /// <summary>The exposé of a unit for prospects (PDF from the data of the unit and the house) and the hints for the new letting (rent brake).</summary>
 public interface IExposes
 {
-    /// <summary>Hints for the asking rent: rent brake, previous rent, cap limit. <c>null</c> if the unit is unknown (or a room of a shared flat).</summary>
-    Task<NewLetCheck?> CheckAsync(Guid unitId, ExposeInput input, CancellationToken cancellationToken = default);
+    /// <summary>Hints for the asking rent: rent brake, previous rent, cap limit. <c>null</c> if the unit or room is unknown.</summary>
+    Task<NewLetCheck?> CheckAsync(Guid rentalUnitId, ExposeInput input, CancellationToken cancellationToken = default);
 
     /// <summary>The exposé as PDF. The hints are for the landlord and are not printed; a previous rent is printed only if entered.</summary>
-    Task<ExposeFile> CreateAsync(Guid unitId, ExposeInput input, CancellationToken cancellationToken = default);
+    Task<ExposeFile> CreateAsync(Guid rentalUnitId, ExposeInput input, CancellationToken cancellationToken = default);
 }
 
 public sealed record ExposeFile(Result Result, byte[]? Content = null, string? FileName = null);
