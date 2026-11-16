@@ -25,17 +25,17 @@
 
     /* Status roles (info = neutral/blue-grey, success, warning, error) */
     --md-info: light-dark(#3c5a73, #a9c9e6);
-    --md-info-container: light-dark(#e0eaf3, #25405a);
+    --md-info-container: light-dark(#e0eaf3, #24384c);
     --md-on-info-container: light-dark(#071d31, #d4e6f8);
     --md-success: light-dark(#486815, #add374);
-    --md-success-container: light-dark(#d9eab8, #324f00);
+    --md-success-container: light-dark(#d9eab8, #2d4219);
     --md-on-success-container: light-dark(#111f00, #c8f08e);
     --md-warning: light-dark(#7a5900, #f0c04a);
-    --md-warning-container: light-dark(#f8e6b4, #5c4300);
+    --md-warning-container: light-dark(#f8e6b4, #4a3a14);
     --md-on-warning-container: light-dark(#261a00, #ffdf9b);
     --md-error: light-dark(#ba1a1a, #ffb4ab);
     --md-on-error: light-dark(#ffffff, #690005);
-    --md-error-container: light-dark(#ffdad6, #93000a);
+    --md-error-container: light-dark(#ffdad6, #7a2326);
     --md-on-error-container: light-dark(#410002, #ffdad6);
 
     --md-surface: light-dark(#f8faf3, #111410);
