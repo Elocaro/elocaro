@@ -530,6 +530,14 @@ public static class PageInfoCatalog
                 "Mit „Als Mieter übernehmen“ legt Elocaro die Person an und öffnet den Vertrags-Assistenten.")]),
             $"{Admin}/interessenten", $"{Admin}/interessenten/neu", $"{Admin}/interessenten/{{id}}");
 
+        Add(new("Exposé",
+            "Eine Wohnung für Interessenten als PDF.",
+            [new("Gut zu wissen",
+                "Das Exposé nimmt Fläche, Zimmer, Ausstattung und das Foto des Hauses aus den Daten der Einheit. Miete und Kosten tragen Sie hier ein.",
+                "„Hinweise prüfen“ vergleicht die Kaltmiete mit der Mietpreisbremse (Vergleichsmiete am Objekt + 10 %). Die Hinweise stehen nicht im Exposé.",
+                "Die Miete des Vormieters nennen Sie nur, wenn Sie sich darauf berufen; sie steht dann im Exposé.")]),
+            $"{Admin}/interessenten/expose");
+
         Add(new("Offene Posten",
             "Fällige, nicht vollständig bezahlte Forderungen, nach Mietverhältnis gruppiert.",
             [new("Gut zu wissen",

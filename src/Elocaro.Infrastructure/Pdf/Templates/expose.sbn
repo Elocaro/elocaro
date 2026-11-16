@@ -1,0 +1,33 @@
+<h2 style="font-size: 20pt; margin-top: 0">{{ unit_name }}</h2>
+<p><strong>{{ address }}</strong>{{ if location }}, {{ location }}{{ end }}</p>
+{{~ if photo ~}}<p>{{ photo }}</p>{{~ end ~}}
+<table>
+  <tbody>
+    {{~ if area ~}}<tr><td>Wohnfläche</td><td>{{ number area 2 }} m²</td></tr>{{ end ~}}
+    {{~ if room_count ~}}<tr><td>Zimmer</td><td>{{ number room_count 1 }}</td></tr>{{ end ~}}
+    {{~ if floor != null ~}}<tr><td>Etage</td><td>{{ floor }}</td></tr>{{ end ~}}
+    {{~ if year_built ~}}<tr><td>Baujahr</td><td>{{ year_built }}</td></tr>{{ end ~}}
+    {{~ if energy_standard ~}}<tr><td>Energiestandard</td><td>{{ energy_standard }}</td></tr>{{ end ~}}
+    {{~ if available_from ~}}<tr><td>Frei ab</td><td>{{ date available_from }}</td></tr>{{ end ~}}
+  </tbody>
+</table>
+{{~ if features.size > 0 ~}}
+<h2>Ausstattung</h2>
+<ul>{{~ for f in features ~}}<li>{{ f }}</li>{{ end ~}}</ul>
+{{~ end ~}}
+<h2>Kosten pro Monat</h2>
+<table>
+  <tbody>
+    <tr><td>Kaltmiete</td><td class="number">{{ money rent }}</td></tr>
+    {{~ if operating_costs ~}}<tr><td>Betriebskosten-Vorauszahlung</td><td class="number">{{ money operating_costs }}</td></tr>{{ end ~}}
+    {{~ if heating_costs ~}}<tr><td>Heizkosten-Vorauszahlung</td><td class="number">{{ money heating_costs }}</td></tr>{{ end ~}}
+  </tbody>
+  <tfoot><tr><td>Gesamtmiete</td><td class="number">{{ money total }}</td></tr></tfoot>
+</table>
+{{~ if deposit ~}}<p>Mietsicherheit (Kaution): {{ money deposit }}</p>{{~ end ~}}
+{{~ if previous_rent ~}}<p>Die Kaltmiete des Vormieters betrug {{ money previous_rent }} (Auskunft nach § 556g Abs. 1a BGB).</p>{{~ end ~}}
+{{~ if paragraphs.size > 0 ~}}
+<h2>Beschreibung</h2>
+{{~ for paragraph in paragraphs ~}}<p>{{ paragraph }}</p>{{ end ~}}
+{{~ end ~}}
+<p class="small">Alle Angaben ohne Gewähr. Für eine Besichtigung melden Sie sich bitte beim Vermieter.</p>

@@ -1,0 +1,94 @@
+@page "/verwaltung/interessenten/expose"
+@using Elocaro.Application.Leases
+@using Elocaro.Application.Prospects
+@using Elocaro.Domain.Prospects
+@using Elocaro.Web.Prospects
+@inject ILeaseService Leases
+@inject IExposes Exposes
+
+<PageHeader Title="Exposé" Subtitle="Eine Wohnung für Interessenten als PDF: Daten der Einheit und das Foto des Hauses." Back="/verwaltung/interessenten" BackText="Interessenten" />
+
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <Notice Level="NoticeLevel.Error">@Error</Notice>
+}
+
+<form method="post" action="@ExposeEndpoint.Path" data-enhance="false">
+    <AntiforgeryToken />
+    <div class="form-grid">
+        <div class="field">
+            <label for="unit">Einheit</label>
+            <select id="unit" name="mietobjekt" required>
+                <option value="">– bitte wählen –</option>
+                @foreach (var unit in units)
+                {
+                    <option value="@unit.Id" selected="@(unit.Id == RentalUnit)">@unit.Property – @unit.Name</option>
+                }
+            </select>
+        </div>
+        <div class="field"><label for="rent">Kaltmiete (€ pro Monat)</label><input id="rent" name="miete" inputmode="decimal" value="@Rent" required /></div>
+        <div class="field"><label for="nk">Betriebskosten-Vorauszahlung (€)</label><input id="nk" name="nk" inputmode="decimal" value="@OperatingCosts" /></div>
+        <div class="field"><label for="hk">Heizkosten-Vorauszahlung (€)</label><input id="hk" name="hk" inputmode="decimal" value="@HeatingCosts" /></div>
+        <div class="field"><label for="deposit">Kaution (€)</label><input id="deposit" name="kaution" inputmode="decimal" value="@Deposit" /></div>
+        <div class="field"><label for="free">Frei ab</label><input id="free" name="frei" type="date" value="@Free" /></div>
+        <div class="field">
+            <label for="previous">Miete des Vormieters (€)</label>
+            <input id="previous" name="vormiete" inputmode="decimal" value="@PreviousRent" />
+            <span class="small">Nur ausfüllen, wenn Sie sich auf die Vormiete berufen. Sie wird dann im Exposé genannt.</span>
+        </div>
+    </div>
+    <div class="field">
+        <label for="text">Beschreibung</label>
+        <textarea id="text" name="text" rows="5" maxlength="3000">@Description</textarea>
+    </div>
+    <button type="submit" name="aktion" value="pruefen" class="button">Hinweise prüfen</button>
+    <button type="submit" name="aktion" value="pdf" class="button primary">Exposé als PDF herunterladen</button>
+</form>
+
+@if (check is not null)
+{
+    <section>
+        <h2>Hinweise zur Neuvermietung</h2>
+        <p class="small">Nur für Sie, sie stehen nicht im Exposé. Keine Rechtsberatung.</p>
+        @if (check.OverLimit)
+        {
+            <Notice Level="NoticeLevel.Warning">Die Kaltmiete liegt über der Grenze der Mietpreisbremse.</Notice>
+        }
+        <ul>
+            @foreach (var hint in check.Hints)
+            {
+                <li>@hint</li>
+            }
+        </ul>
+    </section>
+}
+
+@code {
+    private IReadOnlyList<RentalUnitOption> units = [];
+    private NewLetCheck? check;
+
+    [SupplyParameterFromQuery(Name = "mietobjekt")] private Guid? RentalUnit { get; set; }
+    [SupplyParameterFromQuery(Name = "miete")] private string? Rent { get; set; }
+    [SupplyParameterFromQuery(Name = "nk")] private string? OperatingCosts { get; set; }
+    [SupplyParameterFromQuery(Name = "hk")] private string? HeatingCosts { get; set; }
+    [SupplyParameterFromQuery(Name = "kaution")] private string? Deposit { get; set; }
+    [SupplyParameterFromQuery(Name = "frei")] private string? Free { get; set; }
+    [SupplyParameterFromQuery(Name = "vormiete")] private string? PreviousRent { get; set; }
+    [SupplyParameterFromQuery(Name = "text")] private string? Description { get; set; }
+    [SupplyParameterFromQuery(Name = "fehler")] private string? Error { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        units = [.. (await Leases.RentalUnitsAsync()).Where(u => !u.IsRoom).OrderBy(u => u.Property, StringComparer.CurrentCultureIgnoreCase).ThenBy(u => u.Name, StringComparer.CurrentCultureIgnoreCase)];
+        if (RentalUnit is { } unit && ExposeEndpoint.ExposeForm.Money(Rent) is not null)
+        {
+            var input = ExposeEndpoint.ExposeForm.Read(name => name switch
+            {
+                "miete" => Rent,
+                "vormiete" => PreviousRent,
+                _ => null,
+            });
+            check = await Exposes.CheckAsync(unit, input);
+        }
+    }
+}

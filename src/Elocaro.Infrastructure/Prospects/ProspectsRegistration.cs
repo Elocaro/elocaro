@@ -10,6 +10,7 @@ internal static class ProspectsRegistration
     {
         services.AddScoped<IProspects, ProspectService>();
         services.AddScoped<ISelfDisclosures, SelfDisclosureService>();
+        services.AddScoped<IExposes, ExposeService>();
         services.AddScoped<ProspectRetention>();
         return services;
     }
