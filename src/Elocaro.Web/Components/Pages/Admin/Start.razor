@@ -3,8 +3,10 @@
 @using Elocaro.Application.Admin
 @using Elocaro.Application.Portfolio
 @using Elocaro.Application.Todos
+@using Elocaro.Domain.Common
 @inject IEnumerable<ITodoSource> Sources
 @inject IPortfolioFigures Portfolio
+@inject TimeProvider Clock
 
 <PageHeader Title="Übersicht" Subtitle="Was ist zu tun? Aufgaben und Fristen aus allen Bereichen, die dringendsten zuerst." />
 
@@ -150,7 +152,7 @@
         <a href="@todo.Link">@todo.Title</a>
         @if (todo.Due is { } due)
         {
-            <span class="small todo-due">fällig am @Format.Date(due)</span>
+            <span class="small todo-due@(IsOverdue(due) ? " is-overdue" : null)">@DueText(due)</span>
         }
         @if (todo.Details is not null && showDetails)
         {
@@ -166,7 +168,7 @@
 
     private RenderFragment GroupView(TodoEntry entry) => @<li class="todo todo-@entry.First.Urgency.ToString().ToLowerInvariant() todo-group">
         <details>
-            <summary>@entry.Heading <span class="small">(@entry.Items.Count)@(entry.First.Due is { } due ? $" · fällig am {Format.Date(due)}" : "")</span></summary>
+            <summary>@entry.Heading <span class="small">(@entry.Items.Count)@(entry.First.Due is { } due ? $" · {DueText(due)}" : "")</span></summary>
             @if (entry.First.Details is not null)
             {
                 <p class="small">@entry.First.Details</p>
@@ -183,6 +185,22 @@
             <span class="todo-area">@entry.First.Area</span>
         }
     </li>;
+
+    private DateOnly Today => GermanTime.Today(Clock.GetUtcNow());
+
+    private bool IsOverdue(DateOnly due) => due < Today;
+
+    private string DueText(DateOnly due)
+    {
+        var days = Today.DayNumber - due.DayNumber;
+        return days switch
+        {
+            > 1 => $"seit {days} Tagen überfällig",
+            1 => "seit 1 Tag überfällig",
+            0 => "heute fällig",
+            _ => $"fällig am {Format.Date(due)}",
+        };
+    }
 
     private int Count(Urgency urgency) => Work.Count(t => t.Urgency == urgency);
 

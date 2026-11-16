@@ -20,7 +20,7 @@
 
     <ErrorList Errors="errors" />
 
-    <div class="form-row search-bar" role="search">
+    <div class="form-row search-bar account-filter" role="search">
         <AppSelect T="Guid?" Value="accountId" ValueChanged="OnAccountChanged" Label="Konto" Items="accountIds" Text="AccountText" EmptyText="Alle Konten" />
     </div>
 
@@ -41,7 +41,11 @@
                     <div class="work-card-transaction">
                         <span class="work-card-amount @(u.Amount < 0 ? "negative" : null)">@Format.Money(u.Amount)</span>
                         <div>
-                            <strong>@u.CounterpartyName</strong><span class="small">&#32;@u.CounterpartyIban</span>
+                            <strong>@u.CounterpartyName</strong>
+                            @if (!string.IsNullOrEmpty(u.CounterpartyIban))
+                            {
+                                <div class="small iban">@u.CounterpartyIban</div>
+                            }
                             <div class="small">@Format.Date(u.BookingDate) · @u.Purpose</div>
                         </div>
                     </div>
@@ -50,7 +54,12 @@
                         {
                             <strong>@s.Target</strong>
                             <StatusChip Level="@(s.Score >= 70 ? StatusLevel.Success : StatusLevel.Warning)">@ScoreText(s.Score)</StatusChip>
-                            <div class="small">@string.Join(" · ", s.Reasons)</div>
+                            <ul class="reasons">
+                                @foreach (var reason in s.Reasons)
+                                {
+                                    <li>@reason</li>
+                                }
+                            </ul>
                             @if (s.Parts.Count > 1)
                             {
                                 <div class="small">@s.Parts.Count Teilbeträge</div>

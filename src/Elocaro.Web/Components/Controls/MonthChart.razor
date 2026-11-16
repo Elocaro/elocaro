@@ -2,7 +2,7 @@
 @using Elocaro.Application.Portfolio
 
 <figure class="trend-chart" id="trend-chart">
-    <figcaption class="small">Mieteingang gegen Soll, letzte 12 Monate: <span class="swatch landlord"></span> Soll <span class="swatch tenant"></span> Eingang · Linie: offener Saldo am Monatsende</figcaption>
+    <figcaption class="small">Mieteingang gegen Soll, letzte 12 Monate</figcaption>
     <div class="line-chart-plot">
         <div class="line-chart-axis small" aria-hidden="true">
             <span>@Format.Money(Max)</span>
@@ -31,6 +31,11 @@
         </svg>
         <div class="trend-axis small"><span>@Format.Month(History[0].Month)</span><span>@Format.Month(History[^1].Month)</span></div>
     </div>
+    <ul class="chart-legend small">
+        <li><span class="swatch landlord"></span> Soll</li>
+        <li><span class="swatch tenant"></span> Eingang</li>
+        <li><span class="swatch-line"></span> offener Saldo am Monatsende</li>
+    </ul>
 </figure>
 
 @code {
