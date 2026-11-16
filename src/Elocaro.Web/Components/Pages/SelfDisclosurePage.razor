@@ -1,0 +1,101 @@
+@page "/selbstauskunft/{Token}"
+@attribute [AllowAnonymous]
+@layout Elocaro.Web.Components.Layout.AccountLayout
+@using Elocaro.Application.Prospects
+@inject ISelfDisclosures Disclosures
+
+<PageTitle>Selbstauskunft – Elocaro</PageTitle>
+
+@if (form is null && !done)
+{
+    <h1>Link ungültig</h1>
+    <p>Dieser Link ist nicht (mehr) gültig, abgelaufen oder wurde schon benutzt. Bitte wenden Sie sich an den Vermieter.</p>
+}
+else if (done)
+{
+    <h1>Danke, Ihre Angaben sind gespeichert</h1>
+    <Notice Level="NoticeLevel.Success">Der Vermieter hat Ihre Selbstauskunft erhalten und meldet sich bei Ihnen.</Notice>
+}
+else
+{
+    <h1>Selbstauskunft</h1>
+    <p>Für: @form!.Unit</p>
+    <p class="small">
+        Wir fragen nur, was der Vermieter für die Auswahl braucht. Alle Felder außer der Zahl der Personen sind freiwillig.
+        Bitte machen Sie keine Angaben zu Herkunft, Religion, Gesundheit, Partei oder Familienplanung.
+    </p>
+
+    @if (errors is not null)
+    {
+        <ErrorList Errors="errors" />
+    }
+
+    <EditForm Model="Input" FormName="selbstauskunft" OnValidSubmit="SubmitAsync" novalidate>
+        <DataAnnotationsValidator />
+        <div class="field">
+            <label for="persons">Zahl der einziehenden Personen</label>
+            <InputNumber id="persons" @bind-Value="Input.Persons" />
+            <ValidationMessage For="() => Input.Persons" />
+        </div>
+        <div class="field">
+            <label for="occupation">Beruf</label>
+            <InputText id="occupation" @bind-Value="Input.Occupation" autocomplete="organization-title" />
+            <ValidationMessage For="() => Input.Occupation" />
+        </div>
+        <div class="field">
+            <label for="income">Monatliches Netto-Haushaltseinkommen (€)</label>
+            <InputNumber id="income" @bind-Value="Input.NetIncome" />
+            <ValidationMessage For="() => Input.NetIncome" />
+        </div>
+        <div class="field">
+            <label for="pets">Haustiere</label>
+            <InputText id="pets" @bind-Value="Input.Pets" />
+            <ValidationMessage For="() => Input.Pets" />
+        </div>
+        <div class="field">
+            <label for="move-in">Gewünschter Einzug</label>
+            <InputDate id="move-in" @bind-Value="Input.MoveInOn" />
+        </div>
+        <div class="field">
+            <label for="message">Nachricht an den Vermieter</label>
+            <InputTextArea id="message" @bind-Value="Input.Message" rows="3" />
+            <ValidationMessage For="() => Input.Message" />
+        </div>
+        <div class="field">
+            <label><InputCheckbox @bind-Value="Input.Consent" /> Ich willige ein, dass der Vermieter diese Angaben und meinen Namen und Kontaktdaten zur Auswahl des Mieters für diese Wohnung speichert. Bei einer Absage werden die Daten nach drei Monaten gelöscht. Ich kann die Einwilligung jederzeit widerrufen und die Löschung verlangen (Art. 6 Abs. 1 lit. a und b, Art. 7 DSGVO).</label>
+            <ValidationMessage For="() => Input.Consent" />
+        </div>
+        <button type="submit" class="button primary">Absenden</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public string Token { get; set; } = "";
+
+    [SupplyParameterFromForm(FormName = "selbstauskunft")]
+    private DisclosureInput Input { get; set; } = default!;
+
+    private DisclosureForm? form;
+    private IReadOnlyList<string>? errors;
+    private bool done;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        form = await Disclosures.ForFormAsync(Token);
+    }
+
+    private async Task SubmitAsync()
+    {
+        var result = await Disclosures.SubmitAsync(Token, Input);
+        if (result.Succeeded)
+        {
+            done = true;
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

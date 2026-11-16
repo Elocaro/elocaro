@@ -31,6 +31,7 @@ using Elocaro.Infrastructure.Portal;
 using Elocaro.Infrastructure.Portfolio;
 using Elocaro.Infrastructure.Privacy;
 using Elocaro.Infrastructure.Properties;
+using Elocaro.Infrastructure.Prospects;
 using Elocaro.Infrastructure.Receipts;
 using Elocaro.Infrastructure.Setup;
 using Elocaro.Infrastructure.Statements;
@@ -89,6 +90,7 @@ public static class DependencyInjection
         services.AddPropertiesModule();
         services.AddFinanceModule();
         services.AddPaymentsModule();
+        services.AddProspectsModule();
         services.AddTaxModule();
         services.AddDatevModule();
         services.AddLegalModule();

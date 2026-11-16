@@ -18,6 +18,7 @@ public partial class AccessRulesTests
         "Pages/Contractor/ContractorTicketPage.razor",
         "Pages/Error.razor",
         "Pages/NotFound.razor",
+        "Pages/SelfDisclosurePage.razor",
         "Pages/Signing.razor",
     ];
 

@@ -1,0 +1,94 @@
+@page "/verwaltung/interessenten"
+@rendermode InteractiveServer
+@using Elocaro.Application.Prospects
+@using Elocaro.Domain.Prospects
+@using MudBlazor
+@inject IProspects ProspectService
+@inject NavigationManager Navigation
+
+<InteractiveShell>
+    <PageHeader Title="Interessenten" Subtitle="Wer sich für welche Einheit interessiert und wie weit der Kontakt ist.">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/verwaltung/interessenten/neu">Interessent erfassen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <ErrorList Errors="errors" />
+
+    <details class="explain">
+        <summary>Datenschutz</summary>
+        <p class="small">
+            Interessenten sind Fremde. Erfassen Sie nur, was Sie für die Auswahl brauchen. Bei einer Absage löscht Elocaro die Angaben nach @Prospect.RetentionMonthsAfterRejection Monaten.
+            Wer als Mieter übernommen wird, steht danach als Person im Bestand.
+        </p>
+    </details>
+
+    @if (rows is { Count: 0 })
+    {
+        <EmptyState Text="Noch kein Interessent erfasst.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/verwaltung/interessenten/neu">Interessent erfassen</MudButton>
+        </EmptyState>
+    }
+    else if (rows is not null)
+    {
+        <MudTable T="ProspectRow" Items="rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Name</MudTh><MudTh>Mietobjekt</MudTh><MudTh>Status</MudTh><MudTh>Besichtigung</MudTh><MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name"><a href="/verwaltung/interessenten/@context.Id">@context.Name</a></MudTd>
+                <MudTd DataLabel="Mietobjekt">@context.RentalUnit<br /><span class="small">@context.Property</span></MudTd>
+                <MudTd DataLabel="Status">
+                    <StatusChip Level="Level(context.Status)">@Label(context.Status)</StatusChip>
+                    @if (context.DeleteOn is { } deleteOn)
+                    {
+                        <br /><span class="small">Löschung am @Format.Date(deleteOn)</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Besichtigung">@(context.ViewingOn is { } on ? Format.Date(on) : "")</MudTd>
+                <MudTd>
+                    @if (context.Status is not (ProspectStatus.Accepted or ProspectStatus.Declined))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="() => AdoptAsync(context)">Als Mieter übernehmen</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<ProspectRow>? rows;
+    private IReadOnlyList<string>? errors;
+
+    protected override async Task OnInitializedAsync() => rows = await ProspectService.ListAsync();
+
+    internal static string Label(ProspectStatus status) => status switch
+    {
+        ProspectStatus.Inquiry => "Anfrage",
+        ProspectStatus.Viewing => "Besichtigung",
+        ProspectStatus.SelfDisclosure => "Selbstauskunft",
+        ProspectStatus.Accepted => "Zusage",
+        _ => "Absage",
+    };
+
+    private static StatusLevel Level(ProspectStatus status) => status switch
+    {
+        ProspectStatus.Accepted => StatusLevel.Success,
+        ProspectStatus.Declined => StatusLevel.Warning,
+        _ => StatusLevel.Neutral,
+    };
+
+    private async Task AdoptAsync(ProspectRow row)
+    {
+        var result = await ProspectService.AdoptAsync(row.Id);
+        if (result.Succeeded && result.Id is { } person)
+        {
+            Navigation.NavigateTo($"/verwaltung/vertraege/neu?mietobjekt={row.RentalUnitId}&person={person}");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

@@ -136,6 +136,9 @@
     [SupplyParameterFromQuery(Name = "mietobjekt")]
     private Guid? RentalUnit { get; set; }
 
+    [SupplyParameterFromQuery(Name = "person")]
+    private Guid? Tenant { get; set; }
+
     [SupplyParameterFromQuery(Name = "beginn")]
     private DateOnly? Start { get; set; }
 
@@ -144,7 +147,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        form = new() { RentalUnitId = RentalUnit, Start = Start };
+        form = new() { RentalUnitId = RentalUnit, Start = Start, Tenant1 = Tenant };
         OnStepChanged(Math.Clamp((InitialStep ?? 1) - 1, 0, WizardSteps.Count - 1));
         if (BillingTypes.Count > 0 && !BillingTypes.Contains(form.BillingType))
         {

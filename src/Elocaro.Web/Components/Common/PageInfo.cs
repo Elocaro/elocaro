@@ -522,6 +522,14 @@ public static class PageInfoCatalog
                 "Widerruft der Mieter oder endet das Mietverhältnis, setzen Sie das Mandat außer Kraft.")]),
             $"{Admin}/finanzen/lastschrift-mandate", $"{Admin}/finanzen/lastschrift-mandate/neu", $"{Admin}/finanzen/lastschrift-mandate/{{id}}");
 
+        Add(new("Interessenten",
+            "Wer sich für welche Einheit interessiert und wie weit der Kontakt ist.",
+            [new("Gut zu wissen",
+                "Interessenten sind Fremde: Speichern Sie nur, was Sie für die Auswahl brauchen.",
+                "Eine Absage setzt eine Löschfrist von drei Monaten; danach werden die Angaben gelöscht.",
+                "Mit „Als Mieter übernehmen“ legt Elocaro die Person an und öffnet den Vertrags-Assistenten.")]),
+            $"{Admin}/interessenten", $"{Admin}/interessenten/neu", $"{Admin}/interessenten/{{id}}");
+
         Add(new("Offene Posten",
             "Fällige, nicht vollständig bezahlte Forderungen, nach Mietverhältnis gruppiert.",
             [new("Gut zu wissen",

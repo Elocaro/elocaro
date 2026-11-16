@@ -10,6 +10,7 @@ using Elocaro.Infrastructure.Metering;
 using Elocaro.Infrastructure.Notices;
 using Elocaro.Infrastructure.Operations;
 using Elocaro.Infrastructure.Portal;
+using Elocaro.Infrastructure.Prospects;
 using Elocaro.Infrastructure.Receipts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,7 @@ internal static class JobsRegistration
             q.ScheduleDaily<JobLogCleanupJob>(JobLogCleanupJob.Key, "Löscht alte Einträge des Job-Laufprotokolls", 3, 15);
             q.ScheduleDaily<MailRetentionJob>(MailRetentionJob.Key, "Leert geheime Mails und löscht Mails nach Ablauf der Aufbewahrungsfrist", 3, 45);
             q.ScheduleDaily<AuditCleanupJob>(AuditCleanupJob.Key, "Löscht Audit-Einträge nach Ablauf der Aufbewahrungsfrist", 3, 30);
+            q.ScheduleDaily<ProspectRetentionJob>(ProspectRetentionJob.Key, "Löscht Interessenten nach Absage oder Übernahme nach Ablauf der Löschfrist samt Änderungsprotokoll", 3, 50);
             q.ScheduleDaily<RentStepJob>(RentStepJob.Key, "Übernimmt fällige Staffeln als Kaltmiete und informiert die Admins", 0, 30);
             q.ScheduleDaily<ChargeJob>(ChargeJob.Key, "Erzeugt die Monatsmieten (Sollstellungen) und gleicht sie an Vertragsänderungen an", 0, 40);
             q.ScheduleDaily<DunningJob>(DunningJob.Key, "Erkennt Rückstände und schlägt Mahnungen vor (versendet nichts, Freigabe nötig)", 6, 15);

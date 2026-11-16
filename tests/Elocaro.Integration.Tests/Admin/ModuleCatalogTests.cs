@@ -35,6 +35,9 @@ public class ModuleCatalogTests
         Assert.Contains(AppModule.Receipts, selection);
     }
 
+    [Fact]
+    public void Prospects_are_off_by_default() => Assert.Contains(AppModule.Prospects, ModuleCatalog.DefaultOff);
+
     [Theory]
     [InlineData("/verwaltung/vpi", AppModule.RentIncreases)]
     [InlineData("/verwaltung/bank/konten/neu", AppModule.Bank)]
@@ -42,6 +45,8 @@ public class ModuleCatalogTests
     [InlineData("/portal/zaehler", AppModule.Metering)]
     [InlineData("/verwaltung/objekte/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/heizung", AppModule.OperatingCosts)]
     [InlineData("/verwaltung/vertraege/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/mieterhoehung", AppModule.RentIncreases)]
+    [InlineData("/verwaltung/interessenten", AppModule.Prospects)]
+    [InlineData("/verwaltung/interessenten/neu", AppModule.Prospects)]
     public void Pages_belong_to_their_module(string path, AppModule module) =>
         Assert.Equal(module, ModuleCatalog.OwnerOf(path)?.Module);
 

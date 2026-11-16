@@ -14,6 +14,7 @@ Arbeitsgrundlage für Betreiber von Elocaro: Wer mit Elocaro Mieterdaten verarbe
 | Belege | Rechnungen, Lieferantendaten | Lieferanten | rechtliche Pflicht | optional KI-Anbieter, wenn die Belegauslesung mit einem Cloud-Anbieter aktiv ist (nur nach ausdrücklicher Einwilligung der Betreiber, siehe `docs/betrieb.md`) | Aufbewahrungsfristen |
 | Digitale Unterschrift | Name, IP-Adresse, Zeitpunkt, Prüfsumme | Mieter | Beweissicherung, Art. 6 Abs. 1 lit. f | – | mit dem Vertrag |
 | Betrieb | Zugriffs- und Änderungsprotokoll, Logs | Benutzer | IT-Sicherheit, Art. 6 Abs. 1 lit. f | – | Protokoll nach `Audit`-Einstellung, Job-Protokoll begrenzt. Das Änderungsprotokoll zeigt vertrauliche Felder maskiert; für „Rückgängig“ liegt zusätzlich ein Vorher-Bild der geänderten Felder (auch vertrauliche, unmaskiert) in der Datenbank, wird nirgends angezeigt und folgt der Aufbewahrung des Änderungsprotokolls (ADR 0007) |
+| Neuvermietung (Modul, standardmäßig aus) | Name, E-Mail, Telefon, Notizen, Besichtigungstermin | Interessenten | vorvertragliche Maßnahmen, Art. 6 Abs. 1 lit. b | – | drei Monate nach Absage oder Übernahme als Mieter, dann physisch gelöscht samt Änderungsprotokoll (Job `prospect-retention`); wer Mieter wird, steht danach als Person im Bestand |
 
 ## Technische und organisatorische Maßnahmen
 
@@ -45,3 +46,14 @@ Arbeitsgrundlage für Betreiber von Elocaro: Wer mit Elocaro Mieterdaten verarbe
 ## Wenn Elocaro für andere betrieben wird (Hosting)
 
 Zusätzlich nötig (nicht Teil der Software): Vertrag zur Auftragsverarbeitung (Art. 28), Verzeichnis der Verarbeitungstätigkeiten als Auftragsverarbeiter, Liste der Unterauftragnehmer (Rechenzentrum, Mail-Relay, Backup-Speicher), Löschkonzept bei Vertragsende (Vollexport, siehe `docs/betrieb.md`), Datenschutzerklärung der Website. Ein Anwalt sollte die Verträge erstellen; Muster (z. B. von Branchenverbänden) können als Ausgangspunkt dienen.
+
+## Neuvermietung: Interessenten und Selbstauskunft
+
+Das Modul ist standardmäßig aus. Es verarbeitet Daten Fremder, die noch keinen Vertrag haben.
+
+- **Was wird gefragt:** Name und Kontakt (vom Vermieter erfasst), im Formular nur Zahl der Personen, Beruf, Netto-Haushaltseinkommen, Haustiere, gewünschter Einzug und eine freie Nachricht. Alles außer der Personenzahl ist freiwillig. Das Formular fragt nichts zu Herkunft, Religion, Gesundheit, Partei oder Familienplanung; der Hinweis steht im Formular. Ausweis, Schufa und Gehaltsnachweise gehören nicht hinein (erst vor Vertragsabschluss beim gewählten Bewerber).
+- **Einwilligung:** Pflichtfeld im Formular, Zeitpunkt wird gespeichert (`ConsentAt`). Ohne Haken wird nichts gespeichert.
+- **Link:** 256 Bit, nur der Hash liegt in der Datenbank, 14 Tage gültig, einmal nutzbar; ein neuer Link widerruft den offenen. Unbekannte, abgelaufene und benutzte Links sehen gleich aus.
+- **Löschkonzept:** Eine Absage setzt die Löschfrist auf drei Monate, ebenso die Übernahme als Mieter (die Daten stehen dann in der Person). Der Job `prospect-retention` (täglich) löscht Interessent und Selbstauskunft physisch, nicht nur markiert, und entfernt deren Einträge im Änderungsprotokoll. Zurück bleibt ein Eintrag „Löschfrist abgelaufen“ ohne Personendaten als Nachweis. Der Job läuft auch bei ausgeschaltetem Modul. Interessenten ohne Entscheidung haben keine Frist: Bitte entscheiden Sie oder löschen Sie sie zeitnah, wenn die Wohnung vergeben ist (alle offenen Interessenten einer Einheit mit einer Absage zu schließen, ist die übliche Pflege).
+- **Auskunft und Zugriff:** Das Ansehen einer ausgefüllten Selbstauskunft steht im Zugriffsprotokoll (Zweck „Selbstauskunft eines Interessenten angesehen“). Interessenten sind keine Personen im Bestand, solange sie nicht übernommen sind; Auskunftsersuchen (Art. 15) beantworten Sie aus der Interessentenliste.
+- **Sicherungen:** Gelöschte Daten bleiben in älteren Datensicherungen bis zu deren Aufbewahrungsende.

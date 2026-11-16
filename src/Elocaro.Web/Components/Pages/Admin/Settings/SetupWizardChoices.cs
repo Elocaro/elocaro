@@ -55,7 +55,7 @@ public static class SetupWizardChoices
     {
         ArgumentNullException.ThrowIfNull(modules);
         ArgumentNullException.ThrowIfNull(options);
-        var off = profile == SetupProfile.Many ? [] : new[] { AppModule.Tickets, AppModule.Notices };
+        AppModule[] off = profile == SetupProfile.Many ? [.. ModuleCatalog.DefaultOff] : [AppModule.Tickets, AppModule.Notices, .. ModuleCatalog.DefaultOff];
         foreach (var choice in modules)
         {
             choice.On = !off.Contains(choice.Module);

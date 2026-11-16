@@ -128,7 +128,7 @@ internal sealed class ModuleStateService(IServiceScopeFactory scopes, TimeProvid
 
     private static ModuleSelection ToSelection(ModuleSettings? stored)
     {
-        var disabled = stored?.DisabledModules ?? [];
+        var disabled = stored?.DisabledModules ?? [.. ModuleCatalog.DefaultOff.Select(m => m.ToString())];
         var disabledOptions = stored?.DisabledOptions ?? [];
         var enabled = Enum.GetValues<AppModule>().Where(m => !disabled.Contains(m.ToString())).ToHashSet();
         var options = Enum.GetValues<AppOption>().Where(o => !disabledOptions.Contains(o.ToString())).ToHashSet();

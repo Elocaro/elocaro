@@ -20,11 +20,11 @@ public class ModuleStateTests(PostgresFixture postgres) : IAsyncLifetime
     private IModuleState State => environment.Services.GetRequiredService<IModuleState>();
 
     [Fact]
-    public async Task Without_a_stored_selection_everything_is_on_and_the_wizard_is_open()
+    public async Task Without_a_stored_selection_everything_but_the_default_off_modules_is_on_and_the_wizard_is_open()
     {
         var selection = await State.GetAsync(Ct);
 
-        Assert.Equal(Enum.GetValues<AppModule>().Length, selection.Enabled.Count);
+        Assert.Equal(Enum.GetValues<AppModule>().Except(ModuleCatalog.DefaultOff).Order(), selection.Enabled.Order());
         Assert.Null(selection.SetupCompletedAt);
         Assert.True(State.IsEnabled(AppModule.Bank));
     }

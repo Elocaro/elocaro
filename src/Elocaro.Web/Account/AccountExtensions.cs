@@ -78,7 +78,8 @@ internal static class AccountExtensions
 
                 // Public links with a secret token (calendar feed, contractor files): every call reads the database
                 if (context.Request.Path.StartsWithSegments("/kalender", StringComparison.OrdinalIgnoreCase)
-                    || context.Request.Path.StartsWithSegments("/auftrag", StringComparison.OrdinalIgnoreCase))
+                    || context.Request.Path.StartsWithSegments("/auftrag", StringComparison.OrdinalIgnoreCase)
+                    || context.Request.Path.StartsWithSegments("/selbstauskunft", StringComparison.OrdinalIgnoreCase))
                 {
                     return RateLimitPartition.GetFixedWindowLimiter(
                         "link:" + address,

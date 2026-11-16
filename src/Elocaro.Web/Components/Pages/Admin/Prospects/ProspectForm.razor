@@ -1,0 +1,197 @@
+@page "/verwaltung/interessenten/neu"
+@page "/verwaltung/interessenten/{Id:guid}"
+@rendermode InteractiveServer
+@using Elocaro.Application.Leases
+@using Elocaro.Application.Prospects
+@using Elocaro.Domain.Prospects
+@using MudBlazor
+@inject IProspects ProspectService
+@inject ISelfDisclosures Disclosures
+@inject ILeaseService Leases
+@inject NavigationManager Navigation
+@inject Confirmations Confirm
+
+<InteractiveShell>
+    <PageHeader Title="@(Id is null ? "Interessent erfassen" : "Interessent bearbeiten")" Subtitle="Nur Angaben, die Sie für die Auswahl brauchen." Back="/verwaltung/interessenten" BackText="Interessenten" />
+
+    <ErrorList Errors="errors" />
+
+    @if (loaded && Id is not null && !exists)
+    {
+        <EmptyState Text="Der Interessent wurde nicht gefunden." />
+    }
+    else if (loaded)
+    {
+        <EditForm Model="data" OnValidSubmit="SaveAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppSelect T="Guid?" @bind-Value="data.RentalUnitId" Label="Mietobjekt" Required="true" Items="units.Select(u => (Guid?)u.Id).ToList()" Text="UnitText" EmptyText="– bitte wählen –" />
+                <AppTextField @bind-Value="data.Name" Label="Name" Required="true" />
+                <AppTextField @bind-Value="data.Email" Label="E-Mail" />
+                <AppTextField @bind-Value="data.Phone" Label="Telefon" />
+                <AppDateField @bind-Value="data.ViewingOn" Label="Besichtigung am" />
+                <AppTextField @bind-Value="data.Notes" Label="Notizen" Lines="3" Hint="Keine Angaben zu Herkunft, Religion, Familienplanung oder ähnlich Sensiblem." />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>
+        </EditForm>
+
+        @if (Id is { } existing)
+        {
+            <section>
+                <h2>Stand des Kontakts</h2>
+                <p>Aktuell: <strong>@Label(status)</strong>@(deleteOn is { } d ? $" – Angaben werden am {Format.Date(d)} gelöscht" : "")</p>
+                @if (personId is null)
+                {
+                    <div class="actions">
+                        @foreach (var next in Steps)
+                        {
+                            <MudButton Variant="Variant.Outlined" Disabled="@(status == next)" OnClick="() => SetStatusAsync(next)">@Label(next)</MudButton>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="small">Als Mieter übernommen: <a href="/verwaltung/personen/@personId">Person öffnen</a></p>
+                }
+            </section>
+            <section>
+                <h2>Selbstauskunft</h2>
+                @if (disclosure is { SubmittedAt: { } submitted })
+                {
+                    <p>Ausgefüllt am @Format.Date(DateOnly.FromDateTime(submitted.LocalDateTime)).</p>
+                    <dl class="details">
+                        <dt>Einziehende Personen</dt><dd>@disclosure.Persons</dd>
+                        @if (disclosure.Occupation is not null) { <dt>Beruf</dt><dd>@disclosure.Occupation</dd> }
+                        @if (disclosure.NetIncome is { } income) { <dt>Netto-Haushaltseinkommen</dt><dd>@Format.Money(income)</dd> }
+                        @if (disclosure.Pets is not null) { <dt>Haustiere</dt><dd>@disclosure.Pets</dd> }
+                        @if (disclosure.MoveInOn is { } moveIn) { <dt>Gewünschter Einzug</dt><dd>@Format.Date(moveIn)</dd> }
+                        @if (disclosure.Message is not null) { <dt>Nachricht</dt><dd>@disclosure.Message</dd> }
+                    </dl>
+                }
+                else if (disclosure is { Open: true })
+                {
+                    <p class="small">Der Link ist offen bis @Format.Date(DateOnly.FromDateTime(disclosure.ExpiresAt.LocalDateTime)). Er kann einmal ausgefüllt werden.</p>
+                }
+                else
+                {
+                    <p class="small">Mit dem Link füllt der Interessent die Selbstauskunft ohne Konto aus (Einwilligung inklusive). Schicken Sie ihn selbst, z. B. per E-Mail.</p>
+                }
+
+                @if (personId is null && status is not ProspectStatus.Declined && disclosure?.SubmittedAt is null)
+                {
+                    <MudButton Variant="Variant.Outlined" OnClick="CreateLinkAsync">@(disclosure is { Open: true } ? "Neuen Link erzeugen" : "Link erzeugen")</MudButton>
+                }
+
+                @if (newLink is not null)
+                {
+                    <p class="small">Dieser Link wird nur jetzt angezeigt (14 Tage gültig):</p>
+                    <input type="text" readonly value="@newLink" style="width:100%" aria-label="Link zur Selbstauskunft" onfocus="this.select()" />
+                }
+            </section>
+            <ChangeHistory EntityType="Prospect" EntityId="existing" />
+        }
+    }
+</InteractiveShell>
+
+@code {
+    private static readonly ProspectStatus[] Steps = Enum.GetValues<ProspectStatus>().Where(s => s != ProspectStatus.Accepted).ToArray();
+
+    private IReadOnlyList<RentalUnitOption> units = [];
+    private ProspectInput data = new();
+    private IReadOnlyList<string>? errors;
+    private DisclosureView? disclosure;
+    private string? newLink;
+    private ProspectStatus status;
+    private DateOnly? deleteOn;
+    private Guid? personId;
+    private bool exists = true;
+    private bool loaded;
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "mietobjekt")]
+    private Guid? RentalUnit { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        units = await Leases.RentalUnitsAsync();
+        if (Id is { } id)
+        {
+            var existing = await ProspectService.GetAsync(id);
+            exists = existing is not null;
+            if (existing is not null)
+            {
+                data = existing;
+                await ReloadStateAsync(id);
+            }
+        }
+        else
+        {
+            data.RentalUnitId = RentalUnit;
+        }
+
+        loaded = true;
+    }
+
+    private async Task CreateLinkAsync()
+    {
+        var link = await Disclosures.CreateLinkAsync(Id!.Value, SelfDisclosure.DefaultDays);
+        if (link.Result.Succeeded)
+        {
+            errors = null;
+            newLink = link.Url;
+            await ReloadStateAsync(Id.Value);
+        }
+        else
+        {
+            errors = link.Result.Errors;
+        }
+    }
+
+    private async Task ReloadStateAsync(Guid id)
+    {
+        disclosure = await Disclosures.GetAsync(id);
+        var row = (await ProspectService.ListAsync()).FirstOrDefault(r => r.Id == id);
+        status = row?.Status ?? ProspectStatus.Inquiry;
+        deleteOn = row?.DeleteOn;
+        personId = row?.PersonId;
+    }
+
+    private static string Label(ProspectStatus value) => ProspectList.Label(value);
+
+    private string UnitText(Guid? id) => units.FirstOrDefault(u => u.Id == id) is { } u ? $"{u.Property} – {u.Name}" : "";
+
+    private async Task SaveAsync()
+    {
+        var result = Id is { } id ? await ProspectService.UpdateAsync(id, data) : await ProspectService.CreateAsync(data);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("/verwaltung/interessenten?meldung=gespeichert");
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+
+    private async Task SetStatusAsync(ProspectStatus next)
+    {
+        if (next == ProspectStatus.Declined
+            && !await Confirm.AskAsync("Absage erfassen", $"Die Angaben des Interessenten werden in {Prospect.RetentionMonthsAfterRejection} Monaten gelöscht.", "Ja, Absage"))
+        {
+            return;
+        }
+
+        var result = await ProspectService.SetStatusAsync(Id!.Value, next);
+        if (result.Succeeded)
+        {
+            errors = null;
+            await ReloadStateAsync(Id.Value);
+        }
+        else
+        {
+            errors = result.Errors;
+        }
+    }
+}

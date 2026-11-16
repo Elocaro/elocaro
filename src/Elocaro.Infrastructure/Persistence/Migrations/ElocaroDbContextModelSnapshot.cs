@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261115201718_DirectDebitMandates";
+    public override string LastMigrationId => "20261116083839_SelfDisclosures";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -6610,6 +6610,200 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.ToTable("unit_areas");
             });
 
+        modelBuilder.Entity("Elocaro.Domain.Prospects.Prospect", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<DateOnly?>("DecidedOn")
+                    .HasColumnType("date")
+                    .HasColumnName("decided_on");
+
+                b.Property<DateOnly?>("DeleteOn")
+                    .HasColumnType("date")
+                    .HasColumnName("delete_on");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<string>("Email")
+                    .HasMaxLength(254)
+                    .HasColumnType("character varying(254)")
+                    .HasColumnName("email");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)")
+                    .HasColumnName("name");
+
+                b.Property<string>("Notes")
+                    .HasMaxLength(4000)
+                    .HasColumnType("character varying(4000)")
+                    .HasColumnName("notes");
+
+                b.Property<Guid?>("PersonId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("person_id");
+
+                b.Property<string>("Phone")
+                    .HasMaxLength(50)
+                    .HasColumnType("character varying(50)")
+                    .HasColumnName("phone");
+
+                b.Property<Guid>("RentalUnitId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("rental_unit_id");
+
+                b.Property<string>("Status")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("character varying(20)")
+                    .HasColumnName("status");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.Property<DateOnly?>("ViewingOn")
+                    .HasColumnType("date")
+                    .HasColumnName("viewing_on");
+
+                b.HasKey("Id")
+                    .HasName("pk_prospects");
+
+                b.HasIndex("DeleteOn")
+                    .HasDatabaseName("ix_prospects_delete_on");
+
+                b.HasIndex("RentalUnitId")
+                    .HasDatabaseName("ix_prospects_rental_unit_id");
+
+                b.ToTable("prospects");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Prospects.SelfDisclosure", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTimeOffset?>("ConsentAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("consent_at");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<DateTimeOffset>("ExpiresAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("expires_at");
+
+                b.Property<string>("Message")
+                    .HasMaxLength(1000)
+                    .HasColumnType("character varying(1000)")
+                    .HasColumnName("message");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<DateOnly?>("MoveInOn")
+                    .HasColumnType("date")
+                    .HasColumnName("move_in_on");
+
+                b.Property<decimal?>("NetIncome")
+                    .HasPrecision(12, 2)
+                    .HasColumnType("numeric(12,2)")
+                    .HasColumnName("net_income");
+
+                b.Property<string>("Occupation")
+                    .HasMaxLength(100)
+                    .HasColumnType("character varying(100)")
+                    .HasColumnName("occupation");
+
+                b.Property<int?>("Persons")
+                    .HasColumnType("integer")
+                    .HasColumnName("persons");
+
+                b.Property<string>("Pets")
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)")
+                    .HasColumnName("pets");
+
+                b.Property<Guid>("ProspectId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("prospect_id");
+
+                b.Property<DateTimeOffset?>("RevokedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("revoked_at");
+
+                b.Property<DateTimeOffset?>("SubmittedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("submitted_at");
+
+                b.Property<string>("TokenHash")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
+                    .HasColumnName("token_hash");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.HasKey("Id")
+                    .HasName("pk_self_disclosures");
+
+                b.HasIndex("ProspectId")
+                    .HasDatabaseName("ix_self_disclosures_prospect_id");
+
+                b.HasIndex("TokenHash")
+                    .IsUnique()
+                    .HasDatabaseName("ix_self_disclosures_token_hash");
+
+                b.ToTable("self_disclosures");
+            });
+
         modelBuilder.Entity("Elocaro.Domain.Receipts.CostItem", b =>
             {
                 b.Property<Guid>("Id")
@@ -10233,6 +10427,16 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired()
                     .HasConstraintName("fk_unit_areas_unit_unit_id");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Prospects.SelfDisclosure", b =>
+            {
+                b.HasOne("Elocaro.Domain.Prospects.Prospect", null)
+                    .WithMany()
+                    .HasForeignKey("ProspectId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired()
+                    .HasConstraintName("fk_self_disclosures_prospects_prospect_id");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Receipts.CostItem", b =>
