@@ -5,7 +5,7 @@ namespace Elocaro.Application.Prospects;
 
 /// <summary>
 /// The self-disclosure of a prospect: the landlord creates a link, the prospect fills in the form without an account.
-/// The answers belong to the prospect and are deleted with it.
+/// The answers belong to the prospect and are deleted with it. The form informs under Art. 13 GDPR; it asks no consent (Art. 6 (1) b).
 /// </summary>
 public interface ISelfDisclosures
 {
@@ -40,7 +40,9 @@ public sealed record DisclosureView(
     string? Message);
 
 /// <param name="Unit">Unit and property the prospect applies for.</param>
-public sealed record DisclosureForm(string Unit, DateTimeOffset ExpiresAt);
+/// <param name="Controller">Landlord (name, address, contact) as controller under data protection law; empty if no profile exists yet.</param>
+/// <param name="RetentionMonths">Months the data is kept after a rejection.</param>
+public sealed record DisclosureForm(string Unit, DateTimeOffset ExpiresAt, string Controller, int RetentionMonths);
 
 public sealed class DisclosureInput
 {
@@ -61,7 +63,4 @@ public sealed class DisclosureInput
 
     [StringLength(1000, ErrorMessage = "Höchstens 1000 Zeichen.")]
     public string? Message { get; set; }
-
-    [Range(typeof(bool), "true", "true", ErrorMessage = "Ohne Ihre Einwilligung können wir die Angaben nicht speichern.")]
-    public bool Consent { get; set; }
 }

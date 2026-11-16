@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261116091541_UnitPhotos";
+    public override string LastMigrationId => "20261116111412_SelfDisclosureInformedInsteadOfConsent";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -6772,10 +6772,6 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
-                b.Property<DateTimeOffset?>("ConsentAt")
-                    .HasColumnType("timestamp with time zone")
-                    .HasColumnName("consent_at");
-
                 b.Property<DateTimeOffset>("CreatedAt")
                     .HasColumnType("timestamp with time zone")
                     .HasColumnName("created_at");
@@ -6792,6 +6788,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.Property<DateTimeOffset>("ExpiresAt")
                     .HasColumnType("timestamp with time zone")
                     .HasColumnName("expires_at");
+
+                b.Property<DateTimeOffset?>("InformedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("informed_at");
 
                 b.Property<string>("Message")
                     .HasMaxLength(1000)

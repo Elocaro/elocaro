@@ -26,7 +26,7 @@ internal sealed class ProspectService(ElocaroDbContext db, ILeaseService leases,
             .Select(p =>
             {
                 units.TryGetValue(p.RentalUnitId, out var unit);
-                return new ProspectRow(p.Id, p.RentalUnitId, unit?.Name ?? "", unit?.Property ?? "", p.Name, p.Email, p.Phone, p.Status, p.ViewingOn, p.DeleteOn, p.PersonId);
+                return new ProspectRow(p.Id, p.RentalUnitId, unit?.Name ?? "", unit?.Property ?? "", p.Name, p.Email, p.Phone, p.Status, p.ViewingOn, p.DeletionDay, p.PersonId);
             })
             .OrderBy(r => r.Status is ProspectStatus.Accepted or ProspectStatus.Declined)
             .ThenBy(r => r.Property, StringComparer.CurrentCultureIgnoreCase).ThenBy(r => r.RentalUnit, StringComparer.CurrentCultureIgnoreCase)
@@ -95,7 +95,15 @@ internal sealed class ProspectService(ElocaroDbContext db, ILeaseService leases,
 
         return await Command.ExecuteAsync(async () =>
         {
-            prospect.AdoptAs(personId, GermanTime.Today(clock.GetUtcNow()));
+            var today = GermanTime.Today(clock.GetUtcNow());
+            prospect.AdoptAs(personId, today);
+
+            // The unit goes to this one: the data of the other open prospects is no longer needed (DSK guidance 2.0, section D).
+            foreach (var other in await db.Set<Prospect>().Where(o => o.RentalUnitId == prospect.RentalUnitId && o.Id != prospect.Id && o.Status != ProspectStatus.Accepted && o.Status != ProspectStatus.Declined).ToListAsync(cancellationToken))
+            {
+                other.ScheduleDeletion(today);
+            }
+
             await db.SaveChangesAsync(cancellationToken);
             return personId;
         });

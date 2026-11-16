@@ -39,7 +39,7 @@
         {
             <section>
                 <h2>Stand des Kontakts</h2>
-                <p>Aktuell: <strong>@Label(status)</strong>@(deleteOn is { } d ? $" – Angaben werden am {Format.Date(d)} gelöscht" : "")</p>
+                <p>Aktuell: <strong>@Label(status)</strong>@($" – Angaben werden am {Format.Date(deleteOn)} gelöscht")</p>
                 @if (personId is null)
                 {
                     <div class="actions">
@@ -74,7 +74,7 @@
                 }
                 else
                 {
-                    <p class="small">Mit dem Link füllt der Interessent die Selbstauskunft ohne Konto aus (Einwilligung inklusive). Schicken Sie ihn selbst, z. B. per E-Mail.</p>
+                    <p class="small">Mit dem Link füllt der Interessent die Selbstauskunft ohne Konto aus; die Datenschutzhinweise stehen im Formular. Schicken Sie den Link nur, wenn der Interessent die Wohnung mieten möchte (nicht schon zur Besichtigung), selbst, z. B. per E-Mail.</p>
                 }
 
                 @if (personId is null && status is not ProspectStatus.Declined && disclosure?.SubmittedAt is null)
@@ -102,7 +102,7 @@
     private DisclosureView? disclosure;
     private string? newLink;
     private ProspectStatus status;
-    private DateOnly? deleteOn;
+    private DateOnly deleteOn;
     private Guid? personId;
     private bool exists = true;
     private bool loaded;
@@ -154,7 +154,7 @@
         disclosure = await Disclosures.GetAsync(id);
         var row = (await ProspectService.ListAsync()).FirstOrDefault(r => r.Id == id);
         status = row?.Status ?? ProspectStatus.Inquiry;
-        deleteOn = row?.DeleteOn;
+        deleteOn = row?.DeleteOn ?? default;
         personId = row?.PersonId;
     }
 

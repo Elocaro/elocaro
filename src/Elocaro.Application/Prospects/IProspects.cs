@@ -48,7 +48,7 @@ public sealed class ProspectInput
     public string? Notes { get; set; }
 }
 
-/// <param name="DeleteOn">Day the personal data is deleted (rejected prospects), otherwise <c>null</c>.</param>
+/// <param name="DeleteOn">Day the personal data is deleted: set by a rejection or a takeover, otherwise six months after the last change.</param>
 public sealed record ProspectRow(
     Guid Id,
     Guid RentalUnitId,
@@ -59,5 +59,5 @@ public sealed record ProspectRow(
     string? Phone,
     ProspectStatus Status,
     DateOnly? ViewingOn,
-    DateOnly? DeleteOn,
+    DateOnly DeleteOn,
     Guid? PersonId);

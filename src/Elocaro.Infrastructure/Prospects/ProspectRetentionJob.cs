@@ -10,7 +10,7 @@ using Quartz;
 namespace Elocaro.Infrastructure.Prospects;
 
 /// <summary>
-/// Daily: deletes prospects whose deletion day has come (rejected, or taken over as tenant) for good, not only marked as deleted. The change log
+/// Daily: deletes prospects whose deletion day has come (rejected, taken over as tenant, or six months without a change) for good, not only marked as deleted. The change log
 /// of such a prospect holds names and contact data too, so it goes with it; what stays is one entry per prospect that says it was deleted, without personal data.
 /// The job is not tied to the module: switching the module off must not keep the data of strangers.
 /// </summary>
@@ -24,7 +24,10 @@ internal sealed class ProspectRetention(ElocaroDbContext db, TimeProvider clock)
     {
         var now = clock.GetUtcNow();
         var today = GermanTime.Today(now);
-        var ids = await db.Set<Prospect>().IgnoreQueryFilters().Where(p => p.DeleteOn != null && p.DeleteOn <= today).Select(p => p.Id).ToListAsync(cancellationToken);
+        var undecidedSince = now.AddMonths(-Prospect.RetentionMonthsWithoutDecision);
+        var ids = await db.Set<Prospect>().IgnoreQueryFilters()
+            .Where(p => p.DeleteOn != null ? p.DeleteOn <= today : (p.ModifiedAt ?? p.CreatedAt) <= undecidedSince)
+            .Select(p => p.Id).ToListAsync(cancellationToken);
         if (ids.Count == 0)
         {
             return 0;

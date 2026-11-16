@@ -21,8 +21,10 @@ else
     <h1>Selbstauskunft</h1>
     <p>Für: @form!.Unit</p>
     <p class="small">
-        Wir fragen nur, was der Vermieter für die Auswahl braucht. Alle Felder außer der Zahl der Personen sind freiwillig.
-        Bitte machen Sie keine Angaben zu Herkunft, Religion, Gesundheit, Partei oder Familienplanung.
+        Wir fragen nur, was der Vermieter für die Auswahl braucht. Alle Felder außer der Zahl der Personen sind freiwillig;
+        Fragen, die Sie nicht beantworten möchten, lassen Sie einfach leer.
+        Bitte machen Sie keine Angaben zu Herkunft, Religion, Gesundheit, Partei oder Familienplanung
+        und senden Sie keine Unterlagen, die nicht verlangt wurden.
     </p>
 
     @if (errors is not null)
@@ -43,12 +45,12 @@ else
             <ValidationMessage For="() => Input.Occupation" />
         </div>
         <div class="field">
-            <label for="income">Monatliches Netto-Haushaltseinkommen (€)</label>
+            <label for="income">Ihr monatliches Nettoeinkommen (€), nur ohne Mietübernahme durch eine öffentliche Stelle</label>
             <InputNumber id="income" @bind-Value="Input.NetIncome" />
             <ValidationMessage For="() => Input.NetIncome" />
         </div>
         <div class="field">
-            <label for="pets">Haustiere</label>
+            <label for="pets">Haustiere (Kleintiere in Käfig oder Aquarium wie Hamster, Wellensittich oder Zierfische nicht angeben)</label>
             <InputText id="pets" @bind-Value="Input.Pets" />
             <ValidationMessage For="() => Input.Pets" />
         </div>
@@ -61,10 +63,20 @@ else
             <InputTextArea id="message" @bind-Value="Input.Message" rows="3" />
             <ValidationMessage For="() => Input.Message" />
         </div>
-        <div class="field">
-            <label><InputCheckbox @bind-Value="Input.Consent" /> Ich willige ein, dass der Vermieter diese Angaben und meinen Namen und Kontaktdaten zur Auswahl des Mieters für diese Wohnung speichert. Bei einer Absage werden die Daten nach drei Monaten gelöscht. Ich kann die Einwilligung jederzeit widerrufen und die Löschung verlangen (Art. 6 Abs. 1 lit. a und b, Art. 7 DSGVO).</label>
-            <ValidationMessage For="() => Input.Consent" />
-        </div>
+        <section class="small" aria-labelledby="privacy-title">
+            <h2 id="privacy-title">Datenschutz</h2>
+            <p>
+                Verantwortlich: @(string.IsNullOrEmpty(form!.Controller) ? "der Vermieter (Kontakt über die Person, die Ihnen diesen Link gegeben hat)" : form.Controller).
+            </p>
+            <p>
+                Der Vermieter verarbeitet Ihre Angaben, Ihren Namen und Ihre Kontaktdaten, um auf Ihre Anfrage zu entscheiden, ob er mit Ihnen einen Mietvertrag
+                für diese Wohnung schließt (Art. 6 Abs. 1 lit. b DSGVO). Eine Einwilligung ist dafür nicht nötig.
+                Die Angaben sehen nur der Vermieter und von ihm Beauftragte. Bei einer Absage oder wenn die Wohnung an eine andere Person geht,
+                werden sie spätestens nach @form.RetentionMonths Monaten gelöscht, ohne Entscheidung @form.RetentionMonths Monate nach der letzten Änderung.
+                Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerspruch
+                sowie das Recht, sich bei einer Datenschutzaufsichtsbehörde zu beschweren.
+            </p>
+        </section>
         <button type="submit" class="button primary">Absenden</button>
     </EditForm>
 }

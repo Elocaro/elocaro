@@ -19,7 +19,7 @@
     <details class="explain">
         <summary>Datenschutz</summary>
         <p class="small">
-            Interessenten sind Fremde. Erfassen Sie nur, was Sie für die Auswahl brauchen. Bei einer Absage löscht Elocaro die Angaben nach @Prospect.RetentionMonthsAfterRejection Monaten.
+            Interessenten sind Fremde. Erfassen Sie nur, was Sie für die Auswahl brauchen. Bei einer Absage löscht Elocaro die Angaben nach @Prospect.RetentionMonthsAfterRejection Monaten, ohne Entscheidung @Prospect.RetentionMonthsWithoutDecision Monate nach der letzten Änderung. Wird die Wohnung an einen Interessenten vergeben, gilt für die übrigen dieselbe Frist wie bei einer Absage.
             Wer als Mieter übernommen wird, steht danach als Person im Bestand.
         </p>
     </details>
@@ -41,10 +41,7 @@
                 <MudTd DataLabel="Mietobjekt">@context.RentalUnit<br /><span class="small">@context.Property</span></MudTd>
                 <MudTd DataLabel="Status">
                     <StatusChip Level="Level(context.Status)">@Label(context.Status)</StatusChip>
-                    @if (context.DeleteOn is { } deleteOn)
-                    {
-                        <br /><span class="small">Löschung am @Format.Date(deleteOn)</span>
-                    }
+                    <br /><span class="small">Löschung am @Format.Date(context.DeleteOn)</span>
                 </MudTd>
                 <MudTd DataLabel="Besichtigung">@(context.ViewingOn is { } on ? Format.Date(on) : "")</MudTd>
                 <MudTd>

@@ -1,3 +1,4 @@
+using Elocaro.Application.Admin;
 using Elocaro.Application.Audit;
 using Elocaro.Application.Common;
 using Elocaro.Application.Leases;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Options;
 
 namespace Elocaro.Infrastructure.Prospects;
 
-internal sealed class SelfDisclosureService(ElocaroDbContext db, ILeaseService leases, IAccessLog accessLog, IOptions<ApplicationOptions> app, TimeProvider clock) : ISelfDisclosures
+internal sealed class SelfDisclosureService(ElocaroDbContext db, ILeaseService leases, ILandlordProfileService landlord, IAccessLog accessLog, IOptions<ApplicationOptions> app, TimeProvider clock) : ISelfDisclosures
 {
     public async Task<DisclosureLink> CreateLinkAsync(Guid prospectId, int days, CancellationToken cancellationToken = default)
     {
@@ -58,7 +59,11 @@ internal sealed class SelfDisclosureService(ElocaroDbContext db, ILeaseService l
         }
 
         var unit = (await leases.RentalUnitsAsync(cancellationToken)).FirstOrDefault(u => u.Id == found.Prospect.RentalUnitId);
-        return new DisclosureForm(unit is null ? "" : $"{unit.Name}, {unit.Property}", found.Disclosure.ExpiresAt);
+        var profile = await landlord.GetAsync(cancellationToken);
+        var controller = profile is null
+            ? ""
+            : string.Join(", ", new[] { profile.Name, profile.Street, $"{profile.PostalCode} {profile.City}", profile.Email, profile.Phone }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        return new DisclosureForm(unit is null ? "" : $"{unit.Name}, {unit.Property}", found.Disclosure.ExpiresAt, controller, Prospect.RetentionMonthsAfterRejection);
     }
 
     public Task<Result> SubmitAsync(string token, DisclosureInput input, CancellationToken cancellationToken = default) =>
@@ -67,7 +72,7 @@ internal sealed class SelfDisclosureService(ElocaroDbContext db, ILeaseService l
             ArgumentNullException.ThrowIfNull(input);
             var (disclosure, prospect) = await FindOpenAsync(token, true, cancellationToken) ?? throw new RuleViolationException("Dieser Link ist abgelaufen oder wurde schon benutzt.");
             var now = clock.GetUtcNow();
-            disclosure.Submit(now, input.Consent, input.Persons ?? 0, TrimToNull(input.Occupation), input.NetIncome, TrimToNull(input.Pets), input.MoveInOn, TrimToNull(input.Message));
+            disclosure.Submit(now, input.Persons ?? 0, TrimToNull(input.Occupation), input.NetIncome, TrimToNull(input.Pets), input.MoveInOn, TrimToNull(input.Message));
             if (prospect.Status is ProspectStatus.Inquiry or ProspectStatus.Viewing)
             {
                 prospect.SetStatus(ProspectStatus.SelfDisclosure, GermanTime.Today(now), Prospect.RetentionMonthsAfterRejection);

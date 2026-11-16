@@ -19,8 +19,14 @@ public sealed class Prospect : Entity
 {
     public const int MaxName = 200;
 
-    /// <summary>Months after a rejection until the personal data is deleted (the landlord may need it for a short time against claims under the AGG).</summary>
-    public const int RetentionMonthsAfterRejection = 3;
+    /// <summary>
+    /// Months after a rejection until the personal data is deleted. The AGG gives rejected applicants two months to claim and three more to sue;
+    /// the data protection authorities accept six months at most (DSK guidance 2.0, section D).
+    /// </summary>
+    public const int RetentionMonthsAfterRejection = 6;
+
+    /// <summary>Months without any change until the data of a prospect without a decision is deleted (storage limitation, Art. 5 (1) e GDPR).</summary>
+    public const int RetentionMonthsWithoutDecision = 6;
 
     private Prospect()
     {
@@ -55,6 +61,9 @@ public sealed class Prospect : Entity
     /// <summary>From this day the personal data is no longer kept (set with a rejection).</summary>
     public DateOnly? DeleteOn { get; private set; }
 
+    /// <summary>The day the personal data is deleted: the set day, or six months after the last change if the prospect was never decided.</summary>
+    public DateOnly DeletionDay => DeleteOn ?? GermanTime.Today(ModifiedAt ?? CreatedAt).AddMonths(RetentionMonthsWithoutDecision);
+
     /// <summary>The person created from the prospect when the prospect became a tenant.</summary>
     public Guid? PersonId { get; private set; }
 
@@ -75,6 +84,9 @@ public sealed class Prospect : Entity
         DecidedOn = status is ProspectStatus.Accepted or ProspectStatus.Declined ? today : null;
         DeleteOn = status == ProspectStatus.Declined ? today.AddMonths(retentionMonths) : null;
     }
+
+    /// <summary>Another prospect got the unit: the data is no longer needed and goes after the same period as a rejected one.</summary>
+    public void ScheduleDeletion(DateOnly today) => DeleteOn ??= today.AddMonths(RetentionMonthsAfterRejection);
 
     /// <summary>The prospect became a tenant: the data now lives in the person record.</summary>
     public void AdoptAs(Guid personId, DateOnly today)
