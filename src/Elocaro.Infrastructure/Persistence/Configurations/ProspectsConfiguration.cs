@@ -35,3 +35,26 @@ internal sealed class SelfDisclosureConfiguration : IEntityTypeConfiguration<Sel
         builder.HasIndex(s => s.TokenHash).IsUnique();
     }
 }
+
+internal sealed class ViewingSlotConfiguration : IEntityTypeConfiguration<ViewingSlot>
+{
+    public void Configure(EntityTypeBuilder<ViewingSlot> builder)
+    {
+        builder.ToTable("viewing_slots");
+        // If the prospect (and so the personal data) is deleted, the date stays and becomes free.
+        builder.HasOne<Prospect>().WithMany().HasForeignKey(s => s.ProspectId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(s => new { s.RentalUnitId, s.StartsAt });
+        builder.HasIndex(s => s.ProspectId);
+    }
+}
+
+internal sealed class ViewingLinkConfiguration : IEntityTypeConfiguration<ViewingLink>
+{
+    public void Configure(EntityTypeBuilder<ViewingLink> builder)
+    {
+        builder.ToTable("viewing_links");
+        builder.Property(l => l.TokenHash).HasMaxLength(64);
+        builder.HasIndex(l => l.RentalUnitId);
+        builder.HasIndex(l => l.TokenHash).IsUnique();
+    }
+}

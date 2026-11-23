@@ -226,6 +226,35 @@ public static class ICalendarWriter
         return string.Concat(lines.SelectMany(Fold).Select(l => l + "\r\n"));
     }
 
+    /// <summary>One timed event (UTC) as a standalone calendar file, e.g. a viewing the prospect saves in his calendar.</summary>
+    public static string WriteEvent(string uid, DateTimeOffset start, DateTimeOffset end, string summary, string? description, DateTimeOffset generatedAt)
+    {
+        const string Format = "yyyyMMdd'T'HHmmss'Z'";
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        var lines = new List<string>
+        {
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Elocaro//Besichtigung//DE",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+            "BEGIN:VEVENT",
+            "UID:" + Escape(uid) + "@elocaro",
+            "DTSTAMP:" + generatedAt.UtcDateTime.ToString(Format, culture),
+            "DTSTART:" + start.UtcDateTime.ToString(Format, culture),
+            "DTEND:" + end.UtcDateTime.ToString(Format, culture),
+            "SUMMARY:" + Escape(summary),
+        };
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            lines.Add("DESCRIPTION:" + Escape(description));
+        }
+
+        lines.Add("END:VEVENT");
+        lines.Add("END:VCALENDAR");
+        return string.Concat(lines.SelectMany(Fold).Select(l => l + "\r\n"));
+    }
+
     private static string Escape(string text) =>
         text.Replace("\\", "\\\\", StringComparison.Ordinal).Replace(";", "\\;", StringComparison.Ordinal).Replace(",", "\\,", StringComparison.Ordinal)
             .Replace("\r\n", "\\n", StringComparison.Ordinal).Replace("\n", "\\n", StringComparison.Ordinal).Replace("\r", "\\n", StringComparison.Ordinal);

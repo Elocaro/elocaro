@@ -1,0 +1,119 @@
+@page "/besichtigung/{Token}"
+@attribute [AllowAnonymous]
+@layout Elocaro.Web.Components.Layout.AccountLayout
+@using Elocaro.Application.Prospects
+@using Elocaro.Domain.Common
+@inject IViewings Viewings
+
+<PageTitle>Besichtigung – Elocaro</PageTitle>
+
+@if (offer is null)
+{
+    <h1>Link ungültig</h1>
+    <p>Dieser Link ist nicht (mehr) gültig oder abgelaufen. Bitte wenden Sie sich an den Vermieter.</p>
+}
+else if (bookedSlot is { } booked)
+{
+    <h1>Ihr Termin ist gebucht</h1>
+    <Notice Level="NoticeLevel.Success">@offer.Unit: @Describe(booked). Der Vermieter erwartet Sie.</Notice>
+    @if (calendarFile is not null)
+    {
+        <p><a class="button" href="data:text/calendar;charset=utf-8,@Uri.EscapeDataString(calendarFile)" download="besichtigung.ics">Termin in den Kalender übernehmen</a></p>
+    }
+}
+else
+{
+    <h1>Besichtigung buchen</h1>
+    <p>Für: @offer.Unit</p>
+
+    @if (offer.Slots.Count == 0)
+    {
+        <p>Zurzeit sind keine Termine frei. Bitte wenden Sie sich an den Vermieter.</p>
+    }
+    else
+    {
+        @if (errors is not null)
+        {
+            <ErrorList Errors="errors" />
+        }
+
+        <EditForm Model="Input" FormName="besichtigung" OnValidSubmit="BookAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="field">
+                <label for="slot">Termin</label>
+                <InputSelect id="slot" @bind-Value="Input.SlotId">
+                    <option value="">Bitte wählen</option>
+                    @foreach (var slot in offer.Slots)
+                    {
+                        <option value="@slot.Id">@Describe(slot)</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => Input.SlotId" />
+            </div>
+            <div class="field">
+                <label for="name">Ihr Name</label>
+                <InputText id="name" @bind-Value="Input.Name" autocomplete="name" />
+                <ValidationMessage For="() => Input.Name" />
+            </div>
+            <div class="field">
+                <label for="contact">E-Mail-Adresse oder Telefonnummer, unter der der Vermieter Sie erreicht</label>
+                <InputText id="contact" @bind-Value="Input.Contact" autocomplete="email" />
+                <ValidationMessage For="() => Input.Contact" />
+            </div>
+            <section class="small" aria-labelledby="privacy-title">
+                <h2 id="privacy-title">Datenschutz</h2>
+                <p>
+                    Verantwortlich: @(string.IsNullOrEmpty(offer.Controller) ? "der Vermieter (Kontakt über die Person, die Ihnen diesen Link gegeben hat)" : offer.Controller).
+                </p>
+                <p>
+                    Der Vermieter verarbeitet Ihren Namen und Ihre Kontaktangabe, um den Besichtigungstermin mit Ihnen abzustimmen (Art. 6 Abs. 1 lit. b DSGVO).
+                    Eine Einwilligung ist dafür nicht nötig. Die Angaben sehen nur der Vermieter und von ihm Beauftragte. Ohne weiteren Kontakt werden sie
+                    @offer.RetentionMonths Monate nach der letzten Änderung gelöscht, bei einer Absage nach spätestens ebenso langer Frist.
+                    Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerspruch
+                    sowie das Recht, sich bei einer Datenschutzaufsichtsbehörde zu beschweren.
+                </p>
+            </section>
+            <button type="submit" class="button primary">Termin buchen</button>
+        </EditForm>
+    }
+}
+
+@code {
+    [Parameter]
+    public string Token { get; set; } = "";
+
+    [SupplyParameterFromForm(FormName = "besichtigung")]
+    private BookingInput Input { get; set; } = default!;
+
+    private ViewingOffer? offer;
+    private OfferedSlot? bookedSlot;
+    private string? calendarFile;
+    private IReadOnlyList<string>? errors;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        offer = await Viewings.OfferAsync(Token);
+    }
+
+    private async Task BookAsync()
+    {
+        var result = await Viewings.BookAsync(Token, Input);
+        if (result.Succeeded)
+        {
+            bookedSlot = offer!.Slots.First(s => s.Id == Input.SlotId);
+            calendarFile = await Viewings.CalendarFileAsync(Token, bookedSlot.Id);
+        }
+        else
+        {
+            errors = result.Errors;
+            offer = await Viewings.OfferAsync(Token); // another date may have been taken meanwhile
+        }
+    }
+
+    private static string Describe(OfferedSlot slot)
+    {
+        var start = TimeZoneInfo.ConvertTime(slot.StartsAt, GermanTime.Germany);
+        return $"{start:dd.MM.yyyy} um {start:HH:mm} Uhr ({slot.Minutes} Minuten)";
+    }
+}

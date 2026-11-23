@@ -538,6 +538,14 @@ public static class PageInfoCatalog
                 "Steht eine Einheit einen Monat leer, ohne dass ein Interessent erfasst ist, erscheint eine Erinnerung im Fristenkalender.")]),
             $"{Admin}/leerstand");
 
+        Add(new("Besichtigungstermine",
+            "Termine anbieten und per Link buchen lassen.",
+            [new("Gut zu wissen",
+                "Legen Sie freie Termine für eine Einheit an und erzeugen Sie den Link. Wer ihn kennt, sieht die freien Termine und bucht einen, ohne Konto.",
+                "Die Buchung legt einen Interessenten mit dem Status Besichtigung an und gibt dem Interessenten eine Kalenderdatei.",
+                "Der Link wird nur einmal angezeigt; ein neuer Link macht den alten ungültig.")]),
+            $"{Admin}/besichtigungen");
+
         Add(new("Exposé",
             "Eine Wohnung für Interessenten als PDF.",
             [new("Gut zu wissen",

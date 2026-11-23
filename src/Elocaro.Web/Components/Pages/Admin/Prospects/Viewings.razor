@@ -1,0 +1,126 @@
+@page "/verwaltung/besichtigungen"
+@rendermode InteractiveServer
+@using Elocaro.Application.Leases
+@using Elocaro.Application.Prospects
+@using Elocaro.Domain.Common
+@using Elocaro.Domain.Prospects
+@using MudBlazor
+@inject IViewings ViewingService
+@inject ILeaseService Leases
+
+<InteractiveShell>
+    <PageHeader Title="Besichtigungstermine" Subtitle="Termine anbieten und per Link buchen lassen. Wer bucht, steht danach bei den Interessenten." Back="/verwaltung/interessenten" BackText="Interessenten" />
+
+    <ErrorList Errors="errors" />
+
+    <details class="explain">
+        <summary>So funktioniert es</summary>
+        <p class="small">
+            Legen Sie freie Termine für eine Einheit an und erzeugen Sie einen Link. Wer den Link kennt, sieht die freien Termine der Einheit und bucht einen davon, ohne Konto.
+            Mit der Buchung entsteht ein Interessent mit dem Status „Besichtigung“; er bekommt eine Kalenderdatei zum Speichern. Gebuchte Termine stehen im Fristenkalender.
+            Der Link gilt @ViewingLink.Days Tage; ein neuer Link macht den alten ungültig. Er wird nur einmal angezeigt. Ein vergebener Termin lässt sich erst löschen, wenn Sie dem Interessenten abgesagt haben.
+        </p>
+    </details>
+
+    @if (units is not null)
+    {
+        <EditForm Model="input" OnValidSubmit="AddAsync" novalidate>
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <AppSelect T="Guid?" @bind-Value="input.RentalUnitId" Label="Mietobjekt" Required="true" Items="units.Select(u => (Guid?)u.Id).ToList()" Text="UnitText" EmptyText="– bitte wählen –" />
+                <AppDateField @bind-Value="input.Day" Label="Tag" Required="true" />
+                <AppTimeField @bind-Value="input.Time" Label="Uhrzeit" Required="true" />
+                <AppNumberField @bind-Value="minutes" Label="Dauer in Minuten" />
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Termin anlegen</MudButton>
+            @if (input.RentalUnitId is not null)
+            {
+                <MudButton Variant="Variant.Outlined" OnClick="CreateLinkAsync">Link für die Einheit erzeugen</MudButton>
+            }
+        </EditForm>
+
+        @if (newLink is not null)
+        {
+            <p class="small">Dieser Link wird nur jetzt angezeigt (@ViewingLink.Days Tage gültig):</p>
+            <input type="text" readonly value="@newLink" style="width:100%" aria-label="Link zur Terminbuchung" onfocus="this.select()" />
+        }
+    }
+
+    @if (rows is { Count: 0 })
+    {
+        <EmptyState Text="Keine künftigen Termine angelegt." />
+    }
+    else if (rows is not null)
+    {
+        <MudTable T="ViewingRow" Items="rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Termin</MudTh><MudTh>Mietobjekt</MudTh><MudTh>Gebucht von</MudTh><MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Termin">@Describe(context)</MudTd>
+                <MudTd DataLabel="Mietobjekt">@context.RentalUnit<br /><span class="small">@context.Property</span></MudTd>
+                <MudTd DataLabel="Gebucht von">
+                    @if (context.ProspectId is { } prospect)
+                    {
+                        <a href="/verwaltung/interessenten/@prospect">@context.ProspectName</a>
+                    }
+                    else
+                    {
+                        <span class="small">frei</span>
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (context.ProspectId is null)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => DeleteAsync(context)">Löschen</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<RentalUnitOption>? units;
+    private IReadOnlyList<ViewingRow>? rows;
+    private IReadOnlyList<string>? errors;
+    private readonly ViewingInput input = new();
+    private int? minutes = 20;
+    private string? newLink;
+
+    protected override async Task OnInitializedAsync()
+    {
+        units = await Leases.RentalUnitsAsync();
+        rows = await ViewingService.ListAsync();
+    }
+
+    private string UnitText(Guid? id) => units?.FirstOrDefault(u => u.Id == id) is { } u ? $"{u.Name}, {u.Property}" : "";
+
+    private static string Describe(ViewingRow row)
+    {
+        var start = TimeZoneInfo.ConvertTime(row.StartsAt, GermanTime.Germany);
+        return $"{start:dd.MM.yyyy} um {start:HH:mm} Uhr ({row.Minutes} Min.)";
+    }
+
+    private async Task AddAsync()
+    {
+        input.Minutes = minutes ?? 20;
+        var result = await ViewingService.AddAsync(input);
+        errors = result.Succeeded ? null : result.Errors;
+        rows = await ViewingService.ListAsync();
+    }
+
+    private async Task DeleteAsync(ViewingRow row)
+    {
+        var result = await ViewingService.DeleteAsync(row.Id);
+        errors = result.Succeeded ? null : result.Errors;
+        rows = await ViewingService.ListAsync();
+    }
+
+    private async Task CreateLinkAsync()
+    {
+        var link = await ViewingService.CreateLinkAsync(input.RentalUnitId!.Value);
+        newLink = link.Result.Succeeded ? link.Url : null;
+        errors = link.Result.Succeeded ? null : link.Result.Errors;
+    }
+}

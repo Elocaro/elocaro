@@ -13,6 +13,8 @@ internal static class ProspectsRegistration
         services.AddScoped<ISelfDisclosures, SelfDisclosureService>();
         services.AddScoped<IExposes, ExposeService>();
         services.AddScoped<IVacancies, VacancyService>();
+        services.AddScoped<IViewings, ViewingService>();
+        services.AddScoped<IDeadlineSource, ViewingDeadlineSource>();
         services.AddScoped<IDeadlineSource, VacancyDeadlineSource>();
         services.AddScoped<ProspectRetention>();
         return services;

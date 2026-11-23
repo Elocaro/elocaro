@@ -19,6 +19,7 @@ public partial class AccessRulesTests
         "Pages/Error.razor",
         "Pages/NotFound.razor",
         "Pages/SelfDisclosurePage.razor",
+        "Pages/ViewingPage.razor",
         "Pages/Signing.razor",
     ];
 

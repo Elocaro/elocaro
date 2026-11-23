@@ -17,7 +17,7 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261123125915_MandateLastCollection";
+    public override string LastMigrationId => "20261123140557_ViewingSlots";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -6871,6 +6871,133 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.ToTable("self_disclosures");
             });
 
+        modelBuilder.Entity("Elocaro.Domain.Prospects.ViewingLink", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<DateTimeOffset>("ExpiresAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("expires_at");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<Guid>("RentalUnitId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("rental_unit_id");
+
+                b.Property<DateTimeOffset?>("RevokedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("revoked_at");
+
+                b.Property<string>("TokenHash")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
+                    .HasColumnName("token_hash");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.HasKey("Id")
+                    .HasName("pk_viewing_links");
+
+                b.HasIndex("RentalUnitId")
+                    .HasDatabaseName("ix_viewing_links_rental_unit_id");
+
+                b.HasIndex("TokenHash")
+                    .IsUnique()
+                    .HasDatabaseName("ix_viewing_links_token_hash");
+
+                b.ToTable("viewing_links");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Prospects.ViewingSlot", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("CreatedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("created_by");
+
+                b.Property<bool>("Deleted")
+                    .HasColumnType("boolean")
+                    .HasColumnName("deleted");
+
+                b.Property<int>("Minutes")
+                    .HasColumnType("integer")
+                    .HasColumnName("minutes");
+
+                b.Property<DateTimeOffset?>("ModifiedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("modified_at");
+
+                b.Property<string>("ModifiedBy")
+                    .HasMaxLength(256)
+                    .HasColumnType("character varying(256)")
+                    .HasColumnName("modified_by");
+
+                b.Property<Guid?>("ProspectId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("prospect_id");
+
+                b.Property<Guid>("RentalUnitId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("rental_unit_id");
+
+                b.Property<DateTimeOffset>("StartsAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("starts_at");
+
+                b.Property<uint>("Version")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("xid")
+                    .HasColumnName("xmin");
+
+                b.HasKey("Id")
+                    .HasName("pk_viewing_slots");
+
+                b.HasIndex("ProspectId")
+                    .HasDatabaseName("ix_viewing_slots_prospect_id");
+
+                b.HasIndex("RentalUnitId", "StartsAt")
+                    .HasDatabaseName("ix_viewing_slots_rental_unit_id_starts_at");
+
+                b.ToTable("viewing_slots");
+            });
+
         modelBuilder.Entity("Elocaro.Domain.Receipts.CostItem", b =>
             {
                 b.Property<Guid>("Id")
@@ -10514,6 +10641,15 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired()
                     .HasConstraintName("fk_self_disclosures_prospects_prospect_id");
+            });
+
+        modelBuilder.Entity("Elocaro.Domain.Prospects.ViewingSlot", b =>
+            {
+                b.HasOne("Elocaro.Domain.Prospects.Prospect", null)
+                    .WithMany()
+                    .HasForeignKey("ProspectId")
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("fk_viewing_slots_prospects_prospect_id");
             });
 
         modelBuilder.Entity("Elocaro.Domain.Receipts.CostItem", b =>
