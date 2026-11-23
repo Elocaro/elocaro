@@ -6,7 +6,7 @@ namespace Elocaro.TestHelpers;
 /// <summary>Gotenberg (Chromium) for real PDF generation in tests.</summary>
 public sealed class GotenbergFixture : IAsyncLifetime
 {
-    public const string Image = "gotenberg/gotenberg:8.39.0";
+    public const string Image = "gotenberg/gotenberg:9.9.1";
     private const int Port = 3000;
 
     private readonly IContainer container = new ContainerBuilder(Image)

@@ -136,7 +136,7 @@ public class PdfGeneratorTests(PostgresFixture postgres, GotenbergFixture gotenb
         var erika = page.GetWords().First(w => w.Text == "Erika");
         var links = erika.BoundingBox.Left / PointsPerMm;
         var fromTop = A4HeightMm - (erika.BoundingBox.Top / PointsPerMm);
-        Assert.InRange(links, 20, 25);
+        Assert.InRange(links, 19.9, 25); // the renderer rounds to sub-millimetre precision (19.997 with Chromium 159)
         Assert.InRange(fromTop, 62.7, 90);
 
         // Return address line above the recipient (45–50 mm from the top).

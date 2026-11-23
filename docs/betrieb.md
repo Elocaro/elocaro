@@ -13,7 +13,7 @@ backup (nachts) ──▶ postgres + Volume dateien ──▶ restic-Repository 
 |---|---|---|
 | `app` | `ghcr.io/elocaro/elocaro` (chiseled, Non-Root, ohne Shell) | Volume `files` → `/data` (Belege, Fotos, PDFs) |
 | `postgres` | `postgres:18-alpine` | Volume `postgres` (Daten inkl. Anmelde-Schlüssel) |
-| `gotenberg` | `gotenberg/gotenberg:8.39.0` | – |
+| `gotenberg` | `gotenberg/gotenberg:9.9.1` | – |
 | `backup` | `ghcr.io/elocaro/elocaro-backup` (kleine ASP.NET-Core-API `src/Elocaro.Backup` um pg_dump, restic und rclone) | Volumes `backup-status`, `backup-cache`; Repository extern bzw. `deploy/backup-repo` |
 | `caddy` | `caddy:2.11-alpine` | Volumes `caddy-data`, `caddy-config` (Zertifikate) |
 
