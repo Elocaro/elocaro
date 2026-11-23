@@ -130,7 +130,7 @@ Zurückhaltend und nur dort, wo sie etwas erklärt; bei „reduzierte Bewegung�
   Gewichte 400 bis 600 (nie 700); Hierarchie über Größe und Farbe. Beschriftungen in Satzschreibweise, kein `text-transform: uppercase`. Schatten über `--shadow`, `--shadow-menu`, `--shadow-fab`.
   Abstände (`padding`, `margin`, `gap`, Höhen) liegen auf dem 4-px-Raster (Vielfache von 0,25 rem; 2 px nur für Feinabstimmung in kleinen Bedienelementen); Icon-Größen sind davon ausgenommen. `UiRulesTests` prüft Gewichte und Großbuchstaben in `app.css`.
 - **Icons:** Inline-SVG über `Icon`, Pfade in `AppIcons` (aktuell die Material-Icons aus MudBlazor).
-- **Felder:** Outlined, Beschriftung im Rahmen (`FormField` und `div.field`). Der Hintergrund der Beschriftung kommt aus `--field-surface`; Container mit anderer Fläche setzen sie (siehe `.account-card`).
+- **Felder:** Outlined, ab 900 px Breite etwa 42 px hoch (Dichte, `app.css` am Ende: MudBlazors Eingaben und die eigenen `input`/`select`), auf dem Handy in voller Touch-Höhe; Beschriftung im Rahmen (`FormField` und `div.field`). Der Hintergrund der Beschriftung kommt aus `--field-surface`; Container mit anderer Fläche setzen sie (siehe `.account-card`).
 
 ## Bausteine
 

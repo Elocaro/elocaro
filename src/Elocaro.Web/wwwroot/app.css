@@ -1728,3 +1728,14 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 
 /* Edit icon in a table row: keeps its touch area without making the row taller than its text */
 .data-table td button.mud-icon-button { margin-block: -0.6rem; }
+
+/* Density on wide screens: outlined fields are about 42 px high instead of MudBlazor's 56 px (more rows per screen); on the phone they keep the full touch height. */
+@media (min-width: 900px) {
+    .mud-input:not(.mud-input-margin-dense) > input.mud-input-root-outlined:not(.mud-input-root-margin-dense),
+    .mud-input:not(.mud-input-margin-dense) > textarea.mud-input-root-outlined:not(.mud-input-root-margin-dense),
+    .mud-input:not(.mud-input-margin-dense) > div.mud-input-slot.mud-input-root-outlined:not(.mud-input-root-margin-dense) { padding-block: 12px; }
+    .mud-input-label-outlined:not(.mud-input-label-margin-dense) { transform: translate(14px, 13px) scale(1); }
+}
+@media (min-width: 900px) {
+    input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])), select:where(:not([class*="mud-"])) { min-height: 2.8rem; padding-block: 0.5rem; }
+}
