@@ -18,7 +18,10 @@
     <div class="@("workspace" + (HasTabs ? " has-tabs" : ""))">
         <ContextBar Context="context" />
         <RecordHeader Property="context?.Property" />
-        <ContextTabs PropertyId="context?.PropertyId" />
+        @if (!IsAssistant)
+        {
+            <ContextTabs PropertyId="context?.PropertyId" />
+        }
         <ReturnBar />
         <main id="content" class="content">
             @Body
@@ -32,7 +35,10 @@
     // The setup wizard takes the whole window: no navigation that leads away in the middle of it.
     private bool IsFocus => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/verwaltung/einrichtung", StringComparison.OrdinalIgnoreCase);
 
-    private bool HasTabs => AdminNavModel.TabsFor(Path, Modules, context?.PropertyId) is not null;
+    // The statement wizard takes the tab rows away (object tabs and the operating-cost chips): its steps are the navigation, "Zum Objekt" leads back.
+    private bool IsAssistant => System.Text.RegularExpressions.Regex.IsMatch(Path, "^/verwaltung/objekte/[^/]+/abrechnung/?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+
+    private bool HasTabs => !IsAssistant && AdminNavModel.TabsFor(Path, Modules, context?.PropertyId) is not null;
 
     private PageContext? context;
 

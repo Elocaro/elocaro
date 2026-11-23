@@ -33,23 +33,36 @@
                             @for (var index = 0; index < pages.Length; index++)
                             {
                                 var entry = pages[index];
+                                var groupOpen = entry.IsGroup && IsGroupOpen(pages, index); // evaluated here: the AuthorizeView content below runs after the loop variable has moved on
                                 @if (entry.IsGroup)
                                 {
                                     <AuthorizeView Policy="@entry.Policy" Context="allowed">
                                         @if (entry.Label != entry.Children![0].Label)
                                         {
-                                            @* A group whose name is not already its first page gets a heading; the others are only set apart by a line. *@
-                                            <li class="navigation-pages-heading" role="presentation">@entry.Label</li>
+                                            @* A group whose name is not already its first page can be folded; the one with the current page (or, without one, the first) is open. *@
+                                            <li class="navigation-pages-group">
+                                                <details open="@groupOpen">
+                                                    <summary class="navigation-pages-heading">@entry.Label</summary>
+                                                    <ul>
+                                                        @foreach (var child in entry.Children!)
+                                                        {
+                                                            <AuthorizeView Policy="@child.Policy" Context="childAllowed">
+                                                                <li><a href="@child.Href" class="@(child.Matches(CurrentPath) ? "active" : null)" aria-current="@(child.Matches(CurrentPath) ? "page" : null)">@child.Label</a></li>
+                                                            </AuthorizeView>
+                                                        }
+                                                    </ul>
+                                                </details>
+                                            </li>
                                         }
                                         else
                                         {
                                             <li class="navigation-pages-divider" aria-hidden="true"></li>
-                                        }
-                                        @foreach (var child in entry.Children!)
-                                        {
-                                            <AuthorizeView Policy="@child.Policy" Context="childAllowed">
-                                                <li><a href="@child.Href" class="@(child.Matches(CurrentPath) ? "active" : null)" aria-current="@(child.Matches(CurrentPath) ? "page" : null)">@child.Label</a></li>
-                                            </AuthorizeView>
+                                            @foreach (var child in entry.Children!)
+                                            {
+                                                <AuthorizeView Policy="@child.Policy" Context="childAllowed">
+                                                    <li><a href="@child.Href" class="@(child.Matches(CurrentPath) ? "active" : null)" aria-current="@(child.Matches(CurrentPath) ? "page" : null)">@child.Label</a></li>
+                                                </AuthorizeView>
+                                            }
                                         }
                                     </AuthorizeView>
                                 }
@@ -80,6 +93,13 @@
     private string CurrentPath => Path.TrimEnd('/');
 
     private NavTab[] PagesOf(NavArea area) => AdminNavModel.Visible(area.Tabs, Modules);
+
+    // Open: the group holds the current page; if no group does, the first group with a heading.
+    private bool IsGroupOpen(NavTab[] pages, int index)
+    {
+        var holdsCurrent = (NavTab group) => group.IsGroup && group.Children!.Any(child => child.Matches(CurrentPath));
+        return holdsCurrent(pages[index]) || (!pages.Any(holdsCurrent) && Array.FindIndex(pages, p => p.IsGroup && p.Label != p.Children![0].Label) == index);
+    }
 
     private bool IsActive(NavArea area) => AdminNavModel.AreaOf(Path)?.Label == area.Label;
 }

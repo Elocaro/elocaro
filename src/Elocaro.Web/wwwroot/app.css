@@ -1739,3 +1739,12 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 @media (min-width: 900px) {
     input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])), select:where(:not([class*="mud-"])) { min-height: 2.8rem; padding-block: 0.5rem; }
 }
+
+/* Sidebar groups (Bank, Forderungen, …) fold; the chevron turns with the state */
+.navigation-pages-group > details > ul { list-style: none; margin: 0; padding: 0; }
+.navigation-pages-group > details > summary { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 2rem; margin-block: 0.5rem 0; border-radius: var(--shape-md); cursor: pointer; list-style: none; }
+.navigation-pages-group > details > summary::-webkit-details-marker { display: none; }
+.navigation-pages-group > details > summary::after { content: ""; flex: none; width: 1rem; height: 1rem; background: currentColor; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") center / contain no-repeat; transition: transform var(--motion-duration) var(--motion-effects); }
+.navigation-pages-group > details:not([open]) > summary::after { transform: rotate(-90deg); }
+.navigation-pages-group > details > summary:hover { color: var(--md-on-surface); }
+.navigation-pages-group:first-child > details > summary { margin-top: 0.25rem; }
