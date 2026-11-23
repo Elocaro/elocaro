@@ -47,6 +47,7 @@ public class ModuleCatalogTests
     [InlineData("/verwaltung/vertraege/0c6a4e4e-6f5b-4b9b-8f43-0d4e2f1f3a11/mieterhoehung", AppModule.RentIncreases)]
     [InlineData("/verwaltung/interessenten", AppModule.Prospects)]
     [InlineData("/verwaltung/interessenten/neu", AppModule.Prospects)]
+    [InlineData("/verwaltung/leerstand", AppModule.Prospects)]
     public void Pages_belong_to_their_module(string path, AppModule module) =>
         Assert.Equal(module, ModuleCatalog.OwnerOf(path)?.Module);
 

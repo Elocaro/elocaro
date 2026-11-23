@@ -526,9 +526,17 @@ public static class PageInfoCatalog
             "Wer sich für welche Einheit interessiert und wie weit der Kontakt ist.",
             [new("Gut zu wissen",
                 "Interessenten sind Fremde: Speichern Sie nur, was Sie für die Auswahl brauchen.",
-                "Eine Absage setzt eine Löschfrist von drei Monaten; danach werden die Angaben gelöscht.",
+                "Eine Absage setzt eine Löschfrist von sechs Monaten; danach werden die Angaben gelöscht.",
                 "Mit „Als Mieter übernehmen“ legt Elocaro die Person an und öffnet den Vertrags-Assistenten.")]),
             $"{Admin}/interessenten", $"{Admin}/interessenten/neu", $"{Admin}/interessenten/{{id}}");
+
+        Add(new("Leerstand",
+            "Welche Einheiten leer stehen, seit wann, was das kostet und wie weit die Vermarktung ist.",
+            [new("Gut zu wissen",
+                "Die Liste zeigt Einheiten ohne laufenden und ohne künftigen Mietvertrag, die am längsten leere zuerst.",
+                "Der entgangene Betrag ist die Kaltmiete des letzten Vertrags, auf die Tage umgerechnet.",
+                "Steht eine Einheit einen Monat leer, ohne dass ein Interessent erfasst ist, erscheint eine Erinnerung im Fristenkalender.")]),
+            $"{Admin}/leerstand");
 
         Add(new("Exposé",
             "Eine Wohnung für Interessenten als PDF.",

@@ -1,0 +1,62 @@
+@page "/verwaltung/leerstand"
+@rendermode InteractiveServer
+@using Elocaro.Application.Prospects
+@using MudBlazor
+@inject IVacancies VacancyService
+
+<InteractiveShell>
+    <PageHeader Title="Leerstand" Subtitle="Welche Einheiten leer stehen, seit wann, was das kostet und wie weit die Vermarktung ist.">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Href="/verwaltung/interessenten/expose" data-enhance-nav="false">Exposé erstellen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <details class="explain">
+        <summary>Wie die Zahlen entstehen</summary>
+        <p class="small">
+            Leer ist eine Einheit ohne laufenden und ohne künftigen Mietvertrag. Die Dauer zählt ab dem Tag nach dem Ende des letzten Vertrags. Der entgangene Betrag ist die Kaltmiete des letzten Vertrags,
+            auf die Tage umgerechnet (365,25 / 12 Tage je Monat). Betriebskosten und Heizung sind nicht dabei. Interessenten zählen, solange sie weder eine Zusage noch eine Absage haben.
+        </p>
+    </details>
+
+    @if (rows is { Count: 0 })
+    {
+        <EmptyState Text="Keine Einheit steht leer." />
+    }
+    else if (rows is not null)
+    {
+        <MudTable T="VacancyRow" Items="rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Outlined="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Mietobjekt</MudTh><MudTh>Leer seit</MudTh><MudTh>Entgangene Kaltmiete</MudTh><MudTh>Interessenten</MudTh><MudTh>Hinweis</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Mietobjekt">@context.RentalUnit<br /><span class="small">@context.Property</span></MudTd>
+                <MudTd DataLabel="Leer seit">
+                    @if (context.VacantSince is { } since)
+                    {
+                        @Format.Date(since)<br /><span class="small">@context.Days Tage</span>
+                    }
+                    else
+                    {
+                        <span class="small">noch nie vermietet</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Entgangene Kaltmiete">@(context.LostRent is { } lost ? Format.Money(lost) : "")</MudTd>
+                <MudTd DataLabel="Interessenten">
+                    <a href="/verwaltung/interessenten">@context.OpenProspects</a>
+                    @if (context.NextViewing is { } next)
+                    {
+                        <br /><span class="small">Besichtigung am @Format.Date(next)</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Hinweis">@context.Hint</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</InteractiveShell>
+
+@code {
+    private IReadOnlyList<VacancyRow>? rows;
+
+    protected override async Task OnInitializedAsync() => rows = await VacancyService.ListAsync();
+}

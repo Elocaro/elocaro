@@ -187,9 +187,9 @@ public static class ModuleCatalog
 
         new(AppModule.Prospects, "Neuvermietung",
             "Interessenten je Einheit mit Status und Besichtigungstermin verwalten und den gewählten Interessenten in den Vertrags-Assistenten übernehmen.",
-            "Sinnvoll, wenn Sie Wohnungen selbst vermarkten und Besichtigung und Auswahl in Elocaro festhalten wollen. Es werden personenbezogene Daten Fremder gespeichert; Absagen löschen die Daten nach drei Monaten. Standardmäßig aus.",
-            ["Interessentenliste", "Status und Besichtigungstermine", "Selbstauskunft per Link ohne Konto", "Exposé als PDF mit Hinweis zur Mietpreisbremse", "Übernahme in den Vertrags-Assistenten"],
-            [], $"{Admin}/interessenten", [$"{Admin}/interessenten", "/selbstauskunft"], [], []),
+            "Sinnvoll, wenn Sie Wohnungen selbst vermarkten und Besichtigung und Auswahl in Elocaro festhalten wollen. Es werden personenbezogene Daten Fremder gespeichert; Absagen löschen die Daten nach sechs Monaten. Standardmäßig aus.",
+            ["Interessentenliste", "Leerstandsmanager", "Status und Besichtigungstermine", "Selbstauskunft per Link ohne Konto", "Exposé als PDF mit Hinweis zur Mietpreisbremse", "Übernahme in den Vertrags-Assistenten"],
+            [], $"{Admin}/interessenten", [$"{Admin}/interessenten", $"{Admin}/leerstand", "/selbstauskunft"], [], []),
     ];
 
     /// <summary>Modules that are off until the landlord switches them on (they keep personal data of strangers).</summary>

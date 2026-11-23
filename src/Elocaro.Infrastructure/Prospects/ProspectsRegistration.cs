@@ -1,3 +1,4 @@
+using Elocaro.Application.Deadlines;
 using Elocaro.Application.Prospects;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,6 +12,8 @@ internal static class ProspectsRegistration
         services.AddScoped<IProspects, ProspectService>();
         services.AddScoped<ISelfDisclosures, SelfDisclosureService>();
         services.AddScoped<IExposes, ExposeService>();
+        services.AddScoped<IVacancies, VacancyService>();
+        services.AddScoped<IDeadlineSource, VacancyDeadlineSource>();
         services.AddScoped<ProspectRetention>();
         return services;
     }
