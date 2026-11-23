@@ -26,7 +26,7 @@
     <PackageVersion Include="MailKit" Version="5.0.0" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
     <PackageVersion Include="MudBlazor" Version="9.13.0" />
-    <PackageVersion Include="QRCoder" Version="1.8.1" />
+    <PackageVersion Include="QRCoder" Version="1.9.0" />
     <PackageVersion Include="Quartz.Extensions.Hosting" Version="4.7.3" />
     <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="4.7.3" />
     <PackageVersion Include="Scriban" Version="7.6.1" />
