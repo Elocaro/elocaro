@@ -1,0 +1,14 @@
+{{# Ausgangspunkt, keine Rechtsberatung: Vorabankündigung (Pre-Notification) für die SEPA-Basislastschrift der Miete. Eine Ankündigung für alle künftigen Einzüge genügt, wenn Beträge und Termine genannt sind; üblich ist eine Frist von 14 Tagen vor dem ersten Einzug, im Mandat kann eine kürzere vereinbart sein. Bei jeder Änderung des Betrags neu versenden. }}
+<p>{{ salutation }}</p>
+<p><strong>Ankündigung der Lastschrift für Ihre Miete</strong></p>
+{{ if mandate_reference == null }}<p>[Für diesen Mietvertrag ist in Elocaro noch kein gültiges SEPA-Mandat erfasst. Bitte zuerst das Mandat anlegen.]</p>
+{{ end }}<p>wir ziehen die Miete für die Wohnung {{ rental_unit }} künftig per SEPA-Basislastschrift von Ihrem Konto {{ debit_iban_ending }} ein, und zwar auf Grundlage Ihres SEPA-Lastschriftmandats.</p>
+<table>
+<tr><td>Gläubiger-Identifikationsnummer</td><td>{{ creditor_id }}</td></tr>
+<tr><td>Mandatsreferenz</td><td>{{ mandate_reference }}</td></tr>
+<tr><td>Betrag je Einzug</td><td>{{ money total_rent }} (Kaltmiete {{ money base_rent }}, Betriebskosten {{ money operating_costs }}, Heizkosten {{ money heating_costs }})</td></tr>
+<tr><td>Erster Einzug</td><td>[Datum] </td></tr>
+<tr><td>Fälligkeit</td><td>jeweils zum [Fälligkeitstag] eines Monats</td></tr>
+</table>
+<p>Ändert sich der Betrag, kündigen wir Ihnen den neuen Betrag vorher an. Bitte sorgen Sie für ausreichende Deckung auf Ihrem Konto. Bei Rückfragen melden Sie sich gern.</p>
+{{ include 'Grußformel' }}

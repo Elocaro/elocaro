@@ -110,7 +110,10 @@ public sealed record LetterModel(
     decimal DepositRefunded = 0,
     decimal DepositBalance = 0,
     decimal? OpenArrears = null,
-    decimal? LivingArea = null);
+    decimal? LivingArea = null,
+    string? MandateReference = null,
+    string? CreditorId = null,
+    string? DebitIbanEnding = null);
 
 /// <summary>Documented placeholders and sample data per template kind.</summary>
 public static class TemplateCatalog
@@ -165,6 +168,7 @@ public static class TemplateCatalog
         new("living_area", "Wohnfläche in m² heute (leer, wenn nicht erfasst)", "60"),
         new("deposit, deposit_received, deposit_interest, deposit_deducted, deposit_refunded, deposit_balance", "Kaution: vereinbart (leer, wenn keine), eingegangen, Zinsen, verrechnet, zurückgezahlt, noch zu erstatten", "1.500,00 €"),
         new("open_arrears", "Fällige, unbezahlte Forderungen heute (leer, wenn die Buchhaltung des Vertrags noch nicht läuft)", "0,00 €"),
+        new("mandate_reference, creditor_id, debit_iban_ending", "SEPA-Lastschrift: Mandatsreferenz des gültigen Mandats (leer, wenn keines), Gläubiger-ID des Vermieters, Ende der IBAN des Kontoinhabers", "MND-20260105-1F3A9C2B"),
     ];
 
     private static readonly IReadOnlyList<Placeholder> RentIncreasePlaceholders =
@@ -258,7 +262,8 @@ public static class TemplateCatalog
 
     private static readonly LetterModel LetterSample = new("Sehr geehrte Frau Muster,", "Erika Muster", "Wohnung 1, Lindenweg 3", "Lindenweg 3", "Lindenweg 3", "50667", "Köln",
         new DateOnly(2024, 4, 1), null, "Hans Vermieter", new DateOnly(2026, 10, 20), "Sparkasse KölnBonn", "DE89 3704 0044 0532 0130 00", "COLSDE33XXX",
-        500m, 100m, 60m, 660m, 1500m, 1500m, 12.5m, 0m, 0m, 1512.5m, 0m, 60m);
+        500m, 100m, 60m, 660m, 1500m, 1500m, 12.5m, 0m, 0m, 1512.5m, 0m, 60m,
+        "MND-20260105-1F3A9C2B", "DE98ZZZ09999999999", "…2051");
 
     // Two samples so that both sides of the conditions (apartment/room, open/fixed, standard/graduated/index) get exercised when checking a text.
     private static readonly IReadOnlyList<ContractModel> ContractSamples =

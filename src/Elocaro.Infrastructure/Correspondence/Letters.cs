@@ -6,6 +6,7 @@ using Elocaro.Application.Leases;
 using Elocaro.Domain.Common;
 using Elocaro.Domain.Documents;
 using Elocaro.Domain.Leases;
+using Elocaro.Domain.Payments;
 using Elocaro.Domain.People;
 using Elocaro.Domain.Properties;
 using Elocaro.Infrastructure.Documents;
@@ -169,13 +170,15 @@ internal sealed class Letters(ElocaroDbContext db, IPdfGenerator pdf, IDocumentL
             ? (await db.Set<Room>().AsNoTracking().Include(r => r.Areas).SingleOrDefaultAsync(r => r.Id == roomId, cancellationToken))?.AreaOn(today)?.Area
             : (await db.Set<Unit>().AsNoTracking().Include(e => e.Areas).SingleOrDefaultAsync(e => e.Id == lease.UnitId, cancellationToken))?.AreaOn(today)?.LivingArea;
         var salutation = LetterParts.SalutationOf(people);
+        var mandate = (await db.Set<DirectDebitMandate>().AsNoTracking().Where(m => m.LeaseId == leaseId).ToListAsync(cancellationToken)).Where(m => m.IsActiveOn(today)).MaxBy(m => m.SignedOn);
         var model = new LetterModel(
             salutation, string.Join(" und ", people.Select(p => p.DisplayName)), $"{rentalUnit.Name}, {property.Name}",
             property.Name, property.Street, property.PostalCode, property.City, lease.Start, lease.End, landlord.Name, today,
             landlord.Bank, landlord.Iban is null ? null : Iban.Format(landlord.Iban), landlord.Bic,
             baseRent, operating, heating, lease.MonthlyRentOn(today), lease.Deposit,
             deposit?.Account.Received ?? 0, deposit?.Account.Interest ?? 0, deposit?.Account.Deducted ?? 0, deposit?.Account.Refunded ?? 0, deposit?.Account.Balance ?? 0,
-            account?.AccountingStart is null ? null : account.Due, area);
+            account?.AccountingStart is null ? null : account.Due, area,
+            mandate?.Reference, landlord.CreditorId, mandate is null ? null : "…" + Iban.Compact(mandate.DebtorIban)[^4..]);
 
         string subject;
         try

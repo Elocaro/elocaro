@@ -2,6 +2,7 @@ using Elocaro.Application.Common;
 using Elocaro.Application.Documents;
 using Elocaro.Application.Files;
 using Elocaro.Application.Leases;
+using Elocaro.Application.Payments;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Domain.Admin;
@@ -121,6 +122,29 @@ public class LettersTests(PostgresFixture postgres, GotenbergFixture gotenberg) 
         Assert.Contains("Gesamtmiete monatlich", certificate, StringComparison.Ordinal);
         var statement = await PdfTextAsync(documents.Single(d => d.Title.StartsWith("Abrechnung Ihrer Mietkaution", StringComparison.Ordinal)).FileId);
         Assert.Contains("Zu erstattender Betrag", statement, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Direct_debit_notice_carries_the_valid_mandate_and_the_creditor_id()
+    {
+        await using (var scope = environment.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ElocaroDbContext>();
+            (await db.Set<LandlordProfile>().SingleAsync(Ct)).CreditorId = "DE98ZZZ09999999999";
+            await db.SaveChangesAsync(Ct);
+        }
+
+        Validate(await WithAsync<IDirectDebitMandates, Result>(m => m.CreateAsync(leases[0], new MandateInput { Reference = "MND-NOTICE-1", DebtorName = "Vorname1 Muster1", DebtorIban = "DE02 1203 0000 0000 2020 51", SignedOn = new DateOnly(2025, 1, 1) }, Ct)));
+        var notice = (await WithAsync<IDocumentTemplates, IReadOnlyList<TemplateRow>>(t => t.ListAsync(Ct))).Single(t => t.Name == "Vorabankündigung Lastschrift").Id;
+
+        var run = await WithAsync<ILetters, LetterRunResult>(l => l.CreateAsync(new LetterRequest { TemplateId = notice, PropertyId = house, LeaseIds = [leases[0]] }, Ct));
+
+        Assert.Equal(1, run.Created);
+        await using var check = environment.Services.CreateAsyncScope();
+        var text = await PdfTextAsync((await check.ServiceProvider.GetRequiredService<ElocaroDbContext>().Set<Document>().SingleAsync(Ct)).FileId);
+        Assert.Contains("MND-NOTICE-1", text, StringComparison.Ordinal);
+        Assert.Contains("DE98ZZZ09999999999", text, StringComparison.Ordinal);
+        Assert.Contains("2051", text, StringComparison.Ordinal);
     }
 
     [Fact]

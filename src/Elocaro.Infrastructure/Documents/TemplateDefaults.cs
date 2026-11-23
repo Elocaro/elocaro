@@ -39,6 +39,7 @@ internal static class TemplateDefaults
         new("Kündigung Zahlungsverzug (§ 543 BGB)", TemplateKind.Letter, "Fristlose Kündigung wegen Zahlungsverzugs, hilfsweise ordentlich, mit Rückstandsaufstellung, Schonfrist-Hinweis und Widerspruchshinweis. Prüfliste im Kommentar, vor dem Einsatz rechtlich prüfen", "Kündigung wegen Zahlungsverzugs {{ rental_unit }}", Read("letter-termination-arrears")),
         new("Kündigung Eigenbedarf (§ 573 BGB)", TemplateKind.Letter, "Ordentliche Kündigung wegen Eigenbedarfs mit Begründung der Bedarfsperson, Angebot einer Alternativwohnung und Widerspruchshinweis. Prüfliste im Kommentar, vor dem Einsatz rechtlich prüfen", "Kündigung wegen Eigenbedarfs {{ rental_unit }}", Read("letter-termination-own-use")),
         new("Erinnerung Nachzahlung Betriebskosten", TemplateKind.Letter, "Freundliche Zahlungserinnerung zu einer offenen Nachzahlung aus der Betriebskostenabrechnung; Zeitraum, Betrag und Fristen ergänzen", "Erinnerung Nachzahlung Betriebskosten {{ rental_unit }}", Read("letter-additional-payment-reminder")),
+        new("Vorabankündigung Lastschrift", TemplateKind.Letter, "Kündigt dem Mieter den Einzug der Miete per SEPA-Basislastschrift an (Gläubiger-ID, Mandatsreferenz, Betrag); Termine ergänzen", "Ankündigung der Lastschrift {{ rental_unit }}", Read("letter-direct-debit-notice")),
         new("Allgemeines Schreiben", TemplateKind.Letter, "Leerer Brief mit Anrede und Grußformel", "Mitteilung zu Ihrem Mietverhältnis", Read("letter-general")),
     ];
 

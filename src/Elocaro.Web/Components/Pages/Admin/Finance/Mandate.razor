@@ -41,6 +41,15 @@
 
         @if (Id is { } existing)
         {
+            @if (row is { } mandate)
+            {
+                <section>
+                    <h2>Unterschriebenes Mandat</h2>
+                    <p class="small">Legen Sie das unterschriebene Mandat als Dokument beim Mietvertrag ab. Nennen Sie die Referenz @mandate.Reference im Titel, dann finden Sie es hier wieder. Es muss bis 14 Monate nach dem Ende des Mietverhältnisses aufbewahrt werden.</p>
+                    <MudButton Variant="Variant.Outlined" Href="@($"/verwaltung/dokumente/neu?vertrag={mandate.LeaseId}&kategorie=Lease")">Mandat hochladen</MudButton>
+                    <MudButton Variant="Variant.Text" Href="@($"/verwaltung/dokumente?q={Uri.EscapeDataString(mandate.Reference)}")">Abgelegte Mandate suchen</MudButton>
+                </section>
+            }
             <section>
                 <h2>Widerruf</h2>
                 @if (revokedOn is { } revoked)
@@ -65,6 +74,7 @@
     private IReadOnlyList<string>? errors;
     private Guid? leaseId;
     private DateOnly? revokedOn;
+    private MandateRow? row;
     private bool exists = true;
     private bool loaded;
 
@@ -80,7 +90,8 @@
             if (existing is not null)
             {
                 data = existing;
-                revokedOn = (await Mandates.ListAsync()).FirstOrDefault(r => r.Id == id)?.RevokedOn;
+                row = (await Mandates.ListAsync()).FirstOrDefault(r => r.Id == id);
+                revokedOn = row?.RevokedOn;
             }
         }
         else

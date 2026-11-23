@@ -150,11 +150,11 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
         var first = await WithAsync(t => t.InstallDefaultsAsync(Ct));
         var second = await WithAsync(t => t.InstallDefaultsAsync(Ct));
 
-        Assert.Equal((27, 0, 0, 27), (first.Created, first.Existing, second.Created, second.Existing));
+        Assert.Equal((28, 0, 0, 28), (first.Created, first.Existing, second.Created, second.Existing));
         var rows = await WithAsync(t => t.ListAsync(Ct));
         string[] expected =
         [
-            "Allgemeines Schreiben", "Ankündigung von Arbeiten", "Anlage Datenschutzinformation", "Anlage Energieausweis", "Anlage Hausordnung", "Anlage Übergabeprotokoll",
+            "Allgemeines Schreiben", "Vorabankündigung Lastschrift", "Ankündigung von Arbeiten", "Anlage Datenschutzinformation", "Anlage Energieausweis", "Anlage Hausordnung", "Anlage Übergabeprotokoll",
             "Anpassung Betriebskostenpauschale (§ 560 BGB)", "Bankverbindung", "Grußformel", "Information Staffelmiete (§ 557a BGB)", "Mieterhöhung Indexmiete (§ 557b BGB)",
             "Mieterhöhung Vergleichsmiete (§ 558 BGB)", "Mietvertrag Wohnraum", "Zimmervertrag WG",
             "Wohnungsgeberbestätigung Einzug (§ 19 BMG)", "Wohnungsgeberbestätigung Auszug (§ 19 BMG)", "Bestätigung der Kündigung",
@@ -181,7 +181,7 @@ public class DocumentTemplatesTests(PostgresFixture postgres) : IAsyncLifetime
 
         var second = await WithAsync(t => t.EnsureDefaultsAsync(Ct));
 
-        Assert.Equal(27, first.Created);
+        Assert.Equal(28, first.Created);
         Assert.Equal(0, second.Created);
         Assert.DoesNotContain(await WithAsync(t => t.ListAsync(Ct)), r => r.Name == "Mietbescheinigung");
 
