@@ -206,8 +206,6 @@ Stand der Prüfung vom 13. November 2026. Jeder Punkt ist eine Entscheidung, die
 4. ~~Regeln für interaktive Seiten fehlen.~~ Erledigt: `InteractiveUiRulesTests`, die Blazor-Analyzer sind wieder aktiv.
 5. ~~Große Seiten.~~ Erledigt (#190): Die elf Seiten mit mehr als 200 Zeilen `@code` sind zerlegt (Rechenkerne und Texte in Klassen neben der Seite, Abschnitte in Komponenten); `PageSizeRulesTests` gilt ohne Ausnahmen.
 6. ~~Eine Registrierungsdatei für alles.~~ Erledigt (#187): Jedes Modul registriert seine Dienste in `<Modul>/<Modul>Registration.cs` (`Add<Modul>Module`); `DependencyInjection.cs` ruft sie nur auf und hält Datenbank und Health-Checks. Die Reihenfolge der Aufrufe bestimmt die Reihenfolge der Erweiterungspunkt-Listen (z. B. Zählerverwendung). `ExtensionPointRulesTests` liest alle Registrierungsdateien.
-7. **Laufzeit.** Die Umstellung auf .NET 11 ist erfolgt (#163). Stand 15. November 2026: Die EF-Core-Gruppe (EF Core, Identity-/DataProtection-Pakete,
-   Npgsql-Provider) bleibt auf `11.0.0-rc.3`: Den Provider gibt es nur als `11.0.0-rc.3`, und `EFCore.NamingConventions` 10.0.1
-   verlangt EF Core kleiner als 11.0.0. Die Gruppe wird gemeinsam angehoben, sobald beide freigegeben sind; alle übrigen
-   Pakete stehen auf der aktuellen stabilen Version. Die frühere Begründung der Leitentscheidung („LTS“) gilt für .NET 11 nicht.
+7. ~~Laufzeit.~~ Erledigt (#163, #189): .NET 11, alle Pakete auf freigegebenen Versionen (EF-Core-Gruppe, Npgsql-Provider und
+   `EFCore.NamingConventions` auf `11.0.0`). Die frühere Begründung der Leitentscheidung („LTS“) gilt für .NET 11 nicht.
 8. ~~Namen der Module über die Schichten.~~ Erledigt (#188): `Accounts` (vorher Infrastructure/Identity), `Communication` (vorher Infrastructure/Mail) und `Leases` (Deposits aus der Domain) heißen in allen Schichten gleich. Der dabei sichtbar gewordene Zyklus `Accounts` ↔ `Communication` ist aufgelöst: `Roles`, `Permissions`, `AccessRight` und `Policies` liegen jetzt in `Application/Common`.
