@@ -62,8 +62,20 @@
     }
 
     // Typed text that cannot be read as a date is reported instead of silently dropped.
-    private void OnTextChanged(string? typed) =>
+    // The picker reports the text of a chosen day before the date itself, and this call re-renders the component. Keeping `current` in step with
+    // the committed text means that render does not hand the picker the old date, which would replace the day just chosen (or undo a clear).
+    private void OnTextChanged(string? typed)
+    {
         errorText = converter.LastReadFailed || (!string.IsNullOrWhiteSpace(typed) && LenientDateConverter.Read(typed, monthOnly: false) is null) ? "Bitte ein Datum wie 01.11.2026 eingeben." : null;
+        if (string.IsNullOrWhiteSpace(typed))
+        {
+            current = null;
+        }
+        else if (LenientDateConverter.Read(typed, monthOnly: false) is { } read)
+        {
+            current = read;
+        }
+    }
 
     private async Task OnDateChanged(DateTime? date)
     {
