@@ -3,13 +3,16 @@ using Elocaro.Application.Documents;
 using Elocaro.Application.Files;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Prospects;
+using Elocaro.Domain.Leases;
 using Elocaro.Domain.Properties;
 using Elocaro.Domain.Prospects;
+using Elocaro.Infrastructure.Persistence;
 using Elocaro.Infrastructure.Templates;
+using Microsoft.EntityFrameworkCore;
 
 namespace Elocaro.Infrastructure.Prospects;
 
-internal sealed class ExposeService(IPropertyService properties, IUnitPhotos photos, IPdfGenerator pdf, IFileStore files) : IExposes
+internal sealed class ExposeService(IPropertyService properties, IUnitPhotos photos, IPdfGenerator pdf, IFileStore files, ElocaroDbContext db) : IExposes
 {
     /// <summary>What the exposé is about: a unit or one room of a shared flat (then the photos of the flat follow those of the room).</summary>
     private sealed record Subject(PropertyDetails Property, string Name, string? Location, decimal? Area, decimal? RoomCount, int? Floor, string? EnergyStandard, IReadOnlyList<string> Features, IReadOnlyList<Guid> PhotoOwners);
@@ -23,6 +26,18 @@ internal sealed class ExposeService(IPropertyService properties, IUnitPhotos pho
         }
 
         return NewLetRent.Check(input.Rent ?? 0m, s.Area, s.Property.Data.RentIndexPerSquareMetre, input.PreviousRent, s.Property.Data.RentCapPercent);
+    }
+
+    public async Task<NewLetCheck?> CheckLettingAsync(Guid rentalUnitId, decimal rent, CancellationToken cancellationToken = default)
+    {
+        if (await FindAsync(rentalUnitId, cancellationToken) is not { } s)
+        {
+            return null;
+        }
+
+        var last = (await db.Set<Lease>().AsNoTracking().Include(l => l.Components).Where(l => l.RentalUnitId == rentalUnitId && l.Term.To != null).ToListAsync(cancellationToken)).MaxBy(l => l.End);
+        var previousRent = last?.AmountAt(RentComponentType.BaseRent, last.End!.Value);
+        return NewLetRent.Check(rent, s.Area, s.Property.Data.RentIndexPerSquareMetre, previousRent, s.Property.Data.RentCapPercent);
     }
 
     public async Task<ExposeFile> CreateAsync(Guid rentalUnitId, ExposeInput input, CancellationToken cancellationToken = default)

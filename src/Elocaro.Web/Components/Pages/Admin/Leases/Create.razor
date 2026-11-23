@@ -3,11 +3,13 @@
 @using MudBlazor
 @using Elocaro.Application.Admin
 @using Elocaro.Application.Leases
+@using Elocaro.Application.Prospects
 @inject ILeaseService Admin
 @inject IModuleState State
 @inject IPersonService People
 @inject NavigationManager Navigation
 @inject IDialogService Dialogs
+@inject IExposes Exposes
 
 <InteractiveShell>
 <PageHeader Title="Mietvertrag anlegen" Subtitle="Mietobjekt, Laufzeit, Mieter und Miete festlegen. Alles Weitere (Kündigung, Dokumente) ergänzen Sie danach im Vertrag." Back="/verwaltung/vertraege" BackText="Alle Verträge" />
@@ -21,7 +23,7 @@
     </Notice>
 }
 
-<Wizard Steps="WizardSteps" Current="step" CurrentChanged="OnStepChanged" Model="form" OnFinish="CreateAsync" FinishText="Vertrag anlegen" StepsLabel="Schritte des Vertrags">
+<Wizard Steps="WizardSteps" Current="step" CurrentChanged="OnStepChangedAsync" Model="form" OnFinish="CreateAsync" FinishText="Vertrag anlegen" StepsLabel="Schritte des Vertrags">
     @if (step == 0)
     {
         <div class="form-grid">
@@ -92,6 +94,10 @@
             }
         </div>
         <AppTextField @bind-Value="form.Notes" Label="Notizen" Lines="2" />
+        @if (rentBrake is { } brake)
+        {
+            <Notice Level="NoticeLevel.Warning">@brake</Notice>
+        }
         <dl class="details" id="lease-summary">
             <dt>Mietobjekt</dt><dd>@RentalUnitText(form.RentalUnitId)</dd>
             <dt>Mietbeginn</dt><dd>@Format.Date(form.Start)</dd>
@@ -109,6 +115,7 @@
 
     private LeaseForm form = new();
     private int step;
+    private string? rentBrake;
 
     private static readonly IReadOnlyList<WizardStepInfo> WizardSteps =
     [
@@ -121,10 +128,24 @@
     private decimal MonthlyTotal => form.MonthlyTotal;
 
     /// <summary>"Weiter" checks what the step asks for; what comes later is not an error yet.</summary>
-    private void OnStepChanged(int value)
+    private async Task OnStepChangedAsync(int value)
     {
         step = value;
         form.Stage = value;
+        if (value == WizardSteps.Count - 1)
+        {
+            await CheckRentBrakeAsync();
+        }
+    }
+
+    // Only a rent above the limit is pointed out (also when the previous rent may allow it); without the data for the check nothing is said, so as not to nag everybody.
+    private async Task CheckRentBrakeAsync()
+    {
+        rentBrake = null;
+        if (form.RentalUnitId is { } unit && form.BaseRent is > 0m && await Exposes.CheckLettingAsync(unit, form.BaseRent.Value) is { Limit: not null } check && form.BaseRent > check.Limit)
+        {
+            rentBrake = check.Hints[0];
+        }
     }
 
     private IReadOnlyList<RentModel> RentModels => Enum.GetValues<RentModel>()
@@ -148,7 +169,7 @@
     protected override async Task OnInitializedAsync()
     {
         form = new() { RentalUnitId = RentalUnit, Start = Start, Tenant1 = Tenant };
-        OnStepChanged(Math.Clamp((InitialStep ?? 1) - 1, 0, WizardSteps.Count - 1));
+        await OnStepChangedAsync(Math.Clamp((InitialStep ?? 1) - 1, 0, WizardSteps.Count - 1));
         if (BillingTypes.Count > 0 && !BillingTypes.Contains(form.BillingType))
         {
             form.BillingType = BillingTypes[0];

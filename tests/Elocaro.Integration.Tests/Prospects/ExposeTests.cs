@@ -2,6 +2,8 @@ using System.Text;
 using Elocaro.Application.Admin;
 using Elocaro.Application.Common;
 using Elocaro.Application.Documents;
+using Elocaro.Application.Leases;
+using Elocaro.Application.People;
 using Elocaro.Application.Properties;
 using Elocaro.Application.Prospects;
 using Elocaro.Domain.Files;
@@ -45,6 +47,20 @@ public class ExposeTests(PostgresFixture postgres) : IAsyncLifetime
 
         Assert.Equal((660m, true, false), (over!.Limit, over.OverLimit, fine!.OverLimit));
         Assert.Null(await With<IExposes, NewLetCheck?>(s => s.CheckAsync(Guid.NewGuid(), new ExposeInput { Rent = 650m }, Ct)));
+    }
+
+    [Fact]
+    public async Task The_letting_check_takes_the_previous_rent_from_the_last_lease_of_the_unit()
+    {
+        var tenant = Validate(await With<IPersonService, Result>(s => s.CreateAsync(new PersonInput { FirstName = "Anna", LastName = "Schütz" }, null, Ct)));
+        Validate(await With<ILeaseService, Result>(s => s.CreateAsync(new LeaseCreation { RentalUnitId = unit, Start = new DateOnly(2024, 1, 1), FixedTermUntil = new DateOnly(2025, 12, 31), TenantIds = [tenant], BaseRent = 700m, People = 1 }, Ct)));
+
+        var allowed = await With<IExposes, NewLetCheck?>(s => s.CheckLettingAsync(unit, 700m, Ct));
+        var over = await With<IExposes, NewLetCheck?>(s => s.CheckLettingAsync(unit, 750m, Ct));
+
+        Assert.Equal((660m, false, true), (allowed!.Limit, allowed.OverLimit, allowed.Hints[0].Contains("Vormiete von 700,00", StringComparison.Ordinal)));
+        Assert.True(over!.OverLimit);
+        Assert.Null(await With<IExposes, NewLetCheck?>(s => s.CheckLettingAsync(Guid.NewGuid(), 700m, Ct)));
     }
 
     [Fact]

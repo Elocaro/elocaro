@@ -10,6 +10,12 @@ public interface IExposes
     /// <summary>Hints for the asking rent: rent brake, previous rent, cap limit. <c>null</c> if the unit or room is unknown.</summary>
     Task<NewLetCheck?> CheckAsync(Guid rentalUnitId, ExposeInput input, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The check for a lease being created: the asking rent against the limit, with the base rent of the last lease of the unit as previous rent.
+    /// <c>null</c> if the unit is unknown. Without a comparative rent at the property or a living area the check only says that it cannot be made.
+    /// </summary>
+    Task<NewLetCheck?> CheckLettingAsync(Guid rentalUnitId, decimal rent, CancellationToken cancellationToken = default);
+
     /// <summary>The exposé as PDF. The hints are for the landlord and are not printed; a previous rent is printed only if entered.</summary>
     Task<ExposeFile> CreateAsync(Guid rentalUnitId, ExposeInput input, CancellationToken cancellationToken = default);
 }
