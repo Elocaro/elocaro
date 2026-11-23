@@ -1572,6 +1572,15 @@ fieldset { min-width: 0; }
     .page-header.is-compact.is-compact-narrow .page-header-title { flex: 1 1 16rem; min-width: min(100%, 14rem); }
     .page-header.is-compact.is-compact-narrow:not(:has(.page-header-actions)) { display: flex; }
 }
+/* Record pages (object): the actions sit in the title row of the record header instead of a band of their own below the tabs.
+   The header is taken out of the scroll area and placed over the title row (the breadcrumb above it is one line). Only where
+   the row is wide enough for title and actions side by side. */
+@media (min-width: 1100px) {
+    .workspace:has(.record-header):has(.page-header.is-compact:not(.is-compact-narrow) .page-header-actions) { position: relative; }
+    .workspace:has(.record-header):has(.page-header.is-compact:not(.is-compact-narrow) .page-header-actions) .content { padding-top: 1rem; }
+    .workspace:has(.record-header):has(.page-header.is-compact:not(.is-compact-narrow) .page-header-actions) .record-title { min-height: 2.5rem; display: flex; align-items: center; padding-right: 16rem; }
+    .workspace:has(.record-header) .page-header.is-compact:not(.is-compact-narrow) { position: absolute; top: 1.85rem; right: var(--content-gutter); z-index: 7; margin: 0; padding: 0; background: none; }
+}
 
 /* Interactive page that is prerendered but not yet connected (Components/Shell/InteractiveShell.razor): the controls are visible but would
    swallow taps. They ignore input and, if loading takes longer than a moment, dim, so nobody taps into the void on a slow phone. */
