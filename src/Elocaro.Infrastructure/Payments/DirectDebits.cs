@@ -97,10 +97,19 @@ internal sealed class DirectDebits(
             return PaymentOrderResult.Failed(ex.Message);
         }
 
-        foreach (var mandate in chosen.Select(i => i.Mandate!.Id).Distinct())
+        var mandateIds = chosen.Select(i => i.Mandate!.Id).Distinct().ToList();
+        foreach (var mandate in mandateIds)
         {
             await accessLog.LogAsync(nameof(DirectDebitMandate), mandate, "IBAN für Lastschriftdatei", cancellationToken);
         }
+
+        // A mandate lapses 36 months after its last collection, so the file counts as one.
+        foreach (var mandate in await db.Set<DirectDebitMandate>().Where(m => mandateIds.Contains(m.Id)).ToListAsync(cancellationToken))
+        {
+            mandate.RecordCollection(collectionDate);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
 
         return new PaymentOrderResult(true, [], $"lastschriften-{collectionDate:yyyy-MM-dd}.xml", file, chosen.Count, chosen.Sum(i => i.Candidate.Amount));
     }
@@ -125,7 +134,7 @@ internal sealed class DirectDebits(
             foreach (var group in rents.OrderBy(g => g.Key))
             {
                 var mandate = mandates.Where(m => m.LeaseId == leaseId && m.IsActiveOn(group.Key)).OrderByDescending(m => m.SignedOn).FirstOrDefault();
-                var problem = mandate is null ? "Es gibt kein gültiges SEPA-Mandat für den Fälligkeitstag (Geld → Bank → Lastschrift-Mandate)." : null;
+                var problem = mandate is null ? "Es gibt kein gültiges SEPA-Mandat für den Fälligkeitstag, oder es ist abgelaufen: Ein Mandat verfällt 36 Monate nach dem letzten Einzug (Geld → Bank → Lastschrift-Mandate)." : null;
                 result.Add(new Item(
                     new DebitCandidate($"debit:{leaseId}:{group.Key:yyyy-MM-dd}", leaseId, lease.Tenant, lease.RentalUnit, mandate?.Reference, group.Sum(e => e.Open!.Value), group.Key, problem), mandate));
             }

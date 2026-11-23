@@ -109,6 +109,8 @@ public class DirectDebitTests(PostgresFixture postgres) : IAsyncLifetime
         Assert.Equal("RCUR", xml.Descendants(Ns + "SeqTp").Single().Value);
         var logged = await With<ElocaroDbContext, List<string>>(db => db.Set<AuditEntry>().Where(a => a.Purpose == "IBAN für Lastschriftdatei").Select(a => a.EntityType).ToListAsync(Ct));
         Assert.Equal(["DirectDebitMandate"], logged);
+        var row = Assert.Single(await With<IDirectDebitMandates, IReadOnlyList<MandateRow>>(s => s.ListAsync(Ct)));
+        Assert.Equal(next.Due.AddMonths(36), row.ExpiresOn);
     }
 
     [Fact]

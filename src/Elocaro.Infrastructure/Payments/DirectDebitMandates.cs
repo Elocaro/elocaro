@@ -21,14 +21,14 @@ internal sealed class DirectDebitMandates(ElocaroDbContext db, ILeaseService lea
             .Select(m =>
             {
                 names.TryGetValue(m.LeaseId, out var lease);
-                return new MandateRow(m.Id, m.LeaseId, lease?.RentalUnit ?? "", lease?.Property ?? "", lease?.Tenant ?? "", m.Reference, m.DebtorName, Ending(m.DebtorIban), m.SignedOn, m.Sequence, m.RevokedOn, m.IsActiveOn(today));
+                return new MandateRow(m.Id, m.LeaseId, lease?.RentalUnit ?? "", lease?.Property ?? "", lease?.Tenant ?? "", m.Reference, m.DebtorName, Ending(m.DebtorIban), m.SignedOn, m.Sequence, m.RevokedOn, m.IsActiveOn(today), m.ExpiresOn);
             })
             .OrderByDescending(r => r.Active).ThenBy(r => r.Tenant, StringComparer.CurrentCultureIgnoreCase).ThenByDescending(r => r.SignedOn)];
     }
 
     public async Task<MandateInput?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
         await db.Set<DirectDebitMandate>().AsNoTracking().SingleOrDefaultAsync(m => m.Id == id, cancellationToken) is { } m
-            ? new MandateInput { Reference = m.Reference, DebtorName = m.DebtorName, DebtorIban = m.DebtorIban, DebtorBic = m.DebtorBic, SignedOn = m.SignedOn, Sequence = m.Sequence, Note = m.Note }
+            ? new MandateInput { Reference = m.Reference, DebtorName = m.DebtorName, DebtorIban = m.DebtorIban, DebtorBic = m.DebtorBic, SignedOn = m.SignedOn, Sequence = m.Sequence, LastCollectedOn = m.LastCollectedOn, Note = m.Note }
             : null;
 
     public async Task<IReadOnlyList<MandateLeaseOption>> LeaseOptionsAsync(CancellationToken cancellationToken = default) =>
@@ -52,6 +52,7 @@ internal sealed class DirectDebitMandates(ElocaroDbContext db, ILeaseService lea
             }
 
             var mandate = new DirectDebitMandate(leaseId, reference, input.DebtorName.Trim(), Iban.Format(input.DebtorIban), Bic(input.DebtorBic), signedOn, input.Sequence) { Note = TrimToNull(input.Note) };
+            mandate.SetLastCollection(input.LastCollectedOn);
             db.Add(mandate);
             await db.SaveChangesAsync(cancellationToken);
             return mandate.Id;
@@ -64,6 +65,7 @@ internal sealed class DirectDebitMandates(ElocaroDbContext db, ILeaseService lea
             var mandate = await db.Set<DirectDebitMandate>().SingleOrDefaultAsync(m => m.Id == id, cancellationToken) ?? throw new NotFoundException();
             mandate.Change(input.DebtorName.Trim(), Iban.Format(input.DebtorIban), Bic(input.DebtorBic), input.SignedOn ?? throw new RuleViolationException("Bitte das Datum der Unterschrift angeben."), input.Sequence);
             mandate.Note = TrimToNull(input.Note);
+            mandate.SetLastCollection(input.LastCollectedOn);
             await db.SaveChangesAsync(cancellationToken);
             return id;
         });

@@ -3,6 +3,7 @@
 @using Elocaro.Application.Payments
 @using MudBlazor
 @inject IDirectDebitMandates MandateService
+@inject TimeProvider Clock
 
 <InteractiveShell>
     <PageHeader Title="Lastschrift-Mandate" Subtitle="Das SEPA-Mandat erlaubt, die Miete vom Konto des Mieters einzuziehen." Back="/verwaltung/finanzen/lastschriften" BackText="Lastschriften">
@@ -48,7 +49,7 @@
                     }
                     else
                     {
-                        <StatusChip Level="StatusLevel.Warning">@(context.RevokedOn is { } revoked ? $"widerrufen am {Format.Date(revoked)}" : "noch nicht gültig")</StatusChip>
+                        <StatusChip Level="StatusLevel.Warning">@(context.RevokedOn is { } revoked ? $"widerrufen am {Format.Date(revoked)}" : context.ExpiresOn <= DateOnly.FromDateTime(Clock.GetLocalNow().DateTime) ? $"abgelaufen am {Format.Date(context.ExpiresOn)}" : "noch nicht gültig")</StatusChip>
                     }
                 </MudTd>
             </RowTemplate>

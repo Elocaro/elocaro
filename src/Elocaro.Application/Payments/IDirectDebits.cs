@@ -48,6 +48,9 @@ public sealed class MandateInput
 
     public MandateSequence Sequence { get; set; }
 
+    /// <summary>Day of the last collection, if the tenant was already debited before Elocaro. Elocaro fills it for every file it builds. A mandate lapses 36 months after the last collection.</summary>
+    public DateOnly? LastCollectedOn { get; set; }
+
     [StringLength(500)]
     public string? Note { get; set; }
 }
@@ -65,7 +68,8 @@ public sealed record MandateRow(
     DateOnly SignedOn,
     MandateSequence Sequence,
     DateOnly? RevokedOn,
-    bool Active);
+    bool Active,
+    DateOnly ExpiresOn);
 
 public sealed record MandateLeaseOption(Guid Id, string Label);
 

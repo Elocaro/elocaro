@@ -17,14 +17,14 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261116111412_SelfDisclosureInformedInsteadOfConsent";
+    public override string LastMigrationId => "20261123125915_MandateLastCollection";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
         modelBuilder
             .HasAnnotation("Npgsql:CollationDefinition:german", "de-DE,de-DE,icu,True")
-            .HasAnnotation("ProductVersion", "11.0.0-rc.3.26522.148")
+            .HasAnnotation("ProductVersion", "11.0.0")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
         NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "btree_gist");
@@ -5482,6 +5482,10 @@ partial class ElocaroDbContextModelSnapshot : ModelSnapshot
                 b.Property<bool>("Deleted")
                     .HasColumnType("boolean")
                     .HasColumnName("deleted");
+
+                b.Property<DateOnly?>("LastCollectedOn")
+                    .HasColumnType("date")
+                    .HasColumnName("last_collected_on");
 
                 b.Property<Guid>("LeaseId")
                     .HasColumnType("uuid")

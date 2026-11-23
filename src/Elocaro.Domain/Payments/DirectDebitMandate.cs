@@ -21,6 +21,9 @@ public sealed class DirectDebitMandate : Entity
     public const int MaxReference = 35;
     public const int MaxName = 70;
 
+    /// <summary>Months without a collection after which a core mandate lapses.</summary>
+    public const int ExpiryMonths = 36;
+
     private const string ReferenceCharacters = "+?/-:().,'";
 
     private DirectDebitMandate()
@@ -63,9 +66,21 @@ public sealed class DirectDebitMandate : Entity
     /// <summary>From this day no more collections (revoked by the tenant or the lease ended); empty = valid.</summary>
     public DateOnly? RevokedOn { get; private set; }
 
+    /// <summary>Day of the last collection (collection date of the last file Elocaro built, or entered by hand for earlier ones); empty = never collected.</summary>
+    public DateOnly? LastCollectedOn { get; private set; }
+
     public string? Note { get; set; }
 
-    public bool IsActiveOn(DateOnly day) => SignedOn <= day && (RevokedOn is null || RevokedOn > day);
+    /// <summary>A core mandate lapses 36 months after its last collection (or, without any, after the signature): then a new mandate is needed.</summary>
+    public DateOnly ExpiresOn => (LastCollectedOn is { } last && last > SignedOn ? last : SignedOn).AddMonths(ExpiryMonths);
+
+    public bool IsActiveOn(DateOnly day) => SignedOn <= day && day < ExpiresOn && (RevokedOn is null || RevokedOn > day);
+
+    /// <summary>Remembers a collection; only a later day than the known one counts.</summary>
+    public void RecordCollection(DateOnly day) => LastCollectedOn = LastCollectedOn is { } last && last >= day ? last : day;
+
+    /// <summary>Sets the day of the last collection by hand (collections outside Elocaro).</summary>
+    public void SetLastCollection(DateOnly? day) => LastCollectedOn = day;
 
     /// <summary>Changes the data of the mandate (e.g. a new account). The reference stays.</summary>
     public void Change(string debtorName, string debtorIban, string? debtorBic, DateOnly signedOn, MandateSequence sequence)
