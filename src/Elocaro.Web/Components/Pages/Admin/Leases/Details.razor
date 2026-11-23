@@ -66,7 +66,7 @@ else
                         <td>@Labels.From(b.Kind)@(b.Name is null ? "" : $" ({b.Name})")</td>
                         <td class="small">@Format.Period(b.Validity)</td>
                         <td class="number">@Format.Money(b.Amount)</td>
-                        <td><MudButton Variant="Variant.Text" OnClick="() => EditComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} bearbeiten")">Bearbeiten</MudButton></td>
+                        <td><MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="() => EditComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} bearbeiten")" title="Bearbeiten" /></td>
                     </tr>
                 }
             </tbody>
@@ -99,7 +99,7 @@ else
                             <td>@Format.Period(b.Validity)</td>
                             <td class="number">@Format.Money(b.Amount)</td>
                             <td>
-                                <MudButton Variant="Variant.Text" OnClick="() => EditComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} {Format.Period(b.Validity)} bearbeiten")">Bearbeiten</MudButton>
+                                <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="() => EditComponentAsync(b)" aria-label="@($"{Labels.From(b.Kind)} {Format.Period(b.Validity)} bearbeiten")" title="Bearbeiten" />
                                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="@($"Weitere Aktionen für {Labels.From(b.Kind)} {Format.Period(b.Validity)}")" Dense="true">
                                     <MudMenuItem OnClick="() => RemoveComponentAsync(b)">Löschen</MudMenuItem>
                                 </MudMenu>
@@ -149,7 +149,7 @@ else
         {
             <li>
                 @Format.Period(entry.Validity): @entry.Count
-                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => EditOccupantAsync(entry)" aria-label="@($"Personenanzahl {Format.Period(entry.Validity)} bearbeiten")">Bearbeiten</MudButton>
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="() => EditOccupantAsync(entry)" aria-label="@($"Personenanzahl {Format.Period(entry.Validity)} bearbeiten")" title="Bearbeiten" />
                 @if (lease.People.Count > 1)
                 {
                     <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" AriaLabel="@($"Weitere Aktionen für Personenanzahl {Format.Period(entry.Validity)}")" Dense="true">

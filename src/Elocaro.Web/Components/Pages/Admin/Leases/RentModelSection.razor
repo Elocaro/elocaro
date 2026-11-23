@@ -57,7 +57,7 @@
                                     <td>
                                         @if (rentStep.AppliedAt is null)
                                         {
-                                            <MudButton Variant="Variant.Text" OnClick="() => EditStepAsync(rentStep)" aria-label="@($"Staffel {Format.Date(rentStep.From)} bearbeiten")">Bearbeiten</MudButton>
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="() => EditStepAsync(rentStep)" aria-label="@($"Staffel {Format.Date(rentStep.From)} bearbeiten")" title="Bearbeiten" />
                                             <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="() => RemoveStepAsync(rentStep)" aria-label="@($"Staffel {Format.Date(rentStep.From)} entfernen")">Entfernen</MudButton>
                                         }
                                     </td>

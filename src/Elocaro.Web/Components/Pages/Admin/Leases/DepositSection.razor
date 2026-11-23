@@ -62,7 +62,7 @@
                                 <td>@row.Note</td>
                                 <td class="number">@(row.Kind is DepositEntryKind.Refund or DepositEntryKind.Deduction ? "−" : "")@Format.Money(row.Amount)</td>
                                 <td>
-                                    <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => EditAsync(row)" aria-label="@($"{Labels.From(row.Kind)} vom {Format.Date(row.Date)} bearbeiten")">Bearbeiten</MudButton>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="() => EditAsync(row)" aria-label="@($"{Labels.From(row.Kind)} vom {Format.Date(row.Date)} bearbeiten")" title="Bearbeiten" />
                                     <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => DeleteAsync(row)" aria-label="@($"{Labels.From(row.Kind)} vom {Format.Date(row.Date)} löschen")">Löschen</MudButton></td>
                             </tr>
                         }

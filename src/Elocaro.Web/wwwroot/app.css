@@ -1579,7 +1579,9 @@ fieldset { min-width: 0; }
     .workspace:has(.record-header):has(.page-header.is-compact:not(.is-compact-narrow) .page-header-actions) { position: relative; }
     .workspace:has(.record-header):has(.page-header.is-compact:not(.is-compact-narrow) .page-header-actions) .content { padding-top: 1rem; }
     .workspace:has(.record-header):has(.page-header.is-compact:not(.is-compact-narrow) .page-header-actions) .record-title { min-height: 2.5rem; display: flex; align-items: center; padding-right: 16rem; }
-    .workspace:has(.record-header) .page-header.is-compact:not(.is-compact-narrow) { position: absolute; top: 1.85rem; right: var(--content-gutter); z-index: 7; margin: 0; padding: 0; background: none; }
+    .workspace:has(.record-header) .page-header.is-compact:not(.is-compact-narrow) { position: static; height: 0; margin: 0; padding: 0; justify-content: flex-start; }
+    .workspace:has(.record-header) .page-header.is-compact:not(.is-compact-narrow) .page-header-title { position: relative; margin-right: auto; }
+    .workspace:has(.record-header) .page-header.is-compact:not(.is-compact-narrow) .page-header-actions { position: absolute; top: 1.85rem; right: var(--content-gutter); z-index: 7; margin: 0; }
 }
 
 /* Interactive page that is prerendered but not yet connected (Components/Shell/InteractiveShell.razor): the controls are visible but would
@@ -1722,3 +1724,6 @@ main:has([data-shell]):not(:has([data-interactive="true"])) :is(.mud-input-contr
 .release-badge.is-new { background: var(--md-warning-container); color: var(--md-on-warning-container); }
 .release-badge.is-installed { background: var(--md-success-container); color: var(--md-on-success-container); }
 .nav-dot { display: inline-block; width: 0.6rem; height: 0.6rem; margin-left: 0.5rem; background: var(--md-warning); border-radius: 50%; }
+
+/* Edit icon in a table row: keeps its touch area without making the row taller than its text */
+.data-table td button.mud-icon-button { margin-block: -0.6rem; }
