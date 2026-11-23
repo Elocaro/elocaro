@@ -4,7 +4,7 @@ name: elocaro-dev
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgres:19-alpine
     environment:
       POSTGRES_USER: elocaro
       POSTGRES_PASSWORD: elocaro
