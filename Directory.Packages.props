@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup Label="Infrastruktur">
-    <PackageVersion Include="libfintx.FinTS" Version="1.4.0" />
+    <PackageVersion Include="libfintx.FinTS" Version="1.5.0" />
     <PackageVersion Include="MailKit" Version="5.0.0" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
     <PackageVersion Include="MudBlazor" Version="9.13.0" />
