@@ -91,7 +91,7 @@ services:
 
   # HTML → PDF. Reachable only on the internal network.
   gotenberg:
-    image: gotenberg/gotenberg:9.5.1
+    image: gotenberg/gotenberg:9.9.1
     restart: unless-stopped
     # --chromium-deny-private-ips: Vorlagen-HTML darf keine Dienste im Docker-Netz (App, Datenbank) oder Loopback/Link-Local abrufen (SSRF)
     command: ["gotenberg", "--api-timeout=60s", "--chromium-auto-start=true", "--chromium-deny-private-ips"]
