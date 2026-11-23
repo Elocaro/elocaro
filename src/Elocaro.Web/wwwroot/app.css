@@ -393,11 +393,12 @@ h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
 .mud-tabs.detail-tabs { margin-top: 0.5rem; }
 .detail-tabs .mud-tabs-tabbar { background: transparent; border-bottom: 1px solid var(--md-outline-variant); }
 .detail-tabs .mud-tab { text-transform: none; letter-spacing: 0; font-weight: 600; min-width: 5rem !important; padding-inline: 0.75rem; }
-/* Second tab level: same colors and states as .tab-bar, one step smaller */
-.detail-tabs .mud-tab { color: var(--md-on-surface-variant); font-size: 0.9375rem; }
-.detail-tabs .mud-tab:hover { color: var(--md-on-surface); }
+/* Second tab level: same colors, states, shape and indicator as .tab-bar, one step smaller (the indicator is drawn here, not by MudBlazor's slider) */
+.detail-tabs .mud-tab { position: relative; min-height: 3rem; padding-inline: 1rem; color: var(--md-on-surface-variant); font-size: 0.9375rem; border-radius: var(--shape-md) var(--shape-md) 0 0; transition: background-color var(--motion-duration) var(--motion-effects); }
+.detail-tabs .mud-tab:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); color: var(--md-on-surface); }
 .detail-tabs .mud-tab.mud-tab-active { color: var(--md-primary); }
-.detail-tabs .mud-tab-slider { background: var(--md-primary); height: 3px; }
+.detail-tabs .mud-tab.mud-tab-active::after { content: ""; position: absolute; left: 0.75rem; right: 0.75rem; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--md-primary); }
+.detail-tabs .mud-tab-slider { display: none; }
 /* Phones: the tab bar scrolls natively (swipe) instead of through MudBlazor's arrow buttons and translate; shell.js keeps the active tab in view. */
 @media (max-width: 899.98px) {
     .detail-tabs .mud-tabs-tabbar-content { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
