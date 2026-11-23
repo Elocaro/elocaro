@@ -20,13 +20,43 @@
             <KpiTile Label="Leerstand" Value="@(figures.VacancyPercent is { } vacancy ? Percent(vacancy) : "–")" />
             <KpiTile Label="Rückstände" Value="@(figures.ArrearsPercent is { } arrears ? Percent(arrears) : "–")" />
         </div>
-        @if (history.Count >= 2)
+        @if (series.Count >= 2)
         {
-            <LineChart id="cashflow-chart" Caption="Cashflow je Jahr" LabelHeading="Jahr" ValueHeading="Cashflow" Points="history" />
+            <section id="key-figures-history" aria-label="Verlauf der Kennzahlen">
+                <div class="form-grid">
+                    <AppSelect T="Metric" @bind-Value="metric" Label="Kennzahl im Diagramm" Items="Enum.GetValues<Metric>()" Text="MetricLabel" />
+                </div>
+                @if (ChartPoints is { Count: >= 2 } points)
+                {
+                    <LineChart id="history-chart" Caption="@(MetricLabel(metric) + " je Jahr")" LabelHeading="Jahr" ValueHeading="@MetricLabel(metric)" Points="points" FormatValue="@(metric == Metric.Cashflow ? null : Percent)" />
+                }
+                else
+                {
+                    <p class="small">Für diese Kennzahl gibt es in weniger als zwei Jahren einen Wert.</p>
+                }
+                <div class="table-wrapper">
+                    <table class="data-table" id="history-table" data-nostack>
+                        <caption class="small">Alle Kennzahlen im Verlauf</caption>
+                        <thead><tr><th>Jahr</th><th class="number">Nettomietrendite</th><th class="number">Cashflow</th><th class="number">Leerstand</th><th class="number">Rückstände</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in series)
+                            {
+                                <tr>
+                                    <td>@row.Year</td>
+                                    <td class="number">@(row.NetYield is { } y ? Percent(y) : "–")</td>
+                                    <td class="number">@Format.Money(row.Cashflow)</td>
+                                    <td class="number">@(row.VacancyPercent is { } v ? Percent(v) : "–")</td>
+                                    <td class="number">@(row.ArrearsPercent is { } a ? Percent(a) : "–")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         }
         else
         {
-            <p><button type="button" class="button" @onclick="ShowHistoryAsync" disabled="@loadingHistory">Cashflow-Verlauf anzeigen</button></p>
+            <p><button type="button" class="button" @onclick="ShowHistoryAsync" disabled="@loadingHistory">Verlauf der Kennzahlen anzeigen</button></p>
         }
         <p class="small"><a class="button" href="@($"/verwaltung/objekte/{PropertyId}/kennzahlen.csv")">CSV exportieren</a></p>
         <details class="explain">
@@ -53,7 +83,16 @@
 </section>
 
 @code {
-    private List<ChartPoint> history = [];
+    private enum Metric
+    {
+        Cashflow,
+        NetYield,
+        Vacancy,
+        Arrears,
+    }
+
+    private List<PropertyKeyFigures> series = [];
+    private Metric metric;
     private bool loadingHistory;
     private PropertyKeyFigures? figures;
     private int year;
@@ -88,22 +127,38 @@
         try
         {
             var user = (await Authentication).User;
-            var points = new List<ChartPoint>();
+            var rows = new List<PropertyKeyFigures>();
             foreach (var y in years.Reverse())
             {
                 if (await KeyFigures.GetAsync(user, PropertyId, y) is { } row)
                 {
-                    points.Add(new ChartPoint(y.ToString(System.Globalization.CultureInfo.InvariantCulture), row.Cashflow));
+                    rows.Add(row);
                 }
             }
 
-            history = points;
+            series = rows;
         }
         finally
         {
             loadingHistory = false;
         }
     }
+
+    private static string MetricLabel(Metric value) => value switch
+    {
+        Metric.Cashflow => "Cashflow",
+        Metric.NetYield => "Nettomietrendite",
+        Metric.Vacancy => "Leerstandsquote",
+        _ => "Rückstandsquote",
+    };
+
+    private List<ChartPoint>? ChartPoints => [.. series.Select(r => (r.Year, Value: metric switch
+    {
+        Metric.Cashflow => r.Cashflow,
+        Metric.NetYield => r.NetYield,
+        Metric.Vacancy => r.VacancyPercent,
+        _ => r.ArrearsPercent,
+    })).Where(x => x.Value is not null).Select(x => new ChartPoint(x.Year.ToString(System.Globalization.CultureInfo.InvariantCulture), x.Value!.Value))];
 
     private static string Percent(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) + " %";
 }
