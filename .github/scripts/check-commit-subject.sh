@@ -8,6 +8,8 @@ subject="${1-}"
 # Von Git erzeugte Betreffe sind ausgenommen.
 case "$subject" in
   "Merge "*|"Revert \""*) exit 0 ;;
+  # Dependabot (Präfix in .github/dependabot.yml): Bereich Intern, wird aus den Release-Notes gefiltert.
+  "Intern: Bump "*) exit 0 ;;
 esac
 
 fail() {

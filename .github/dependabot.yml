@@ -5,6 +5,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    commit-message:
+      prefix: "Intern:"
     open-pull-requests-limit: 10
     groups:
       # EF Core, ASP.NET Core und Npgsql gemeinsam aktualisieren (Versionen müssen zusammenpassen)
@@ -29,13 +31,19 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "Intern:"
 
   - package-ecosystem: docker-compose
     directory: /deploy
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "Intern:"
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "Intern:"

@@ -59,4 +59,4 @@ Release deshalb beide Pakete (`elocaro` und `elocaro-backup`) unter *Packages �
 dass `docker pull ghcr.io/elocaro/elocaro:latest` ohne Anmeldung funktioniert. Für ein privates Paket gilt stattdessen:
 auf dem Server einmalig `docker login ghcr.io` mit einem Token (Scope `read:packages`) ausführen.
 
-Abhängigkeiten aktualisiert Dependabot wöchentlich (EF Core/ASP.NET/Npgsql gruppiert, Quartz-Major ausgenommen).
+Abhängigkeiten aktualisiert Dependabot wöchentlich (EF Core/ASP.NET/Npgsql gruppiert, Quartz-Major ausgenommen). Dependabot-Commits heißen „Intern: Bump …“ (Präfix in `.github/dependabot.yml`) und sind von der Betreffprüfung ausgenommen.
