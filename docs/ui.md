@@ -258,11 +258,13 @@ Deutsch, Sie-Form, sachlich. Buttons mit Verb („Speichern“, „Vertrag anleg
 - [ ] Riskante Aktionen mit `DangerAction`
 - [ ] Formatierung über `Format`/`Labels`
 - [ ] Bei 360 px ohne horizontales Scrollen, hell und dunkel geprüft
+- [ ] Neue Seite in `PageSweepBase.Routes` eintragen (`SweepCoverageTests` schlägt sonst fehl); sie wird dann auf 360 px, im Kontrast und im Feld-Durchlauf geprüft
 - [ ] Neuer Baustein oder neue Klasse? Dann hier dokumentieren
 
 ## Prüfen
 
 - `UiRulesTests` (Architektur): Bausteine statt Rohmarkup.
+- `FieldSweepPart1` bis `6` (Browser): bedienen auf jeder Seite und in jedem per Schaltfläche (Hinzufügen, Erfassen, Bearbeiten, Ändern, Anlegen …) erreichbaren Dialog jedes Feld **wie ein Mensch** (Auswahlliste öffnen und wählen, Tag im Kalender und Monat anklicken, Uhr anklicken, Kästchen, Optionen, Tippen), ohne zu speichern, und melden jedes Feld, das den Wert nicht übernimmt. Tippen allein reicht nicht: Kalender und Uhr melden ihre Werte in anderer Reihenfolge als getippter Text (Issue #221). `SweepCoverageTests` vergleicht die Routentabelle der App mit den Routen der Durchläufe.
 - `UiAuditTests`/`PageSmokeTests` (Browser): Bedienelemente auf dem Handy (Touch-Ziel mindestens 44 px, Buttons als Pill, schwebende Hauptaktion ausgenommen), Textkontrast nach WCAG AA in Hell und Dunkel auf den Hauptseiten, alle Bereiche bei 360 px ohne horizontales Scrollen (nennt die überstehenden Elemente).
 - Screenshot-Tour zum Ansehen: `ELOCARO_TOUR=1 ELOCARO_HEADED=1 ELOCARO_TOUR_DIR=/pfad dotnet test --filter Screenshot_tour` (sichtbarer Browser: `ELOCARO_HEADED=1`, braucht ein Display). Die Tour über alle Seiten mit Daten (`Screenshot_tour_of_all_pages`) lässt sich mit `ELOCARO_TOUR_ONLY=/personen,bank/regeln` auf Pfade beschränken, die einen der Teile enthalten.
 

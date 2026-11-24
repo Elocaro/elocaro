@@ -104,6 +104,30 @@ public class OperatingCostsBrowserTests(PostgresFixture postgres) : BrowserTestB
         });
     }
 
+    /// <summary>Year and threshold each start a load; a fast second change must not run both on the one database context of the page (that ended the circuit).</summary>
+    [Fact]
+    public async Task Changing_year_and_threshold_in_quick_succession_keeps_the_page_alive()
+    {
+        await SeedAsync();
+        var page = await OpenAsync($"/verwaltung/objekte/{house}/abrechnung?jahr=2026&schritt=1");
+
+        await WithScreenshotOnFailureAsync(page, async () =>
+        {
+            var threshold = page.GetByLabel("Abweichung zum Vorjahr (± %)");
+            for (var round = 0; round < 4; round++)
+            {
+                await SelectAsync(page, "Abrechnungsjahr", round % 2 == 0 ? "2025" : "2024");
+                await threshold.FillAsync((20 + round).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                await threshold.PressAsync("Tab");
+            }
+
+            // The circuit is still alive: another change is taken over, and nothing says the connection was lost.
+            await SelectAsync(page, "Abrechnungsjahr", "2023");
+            await Assertions.Expect(page.Locator("#components-reconnect-modal:visible, .components-reconnect-show:visible, .reconnect-failed:visible")).ToHaveCountAsync(0);
+            await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("Es ist ein Fehler aufgetreten");
+        });
+    }
+
     [Fact]
     public async Task One_click_sends_the_statement_to_all_tenants_after_asking_once()
     {

@@ -293,7 +293,23 @@ var result = w.Preview.Result;
         loaded = true;
     }
 
+    // Year and threshold start a load each, and a fast second change would run both on the one database context of the page (which allows one operation at a time and ends the circuit otherwise).
+    private readonly SemaphoreSlim loading = new(1, 1);
+
     private async Task LoadAsync()
+    {
+        await loading.WaitAsync();
+        try
+        {
+            await LoadCoreAsync();
+        }
+        finally
+        {
+            loading.Release();
+        }
+    }
+
+    private async Task LoadCoreAsync()
     {
         errorText = null;
         if (year is < 2000 or > 2100)

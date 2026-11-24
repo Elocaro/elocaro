@@ -14,7 +14,7 @@
         <MudTextField T="string" ShrinkLabel="true" Label="Suche" Value="@search" Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="OnSearchChanged"
                       Variant="Variant.Outlined" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                       Placeholder="Name, E-Mail, Telefon, IBAN, Gewerk" />
-        <MudSelect T="PersonFilter" Label="Anzeigen" Value="filter" ValueChanged="OnFilterChanged" Variant="Variant.Outlined">
+        <MudSelect T="PersonFilter" Label="Anzeigen" Value="filter" ValueChanged="OnFilterChanged" ToStringFunc="FilterText" Variant="Variant.Outlined">
             <MudSelectItem Value="PersonFilter.All">Alle</MudSelectItem>
             <MudSelectItem Value="PersonFilter.Private">Mieter &amp; Privatpersonen</MudSelectItem>
             <MudSelectItem Value="PersonFilter.Contacts">Kontakte</MudSelectItem>
@@ -88,6 +88,14 @@
         search = text;
         await LoadAsync();
     }
+
+    // Without a text function the field would show the name of the value ("Contacts") instead of the entry of the list.
+    private static string FilterText(PersonFilter value) => value switch
+    {
+        PersonFilter.Private => "Mieter & Privatpersonen",
+        PersonFilter.Contacts => "Kontakte",
+        _ => "Alle",
+    };
 
     private async Task OnFilterChanged(PersonFilter value)
     {

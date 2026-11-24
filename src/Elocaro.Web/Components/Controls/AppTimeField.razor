@@ -2,8 +2,13 @@
 @using MudBlazor
 @* Time of day (HH:mm, typed or picked on the clock face). Value is a TimeOnly?. *@
 <div class="app-field">
-    <MudTimePicker Time="current" TimeChanged="OnTimeChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Editable="true" AmPm="false"
-                   Variant="Variant.Outlined" ShrinkLabel="true" Placeholder="HH:mm" />
+    <MudTimePicker @ref="picker" Time="current" TimeChanged="OnTimeChanged" Label="@Label" HelperText="@Hint" Required="Required" Disabled="Disabled" Editable="true" AmPm="false" AutoClose="true"
+                   Variant="Variant.Outlined" ShrinkLabel="true" Placeholder="HH:mm">
+        <PickerActions>
+            <MudButton OnClick="@(() => picker!.CloseAsync(false))">Abbrechen</MudButton>
+            <MudButton Color="Color.Primary" OnClick="@(() => picker!.CloseAsync())">OK</MudButton>
+        </PickerActions>
+    </MudTimePicker>
     @if (ValueExpression is not null && EditContext is not null)
     {
         <ValidationMessage For="ValueExpression" />
@@ -38,6 +43,7 @@
 
     // The component keeps the chosen time itself (see AppDateField): it re-renders when it raises ValueChanged, before the parent has
     // passed the new Value down.
+    private MudTimePicker? picker;
     private TimeSpan? current;
     private TimeOnly? lastValue;
 

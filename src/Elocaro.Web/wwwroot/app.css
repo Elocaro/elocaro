@@ -141,6 +141,7 @@ pre code { font-size: 0.85rem; }
 .field label { font-weight: 600; font-size: 0.95rem; }
 .field-checkbox { flex-direction: row; align-items: center; gap: 0.5rem; }
 .field-checkbox label { font-weight: normal; }
+.field-checkbox > input[type=checkbox] { flex: none; height: 2.75rem; } /* next to a long label the box must not shrink; a tall box keeps the touch target at 44 px (like .row-select) */
 
 input:not([type=checkbox]):not([type=radio]):not([type=hidden]):where(:not([class*="mud-"])), select:where(:not([class*="mud-"])), textarea:where(:not([class*="mud-"])) {
     width: 100%;

@@ -39,7 +39,7 @@ else if (candidates is not null)
                         var id = "pick-" + candidate.Key.Replace(':', '-');
                         <tr>
                             <td>
-                                <input type="checkbox" id="@id" name="auswahl" value="@candidate.Key" disabled="@(candidate.Problem is not null)" aria-label="@($"{candidate.Tenant}, Miete vom {Format.Date(candidate.Due)}, {Format.Money(candidate.Amount)} auswählen")" />
+                                <input type="checkbox" class="row-select" id="@id" name="auswahl" value="@candidate.Key" disabled="@(candidate.Problem is not null)" aria-label="@($"{candidate.Tenant}, Miete vom {Format.Date(candidate.Due)}, {Format.Money(candidate.Amount)} auswählen")" />
                             </td>
                             <td>@candidate.Tenant</td>
                             <td>@candidate.RentalUnit</td>

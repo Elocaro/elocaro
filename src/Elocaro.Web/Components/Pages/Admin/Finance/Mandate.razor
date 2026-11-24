@@ -33,7 +33,7 @@
                 <AppDateField @bind-Value="data.SignedOn" Label="Datum der Unterschrift" Required="true" />
                 <AppDateField @bind-Value="data.LastCollectedOn" Label="Letzter Einzug" Hint="Nur ausfüllen, wenn schon vor Elocaro eingezogen wurde. Das Mandat verfällt 36 Monate nach dem letzten Einzug." />
                 <AppSelect @bind-Value="data.Sequence" Label="Art" Items="Enum.GetValues<MandateSequence>()" Text="@(v => v == MandateSequence.OneOff ? "einmalig" : "wiederkehrend (Miete)")" />
-                <AppTextField @bind-Value="data.Reference" Label="Mandatsreferenz" Disabled="@(Id is not null)" Hint="@(Id is null ? "Leer lassen, dann vergibt Elocaro eine." : "Lässt sich nicht mehr ändern.")" />
+                <AppTextField @bind-Value="data.Reference" Label="Mandatsreferenz" ReadOnly="@(Id is not null)" Hint="@(Id is null ? "Leer lassen, dann vergibt Elocaro eine." : "Lässt sich nicht mehr ändern.")" />
                 <AppTextField @bind-Value="data.Note" Label="Anmerkung" Lines="2" />
             </div>
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudButton>

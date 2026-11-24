@@ -1,11 +1,14 @@
+using Elocaro.Application.Admin;
 using Elocaro.Application.Bank;
 using Elocaro.Application.Deadlines;
 using Elocaro.Application.Documents;
 using Elocaro.Application.Finance;
 using Elocaro.Application.Leases;
 using Elocaro.Application.Metering;
+using Elocaro.Application.Payments;
 using Elocaro.Application.People;
 using Elocaro.Application.Properties;
+using Elocaro.Application.Prospects;
 using Elocaro.Application.Receipts;
 using Elocaro.Application.Statements;
 using Elocaro.Application.Tax;
@@ -49,6 +52,7 @@ public abstract class PageSweepBase(PostgresFixture postgres) : BrowserTestBasis
             var room = (await properties.CreateRoomAsync(shared, new RoomInput { Name = "Zimmer 1" }, Ct)).Id!.Value;
             await properties.SetUnitAreaAsync(unit, new AreaInput { From = start, Area = 60m }, Ct);
             await properties.SetUnitAreaAsync(shared, new AreaInput { From = start, Area = 40m }, Ct);
+            await properties.SetRoomAreaAsync(room, new AreaInput { From = start, Area = 14m }, Ct);
 
             var people = sp.GetRequiredService<IPersonService>();
             var person = (await people.CreateAsync(new PersonInput { Salutation = Domain.People.Salutation.Mrs, FirstName = "Anna", LastName = "Schmidt", Email = "anna@example.de", Phone = "0221 123456" },
@@ -91,6 +95,10 @@ public abstract class PageSweepBase(PostgresFixture postgres) : BrowserTestBasis
 
             var bank = sp.GetRequiredService<IBankService>();
             var account = (await bank.CreateAccountAsync(new BankAccountInput { Name = "Mietkonto", Iban = "DE12500105170648489890", PropertyIds = [property] }, Ct)).Id!.Value;
+            var imported = today.AddDays(-2).ToString("dd.MM.yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            var upload = await bank.CreatePreviewAsync(
+                account, "umsaetze.csv", System.Text.Encoding.UTF8.GetBytes($"Buchungstag;Valuta;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Betrag;Waehrung\n{imported};{imported};Bernd Beispiel;Testbuchung;12,50;EUR\n"), null, Ct);
+            await bank.ImportAsync(upload.Id!.Value, Ct);
             await sp.GetRequiredService<IMatchRules>().SaveAsync(null, new MatchRuleInput { Name = "Stadt Köln", CounterpartyContains = "Stadt Köln", CostType = "betrkv-01", PropertyId = property }, Ct);
             result["rule"] = (await sp.GetRequiredService<IMatchRules>().ListAsync(Ct)).Single().Id.ToString();
 
@@ -122,6 +130,10 @@ public abstract class PageSweepBase(PostgresFixture postgres) : BrowserTestBasis
             result["task"] = (await sp.GetRequiredService<IDeadlines>().CreateTaskAsync(
                 new TaskInput { Title = "Rauchmelder prüfen", Kind = Domain.Deadlines.TaskKind.SmokeDetectors, PropertyId = property, DueOn = today.AddDays(20), IntervalMonths = 12 }, Ct)).Id!.Value.ToString();
 
+            // All modules on (the optional ones are off by default), with a prospect and a mandate for their pages.
+            await sp.GetRequiredService<IModuleState>().SaveAsync(Enum.GetValues<AppModule>(), true, null, Ct);
+            result["prospect"] = (await sp.GetRequiredService<IProspects>().CreateAsync(new ProspectInput { RentalUnitId = unit, Name = "Ben Weber", Email = "ben@example.org" }, Ct)).Id!.Value.ToString();
+            result["mandate"] = (await sp.GetRequiredService<IDirectDebitMandates>().CreateAsync(lease, new MandateInput { DebtorName = "Anna Schmidt", DebtorIban = "DE89370400440532013000", SignedOn = start }, Ct)).Id!.Value.ToString();
             result["property"] = property.ToString();
             result["unit"] = unit.ToString();
             result["room"] = room.ToString();
@@ -159,6 +171,10 @@ public abstract class PageSweepBase(PostgresFixture postgres) : BrowserTestBasis
             $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=1", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=2", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=3", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=4", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=5", $"/verwaltung/objekte/{p}/abrechnung?jahr={year}&schritt=6",
             "/verwaltung/benutzer", $"/verwaltung/benutzer/{Ids["user"]}",
             "/verwaltung/einstellungen/vermieter", "/verwaltung/einstellungen/vorlagen", "/verwaltung/einstellungen/vorlagen/neu", "/verwaltung/dokumente/schreiben", "/verwaltung/system/mails", "/verwaltung/system/jobs", "/verwaltung/system/datensicherung", "/verwaltung/system/belegauslesung",
+            "/verwaltung/interessenten", "/verwaltung/interessenten/neu", $"/verwaltung/interessenten/{Ids["prospect"]}", "/verwaltung/interessenten/expose", "/verwaltung/leerstand", "/verwaltung/besichtigungen",
+            "/verwaltung/finanzen/lastschrift-mandate", "/verwaltung/finanzen/lastschrift-mandate/neu", $"/verwaltung/finanzen/lastschrift-mandate/{Ids["mandate"]}", "/verwaltung/finanzen/lastschriften", "/verwaltung/finanzen/ueberweisungen",
+            "/verwaltung/einstellungen/module", $"/verwaltung/objekte/{p}/belegimport", $"/verwaltung/objekte/{p}/zaehlerimport", "/verwaltung/personen/aenderungen", "/verwaltung/system/aktivitaet",
+            "/verwaltung/system/neuigkeiten", "/verwaltung/system/notfallmappe", "/verwaltung/tickets", "/verwaltung/tickets/neu", $"/verwaltung/vertraege/{Ids["lease"]}/kommunikation",
             "/konto/sicherheit",
         ];
     }

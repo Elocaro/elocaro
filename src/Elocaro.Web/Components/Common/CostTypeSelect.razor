@@ -29,6 +29,6 @@
 
     private static string TextOf(string? key) =>
         CostTypes.All.FirstOrDefault(k => k.Key == key) is { } kind
-            ? kind.Allocable ? $"{kind.BetrKvNumber}. {kind.Name}" : $"{kind.Name} (nicht umlagefähig)"
+            ? kind.Allocable ? $"{kind.BetrKvNumber}. {kind.Name}" : kind.Name.Contains("nicht umlagefähig", StringComparison.Ordinal) ? kind.Name : $"{kind.Name} (nicht umlagefähig)"
             : "";
 }
